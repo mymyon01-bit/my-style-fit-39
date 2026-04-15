@@ -14,7 +14,251 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      body_profiles: {
+        Row: {
+          body_landmarks: Json | null
+          created_at: string
+          height_cm: number | null
+          id: string
+          inseam_cm: number | null
+          scan_confidence: number | null
+          shoe_size: string | null
+          shoulder_width_cm: number | null
+          silhouette_type: string | null
+          updated_at: string
+          user_id: string
+          waist_cm: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          body_landmarks?: Json | null
+          created_at?: string
+          height_cm?: number | null
+          id?: string
+          inseam_cm?: number | null
+          scan_confidence?: number | null
+          shoe_size?: string | null
+          shoulder_width_cm?: number | null
+          silhouette_type?: string | null
+          updated_at?: string
+          user_id: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          body_landmarks?: Json | null
+          created_at?: string
+          height_cm?: number | null
+          id?: string
+          inseam_cm?: number | null
+          scan_confidence?: number | null
+          shoe_size?: string | null
+          shoulder_width_cm?: number | null
+          silhouette_type?: string | null
+          updated_at?: string
+          user_id?: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      interactions: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          target_id: string
+          target_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ootd_posts: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          image_url: string
+          linked_products: string[] | null
+          occasion_tags: string[] | null
+          star_count: number | null
+          style_tags: string[] | null
+          updated_at: string
+          user_id: string
+          weather_tag: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          linked_products?: string[] | null
+          occasion_tags?: string[] | null
+          star_count?: number | null
+          style_tags?: string[] | null
+          updated_at?: string
+          user_id: string
+          weather_tag?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          linked_products?: string[] | null
+          occasion_tags?: string[] | null
+          star_count?: number | null
+          style_tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+          weather_tag?: string | null
+        }
+        Relationships: []
+      }
+      ootd_stars: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ootd_stars_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          language: string | null
+          onboarded: boolean | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          language?: string | null
+          onboarded?: boolean | null
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          language?: string | null
+          onboarded?: boolean | null
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      style_profiles: {
+        Row: {
+          budget: string | null
+          created_at: string
+          disliked_styles: string[] | null
+          favorite_brands: string[] | null
+          id: string
+          occasions: string[] | null
+          preferred_fit: string | null
+          preferred_styles: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: string | null
+          created_at?: string
+          disliked_styles?: string[] | null
+          favorite_brands?: string[] | null
+          id?: string
+          occasions?: string[] | null
+          preferred_fit?: string | null
+          preferred_styles?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: string | null
+          created_at?: string
+          disliked_styles?: string[] | null
+          favorite_brands?: string[] | null
+          id?: string
+          occasions?: string[] | null
+          preferred_fit?: string | null
+          preferred_styles?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

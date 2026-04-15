@@ -20,7 +20,6 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-/** Only blocks unauthenticated users — used for Profile, Settings, Onboarding */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) {
@@ -53,11 +52,11 @@ const AppRoutes = () => {
       {/* Auth page — redirect to home if already logged in */}
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
 
-      {/* Protected routes — require login */}
+      {/* Protected routes */}
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-      <Route path="/settings" element={<SettingsPage />} />
 
-      {/* Public routes — guest can browse, interactions gated in components */}
+      {/* Public routes — guest can browse */}
+      <Route path="/settings" element={<SettingsPage />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/discover" element={<DiscoverPage />} />
