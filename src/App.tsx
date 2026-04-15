@@ -16,6 +16,7 @@ import OOTDPage from "@/pages/OOTDPage";
 import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound.tsx";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
