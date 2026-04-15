@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/lib/theme";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
+import AuthPage from "@/pages/AuthPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import HomePage from "@/pages/HomePage";
 import DiscoverPage from "@/pages/DiscoverPage";
@@ -14,32 +16,76 @@ import OOTDPage from "@/pages/OOTDPage";
 import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound.tsx";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="font-display text-2xl font-bold tracking-[0.2em] text-foreground">WARDROBE</h1>
+          <Loader2 className="mx-auto mt-4 h-5 w-5 animate-spin text-accent" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+      <Route path="/onboarding" element={
+        <ProtectedRoute><OnboardingPage /></ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <ProtectedRoute><SettingsPage /></ProtectedRoute>
+      } />
+      <Route element={
+        <ProtectedRoute><AppLayout /></ProtectedRoute>
+      }>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/fit" element={<FitPage />} />
+        <Route path="/fit/:productId" element={<FitPage />} />
+        <Route path="/ootd" element={<OOTDPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <I18nProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/discover" element={<DiscoverPage />} />
-                <Route path="/fit" element={<FitPage />} />
-                <Route path="/fit/:productId" element={<FitPage />} />
-                <Route path="/ootd" element={<OOTDPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
       </I18nProvider>
     </ThemeProvider>
   </QueryClientProvider>
