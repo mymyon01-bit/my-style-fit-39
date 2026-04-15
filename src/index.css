@@ -52,42 +52,42 @@
 
   .dark {
     --background: 240 10% 4%;
-    --foreground: 240 3% 93%;
+    --foreground: 0 0% 96%;
 
-    --card: 240 8% 6%;
-    --card-foreground: 240 3% 93%;
+    --card: 240 8% 7%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 240 8% 6%;
-    --popover-foreground: 240 3% 93%;
+    --popover: 240 8% 7%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 240 3% 93%;
+    --primary: 0 0% 96%;
     --primary-foreground: 240 10% 4%;
 
-    --secondary: 240 6% 10%;
-    --secondary-foreground: 240 3% 85%;
+    --secondary: 240 6% 11%;
+    --secondary-foreground: 0 0% 82%;
 
-    --muted: 240 6% 12%;
-    --muted-foreground: 240 3% 50%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 0 0% 58%;
 
-    --accent: 349 45% 35%;
+    --accent: 349 50% 40%;
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 349 40% 42%;
-    --accent-highlight: 349 35% 52%;
+    --accent-muted: 349 42% 48%;
+    --accent-highlight: 349 38% 58%;
 
-    --destructive: 0 62% 50%;
+    --destructive: 0 65% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 345 10% 13%;
-    --input: 345 8% 13%;
-    --ring: 349 45% 35%;
+    --border: 345 12% 16%;
+    --input: 345 10% 16%;
+    --ring: 349 50% 40%;
 
-    --neutral: 240 3% 50%;
-    --surface-elevated: 240 6% 8%;
+    --neutral: 0 0% 55%;
+    --surface-elevated: 240 6% 9%;
     --surface-sunken: 240 8% 5%;
     --star: 45 93% 58%;
 
-    --shadow-soft: 0 2px 16px -2px hsl(0 0% 0% / 0.3);
-    --shadow-elevated: 0 8px 40px -8px hsl(0 0% 0% / 0.5);
+    --shadow-soft: 0 2px 16px -2px hsl(0 0% 0% / 0.35);
+    --shadow-elevated: 0 8px 40px -8px hsl(0 0% 0% / 0.55);
   }
 }
 
