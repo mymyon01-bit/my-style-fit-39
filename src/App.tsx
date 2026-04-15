@@ -52,7 +52,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Auth page — redirect to home if already logged in */}
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       {/* Protected routes */}
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
 
