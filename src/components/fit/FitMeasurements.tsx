@@ -58,7 +58,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
         <div className="relative h-48 w-24 rounded-2xl border border-foreground/[0.06] bg-card/30 flex items-center justify-center">
           <User className="h-16 w-16 text-foreground/8" />
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-card border border-foreground/[0.06] px-3 py-1">
-            <span className="text-[9px] font-semibold tracking-[0.15em] text-foreground/30">AVATAR</span>
+            <span className="text-[9px] font-semibold tracking-[0.15em] text-foreground/80">AVATAR</span>
           </div>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
       {/* Measurements list */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 overflow-hidden">
         <div className="px-5 py-3 border-b border-foreground/[0.04]">
-          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">BODY MEASUREMENTS</p>
+          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">BODY MEASUREMENTS</p>
         </div>
         <div className="divide-y divide-foreground/[0.04]">
           {DISPLAY.map(({ key, label, unit }) => {
@@ -80,7 +80,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
                 layout
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-foreground/50">{label}</span>
+                  <span className="text-xs text-foreground/80">{label}</span>
                   <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${confidenceBg[m.confidence]} ${confidenceColor[m.confidence]}`}>
                     {m.confidence}
                   </span>
@@ -103,7 +103,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
                   ) : (
                     <>
                       <span className="text-sm font-medium text-foreground">{m.value} {unit}</span>
-                      <button onClick={() => startEdit(key)} className="text-foreground/20 hover:text-foreground/40">
+                      <button onClick={() => startEdit(key)} className="text-foreground/60 hover:text-foreground/60">
                         <Pencil className="h-3 w-3" />
                       </button>
                     </>

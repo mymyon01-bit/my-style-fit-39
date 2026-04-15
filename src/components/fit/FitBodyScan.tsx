@@ -78,12 +78,12 @@ export default function FitBodyScan({ onScanComplete }: Props) {
     <div className="space-y-6">
       {/* Guidelines */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30 mb-3">SCAN GUIDELINES</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">SCAN GUIDELINES</p>
         <div className="space-y-2">
           {GUIDELINES.map((g, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="h-1 w-1 rounded-full bg-accent/60" />
-              <span className="text-xs text-foreground/50">{g}</span>
+              <span className="text-xs text-foreground/80">{g}</span>
             </div>
           ))}
         </div>
@@ -113,9 +113,9 @@ export default function FitBodyScan({ onScanComplete }: Props) {
               ) : (
                 <>
                   <div className="h-20 w-12 rounded-xl border border-dashed border-foreground/10 flex items-center justify-center mb-2">
-                    <Camera className="h-5 w-5 text-foreground/15" />
+                    <Camera className="h-5 w-5 text-foreground/80" />
                   </div>
-                  <span className="text-[10px] font-semibold tracking-[0.15em] text-foreground/25">
+                  <span className="text-[10px] font-semibold tracking-[0.15em] text-foreground/62">
                     {side.toUpperCase()} PHOTO
                   </span>
                 </>
@@ -164,7 +164,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
           >
             <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">SCAN QUALITY</p>
+                <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">SCAN QUALITY</p>
                 <span className={`text-lg font-bold ${
                   status.qualityScore >= 85 ? "text-green-500" : status.qualityScore >= 70 ? "text-accent" : "text-orange-500"
                 }`}>{status.qualityScore}/100</span>
@@ -172,7 +172,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
               <div className="space-y-2">
                 {QUALITY_CHECKS.map((check, i) => (
                   <div key={i} className="flex items-center justify-between">
-                    <span className="text-xs text-foreground/40">{check.label}</span>
+                    <span className="text-xs text-foreground/60">{check.label}</span>
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-500/70" />
                   </div>
                 ))}
@@ -190,7 +190,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
               </div>
             )}
 
-            <button onClick={resetScan} className="flex items-center gap-1.5 text-xs text-foreground/30 hover:text-foreground/50 mx-auto">
+            <button onClick={resetScan} className="flex items-center gap-1.5 text-xs text-foreground/80 hover:text-foreground/80 mx-auto">
               <RotateCcw className="h-3 w-3" /> Retake scan
             </button>
           </motion.div>

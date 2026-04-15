@@ -29,7 +29,7 @@ const OnboardingPage = () => {
 
   const chipClass = (active: boolean) =>
     `py-3 px-5 text-[12px] font-light transition-all duration-300 md:text-[13px] md:py-3.5 md:px-6 ${
-      active ? "text-accent/80" : "text-foreground/25 hover:text-foreground/40"
+      active ? "text-accent/80" : "text-foreground/62 hover:text-foreground/60"
     }`;
 
   const saveProfileData = async () => {
@@ -55,13 +55,13 @@ const OnboardingPage = () => {
     // Welcome
     <motion.div key="welcome" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-1 flex-col items-center justify-center px-8 text-center md:px-16">
       <h1 className="font-display text-3xl font-light text-foreground/80 md:text-4xl">{t("onboardingTitle1")}</h1>
-      <p className="mt-6 text-[13px] leading-[1.8] text-foreground/30 max-w-[280px] md:text-[14px] md:max-w-xs">{t("onboardingDesc1")}</p>
+      <p className="mt-6 text-[13px] leading-[1.8] text-foreground/80 max-w-[280px] md:text-[14px] md:max-w-xs">{t("onboardingDesc1")}</p>
     </motion.div>,
 
     // Style
     <motion.div key="style" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 px-8 pt-12 overflow-y-auto md:px-16">
-      <h2 className="font-display text-xl font-light text-foreground/70 md:text-2xl">{t("whatsYourStyle")}</h2>
-      <p className="mt-3 text-[12px] text-foreground/25 md:text-[13px]">{t("selectStylesYouLove")}</p>
+      <h2 className="font-display text-xl font-light text-foreground/85 md:text-2xl">{t("whatsYourStyle")}</h2>
+      <p className="mt-3 text-[12px] text-foreground/62 md:text-[13px]">{t("selectStylesYouLove")}</p>
       <div className="mt-8 flex flex-wrap gap-2">
         {styleOptions.map(s => (
           <button key={s} onClick={() => toggle(selectedStyles, setSelectedStyles, s)} className={chipClass(selectedStyles.includes(s))}>
@@ -70,19 +70,19 @@ const OnboardingPage = () => {
         ))}
       </div>
 
-      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/18 md:text-[11px]">{t("selectDislikedStyles")}</p>
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">{t("selectDislikedStyles")}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {styleOptions.filter(s => !selectedStyles.includes(s)).map(s => (
           <button key={s} onClick={() => toggle(dislikedStyles, setDislikedStyles, s)}
             className={`py-3 px-5 text-[12px] font-light transition-all duration-300 md:text-[13px] ${
-              dislikedStyles.includes(s) ? "text-destructive/50 line-through" : "text-foreground/18 hover:text-foreground/30"
+              dislikedStyles.includes(s) ? "text-destructive/50 line-through" : "text-foreground/68 hover:text-foreground/80"
             }`}>
             {t(s as any)}
           </button>
         ))}
       </div>
 
-      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/18 md:text-[11px]">{t("occasion")}</p>
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">{t("occasion")}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {occasions.map(o => (
           <button key={o} onClick={() => toggle(selectedOccasions, setSelectedOccasions, o)} className={chipClass(selectedOccasions.includes(o))}>
@@ -94,7 +94,7 @@ const OnboardingPage = () => {
 
     // Fit + Budget
     <motion.div key="fit" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 px-8 pt-12 md:px-16">
-      <h2 className="font-display text-xl font-light text-foreground/70 md:text-2xl">{t("preferredFit")}</h2>
+      <h2 className="font-display text-xl font-light text-foreground/85 md:text-2xl">{t("preferredFit")}</h2>
       <div className="mt-8 flex flex-wrap gap-2">
         {fitOptions.map(f => (
           <button key={f} onClick={() => setSelectedFit(f)} className={chipClass(selectedFit === f)}>
@@ -103,7 +103,7 @@ const OnboardingPage = () => {
         ))}
       </div>
 
-      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/18 md:text-[11px]">{t("budgetRange")}</p>
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">{t("budgetRange")}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {budgetOptions.map(b => (
           <button key={b} onClick={() => setSelectedBudget(b)} className={chipClass(selectedBudget === b)}>
@@ -115,15 +115,15 @@ const OnboardingPage = () => {
 
     // Body
     <motion.div key="body" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 px-8 pt-12 md:px-16">
-      <h2 className="font-display text-xl font-light text-foreground/70 md:text-2xl">{t("bodyScan")}</h2>
-      <p className="mt-3 text-[12px] text-foreground/25 md:text-[13px]">{t("bodyScanDesc")}</p>
+      <h2 className="font-display text-xl font-light text-foreground/85 md:text-2xl">{t("bodyScan")}</h2>
+      <p className="mt-3 text-[12px] text-foreground/62 md:text-[13px]">{t("bodyScanDesc")}</p>
 
       <div className="mt-10 grid grid-cols-2 gap-5">
-        <button className="flex flex-col items-center justify-center gap-4 py-16 text-foreground/15 hover:text-accent/30 transition-colors">
+        <button className="flex flex-col items-center justify-center gap-4 py-16 text-foreground/80 hover:text-accent/70 transition-colors">
           <User className="h-8 w-8" />
           <span className="text-[10px] font-medium tracking-wider md:text-[11px]">{t("frontPhoto")}</span>
         </button>
-        <button className="flex flex-col items-center justify-center gap-4 py-16 text-foreground/15 hover:text-accent/30 transition-colors">
+        <button className="flex flex-col items-center justify-center gap-4 py-16 text-foreground/80 hover:text-accent/70 transition-colors">
           <Camera className="h-8 w-8" />
           <span className="text-[10px] font-medium tracking-wider md:text-[11px]">{t("sidePhoto")}</span>
         </button>
@@ -137,13 +137,13 @@ const OnboardingPage = () => {
           { label: t("waist"), placeholder: "80 cm", key: "waist" },
         ].map(field => (
           <div key={field.key}>
-            <label className="text-[10px] font-medium text-foreground/25 md:text-[11px]">{field.label}</label>
+            <label className="text-[10px] font-medium text-foreground/62 md:text-[11px]">{field.label}</label>
             <input
               type="text"
               placeholder={field.placeholder}
               value={bodyData[field.key as keyof typeof bodyData]}
               onChange={e => setBodyData(prev => ({ ...prev, [field.key]: e.target.value }))}
-              className="mt-1.5 w-full bg-transparent py-3.5 text-[14px] text-foreground outline-none placeholder:text-foreground/15 border-b border-accent/[0.06] focus:border-foreground/12 transition-colors md:text-base"
+              className="mt-1.5 w-full bg-transparent py-3.5 text-[14px] text-foreground outline-none placeholder:text-foreground/80 border-b border-accent/[0.06] focus:border-foreground/12 transition-colors md:text-base"
             />
           </div>
         ))}
@@ -154,13 +154,13 @@ const OnboardingPage = () => {
     <motion.div key="ready" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-1 flex-col items-center justify-center px-8 text-center md:px-16">
       {isAnalyzing ? (
         <>
-          <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
-          <p className="mt-6 text-[12px] text-foreground/28">{t("analyzing")}</p>
+          <Loader2 className="h-8 w-8 animate-spin text-accent/80" />
+          <p className="mt-6 text-[12px] text-foreground/48">{t("analyzing")}</p>
         </>
       ) : (
         <>
-          <h2 className="font-display text-2xl font-light text-foreground/70 md:text-3xl">{t("aiProfileReady")}</h2>
-          <p className="mt-5 text-[13px] leading-[1.8] text-foreground/28 max-w-[300px] md:text-[14px]">{t("profileGenerated")}</p>
+          <h2 className="font-display text-2xl font-light text-foreground/85 md:text-3xl">{t("aiProfileReady")}</h2>
+          <p className="mt-5 text-[13px] leading-[1.8] text-foreground/48 max-w-[300px] md:text-[14px]">{t("profileGenerated")}</p>
         </>
       )}
     </motion.div>,
@@ -198,13 +198,13 @@ const OnboardingPage = () => {
           <>
             <button
               onClick={handleNext}
-              className="flex w-full items-center justify-center gap-2 py-4 text-[11px] font-medium tracking-[0.15em] text-foreground/55 transition-colors hover:text-foreground md:text-[12px]"
+              className="flex w-full items-center justify-center gap-2 py-4 text-[11px] font-medium tracking-[0.15em] text-foreground/68 transition-colors hover:text-foreground md:text-[12px]"
             >
               {isLast ? t("seeRecommendations") : step === 0 ? t("getStarted") : t("next")}
               <ChevronRight className="h-4 w-4" />
             </button>
             {step > 0 && !isLast && (
-              <button onClick={() => setStep(step + 1)} className="mt-2 w-full py-2 text-[10px] text-foreground/18">
+              <button onClick={() => setStep(step + 1)} className="mt-2 w-full py-2 text-[10px] text-foreground/68">
                 {t("skip")}
               </button>
             )}

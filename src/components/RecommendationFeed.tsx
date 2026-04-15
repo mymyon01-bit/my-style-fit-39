@@ -107,18 +107,18 @@ const RecommendationFeed = ({ quizAnswers, onReset }: RecommendationFeedProps) =
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-medium tracking-[0.25em] text-accent/60 md:text-[11px]">
+          <p className="text-[10px] font-medium tracking-[0.25em] text-accent/80 md:text-[11px]">
             CURATED FOR YOU
           </p>
           {interactionCount > 2 && (
-            <p className="text-[10px] text-foreground/20 mt-1">
+            <p className="text-[10px] text-foreground/60 mt-1">
               Adapting to your taste…
             </p>
           )}
         </div>
         <button
           onClick={onReset}
-          className="text-[10px] tracking-[0.15em] text-foreground/22 hover:text-foreground/40 transition-colors"
+          className="text-[10px] tracking-[0.15em] text-foreground/60 hover:text-foreground/60 transition-colors"
         >
           RETAKE QUIZ
         </button>
@@ -126,7 +126,7 @@ const RecommendationFeed = ({ quizAnswers, onReset }: RecommendationFeedProps) =
 
       {/* Main Look — Outfit Composition */}
       <div className="space-y-6 md:space-y-8">
-        <p className="text-[10px] font-medium tracking-[0.2em] text-foreground/28 md:text-[11px]">
+        <p className="text-[10px] font-medium tracking-[0.2em] text-foreground/48 md:text-[11px]">
           YOUR LOOK
         </p>
         <div className="grid grid-cols-2 gap-3 md:gap-4 lg:gap-5">
@@ -149,7 +149,7 @@ const RecommendationFeed = ({ quizAnswers, onReset }: RecommendationFeedProps) =
       {/* More Picks */}
       {restItems.length > 0 && (
         <div className="space-y-6 md:space-y-8">
-          <p className="text-[10px] font-medium tracking-[0.2em] text-foreground/28 md:text-[11px]">
+          <p className="text-[10px] font-medium tracking-[0.2em] text-foreground/48 md:text-[11px]">
             MORE FOR YOU
           </p>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:gap-5">
@@ -179,20 +179,20 @@ const RecommendationFeed = ({ quizAnswers, onReset }: RecommendationFeedProps) =
             className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-sm px-8 md:bottom-28"
           >
             <div className="rounded-2xl bg-card/95 backdrop-blur-xl p-6 shadow-[0_8px_40px_-8px_hsl(0_0%_0%/0.3)] space-y-4">
-              <p className="font-display text-[15px] text-foreground/70 md:text-base">
+              <p className="font-display text-[15px] text-foreground/85 md:text-base">
                 Save your style and unlock more personalized recommendations.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => navigate("/auth")}
-                  className="flex-1 py-3 text-[10px] font-semibold tracking-[0.15em] text-foreground/65 hover:text-foreground transition-colors"
+                  className="flex-1 py-3 text-[10px] font-semibold tracking-[0.15em] text-foreground/80 hover:text-foreground transition-colors"
                 >
                   CREATE ACCOUNT
                 </button>
-                <div className="w-px bg-accent/[0.08]" />
+                <div className="w-px bg-accent/[0.14]" />
                 <button
                   onClick={() => setShowAuthHint(false)}
-                  className="px-4 py-3 text-[10px] text-foreground/25 hover:text-foreground/40 transition-colors"
+                  className="px-4 py-3 text-[10px] text-foreground/62 hover:text-foreground/60 transition-colors"
                 >
                   LATER
                 </button>
@@ -271,7 +271,7 @@ const ProductRecommendationCard = ({
       {/* Details + Feedback */}
       <div className="mt-3 space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-medium text-foreground/55 md:text-[14px]">${product.price}</span>
+          <span className="text-[13px] font-medium text-foreground/68 md:text-[14px]">${product.price}</span>
 
           {/* Feedback buttons */}
           <div className="flex items-center gap-1">
@@ -280,7 +280,7 @@ const ProductRecommendationCard = ({
               className={`p-2 rounded-full transition-all ${
                 feedback === "like"
                   ? "text-accent/80 bg-accent/10"
-                  : "text-foreground/18 hover:text-foreground/35"
+                  : "text-foreground/68 hover:text-foreground/68"
               }`}
             >
               <Heart className={`h-3.5 w-3.5 ${feedback === "like" ? "fill-current" : ""}`} />
@@ -290,7 +290,7 @@ const ProductRecommendationCard = ({
               className={`p-2 rounded-full transition-all ${
                 feedback === "dislike"
                   ? "text-destructive/60 bg-destructive/10"
-                  : "text-foreground/18 hover:text-foreground/35"
+                  : "text-foreground/68 hover:text-foreground/68"
               }`}
             >
               <HeartOff className={`h-3.5 w-3.5`} />
@@ -299,7 +299,7 @@ const ProductRecommendationCard = ({
         </div>
 
         {/* Reason */}
-        <p className="text-[11px] leading-[1.6] text-foreground/30 md:text-[12px]">
+        <p className="text-[11px] leading-[1.6] text-foreground/80 md:text-[12px]">
           {explanation}
         </p>
       </div>
