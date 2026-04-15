@@ -10,7 +10,19 @@
  * - Purchase Intent Score (0.08)
  */
 
-import type { Product } from "./mockData";
+export interface Product {
+  id: string;
+  name: string;
+  brand: string;
+  price: number;
+  image: string;
+  category: "tops" | "bottoms" | "outerwear" | "shoes" | "accessories";
+  fitScore: number;
+  reason: string;
+  recommendedSize: string;
+  fitComment: string;
+  url: string;
+}
 
 // --- Types ---
 

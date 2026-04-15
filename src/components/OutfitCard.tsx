@@ -1,4 +1,10 @@
-import { type OutfitBundle } from "@/lib/mockData";
+interface OutfitBundle {
+  id: string;
+  name: string;
+  items: { id: string; image: string; name: string }[];
+  occasion: string;
+  totalPrice: number;
+}
 import { useI18n } from "@/lib/i18n";
 import { ShoppingBag } from "lucide-react";
 

@@ -1,4 +1,4 @@
-import { type Product } from "@/lib/mockData";
+import { type Product } from "@/lib/recommendation";
 import { Heart, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
