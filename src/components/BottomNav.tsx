@@ -7,6 +7,9 @@ const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Hide nav on home — it's the AI-first clean screen
+  if (location.pathname === "/") return null;
+
   const tabs = [
     { path: "/", icon: Home, label: t("home") },
     { path: "/discover", icon: Compass, label: t("discover") },
