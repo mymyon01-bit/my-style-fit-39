@@ -23,7 +23,6 @@ const AuthPage = () => {
     setError(null);
     setMessage(null);
     setLoading(true);
-
     try {
       if (mode === "forgot") {
         const { error } = await resetPassword(email);
@@ -32,18 +31,10 @@ const AuthPage = () => {
         setLoading(false);
         return;
       }
-
-      const { error } = mode === "login"
-        ? await signIn(email, password)
-        : await signUp(email, password);
-
+      const { error } = mode === "login" ? await signIn(email, password) : await signUp(email, password);
       if (error) throw error;
-
-      if (mode === "signup") {
-        setMessage("Check your email to confirm your account.");
-      } else {
-        navigate("/onboarding", { replace: true });
-      }
+      if (mode === "signup") setMessage("Check your email to confirm your account.");
+      else navigate("/onboarding", { replace: true });
     } catch (err: any) {
       setError(err.message || "An error occurred");
     }
@@ -60,36 +51,29 @@ const AuthPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Back to browsing */}
-      <div className="px-4 pt-4">
-        <button onClick={() => navigate("/")} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-          ← Continue browsing
+      <div className="px-8 pt-8">
+        <button onClick={() => navigate("/")} className="text-[9px] font-medium tracking-[0.2em] text-foreground/20 hover:text-foreground/35 transition-colors">
+          ← BACK
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm"
-        >
+      <div className="flex flex-1 flex-col items-center justify-center px-8">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-sm">
           {/* Logo */}
-          <div className="text-center">
-            <h1 className="font-display text-3xl font-bold tracking-[0.2em] text-foreground">
-              WARDROBE
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+          <div className="text-center mb-12">
+            <h1 className="font-display text-2xl font-light tracking-[0.25em] text-foreground/80">WARDROBE</h1>
+            <p className="mt-3 text-[11px] text-foreground/25">
               {mode === "login" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset password"}
             </p>
           </div>
 
-          {/* Google — first for conversion */}
+          {/* Google */}
           {mode !== "forgot" && (
             <>
               <button
                 onClick={handleGoogle}
                 disabled={loading}
-                className="mt-8 flex w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-card py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2.5 py-3.5 text-[11px] font-medium text-foreground/50 transition-colors hover:text-foreground/70 disabled:opacity-50"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -100,31 +84,29 @@ const AuthPage = () => {
                 Continue with Google
               </button>
 
-              <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-[11px] text-muted-foreground">or continue with email</span>
-                <div className="h-px flex-1 bg-border" />
+              <div className="my-8 flex items-center gap-4">
+                <div className="h-px flex-1 bg-foreground/[0.04]" />
+                <span className="text-[9px] text-foreground/15">or</span>
+                <div className="h-px flex-1 bg-foreground/[0.04]" />
               </div>
             </>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="Email"
                 required
-                className="w-full rounded-xl border border-border bg-card py-3.5 pl-11 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-accent transition-colors"
+                className="w-full bg-transparent py-3 text-sm text-foreground outline-none placeholder:text-foreground/20 border-b border-foreground/[0.06] focus:border-foreground/15 transition-colors"
               />
             </div>
 
             {mode !== "forgot" && (
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -132,64 +114,47 @@ const AuthPage = () => {
                   placeholder="Password"
                   required
                   minLength={6}
-                  className="w-full rounded-xl border border-border bg-card py-3.5 pl-11 pr-11 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-accent transition-colors"
+                  className="w-full bg-transparent py-3 pr-10 text-sm text-foreground outline-none placeholder:text-foreground/20 border-b border-foreground/[0.06] focus:border-foreground/15 transition-colors"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-foreground/15">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             )}
 
             {mode === "login" && (
-              <button
-                type="button"
-                onClick={() => { setMode("forgot"); setError(null); setMessage(null); }}
-                className="block text-xs font-medium text-accent hover:text-accent/80"
-              >
+              <button type="button" onClick={() => { setMode("forgot"); setError(null); setMessage(null); }} className="text-[10px] text-accent/50 hover:text-accent">
                 Forgot password?
               </button>
             )}
 
-            {error && (
-              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>
-            )}
-            {message && (
-              <p className="rounded-lg bg-accent/10 px-3 py-2 text-xs text-accent">{message}</p>
-            )}
+            {error && <p className="text-[11px] text-destructive/70">{error}</p>}
+            {message && <p className="text-[11px] text-accent/60">{message}</p>}
 
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 py-3.5 text-[10px] font-semibold tracking-[0.15em] text-foreground/60 transition-colors hover:text-foreground disabled:opacity-50 mt-6"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  {mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
-                  <ArrowRight className="h-4 w-4" />
+                  {mode === "login" ? "SIGN IN" : mode === "signup" ? "CREATE ACCOUNT" : "SEND RESET LINK"}
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Switch mode */}
-          <p className="mt-6 text-center text-xs text-muted-foreground">
+          <p className="mt-10 text-center text-[10px] text-foreground/20">
             {mode === "login" ? (
-              <>Don't have an account?{" "}
-                <button onClick={() => { setMode("signup"); setError(null); setMessage(null); }} className="font-medium text-accent">
-                  Sign up
-                </button>
+              <>No account?{" "}
+                <button onClick={() => { setMode("signup"); setError(null); setMessage(null); }} className="text-accent/50 hover:text-accent">Sign up</button>
               </>
             ) : (
-              <>Already have an account?{" "}
-                <button onClick={() => { setMode("login"); setError(null); setMessage(null); }} className="font-medium text-accent">
-                  Sign in
-                </button>
+              <>Have an account?{" "}
+                <button onClick={() => { setMode("login"); setError(null); setMessage(null); }} className="text-accent/50 hover:text-accent">Sign in</button>
               </>
             )}
           </p>

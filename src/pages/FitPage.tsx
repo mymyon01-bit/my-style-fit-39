@@ -21,7 +21,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "results", label: "RESULTS" },
 ];
 
-// Product info keyed to fit data IDs
 const PRODUCT_INFO: Record<string, { name: string; brand: string; price: number; category: "tops" | "bottoms" }> = {
   "3": { name: "Oversized Cotton Shirt", brand: "Lemaire", price: 195, category: "tops" },
   "5": { name: "Merino Crew Neck", brand: "AMI Paris", price: 220, category: "tops" },
@@ -54,11 +53,7 @@ const FitPage = () => {
 
   const loadBodyProfile = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("body_profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data } = await supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle();
     if (data) {
       const update = { ...measurements };
       if (data.height_cm) update.heightCm = { value: Number(data.height_cm), confidence: "high" };
@@ -72,7 +67,7 @@ const FitPage = () => {
 
   const saveBodyProfile = async () => {
     if (!user) return;
-    const body = {
+    await supabase.from("body_profiles").upsert({
       user_id: user.id,
       height_cm: measurements.heightCm.value,
       shoulder_width_cm: measurements.shoulderWidthCm.value,
@@ -81,8 +76,7 @@ const FitPage = () => {
       weight_kg: null,
       scan_confidence: scanQuality,
       silhouette_type: "balanced",
-    };
-    await supabase.from("body_profiles").upsert(body, { onConflict: "user_id" });
+    }, { onConflict: "user_id" });
   };
 
   const handleScanComplete = useCallback((quality: number) => {
@@ -94,21 +88,14 @@ const FitPage = () => {
   }, [user, measurements]);
 
   const handleMeasurementUpdate = useCallback((key: keyof BodyMeasurements, value: number) => {
-    setMeasurements(prev => ({
-      ...prev,
-      [key]: { value, confidence: "high" as ConfidenceLevel },
-    }));
+    setMeasurements(prev => ({ ...prev, [key]: { value, confidence: "high" as ConfidenceLevel } }));
   }, []);
 
   const handleSelectProduct = useCallback((productId: string) => {
     const fitData = mockProductFitData[productId];
     if (!fitData) return;
-
     const body: BodyMeasurements = {} as any;
-    for (const [k, v] of Object.entries(measurements)) {
-      (body as any)[k] = v.value;
-    }
-
+    for (const [k, v] of Object.entries(measurements)) (body as any)[k] = v.value;
     const result = computeFit(body, fitData, scanQuality || 75);
     setSelectedProductId(productId);
     setFitResult(result);
@@ -138,96 +125,58 @@ const FitPage = () => {
           },
         },
       });
-      if (!error && data?.response) {
-        setExplanation(data.response);
-      }
-    } catch {
-      // fallback to summary
-    } finally {
+      if (!error && data?.response) setExplanation(data.response);
+    } catch { /* fallback */ } finally {
       setLoadingExplanation(false);
     }
   };
 
   const selectedProduct = selectedProductId ? PRODUCT_INFO[selectedProductId] : null;
-
   const fitResultProduct = selectedProduct ? {
-    id: selectedProductId!,
-    name: selectedProduct.name,
-    brand: selectedProduct.brand,
-    price: selectedProduct.price,
-    category: selectedProduct.category,
-    image: "",
-    url: "#",
-    fitScore: 0,
-    reason: "",
-    recommendedSize: "",
-    fitComment: "",
+    id: selectedProductId!, name: selectedProduct.name, brand: selectedProduct.brand,
+    price: selectedProduct.price, category: selectedProduct.category,
+    image: "", url: "#", fitScore: 0, reason: "", recommendedSize: "", fitComment: "",
   } : null;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-foreground/[0.04]">
-        <div className="mx-auto max-w-lg px-6 pt-4 pb-0">
-          <div className="flex items-center justify-between mb-4">
-            <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/70">WARDROBE</span>
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">FIT ENGINE</span>
-          </div>
-          <div className="flex">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="relative flex-1 pb-3 text-center"
-              >
-                <span className={`text-[10px] font-semibold tracking-[0.15em] transition-colors ${
-                  activeTab === tab.id ? "text-foreground" : "text-foreground/30"
-                }`}>
-                  {tab.label}
-                </span>
-                {activeTab === tab.id && (
-                  <motion.div
-                    layoutId="fit-tab-indicator"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-accent"
-                  />
-                )}
-              </button>
-            ))}
-          </div>
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header */}
+      <div className="mx-auto max-w-lg px-8 pt-8">
+        <div className="flex items-baseline justify-between mb-8">
+          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25">WARDROBE</span>
+          <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/20">FIT</span>
         </div>
-      </header>
 
-      <div className="mx-auto max-w-lg px-6 pt-5">
+        {/* Tabs — minimal underline style */}
+        <div className="flex">
+          {TABS.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-4 text-center">
+              <span className={`text-[9px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+                activeTab === tab.id ? "text-foreground/70" : "text-foreground/20"
+              }`}>
+                {tab.label}
+              </span>
+              {activeTab === tab.id && (
+                <motion.div layoutId="fit-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/50" />
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="h-px bg-foreground/[0.04]" />
+      </div>
+
+      <div className="mx-auto max-w-lg px-8 pt-8">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === "scan" && (
-              <FitBodyScan onScanComplete={handleScanComplete} />
-            )}
-            {activeTab === "measurements" && (
-              <FitMeasurements
-                measurements={measurements}
-                onUpdate={handleMeasurementUpdate}
-              />
-            )}
-            {activeTab === "check" && (
-              <FitProductCheck onSelectProduct={handleSelectProduct} />
-            )}
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
+            {activeTab === "scan" && <FitBodyScan onScanComplete={handleScanComplete} />}
+            {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} />}
+            {activeTab === "check" && <FitProductCheck onSelectProduct={handleSelectProduct} />}
             {activeTab === "results" && fitResult && fitResultProduct ? (
-              <FitResults
-                result={fitResult}
-                product={fitResultProduct}
-                explanation={explanation}
-                loadingExplanation={loadingExplanation}
-              />
+              <FitResults result={fitResult} product={fitResultProduct} explanation={explanation} loadingExplanation={loadingExplanation} />
             ) : activeTab === "results" && (
-              <div className="flex flex-col items-center justify-center py-20 text-center space-y-2">
-                <p className="text-sm text-foreground/30">Select a product in CHECK tab first</p>
-                <p className="text-xs text-foreground/20">Your body profile will be used for fit analysis</p>
+              <div className="py-24 text-center space-y-3">
+                <p className="text-sm text-foreground/25">Select a product first</p>
+                <p className="text-[10px] text-foreground/15">Go to CHECK to pick an item</p>
               </div>
             )}
           </motion.div>
