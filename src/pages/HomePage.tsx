@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
+import { useWeather } from "@/hooks/useWeather";
 
 interface AiOutfitPiece {
   name: string;
