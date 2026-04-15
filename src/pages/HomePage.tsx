@@ -177,7 +177,12 @@ const HomePage = () => {
           className="relative z-10 pb-20 text-center"
         >
           <p className="text-[12px] font-light tracking-[0.12em] text-foreground/25">
-            {weather.location} · {weather.temp}°C · {weatherLabel}
+            {weather.loading
+              ? "Detecting location…"
+              : weather.error
+                ? `${weather.temp}°C · ${weatherLabel}`
+                : `${weather.location} · ${weather.temp}°C · ${weatherLabel}`}
+          </p>
           </p>
         </motion.div>
       )}
