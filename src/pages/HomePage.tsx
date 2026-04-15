@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
+import { useWeather } from "@/hooks/useWeather";
 
 interface AiOutfitPiece {
   name: string;
@@ -23,7 +24,7 @@ const HomePage = () => {
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
-  const [weather] = useState({ temp: 22, condition: "partly-cloudy", location: "Seoul" });
+  const weather = useWeather();
 
   const handleSubmit = useCallback(async () => {
     if (!query.trim()) return;
@@ -176,7 +177,11 @@ const HomePage = () => {
           className="relative z-10 pb-20 text-center"
         >
           <p className="text-[12px] font-light tracking-[0.12em] text-foreground/25">
-            {weather.location} · {weather.temp}°C · {weatherLabel}
+            {weather.loading
+              ? "Detecting location…"
+              : weather.error
+                ? `${weather.temp}°C · ${weatherLabel}`
+                : `${weather.location} · ${weather.temp}°C · ${weatherLabel}`}
           </p>
         </motion.div>
       )}
