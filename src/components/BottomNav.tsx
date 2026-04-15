@@ -23,7 +23,7 @@ const BottomNav = () => {
               key={tab.path}
               onClick={() => navigate(tab.path)}
               className={`relative flex flex-col items-center gap-1 px-3 py-1 transition-all ${
-                isActive ? "text-foreground" : "text-foreground/20"
+                isActive ? "text-foreground" : "text-foreground/35"
               }`}
             >
               <tab.icon className="h-4 w-4" strokeWidth={isActive ? 2 : 1.5} />
