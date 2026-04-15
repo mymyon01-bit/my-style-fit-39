@@ -21,68 +21,68 @@ const SettingsPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background pb-28 lg:pb-16 lg:pt-20">
-      <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
-        <div className="flex items-center gap-4 mb-10 lg:mb-14">
-          <button onClick={() => navigate(-1)} className="text-foreground/20 hover:text-foreground/40 transition-colors">
-            <ArrowLeft className="h-4 w-4" />
+    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
+      <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
+        <div className="flex items-center gap-4 mb-12 md:mb-14 lg:mb-16">
+          <button onClick={() => navigate(-1)} className="text-foreground/22 hover:text-foreground/45 transition-colors">
+            <ArrowLeft className="h-[18px] w-[18px]" />
           </button>
-          <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/25 lg:text-[10px]">SETTINGS</span>
+          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/28 md:text-[11px]">SETTINGS</span>
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-8 space-y-12 lg:max-w-2xl lg:px-12 lg:space-y-16">
+      <div className="mx-auto max-w-lg px-8 space-y-14 md:max-w-2xl md:px-10 md:space-y-16 lg:max-w-3xl lg:px-12">
         {/* Language */}
-        <div className="space-y-4 lg:space-y-5">
-          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">{t("language").toUpperCase()}</p>
+        <div className="space-y-5">
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">{t("language").toUpperCase()}</p>
           <div className="space-y-1">
             {languages.map((l) => (
               <button
                 key={l.code}
                 onClick={() => setLang(l.code)}
-                className={`flex w-full items-center justify-between py-3.5 transition-colors lg:py-4 ${
-                  lang === l.code ? "text-foreground/70" : "text-foreground/25 hover:text-foreground/40"
+                className={`flex w-full items-center justify-between py-4 transition-colors md:py-5 ${
+                  lang === l.code ? "text-foreground/70" : "text-foreground/30 hover:text-foreground/45"
                 }`}
               >
-                <p className="text-[12px] lg:text-[13px]">{l.native}</p>
-                {lang === l.code && <Check className="h-3.5 w-3.5 text-accent/60" />}
+                <p className="text-[13px] md:text-[14px]">{l.native}</p>
+                {lang === l.code && <Check className="h-4 w-4 text-accent/60" />}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="h-px bg-accent/[0.06]" />
+        <div className="h-px bg-accent/[0.08]" />
 
         {/* Theme */}
-        <div className="space-y-4 lg:space-y-5">
-          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">{t("appearance").toUpperCase()}</p>
-          <div className="flex gap-8 lg:gap-10">
+        <div className="space-y-5">
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">{t("appearance").toUpperCase()}</p>
+          <div className="flex gap-10 md:gap-12">
             {themeOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setTheme(opt.value)}
-                className={`flex flex-col items-center gap-2.5 transition-colors ${
-                  theme === opt.value ? "text-foreground/60" : "text-foreground/15 hover:text-foreground/30"
+                className={`flex flex-col items-center gap-3 transition-colors ${
+                  theme === opt.value ? "text-foreground/65" : "text-foreground/18 hover:text-foreground/35"
                 }`}
               >
-                <opt.icon className="h-5 w-5" />
-                <span className="text-[9px] font-medium lg:text-[10px]">{opt.label}</span>
+                <opt.icon className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="text-[10px] font-medium md:text-[11px]">{opt.label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="h-px bg-accent/[0.06]" />
+        <div className="h-px bg-accent/[0.08]" />
 
         {/* Actions */}
         <div className="space-y-1">
-          <button className="flex w-full items-center gap-3 py-4 transition-colors text-foreground/25 hover:text-foreground/40 lg:py-5">
-            <RotateCcw className="h-4 w-4" />
-            <span className="text-[12px] lg:text-[13px]">{t("resetProfile")}</span>
+          <button className="flex w-full items-center gap-4 py-4.5 transition-colors text-foreground/28 hover:text-foreground/45 md:py-5">
+            <RotateCcw className="h-[18px] w-[18px]" strokeWidth={1.5} />
+            <span className="text-[13px] md:text-[14px]">{t("resetProfile")}</span>
           </button>
-          <button className="flex w-full items-center gap-3 py-4 transition-colors text-foreground/25 hover:text-foreground/40 lg:py-5">
-            <Shield className="h-4 w-4" />
-            <span className="text-[12px] lg:text-[13px]">{t("privacy")}</span>
+          <button className="flex w-full items-center gap-4 py-4.5 transition-colors text-foreground/28 hover:text-foreground/45 md:py-5">
+            <Shield className="h-[18px] w-[18px]" strokeWidth={1.5} />
+            <span className="text-[13px] md:text-[14px]">{t("privacy")}</span>
           </button>
         </div>
       </div>

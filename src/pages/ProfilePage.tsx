@@ -57,47 +57,47 @@ const ProfilePage = () => {
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "You";
 
   return (
-    <div className="min-h-screen pb-28 bg-background lg:pb-16 lg:pt-20">
+    <div className="min-h-screen pb-28 bg-background md:pb-28 lg:pb-16 lg:pt-24">
       {/* Header */}
-      <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
-        <div className="flex items-baseline justify-between mb-10 lg:mb-14">
-          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25 lg:hidden">WARDROBE</span>
-          <button onClick={() => navigate("/settings")} className="text-foreground/15 hover:text-foreground/30 transition-colors">
-            <Settings className="h-4 w-4" />
+      <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
+        <div className="flex items-baseline justify-between mb-12 md:mb-14 lg:mb-16">
+          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
+          <button onClick={() => navigate("/settings")} className="text-foreground/18 hover:text-foreground/35 transition-colors">
+            <Settings className="h-[18px] w-[18px]" />
           </button>
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-8 space-y-10 lg:max-w-2xl lg:px-12 lg:space-y-14">
+      <div className="mx-auto max-w-lg px-8 space-y-12 md:max-w-2xl md:px-10 md:space-y-14 lg:max-w-3xl lg:px-12 lg:space-y-16">
         {/* Identity */}
-        <div className="flex items-center gap-5 lg:gap-7">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/[0.03] lg:h-18 lg:w-18">
+        <div className="flex items-center gap-6 md:gap-7">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.03] md:h-18 md:w-18">
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
             ) : (
-              <User className="h-5 w-5 text-foreground/12" />
+              <User className="h-6 w-6 text-foreground/12" />
             )}
           </div>
           <div>
-            <p className="font-display text-base text-foreground/80 lg:text-lg">{displayName}</p>
-            <p className="text-[10px] text-foreground/25 mt-0.5 lg:text-[11px]">{user?.email}</p>
+            <p className="font-display text-lg text-foreground/80 md:text-xl">{displayName}</p>
+            <p className="text-[11px] text-foreground/30 mt-1 md:text-[12px]">{user?.email}</p>
           </div>
         </div>
 
-        {/* Subscription — calm display */}
+        {/* Subscription */}
         <div className="flex items-center gap-4">
-          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/12"}`} />
+          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/15"}`} />
           <div>
-            <p className="text-[10px] font-medium text-foreground/50 lg:text-[11px]">
+            <p className="text-[11px] font-medium text-foreground/55 md:text-[12px]">
               {subscription.isPremium ? "Premium" : "Free"}
             </p>
             {subscription.isPremium && subscription.daysRemaining !== null && (
-              <p className="text-[9px] text-foreground/25 lg:text-[10px]">
+              <p className="text-[10px] text-foreground/28 md:text-[11px]">
                 {subscription.plan === "premium_trial" ? `Trial · ${subscription.daysRemaining}d remaining` : "Active"}
               </p>
             )}
             {!subscription.isPremium && (
-              <p className="text-[9px] text-foreground/20 lg:text-[10px]">
+              <p className="text-[10px] text-foreground/22 md:text-[11px]">
                 Continue your daily styling with Premium
               </p>
             )}
@@ -105,40 +105,40 @@ const ProfilePage = () => {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-10 lg:gap-14">
+        <div className="flex gap-12 md:gap-16">
           {[
             { icon: Camera, label: "Posts", value: postCount },
             { icon: Star, label: "Stars", value: totalStars },
             { icon: Bookmark, label: "Saved", value: savedCount },
           ].map(stat => (
             <div key={stat.label} className="text-center">
-              <p className="text-lg font-light text-foreground/70 lg:text-xl">{stat.value}</p>
-              <p className="text-[9px] text-foreground/20 mt-1 lg:text-[10px]">{stat.label}</p>
+              <p className="text-xl font-light text-foreground/70 md:text-2xl">{stat.value}</p>
+              <p className="text-[10px] text-foreground/25 mt-1.5 md:text-[11px]">{stat.label}</p>
             </div>
           ))}
         </div>
 
-        <div className="h-px bg-accent/[0.06]" />
+        <div className="h-px bg-accent/[0.08]" />
 
         {/* Style */}
-        <div className="space-y-4">
-          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">STYLE</p>
+        <div className="space-y-5">
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">STYLE</p>
           {styleProfile ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {styleProfile.preferred_styles?.length > 0 && (
-                <div className="flex gap-2.5 flex-wrap">
+                <div className="flex gap-3 flex-wrap">
                   {styleProfile.preferred_styles.map((s: string) => (
-                    <span key={s} className="text-[11px] text-accent/60 lg:text-[12px]">{s}</span>
+                    <span key={s} className="text-[12px] text-accent/60 md:text-[13px]">{s}</span>
                   ))}
                 </div>
               )}
-              {styleProfile.preferred_fit && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Fit: {styleProfile.preferred_fit}</p>}
-              {styleProfile.budget && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Budget: {styleProfile.budget}</p>}
+              {styleProfile.preferred_fit && <p className="text-[12px] text-foreground/40 md:text-[13px]">Fit: {styleProfile.preferred_fit}</p>}
+              {styleProfile.budget && <p className="text-[12px] text-foreground/40 md:text-[13px]">Budget: {styleProfile.budget}</p>}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[11px] text-foreground/20">Not set</p>
-              <button onClick={() => navigate("/onboarding")} className="text-[9px] font-medium text-accent/50 hover:text-accent">
+              <p className="text-[12px] text-foreground/22">Not set</p>
+              <button onClick={() => navigate("/onboarding")} className="text-[10px] font-medium text-accent/50 hover:text-accent">
                 Complete profile →
               </button>
             </div>
@@ -146,26 +146,26 @@ const ProfilePage = () => {
         </div>
 
         {/* Body */}
-        <div className="space-y-4">
-          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">BODY</p>
+        <div className="space-y-5">
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">BODY</p>
           {bodyProfile ? (
-            <div className="flex flex-wrap gap-x-6 gap-y-1.5">
-              {bodyProfile.height_cm && <p className="text-[11px] text-foreground/35 lg:text-[12px]">{bodyProfile.height_cm}cm</p>}
-              {bodyProfile.weight_kg && <p className="text-[11px] text-foreground/35 lg:text-[12px]">{bodyProfile.weight_kg}kg</p>}
-              {bodyProfile.shoulder_width_cm && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Shoulder {bodyProfile.shoulder_width_cm}cm</p>}
-              {bodyProfile.waist_cm && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Waist {bodyProfile.waist_cm}cm</p>}
+            <div className="flex flex-wrap gap-x-8 gap-y-2">
+              {bodyProfile.height_cm && <p className="text-[12px] text-foreground/40 md:text-[13px]">{bodyProfile.height_cm}cm</p>}
+              {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/40 md:text-[13px]">{bodyProfile.weight_kg}kg</p>}
+              {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/40 md:text-[13px]">Shoulder {bodyProfile.shoulder_width_cm}cm</p>}
+              {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/40 md:text-[13px]">Waist {bodyProfile.waist_cm}cm</p>}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[11px] text-foreground/20">No scan yet</p>
-              <button onClick={() => navigate("/fit")} className="text-[9px] font-medium text-accent/50 hover:text-accent">
+              <p className="text-[12px] text-foreground/22">No scan yet</p>
+              <button onClick={() => navigate("/fit")} className="text-[10px] font-medium text-accent/50 hover:text-accent">
                 Start scan →
               </button>
             </div>
           )}
         </div>
 
-        <div className="h-px bg-accent/[0.06]" />
+        <div className="h-px bg-accent/[0.08]" />
 
         {/* Links */}
         <div className="space-y-1">
@@ -174,10 +174,10 @@ const ProfilePage = () => {
             { icon: Palette, label: "Style Settings", action: () => navigate("/onboarding") },
             { icon: Shirt, label: "Saved Looks", action: () => navigate("/discover") },
           ].map(section => (
-            <button key={section.label} onClick={section.action} className="flex w-full items-center gap-4 py-4 transition-colors hover:text-foreground lg:py-5">
-              <section.icon className="h-4 w-4 text-foreground/12" />
-              <span className="flex-1 text-left text-[12px] text-foreground/40 lg:text-[13px]">{section.label}</span>
-              <ChevronRight className="h-3.5 w-3.5 text-foreground/8" />
+            <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground md:py-5 lg:py-6">
+              <section.icon className="h-[18px] w-[18px] text-foreground/15" strokeWidth={1.5} />
+              <span className="flex-1 text-left text-[13px] text-foreground/45 md:text-[14px]">{section.label}</span>
+              <ChevronRight className="h-4 w-4 text-foreground/10" />
             </button>
           ))}
         </div>
@@ -185,9 +185,9 @@ const ProfilePage = () => {
         {/* Sign out */}
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 py-3 text-[10px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60 lg:text-[11px]"
+          className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60 md:text-[12px]"
         >
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut className="h-4 w-4" />
           Sign Out
         </button>
       </div>

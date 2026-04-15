@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, Loader2, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import DailyPicks from "@/components/DailyPicks";
+import WeeklyPlan from "@/components/WeeklyPlan";
+import { motion } from "framer-motion";
 
 interface SavedItem {
   id: string;
@@ -53,56 +56,75 @@ const DiscoverPage = () => {
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter") handleSearch(); };
 
   return (
-    <div className="min-h-screen bg-background pb-24 lg:pb-16 lg:pt-20">
+    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       {/* Header */}
-      <div className="mx-auto max-w-lg px-8 pt-8 pb-2 lg:max-w-2xl lg:px-12 lg:pt-12">
+      <div className="mx-auto max-w-lg px-8 pt-10 pb-2 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between">
-          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25 lg:hidden">WARDROBE</span>
-          <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">DISCOVER</span>
+          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
+          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">DISCOVER</span>
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-8 pt-6 lg:max-w-2xl lg:px-12 lg:pt-10">
+      <div className="mx-auto max-w-lg px-8 pt-8 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-10">
         {/* Search */}
-        <div className="flex items-center gap-3 pb-3 lg:pb-4">
-          <Search className="h-4 w-4 text-foreground/15" />
+        <div className="flex items-center gap-3 pb-4">
+          <Search className="h-4 w-4 text-foreground/20 md:h-5 md:w-5" />
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Mood, style, or occasion…"
-            className="w-full bg-transparent text-sm font-light text-foreground outline-none placeholder:text-foreground/25 lg:text-base"
+            className="w-full bg-transparent text-[14px] font-light text-foreground outline-none placeholder:text-foreground/30 md:text-base lg:text-lg"
           />
           {searchQuery && !aiLoading && (
             <button onClick={handleSearch}>
               <Sparkles className="h-4 w-4 text-accent/40 hover:text-accent/70 transition-colors" />
             </button>
           )}
-          {aiLoading && <Loader2 className="h-4 w-4 animate-spin text-foreground/20" />}
+          {aiLoading && <Loader2 className="h-4 w-4 animate-spin text-foreground/25" />}
         </div>
-        <div className="h-px bg-accent/[0.08]" />
+        <div className="h-px bg-accent/[0.10]" />
 
         {categoryFilter && (
-          <div className="mt-5 flex items-center gap-2">
-            <span className="text-[9px] tracking-[0.2em] text-foreground/25">{categoryFilter.toUpperCase()}</span>
-            <button onClick={() => navigate("/discover")} className="text-[9px] text-accent/50 hover:text-accent">Clear</button>
+          <div className="mt-6 flex items-center gap-2">
+            <span className="text-[10px] tracking-[0.2em] text-foreground/30">{categoryFilter.toUpperCase()}</span>
+            <button onClick={() => navigate("/discover")} className="text-[10px] text-accent/50 hover:text-accent">Clear</button>
           </div>
         )}
 
         {/* AI Result */}
         {aiResult && (
-          <div className="mt-10 space-y-3 lg:mt-14 lg:space-y-5">
-            <p className="text-[9px] font-medium tracking-[0.25em] text-accent/60 lg:text-[10px]">AI STYLIST</p>
-            <p className="font-display text-[14px] font-light leading-[1.9] text-foreground/75 whitespace-pre-line lg:text-base lg:leading-[2]">
+          <div className="mt-12 space-y-4 md:mt-14 lg:space-y-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] text-accent/60 md:text-[11px]">AI STYLIST</p>
+            <p className="font-display text-[15px] font-light leading-[2] text-foreground/75 whitespace-pre-line md:text-base lg:text-lg lg:leading-[2.1]">
               {aiResult}
             </p>
-            <div className="h-px w-8 bg-foreground/[0.06]" />
+            <div className="h-px w-10 bg-accent/[0.10]" />
           </div>
         )}
 
+        {/* Daily + Weekly — premium content integrated into Discover */}
+        <div className="mt-14 space-y-16 md:mt-16 md:space-y-20 lg:space-y-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <DailyPicks />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <WeeklyPlan />
+          </motion.div>
+        </div>
+
         {/* Content */}
-        <div className="mt-10 lg:mt-14">
+        <div className="mt-14 md:mt-16 lg:mt-20">
           {isLoading ? (
             <div className="flex items-center justify-center py-24">
               <Loader2 className="h-4 w-4 animate-spin text-foreground/15" />
@@ -110,28 +132,28 @@ const DiscoverPage = () => {
           ) : (
             <>
               {user && savedItems.length > 0 && (
-                <div className="space-y-4">
-                  <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">SAVED</p>
+                <div className="space-y-5">
+                  <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">SAVED</p>
                   <div className="space-y-3">
                     {savedItems.map(item => (
-                      <div key={item.id} className="py-3 lg:py-4">
-                        <p className="text-xs text-foreground/45 lg:text-[13px]">Product #{item.product_id}</p>
-                        <p className="text-[10px] text-foreground/20 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
+                      <div key={item.id} className="py-4">
+                        <p className="text-[13px] text-foreground/50 md:text-sm">Product #{item.product_id}</p>
+                        <p className="text-[11px] text-foreground/25 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {!aiResult && (
-                <div className="py-20 text-center space-y-5 lg:py-28">
-                  <Sparkles className="mx-auto h-5 w-5 text-foreground/8" />
-                  <p className="font-display text-base text-foreground/35 lg:text-lg">Ask your stylist</p>
-                  <p className="mx-auto max-w-[240px] text-[11px] leading-[1.8] text-foreground/20 lg:max-w-xs lg:text-[12px]">
+              {!aiResult && savedItems.length === 0 && (
+                <div className="py-20 text-center space-y-5 md:py-24 lg:py-28">
+                  <Sparkles className="mx-auto h-5 w-5 text-foreground/10" />
+                  <p className="font-display text-lg text-foreground/40 md:text-xl">Ask your stylist</p>
+                  <p className="mx-auto max-w-[260px] text-[12px] leading-[1.8] text-foreground/25 md:max-w-xs md:text-[13px]">
                     Type a mood, occasion, or style to get personalized direction.
                   </p>
                   {!user && (
-                    <button onClick={() => navigate("/auth")} className="text-[9px] font-medium tracking-[0.2em] text-foreground/25 transition-colors hover:text-foreground/40">
+                    <button onClick={() => navigate("/auth")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/30 transition-colors hover:text-foreground/45">
                       SIGN IN TO SAVE
                     </button>
                   )}

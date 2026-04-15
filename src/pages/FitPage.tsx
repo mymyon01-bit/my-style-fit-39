@@ -127,20 +127,20 @@ const FitPage = () => {
   } : null;
 
   return (
-    <div className="min-h-screen bg-background pb-28 lg:pb-16 lg:pt-20">
+    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       {/* Header */}
-      <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
-        <div className="flex items-baseline justify-between mb-8 lg:mb-12">
-          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25 lg:hidden">WARDROBE</span>
-          <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">FIT</span>
+      <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
+        <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
+          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
+          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">FIT</span>
         </div>
 
         {/* Tabs */}
         <div className="flex">
           {TABS.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-4 text-center lg:pb-5">
-              <span className={`text-[9px] font-medium tracking-[0.2em] transition-colors duration-300 lg:text-[10px] ${
-                activeTab === tab.id ? "text-foreground/70" : "text-foreground/20"
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-5 text-center md:pb-6">
+              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 md:text-[11px] ${
+                activeTab === tab.id ? "text-foreground/70" : "text-foreground/25"
               }`}>
                 {tab.label}
               </span>
@@ -150,10 +150,10 @@ const FitPage = () => {
             </button>
           ))}
         </div>
-        <div className="h-px bg-accent/[0.06]" />
+        <div className="h-px bg-accent/[0.08]" />
       </div>
 
-      <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
+      <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-12">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && <FitBodyScan onScanComplete={handleScanComplete} />}
@@ -162,9 +162,9 @@ const FitPage = () => {
             {activeTab === "results" && fitResult && fitResultProduct ? (
               <FitResults result={fitResult} product={fitResultProduct} explanation={explanation} loadingExplanation={loadingExplanation} />
             ) : activeTab === "results" && (
-              <div className="py-24 text-center space-y-3 lg:py-32">
-                <p className="text-sm text-foreground/25">Select a product first</p>
-                <p className="text-[10px] text-foreground/15">Go to CHECK to pick an item</p>
+              <div className="py-24 text-center space-y-4 md:py-28 lg:py-32">
+                <p className="text-[14px] text-foreground/30">Select a product first</p>
+                <p className="text-[11px] text-foreground/18">Go to CHECK to pick an item</p>
               </div>
             )}
           </motion.div>
