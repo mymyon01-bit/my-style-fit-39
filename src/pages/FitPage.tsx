@@ -126,11 +126,13 @@ const FitPage = () => {
           </div>
 
           {/* Buy button */}
-          <a href={selectedProduct.url} target="_blank" rel="noopener noreferrer"
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-            {t("buyNow")}
-            <ExternalLink className="h-4 w-4" />
-          </a>
+          <AuthGate action="purchase items">
+            <a href={selectedProduct.url} target="_blank" rel="noopener noreferrer"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+              {t("buyNow")}
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </AuthGate>
         </div>
       </div>
     );
