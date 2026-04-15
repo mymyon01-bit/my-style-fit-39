@@ -24,7 +24,7 @@ const HomePage = () => {
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
-  const [weather] = useState({ temp: 22, condition: "partly-cloudy", location: "Seoul" });
+  const weather = useWeather();
 
   const handleSubmit = useCallback(async () => {
     if (!query.trim()) return;
