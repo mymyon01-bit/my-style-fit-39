@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 240 4% 97%;
+    --background: 240 3% 97%;
     --foreground: 240 10% 5%;
 
     --card: 0 0% 100%;
@@ -16,13 +16,13 @@
     --popover-foreground: 240 10% 5%;
 
     --primary: 240 10% 5%;
-    --primary-foreground: 240 4% 97%;
+    --primary-foreground: 240 3% 97%;
 
-    --secondary: 240 3% 93%;
+    --secondary: 240 2% 94%;
     --secondary-foreground: 240 10% 5%;
 
-    --muted: 240 3% 93%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 240 2% 92%;
+    --muted-foreground: 240 3% 46%;
 
     --accent: 249 100% 67%;
     --accent-foreground: 0 0% 100%;
@@ -30,44 +30,42 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 4% 90%;
-    --input: 240 4% 90%;
+    --border: 240 3% 92%;
+    --input: 240 3% 92%;
     --ring: 249 100% 67%;
 
     --radius: 0.75rem;
 
-    --gold: 249 100% 67%;
-    --gold-light: 249 60% 96%;
-    --gold-dark: 249 80% 52%;
+    --neutral: 240 3% 63%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 240 4% 95%;
+    --surface-sunken: 240 3% 95%;
     --star: 45 93% 58%;
 
     --font-display: 'Playfair Display', Georgia, serif;
     --font-body: 'Inter', -apple-system, sans-serif;
 
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.04), 0 1px 2px -1px hsl(0 0% 0% / 0.02);
-    --shadow-elevated: 0 8px 30px -4px hsl(0 0% 0% / 0.08), 0 2px 6px -2px hsl(0 0% 0% / 0.03);
+    --shadow-soft: 0 2px 16px -2px hsl(0 0% 0% / 0.04);
+    --shadow-elevated: 0 8px 40px -8px hsl(0 0% 0% / 0.06);
   }
 
   .dark {
     --background: 240 10% 4%;
-    --foreground: 240 4% 95%;
+    --foreground: 240 3% 93%;
 
-    --card: 240 8% 7%;
-    --card-foreground: 240 4% 95%;
+    --card: 240 8% 6%;
+    --card-foreground: 240 3% 93%;
 
-    --popover: 240 8% 7%;
-    --popover-foreground: 240 4% 95%;
+    --popover: 240 8% 6%;
+    --popover-foreground: 240 3% 93%;
 
-    --primary: 240 4% 95%;
+    --primary: 240 3% 93%;
     --primary-foreground: 240 10% 4%;
 
-    --secondary: 240 6% 12%;
-    --secondary-foreground: 240 4% 90%;
+    --secondary: 240 6% 10%;
+    --secondary-foreground: 240 3% 85%;
 
-    --muted: 240 6% 14%;
-    --muted-foreground: 240 4% 55%;
+    --muted: 240 6% 12%;
+    --muted-foreground: 240 3% 50%;
 
     --accent: 249 100% 72%;
     --accent-foreground: 0 0% 100%;
@@ -75,19 +73,17 @@
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 14%;
-    --input: 240 6% 14%;
+    --border: 240 6% 11%;
+    --input: 240 6% 11%;
     --ring: 249 100% 72%;
 
-    --gold: 249 100% 72%;
-    --gold-light: 249 40% 16%;
-    --gold-dark: 249 80% 60%;
-    --surface-elevated: 240 6% 10%;
+    --neutral: 240 3% 50%;
+    --surface-elevated: 240 6% 8%;
     --surface-sunken: 240 8% 5%;
     --star: 45 93% 58%;
 
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
-    --shadow-elevated: 0 8px 30px -4px hsl(0 0% 0% / 0.5);
+    --shadow-soft: 0 2px 16px -2px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 8px 40px -8px hsl(0 0% 0% / 0.5);
   }
 }
 
@@ -99,10 +95,13 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 }
 
@@ -113,8 +112,8 @@
   .font-body {
     font-family: var(--font-body);
   }
-  .shadow-card {
-    box-shadow: var(--shadow-card);
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
   }
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
