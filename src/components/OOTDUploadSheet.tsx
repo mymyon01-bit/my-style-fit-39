@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, MapPin, Tag } from "lucide-react";
+import { X, Camera, Loader2, MapPin, Tag, Hash, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
@@ -14,6 +14,12 @@ interface Props {
 const STYLE_TAGS = ["minimal", "streetwear", "classic", "chic", "clean fit", "old money", "sporty", "casual"];
 const OCCASION_TAGS = ["daily", "office", "date", "travel", "party", "weekend"];
 
+interface Topic {
+  id: string;
+  name: string;
+  post_count: number;
+}
+
 export default function OOTDUploadSheet({ open, onClose, onPosted }: Props) {
   const { user } = useAuth();
   const weather = useWeather();
@@ -23,11 +29,42 @@ export default function OOTDUploadSheet({ open, onClose, onPosted }: Props) {
   const [caption, setCaption] = useState("");
   const [styleTags, setStyleTags] = useState<string[]>([]);
   const [occasionTags, setOccasionTags] = useState<string[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [newTopic, setNewTopic] = useState("");
+  const [existingTopics, setExistingTopics] = useState<Topic[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (open) loadTopics();
+  }, [open]);
+
+  const loadTopics = async () => {
+    const { data } = await supabase.from("ootd_topics").select("*").order("post_count", { ascending: false }).limit(20);
+    setExistingTopics((data as Topic[]) || []);
+  };
+
   const toggleTag = (tag: string, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>) =>
     set(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+
+  const toggleTopic = (name: string) => {
+    setSelectedTopics(prev => prev.includes(name) ? prev.filter(t => t !== name) : [...prev, name]);
+  };
+
+  const handleAddTopic = async () => {
+    const cleaned = newTopic.trim().toLowerCase().replace(/[^a-z0-9_\-\s]/g, "").replace(/\s+/g, "-");
+    if (!cleaned || !user) return;
+    if (selectedTopics.includes(cleaned)) { setNewTopic(""); return; }
+
+    // Create if doesn't exist
+    const exists = existingTopics.find(t => t.name === cleaned);
+    if (!exists) {
+      await supabase.from("ootd_topics").insert({ name: cleaned, created_by: user.id });
+      await loadTopics();
+    }
+    setSelectedTopics(prev => [...prev, cleaned]);
+    setNewTopic("");
+  };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -60,17 +97,17 @@ export default function OOTDUploadSheet({ open, onClose, onPosted }: Props) {
         caption: caption || null,
         style_tags: styleTags,
         occasion_tags: occasionTags,
+        topics: selectedTopics,
         weather_tag: weather.condition,
       });
       if (insertError) throw insertError;
 
-      // Track interaction
       await supabase.from("interactions").insert({
         user_id: user.id,
         event_type: "ootd_uploaded",
         target_id: "ootd",
         target_type: "ootd",
-        metadata: { style_tags: styleTags, occasion_tags: occasionTags },
+        metadata: { style_tags: styleTags, occasion_tags: occasionTags, topics: selectedTopics },
       });
 
       onPosted();
@@ -89,6 +126,8 @@ export default function OOTDUploadSheet({ open, onClose, onPosted }: Props) {
     setCaption("");
     setStyleTags([]);
     setOccasionTags([]);
+    setSelectedTopics([]);
+    setNewTopic("");
     setError(null);
   };
 
@@ -147,6 +186,65 @@ export default function OOTDUploadSheet({ open, onClose, onPosted }: Props) {
               placeholder="Add a caption…"
               className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-accent transition-colors mb-4"
             />
+
+            {/* Topics */}
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Hash className="h-3 w-3 text-accent/50" />
+                <span className="text-[10px] font-semibold tracking-[0.15em] text-foreground/40">TOPICS</span>
+              </div>
+
+              {/* Selected topics */}
+              {selectedTopics.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {selectedTopics.map(tp => (
+                    <button
+                      key={tp}
+                      onClick={() => toggleTopic(tp)}
+                      className="rounded-full border border-accent bg-accent/10 px-3 py-1.5 text-[11px] font-medium text-accent flex items-center gap-1"
+                    >
+                      #{tp}
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Create new topic */}
+              <div className="flex gap-2 mb-2.5">
+                <input
+                  type="text"
+                  value={newTopic}
+                  onChange={e => setNewTopic(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleAddTopic()}
+                  placeholder="Create or search topic…"
+                  maxLength={30}
+                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-[12px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent/50 transition-colors"
+                />
+                <button
+                  onClick={handleAddTopic}
+                  disabled={!newTopic.trim()}
+                  className="rounded-lg border border-border px-3 py-2 text-foreground/50 hover:text-accent hover:border-accent/30 transition-colors disabled:opacity-30"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {/* Existing topics */}
+              {existingTopics.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {existingTopics.filter(t => !selectedTopics.includes(t.name)).slice(0, 8).map(topic => (
+                    <button
+                      key={topic.id}
+                      onClick={() => toggleTopic(topic.name)}
+                      className="rounded-full border border-border px-3 py-1.5 text-[11px] font-medium text-foreground/50 hover:text-foreground/70 hover:border-accent/20 transition-all"
+                    >
+                      <span className="text-accent/40 mr-0.5">#</span>{topic.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Style tags */}
             <div className="mb-3">

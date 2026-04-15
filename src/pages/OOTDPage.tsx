@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2 } from "lucide-react";
+import { Star, Camera, Loader2, Hash, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,8 +16,15 @@ interface OOTDPost {
   style_tags: string[] | null;
   weather_tag: string | null;
   occasion_tags: string[] | null;
+  topics: string[] | null;
   star_count: number | null;
   created_at: string;
+}
+
+interface Topic {
+  id: string;
+  name: string;
+  post_count: number;
 }
 
 type Tab = "community" | "mypage";
@@ -33,23 +40,39 @@ const OOTDPage = () => {
   const [starsLeft, setStarsLeft] = useState(3);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [trendingTopics, setTrendingTopics] = useState<Topic[]>([]);
+  const [activeTopic, setActiveTopic] = useState<string | null>(null);
 
   useEffect(() => {
     loadPosts();
+    loadTopics();
     if (user) { loadMyPosts(); loadTodayStars(); }
   }, [user]);
 
+  useEffect(() => {
+    loadPosts();
+  }, [activeTopic]);
+
+  const loadTopics = async () => {
+    const { data } = await supabase.from("ootd_topics").select("*").order("post_count", { ascending: false }).limit(15);
+    setTrendingTopics((data as Topic[]) || []);
+  };
+
   const loadPosts = async () => {
     setIsLoading(true);
-    const { data } = await supabase.from("ootd_posts").select("*").order("star_count", { ascending: false }).limit(20);
-    setPosts(data || []);
+    let query = supabase.from("ootd_posts").select("*").order("star_count", { ascending: false }).limit(20);
+    if (activeTopic) {
+      query = query.contains("topics", [activeTopic]);
+    }
+    const { data } = await query;
+    setPosts((data as OOTDPost[]) || []);
     setIsLoading(false);
   };
 
   const loadMyPosts = async () => {
     if (!user) return;
     const { data } = await supabase.from("ootd_posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setMyPosts(data || []);
+    setMyPosts((data as OOTDPost[]) || []);
   };
 
   const loadTodayStars = async () => {
@@ -71,7 +94,7 @@ const OOTDPage = () => {
     }
   };
 
-  const handlePosted = () => { loadPosts(); loadMyPosts(); };
+  const handlePosted = () => { loadPosts(); loadMyPosts(); loadTopics(); };
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
@@ -148,6 +171,13 @@ const OOTDPage = () => {
                               <span className="text-[10px] text-foreground/80">{post.star_count || 0}</span>
                             </div>
                           </div>
+                          {post.topics && post.topics.length > 0 && (
+                            <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                              {post.topics.map(tp => (
+                                <span key={tp} className="text-[10px] text-accent/70">#{tp}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -157,6 +187,40 @@ const OOTDPage = () => {
             </motion.div>
           ) : (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+              {/* Trending Topics */}
+              {trendingTopics.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3 text-accent/60" />
+                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">TOPICS</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setActiveTopic(null)}
+                      className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
+                        !activeTopic ? "border-accent bg-accent/10 text-accent" : "border-border text-foreground/50 hover:text-foreground/70"
+                      }`}
+                    >
+                      All
+                    </button>
+                    {trendingTopics.map(topic => (
+                      <button
+                        key={topic.id}
+                        onClick={() => setActiveTopic(activeTopic === topic.name ? null : topic.name)}
+                        className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
+                          activeTopic === topic.name
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border text-foreground/50 hover:text-foreground/70"
+                        }`}
+                      >
+                        <span className="text-accent/50 mr-0.5">#</span>{topic.name}
+                        <span className="ml-1.5 text-[9px] text-foreground/35">{topic.post_count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {isLoading ? (
                 <div className="flex items-center justify-center py-24">
                   <Loader2 className="h-4 w-4 animate-spin text-foreground/80" />
@@ -164,7 +228,9 @@ const OOTDPage = () => {
               ) : posts.length === 0 ? (
                 <div className="py-20 text-center space-y-4 md:py-24 lg:py-28">
                   <Camera className="h-6 w-6 text-foreground/48 mx-auto" />
-                  <p className="text-[14px] text-foreground/68">Community feed is growing</p>
+                  <p className="text-[14px] text-foreground/68">
+                    {activeTopic ? `No posts in #${activeTopic} yet` : "Community feed is growing"}
+                  </p>
                   {user && (
                     <button onClick={() => { setActiveTab("mypage"); setUploadOpen(true); }} className="text-[10px] font-medium tracking-[0.2em] text-foreground/62 hover:text-foreground/60">
                       POST FIRST
@@ -205,13 +271,21 @@ const OOTDPage = () => {
                             <span className="absolute left-4 top-4 text-[11px] font-medium text-white/40">{index + 1}</span>
                           )}
                         </div>
-                        {post.style_tags && post.style_tags.length > 0 && (
-                          <div className="mt-3 flex gap-2.5 flex-wrap">
-                            {post.style_tags.map(tag => (
-                              <span key={tag} className="text-[10px] text-foreground/62">{tag}</span>
-                            ))}
-                          </div>
-                        )}
+                        {/* Topics + style tags */}
+                        <div className="mt-3 flex gap-2.5 flex-wrap">
+                          {post.topics && post.topics.map(tp => (
+                            <button
+                              key={tp}
+                              onClick={() => setActiveTopic(tp)}
+                              className="text-[10px] text-accent/80 hover:text-accent transition-colors"
+                            >
+                              #{tp}
+                            </button>
+                          ))}
+                          {post.style_tags && post.style_tags.map(tag => (
+                            <span key={tag} className="text-[10px] text-foreground/50">{tag}</span>
+                          ))}
+                        </div>
                       </motion.div>
                     );
                   })}
