@@ -132,6 +132,7 @@ export type Database = {
           occasion_tags: string[] | null
           star_count: number | null
           style_tags: string[] | null
+          topics: string[] | null
           updated_at: string
           user_id: string
           weather_tag: string | null
@@ -145,6 +146,7 @@ export type Database = {
           occasion_tags?: string[] | null
           star_count?: number | null
           style_tags?: string[] | null
+          topics?: string[] | null
           updated_at?: string
           user_id: string
           weather_tag?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           occasion_tags?: string[] | null
           star_count?: number | null
           style_tags?: string[] | null
+          topics?: string[] | null
           updated_at?: string
           user_id?: string
           weather_tag?: string | null
@@ -192,6 +195,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ootd_topics: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          post_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          post_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          post_count?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
