@@ -7,6 +7,12 @@ import { useAuth } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
+import OutfitComposition from "@/components/OutfitComposition";
+import { mockProducts } from "@/lib/mockData";
+import {
+  rankProducts, defaultUserProfile, defaultBodyProfile,
+  defaultBehavior, getDefaultContext,
+} from "@/lib/recommendation";
 
 const HomePage = () => {
   const { t } = useI18n();
@@ -16,34 +22,21 @@ const HomePage = () => {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [moodContext, setMoodContext] = useState<string | null>(null);
   const weather = useWeather();
 
+  // Generate visual recommendations based on mood
   const handleSubmit = useCallback(async () => {
     if (!query.trim()) return;
     setIsLoading(true);
-    setAiResponse(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
-        body: {
-          type: "mood-styling",
-          context: {
-            mood: query,
-            weather: { temp: weather.temp, condition: weather.condition },
-            location: weather.location,
-            occasion: "daily",
-          },
-        },
-      });
-      if (error) throw error;
-      setAiResponse(data?.response || "Something went wrong. Try again.");
-    } catch (e) {
-      console.error("AI error:", e);
-      setAiResponse("Could not reach the stylist right now. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [query, weather]);
+    setMoodContext(query);
+
+    // Small delay for feel
+    await new Promise(r => setTimeout(r, 800));
+    setIsLoading(false);
+    setShowResults(true);
+  }, [query]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSubmit();
@@ -51,8 +44,16 @@ const HomePage = () => {
 
   const weatherLabel = weather.condition.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
+  // Rank products using the mood as context
+  const context = getDefaultContext(moodContext);
+  context.weather = { temp: weather.temp, condition: weather.condition };
+  const ranked = rankProducts(mockProducts, defaultUserProfile, defaultBodyProfile, context, defaultBehavior);
+  const topPicks = ranked.slice(0, 4).map(p => ({
+    id: p.id, label: p.name, category: p.category, image: p.image, brand: p.brand,
+  }));
+
   return (
-    <div className="h-screen overflow-hidden bg-background">
+    <div className="min-h-screen bg-background">
       <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 
@@ -66,10 +67,10 @@ const HomePage = () => {
           WARDROBE
         </motion.span>
 
-        {/* Input — mobile: compact, tablet: mid, desktop: dramatic */}
+        {/* Input + Results */}
         <div className="relative z-10 w-full max-w-md px-8 sm:max-w-lg md:max-w-xl lg:max-w-2xl">
           <AnimatePresence mode="wait">
-            {!aiResponse ? (
+            {!showResults ? (
               <motion.div
                 key="input"
                 initial={{ opacity: 0, y: 20 }}
@@ -116,25 +117,31 @@ const HomePage = () => {
               </motion.div>
             ) : (
               <motion.div
-                key="response"
+                key="results"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="space-y-8 md:space-y-10 lg:space-y-12"
+                className="space-y-8 md:space-y-10"
               >
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.3em] text-accent/70 mb-5 md:text-[11px] lg:text-[11px]">YOUR STYLIST</p>
-                  <p className="font-display text-[15px] font-light leading-[2] tracking-wide text-foreground/80 whitespace-pre-line md:text-base md:leading-[2.1] lg:text-lg lg:leading-[2.2]">
-                    {aiResponse}
+                <div className="text-center">
+                  <p className="text-[10px] font-medium tracking-[0.3em] text-accent/70 mb-3 md:text-[11px]">
+                    STYLED FOR "{moodContext?.toUpperCase()}"
                   </p>
                 </div>
 
-                <div className="flex gap-3">
+                {/* Visual outfit composition instead of text */}
+                <OutfitComposition
+                  pieces={topPicks}
+                  caption={`A curated look for your ${moodContext} mood`}
+                  tags={[moodContext || "", `${weather.temp}°`, weatherLabel]}
+                />
+
+                <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => navigate("/discover")}
                     className="flex-1 py-4 text-[10px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground md:text-[11px]"
                   >
-                    EXPLORE PICKS
+                    EXPLORE MORE
                   </button>
                   <div className="w-px bg-accent/[0.10]" />
                   <button
@@ -149,7 +156,7 @@ const HomePage = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
-                  onClick={() => { setAiResponse(null); setQuery(""); }}
+                  onClick={() => { setShowResults(false); setQuery(""); setMoodContext(null); }}
                   className="mx-auto block text-[9px] tracking-[0.3em] text-foreground/18 transition-colors hover:text-foreground/35"
                 >
                   ASK AGAIN
@@ -159,7 +166,7 @@ const HomePage = () => {
           </AnimatePresence>
         </div>
 
-        {!aiResponse && (
+        {!showResults && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
