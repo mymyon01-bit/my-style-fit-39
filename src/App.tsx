@@ -16,6 +16,7 @@ import OOTDPage from "@/pages/OOTDPage";
 import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound.tsx";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -51,7 +52,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Auth page — redirect to home if already logged in */}
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       {/* Protected routes */}
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
 
