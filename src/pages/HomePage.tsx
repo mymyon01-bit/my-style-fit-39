@@ -4,11 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Scan, Camera, ArrowRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
-import DailyPicks from "@/components/DailyPicks";
-import WeeklyPlan from "@/components/WeeklyPlan";
 
 const HomePage = () => {
   const { t } = useI18n();
@@ -54,7 +52,7 @@ const HomePage = () => {
   const weatherLabel = weather.condition.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen overflow-hidden bg-background">
       {/* ─── HERO ─── */}
       <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
@@ -177,101 +175,6 @@ const HomePage = () => {
           </motion.p>
         )}
       </section>
-
-      {/* ─── EDITORIAL SECTIONS ─── */}
-      <div className="mx-auto max-w-md space-y-20 px-8 pb-32 pt-16 sm:max-w-lg md:max-w-xl lg:max-w-2xl lg:space-y-32 lg:px-12 lg:pt-24 lg:pb-40">
-
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.8 }}
-        >
-          <DailyPicks />
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.8 }}
-        >
-          <WeeklyPlan />
-        </motion.section>
-
-        {/* FIT */}
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.8 }}
-        >
-          <button
-            onClick={() => navigate("/fit")}
-            className="group w-full text-left space-y-3 lg:space-y-5"
-          >
-            <div className="flex items-center gap-3">
-              <Scan className="h-4 w-4 text-accent/50" />
-              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30 lg:text-[10px]">BODY FIT</span>
-            </div>
-            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl lg:text-2xl">
-              Find your perfect size with AI body analysis
-            </p>
-            <div className="h-px w-12 bg-accent/[0.08] transition-all group-hover:w-20 group-hover:bg-accent/30" />
-          </button>
-        </motion.section>
-
-        {/* OOTD */}
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.8 }}
-        >
-          <button
-            onClick={() => navigate("/ootd")}
-            className="group w-full text-left space-y-3 lg:space-y-5"
-          >
-            <div className="flex items-center gap-3">
-              <Camera className="h-4 w-4 text-accent/50" />
-              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30 lg:text-[10px]">OOTD</span>
-            </div>
-            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl lg:text-2xl">
-              Share your look. Discover community style.
-            </p>
-            <div className="h-px w-12 bg-accent/[0.08] transition-all group-hover:w-20 group-hover:bg-accent/30" />
-          </button>
-        </motion.section>
-
-        {/* Guest CTA */}
-        {!user && (
-          <motion.section
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center space-y-6 lg:space-y-8"
-          >
-            <p className="font-display text-2xl font-light text-foreground/80 sm:text-3xl lg:text-4xl">
-              Your style, remembered.
-            </p>
-            <p className="mx-auto max-w-xs text-[13px] leading-[1.8] text-foreground/35 lg:max-w-sm lg:text-sm">
-              Save preferences, unlock daily AI styling, and start a free 3-month Premium trial.
-            </p>
-            <button
-              onClick={() => navigate("/auth")}
-              className="inline-flex items-center gap-2 text-[9px] font-semibold tracking-[0.2em] text-accent/70 transition-colors hover:text-accent lg:text-[10px]"
-            >
-              GET STARTED <ArrowRight className="h-3 w-3" />
-            </button>
-          </motion.section>
-        )}
-
-        {/* Footer mark */}
-        <div className="pt-12 text-center lg:pt-20">
-          <span className="text-[9px] tracking-[0.4em] text-foreground/10">WARDROBE</span>
-        </div>
-      </div>
     </div>
   );
 };
