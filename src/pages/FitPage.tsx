@@ -1,8 +1,10 @@
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { mockProducts } from "@/lib/mockData";
 import { useParams, useNavigate } from "react-router-dom";
 import { Link2, ImagePlus, ArrowLeft, ExternalLink, User } from "lucide-react";
 import { useState } from "react";
+import { AuthGate } from "@/components/AuthGate";
 import ProductCard from "@/components/ProductCard";
 
 const FitBreakdownBar = ({ label, value, status }: { label: string; value: number; status: string }) => (
