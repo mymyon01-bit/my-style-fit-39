@@ -1,52 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-
-// Ambient weather particles
-const WeatherAmbience = ({ condition }: { condition: string }) => {
-  if (condition === "rain" || condition === "light-rain") {
-    return (
-      <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-[0.04]">
-        {Array.from({ length: 40 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute h-12 w-px bg-foreground"
-            style={{ left: `${Math.random() * 100}%`, top: `-${Math.random() * 20}%` }}
-            animate={{ y: ["0vh", "120vh"] }}
-            transition={{ duration: 1.5 + Math.random(), repeat: Infinity, delay: Math.random() * 2, ease: "linear" }}
-          />
-        ))}
-      </div>
-    );
-  }
-  if (condition === "snow") {
-    return (
-      <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-[0.06]">
-        {Array.from({ length: 25 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute h-1.5 w-1.5 rounded-full bg-foreground"
-            style={{ left: `${Math.random() * 100}%`, top: `-5%` }}
-            animate={{ y: ["0vh", "105vh"], x: [0, Math.sin(i) * 30] }}
-            transition={{ duration: 8 + Math.random() * 6, repeat: Infinity, delay: Math.random() * 5, ease: "linear" }}
-          />
-        ))}
-      </div>
-    );
-  }
-  if (condition === "sunny" || condition === "clear") {
-    return (
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(40_60%_95%_/_0.03)] via-transparent to-transparent dark:from-[hsl(40_40%_20%_/_0.04)]" />
-      </div>
-    );
-  }
-  return null;
-};
+import WeatherAmbience from "@/components/WeatherAmbience";
 
 const HomePage = () => {
   const { t } = useI18n();
