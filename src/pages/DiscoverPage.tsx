@@ -3,12 +3,14 @@ import { mockProducts } from "@/lib/mockData";
 import { rankProducts, defaultUserProfile, defaultBodyProfile, defaultBehavior, getDefaultContext } from "@/lib/recommendation";
 import ProductCard from "@/components/ProductCard";
 import { ProductCardSkeleton } from "@/components/Skeleton";
-import NavDropdown from "@/components/NavDropdown";
 import { Search } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const DiscoverPage = () => {
   const { t } = useI18n();
+  const [searchParams] = useSearchParams();
+  const categoryFilter = searchParams.get("category");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,28 +25,29 @@ const DiscoverPage = () => {
     [context]
   );
 
-  // Only show what matters — top AI picks, nothing else
-  const topPicks = rankedProducts.slice(0, 6);
+  const filtered = rankedProducts.filter(p => {
+    if (categoryFilter && p.category !== categoryFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
+    }
+    return true;
+  }).slice(0, 8);
 
-  const filtered = searchQuery.trim()
-    ? topPicks.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.brand.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : topPicks;
+  const heading = categoryFilter
+    ? categoryFilter.toUpperCase()
+    : "PICKED FOR YOU";
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+    <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center justify-between px-6 py-4">
-          <NavDropdown />
+          <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">WARDROBE</span>
           <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">DISCOVER</span>
         </div>
       </header>
 
       <div className="mx-auto max-w-lg px-6">
-        {/* Search */}
         <div className="flex items-center gap-2.5 rounded-xl bg-card/60 px-4 py-3 backdrop-blur-sm">
           <Search className="h-4 w-4 text-foreground/20" />
           <input
@@ -56,12 +59,9 @@ const DiscoverPage = () => {
           />
         </div>
 
-        {/* Curated picks — no categories, no pills, no noise */}
-        <p className="mt-6 text-[10px] font-semibold tracking-[0.2em] text-foreground/25">
-          PICKED FOR YOU
-        </p>
+        <p className="mt-6 text-[10px] font-semibold tracking-[0.2em] text-foreground/25">{heading}</p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 pb-12">
+        <div className="mt-4 grid grid-cols-2 gap-3 pb-4">
           {isLoading
             ? [1, 2, 3, 4].map(i => <ProductCardSkeleton key={i} />)
             : filtered.map(product => (
@@ -71,9 +71,7 @@ const DiscoverPage = () => {
         </div>
 
         {filtered.length === 0 && !isLoading && (
-          <p className="py-16 text-center text-sm font-light text-foreground/30">
-            Nothing matched. Try something else.
-          </p>
+          <p className="py-16 text-center text-sm font-light text-foreground/30">Nothing matched.</p>
         )}
       </div>
     </div>
