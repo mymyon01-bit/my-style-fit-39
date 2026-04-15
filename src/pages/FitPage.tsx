@@ -150,7 +150,7 @@ const FitPage = () => {
             </button>
           ))}
         </div>
-        <div className="h-px bg-foreground/[0.04]" />
+        <div className="h-px bg-accent/[0.06]" />
       </div>
 
       <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
