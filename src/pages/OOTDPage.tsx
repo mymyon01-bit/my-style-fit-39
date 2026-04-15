@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { mockOOTDPosts } from "@/lib/mockData";
 import { Star, Plus, Shirt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AuthGate } from "@/components/AuthGate";
 
 const OOTDPage = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [starsLeft, setStarsLeft] = useState(3);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
@@ -31,16 +34,31 @@ const OOTDPage = () => {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1">
               <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-              <span className="text-[11px] font-semibold text-foreground">{starsLeft}</span>
+              <span className="text-[11px] font-semibold text-foreground">{user ? starsLeft : 0}</span>
             </div>
-            <button className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Plus className="h-4 w-4" />
-            </button>
+            <AuthGate action="post your outfits">
+              <button className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <Plus className="h-4 w-4" />
+              </button>
+            </AuthGate>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-lg">
+        {/* Guest banner */}
+        {!user && (
+          <div className="mx-4 mt-3 rounded-2xl border border-accent/20 bg-accent/5 p-3.5 text-center">
+            <p className="text-xs text-muted-foreground">
+              You're browsing as a guest.{" "}
+              <button onClick={() => navigate("/auth")} className="font-semibold text-accent">
+                Sign up
+              </button>{" "}
+              to give stars and post outfits.
+            </p>
+          </div>
+        )}
+
         {/* Tab filters */}
         <div className="flex gap-1 px-4 pt-3">
           {(["dailyTop", "weeklyTop", "allTime"] as const).map(tab => (
@@ -120,18 +138,21 @@ const OOTDPage = () => {
                           <p className="text-[10px] text-white/70">{post.caption}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleStar(post.id)}
-                        disabled={starsLeft <= 0 && !isStarred}
-                        className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm transition-all ${
-                          isStarred
-                            ? "bg-[hsl(var(--star)_/_0.9)] text-black"
-                            : "bg-white/20 text-white hover:bg-white/30"
-                        }`}
-                      >
-                        <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-current" : ""}`} />
-                        <span>{post.stars + (isStarred ? 1 : 0)}</span>
-                      </button>
+                      {/* Star button — gated */}
+                      <AuthGate action="give stars">
+                        <button
+                          onClick={() => handleStar(post.id)}
+                          disabled={starsLeft <= 0 && !isStarred}
+                          className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm transition-all ${
+                            isStarred
+                              ? "bg-[hsl(var(--star)_/_0.9)] text-black"
+                              : "bg-white/20 text-white hover:bg-white/30"
+                          }`}
+                        >
+                          <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-current" : ""}`} />
+                          <span>{post.stars + (isStarred ? 1 : 0)}</span>
+                        </button>
+                      </AuthGate>
                     </div>
                   </div>
                   {/* Rank badge */}
@@ -156,12 +177,14 @@ const OOTDPage = () => {
                       <Shirt className="h-3.5 w-3.5" />
                       {t("viewItems")}
                     </button>
-                    <button
-                      onClick={() => post.items[0] && navigate(`/fit/${post.items[0].id}`)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-                    >
-                      {t("tryThisLook")}
-                    </button>
+                    <AuthGate action="try on looks">
+                      <button
+                        onClick={() => post.items[0] && navigate(`/fit/${post.items[0].id}`)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                      >
+                        {t("tryThisLook")}
+                      </button>
+                    </AuthGate>
                   </div>
                 </div>
               </div>

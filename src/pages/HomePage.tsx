@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { mockProducts, mockBrands, mockOutfits, mockUserProfile } from "@/lib/mockData";
 import { rankProducts, defaultUserProfile, defaultBodyProfile, defaultBehavior, getDefaultContext } from "@/lib/recommendation";
 import ProductCard from "@/components/ProductCard";
@@ -7,7 +8,8 @@ import BrandCard from "@/components/BrandCard";
 import OutfitCard from "@/components/OutfitCard";
 import SectionHeader from "@/components/SectionHeader";
 import { ProductCardSkeleton, OutfitCardSkeleton } from "@/components/Skeleton";
-import { Settings, CloudSun, Sparkles, Lock, MapPin } from "lucide-react";
+import { AuthGate } from "@/components/AuthGate";
+import { Settings, CloudSun, Sparkles, Lock, MapPin, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const moods = [
@@ -23,17 +25,16 @@ const moods = [
 
 const HomePage = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate initial load
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
 
-  // Ranked products using recommendation engine
   const context = useMemo(() => getDefaultContext(selectedMood), [selectedMood]);
   const trendingBrands = useMemo(() => ["COS", "Lemaire"], []);
 
@@ -62,16 +63,48 @@ const HomePage = () => {
           <h1 className="font-display text-xl font-bold tracking-[0.15em] text-foreground">
             {t("appName")}
           </h1>
-          <button onClick={() => navigate("/settings")} className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-secondary text-muted-foreground">
-            <Settings className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {!user && (
+              <button
+                onClick={() => navigate("/auth")}
+                className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Sign Up
+              </button>
+            )}
+            <button onClick={() => navigate("/settings")} className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-secondary text-muted-foreground">
+              <Settings className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-lg">
+        {/* Guest banner */}
+        {!user && (
+          <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-3.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10">
+              <Sparkles className="h-4 w-4 text-accent" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-foreground">Welcome to WARDROBE</p>
+              <p className="text-[11px] text-muted-foreground">
+                Browse freely.{" "}
+                <button onClick={() => navigate("/auth")} className="font-semibold text-accent">
+                  Sign up
+                </button>{" "}
+                to save items, use AI fitting, and get personalized picks.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Greeting + Weather */}
         <div className="px-4 pt-5">
-          <p className="text-lg font-display font-semibold text-foreground">{greeting}</p>
+          <p className="text-lg font-display font-semibold text-foreground">
+            {user ? greeting : "Discover your style"}
+          </p>
           <div className="mt-2 flex items-center gap-3">
             <div className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5">
               <CloudSun className="h-3.5 w-3.5 text-accent" />
@@ -106,39 +139,43 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* AI Style Summary */}
-        <div className="mx-4 mt-4 rounded-2xl border border-border bg-card p-4 shadow-card">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10">
-              <Sparkles className="h-4 w-4 text-accent" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
-                {t("forYou")}
-              </p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-foreground">
-                {mockUserProfile.aiSummary[0]}
-              </p>
+        {/* AI Style Summary — only for logged-in users */}
+        {user && (
+          <div className="mx-4 mt-4 rounded-2xl border border-border bg-card p-4 shadow-card">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10">
+                <Sparkles className="h-4 w-4 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
+                  {t("forYou")}
+                </p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-foreground">
+                  {mockUserProfile.aiSummary[0]}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* AI Stylist Promo */}
-        <div className="mx-4 mt-3 overflow-hidden rounded-2xl border border-accent/15 bg-gradient-to-r from-accent/5 via-accent/8 to-accent/5 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-accent" />
-              <span className="text-sm font-semibold text-foreground">{t("aiStylist")}</span>
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground">
-                {t("premiumFeature")}
+        <AuthGate action="use the AI Stylist">
+          <div className="mx-4 mt-3 overflow-hidden rounded-2xl border border-accent/15 bg-gradient-to-r from-accent/5 via-accent/8 to-accent/5 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-accent" />
+                <span className="text-sm font-semibold text-foreground">{t("aiStylist")}</span>
+                <span className="rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground">
+                  {t("premiumFeature")}
+                </span>
+              </div>
+              <span className="text-xs font-medium text-accent">
+                {t("unlockStylist")} →
               </span>
             </div>
-            <button onClick={() => navigate("/fit")} className="text-xs font-medium text-accent">
-              {t("unlockStylist")} →
-            </button>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">{t("stylistDesc")}</p>
           </div>
-          <p className="mt-1.5 text-[11px] text-muted-foreground">{t("stylistDesc")}</p>
-        </div>
+        </AuthGate>
 
         {/* Mood-based recommendations */}
         {selectedMood && moodProducts.length > 0 && (
@@ -166,7 +203,7 @@ const HomePage = () => {
           }
         </div>
 
-        {/* Best For You — ranked by algorithm */}
+        {/* Best For You */}
         <SectionHeader title={t("bestForYouToday")} subtitle="AI-ranked for your profile" />
         <div className="grid grid-cols-2 gap-3 px-4">
           {isLoading
