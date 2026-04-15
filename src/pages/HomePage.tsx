@@ -94,7 +94,7 @@ const HomePage = () => {
                   }`}
                 />
                 <div className={`mx-auto h-px transition-all duration-700 ${
-                  isFocused ? "w-full bg-foreground/10" : "w-1/3 bg-foreground/[0.06]"
+                  isFocused ? "w-full bg-foreground/10" : "w-1/3 bg-accent/[0.08]"
                 }`} />
 
                 {isLoading && (
@@ -139,7 +139,7 @@ const HomePage = () => {
                   >
                     EXPLORE PICKS
                   </button>
-                  <div className="w-px bg-foreground/[0.06]" />
+                  <div className="w-px bg-accent/[0.08]" />
                   <button
                     onClick={() => navigate("/fit")}
                     className="flex-1 py-3.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground lg:text-[10px]"
@@ -217,7 +217,7 @@ const HomePage = () => {
             <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl lg:text-2xl">
               Find your perfect size with AI body analysis
             </p>
-            <div className="h-px w-12 bg-foreground/[0.06] transition-all group-hover:w-20 group-hover:bg-accent/30" />
+            <div className="h-px w-12 bg-accent/[0.08] transition-all group-hover:w-20 group-hover:bg-accent/30" />
           </button>
         </motion.section>
 
@@ -239,7 +239,7 @@ const HomePage = () => {
             <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl lg:text-2xl">
               Share your look. Discover community style.
             </p>
-            <div className="h-px w-12 bg-foreground/[0.06] transition-all group-hover:w-20 group-hover:bg-accent/30" />
+            <div className="h-px w-12 bg-accent/[0.08] transition-all group-hover:w-20 group-hover:bg-accent/30" />
           </button>
         </motion.section>
 

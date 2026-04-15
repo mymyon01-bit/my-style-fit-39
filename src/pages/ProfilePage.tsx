@@ -118,7 +118,7 @@ const ProfilePage = () => {
           ))}
         </div>
 
-        <div className="h-px bg-foreground/[0.04]" />
+        <div className="h-px bg-accent/[0.06]" />
 
         {/* Style */}
         <div className="space-y-4">
@@ -165,7 +165,7 @@ const ProfilePage = () => {
           )}
         </div>
 
-        <div className="h-px bg-foreground/[0.04]" />
+        <div className="h-px bg-accent/[0.06]" />
 
         {/* Links */}
         <div className="space-y-1">

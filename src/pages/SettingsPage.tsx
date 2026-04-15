@@ -51,7 +51,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <div className="h-px bg-foreground/[0.04]" />
+        <div className="h-px bg-accent/[0.06]" />
 
         {/* Theme */}
         <div className="space-y-4 lg:space-y-5">
@@ -72,7 +72,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <div className="h-px bg-foreground/[0.04]" />
+        <div className="h-px bg-accent/[0.06]" />
 
         {/* Actions */}
         <div className="space-y-1">

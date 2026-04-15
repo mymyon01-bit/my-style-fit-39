@@ -105,7 +105,7 @@ const OOTDPage = () => {
             </button>
           ))}
         </div>
-        <div className="h-px bg-foreground/[0.04]" />
+        <div className="h-px bg-accent/[0.06]" />
       </div>
 
       <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-3xl lg:px-12 lg:pt-12">
@@ -127,7 +127,7 @@ const OOTDPage = () => {
                     <Camera className="h-4 w-4" />
                     <span className="text-[9px] font-medium tracking-[0.2em] lg:text-[10px]">POST YOUR OOTD</span>
                   </button>
-                  <div className="h-px bg-foreground/[0.04]" />
+                  <div className="h-px bg-accent/[0.06]" />
 
                   {myPosts.length === 0 ? (
                     <div className="py-16 text-center space-y-2 lg:py-20">

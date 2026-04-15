@@ -81,7 +81,7 @@ const DiscoverPage = () => {
           )}
           {aiLoading && <Loader2 className="h-4 w-4 animate-spin text-foreground/20" />}
         </div>
-        <div className="h-px bg-foreground/[0.05]" />
+        <div className="h-px bg-accent/[0.08]" />
 
         {categoryFilter && (
           <div className="mt-5 flex items-center gap-2">
