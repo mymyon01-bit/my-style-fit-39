@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Scan, Camera, ChevronRight, ArrowRight } from "lucide-react";
+import { Loader2, Scan, Camera, ArrowRight } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
 import DailyPicks from "@/components/DailyPicks";
@@ -25,7 +25,6 @@ const HomePage = () => {
     if (!query.trim()) return;
     setIsLoading(true);
     setAiResponse(null);
-
     try {
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
@@ -52,9 +51,7 @@ const HomePage = () => {
     if (e.key === "Enter") handleSubmit();
   };
 
-  const weatherLabel = weather.condition
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, c => c.toUpperCase());
+  const weatherLabel = weather.condition.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,63 +59,58 @@ const HomePage = () => {
       <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 
-        {/* Logo */}
-        <motion.div
+        <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.2 }}
-          className="absolute top-8 z-10"
+          transition={{ duration: 1.5 }}
+          className="absolute top-10 z-10 font-display text-[11px] font-medium tracking-[0.4em] text-foreground/30"
         >
-          <span className="font-display text-[11px] font-semibold tracking-[0.35em] text-foreground/50 sm:text-[13px]">
-            WARDROBE
-          </span>
-        </motion.div>
+          WARDROBE
+        </motion.span>
 
-        {/* Center */}
-        <div className="relative z-10 w-full max-w-lg px-6">
+        <div className="relative z-10 w-full max-w-md px-8 sm:max-w-lg">
           <AnimatePresence mode="wait">
             {!aiResponse ? (
               <motion.div
                 key="input"
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="space-y-6"
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
               >
-                <div className={`relative transition-all duration-500 ${isFocused ? "scale-[1.01]" : ""}`}>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={t("howAreYouFeeling")}
-                    className={`w-full rounded-2xl border-0 bg-card/50 px-7 py-5 text-center font-display text-lg font-light tracking-wide text-foreground outline-none backdrop-blur-md transition-all duration-500 placeholder:text-foreground/30 sm:text-xl ${
-                      isFocused
-                        ? "shadow-[0_0_60px_-12px_hsl(var(--accent)_/_0.12)] ring-1 ring-accent/10"
-                        : "shadow-elevated"
-                    }`}
-                  />
-                  {isLoading && (
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                      <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
-                    </div>
-                  )}
-                </div>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t("howAreYouFeeling")}
+                  className={`w-full bg-transparent py-5 text-center font-display text-xl font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/20 sm:text-2xl ${
+                    isFocused ? "placeholder:text-foreground/10" : ""
+                  }`}
+                />
+                <div className={`mx-auto h-px transition-all duration-700 ${
+                  isFocused ? "w-full bg-foreground/10" : "w-1/3 bg-foreground/[0.06]"
+                }`} />
+
+                {isLoading && (
+                  <div className="mt-6 flex justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin text-foreground/20" />
+                  </div>
+                )}
 
                 <AnimatePresence>
                   {query.length > 0 && !isLoading && (
                     <motion.button
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 6 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
                       onClick={handleSubmit}
-                      className="mx-auto block text-[10px] font-medium tracking-[0.2em] text-foreground/30 transition-colors hover:text-foreground/50"
+                      className="mx-auto mt-6 block text-[9px] font-medium tracking-[0.25em] text-foreground/20 transition-colors hover:text-foreground/40"
                     >
-                      PRESS ENTER ↵
+                      ENTER ↵
                     </motion.button>
                   )}
                 </AnimatePresence>
@@ -126,14 +118,14 @@ const HomePage = () => {
             ) : (
               <motion.div
                 key="response"
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7 }}
-                className="space-y-6"
+                transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="space-y-8"
               >
-                <div className="rounded-2xl border border-foreground/[0.04] bg-card/50 p-7 backdrop-blur-md shadow-elevated">
-                  <p className="text-[9px] font-semibold tracking-[0.25em] text-accent mb-4">YOUR STYLIST</p>
-                  <p className="font-display text-[15px] font-light leading-[1.8] tracking-wide text-foreground/85 whitespace-pre-line">
+                <div>
+                  <p className="text-[9px] font-medium tracking-[0.3em] text-accent/70 mb-5">YOUR STYLIST</p>
+                  <p className="font-display text-[15px] font-light leading-[2] tracking-wide text-foreground/80 whitespace-pre-line sm:text-base">
                     {aiResponse}
                   </p>
                 </div>
@@ -141,13 +133,14 @@ const HomePage = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => navigate("/discover")}
-                    className="flex-1 rounded-xl bg-foreground py-3.5 text-[10px] font-semibold tracking-[0.12em] text-background transition-opacity hover:opacity-90"
+                    className="flex-1 py-3.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground"
                   >
                     EXPLORE PICKS
                   </button>
+                  <div className="w-px bg-foreground/[0.06]" />
                   <button
                     onClick={() => navigate("/fit")}
-                    className="flex-1 rounded-xl border border-foreground/8 py-3.5 text-[10px] font-semibold tracking-[0.12em] text-foreground/60 transition-colors hover:bg-foreground/[0.03]"
+                    className="flex-1 py-3.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground"
                   >
                     CHECK FIT
                   </button>
@@ -156,9 +149,9 @@ const HomePage = () => {
                 <motion.button
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.8 }}
                   onClick={() => { setAiResponse(null); setQuery(""); }}
-                  className="mx-auto block text-[9px] tracking-[0.2em] text-foreground/25 transition-colors hover:text-foreground/45"
+                  className="mx-auto block text-[8px] tracking-[0.3em] text-foreground/15 transition-colors hover:text-foreground/30"
                 >
                   ASK AGAIN
                 </motion.button>
@@ -167,120 +160,114 @@ const HomePage = () => {
           </AnimatePresence>
         </div>
 
-        {/* Weather pill */}
         {!aiResponse && (
-          <motion.div
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 1 }}
-            className="absolute bottom-12 z-10"
+            transition={{ delay: 0.8, duration: 1.2 }}
+            className="absolute bottom-14 z-10 text-[10px] font-light tracking-[0.18em] text-foreground/20"
           >
-            <p className="text-[11px] font-light tracking-[0.15em] text-foreground/35">
-              {weather.loading
-                ? "Detecting location…"
-                : weather.error
-                  ? `${weather.temp}°C · ${weatherLabel}`
-                  : `${weather.location} · ${weather.temp}°C · ${weatherLabel}`}
-            </p>
-          </motion.div>
+            {weather.loading
+              ? "…"
+              : weather.error
+                ? `${weather.temp}° · ${weatherLabel}`
+                : `${weather.location} · ${weather.temp}° · ${weatherLabel}`}
+          </motion.p>
         )}
       </section>
 
-      {/* ─── SCROLLABLE CONTENT ─── */}
-      <div className="relative z-10 mx-auto max-w-lg space-y-16 px-6 pb-28 pt-8 sm:max-w-xl md:max-w-2xl">
+      {/* ─── EDITORIAL SECTIONS ─── */}
+      <div className="mx-auto max-w-md space-y-24 px-8 pb-32 pt-16 sm:max-w-lg md:max-w-xl">
 
-        {/* Today's Picks */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8 }}
         >
           <DailyPicks />
         </motion.section>
 
-        {/* Weekly Plan */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8 }}
         >
           <WeeklyPlan />
         </motion.section>
 
-        {/* Try FIT */}
+        {/* FIT */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8 }}
         >
           <button
             onClick={() => navigate("/fit")}
-            className="group flex w-full items-center gap-5 rounded-2xl border border-foreground/[0.04] bg-card/40 p-6 text-left transition-all hover:bg-card/60 hover:shadow-elevated"
+            className="group w-full text-left space-y-3"
           >
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent/8">
-              <Scan className="h-5 w-5 text-accent" />
+            <div className="flex items-center gap-3">
+              <Scan className="h-4 w-4 text-accent/50" />
+              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30">BODY FIT</span>
             </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/40">BODY FIT</p>
-              <p className="mt-1 text-sm text-foreground/70">Find your perfect size with AI body analysis</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-foreground/15 transition-transform group-hover:translate-x-0.5" />
+            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl">
+              Find your perfect size with AI body analysis
+            </p>
+            <div className="h-px w-12 bg-foreground/[0.06] transition-all group-hover:w-20 group-hover:bg-accent/30" />
           </button>
         </motion.section>
 
-        {/* OOTD Community */}
+        {/* OOTD */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8 }}
         >
           <button
             onClick={() => navigate("/ootd")}
-            className="group flex w-full items-center gap-5 rounded-2xl border border-foreground/[0.04] bg-card/40 p-6 text-left transition-all hover:bg-card/60 hover:shadow-elevated"
+            className="group w-full text-left space-y-3"
           >
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent/8">
-              <Camera className="h-5 w-5 text-accent" />
+            <div className="flex items-center gap-3">
+              <Camera className="h-4 w-4 text-accent/50" />
+              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30">OOTD</span>
             </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/40">OOTD</p>
-              <p className="mt-1 text-sm text-foreground/70">Share your look. Discover community style.</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-foreground/15 transition-transform group-hover:translate-x-0.5" />
+            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl">
+              Share your look. Discover community style.
+            </p>
+            <div className="h-px w-12 bg-foreground/[0.06] transition-all group-hover:w-20 group-hover:bg-accent/30" />
           </button>
         </motion.section>
 
-        {/* Sign Up CTA — only for guests */}
+        {/* Guest CTA */}
         {!user && (
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.6 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.8 }}
+            className="text-center space-y-6"
           >
-            <div className="rounded-2xl border border-accent/15 bg-accent/[0.04] p-8 text-center space-y-4">
-              <p className="font-display text-xl font-semibold text-foreground sm:text-2xl">
-                Your style, remembered.
-              </p>
-              <p className="mx-auto max-w-xs text-sm leading-relaxed text-foreground/45">
-                Create a free account to save your preferences, unlock daily AI styling, and get a 3-month Premium trial.
-              </p>
-              <button
-                onClick={() => navigate("/auth")}
-                className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-[11px] font-semibold tracking-[0.1em] text-white transition-opacity hover:opacity-90"
-              >
-                GET STARTED <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            <p className="font-display text-2xl font-light text-foreground/80 sm:text-3xl">
+              Your style, remembered.
+            </p>
+            <p className="mx-auto max-w-xs text-[13px] leading-[1.8] text-foreground/35">
+              Save preferences, unlock daily AI styling, and start a free 3-month Premium trial.
+            </p>
+            <button
+              onClick={() => navigate("/auth")}
+              className="inline-flex items-center gap-2 text-[9px] font-semibold tracking-[0.2em] text-accent/70 transition-colors hover:text-accent"
+            >
+              GET STARTED <ArrowRight className="h-3 w-3" />
+            </button>
           </motion.section>
         )}
 
-        {/* Footer */}
-        <div className="pt-8 pb-4 text-center">
-          <span className="font-display text-[10px] tracking-[0.3em] text-foreground/15">WARDROBE</span>
+        {/* Footer mark */}
+        <div className="pt-12 text-center">
+          <span className="text-[9px] tracking-[0.4em] text-foreground/10">WARDROBE</span>
         </div>
       </div>
     </div>
