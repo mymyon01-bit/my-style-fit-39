@@ -57,21 +57,21 @@ const ProfilePage = () => {
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "You";
 
   return (
-    <div className="min-h-screen pb-28 bg-background">
+    <div className="min-h-screen pb-28 bg-background lg:pb-16 lg:pt-20">
       {/* Header */}
-      <div className="mx-auto max-w-lg px-8 pt-8">
-        <div className="flex items-baseline justify-between mb-10">
-          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25">WARDROBE</span>
+      <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
+        <div className="flex items-baseline justify-between mb-10 lg:mb-14">
+          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25 lg:hidden">WARDROBE</span>
           <button onClick={() => navigate("/settings")} className="text-foreground/15 hover:text-foreground/30 transition-colors">
             <Settings className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-8 space-y-10">
+      <div className="mx-auto max-w-lg px-8 space-y-10 lg:max-w-2xl lg:px-12 lg:space-y-14">
         {/* Identity */}
-        <div className="flex items-center gap-5">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/[0.03]">
+        <div className="flex items-center gap-5 lg:gap-7">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground/[0.03] lg:h-18 lg:w-18">
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
             ) : (
@@ -79,36 +79,41 @@ const ProfilePage = () => {
             )}
           </div>
           <div>
-            <p className="font-display text-base text-foreground/80">{displayName}</p>
-            <p className="text-[10px] text-foreground/25 mt-0.5">{user?.email}</p>
+            <p className="font-display text-base text-foreground/80 lg:text-lg">{displayName}</p>
+            <p className="text-[10px] text-foreground/25 mt-0.5 lg:text-[11px]">{user?.email}</p>
           </div>
         </div>
 
-        {/* Subscription */}
+        {/* Subscription — calm display */}
         <div className="flex items-center gap-4">
           <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/12"}`} />
           <div>
-            <p className="text-[10px] font-medium text-foreground/50">
+            <p className="text-[10px] font-medium text-foreground/50 lg:text-[11px]">
               {subscription.isPremium ? "Premium" : "Free"}
             </p>
             {subscription.isPremium && subscription.daysRemaining !== null && (
-              <p className="text-[9px] text-foreground/25">
+              <p className="text-[9px] text-foreground/25 lg:text-[10px]">
                 {subscription.plan === "premium_trial" ? `Trial · ${subscription.daysRemaining}d remaining` : "Active"}
+              </p>
+            )}
+            {!subscription.isPremium && (
+              <p className="text-[9px] text-foreground/20 lg:text-[10px]">
+                Continue your daily styling with Premium
               </p>
             )}
           </div>
         </div>
 
         {/* Stats */}
-        <div className="flex gap-10">
+        <div className="flex gap-10 lg:gap-14">
           {[
             { icon: Camera, label: "Posts", value: postCount },
             { icon: Star, label: "Stars", value: totalStars },
             { icon: Bookmark, label: "Saved", value: savedCount },
           ].map(stat => (
             <div key={stat.label} className="text-center">
-              <p className="text-lg font-light text-foreground/70">{stat.value}</p>
-              <p className="text-[9px] text-foreground/20 mt-1">{stat.label}</p>
+              <p className="text-lg font-light text-foreground/70 lg:text-xl">{stat.value}</p>
+              <p className="text-[9px] text-foreground/20 mt-1 lg:text-[10px]">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -116,19 +121,19 @@ const ProfilePage = () => {
         <div className="h-px bg-foreground/[0.04]" />
 
         {/* Style */}
-        <div className="space-y-3">
-          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20">STYLE</p>
+        <div className="space-y-4">
+          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">STYLE</p>
           {styleProfile ? (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {styleProfile.preferred_styles?.length > 0 && (
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2.5 flex-wrap">
                   {styleProfile.preferred_styles.map((s: string) => (
-                    <span key={s} className="text-[10px] text-accent/60">{s}</span>
+                    <span key={s} className="text-[11px] text-accent/60 lg:text-[12px]">{s}</span>
                   ))}
                 </div>
               )}
-              {styleProfile.preferred_fit && <p className="text-[11px] text-foreground/30">Fit: {styleProfile.preferred_fit}</p>}
-              {styleProfile.budget && <p className="text-[11px] text-foreground/30">Budget: {styleProfile.budget}</p>}
+              {styleProfile.preferred_fit && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Fit: {styleProfile.preferred_fit}</p>}
+              {styleProfile.budget && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Budget: {styleProfile.budget}</p>}
             </div>
           ) : (
             <div className="space-y-2">
@@ -141,14 +146,14 @@ const ProfilePage = () => {
         </div>
 
         {/* Body */}
-        <div className="space-y-3">
-          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20">BODY</p>
+        <div className="space-y-4">
+          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">BODY</p>
           {bodyProfile ? (
-            <div className="flex flex-wrap gap-x-6 gap-y-1">
-              {bodyProfile.height_cm && <p className="text-[11px] text-foreground/30">{bodyProfile.height_cm}cm</p>}
-              {bodyProfile.weight_kg && <p className="text-[11px] text-foreground/30">{bodyProfile.weight_kg}kg</p>}
-              {bodyProfile.shoulder_width_cm && <p className="text-[11px] text-foreground/30">Shoulder {bodyProfile.shoulder_width_cm}cm</p>}
-              {bodyProfile.waist_cm && <p className="text-[11px] text-foreground/30">Waist {bodyProfile.waist_cm}cm</p>}
+            <div className="flex flex-wrap gap-x-6 gap-y-1.5">
+              {bodyProfile.height_cm && <p className="text-[11px] text-foreground/35 lg:text-[12px]">{bodyProfile.height_cm}cm</p>}
+              {bodyProfile.weight_kg && <p className="text-[11px] text-foreground/35 lg:text-[12px]">{bodyProfile.weight_kg}kg</p>}
+              {bodyProfile.shoulder_width_cm && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Shoulder {bodyProfile.shoulder_width_cm}cm</p>}
+              {bodyProfile.waist_cm && <p className="text-[11px] text-foreground/35 lg:text-[12px]">Waist {bodyProfile.waist_cm}cm</p>}
             </div>
           ) : (
             <div className="space-y-2">
@@ -169,9 +174,9 @@ const ProfilePage = () => {
             { icon: Palette, label: "Style Settings", action: () => navigate("/onboarding") },
             { icon: Shirt, label: "Saved Looks", action: () => navigate("/discover") },
           ].map(section => (
-            <button key={section.label} onClick={section.action} className="flex w-full items-center gap-4 py-3.5 transition-colors hover:text-foreground">
+            <button key={section.label} onClick={section.action} className="flex w-full items-center gap-4 py-4 transition-colors hover:text-foreground lg:py-5">
               <section.icon className="h-4 w-4 text-foreground/12" />
-              <span className="flex-1 text-left text-[12px] text-foreground/40">{section.label}</span>
+              <span className="flex-1 text-left text-[12px] text-foreground/40 lg:text-[13px]">{section.label}</span>
               <ChevronRight className="h-3.5 w-3.5 text-foreground/8" />
             </button>
           ))}
@@ -180,7 +185,7 @@ const ProfilePage = () => {
         {/* Sign out */}
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 py-3 text-[10px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60"
+          className="flex items-center gap-2 py-3 text-[10px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60 lg:text-[11px]"
         >
           <LogOut className="h-3.5 w-3.5" />
           Sign Out

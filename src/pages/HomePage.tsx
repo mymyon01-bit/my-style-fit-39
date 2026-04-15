@@ -59,16 +59,18 @@ const HomePage = () => {
       <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 
+        {/* Brand mark — mobile: small, desktop: hidden (in nav) */}
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
-          className="absolute top-10 z-10 font-display text-[11px] font-medium tracking-[0.4em] text-foreground/30"
+          className="absolute top-10 z-10 font-display text-[11px] font-medium tracking-[0.4em] text-foreground/30 lg:hidden"
         >
           WARDROBE
         </motion.span>
 
-        <div className="relative z-10 w-full max-w-md px-8 sm:max-w-lg">
+        {/* Input area — desktop: wider, more dramatic */}
+        <div className="relative z-10 w-full max-w-md px-8 sm:max-w-lg lg:max-w-xl">
           <AnimatePresence mode="wait">
             {!aiResponse ? (
               <motion.div
@@ -87,8 +89,8 @@ const HomePage = () => {
                   onBlur={() => setIsFocused(false)}
                   onKeyDown={handleKeyDown}
                   placeholder={t("howAreYouFeeling")}
-                  className={`w-full bg-transparent py-5 text-center font-display text-xl font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/20 sm:text-2xl ${
-                    isFocused ? "placeholder:text-foreground/10" : ""
+                  className={`w-full bg-transparent py-5 text-center font-display text-xl font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/25 sm:text-2xl lg:py-8 lg:text-3xl ${
+                    isFocused ? "placeholder:text-foreground/15" : ""
                   }`}
                 />
                 <div className={`mx-auto h-px transition-all duration-700 ${
@@ -96,7 +98,7 @@ const HomePage = () => {
                 }`} />
 
                 {isLoading && (
-                  <div className="mt-6 flex justify-center">
+                  <div className="mt-6 flex justify-center lg:mt-10">
                     <Loader2 className="h-4 w-4 animate-spin text-foreground/20" />
                   </div>
                 )}
@@ -108,7 +110,7 @@ const HomePage = () => {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       onClick={handleSubmit}
-                      className="mx-auto mt-6 block text-[9px] font-medium tracking-[0.25em] text-foreground/20 transition-colors hover:text-foreground/40"
+                      className="mx-auto mt-6 block text-[9px] font-medium tracking-[0.25em] text-foreground/25 transition-colors hover:text-foreground/45 lg:mt-10 lg:text-[10px]"
                     >
                       ENTER ↵
                     </motion.button>
@@ -121,11 +123,11 @@ const HomePage = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="space-y-8"
+                className="space-y-8 lg:space-y-12"
               >
                 <div>
-                  <p className="text-[9px] font-medium tracking-[0.3em] text-accent/70 mb-5">YOUR STYLIST</p>
-                  <p className="font-display text-[15px] font-light leading-[2] tracking-wide text-foreground/80 whitespace-pre-line sm:text-base">
+                  <p className="text-[9px] font-medium tracking-[0.3em] text-accent/70 mb-5 lg:text-[10px]">YOUR STYLIST</p>
+                  <p className="font-display text-[15px] font-light leading-[2] tracking-wide text-foreground/80 whitespace-pre-line sm:text-base lg:text-lg lg:leading-[2.2]">
                     {aiResponse}
                   </p>
                 </div>
@@ -133,14 +135,14 @@ const HomePage = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => navigate("/discover")}
-                    className="flex-1 py-3.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground"
+                    className="flex-1 py-3.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground lg:text-[10px]"
                   >
                     EXPLORE PICKS
                   </button>
                   <div className="w-px bg-foreground/[0.06]" />
                   <button
                     onClick={() => navigate("/fit")}
-                    className="flex-1 py-3.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground"
+                    className="flex-1 py-3.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground lg:text-[10px]"
                   >
                     CHECK FIT
                   </button>
@@ -165,7 +167,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 1.2 }}
-            className="absolute bottom-14 z-10 text-[10px] font-light tracking-[0.18em] text-foreground/20"
+            className="absolute bottom-14 z-10 text-[10px] font-light tracking-[0.18em] text-foreground/25 lg:bottom-20 lg:text-[11px]"
           >
             {weather.loading
               ? "…"
@@ -177,7 +179,7 @@ const HomePage = () => {
       </section>
 
       {/* ─── EDITORIAL SECTIONS ─── */}
-      <div className="mx-auto max-w-md space-y-24 px-8 pb-32 pt-16 sm:max-w-lg md:max-w-xl">
+      <div className="mx-auto max-w-md space-y-20 px-8 pb-32 pt-16 sm:max-w-lg md:max-w-xl lg:max-w-2xl lg:space-y-32 lg:px-12 lg:pt-24 lg:pb-40">
 
         <motion.section
           initial={{ opacity: 0, y: 30 }}
@@ -206,13 +208,13 @@ const HomePage = () => {
         >
           <button
             onClick={() => navigate("/fit")}
-            className="group w-full text-left space-y-3"
+            className="group w-full text-left space-y-3 lg:space-y-5"
           >
             <div className="flex items-center gap-3">
               <Scan className="h-4 w-4 text-accent/50" />
-              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30">BODY FIT</span>
+              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30 lg:text-[10px]">BODY FIT</span>
             </div>
-            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl">
+            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl lg:text-2xl">
               Find your perfect size with AI body analysis
             </p>
             <div className="h-px w-12 bg-foreground/[0.06] transition-all group-hover:w-20 group-hover:bg-accent/30" />
@@ -228,13 +230,13 @@ const HomePage = () => {
         >
           <button
             onClick={() => navigate("/ootd")}
-            className="group w-full text-left space-y-3"
+            className="group w-full text-left space-y-3 lg:space-y-5"
           >
             <div className="flex items-center gap-3">
               <Camera className="h-4 w-4 text-accent/50" />
-              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30">OOTD</span>
+              <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/30 lg:text-[10px]">OOTD</span>
             </div>
-            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl">
+            <p className="font-display text-lg text-foreground/70 transition-colors group-hover:text-foreground sm:text-xl lg:text-2xl">
               Share your look. Discover community style.
             </p>
             <div className="h-px w-12 bg-foreground/[0.06] transition-all group-hover:w-20 group-hover:bg-accent/30" />
@@ -248,17 +250,17 @@ const HomePage = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.8 }}
-            className="text-center space-y-6"
+            className="text-center space-y-6 lg:space-y-8"
           >
-            <p className="font-display text-2xl font-light text-foreground/80 sm:text-3xl">
+            <p className="font-display text-2xl font-light text-foreground/80 sm:text-3xl lg:text-4xl">
               Your style, remembered.
             </p>
-            <p className="mx-auto max-w-xs text-[13px] leading-[1.8] text-foreground/35">
+            <p className="mx-auto max-w-xs text-[13px] leading-[1.8] text-foreground/35 lg:max-w-sm lg:text-sm">
               Save preferences, unlock daily AI styling, and start a free 3-month Premium trial.
             </p>
             <button
               onClick={() => navigate("/auth")}
-              className="inline-flex items-center gap-2 text-[9px] font-semibold tracking-[0.2em] text-accent/70 transition-colors hover:text-accent"
+              className="inline-flex items-center gap-2 text-[9px] font-semibold tracking-[0.2em] text-accent/70 transition-colors hover:text-accent lg:text-[10px]"
             >
               GET STARTED <ArrowRight className="h-3 w-3" />
             </button>
@@ -266,7 +268,7 @@ const HomePage = () => {
         )}
 
         {/* Footer mark */}
-        <div className="pt-12 text-center">
+        <div className="pt-12 text-center lg:pt-20">
           <span className="text-[9px] tracking-[0.4em] text-foreground/10">WARDROBE</span>
         </div>
       </div>
