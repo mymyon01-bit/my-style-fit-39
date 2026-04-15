@@ -1,136 +1,179 @@
+import { useState, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
+import { motion, AnimatePresence } from "framer-motion";
 import { mockProducts } from "@/lib/mockData";
-import { useParams, useNavigate } from "react-router-dom";
-import { Link2, ArrowLeft, ExternalLink, User } from "lucide-react";
-import { useState } from "react";
-import { AuthGate } from "@/components/AuthGate";
+import {
+  BodyMeasurements, ConfidenceLevel, defaultBodyMeasurements,
+  computeFit, mockProductFitData, FitResult
+} from "@/lib/fitEngine";
+import { supabase } from "@/integrations/supabase/client";
+import FitBodyScan from "@/components/fit/FitBodyScan";
+import FitMeasurements from "@/components/fit/FitMeasurements";
+import FitProductCheck from "@/components/fit/FitProductCheck";
+import FitResults from "@/components/fit/FitResults";
 
-const FitBreakdownBar = ({ label, value, status }: { label: string; value: number; status: string }) => (
-  <div className="space-y-1">
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-foreground/40">{label}</span>
-      <span className={`text-[10px] font-semibold ${
-        status === "perfect" ? "text-green-500" : status === "tight" ? "text-orange-500" : "text-blue-500"
-      }`}>{status}</span>
-    </div>
-    <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
-      <div className={`h-full rounded-full transition-all ${
-        status === "perfect" ? "bg-green-500" : status === "tight" ? "bg-orange-500" : "bg-blue-500"
-      }`} style={{ width: `${value}%` }} />
-    </div>
-  </div>
-);
+type Tab = "scan" | "measurements" | "check" | "results";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "scan", label: "SCAN" },
+  { id: "measurements", label: "BODY" },
+  { id: "check", label: "CHECK" },
+  { id: "results", label: "RESULTS" },
+];
 
 const FitPage = () => {
   const { t } = useI18n();
-  const { productId } = useParams();
-  const navigate = useNavigate();
-  const [url, setUrl] = useState("");
+  const [activeTab, setActiveTab] = useState<Tab>("scan");
+  const [scanQuality, setScanQuality] = useState(0);
+  const [measurements, setMeasurements] = useState<
+    Record<keyof BodyMeasurements, { value: number; confidence: ConfidenceLevel }>
+  >(() => {
+    const m = {} as any;
+    for (const [k, v] of Object.entries(defaultBodyMeasurements)) {
+      m[k] = { value: v, confidence: "medium" as ConfidenceLevel };
+    }
+    return m;
+  });
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [fitResult, setFitResult] = useState<FitResult | null>(null);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
 
-  const selectedProduct = productId ? mockProducts.find(p => p.id === productId) : null;
+  const handleScanComplete = useCallback((quality: number) => {
+    setScanQuality(quality);
+    // After scan, auto-advance to measurements
+    setTimeout(() => setActiveTab("measurements"), 800);
+  }, []);
 
-  if (selectedProduct) {
-    const fitBreakdown = [
-      { label: t("shoulderFit"), value: 85, status: t("perfect") },
-      { label: t("lengthFit"), value: 70, status: t("loose") },
-      { label: t("waistFit"), value: 90, status: t("perfect") },
-    ];
+  const handleMeasurementUpdate = useCallback((key: keyof BodyMeasurements, value: number) => {
+    setMeasurements(prev => ({
+      ...prev,
+      [key]: { value, confidence: "high" as ConfidenceLevel },
+    }));
+  }, []);
 
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md">
-          <div className="mx-auto flex max-w-lg items-center gap-3 px-6 py-4">
-            <button onClick={() => navigate("/fit")} className="text-foreground/40 hover:text-foreground/70">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">FIT RESULT</span>
-          </div>
-        </header>
+  const handleSelectProduct = useCallback((productId: string) => {
+    const fitData = mockProductFitData[productId];
+    if (!fitData) return;
 
-        <div className="mx-auto max-w-lg space-y-5 px-6 pt-2 pb-4">
-          <div className="flex gap-4">
-            <img src={selectedProduct.image} alt={selectedProduct.name} className="h-40 w-28 rounded-xl object-cover" />
-            <div className="flex-1 space-y-2">
-              <p className="text-[10px] tracking-[0.1em] text-foreground/30">{selectedProduct.brand}</p>
-              <p className="font-display text-base font-medium text-foreground">{selectedProduct.name}</p>
-              <p className="text-lg font-bold text-foreground">${selectedProduct.price}</p>
-              <div className="flex items-center gap-2">
-                <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/[0.06]">
-                  <div className="h-full rounded-full bg-accent" style={{ width: `${selectedProduct.fitScore}%` }} />
-                </div>
-                <span className="text-sm font-bold text-accent">{selectedProduct.fitScore}</span>
-              </div>
-            </div>
-          </div>
+    const body: BodyMeasurements = {} as any;
+    for (const [k, v] of Object.entries(measurements)) {
+      (body as any)[k] = v.value;
+    }
 
-          <div className="rounded-xl border border-foreground/[0.04] bg-card/50 backdrop-blur-sm">
-            <div className="flex h-52 items-center justify-center">
-              <div className="text-center">
-                <div className="mx-auto flex h-28 w-16 items-center justify-center rounded-xl border border-dashed border-foreground/10">
-                  <User className="h-10 w-10 text-foreground/10" />
-                </div>
-                <p className="mt-2 text-[10px] text-foreground/20">AI avatar visualization</p>
-              </div>
-            </div>
-          </div>
+    const result = computeFit(body, fitData, scanQuality || 75);
+    setSelectedProductId(productId);
+    setFitResult(result);
+    setActiveTab("results");
 
-          <div className="space-y-3">
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">FIT BREAKDOWN</p>
-            {fitBreakdown.map(item => <FitBreakdownBar key={item.label} {...item} />)}
-          </div>
+    // Fetch Perplexity explanation
+    fetchExplanation(result, productId);
+  }, [measurements, scanQuality]);
 
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">RECOMMENDED SIZE</p>
-            <p className="mt-1 font-display text-2xl font-bold text-foreground">{selectedProduct.recommendedSize}</p>
-            <p className="mt-1 text-sm font-light leading-relaxed text-foreground/50">{selectedProduct.fitComment}</p>
-          </div>
+  const fetchExplanation = async (result: FitResult, productId: string) => {
+    setLoadingExplanation(true);
+    setExplanation(null);
+    try {
+      const product = mockProducts.find(p => p.id === productId);
+      const { data, error } = await supabase.functions.invoke("fit-explain", {
+        body: {
+          summary: result.summary,
+          recommendedSize: result.recommendedSize,
+          alternateSize: result.alternateSize,
+          fitScore: result.sizeResults.find(s => s.recommended)?.fitScore,
+          productName: product?.name,
+          productBrand: product?.brand,
+          productDataQuality: result.productDataQuality,
+          scanQuality: result.scanQuality,
+          regions: result.sizeResults.find(s => s.recommended)?.regions,
+        },
+      });
+      if (!error && data?.explanation) {
+        setExplanation(data.explanation);
+      }
+    } catch {
+      // fallback to summary
+    } finally {
+      setLoadingExplanation(false);
+    }
+  };
 
-          <AuthGate action="purchase items">
-            <a href={selectedProduct.url} target="_blank" rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background transition-opacity hover:opacity-90">
-              {t("buyNow")} <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </AuthGate>
-        </div>
-      </div>
-    );
-  }
+  const selectedProduct = selectedProductId ? mockProducts.find(p => p.id === selectedProductId) : null;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-6 py-4">
-          <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">WARDROBE</span>
-          <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">FIT</span>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-lg space-y-6 px-6 pt-2 pb-4">
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">PASTE A PRODUCT LINK</p>
-          <div className="mt-2 flex items-center gap-2 rounded-xl bg-card/60 px-4 py-3 backdrop-blur-sm">
-            <Link2 className="h-4 w-4 text-foreground/20" />
-            <input type="text" value={url} onChange={e => setUrl(e.target.value)} placeholder={t("pasteUrl")}
-              className="w-full bg-transparent text-sm font-light text-foreground outline-none placeholder:text-foreground/20" />
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-foreground/[0.04]">
+        <div className="mx-auto max-w-lg px-6 pt-4 pb-0">
+          <div className="flex items-center justify-between mb-4">
+            <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">WARDROBE</span>
+            <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">FIT ENGINE</span>
           </div>
-        </div>
 
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">OR TRY THESE</p>
-          <div className="mt-3 space-y-2">
-            {mockProducts.slice(0, 3).map(product => (
-              <button key={product.id} onClick={() => navigate(`/fit/${product.id}`)}
-                className="flex w-full items-center gap-3 rounded-xl bg-card/40 p-3 text-left transition-colors hover:bg-card/70">
-                <img src={product.image} alt={product.name} className="h-14 w-10 rounded-lg object-cover" />
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-foreground">{product.name}</p>
-                  <p className="text-[10px] text-foreground/30">{product.brand} · ${product.price}</p>
-                </div>
-                <span className="text-xs font-bold text-accent">{product.fitScore}</span>
+          {/* Tab bar */}
+          <div className="flex">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="relative flex-1 pb-3 text-center"
+              >
+                <span className={`text-[10px] font-semibold tracking-[0.15em] transition-colors ${
+                  activeTab === tab.id ? "text-foreground" : "text-foreground/25"
+                }`}>
+                  {tab.label}
+                </span>
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="fit-tab-indicator"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-accent"
+                  />
+                )}
               </button>
             ))}
           </div>
         </div>
+      </header>
+
+      {/* Content */}
+      <div className="mx-auto max-w-lg px-6 pt-5">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === "scan" && (
+              <FitBodyScan onScanComplete={handleScanComplete} />
+            )}
+
+            {activeTab === "measurements" && (
+              <FitMeasurements
+                measurements={measurements}
+                onUpdate={handleMeasurementUpdate}
+              />
+            )}
+
+            {activeTab === "check" && (
+              <FitProductCheck onSelectProduct={handleSelectProduct} />
+            )}
+
+            {activeTab === "results" && fitResult && selectedProduct ? (
+              <FitResults
+                result={fitResult}
+                product={selectedProduct}
+                explanation={explanation}
+                loadingExplanation={loadingExplanation}
+              />
+            ) : activeTab === "results" && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <p className="text-sm text-foreground/20">Select a product in CHECK tab first</p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
