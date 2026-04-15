@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Camera, User, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const styleOptions = ["minimal", "streetwear", "classic", "oldMoney", "chic", "cleanFit", "sporty"] as const;
 const fitOptions = ["slim", "regular", "relaxed2", "oversized"] as const;
@@ -11,6 +13,7 @@ const occasions = ["daily", "office", "date", "travel"] as const;
 
 const OnboardingPage = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -19,6 +22,7 @@ const OnboardingPage = () => {
   const [selectedBudget, setSelectedBudget] = useState<string>("");
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [bodyData, setBodyData] = useState({ height: "", weight: "", shoulder: "", waist: "" });
 
   const toggle = (arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, val: string) =>
     set(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
@@ -27,6 +31,39 @@ const OnboardingPage = () => {
     `rounded-full border px-4 py-2.5 text-sm font-medium transition-all ${
       active ? "border-accent bg-accent/10 text-accent" : "border-border text-muted-foreground"
     }`;
+
+  const saveProfileData = async () => {
+    if (!user) return;
+    const userId = user.id;
+
+    // Save style profile
+    await supabase.from("style_profiles").upsert({
+      user_id: userId,
+      preferred_styles: selectedStyles,
+      disliked_styles: dislikedStyles,
+      preferred_fit: selectedFit || null,
+      budget: selectedBudget || null,
+      occasions: selectedOccasions,
+    } as any, { onConflict: "user_id" });
+
+    // Save body profile
+    const h = parseFloat(bodyData.height);
+    const w = parseFloat(bodyData.weight);
+    const s = parseFloat(bodyData.shoulder);
+    const wa = parseFloat(bodyData.waist);
+    if (h || w || s || wa) {
+      await supabase.from("body_profiles").upsert({
+        user_id: userId,
+        height_cm: h || null,
+        weight_kg: w || null,
+        shoulder_width_cm: s || null,
+        waist_cm: wa || null,
+      } as any, { onConflict: "user_id" });
+    }
+
+    // Mark onboarded
+    await supabase.from("profiles").update({ onboarded: true } as any).eq("user_id", userId);
+  };
 
   const steps = [
     // Step 0: Welcome
@@ -38,7 +75,7 @@ const OnboardingPage = () => {
       <p className="mt-4 text-sm leading-relaxed text-muted-foreground max-w-[280px]">{t("onboardingDesc1")}</p>
     </motion.div>,
 
-    // Step 1: Style preferences + disliked
+    // Step 1: Style preferences + disliked + occasions
     <motion.div key="style" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 px-6 pt-8 overflow-y-auto">
       <h2 className="font-display text-2xl font-bold text-foreground">{t("whatsYourStyle")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t("selectStylesYouLove")}</p>
@@ -117,21 +154,26 @@ const OnboardingPage = () => {
 
       <div className="mt-6 space-y-3">
         {[
-          { label: t("height"), placeholder: "175 cm" },
-          { label: t("weight"), placeholder: "70 kg" },
-          { label: t("shoulderWidth"), placeholder: "45 cm" },
-          { label: t("waist"), placeholder: "80 cm" },
+          { label: t("height"), placeholder: "175 cm", key: "height" },
+          { label: t("weight"), placeholder: "70 kg", key: "weight" },
+          { label: t("shoulderWidth"), placeholder: "45 cm", key: "shoulder" },
+          { label: t("waist"), placeholder: "80 cm", key: "waist" },
         ].map(field => (
-          <div key={field.label}>
+          <div key={field.key}>
             <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
-            <input type="text" placeholder={field.placeholder}
-              className="mt-1 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-accent transition-colors" />
+            <input
+              type="text"
+              placeholder={field.placeholder}
+              value={bodyData[field.key as keyof typeof bodyData]}
+              onChange={e => setBodyData(prev => ({ ...prev, [field.key]: e.target.value }))}
+              className="mt-1 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-accent transition-colors"
+            />
           </div>
         ))}
       </div>
     </motion.div>,
 
-    // Step 4: Profile Ready (with analyzing animation)
+    // Step 4: Profile Ready
     <motion.div key="ready" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-1 flex-col items-center justify-center px-8 text-center">
       {isAnalyzing ? (
         <>
@@ -154,14 +196,13 @@ const OnboardingPage = () => {
 
   const isLast = step === steps.length - 1;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (isLast) {
-      localStorage.setItem("wardrobe-onboarded", "true");
-      navigate("/");
+      navigate("/", { replace: true });
     } else if (step === steps.length - 2) {
-      // Before showing profile ready, show analyzing
       setStep(step + 1);
       setIsAnalyzing(true);
+      await saveProfileData();
       setTimeout(() => setIsAnalyzing(false), 2000);
     } else {
       setStep(step + 1);
