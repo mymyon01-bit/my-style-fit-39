@@ -1,4 +1,4 @@
-import { Home, Compass, Scan, Camera, User } from "lucide-react";
+import { Home, Compass, Camera, Scan, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const BottomNav = () => {
@@ -8,8 +8,8 @@ const BottomNav = () => {
   const tabs = [
     { path: "/", icon: Home, label: "HOME" },
     { path: "/discover", icon: Compass, label: "DISCOVER" },
-    { path: "/fit", icon: Scan, label: "FIT" },
     { path: "/ootd", icon: Camera, label: "OOTD" },
+    { path: "/fit", icon: Scan, label: "FIT" },
     { path: "/profile", icon: User, label: "YOU" },
   ];
 

@@ -8,8 +8,8 @@ const DesktopNav = () => {
 
   const links = [
     { path: "/discover", label: "DISCOVER" },
-    { path: "/fit", label: "FIT" },
     { path: "/ootd", label: "OOTD" },
+    { path: "/fit", label: "FIT" },
   ];
 
   const isActive = (path: string) =>
