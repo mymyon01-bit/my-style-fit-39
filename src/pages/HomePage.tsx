@@ -7,6 +7,8 @@ import { useAuth } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
+import DailyPicks from "@/components/DailyPicks";
+import WeeklyPlan from "@/components/WeeklyPlan";
 
 interface AiOutfitPiece {
   name: string;
@@ -62,7 +64,7 @@ const HomePage = () => {
     .replace(/\b\w/g, c => c.toUpperCase());
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-background">
+    <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
       <WeatherAmbience condition={weather.condition} />
 
       {/* Top bar */}
@@ -73,7 +75,9 @@ const HomePage = () => {
       </div>
 
       {/* Center content */}
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-20">
+      <div className="relative z-10 flex flex-1 flex-col items-center overflow-y-auto px-6 pb-20">
+        {/* Spacer to center input when no AI response */}
+        {!aiResponse && <div className="flex-1" />}
         <AnimatePresence mode="wait">
           {!aiResponse ? (
             <motion.div
@@ -166,6 +170,21 @@ const HomePage = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {!aiResponse && <div className="flex-1" />}
+
+        {/* Premium sections */}
+        {user && !aiResponse && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="w-full max-w-md space-y-6 pb-4"
+          >
+            <DailyPicks />
+            <WeeklyPlan />
+          </motion.div>
+        )}
       </div>
 
       {/* Weather widget */}
