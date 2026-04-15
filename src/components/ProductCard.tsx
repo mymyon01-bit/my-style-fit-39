@@ -2,6 +2,7 @@ import { type Product } from "@/lib/mockData";
 import { Heart, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthGate } from "@/components/AuthGate";
 import type { ProductScoreBreakdown } from "@/lib/recommendation";
 
 interface ProductCardProps {
@@ -29,18 +30,20 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
           className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
           loading="lazy"
         />
-        {/* Save button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setLiked(!liked);
-          }}
-          className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
-        >
-          <Heart
-            className={`h-4 w-4 transition-colors ${liked ? "fill-accent text-accent" : "text-foreground/50"}`}
-          />
-        </button>
+        {/* Save button — gated */}
+        <AuthGate action="save items">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setLiked(!liked);
+            }}
+            className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
+          >
+            <Heart
+              className={`h-4 w-4 transition-colors ${liked ? "fill-accent text-accent" : "text-foreground/50"}`}
+            />
+          </button>
+        </AuthGate>
         {/* Match badge */}
         {matchScore >= 70 && (
           <div className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 backdrop-blur-sm">
