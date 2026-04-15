@@ -20,9 +20,9 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+/** Only blocks unauthenticated users — used for Profile, Settings, Onboarding */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -30,7 +30,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
   if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 };
@@ -51,23 +50,25 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Auth page — redirect to home if already logged in */}
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-      <Route path="/onboarding" element={
-        <ProtectedRoute><OnboardingPage /></ProtectedRoute>
-      } />
-      <Route path="/settings" element={
-        <ProtectedRoute><SettingsPage /></ProtectedRoute>
-      } />
-      <Route element={
-        <ProtectedRoute><AppLayout /></ProtectedRoute>
-      }>
+
+      {/* Protected routes — require login */}
+      <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><AppLayout /></ ProtectedRoute>}>
+      </Route>
+
+      {/* Public routes — guest can browse, interactions gated in components */}
+      <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/fit" element={<FitPage />} />
         <Route path="/fit/:productId" element={<FitPage />} />
         <Route path="/ootd" element={<OOTDPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       </Route>
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
