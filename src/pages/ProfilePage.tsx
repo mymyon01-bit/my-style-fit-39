@@ -4,14 +4,16 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, ChevronRight, Bookmark, Ruler, Palette, Shirt,
-  Star, Trophy, Camera, LogOut, Loader2, User
+  Star, Trophy, Camera, LogOut, Loader2, User, Crown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const ProfilePage = () => {
   const { t } = useI18n();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { subscription } = useSubscription();
   const [profile, setProfile] = useState<any>(null);
   const [styleProfile, setStyleProfile] = useState<any>(null);
   const [bodyProfile, setBodyProfile] = useState<any>(null);
@@ -86,6 +88,28 @@ const ProfilePage = () => {
           <div>
             <p className="font-display text-base font-semibold text-foreground">{displayName}</p>
             <p className="text-[11px] text-foreground/40">{user?.email}</p>
+          </div>
+        </div>
+
+        {/* Subscription badge */}
+        <div className={`rounded-2xl border p-4 flex items-center gap-3 ${
+          subscription.isPremium 
+            ? "border-accent/30 bg-accent/5" 
+            : "border-foreground/[0.06] bg-card/30"
+        }`}>
+          <Crown className={`h-5 w-5 ${subscription.isPremium ? "text-accent" : "text-foreground/20"}`} />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-foreground">
+              {subscription.isPremium ? "Premium Active" : "Free Plan"}
+            </p>
+            {subscription.isPremium && subscription.daysRemaining !== null && (
+              <p className="text-[10px] text-foreground/40">
+                {subscription.plan === "premium_trial" ? `Trial ends in ${subscription.daysRemaining} days` : "Active subscription"}
+              </p>
+            )}
+            {!subscription.isPremium && (
+              <p className="text-[10px] text-foreground/40">Upgrade for daily & weekly styling</p>
+            )}
           </div>
         </div>
 
