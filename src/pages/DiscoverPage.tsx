@@ -6,7 +6,11 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import DailyPicks from "@/components/DailyPicks";
 import WeeklyPlan from "@/components/WeeklyPlan";
-import { motion } from "framer-motion";
+import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
+import RecommendationFeed from "@/components/RecommendationFeed";
+import OutfitComposition from "@/components/OutfitComposition";
+import { mockProducts } from "@/lib/mockData";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SavedItem {
   id: string;
@@ -20,11 +24,12 @@ const DiscoverPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const categoryFilter = searchParams.get("category");
-  const [searchQuery, setSearchQuery] = useState("");
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [aiResult, setAiResult] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
+
+  // Quiz + Recommendation state
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState<StyleQuizAnswers | null>(null);
 
   useEffect(() => { loadSavedItems(); }, [user]);
 
@@ -37,133 +42,163 @@ const DiscoverPage = () => {
     setIsLoading(false);
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setAiLoading(true);
-    setAiResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
-        body: { type: "mood-styling", context: { mood: searchQuery, weather: { temp: 22, condition: "clear" }, location: "your city", occasion: "daily" } },
-      });
-      if (!error && data?.response) setAiResult(data.response);
-    } catch {
-      setAiResult("Could not reach the stylist. Please try again.");
-    } finally {
-      setAiLoading(false);
-    }
+  const handleQuizComplete = (answers: StyleQuizAnswers) => {
+    setQuizAnswers(answers);
+    setShowQuiz(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter") handleSearch(); };
+  // Build an editorial outfit from top mock products
+  const editorialOutfit = mockProducts.slice(0, 4).map(p => ({
+    id: p.id, label: p.name, category: p.category, image: p.image, brand: p.brand,
+  }));
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
-      {/* Header */}
-      <div className="mx-auto max-w-lg px-8 pt-10 pb-2 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
-        <div className="flex items-baseline justify-between">
-          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
-          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">DISCOVER</span>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-lg px-8 pt-8 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-10">
-        {/* Search */}
-        <div className="flex items-center gap-3 pb-4">
-          <Search className="h-4 w-4 text-foreground/20 md:h-5 md:w-5" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Mood, style, or occasion…"
-            className="w-full bg-transparent text-[14px] font-light text-foreground outline-none placeholder:text-foreground/30 md:text-base lg:text-lg"
+    <>
+      {/* Style Quiz Overlay */}
+      <AnimatePresence>
+        {showQuiz && (
+          <StyleQuiz
+            onComplete={handleQuizComplete}
+            onClose={() => setShowQuiz(false)}
           />
-          {searchQuery && !aiLoading && (
-            <button onClick={handleSearch}>
-              <Sparkles className="h-4 w-4 text-accent/40 hover:text-accent/70 transition-colors" />
-            </button>
+        )}
+      </AnimatePresence>
+
+      <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
+        {/* Header */}
+        <div className="mx-auto max-w-lg px-8 pt-10 pb-2 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
+          <div className="flex items-baseline justify-between">
+            <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
+            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">DISCOVER</span>
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-lg px-8 pt-8 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-10">
+          {/* Search → opens quiz */}
+          <button
+            onClick={() => setShowQuiz(true)}
+            className="flex w-full items-center gap-3 pb-4"
+          >
+            <Search className="h-4 w-4 text-foreground/20 md:h-5 md:w-5" />
+            <span className="text-[14px] font-light text-foreground/30 md:text-base lg:text-lg">
+              {quizAnswers ? "Refine your style…" : "Find your style…"}
+            </span>
+            <Sparkles className="ml-auto h-4 w-4 text-accent/30" />
+          </button>
+          <div className="h-px bg-accent/[0.10]" />
+
+          {categoryFilter && (
+            <div className="mt-6 flex items-center gap-2">
+              <span className="text-[10px] tracking-[0.2em] text-foreground/30">{categoryFilter.toUpperCase()}</span>
+              <button onClick={() => navigate("/discover")} className="text-[10px] text-accent/50 hover:text-accent">Clear</button>
+            </div>
           )}
-          {aiLoading && <Loader2 className="h-4 w-4 animate-spin text-foreground/25" />}
-        </div>
-        <div className="h-px bg-accent/[0.10]" />
 
-        {categoryFilter && (
-          <div className="mt-6 flex items-center gap-2">
-            <span className="text-[10px] tracking-[0.2em] text-foreground/30">{categoryFilter.toUpperCase()}</span>
-            <button onClick={() => navigate("/discover")} className="text-[10px] text-accent/50 hover:text-accent">Clear</button>
-          </div>
-        )}
-
-        {/* AI Result */}
-        {aiResult && (
-          <div className="mt-12 space-y-4 md:mt-14 lg:space-y-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] text-accent/60 md:text-[11px]">AI STYLIST</p>
-            <p className="font-display text-[15px] font-light leading-[2] text-foreground/75 whitespace-pre-line md:text-base lg:text-lg lg:leading-[2.1]">
-              {aiResult}
-            </p>
-            <div className="h-px w-10 bg-accent/[0.10]" />
-          </div>
-        )}
-
-        {/* Daily + Weekly — premium content integrated into Discover */}
-        <div className="mt-14 space-y-16 md:mt-16 md:space-y-20 lg:space-y-24">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <DailyPicks />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <WeeklyPlan />
-          </motion.div>
-        </div>
-
-        {/* Content */}
-        <div className="mt-14 md:mt-16 lg:mt-20">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <Loader2 className="h-4 w-4 animate-spin text-foreground/15" />
+          {/* Recommendation Feed — replaces text AI output */}
+          {quizAnswers ? (
+            <div className="mt-12 md:mt-14 lg:mt-16">
+              <RecommendationFeed
+                quizAnswers={quizAnswers}
+                onReset={() => setQuizAnswers(null)}
+              />
             </div>
           ) : (
             <>
-              {user && savedItems.length > 0 && (
-                <div className="space-y-5">
-                  <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">SAVED</p>
-                  <div className="space-y-3">
-                    {savedItems.map(item => (
-                      <div key={item.id} className="py-4">
-                        <p className="text-[13px] text-foreground/50 md:text-sm">Product #{item.product_id}</p>
-                        <p className="text-[11px] text-foreground/25 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Editorial Outfit Preview */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mt-14 md:mt-16 lg:mt-18"
+              >
+                <OutfitComposition
+                  pieces={editorialOutfit}
+                  caption="Curated for a clean, balanced day"
+                  tags={["Minimal", "22°", "Daily"]}
+                />
+              </motion.div>
 
-              {!aiResult && savedItems.length === 0 && (
-                <div className="py-20 text-center space-y-5 md:py-24 lg:py-28">
-                  <Sparkles className="mx-auto h-5 w-5 text-foreground/10" />
-                  <p className="font-display text-lg text-foreground/40 md:text-xl">Ask your stylist</p>
-                  <p className="mx-auto max-w-[260px] text-[12px] leading-[1.8] text-foreground/25 md:max-w-xs md:text-[13px]">
-                    Type a mood, occasion, or style to get personalized direction.
-                  </p>
-                  {!user && (
-                    <button onClick={() => navigate("/auth")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/30 transition-colors hover:text-foreground/45">
-                      SIGN IN TO SAVE
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* Daily + Weekly — premium content */}
+              <div className="mt-16 space-y-16 md:mt-20 md:space-y-20 lg:space-y-24">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <DailyPicks />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                >
+                  <WeeklyPlan />
+                </motion.div>
+              </div>
             </>
           )}
+
+          {/* Saved Items */}
+          <div className="mt-14 md:mt-16 lg:mt-20">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-24">
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/15" />
+              </div>
+            ) : (
+              <>
+                {user && savedItems.length > 0 && (
+                  <div className="space-y-5">
+                    <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">SAVED</p>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+                      {savedItems.map(item => {
+                        const product = mockProducts.find(p => p.id === item.product_id);
+                        return product ? (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="group"
+                          >
+                            <div className="overflow-hidden rounded-xl">
+                              <img src={product.image} alt={product.name} className="aspect-[3/4] w-full object-cover" loading="lazy" />
+                            </div>
+                            <div className="mt-2.5">
+                              <p className="text-[10px] font-medium tracking-wider text-foreground/30">{product.brand}</p>
+                              <p className="text-[12px] text-foreground/55 md:text-[13px]">{product.name}</p>
+                              <p className="text-[12px] font-medium text-foreground/45">${product.price}</p>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <div key={item.id} className="py-4">
+                            <p className="text-[13px] text-foreground/50">Product #{item.product_id}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {!quizAnswers && savedItems.length === 0 && (
+                  <div className="py-16 text-center space-y-5 md:py-20 lg:py-24">
+                    <p className="font-display text-lg text-foreground/40 md:text-xl">Discover your style</p>
+                    <p className="mx-auto max-w-[260px] text-[12px] leading-[1.8] text-foreground/25 md:max-w-xs md:text-[13px]">
+                      Take the style quiz above to get curated recommendations that match your taste.
+                    </p>
+                    <button
+                      onClick={() => setShowQuiz(true)}
+                      className="text-[10px] font-medium tracking-[0.2em] text-accent/50 transition-colors hover:text-accent"
+                    >
+                      START QUIZ
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
