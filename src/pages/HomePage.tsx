@@ -183,7 +183,6 @@ const HomePage = () => {
                 ? `${weather.temp}°C · ${weatherLabel}`
                 : `${weather.location} · ${weather.temp}°C · ${weatherLabel}`}
           </p>
-          </p>
         </motion.div>
       )}
     </div>
