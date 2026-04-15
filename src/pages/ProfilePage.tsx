@@ -49,7 +49,7 @@ const ProfilePage = () => {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-foreground/15" />
+        <Loader2 className="h-4 w-4 animate-spin text-foreground/80" />
       </div>
     );
   }
@@ -61,8 +61,8 @@ const ProfilePage = () => {
       {/* Header */}
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between mb-12 md:mb-14 lg:mb-16">
-          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
-          <button onClick={() => navigate("/settings")} className="text-foreground/18 hover:text-foreground/35 transition-colors">
+          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/80 md:text-[13px] lg:hidden">WARDROBE</span>
+          <button onClick={() => navigate("/settings")} className="text-foreground/68 hover:text-foreground/68 transition-colors">
             <Settings className="h-[18px] w-[18px]" />
           </button>
         </div>
@@ -75,29 +75,29 @@ const ProfilePage = () => {
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
             ) : (
-              <User className="h-6 w-6 text-foreground/12" />
+              <User className="h-6 w-6 text-foreground/48" />
             )}
           </div>
           <div>
             <p className="font-display text-lg text-foreground/80 md:text-xl">{displayName}</p>
-            <p className="text-[11px] text-foreground/30 mt-1 md:text-[12px]">{user?.email}</p>
+            <p className="text-[11px] text-foreground/80 mt-1 md:text-[12px]">{user?.email}</p>
           </div>
         </div>
 
         {/* Subscription */}
         <div className="flex items-center gap-4">
-          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/15"}`} />
+          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/80"}`} />
           <div>
-            <p className="text-[11px] font-medium text-foreground/55 md:text-[12px]">
+            <p className="text-[11px] font-medium text-foreground/68 md:text-[12px]">
               {subscription.isPremium ? "Premium" : "Free"}
             </p>
             {subscription.isPremium && subscription.daysRemaining !== null && (
-              <p className="text-[10px] text-foreground/28 md:text-[11px]">
+              <p className="text-[10px] text-foreground/48 md:text-[11px]">
                 {subscription.plan === "premium_trial" ? `Trial · ${subscription.daysRemaining}d remaining` : "Active"}
               </p>
             )}
             {!subscription.isPremium && (
-              <p className="text-[10px] text-foreground/22 md:text-[11px]">
+              <p className="text-[10px] text-foreground/60 md:text-[11px]">
                 Continue your daily styling with Premium
               </p>
             )}
@@ -112,33 +112,33 @@ const ProfilePage = () => {
             { icon: Bookmark, label: "Saved", value: savedCount },
           ].map(stat => (
             <div key={stat.label} className="text-center">
-              <p className="text-xl font-light text-foreground/70 md:text-2xl">{stat.value}</p>
-              <p className="text-[10px] text-foreground/25 mt-1.5 md:text-[11px]">{stat.label}</p>
+              <p className="text-xl font-light text-foreground/85 md:text-2xl">{stat.value}</p>
+              <p className="text-[10px] text-foreground/62 mt-1.5 md:text-[11px]">{stat.label}</p>
             </div>
           ))}
         </div>
 
-        <div className="h-px bg-accent/[0.08]" />
+        <div className="h-px bg-accent/[0.14]" />
 
         {/* Style */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">STYLE</p>
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 md:text-[11px]">STYLE</p>
           {styleProfile ? (
             <div className="space-y-3">
               {styleProfile.preferred_styles?.length > 0 && (
                 <div className="flex gap-3 flex-wrap">
                   {styleProfile.preferred_styles.map((s: string) => (
-                    <span key={s} className="text-[12px] text-accent/60 md:text-[13px]">{s}</span>
+                    <span key={s} className="text-[12px] text-accent/80 md:text-[13px]">{s}</span>
                   ))}
                 </div>
               )}
-              {styleProfile.preferred_fit && <p className="text-[12px] text-foreground/40 md:text-[13px]">Fit: {styleProfile.preferred_fit}</p>}
-              {styleProfile.budget && <p className="text-[12px] text-foreground/40 md:text-[13px]">Budget: {styleProfile.budget}</p>}
+              {styleProfile.preferred_fit && <p className="text-[12px] text-foreground/60 md:text-[13px]">Fit: {styleProfile.preferred_fit}</p>}
+              {styleProfile.budget && <p className="text-[12px] text-foreground/60 md:text-[13px]">Budget: {styleProfile.budget}</p>}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[12px] text-foreground/22">Not set</p>
-              <button onClick={() => navigate("/onboarding")} className="text-[10px] font-medium text-accent/50 hover:text-accent">
+              <p className="text-[12px] text-foreground/60">Not set</p>
+              <button onClick={() => navigate("/onboarding")} className="text-[10px] font-medium text-accent/70 hover:text-accent">
                 Complete profile →
               </button>
             </div>
@@ -147,25 +147,25 @@ const ProfilePage = () => {
 
         {/* Body */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">BODY</p>
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 md:text-[11px]">BODY</p>
           {bodyProfile ? (
             <div className="flex flex-wrap gap-x-8 gap-y-2">
-              {bodyProfile.height_cm && <p className="text-[12px] text-foreground/40 md:text-[13px]">{bodyProfile.height_cm}cm</p>}
-              {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/40 md:text-[13px]">{bodyProfile.weight_kg}kg</p>}
-              {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/40 md:text-[13px]">Shoulder {bodyProfile.shoulder_width_cm}cm</p>}
-              {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/40 md:text-[13px]">Waist {bodyProfile.waist_cm}cm</p>}
+              {bodyProfile.height_cm && <p className="text-[12px] text-foreground/60 md:text-[13px]">{bodyProfile.height_cm}cm</p>}
+              {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/60 md:text-[13px]">{bodyProfile.weight_kg}kg</p>}
+              {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/60 md:text-[13px]">Shoulder {bodyProfile.shoulder_width_cm}cm</p>}
+              {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/60 md:text-[13px]">Waist {bodyProfile.waist_cm}cm</p>}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[12px] text-foreground/22">No scan yet</p>
-              <button onClick={() => navigate("/fit")} className="text-[10px] font-medium text-accent/50 hover:text-accent">
+              <p className="text-[12px] text-foreground/60">No scan yet</p>
+              <button onClick={() => navigate("/fit")} className="text-[10px] font-medium text-accent/70 hover:text-accent">
                 Start scan →
               </button>
             </div>
           )}
         </div>
 
-        <div className="h-px bg-accent/[0.08]" />
+        <div className="h-px bg-accent/[0.14]" />
 
         {/* Links */}
         <div className="space-y-1">
@@ -175,9 +175,9 @@ const ProfilePage = () => {
             { icon: Shirt, label: "Saved Looks", action: () => navigate("/discover") },
           ].map(section => (
             <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground md:py-5 lg:py-6">
-              <section.icon className="h-[18px] w-[18px] text-foreground/15" strokeWidth={1.5} />
-              <span className="flex-1 text-left text-[13px] text-foreground/45 md:text-[14px]">{section.label}</span>
-              <ChevronRight className="h-4 w-4 text-foreground/10" />
+              <section.icon className="h-[18px] w-[18px] text-foreground/80" strokeWidth={1.5} />
+              <span className="flex-1 text-left text-[13px] text-foreground/62 md:text-[14px]">{section.label}</span>
+              <ChevronRight className="h-4 w-4 text-foreground/62" />
             </button>
           ))}
         </div>

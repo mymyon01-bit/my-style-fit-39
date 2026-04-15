@@ -68,8 +68,8 @@ const DiscoverPage = () => {
         {/* Header */}
         <div className="mx-auto max-w-lg px-8 pt-10 pb-2 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
           <div className="flex items-baseline justify-between">
-            <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
-            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">DISCOVER</span>
+            <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/80 md:text-[13px] lg:hidden">WARDROBE</span>
+            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 md:text-[11px]">DISCOVER</span>
           </div>
         </div>
 
@@ -79,18 +79,18 @@ const DiscoverPage = () => {
             onClick={() => setShowQuiz(true)}
             className="flex w-full items-center gap-3 pb-4"
           >
-            <Search className="h-4 w-4 text-foreground/20 md:h-5 md:w-5" />
-            <span className="text-[14px] font-light text-foreground/30 md:text-base lg:text-lg">
+            <Search className="h-4 w-4 text-foreground/60 md:h-5 md:w-5" />
+            <span className="text-[14px] font-light text-foreground/80 md:text-base lg:text-lg">
               {quizAnswers ? "Refine your style…" : "Find your style…"}
             </span>
-            <Sparkles className="ml-auto h-4 w-4 text-accent/30" />
+            <Sparkles className="ml-auto h-4 w-4 text-accent/70" />
           </button>
-          <div className="h-px bg-accent/[0.10]" />
+          <div className="h-px bg-accent/[0.16]" />
 
           {categoryFilter && (
             <div className="mt-6 flex items-center gap-2">
-              <span className="text-[10px] tracking-[0.2em] text-foreground/30">{categoryFilter.toUpperCase()}</span>
-              <button onClick={() => navigate("/discover")} className="text-[10px] text-accent/50 hover:text-accent">Clear</button>
+              <span className="text-[10px] tracking-[0.2em] text-foreground/80">{categoryFilter.toUpperCase()}</span>
+              <button onClick={() => navigate("/discover")} className="text-[10px] text-accent/70 hover:text-accent">Clear</button>
             </div>
           )}
 
@@ -143,13 +143,13 @@ const DiscoverPage = () => {
           <div className="mt-14 md:mt-16 lg:mt-20">
             {isLoading ? (
               <div className="flex items-center justify-center py-24">
-                <Loader2 className="h-4 w-4 animate-spin text-foreground/15" />
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/80" />
               </div>
             ) : (
               <>
                 {user && savedItems.length > 0 && (
                   <div className="space-y-5">
-                    <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">SAVED</p>
+                    <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 md:text-[11px]">SAVED</p>
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
                       {savedItems.map(item => {
                         const product = mockProducts.find(p => p.id === item.product_id);
@@ -164,14 +164,14 @@ const DiscoverPage = () => {
                               <img src={product.image} alt={product.name} className="aspect-[3/4] w-full object-cover" loading="lazy" />
                             </div>
                             <div className="mt-2.5">
-                              <p className="text-[10px] font-medium tracking-wider text-foreground/30">{product.brand}</p>
-                              <p className="text-[12px] text-foreground/55 md:text-[13px]">{product.name}</p>
-                              <p className="text-[12px] font-medium text-foreground/45">${product.price}</p>
+                              <p className="text-[10px] font-medium tracking-wider text-foreground/80">{product.brand}</p>
+                              <p className="text-[12px] text-foreground/68 md:text-[13px]">{product.name}</p>
+                              <p className="text-[12px] font-medium text-foreground/62">${product.price}</p>
                             </div>
                           </motion.div>
                         ) : (
                           <div key={item.id} className="py-4">
-                            <p className="text-[13px] text-foreground/50">Product #{item.product_id}</p>
+                            <p className="text-[13px] text-foreground/80">Product #{item.product_id}</p>
                           </div>
                         );
                       })}
@@ -181,13 +181,13 @@ const DiscoverPage = () => {
 
                 {!quizAnswers && savedItems.length === 0 && (
                   <div className="py-16 text-center space-y-5 md:py-20 lg:py-24">
-                    <p className="font-display text-lg text-foreground/40 md:text-xl">Discover your style</p>
-                    <p className="mx-auto max-w-[260px] text-[12px] leading-[1.8] text-foreground/25 md:max-w-xs md:text-[13px]">
+                    <p className="font-display text-lg text-foreground/60 md:text-xl">Discover your style</p>
+                    <p className="mx-auto max-w-[260px] text-[12px] leading-[1.8] text-foreground/62 md:max-w-xs md:text-[13px]">
                       Take the style quiz above to get curated recommendations that match your taste.
                     </p>
                     <button
                       onClick={() => setShowQuiz(true)}
-                      className="text-[10px] font-medium tracking-[0.2em] text-accent/50 transition-colors hover:text-accent"
+                      className="text-[10px] font-medium tracking-[0.2em] text-accent/70 transition-colors hover:text-accent"
                     >
                       START QUIZ
                     </button>

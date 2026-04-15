@@ -29,7 +29,7 @@ const fitColor = (fit: string) => {
   if (fit === "relaxed") return "text-blue-400";
   if (fit.includes("loose") || fit === "oversized") return "text-blue-500";
   if (fit.includes("long")) return "text-blue-400";
-  return "text-foreground/40";
+  return "text-foreground/60";
 };
 
 const fitBg = (fit: string) => {
@@ -63,7 +63,7 @@ function SizeCard({ result, isExpanded, onToggle }: {
             </span>
           )}
           {result.alternate && (
-            <span className="text-[9px] font-semibold tracking-[0.1em] px-2 py-0.5 rounded-full bg-foreground/5 text-foreground/35">
+            <span className="text-[9px] font-semibold tracking-[0.1em] px-2 py-0.5 rounded-full bg-foreground/5 text-foreground/68">
               ALTERNATE
             </span>
           )}
@@ -72,7 +72,7 @@ function SizeCard({ result, isExpanded, onToggle }: {
           <span className={`text-sm font-bold ${
             result.fitScore >= 80 ? "text-green-500" : result.fitScore >= 60 ? "text-accent" : "text-orange-500"
           }`}>{result.fitScore}</span>
-          <ChevronDown className={`h-4 w-4 text-foreground/25 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-4 w-4 text-foreground/62 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
         </div>
       </button>
       <AnimatePresence>
@@ -87,7 +87,7 @@ function SizeCard({ result, isExpanded, onToggle }: {
               {result.regions.map(r => (
                 <div key={r.region} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-foreground/45">{r.region}</span>
+                    <span className="text-xs text-foreground/62">{r.region}</span>
                     <span className={`text-[10px] font-semibold ${fitColor(r.fit)}`}>
                       {r.fit.replace("-", " ")}
                     </span>
@@ -119,21 +119,21 @@ export default function FitResults({ result, product, explanation, loadingExplan
           <img src={product.image} alt={product.name} className="h-36 w-24 rounded-xl object-cover" />
         ) : (
           <div className="h-36 w-24 rounded-xl bg-foreground/[0.04] flex items-center justify-center">
-            <span className="font-display text-2xl font-bold text-foreground/10">{product.name.charAt(0)}</span>
+            <span className="font-display text-2xl font-bold text-foreground/62">{product.name.charAt(0)}</span>
           </div>
         )}
         <div className="flex-1 space-y-2">
-          <p className="text-[10px] tracking-[0.1em] text-foreground/35">{product.brand}</p>
+          <p className="text-[10px] tracking-[0.1em] text-foreground/68">{product.brand}</p>
           <p className="font-display text-base font-medium text-foreground">{product.name}</p>
           <p className="text-lg font-bold text-foreground">${product.price}</p>
           <div className="flex gap-3 mt-1">
             <div className="flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3 text-foreground/25" />
-              <span className="text-[9px] text-foreground/35">Data: {result.productDataQuality}/100</span>
+              <ShieldCheck className="h-3 w-3 text-foreground/62" />
+              <span className="text-[9px] text-foreground/68">Data: {result.productDataQuality}/100</span>
             </div>
             <div className="flex items-center gap-1">
-              <User className="h-3 w-3 text-foreground/25" />
-              <span className="text-[9px] text-foreground/35">Scan: {result.scanQuality}/100</span>
+              <User className="h-3 w-3 text-foreground/62" />
+              <span className="text-[9px] text-foreground/68">Scan: {result.scanQuality}/100</span>
             </div>
           </div>
         </div>
@@ -151,16 +151,16 @@ export default function FitResults({ result, product, explanation, loadingExplan
 
       {/* Recommendation hero */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 text-center">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30 mb-2">RECOMMENDED SIZE</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-2">RECOMMENDED SIZE</p>
         <p className="font-display text-4xl font-bold text-foreground">{result.recommendedSize}</p>
         {result.alternateSize !== "N/A" && (
-          <p className="text-xs text-foreground/35 mt-1">Alt: {result.alternateSize}</p>
+          <p className="text-xs text-foreground/68 mt-1">Alt: {result.alternateSize}</p>
         )}
       </div>
 
       {/* Size breakdown */}
       <div>
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30 mb-3">SIZE-BY-SIZE BREAKDOWN</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">SIZE-BY-SIZE BREAKDOWN</p>
         <div className="space-y-2">
           {result.sizeResults.map(sr => (
             <SizeCard
@@ -175,7 +175,7 @@ export default function FitResults({ result, product, explanation, loadingExplan
 
       {/* AI Explanation */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30 mb-3">FIT ANALYSIS</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">FIT ANALYSIS</p>
         {loadingExplanation ? (
           <div className="space-y-2">
             <div className="h-3 w-full rounded bg-foreground/[0.04] animate-pulse" />
@@ -183,7 +183,7 @@ export default function FitResults({ result, product, explanation, loadingExplan
             <div className="h-3 w-5/6 rounded bg-foreground/[0.04] animate-pulse" />
           </div>
         ) : (
-          <p className="text-sm font-light leading-relaxed text-foreground/70">
+          <p className="text-sm font-light leading-relaxed text-foreground/85">
             {explanation || result.summary}
           </p>
         )}

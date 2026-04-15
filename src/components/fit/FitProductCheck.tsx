@@ -24,15 +24,15 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
     <div className="space-y-6">
       {/* URL input */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">PASTE PRODUCT URL</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">PASTE PRODUCT URL</p>
         <div className="flex items-center gap-2 rounded-xl bg-foreground/[0.04] px-4 py-3">
-          <Link2 className="h-4 w-4 text-foreground/25 shrink-0" />
+          <Link2 className="h-4 w-4 text-foreground/62 shrink-0" />
           <input
             type="text"
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="https://cos.com/oversized-shirt..."
-            className="w-full bg-transparent text-sm font-light text-foreground outline-none placeholder:text-foreground/25"
+            className="w-full bg-transparent text-sm font-light text-foreground outline-none placeholder:text-foreground/62"
           />
         </div>
         {url && (
@@ -46,8 +46,8 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
           </motion.button>
         )}
         <div className="flex items-start gap-2 mt-1">
-          <Info className="h-3 w-3 text-foreground/15 mt-0.5 shrink-0" />
-          <p className="text-[10px] text-foreground/20 leading-relaxed">
+          <Info className="h-3 w-3 text-foreground/80 mt-0.5 shrink-0" />
+          <p className="text-[10px] text-foreground/60 leading-relaxed">
             Product URL analysis is coming soon. For now, try the items below with built-in fit data.
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
 
       {/* Catalog items with fit data */}
       <div>
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30 mb-3">ITEMS WITH FIT DATA</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">ITEMS WITH FIT DATA</p>
         <div className="space-y-2">
           {FIT_CATALOG.map(product => (
             <motion.button
@@ -64,17 +64,17 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
               className="flex w-full items-center gap-3 rounded-2xl border border-foreground/[0.06] bg-card/30 p-4 text-left transition-colors hover:bg-card/60"
               whileTap={{ scale: 0.98 }}
             >
-              <div className="h-12 w-12 rounded-xl bg-foreground/[0.04] flex items-center justify-center text-foreground/15 text-lg font-display font-bold">
+              <div className="h-12 w-12 rounded-xl bg-foreground/[0.04] flex items-center justify-center text-foreground/80 text-lg font-display font-bold">
                 {product.name.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
-                <p className="text-[10px] text-foreground/35">{product.brand}</p>
+                <p className="text-[10px] text-foreground/68">{product.brand}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">
                     {product.fitType}
                   </span>
-                  <span className="text-[9px] text-foreground/25">
+                  <span className="text-[9px] text-foreground/62">
                     Data: {product.dataQuality}/100
                   </span>
                 </div>

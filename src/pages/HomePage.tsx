@@ -62,7 +62,7 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
-          className="absolute top-10 z-10 font-display text-[12px] font-medium tracking-[0.4em] text-foreground/35 md:text-[13px] lg:hidden"
+          className="absolute top-10 z-10 font-display text-[12px] font-medium tracking-[0.4em] text-foreground/68 md:text-[13px] lg:hidden"
         >
           WARDROBE
         </motion.span>
@@ -87,17 +87,17 @@ const HomePage = () => {
                   onBlur={() => setIsFocused(false)}
                   onKeyDown={handleKeyDown}
                   placeholder={t("howAreYouFeeling")}
-                  className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/30 md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
-                    isFocused ? "placeholder:text-foreground/18" : ""
+                  className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/80 md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
+                    isFocused ? "placeholder:text-foreground/68" : ""
                   }`}
                 />
                 <div className={`mx-auto h-px transition-all duration-700 ${
-                  isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/[0.10]"
+                  isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/[0.16]"
                 }`} />
 
                 {isLoading && (
                   <div className="mt-7 flex justify-center md:mt-8 lg:mt-10">
-                    <Loader2 className="h-4 w-4 animate-spin text-foreground/25" />
+                    <Loader2 className="h-4 w-4 animate-spin text-foreground/62" />
                   </div>
                 )}
 
@@ -108,7 +108,7 @@ const HomePage = () => {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       onClick={handleSubmit}
-                      className="mx-auto mt-7 block text-[10px] font-medium tracking-[0.25em] text-foreground/30 transition-colors hover:text-foreground/50 md:mt-8 md:text-[11px] lg:mt-10"
+                      className="mx-auto mt-7 block text-[10px] font-medium tracking-[0.25em] text-foreground/80 transition-colors hover:text-foreground/80 md:mt-8 md:text-[11px] lg:mt-10"
                     >
                       ENTER ↵
                     </motion.button>
@@ -139,14 +139,14 @@ const HomePage = () => {
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => navigate("/discover")}
-                    className="flex-1 py-4 text-[10px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground md:text-[11px]"
+                    className="flex-1 py-4 text-[10px] font-semibold tracking-[0.15em] text-foreground/85 transition-colors hover:text-foreground md:text-[11px]"
                   >
                     EXPLORE MORE
                   </button>
-                  <div className="w-px bg-accent/[0.10]" />
+                  <div className="w-px bg-accent/[0.16]" />
                   <button
                     onClick={() => navigate("/fit")}
-                    className="flex-1 py-4 text-[10px] font-semibold tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground md:text-[11px]"
+                    className="flex-1 py-4 text-[10px] font-semibold tracking-[0.15em] text-foreground/85 transition-colors hover:text-foreground md:text-[11px]"
                   >
                     CHECK FIT
                   </button>
@@ -157,7 +157,7 @@ const HomePage = () => {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
                   onClick={() => { setShowResults(false); setQuery(""); setMoodContext(null); }}
-                  className="mx-auto block text-[9px] tracking-[0.3em] text-foreground/18 transition-colors hover:text-foreground/35"
+                  className="mx-auto block text-[9px] tracking-[0.3em] text-foreground/68 transition-colors hover:text-foreground/68"
                 >
                   ASK AGAIN
                 </motion.button>
@@ -171,7 +171,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 1.2 }}
-            className="absolute bottom-16 z-10 text-[11px] font-light tracking-[0.18em] text-foreground/30 md:bottom-20 md:text-[12px] lg:bottom-24 lg:text-[13px]"
+            className="absolute bottom-16 z-10 text-[11px] font-light tracking-[0.18em] text-foreground/80 md:bottom-20 md:text-[12px] lg:bottom-24 lg:text-[13px]"
           >
             {weather.loading
               ? "…"

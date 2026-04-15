@@ -128,7 +128,7 @@ const OutfitComposition = ({ pieces, caption, tags }: OutfitCompositionProps) =>
         transition={{ delay: 0.7, duration: 0.5 }}
         className="mt-4 text-center"
       >
-        <p className="font-display text-sm font-light leading-relaxed tracking-wide text-foreground/50">
+        <p className="font-display text-sm font-light leading-relaxed tracking-wide text-foreground/80">
           {caption}
         </p>
 
@@ -138,7 +138,7 @@ const OutfitComposition = ({ pieces, caption, tags }: OutfitCompositionProps) =>
             {tags.map(tag => (
               <span
                 key={tag}
-                className="rounded-full bg-foreground/[0.04] px-2.5 py-0.5 text-[9px] font-medium tracking-[0.1em] text-foreground/30"
+                className="rounded-full bg-foreground/[0.04] px-2.5 py-0.5 text-[9px] font-medium tracking-[0.1em] text-foreground/80"
               >
                 {tag}
               </span>

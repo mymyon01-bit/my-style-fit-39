@@ -131,8 +131,8 @@ const FitPage = () => {
       {/* Header */}
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
-          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/30 md:text-[13px] lg:hidden">WARDROBE</span>
-          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 md:text-[11px]">FIT</span>
+          <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/80 md:text-[13px] lg:hidden">WARDROBE</span>
+          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 md:text-[11px]">FIT</span>
         </div>
 
         {/* Tabs */}
@@ -140,7 +140,7 @@ const FitPage = () => {
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-5 text-center md:pb-6">
               <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 md:text-[11px] ${
-                activeTab === tab.id ? "text-foreground/70" : "text-foreground/25"
+                activeTab === tab.id ? "text-foreground/85" : "text-foreground/62"
               }`}>
                 {tab.label}
               </span>
@@ -150,7 +150,7 @@ const FitPage = () => {
             </button>
           ))}
         </div>
-        <div className="h-px bg-accent/[0.08]" />
+        <div className="h-px bg-accent/[0.14]" />
       </div>
 
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-12">
@@ -163,8 +163,8 @@ const FitPage = () => {
               <FitResults result={fitResult} product={fitResultProduct} explanation={explanation} loadingExplanation={loadingExplanation} />
             ) : activeTab === "results" && (
               <div className="py-24 text-center space-y-4 md:py-28 lg:py-32">
-                <p className="text-[14px] text-foreground/30">Select a product first</p>
-                <p className="text-[11px] text-foreground/18">Go to CHECK to pick an item</p>
+                <p className="text-[14px] text-foreground/80">Select a product first</p>
+                <p className="text-[11px] text-foreground/68">Go to CHECK to pick an item</p>
               </div>
             )}
           </motion.div>

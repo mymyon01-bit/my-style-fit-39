@@ -40,7 +40,7 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
             className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
           >
             <Heart
-              className={`h-4 w-4 transition-colors ${liked ? "fill-accent text-accent" : "text-foreground/50"}`}
+              className={`h-4 w-4 transition-colors ${liked ? "fill-accent text-accent" : "text-foreground/80"}`}
             />
           </button>
         </AuthGate>

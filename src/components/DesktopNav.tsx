@@ -20,7 +20,7 @@ const DesktopNav = () => {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-12 py-7">
         <button
           onClick={() => navigate("/")}
-          className="font-display text-[12px] font-medium tracking-[0.4em] text-foreground/45 transition-colors hover:text-foreground/65"
+          className="font-display text-[12px] font-medium tracking-[0.4em] text-foreground/62 transition-colors hover:text-foreground/80"
         >
           WARDROBE
         </button>
@@ -32,19 +32,19 @@ const DesktopNav = () => {
               onClick={() => navigate(link.path)}
               className={`text-[10px] font-medium tracking-[0.25em] transition-colors duration-300 ${
                 isActive(link.path)
-                  ? "text-foreground/65"
-                  : "text-foreground/25 hover:text-foreground/45"
+                  ? "text-foreground/80"
+                  : "text-foreground/62 hover:text-foreground/62"
               }`}
             >
               {link.label}
             </button>
           ))}
 
-          <div className="h-3.5 w-px bg-accent/[0.08]" />
+          <div className="h-3.5 w-px bg-accent/[0.14]" />
 
           <button
             onClick={() => navigate(user ? "/profile" : "/auth")}
-            className="text-[10px] font-medium tracking-[0.25em] text-foreground/25 transition-colors hover:text-foreground/45"
+            className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 transition-colors hover:text-foreground/62"
           >
             {user ? "YOU" : "SIGN IN"}
           </button>
