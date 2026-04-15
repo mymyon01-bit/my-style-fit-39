@@ -28,6 +28,18 @@ export interface OutfitBundle {
   totalPrice: number;
 }
 
+export interface OOTDPost {
+  id: string;
+  creator: string;
+  avatar: string;
+  image: string;
+  caption: string;
+  tags: { style: string; weather: string; occasion: string };
+  stars: number;
+  items: Product[];
+  createdAt: string;
+}
+
 export const mockBrands: Brand[] = [
   { id: "1", name: "COS", logo: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=100&h=100&fit=crop", matchScore: 94, reason: "Matches your clean minimal preference" },
   { id: "2", name: "ARKET", logo: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=100&h=100&fit=crop", matchScore: 91, reason: "Works with your body proportions" },
@@ -118,3 +130,42 @@ export const mockUserProfile = {
     "Neutral color palettes with occasional muted earth tones complement your overall appearance.",
   ],
 };
+
+export const mockOOTDPosts: OOTDPost[] = [
+  {
+    id: "1", creator: "minjae.k", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop",
+    image: "https://images.unsplash.com/photo-1617137968427-85924c800a22?w=600&h=800&fit=crop",
+    caption: "Keeping it clean for the office", tags: { style: "Minimal", weather: "Cool", occasion: "Office" },
+    stars: 47, items: [mockProducts[2], mockProducts[1]], createdAt: "2026-04-15",
+  },
+  {
+    id: "2", creator: "sofia.r", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop",
+    image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&h=800&fit=crop",
+    caption: "Weekend layers", tags: { style: "Classic", weather: "Warm", occasion: "Daily" },
+    stars: 83, items: [mockProducts[0], mockProducts[5]], createdAt: "2026-04-14",
+  },
+  {
+    id: "3", creator: "luca.m", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop",
+    image: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=600&h=800&fit=crop",
+    caption: "Summer vibes", tags: { style: "Clean Fit", weather: "Hot", occasion: "Travel" },
+    stars: 124, items: [mockProducts[4], mockProducts[3]], createdAt: "2026-04-13",
+  },
+  {
+    id: "4", creator: "yuna.c", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop",
+    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=800&fit=crop",
+    caption: "Date night ready", tags: { style: "Chic", weather: "Cool", occasion: "Date" },
+    stars: 156, items: [mockProducts[7], mockProducts[1]], createdAt: "2026-04-12",
+  },
+  {
+    id: "5", creator: "tae.p", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&h=80&fit=crop",
+    image: "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=600&h=800&fit=crop",
+    caption: "Rainy day essentials", tags: { style: "Streetwear", weather: "Rainy", occasion: "Daily" },
+    stars: 68, items: [mockProducts[0], mockProducts[6]], createdAt: "2026-04-11",
+  },
+  {
+    id: "6", creator: "elena.v", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop",
+    image: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=600&h=800&fit=crop",
+    caption: "Old money aesthetic", tags: { style: "Old Money", weather: "Cool", occasion: "Office" },
+    stars: 201, items: [mockProducts[4], mockProducts[1], mockProducts[3]], createdAt: "2026-04-10",
+  },
+];
