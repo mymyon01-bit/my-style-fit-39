@@ -67,7 +67,7 @@ const HomePage = () => {
 
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-center px-6 pt-5">
-        <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">
+        <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/70">
           WARDROBE
         </span>
       </div>
@@ -94,7 +94,7 @@ const HomePage = () => {
                   onBlur={() => setIsFocused(false)}
                   onKeyDown={handleKeyDown}
                   placeholder={t("howAreYouFeeling")}
-                  className={`w-full rounded-2xl border-0 bg-card/60 px-6 py-4.5 text-center font-display text-lg font-light tracking-wide text-foreground outline-none backdrop-blur-sm transition-all duration-500 placeholder:text-foreground/20 ${
+                  className={`w-full rounded-2xl border-0 bg-card/60 px-6 py-4.5 text-center font-display text-lg font-light tracking-wide text-foreground outline-none backdrop-blur-sm transition-all duration-500 placeholder:text-foreground/40 ${
                     isFocused
                       ? "shadow-[0_0_40px_-10px_hsl(var(--accent)_/_0.1)] ring-1 ring-foreground/5"
                       : "shadow-[0_2px_20px_-6px_hsl(0_0%_0%_/_0.06)]"
@@ -102,7 +102,7 @@ const HomePage = () => {
                 />
                 {isLoading && (
                   <div className="absolute right-5 top-1/2 -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-foreground/20" />
+                    <Loader2 className="h-4 w-4 animate-spin text-foreground/40" />
                   </div>
                 )}
               </div>
@@ -114,7 +114,7 @@ const HomePage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 4 }}
                     onClick={handleSubmit}
-                    className="mx-auto mt-4 block text-[11px] font-medium tracking-widest text-foreground/20 transition-colors hover:text-foreground/40"
+                    className="mx-auto mt-4 block text-[11px] font-medium tracking-widest text-foreground/40 transition-colors hover:text-foreground/60"
                   >
                     PRESS ENTER ↵
                   </motion.button>
@@ -131,8 +131,8 @@ const HomePage = () => {
             >
               {/* AI Response */}
               <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-6 backdrop-blur-sm">
-                <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 mb-3">YOUR STYLIST</p>
-                <p className="font-display text-sm font-light leading-relaxed tracking-wide text-foreground/70 whitespace-pre-line">
+                <p className="text-[10px] font-semibold tracking-[0.2em] text-accent mb-3">YOUR STYLIST</p>
+                <p className="font-display text-sm font-light leading-relaxed tracking-wide text-foreground/90 whitespace-pre-line">
                   {aiResponse}
                 </p>
               </div>
@@ -147,7 +147,7 @@ const HomePage = () => {
                 </button>
                 <button
                   onClick={() => navigate("/fit")}
-                  className="flex-1 rounded-xl border border-foreground/10 py-3 text-[11px] font-semibold tracking-[0.1em] text-foreground/50 transition-colors hover:bg-foreground/5"
+                  className="flex-1 rounded-xl border border-foreground/10 py-3 text-[11px] font-semibold tracking-[0.1em] text-foreground/70 transition-colors hover:bg-foreground/5"
                 >
                   CHECK FIT
                 </button>
@@ -159,7 +159,7 @@ const HomePage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
                 onClick={() => { setAiResponse(null); setQuery(""); }}
-                className="mx-auto block text-[10px] tracking-[0.15em] text-foreground/20 transition-colors hover:text-foreground/40"
+                className="mx-auto block text-[10px] tracking-[0.15em] text-foreground/40 transition-colors hover:text-foreground/60"
               >
                 ASK AGAIN
               </motion.button>
@@ -176,7 +176,7 @@ const HomePage = () => {
           transition={{ delay: 0.3, duration: 0.8 }}
           className="relative z-10 pb-20 text-center"
         >
-          <p className="text-[12px] font-light tracking-[0.12em] text-foreground/25">
+          <p className="text-[12px] font-light tracking-[0.12em] text-foreground/50">
             {weather.loading
               ? "Detecting location…"
               : weather.error
