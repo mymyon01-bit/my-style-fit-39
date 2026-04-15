@@ -55,7 +55,7 @@ const AppRoutes = () => {
 
       {/* Protected routes — require login */}
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<SettingsPage />} />
 
       {/* Public routes — guest can browse, interactions gated in components */}
       <Route element={<AppLayout />}>
