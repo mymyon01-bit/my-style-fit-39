@@ -66,7 +66,7 @@ const ProfilePage = () => {
     <div className="min-h-screen pb-24 bg-background">
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-foreground/[0.04]">
         <div className="mx-auto flex max-w-lg items-center justify-between px-6 py-4">
-          <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">WARDROBE</span>
+          <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/70">WARDROBE</span>
           <button onClick={() => navigate("/settings")} className="text-foreground/25 hover:text-foreground/40">
             <Settings className="h-4 w-4" />
           </button>
@@ -85,7 +85,7 @@ const ProfilePage = () => {
           </div>
           <div>
             <p className="font-display text-base font-semibold text-foreground">{displayName}</p>
-            <p className="text-[11px] text-foreground/30">{user?.email}</p>
+            <p className="text-[11px] text-foreground/40">{user?.email}</p>
           </div>
         </div>
 
@@ -106,7 +106,7 @@ const ProfilePage = () => {
 
         {/* Style profile */}
         <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
-          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">STYLE PROFILE</p>
+          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">STYLE PROFILE</p>
           {styleProfile ? (
             <div className="space-y-2">
               {styleProfile.preferred_styles?.length > 0 && (
@@ -125,7 +125,7 @@ const ProfilePage = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-foreground/25">No style profile yet</p>
+              <p className="text-xs text-foreground/35">No style profile yet</p>
               <button
                 onClick={() => navigate("/onboarding")}
                 className="text-[10px] font-semibold text-accent hover:underline"
@@ -138,7 +138,7 @@ const ProfilePage = () => {
 
         {/* Body profile */}
         <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
-          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">BODY PROFILE</p>
+          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">BODY PROFILE</p>
           {bodyProfile ? (
             <div className="grid grid-cols-2 gap-2">
               {bodyProfile.height_cm && (
@@ -162,7 +162,7 @@ const ProfilePage = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-foreground/25">No body scan yet</p>
+              <p className="text-xs text-foreground/35">No body scan yet</p>
               <button
                 onClick={() => navigate("/fit")}
                 className="text-[10px] font-semibold text-accent hover:underline"
@@ -186,7 +186,7 @@ const ProfilePage = () => {
               className="flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-card/40"
             >
               <section.icon className="h-4 w-4 text-foreground/20" />
-              <span className="flex-1 text-left text-sm text-foreground/50">{section.label}</span>
+              <span className="flex-1 text-left text-sm text-foreground/60">{section.label}</span>
               <ChevronRight className="h-4 w-4 text-foreground/10" />
             </button>
           ))}
