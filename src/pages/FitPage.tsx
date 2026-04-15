@@ -21,21 +21,12 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "results", label: "RESULTS" },
 ];
 
-// Simple product type for fit results display
-interface FitProduct {
-  id: string;
-  name: string;
-  brand: string;
-  price: number;
-  image: string;
-  url: string;
-}
-
-const DEMO_PRODUCTS: Record<string, FitProduct> = {
-  "3": { id: "3", name: "Oversized Cotton Shirt", brand: "Lemaire", price: 195, image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=500&fit=crop", url: "#" },
-  "5": { id: "5", name: "Merino Crew Neck", brand: "AMI Paris", price: 220, image: "https://images.unsplash.com/photo-1434389677669-e08b4cda3a5d?w=400&h=500&fit=crop", url: "#" },
-  "2": { id: "2", name: "Straight Leg Trousers", brand: "ARKET", price: 89, image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop", url: "#" },
-  "6": { id: "6", name: "Wide Leg Linen Pants", brand: "Our Legacy", price: 175, image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&h=500&fit=crop", url: "#" },
+// Product info keyed to fit data IDs
+const PRODUCT_INFO: Record<string, { name: string; brand: string; price: number; category: "tops" | "bottoms" }> = {
+  "3": { name: "Oversized Cotton Shirt", brand: "Lemaire", price: 195, category: "tops" },
+  "5": { name: "Merino Crew Neck", brand: "AMI Paris", price: 220, category: "tops" },
+  "2": { name: "Straight Leg Trousers", brand: "ARKET", price: 89, category: "bottoms" },
+  "6": { name: "Wide Leg Linen Pants", brand: "Our Legacy", price: 175, category: "bottoms" },
 };
 
 const FitPage = () => {
@@ -57,7 +48,6 @@ const FitPage = () => {
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
 
-  // Load saved body profile
   useEffect(() => {
     if (user) loadBodyProfile();
   }, [user]);
@@ -88,7 +78,7 @@ const FitPage = () => {
       shoulder_width_cm: measurements.shoulderWidthCm.value,
       waist_cm: measurements.waistCm.value,
       inseam_cm: measurements.inseamCm.value,
-      weight_kg: measurements.heightCm.value > 0 ? null : null,
+      weight_kg: null,
       scan_confidence: scanQuality,
       silhouette_type: "balanced",
     };
@@ -130,7 +120,7 @@ const FitPage = () => {
     setLoadingExplanation(true);
     setExplanation(null);
     try {
-      const product = DEMO_PRODUCTS[productId];
+      const product = PRODUCT_INFO[productId];
       const regions = result.sizeResults.find(s => s.recommended)?.regions || [];
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
@@ -158,12 +148,16 @@ const FitPage = () => {
     }
   };
 
-  const selectedProduct = selectedProductId ? DEMO_PRODUCTS[selectedProductId] : null;
+  const selectedProduct = selectedProductId ? PRODUCT_INFO[selectedProductId] : null;
 
-  // Create a product-like object for FitResults component
   const fitResultProduct = selectedProduct ? {
-    ...selectedProduct,
-    category: "tops" as const,
+    id: selectedProductId!,
+    name: selectedProduct.name,
+    brand: selectedProduct.brand,
+    price: selectedProduct.price,
+    category: selectedProduct.category,
+    image: "",
+    url: "#",
     fitScore: 0,
     reason: "",
     recommendedSize: "",
@@ -175,8 +169,8 @@ const FitPage = () => {
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-foreground/[0.04]">
         <div className="mx-auto max-w-lg px-6 pt-4 pb-0">
           <div className="flex items-center justify-between mb-4">
-            <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">WARDROBE</span>
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">FIT ENGINE</span>
+            <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/70">WARDROBE</span>
+            <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/30">FIT ENGINE</span>
           </div>
           <div className="flex">
             {TABS.map(tab => (
@@ -186,7 +180,7 @@ const FitPage = () => {
                 className="relative flex-1 pb-3 text-center"
               >
                 <span className={`text-[10px] font-semibold tracking-[0.15em] transition-colors ${
-                  activeTab === tab.id ? "text-foreground" : "text-foreground/25"
+                  activeTab === tab.id ? "text-foreground" : "text-foreground/30"
                 }`}>
                   {tab.label}
                 </span>
@@ -232,8 +226,8 @@ const FitPage = () => {
               />
             ) : activeTab === "results" && (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-2">
-                <p className="text-sm text-foreground/20">Select a product in CHECK tab first</p>
-                <p className="text-xs text-foreground/15">Your body profile will be used for fit analysis</p>
+                <p className="text-sm text-foreground/30">Select a product in CHECK tab first</p>
+                <p className="text-xs text-foreground/20">Your body profile will be used for fit analysis</p>
               </div>
             )}
           </motion.div>
