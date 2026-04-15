@@ -1,42 +1,42 @@
 import { useI18n } from "@/lib/i18n";
-import { mockProducts } from "@/lib/mockData";
-import { rankProducts, defaultUserProfile, defaultBodyProfile, defaultBehavior, getDefaultContext } from "@/lib/recommendation";
-import ProductCard from "@/components/ProductCard";
-import { ProductCardSkeleton } from "@/components/Skeleton";
-import { Search } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { Search, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+
+interface SavedItem {
+  id: string;
+  product_id: string;
+  created_at: string;
+}
 
 const DiscoverPage = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const categoryFilter = searchParams.get("category");
   const [searchQuery, setSearchQuery] = useState("");
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, []);
+    loadSavedItems();
+  }, [user]);
 
-  const context = useMemo(() => getDefaultContext(), []);
-  const rankedProducts = useMemo(
-    () => rankProducts(mockProducts, defaultUserProfile, defaultBodyProfile, context, defaultBehavior, ["COS", "Lemaire"]),
-    [context]
-  );
-
-  const filtered = rankedProducts.filter(p => {
-    if (categoryFilter && p.category !== categoryFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
+  const loadSavedItems = async () => {
+    setIsLoading(true);
+    if (user) {
+      const { data } = await supabase
+        .from("saved_items")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setSavedItems(data || []);
     }
-    return true;
-  }).slice(0, 8);
-
-  const heading = categoryFilter
-    ? categoryFilter.toUpperCase()
-    : "PICKED FOR YOU";
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -48,6 +48,7 @@ const DiscoverPage = () => {
       </header>
 
       <div className="mx-auto max-w-lg px-6">
+        {/* Search */}
         <div className="flex items-center gap-2.5 rounded-xl bg-card/60 px-4 py-3 backdrop-blur-sm">
           <Search className="h-4 w-4 text-foreground/20" />
           <input
@@ -59,20 +60,68 @@ const DiscoverPage = () => {
           />
         </div>
 
-        <p className="mt-6 text-[10px] font-semibold tracking-[0.2em] text-foreground/25">{heading}</p>
-
-        <div className="mt-4 grid grid-cols-2 gap-3 pb-4">
-          {isLoading
-            ? [1, 2, 3, 4].map(i => <ProductCardSkeleton key={i} />)
-            : filtered.map(product => (
-                <ProductCard key={product.id} product={product} scoreBreakdown={product.scoreBreakdown} />
-              ))
-          }
-        </div>
-
-        {filtered.length === 0 && !isLoading && (
-          <p className="py-16 text-center text-sm font-light text-foreground/30">Nothing matched.</p>
+        {categoryFilter && (
+          <div className="mt-4 flex items-center gap-2">
+            <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25">
+              FILTERED: {categoryFilter.toUpperCase()}
+            </span>
+            <button
+              onClick={() => navigate("/discover")}
+              className="text-[10px] text-accent hover:underline"
+            >
+              Clear
+            </button>
+          </div>
         )}
+
+        {/* Beta empty state */}
+        <div className="mt-8 space-y-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-5 w-5 animate-spin text-foreground/20" />
+            </div>
+          ) : (
+            <>
+              {/* Saved items section */}
+              {user && savedItems.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/25 mb-3">SAVED ITEMS</p>
+                  <div className="space-y-2">
+                    {savedItems.map(item => (
+                      <div key={item.id} className="rounded-xl border border-foreground/[0.04] bg-card/30 p-4">
+                        <p className="text-xs text-foreground/50">Product #{item.product_id}</p>
+                        <p className="text-[10px] text-foreground/25 mt-1">
+                          Saved {new Date(item.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Beta prompt */}
+              <div className="py-12 text-center space-y-4">
+                <div className="mx-auto h-16 w-16 rounded-2xl border border-dashed border-foreground/10 flex items-center justify-center">
+                  <Search className="h-6 w-6 text-foreground/10" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground/40">Discover is growing</p>
+                  <p className="text-xs text-foreground/25 max-w-xs mx-auto leading-relaxed">
+                    Use the home screen to get AI styling advice. Your saved items and interactions will build your personalized feed here.
+                  </p>
+                </div>
+                {!user && (
+                  <button
+                    onClick={() => navigate("/auth")}
+                    className="mx-auto mt-4 rounded-xl bg-foreground/5 px-6 py-2.5 text-[11px] font-semibold tracking-[0.1em] text-foreground/40 transition-colors hover:bg-foreground/10"
+                  >
+                    SIGN IN TO SAVE
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
