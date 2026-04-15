@@ -1,247 +1,228 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { mockProducts, mockBrands, mockOutfits, mockUserProfile } from "@/lib/mockData";
-import { rankProducts, defaultUserProfile, defaultBodyProfile, defaultBehavior, getDefaultContext } from "@/lib/recommendation";
-import ProductCard from "@/components/ProductCard";
-import BrandCard from "@/components/BrandCard";
-import OutfitCard from "@/components/OutfitCard";
-import SectionHeader from "@/components/SectionHeader";
-import { ProductCardSkeleton, OutfitCardSkeleton } from "@/components/Skeleton";
-import { AuthGate } from "@/components/AuthGate";
-import { Settings, CloudSun, Sparkles, Lock, MapPin, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
-const moods = [
-  { key: "relaxed2", emoji: "😌" },
-  { key: "confident", emoji: "💪" },
-  { key: "casual", emoji: "👋" },
-  { key: "sharp", emoji: "🔥" },
-  { key: "lazy", emoji: "🛋️" },
-  { key: "dateReady", emoji: "💫" },
-  { key: "energetic", emoji: "⚡" },
-  { key: "creative", emoji: "🎨" },
-] as const;
+// Ambient weather particles
+const WeatherAmbience = ({ condition }: { condition: string }) => {
+  if (condition === "rain" || condition === "light-rain") {
+    return (
+      <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-[0.04]">
+        {Array.from({ length: 40 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute h-12 w-px bg-foreground"
+            style={{ left: `${Math.random() * 100}%`, top: `-${Math.random() * 20}%` }}
+            animate={{ y: ["0vh", "120vh"] }}
+            transition={{ duration: 1.5 + Math.random(), repeat: Infinity, delay: Math.random() * 2, ease: "linear" }}
+          />
+        ))}
+      </div>
+    );
+  }
+  if (condition === "snow") {
+    return (
+      <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-[0.06]">
+        {Array.from({ length: 25 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute h-1.5 w-1.5 rounded-full bg-foreground"
+            style={{ left: `${Math.random() * 100}%`, top: `-5%` }}
+            animate={{ y: ["0vh", "105vh"], x: [0, Math.sin(i) * 30] }}
+            transition={{ duration: 8 + Math.random() * 6, repeat: Infinity, delay: Math.random() * 5, ease: "linear" }}
+          />
+        ))}
+      </div>
+    );
+  }
+  if (condition === "sunny" || condition === "clear") {
+    return (
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(40_60%_95%_/_0.03)] via-transparent to-transparent dark:from-[hsl(40_40%_20%_/_0.04)]" />
+      </div>
+    );
+  }
+  return null;
+};
 
 const HomePage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [weather] = useState({ temp: 22, condition: "partly-cloudy", location: "Seoul" });
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
+  const handleSubmit = useCallback(async () => {
+    if (!query.trim()) return;
 
-  const context = useMemo(() => getDefaultContext(selectedMood), [selectedMood]);
-  const trendingBrands = useMemo(() => ["COS", "Lemaire"], []);
+    setIsLoading(true);
+    setAiResponse(null);
 
-  const rankedProducts = useMemo(
-    () => rankProducts(mockProducts, defaultUserProfile, defaultBodyProfile, context, defaultBehavior, trendingBrands),
-    [context, trendingBrands]
-  );
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-stylist", {
+        body: {
+          mood: query,
+          weather: { temp: weather.temp, condition: weather.condition },
+          location: weather.location,
+          styles: ["minimal", "clean"],
+          bodyType: "balanced proportions",
+          occasion: "daily",
+        },
+      });
 
-  const moodProducts = useMemo(
-    () => selectedMood ? rankedProducts.filter(p => p.scoreBreakdown.context > 60).slice(0, 4) : [],
-    [selectedMood, rankedProducts]
-  );
+      if (error) throw error;
+      setAiResponse(data?.response || "Let me think about your style today...");
+    } catch (err) {
+      console.error("AI stylist error:", err);
+      setAiResponse("Take it easy today — soft layers, neutral palette, comfortable silhouettes. Let the clothes breathe with you.");
+    }
+    setIsLoading(false);
+  }, [query, weather]);
 
-  const weatherProducts = rankedProducts.filter(p => p.scoreBreakdown.context > 55).slice(0, 4);
-  const bestForYou = rankedProducts.slice(0, 4);
-  const bodyFitProducts = rankedProducts.filter(p => p.scoreBreakdown.bodyCompat > 80).slice(0, 4);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSubmit();
+  };
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  // Derive weather display
+  const weatherLabel = weather.condition
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase());
 
   return (
-    <div className="min-h-screen pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
-          <h1 className="font-display text-xl font-bold tracking-[0.15em] text-foreground">
-            {t("appName")}
-          </h1>
-          <div className="flex items-center gap-2">
-            {!user && (
-              <button
-                onClick={() => navigate("/auth")}
-                className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-                Sign Up
-              </button>
-            )}
-            <button onClick={() => navigate("/settings")} className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-secondary text-muted-foreground">
-              <Settings className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="fixed inset-0 flex flex-col bg-background">
+      <WeatherAmbience condition={weather.condition} />
 
-      <div className="mx-auto max-w-lg">
-        {/* Guest banner */}
-        {!user && (
-          <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-3.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10">
-              <Sparkles className="h-4 w-4 text-accent" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-foreground">Welcome to WARDROBE</p>
-              <p className="text-[11px] text-muted-foreground">
-                Browse freely.{" "}
-                <button onClick={() => navigate("/auth")} className="font-semibold text-accent">
-                  Sign up
-                </button>{" "}
-                to save items, use AI fitting, and get personalized picks.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Greeting + Weather */}
-        <div className="px-4 pt-5">
-          <p className="text-lg font-display font-semibold text-foreground">
-            {user ? greeting : "Discover your style"}
-          </p>
-          <div className="mt-2 flex items-center gap-3">
-            <div className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5">
-              <CloudSun className="h-3.5 w-3.5 text-accent" />
-              <span className="text-[11px] font-medium text-foreground">22°C</span>
-              <span className="text-[11px] text-muted-foreground">Partly cloudy</span>
-            </div>
-            <div className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5">
-              <MapPin className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[11px] text-muted-foreground">Seoul</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Mood Selection */}
-        <div className="px-4 pt-5">
-          <p className="text-sm font-medium text-foreground">{t("howAreYouFeeling")}</p>
-          <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {moods.map(mood => (
-              <button
-                key={mood.key}
-                onClick={() => setSelectedMood(selectedMood === mood.key ? null : mood.key)}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-medium transition-all ${
-                  selectedMood === mood.key
-                    ? "border-accent bg-accent/10 text-accent shadow-sm"
-                    : "border-border text-muted-foreground hover:border-muted-foreground/30"
-                }`}
-              >
-                <span>{mood.emoji}</span>
-                {t(mood.key as any)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* AI Style Summary — only for logged-in users */}
-        {user && (
-          <div className="mx-4 mt-4 rounded-2xl border border-border bg-card p-4 shadow-card">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10">
-                <Sparkles className="h-4 w-4 text-accent" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-accent">
-                  {t("forYou")}
-                </p>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-foreground">
-                  {mockUserProfile.aiSummary[0]}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* AI Stylist Promo */}
-        <AuthGate action="use the AI Stylist">
-          <div className="mx-4 mt-3 overflow-hidden rounded-2xl border border-accent/15 bg-gradient-to-r from-accent/5 via-accent/8 to-accent/5 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-accent" />
-                <span className="text-sm font-semibold text-foreground">{t("aiStylist")}</span>
-                <span className="rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground">
-                  {t("premiumFeature")}
-                </span>
-              </div>
-              <span className="text-xs font-medium text-accent">
-                {t("unlockStylist")} →
-              </span>
-            </div>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">{t("stylistDesc")}</p>
-          </div>
-        </AuthGate>
-
-        {/* Mood-based recommendations */}
-        {selectedMood && moodProducts.length > 0 && (
-          <>
-            <SectionHeader title={t("basedOnMood")} subtitle={`${t(selectedMood as any)} · ${moodProducts.length} picks`} />
-            <div className="grid grid-cols-2 gap-3 px-4">
-              {isLoading
-                ? [1,2].map(i => <ProductCardSkeleton key={i} />)
-                : moodProducts.slice(0, 2).map(product => (
-                    <ProductCard key={product.id} product={product} scoreBreakdown={product.scoreBreakdown} />
-                  ))
-              }
-            </div>
-          </>
-        )}
-
-        {/* Today's Looks */}
-        <SectionHeader title={t("todaysLooks")} onSeeAll={() => navigate("/discover")} />
-        <div className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide">
-          {isLoading
-            ? [1,2].map(i => <OutfitCardSkeleton key={i} />)
-            : mockOutfits.map(outfit => (
-                <OutfitCard key={outfit.id} outfit={outfit} />
-              ))
-          }
-        </div>
-
-        {/* Best For You */}
-        <SectionHeader title={t("bestForYouToday")} subtitle="AI-ranked for your profile" />
-        <div className="grid grid-cols-2 gap-3 px-4">
-          {isLoading
-            ? [1,2,3,4].map(i => <ProductCardSkeleton key={i} />)
-            : bestForYou.map(product => (
-                <ProductCard key={product.id} product={product} scoreBreakdown={product.scoreBreakdown} />
-              ))
-          }
-        </div>
-
-        {/* Weather Optimized */}
-        <SectionHeader title={t("weatherOptimized")} subtitle="22°C · Lightweight layers" />
-        <div className="grid grid-cols-2 gap-3 px-4">
-          {weatherProducts.slice(0, 2).map(product => (
-            <ProductCard key={product.id} product={product} scoreBreakdown={product.scoreBreakdown} />
-          ))}
-        </div>
-
-        {/* Recommended Brands */}
-        <SectionHeader title={t("recommendedBrands")} />
-        <div className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide">
-          {mockBrands.map(brand => (
-            <BrandCard key={brand.id} brand={brand} />
-          ))}
-        </div>
-
-        {/* Body-Fit Products */}
-        {bodyFitProducts.length > 0 && (
-          <>
-            <SectionHeader title={t("bodyFitOptimized")} subtitle="Matches your silhouette" />
-            <div className="grid grid-cols-2 gap-3 px-4">
-              {bodyFitProducts.slice(0, 4).map(product => (
-                <ProductCard key={product.id} product={product} scoreBreakdown={product.scoreBreakdown} />
-              ))}
-            </div>
-          </>
+      {/* Subtle top bar — only sign up for guests */}
+      <div className="relative z-10 flex items-center justify-between px-6 pt-5">
+        <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">
+          WARDROBE
+        </span>
+        {!user ? (
+          <button
+            onClick={() => navigate("/auth")}
+            className="text-[11px] font-medium tracking-wide text-foreground/30 transition-colors hover:text-foreground/60"
+          >
+            Sign in
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate("/discover")}
+            className="text-[11px] font-medium tracking-wide text-foreground/30 transition-colors hover:text-foreground/60"
+          >
+            Browse →
+          </button>
         )}
       </div>
+
+      {/* Center content */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-8">
+        <AnimatePresence mode="wait">
+          {!aiResponse ? (
+            <motion.div
+              key="input"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="w-full max-w-md"
+            >
+              {/* AI Input */}
+              <div
+                className={`relative transition-all duration-500 ${
+                  isFocused ? "scale-[1.02]" : "scale-100"
+                }`}
+              >
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t("howAreYouFeeling")}
+                  className={`w-full rounded-2xl border-0 bg-card/60 px-6 py-4.5 text-center font-display text-lg font-light tracking-wide text-foreground outline-none backdrop-blur-sm transition-all duration-500 placeholder:text-foreground/20 ${
+                    isFocused
+                      ? "shadow-[0_0_40px_-10px_hsl(var(--accent)_/_0.1)] ring-1 ring-foreground/5"
+                      : "shadow-[0_2px_20px_-6px_hsl(0_0%_0%_/_0.06)]"
+                  }`}
+                />
+                {isLoading && (
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-foreground/20" />
+                  </div>
+                )}
+              </div>
+
+              {/* Submit hint */}
+              <AnimatePresence>
+                {query.length > 0 && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    onClick={handleSubmit}
+                    className="mx-auto mt-4 block text-[11px] font-medium tracking-widest text-foreground/20 transition-colors hover:text-foreground/40"
+                  >
+                    PRESS ENTER ↵
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="response"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="w-full max-w-md"
+            >
+              {/* AI Response */}
+              <p className="text-center font-display text-lg font-light leading-relaxed tracking-wide text-foreground/80">
+                {aiResponse}
+              </p>
+
+              {/* Actions */}
+              <div className="mt-10 flex flex-col items-center gap-3">
+                <button
+                  onClick={() => navigate("/discover")}
+                  className="text-[12px] font-semibold tracking-[0.15em] text-foreground/50 transition-colors hover:text-foreground/80"
+                >
+                  EXPLORE PICKS →
+                </button>
+                <button
+                  onClick={() => {
+                    setAiResponse(null);
+                    setQuery("");
+                  }}
+                  className="text-[11px] tracking-wide text-foreground/20 transition-colors hover:text-foreground/40"
+                >
+                  ask again
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Weather widget — bottom center */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.8 }}
+        className="relative z-10 pb-10 text-center"
+      >
+        <p className="text-[12px] font-light tracking-[0.12em] text-foreground/25">
+          {weather.location} · {weather.temp}°C · {weatherLabel}
+        </p>
+      </motion.div>
     </div>
   );
 };
