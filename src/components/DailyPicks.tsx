@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useWeather } from "@/hooks/useWeather";
-import { Loader2, Sparkles, Lock, Eye, ShoppingBag } from "lucide-react";
+import { Loader2, Sparkles, Eye, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -28,15 +28,15 @@ interface DailyOutfit {
 const PIECE_LABELS = ["top", "bottom", "shoes", "outerwear", "accessories"] as const;
 
 const PieceRow = ({ piece, label }: { piece: OutfitPiece; label: string }) => (
-  <div className="flex items-center gap-3 py-2">
+  <div className="flex items-center gap-3 py-2.5 lg:py-3">
     <div
-      className="h-2.5 w-2.5 rounded-full"
+      className="h-3 w-3 rounded-full shrink-0"
       style={{ backgroundColor: piece.color?.toLowerCase() || "#888" }}
     />
     <div className="flex-1 min-w-0">
-      <p className="text-[11px] text-foreground/60 truncate">{piece.name}</p>
+      <p className="text-[12px] text-foreground/60 truncate lg:text-[13px]">{piece.name}</p>
     </div>
-    <p className="text-[9px] text-foreground/20 capitalize">{label}</p>
+    <p className="text-[9px] text-foreground/25 capitalize lg:text-[10px]">{label}</p>
   </div>
 );
 
@@ -89,20 +89,25 @@ const DailyPicks = () => {
     }
   };
 
-  // Upgrade prompt for non-premium
+  // Passive discovery for non-premium — not aggressive
   if (!user || !subscription.isPremium) {
     return (
-      <div className="space-y-4 text-center">
-        <Lock className="mx-auto h-4 w-4 text-foreground/10" />
-        <p className="font-display text-base text-foreground/40">Daily Styling</p>
-        <p className="mx-auto max-w-[220px] text-[11px] leading-[1.8] text-foreground/20">
-          Personalized outfits for your mood, weather, and body — every day.
+      <div className="space-y-5 lg:space-y-6">
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-3.5 w-3.5 text-accent/30" />
+          <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/25 lg:text-[10px]">TODAY'S PICKS</p>
+        </div>
+        <p className="font-display text-base text-foreground/45 lg:text-lg">
+          Personalized outfits curated for your day.
+        </p>
+        <p className="text-[11px] leading-[1.8] text-foreground/25 max-w-[280px] lg:text-[12px] lg:max-w-sm">
+          Weather-aware, mood-driven styling that adapts to you — available with your daily plan.
         </p>
         <button
           onClick={() => navigate(user ? "/profile" : "/auth")}
-          className="text-[9px] font-medium tracking-[0.2em] text-accent/50 hover:text-accent transition-colors"
+          className="text-[9px] font-medium tracking-[0.2em] text-foreground/30 transition-colors hover:text-foreground/50 lg:text-[10px]"
         >
-          {user ? "UNLOCK PREMIUM" : "GET STARTED"}
+          {user ? "CONTINUE WITH PREMIUM" : "GET STARTED"}
         </button>
       </div>
     );
@@ -110,7 +115,7 @@ const DailyPicks = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
+      <div className="flex items-center justify-center py-16 lg:py-24">
         <Loader2 className="h-4 w-4 animate-spin text-foreground/12" />
         <span className="ml-3 text-[10px] text-foreground/20">Curating…</span>
       </div>
@@ -120,7 +125,7 @@ const DailyPicks = () => {
   if (error) {
     return (
       <div className="py-12 text-center">
-        <p className="text-[10px] text-foreground/20">{error}</p>
+        <p className="text-[10px] text-foreground/25">{error}</p>
         <button onClick={fetchDaily} className="mt-2 text-[9px] text-accent/50 hover:text-accent">Retry</button>
       </div>
     );
@@ -130,20 +135,20 @@ const DailyPicks = () => {
   const current = outfits[activeIndex];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       <div className="flex items-center gap-3">
         <Sparkles className="h-3.5 w-3.5 text-accent/40" />
-        <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/25">TODAY'S PICKS</p>
+        <p className="text-[9px] font-medium tracking-[0.25em] text-foreground/25 lg:text-[10px]">TODAY'S PICKS</p>
       </div>
 
       {/* Selector */}
-      <div className="flex gap-4">
+      <div className="flex gap-5 lg:gap-8">
         {outfits.map((o, i) => (
           <button
             key={i}
             onClick={() => setActiveIndex(i)}
-            className={`text-[10px] font-light transition-colors duration-300 ${
-              i === activeIndex ? "text-foreground/60" : "text-foreground/15"
+            className={`text-[11px] font-light transition-colors duration-300 lg:text-[12px] ${
+              i === activeIndex ? "text-foreground/65" : "text-foreground/18"
             }`}
           >
             {o.label || `Look ${i + 1}`}
@@ -158,7 +163,7 @@ const DailyPicks = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.4 }}
-          className="space-y-5"
+          className="space-y-6 lg:space-y-8"
         >
           {/* Pieces */}
           <div>
@@ -170,15 +175,15 @@ const DailyPicks = () => {
           </div>
 
           {/* Explanation */}
-          <p className="text-[11px] font-light leading-[1.8] text-foreground/35">{current.explanation}</p>
+          <p className="text-[11px] font-light leading-[1.9] text-foreground/35 lg:text-[12px] lg:leading-[2]">{current.explanation}</p>
 
           {/* Actions */}
-          <div className="flex gap-6">
-            <button className="flex items-center gap-1.5 text-[9px] font-medium tracking-[0.15em] text-foreground/30 hover:text-foreground/50 transition-colors">
-              <Eye className="h-3 w-3" /> TRY LOOK
+          <div className="flex gap-6 lg:gap-8">
+            <button className="flex items-center gap-1.5 text-[9px] font-medium tracking-[0.15em] text-foreground/30 hover:text-foreground/50 transition-colors lg:text-[10px]">
+              <Eye className="h-3 w-3 lg:h-3.5 lg:w-3.5" /> TRY LOOK
             </button>
-            <button className="flex items-center gap-1.5 text-[9px] font-medium tracking-[0.15em] text-foreground/30 hover:text-foreground/50 transition-colors">
-              <ShoppingBag className="h-3 w-3" /> VIEW ITEMS
+            <button className="flex items-center gap-1.5 text-[9px] font-medium tracking-[0.15em] text-foreground/30 hover:text-foreground/50 transition-colors lg:text-[10px]">
+              <ShoppingBag className="h-3 w-3 lg:h-3.5 lg:w-3.5" /> VIEW ITEMS
             </button>
           </div>
         </motion.div>

@@ -47,9 +47,7 @@ const FitPage = () => {
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
 
-  useEffect(() => {
-    if (user) loadBodyProfile();
-  }, [user]);
+  useEffect(() => { if (user) loadBodyProfile(); }, [user]);
 
   const loadBodyProfile = async () => {
     if (!user) return;
@@ -81,10 +79,7 @@ const FitPage = () => {
 
   const handleScanComplete = useCallback((quality: number) => {
     setScanQuality(quality);
-    setTimeout(() => {
-      setActiveTab("measurements");
-      if (user) saveBodyProfile();
-    }, 800);
+    setTimeout(() => { setActiveTab("measurements"); if (user) saveBodyProfile(); }, 800);
   }, [user, measurements]);
 
   const handleMeasurementUpdate = useCallback((key: keyof BodyMeasurements, value: number) => {
@@ -113,22 +108,15 @@ const FitPage = () => {
         body: {
           type: "fit-explanation",
           context: {
-            summary: result.summary,
-            recommendedSize: result.recommendedSize,
-            alternateSize: result.alternateSize,
-            fitScore: result.sizeResults.find(s => s.recommended)?.fitScore,
-            productName: product?.name,
-            productBrand: product?.brand,
-            productDataQuality: result.productDataQuality,
-            scanQuality: result.scanQuality,
+            summary: result.summary, recommendedSize: result.recommendedSize, alternateSize: result.alternateSize,
+            fitScore: result.sizeResults.find(s => s.recommended)?.fitScore, productName: product?.name,
+            productBrand: product?.brand, productDataQuality: result.productDataQuality, scanQuality: result.scanQuality,
             regionText: regions.map(r => `${r.region}: ${r.fit} (${r.delta}cm)`).join(", "),
           },
         },
       });
       if (!error && data?.response) setExplanation(data.response);
-    } catch { /* fallback */ } finally {
-      setLoadingExplanation(false);
-    }
+    } catch { /* fallback */ } finally { setLoadingExplanation(false); }
   };
 
   const selectedProduct = selectedProductId ? PRODUCT_INFO[selectedProductId] : null;
@@ -139,19 +127,19 @@ const FitPage = () => {
   } : null;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-28 lg:pb-16 lg:pt-20">
       {/* Header */}
-      <div className="mx-auto max-w-lg px-8 pt-8">
-        <div className="flex items-baseline justify-between mb-8">
-          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25">WARDROBE</span>
-          <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/20">FIT</span>
+      <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
+        <div className="flex items-baseline justify-between mb-8 lg:mb-12">
+          <span className="font-display text-[11px] font-medium tracking-[0.35em] text-foreground/25 lg:hidden">WARDROBE</span>
+          <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/20 lg:text-[10px]">FIT</span>
         </div>
 
-        {/* Tabs — minimal underline style */}
+        {/* Tabs */}
         <div className="flex">
           {TABS.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-4 text-center">
-              <span className={`text-[9px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-4 text-center lg:pb-5">
+              <span className={`text-[9px] font-medium tracking-[0.2em] transition-colors duration-300 lg:text-[10px] ${
                 activeTab === tab.id ? "text-foreground/70" : "text-foreground/20"
               }`}>
                 {tab.label}
@@ -165,7 +153,7 @@ const FitPage = () => {
         <div className="h-px bg-foreground/[0.04]" />
       </div>
 
-      <div className="mx-auto max-w-lg px-8 pt-8">
+      <div className="mx-auto max-w-lg px-8 pt-8 lg:max-w-2xl lg:px-12 lg:pt-12">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && <FitBodyScan onScanComplete={handleScanComplete} />}
@@ -174,7 +162,7 @@ const FitPage = () => {
             {activeTab === "results" && fitResult && fitResultProduct ? (
               <FitResults result={fitResult} product={fitResultProduct} explanation={explanation} loadingExplanation={loadingExplanation} />
             ) : activeTab === "results" && (
-              <div className="py-24 text-center space-y-3">
+              <div className="py-24 text-center space-y-3 lg:py-32">
                 <p className="text-sm text-foreground/25">Select a product first</p>
                 <p className="text-[10px] text-foreground/15">Go to CHECK to pick an item</p>
               </div>
