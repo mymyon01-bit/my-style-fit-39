@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
+import NavDropdown from "@/components/NavDropdown";
 
 const HomePage = () => {
   const { t } = useI18n();
@@ -20,10 +21,8 @@ const HomePage = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!query.trim()) return;
-
     setIsLoading(true);
     setAiResponse(null);
-
     try {
       const { data, error } = await supabase.functions.invoke("ai-stylist", {
         body: {
@@ -35,7 +34,6 @@ const HomePage = () => {
           occasion: "daily",
         },
       });
-
       if (error) throw error;
       setAiResponse(data?.response || "Let me think about your style today...");
     } catch (err) {
@@ -49,7 +47,6 @@ const HomePage = () => {
     if (e.key === "Enter") handleSubmit();
   };
 
-  // Derive weather display
   const weatherLabel = weather.condition
     .replace(/-/g, " ")
     .replace(/\b\w/g, c => c.toUpperCase());
@@ -58,26 +55,12 @@ const HomePage = () => {
     <div className="fixed inset-0 flex flex-col bg-background">
       <WeatherAmbience condition={weather.condition} />
 
-      {/* Subtle top bar — only sign up for guests */}
+      {/* Top bar — dropdown nav + brand */}
       <div className="relative z-10 flex items-center justify-between px-6 pt-5">
+        <NavDropdown />
         <span className="font-display text-[13px] font-semibold tracking-[0.25em] text-foreground/40">
           WARDROBE
         </span>
-        {!user ? (
-          <button
-            onClick={() => navigate("/auth")}
-            className="text-[11px] font-medium tracking-wide text-foreground/30 transition-colors hover:text-foreground/60"
-          >
-            Sign in
-          </button>
-        ) : (
-          <button
-            onClick={() => navigate("/discover")}
-            className="text-[11px] font-medium tracking-wide text-foreground/30 transition-colors hover:text-foreground/60"
-          >
-            Browse →
-          </button>
-        )}
       </div>
 
       {/* Center content */}
@@ -92,12 +75,7 @@ const HomePage = () => {
               transition={{ duration: 0.5, ease: "easeOut" }}
               className="w-full max-w-md"
             >
-              {/* AI Input */}
-              <div
-                className={`relative transition-all duration-500 ${
-                  isFocused ? "scale-[1.02]" : "scale-100"
-                }`}
-              >
+              <div className={`relative transition-all duration-500 ${isFocused ? "scale-[1.02]" : "scale-100"}`}>
                 <input
                   ref={inputRef}
                   type="text"
@@ -120,7 +98,6 @@ const HomePage = () => {
                 )}
               </div>
 
-              {/* Submit hint */}
               <AnimatePresence>
                 {query.length > 0 && (
                   <motion.button
@@ -143,12 +120,10 @@ const HomePage = () => {
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="w-full max-w-md"
             >
-              {/* AI Response */}
               <p className="text-center font-display text-lg font-light leading-relaxed tracking-wide text-foreground/80">
                 {aiResponse}
               </p>
 
-              {/* Actions */}
               <div className="mt-10 flex flex-col items-center gap-3">
                 <button
                   onClick={() => navigate("/discover")}
@@ -157,10 +132,7 @@ const HomePage = () => {
                   EXPLORE PICKS →
                 </button>
                 <button
-                  onClick={() => {
-                    setAiResponse(null);
-                    setQuery("");
-                  }}
+                  onClick={() => { setAiResponse(null); setQuery(""); }}
                   className="text-[11px] tracking-wide text-foreground/20 transition-colors hover:text-foreground/40"
                 >
                   ask again
@@ -171,7 +143,7 @@ const HomePage = () => {
         </AnimatePresence>
       </div>
 
-      {/* Weather widget — bottom center */}
+      {/* Weather widget */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
