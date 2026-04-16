@@ -14,106 +14,8 @@ function getServiceClient() {
   );
 }
 
-// ─── Source: DummyJSON ───
-async function fetchDummyJSON(query: string, limit = 20): Promise<any[]> {
-  try {
-    const url = query
-      ? `https://dummyjson.com/products/search?q=${encodeURIComponent(query)}&limit=${limit}`
-      : `https://dummyjson.com/products?limit=${limit}`;
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.products || []).map((p: any) => ({
-      external_id: `dummyjson-${p.id}`,
-      name: p.title,
-      brand: p.brand || "Unknown",
-      price: `$${p.price}`,
-      category: mapDummyCategory(p.category),
-      subcategory: p.category,
-      style_tags: p.tags || [],
-      color_tags: [],
-      fit: "regular",
-      image_url: p.thumbnail || (p.images?.[0]) || null,
-      source_url: `https://dummyjson.com/products/${p.id}`,
-      store_name: p.brand || "DummyJSON",
-      reason: p.description?.slice(0, 80) || "Trending item",
-      platform: "dummyjson",
-      image_valid: true,
-      is_active: true,
-    }));
-  } catch (e) {
-    console.error("DummyJSON error:", e);
-    return [];
-  }
-}
-
-function mapDummyCategory(cat: string): string {
-  const c = (cat || "").toLowerCase();
-  if (c.includes("shirt") || c.includes("dress") || c.includes("top")) return "clothing";
-  if (c.includes("shoe") || c.includes("boot")) return "shoes";
-  if (c.includes("bag") || c.includes("hand")) return "bags";
-  if (c.includes("watch") || c.includes("sun") || c.includes("jewel") || c.includes("accessor")) return "accessories";
-  if (c.includes("fragrances") || c.includes("beauty") || c.includes("skin")) return "accessories";
-  return "clothing";
-}
-
-// ─── Source: FakeStoreAPI ───
-async function fetchFakeStore(category?: string): Promise<any[]> {
-  try {
-    const url = category
-      ? `https://fakestoreapi.com/products/category/${encodeURIComponent(category)}`
-      : "https://fakestoreapi.com/products";
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const products = await res.json();
-    return (products || [])
-      .filter((p: any) => ["men's clothing", "women's clothing", "jewelery"].includes(p.category))
-      .map((p: any) => ({
-        external_id: `fakestore-${p.id}`,
-        name: p.title?.slice(0, 100),
-        brand: extractBrand(p.title),
-        price: `$${p.price}`,
-        category: p.category.includes("clothing") ? "clothing" : "accessories",
-        subcategory: p.category,
-        style_tags: inferStyleTags(p.title, p.description),
-        color_tags: [],
-        fit: "regular",
-        image_url: p.image,
-        source_url: `https://fakestoreapi.com/products/${p.id}`,
-        store_name: "FakeStore",
-        reason: p.description?.slice(0, 80) || "Popular item",
-        platform: "fakestore",
-        image_valid: true,
-        is_active: true,
-      }));
-  } catch (e) {
-    console.error("FakeStore error:", e);
-    return [];
-  }
-}
-
-function extractBrand(title: string): string {
-  const brands = ["Nike", "Adidas", "Levi's", "Calvin Klein", "H&M", "Zara", "Gucci", "Prada"];
-  for (const b of brands) {
-    if (title?.toLowerCase().includes(b.toLowerCase())) return b;
-  }
-  return title?.split(" ").slice(0, 2).join(" ") || "Unknown";
-}
-
-function inferStyleTags(title: string, desc: string): string[] {
-  const text = `${title} ${desc}`.toLowerCase();
-  const tags: string[] = [];
-  if (text.includes("casual")) tags.push("casual");
-  if (text.includes("formal") || text.includes("slim fit")) tags.push("formal");
-  if (text.includes("cotton") || text.includes("comfort")) tags.push("casual");
-  if (text.includes("premium") || text.includes("elegant")) tags.push("classic");
-  if (text.includes("sport") || text.includes("active")) tags.push("sporty");
-  if (tags.length === 0) tags.push("casual");
-  return tags;
-}
-
-// ─── Source: Commerce Scraper (Firecrawl-powered) ───
-async function fetchFromCommerceScraper(query: string, limit = 15): Promise<any[]> {
+// ─── Source: Commerce Scraper (Firecrawl-powered, real products) ───
+async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[]> {
   try {
     const baseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -158,7 +60,6 @@ async function fetchFromCommerceScraper(query: string, limit = 15): Promise<any[
   }
 }
 
-
 async function cacheToDB(supabase: any, products: any[]): Promise<number> {
   if (!products.length) return 0;
 
@@ -184,7 +85,6 @@ async function cacheToDB(supabase: any, products: any[]): Promise<number> {
       last_validated: new Date().toISOString(),
     }));
 
-  // Use upsert with platform+external_id unique constraint
   const { error } = await supabase
     .from("product_cache")
     .upsert(rows, { onConflict: "platform,external_id", ignoreDuplicates: true });
@@ -202,29 +102,13 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { query, category, limit = 30, sources } = body;
+    const { query, category, limit = 30 } = body;
     const supabase = getServiceClient();
 
     console.log(`product-search: query="${query || ""}", category="${category || ""}", limit=${limit}`);
 
-    // Fetch from all open sources in parallel
-    const enabledSources = sources || ["dummyjson", "fakestore"];
-    const fetches: Promise<any[]>[] = [];
-
-    if (enabledSources.includes("dummyjson")) {
-      fetches.push(fetchDummyJSON(query || "", Math.min(limit, 30)));
-    }
-    if (enabledSources.includes("fakestore")) {
-      fetches.push(fetchFakeStore(category === "clothing" ? "men's clothing" : undefined));
-    }
-
-    // Try commerce scraper (Firecrawl) for real products if query exists
-    if (query && Deno.env.get("FIRECRAWL_API_KEY")) {
-      fetches.push(fetchFromCommerceScraper(query, limit));
-    }
-
-    const results = await Promise.all(fetches);
-    let allProducts = results.flat();
+    // Fetch real products from commerce scraper (Firecrawl)
+    let allProducts = await fetchFromCommerceScraper(query || "fashion trending", Math.min(limit, 30));
 
     // Filter by category if specified
     if (category) {
@@ -263,12 +147,20 @@ serve(async (req) => {
       return brandCount[b] <= 3;
     });
 
+    // Platform diversity: max 5 per platform
+    const platCount: Record<string, number> = {};
+    allProducts = allProducts.filter(p => {
+      const pl = (p.platform || "").toLowerCase();
+      platCount[pl] = (platCount[pl] || 0) + 1;
+      return platCount[pl] <= 5;
+    });
+
     // Limit
     allProducts = allProducts.slice(0, limit);
 
     // Cache to DB in background
     cacheToDB(supabase, allProducts).then(n => {
-      if (n > 0) console.log(`Cached ${n} products from open APIs`);
+      if (n > 0) console.log(`Cached ${n} products from commerce scraper`);
     }).catch(e => console.error("Cache error:", e));
 
     // Return normalized products
@@ -292,7 +184,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       products: normalized,
       count: normalized.length,
-      sources: enabledSources,
+      sources: ["commerce-scraper"],
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

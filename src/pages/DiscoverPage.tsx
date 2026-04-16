@@ -26,7 +26,17 @@ interface AIRecommendation {
   image_url?: string | null;
   source_url?: string | null;
   store_name?: string | null;
+  platform?: string | null;
 }
+
+const PLATFORM_LABELS: Record<string, { label: string; color: string }> = {
+  naver: { label: "Naver", color: "bg-green-600/80" },
+  ssense: { label: "SSENSE", color: "bg-zinc-800/80" },
+  farfetch: { label: "Farfetch", color: "bg-stone-700/80" },
+  asos: { label: "ASOS", color: "bg-blue-600/80" },
+  ssg: { label: "SSG", color: "bg-rose-600/80" },
+  ai_search: { label: "AI", color: "bg-purple-600/80" },
+};
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "edgy", "casual", "formal", "chic", "vintage", "bohemian", "sporty"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
@@ -88,6 +98,7 @@ async function loadCachedProductsFromDB(opts: {
       image_url: p.image_url,
       source_url: p.source_url,
       store_name: p.store_name,
+      platform: p.platform || null,
     }));
 }
 
@@ -1109,6 +1120,11 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
             className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-md hover:text-white"
           />
         </div>
+        {item.platform && PLATFORM_LABELS[item.platform] && (
+          <div className={`absolute top-2 left-2 rounded-full ${PLATFORM_LABELS[item.platform].color} px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm tracking-wide`}>
+            {PLATFORM_LABELS[item.platform].label}
+          </div>
+        )}
         {item.source_url && (
           <a
             href={item.source_url}
