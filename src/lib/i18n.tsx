@@ -275,6 +275,11 @@ const translations = {
     aboutCtaTitle: "Start discovering your style",
     aboutCtaDesc: "No account needed. Just tell us how you feel.",
     aboutCtaButton: "Go to Discover",
+    todaysTemp: "Today's temperature is",
+    weatherIs: "and the weather is",
+    myPreferences: "My Preferences",
+    newStyleYouMightLike: "New Style You Might Like",
+    tryNewStyle: "Try New Style",
   },
   ko: {
     appName: "WARDROBE",
@@ -542,6 +547,11 @@ const translations = {
     aboutCtaTitle: "스타일을 발견하세요",
     aboutCtaDesc: "계정 불필요. 기분만 알려주세요.",
     aboutCtaButton: "탐색 시작",
+    todaysTemp: "오늘의 온도는",
+    weatherIs: "날씨는",
+    myPreferences: "내 취향",
+    newStyleYouMightLike: "좋아할 만한 새 스타일",
+    tryNewStyle: "새 스타일 시도",
   },
   it: {
     appName: "WARDROBE",
@@ -809,6 +819,11 @@ const translations = {
     aboutCtaTitle: "Inizia a scoprire il tuo stile",
     aboutCtaDesc: "Nessun account necessario. Dicci come ti senti.",
     aboutCtaButton: "Vai a Esplora",
+    todaysTemp: "La temperatura di oggi è",
+    weatherIs: "e il tempo è",
+    myPreferences: "Le Mie Preferenze",
+    newStyleYouMightLike: "Nuovo Stile Che Potrebbe Piacerti",
+    tryNewStyle: "Prova Nuovo Stile",
   },
 } as const;
 
