@@ -285,9 +285,11 @@ const DiscoverPage = () => {
       setIsGenerating(true);
       setHasGenerated(true);
 
-      // Step 1: Fast DB load — small initial batch for instant render
+      const TARGET_COUNT = 18;
+
+      // Step 1: Fast DB load — large initial batch
       const { products: dbProducts, dbCount } = await hybridProductSearch({
-        limit: 8,
+        limit: TARGET_COUNT,
         randomize: true,
       });
 
@@ -296,11 +298,11 @@ const DiscoverPage = () => {
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
-        setHasMoreInDB(dbCount >= 8);
+        setHasMoreInDB(dbCount >= TARGET_COUNT);
         setIsGenerating(false);
 
-        // Step 2: Background expansion — non-blocking, after first paint
-        if (dbCount < 8) {
+        // Step 2: Background fill-up to TARGET_COUNT if short
+        if (diverse.length < TARGET_COUNT) {
           requestIdleCallback(() => {
             const styleQueries = userStyleProfile
               ? buildStyleSearchQueries(userStyleProfile)
@@ -309,7 +311,7 @@ const DiscoverPage = () => {
             hybridProductSearch({
               query: styleQueries[0],
               expandExternal: true,
-              limit: 8,
+              limit: TARGET_COUNT - diverse.length,
               excludeIds: Array.from(sessionSeenIds),
             }).then(({ products: freshProducts }) => {
               if (freshProducts.length > 0) {
@@ -325,7 +327,7 @@ const DiscoverPage = () => {
         const { products: apiProducts } = await hybridProductSearch({
           query: "fashion trending new arrivals",
           expandExternal: true,
-          limit: 8,
+          limit: TARGET_COUNT,
         });
 
         if (apiProducts.length > 0) {
@@ -394,9 +396,9 @@ const DiscoverPage = () => {
         category,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 8,
+        limit: 18,
         excludeIds: Array.from(sessionSeenIds),
-        expandExternal: false, // DB-first, expand only on load-more
+        expandExternal: false,
         randomize: true,
       });
 
@@ -405,7 +407,7 @@ const DiscoverPage = () => {
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
-        setHasMoreInDB(dbCount >= 12);
+        setHasMoreInDB(dbCount >= 18);
         resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
         setIsGenerating(false);
         inflightRef.current = null;
@@ -610,7 +612,7 @@ const DiscoverPage = () => {
         query: q,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 12,
+        limit: 18,
         expandExternal: false,
         randomize: false,
       });
@@ -620,16 +622,16 @@ const DiscoverPage = () => {
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
-        setHasMoreInDB(dbCount >= 8);
+        setHasMoreInDB(dbCount >= 18);
         resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
         setIsGenerating(false);
 
         // Step 2: Background external expansion for freshness
-        if (dbCount < 8) {
+        if (diverse.length < 12) {
           hybridProductSearch({
             query: q,
             expandExternal: true,
-            limit: 10,
+            limit: 18 - diverse.length,
             excludeIds: diverse.map(p => p.id),
           }).then(({ products: freshProducts }) => {
             if (freshProducts.length > 0) {
@@ -649,7 +651,7 @@ const DiscoverPage = () => {
         const { products } = await hybridProductSearch({
           query: q,
           expandExternal: true,
-          limit: 12,
+          limit: 18,
           randomize: false,
         });
 
@@ -1034,8 +1036,8 @@ const DiscoverPage = () => {
           <div className="mt-8">
             {isGenerating ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="animate-pulse">
                       <div className="aspect-[3/4] rounded-xl bg-foreground/[0.04]" />
                       <div className="mt-2.5 space-y-1.5 px-0.5">
@@ -1066,7 +1068,7 @@ const DiscoverPage = () => {
                       <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/65 uppercase">
                         {category}
                       </p>
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
                         {items.map((item, i) => (
                           <RecommendationCard
                             key={item.id}
@@ -1082,7 +1084,7 @@ const DiscoverPage = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
                     {recommendations.map((item, i) => (
                       <RecommendationCard
                         key={item.id}
@@ -1138,7 +1140,7 @@ const DiscoverPage = () => {
                     </div>
 
                     {newStyleRecs.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
                         {newStyleRecs.map((item, i) => (
                           <RecommendationCard
                             key={item.id}
@@ -1220,7 +1222,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
           src={item.image_url}
           alt={item.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading={index < 4 ? "eager" : "lazy"}
+          loading={index < 6 ? "eager" : "lazy"}
           decoding="async"
           onError={() => setImgFailed(true)}
         />
