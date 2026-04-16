@@ -475,28 +475,28 @@ const DiscoverPage = () => {
                     ) : (
                       <ChevronDown className="h-3.5 w-3.5" />
                     )}
-                    {isLoadingMore ? "LOADING…" : "LOAD MORE"}
+                    {isLoadingMore ? t("loading").toUpperCase() : t("loadMore").toUpperCase()}
                   </button>
                 </div>
               </div>
             ) : hasGenerated && recommendations.length === 0 ? (
               <div className="py-20 text-center space-y-4">
-                <p className="text-[14px] font-medium text-foreground/45">No recommendations found</p>
+                <p className="text-[14px] font-medium text-foreground/45">{t("noRecommendations")}</p>
                 <p className="text-[12px] text-foreground/25 max-w-[260px] mx-auto">
-                  Try describing your style differently or take the quiz for better results.
+                  {t("tryDifferent")}
                 </p>
               </div>
             ) : (
               <div className="py-16 text-center space-y-5">
-                <p className="font-display text-lg font-semibold text-foreground/55">Discover your style</p>
+                <p className="font-display text-lg font-semibold text-foreground/55">{t("discoverStyle")}</p>
                 <p className="mx-auto max-w-[280px] text-[12px] leading-[1.8] text-foreground/35">
-                  Tell us your preferences or browse by category to see curated recommendations.
+                  {t("discoverDesc")}
                 </p>
                 <div className="flex flex-col items-center gap-3">
                   <button onClick={() => setShowQuiz(true)} className="hover-burgundy text-[10px] font-semibold tracking-[0.2em] text-accent/50">
-                    TAKE STYLE QUIZ
+                    {t("takeStyleQuiz").toUpperCase()}
                   </button>
-                  <span className="text-[10px] text-foreground/18">or browse categories above</span>
+                  <span className="text-[10px] text-foreground/18">{t("orBrowse")}</span>
                 </div>
               </div>
             )}
