@@ -362,6 +362,9 @@ serve(async (req) => {
       const searchTerm = query || `trending ${category || "fashion"}`;
       externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 15));
       
+      // Auto-tag products that lack style/color/fit tags
+      externalProducts = externalProducts.map(autoTagProduct);
+      
       // Cache new products in background
       if (externalProducts.length > 0) {
         cacheToDB(supabase, externalProducts).then(n => {
