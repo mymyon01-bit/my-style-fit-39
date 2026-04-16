@@ -1139,11 +1139,11 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
         )}
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
-        <p className="text-[11px] font-medium tracking-[0.1em] text-foreground/75">{item.brand}</p>
-        <p className="text-[12px] font-medium text-foreground/70 leading-tight line-clamp-2">{item.name}</p>
-        <p className="text-[11px] font-semibold text-foreground/70">{item.price}</p>
+        <p className="text-[11px] font-medium tracking-[0.1em] text-foreground">{item.brand}</p>
+        <p className="text-[12px] font-medium text-foreground/90 leading-tight line-clamp-2">{item.name}</p>
+        <p className="text-[11px] font-semibold text-foreground">{item.price}</p>
         {item.store_name && (
-          <p className="text-[10px] text-foreground/70">{item.store_name}</p>
+          <p className="text-[10px] text-foreground/60">{item.store_name}</p>
         )}
       </div>
     </motion.div>

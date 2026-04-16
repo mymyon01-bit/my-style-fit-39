@@ -146,6 +146,7 @@ async function scrapePlatform(
           p.title &&
           p.price &&
           p.image_url?.startsWith("http") &&
+          /\.(jpg|jpeg|png|webp|avif|gif)/i.test(p.image_url || "") &&
           p.product_url?.startsWith("http")
       )
       .map((p: any, i: number) => ({
