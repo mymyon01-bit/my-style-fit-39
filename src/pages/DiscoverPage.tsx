@@ -869,21 +869,28 @@ const DiscoverPage = () => {
       setHasGenerated(true);
       lastPromptRef.current = q;
 
-      // Step 1: AI intent interpretation (parallel with quick DB search)
+      // Merge user style profile into search for better results
+      const profileStyles = userStyleProfile?.preferred_styles || [];
+      const searchStyles = selectedStyles.length > 0 ? selectedStyles : profileStyles.slice(0, 2);
+
+      // Step 1: AI intent interpretation (parallel with quick DB search + tag fallback)
       const [intentResult, quickDbResult] = await Promise.all([
         interpretSearchIntent(q),
-        hybridProductSearch({
-          query: q,
-          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
-          fit: selectedFit || undefined,
-          limit: 18,
-          expandExternal: false,
-          randomize: false,
-        }),
+        hybridSearchWithFallback(
+          {
+            query: q,
+            styles: searchStyles.length > 0 ? searchStyles : undefined,
+            fit: selectedFit || userStyleProfile?.preferred_fit || undefined,
+            limit: 18,
+            expandExternal: false,
+            randomize: false,
+          },
+          { styles: searchStyles, fit: selectedFit || userStyleProfile?.preferred_fit, },
+        ),
       ]);
 
       const { queries: aiQueries, style_tags: aiStyles } = intentResult;
-      const mergedStyles = [...new Set([...selectedStyles, ...aiStyles])];
+      const mergedStyles = [...new Set([...searchStyles, ...aiStyles])];
 
       // Step 2: Apply free-mode scoring and show results
       if (quickDbResult.products.length >= 8) {
