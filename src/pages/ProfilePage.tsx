@@ -57,6 +57,17 @@ const ProfilePage = () => {
       supabase.from("ootd_posts").select("id, star_count").eq("user_id", user.id),
       supabase.from("ootd_posts").select("id, image_url, caption, star_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
     ]);
+
+    // Load circle & scrap counts
+    const [circleRes, addedByRes, scrapRes] = await Promise.all([
+      supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
+      supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+      supabase.from("saved_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]);
+    setCircleCount(circleRes.count || 0);
+    setAddedByCount(addedByRes.count || 0);
+    setScrapCount(scrapRes.count || 0);
+
     const p = profileRes.data;
     setProfile(p);
     setStyleProfile(styleRes.data);
@@ -71,6 +82,7 @@ const ProfilePage = () => {
       setEditBio(p.bio || "");
       setEditLocation(p.location || "");
       setEditGender(p.gender_preference || "");
+      setEditHashtags((p.hashtags || []).join(", "));
     }
     setIsLoading(false);
   };
