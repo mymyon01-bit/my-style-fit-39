@@ -755,25 +755,107 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
         break;
       }
       case "body-scan-analysis": {
-        systemPrompt = `You are a body proportion analyzer for fashion fit. Based on scan metadata, estimate body proportions and quality. Return ONLY valid JSON with these fields: quality (number 70-95), silhouette (one of: "inverted-triangle", "rectangle", "trapezoid", "hourglass", "triangle", "balanced"), issues (array of strings, max 3 short warnings), landmarks (object with estimated proportions). Be realistic but helpful.`;
-        userPrompt = `Body scan uploaded: ${context.imageCount} photos (${context.imageTypes?.join(", ")}). Has back photo: ${context.hasBackPhoto}. Analyze and return JSON.`;
-        
-        const scanResult = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.3 });
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) {
+          return new Response(JSON.stringify({
+            quality: context.hasBackPhoto ? 80 : 73,
+            silhouette: "balanced",
+            issues: ["AI not configured"],
+            landmarks: {},
+            measurements: null,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const scanSystemPrompt = `You are a body proportion analyzer for fashion fit. Analyze the uploaded body scan photo(s) and estimate proportions for clothing size recommendation.
+
+Return ONLY valid JSON:
+{
+  "quality": <number 50-95, based on image clarity, full body visibility, pose>,
+  "silhouette": "<inverted-triangle|rectangle|trapezoid|hourglass|triangle|balanced>",
+  "issues": ["<warning1>", "<warning2>"],
+  "landmarks": {
+    "head_visible": true/false,
+    "feet_visible": true/false,
+    "full_body": true/false,
+    "pose_quality": "good|fair|poor",
+    "lighting": "good|fair|poor",
+    "clothing_fit": "fitted|moderate|loose"
+  },
+  "measurements": {
+    "height_cm": <estimated or null>,
+    "shoulder_width_cm": <estimated or null>,
+    "chest_cm": <estimated or null>,
+    "waist_cm": <estimated or null>,
+    "hip_cm": <estimated or null>,
+    "inseam_cm": <estimated or null>
+  }
+}
+
+RULES:
+- If head or feet are cut off, lower quality and add issue
+- If clothing is very loose, note reduced accuracy for waist/hip
+- Estimate proportions RELATIVE to each other even if absolute values are uncertain
+- If only front photo, note depth estimation is limited
+- Set measurements to null if you cannot estimate them
+- Be conservative — never overstate confidence`;
+
+        // Build message content with images if provided
+        const messageContent: any[] = [
+          { type: "text", text: `Analyze ${context.imageCount} body scan photo(s) (${context.imageTypes?.join(", ")}). Has back photo: ${context.hasBackPhoto}.` },
+        ];
+
+        // Add actual images if provided as base64
+        if (context.images?.length > 0) {
+          for (const img of context.images) {
+            if (img.dataUrl && img.dataUrl.startsWith("data:image")) {
+              messageContent.push({
+                type: "image_url",
+                image_url: { url: img.dataUrl },
+              });
+            }
+          }
+        }
+
         try {
-          const jsonMatch = scanResult.content.match(/\{[\s\S]*\}/);
-          const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+          const visionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: scanSystemPrompt },
+                { role: "user", content: messageContent },
+              ],
+              max_tokens: 500,
+              temperature: 0.2,
+            }),
+          });
+
+          if (!visionResponse.ok) {
+            const errText = await visionResponse.text();
+            console.error("Vision scan error:", visionResponse.status, errText);
+            throw new Error(`Vision error (${visionResponse.status})`);
+          }
+
+          const visionData = await visionResponse.json();
+          const content = visionData.choices?.[0]?.message?.content || "";
+          const parsed = extractJSON(content);
+
           return new Response(JSON.stringify(parsed || {
             quality: context.hasBackPhoto ? 82 : 75,
             silhouette: "balanced",
             issues: [],
             landmarks: {},
+            measurements: null,
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        } catch {
+        } catch (e) {
+          console.error("Body scan vision error:", e);
           return new Response(JSON.stringify({
             quality: context.hasBackPhoto ? 80 : 73,
             silhouette: "balanced",
-            issues: ["Could not parse AI analysis"],
+            issues: ["Vision analysis failed — using basic assessment"],
             landmarks: {},
+            measurements: null,
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
