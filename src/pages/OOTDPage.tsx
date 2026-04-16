@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, Hash, TrendingUp } from "lucide-react";
+import { Star, Camera, Loader2, Hash, TrendingUp, ScanLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import OOTDAnalyzer from "@/components/OOTDAnalyzer";
 
 interface OOTDPost {
   id: string;
@@ -27,7 +28,7 @@ interface Topic {
   post_count: number;
 }
 
-type Tab = "community" | "mypage";
+type Tab = "community" | "mypage" | "scan";
 
 const OOTDPage = () => {
   const { t } = useI18n();
@@ -115,12 +116,12 @@ const OOTDPage = () => {
 
         {/* Tabs */}
         <div className="flex">
-          {(["mypage", "community"] as const).map(tab => (
+          {(["scan", "mypage", "community"] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className="relative flex-1 pb-5 text-center md:pb-6">
               <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 md:text-[11px] ${
                 activeTab === tab ? "text-foreground/85" : "text-foreground/75"
               }`}>
-                {tab === "mypage" ? "MY PAGE" : "COMMUNITY"}
+                {tab === "mypage" ? "MY PAGE" : tab === "scan" ? "STYLE SCAN" : "COMMUNITY"}
               </span>
               {activeTab === tab && (
                 <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/50" />
@@ -133,7 +134,11 @@ const OOTDPage = () => {
 
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 lg:pt-12">
         <AnimatePresence mode="wait">
-          {activeTab === "mypage" ? (
+          {activeTab === "scan" ? (
+            <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <OOTDAnalyzer />
+            </motion.div>
+          ) : activeTab === "mypage" ? (
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
               {!user ? (
                 <div className="py-20 text-center space-y-5 md:py-24 lg:py-28">
