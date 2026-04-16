@@ -40,8 +40,6 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [interpreting, setInterpreting] = useState(false);
   const [interpreted, setInterpreted] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [gender, setGender] = useState<string | null>(null);
 
   useEffect(() => {
