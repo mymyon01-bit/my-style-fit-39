@@ -14,6 +14,7 @@ import ShareButton from "@/components/ShareButton";
 import { toast } from "sonner";
 import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
 import OutfitLookCard from "@/components/OutfitLookCard";
+import ProductDetailSheet from "@/components/ProductDetailSheet";
 
 interface AIRecommendation {
   id: string;
