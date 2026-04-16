@@ -488,9 +488,56 @@ function freeScoreProduct(
 const resultCache = new Map<string, { data: AIRecommendation[]; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
 
+type SearchPathStatus = "DB_ONLY" | "DB_PLUS_PERPLEXITY" | "DB_PLUS_FALLBACK" | "PERPLEXITY_CACHED" | "FALLBACK_ONLY";
+
+type SearchIntentDebug = {
+  request_id?: string;
+  prompt?: string;
+  tier?: string;
+  provider_requested?: boolean;
+  provider_selected?: string;
+  api_key_present?: boolean;
+  request_started?: boolean;
+  request_started_at?: string;
+  response_received?: boolean;
+  response_status?: number | null;
+  raw_response_preview?: string | null;
+  api_response_parse_success?: boolean;
+  api_response_parse_error?: string | null;
+  content_parse_success?: boolean;
+  content_parse_error?: string | null;
+  validation_success?: boolean;
+  validation_error?: string | null;
+  soft_timeout_triggered?: boolean;
+  hard_timeout_triggered?: boolean;
+  fallback_triggered?: boolean;
+  late_response_received?: boolean;
+  successful_queries_cached?: boolean;
+  endpoint?: string | null;
+  model?: string | null;
+  elapsed_ms?: number | null;
+  test_mode?: boolean;
+};
+
+type SearchIntentResult = {
+  queries: string[];
+  category?: string | null;
+  style_tags?: string[];
+  type?: QueryType;
+  source: "perplexity" | "cache" | "fallback" | "lovable";
+  cacheable: boolean;
+  searchPathStatus: SearchPathStatus;
+  debug?: SearchIntentDebug;
+};
+
 // AI intent cache — avoid re-calling Perplexity for same/similar queries
-const intentCache = new Map<string, { queries: string[]; category?: string; style_tags?: string[]; ts: number }>();
+const intentCache = new Map<string, { queries: string[]; category?: string; style_tags?: string[]; type?: QueryType; ts: number }>();
 const INTENT_CACHE_TTL = 10 * 60 * 1000;
+const SEARCH_INTENT_SOFT_TIMEOUT_MS = 1500;
+
+function logSearchPathStatus(query: string, status: SearchPathStatus, extra: Record<string, unknown> = {}) {
+  console.info(`[search] SEARCH_PATH_STATUS=${status}`, { query, ...extra });
+}
 
 function getCacheKey(action: string, params: Record<string, any>): string {
   return `${action}:${JSON.stringify(params)}`;
@@ -1437,15 +1484,33 @@ const DiscoverPage = () => {
   }
 
   // ── Perplexity-powered query expansion via wardrobe-ai search-intent (cached, non-blocking) ──
-  // Soft timeout = 1s. If Perplexity doesn't respond by then, we proceed with local fallback.
-  // Late responses still resolve and populate cache for the NEXT search.
-  async function aiExpandQuery(q: string): Promise<{ queries: string[]; category?: string; style_tags?: string[] }> {
+  // Soft timeout = 1.5s. If Perplexity doesn't respond by then, we proceed with local fallback.
+  // Late successful Perplexity responses still resolve and populate cache for the NEXT search.
+  async function aiExpandQuery(q: string): Promise<SearchIntentResult> {
     const cacheKey = q.toLowerCase().trim();
     const cached = intentCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < INTENT_CACHE_TTL) {
-      console.log("[search-intent] cache hit for:", cacheKey);
-      return { queries: cached.queries, category: cached.category, style_tags: cached.style_tags };
+      console.info("[search-intent] PERPLEXITY_CACHED", {
+        query: cacheKey,
+        cachedAt: new Date(cached.ts).toISOString(),
+        queries: cached.queries.length,
+      });
+      return {
+        queries: cached.queries,
+        category: cached.category,
+        style_tags: cached.style_tags,
+        type: cached.type,
+        source: "cache",
+        cacheable: true,
+        searchPathStatus: "PERPLEXITY_CACHED",
+      };
     }
+
+    console.info("[search-intent] REQUEST_START", {
+      query: q,
+      requestStartedAt: new Date().toISOString(),
+      perplexityRequested: true,
+    });
 
     try {
       const t0 = performance.now();
@@ -1458,17 +1523,80 @@ const DiscoverPage = () => {
       });
       const elapsed = Math.round(performance.now() - t0);
       if (error) throw error;
-      if (data?.queries?.length) {
-        console.log(`[search-intent] OK in ${elapsed}ms (tier=${data.tier}, queries=${data.queries.length})`);
-        const result = { queries: data.queries, category: data.category, style_tags: data.style_tags || [] };
-        intentCache.set(cacheKey, { ...result, ts: Date.now() });
+      const debug = (data?.debug || {}) as SearchIntentDebug;
+      const hasValidQueries = Array.isArray(data?.queries) && data.queries.length >= 3 && data.queries.every((query: unknown) => typeof query === "string" && query.trim().length > 0);
+
+      console.info("[search-intent] RESPONSE", {
+        query: q,
+        elapsedMs: elapsed,
+        tier: data?.tier,
+        provider: data?.provider,
+        cacheable: data?.cacheable,
+        responseStatus: debug.response_status ?? null,
+        rawResponsePreview: debug.raw_response_preview ?? null,
+        apiKeyPresent: debug.api_key_present ?? null,
+        apiResponseParseSuccess: debug.api_response_parse_success ?? null,
+        contentParseSuccess: debug.content_parse_success ?? null,
+        validationSuccess: debug.validation_success ?? null,
+        hardTimeoutTriggered: debug.hard_timeout_triggered ?? false,
+        fallbackTriggered: data?.search_path_status === "FALLBACK_ONLY" || debug.fallback_triggered === true,
+      });
+
+      if (hasValidQueries) {
+        const result: SearchIntentResult = {
+          queries: data.queries,
+          category: data.category || null,
+          style_tags: data.style_tags || [],
+          type: data.type,
+          source: data.provider === "perplexity" ? "perplexity" : data.provider === "lovable" ? "lovable" : "fallback",
+          cacheable: Boolean(data.cacheable && data.provider === "perplexity"),
+          searchPathStatus: data.provider === "perplexity"
+            ? "DB_PLUS_PERPLEXITY"
+            : data.search_path_status === "DB_ONLY"
+              ? "DB_ONLY"
+              : "FALLBACK_ONLY",
+          debug,
+        };
+
+        if (result.cacheable) {
+          intentCache.set(cacheKey, {
+            queries: result.queries,
+            category: result.category ?? undefined,
+            style_tags: result.style_tags,
+            type: result.type,
+            ts: Date.now(),
+          });
+          console.info("[search-intent] CACHE_SAVE", {
+            query: cacheKey,
+            queries: result.queries.length,
+            requestId: debug.request_id,
+          });
+        } else {
+          console.info("[search-intent] CACHE_SKIP", {
+            query: cacheKey,
+            provider: result.source,
+            reason: result.source === "fallback" ? "fallback-response" : "non-perplexity-provider",
+          });
+        }
+
         return result;
       }
     } catch (e) {
-      console.info("[search-intent] AI unavailable, using local fallback (this is normal):", e instanceof Error ? e.message : e);
+      console.info("[search-intent] REQUEST_FAILED", {
+        query: q,
+        error: e instanceof Error ? e.message : e,
+      });
     }
-    // Fallback to local expansion — always works, instant
-    return { queries: expandSearchQuery(q) };
+
+    return {
+      queries: expandSearchQuery(q),
+      source: "fallback",
+      cacheable: false,
+      searchPathStatus: "FALLBACK_ONLY",
+      debug: {
+        fallback_triggered: true,
+      },
+    };
   }
 
   // Debounced search submit — progressive fallback pipeline
@@ -1492,34 +1620,76 @@ const DiscoverPage = () => {
       const intent = parseQueryIntent(q);
       const isScenarioQuery = intent.queryType === "scenario";
 
-      // Step 2: AI-powered query expansion (Perplexity) with STRICT 1s soft timeout.
+      // Step 2: AI-powered query expansion (Perplexity) with STRICT 1.5s soft timeout.
       // Local fallback always available — never block search on AI.
       const localExpanded = expandSearchQuery(q);
       const cacheKey = q.toLowerCase().trim();
       const cached = intentCache.get(cacheKey);
+      let searchIntentResult: SearchIntentResult;
+      let softTimeoutTriggered = false;
 
-      // Fire AI expansion in background (no await blocking) — populates cache when it returns
-      const aiPromise = aiExpandQuery(q).catch(() => ({ queries: localExpanded }));
-
-      let searchQueries: string[];
       if (cached && Date.now() - cached.ts < INTENT_CACHE_TTL) {
-        // Cache hit → use AI queries instantly
-        searchQueries = [...new Set([...cached.queries, ...localExpanded])].slice(0, 8);
-        console.log("[search] using cached AI queries");
+        searchIntentResult = {
+          queries: cached.queries,
+          category: cached.category,
+          style_tags: cached.style_tags || [],
+          type: cached.type,
+          source: "cache",
+          cacheable: true,
+          searchPathStatus: "PERPLEXITY_CACHED",
+        };
+        console.info("[search] using cached Perplexity queries", { query: q, queries: cached.queries.length });
       } else {
-        // Race AI vs 900ms soft timeout — fall back to local if slow.
-        // Late AI responses still resolve in background and populate intentCache for next time.
-        const aiResult = await Promise.race([
+        const aiPromise = aiExpandQuery(q);
+
+        void aiPromise.then((lateResult) => {
+          if (!softTimeoutTriggered) return;
+          const lateWasPerplexity = lateResult.source === "perplexity";
+          console.info("[search] LATE_AI_RESPONSE", {
+            query: q,
+            source: lateResult.source,
+            latePerplexityResponseReceived: lateWasPerplexity,
+            successfulQueriesCached: lateWasPerplexity && lateResult.cacheable,
+            requestId: lateResult.debug?.request_id,
+          });
+        }).catch(() => {});
+
+        searchIntentResult = await Promise.race([
           aiPromise,
-          new Promise<{ queries: string[] }>((resolve) =>
+          new Promise<SearchIntentResult>((resolve) =>
             setTimeout(() => {
-              console.log("[search] AI soft timeout (900ms) — using local fallback. AI continues in background.");
-              resolve({ queries: localExpanded });
-            }, 900)
+              softTimeoutTriggered = true;
+              console.info("[search] AI soft timeout (1500ms) — using local fallback. AI continues in background.", {
+                query: q,
+              });
+              resolve({
+                queries: localExpanded,
+                source: "fallback",
+                cacheable: false,
+                searchPathStatus: "FALLBACK_ONLY",
+                debug: {
+                  soft_timeout_triggered: true,
+                  fallback_triggered: true,
+                },
+              });
+            }, SEARCH_INTENT_SOFT_TIMEOUT_MS)
           ),
         ]);
-        searchQueries = [...new Set([...aiResult.queries, ...localExpanded])].slice(0, 8);
       }
+
+      const searchQueries = [...new Set([...searchIntentResult.queries, ...localExpanded])].slice(0, 8);
+
+      console.info("[search] QUERY_INTELLIGENCE_RESULT", {
+        query: q,
+        source: searchIntentResult.source,
+        searchPathStatus: searchIntentResult.searchPathStatus,
+        softTimeoutTriggered,
+        hardTimeoutTriggered: searchIntentResult.debug?.hard_timeout_triggered ?? false,
+        fallbackTriggered: searchIntentResult.searchPathStatus === "FALLBACK_ONLY" || searchIntentResult.debug?.fallback_triggered === true,
+        responseStatus: searchIntentResult.debug?.response_status ?? null,
+        rawResponsePreview: searchIntentResult.debug?.raw_response_preview ?? null,
+        successfulQueriesCached: searchIntentResult.cacheable,
+      });
 
       console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, searchQueries });
 
@@ -1549,6 +1719,21 @@ const DiscoverPage = () => {
         const quickProducts = quickDbResults.flatMap(r => r.products);
         const quickFiltered = filterForScenario(quickProducts, intent);
         let quickDiverse = enforceClientDiversity(quickFiltered, new Set());
+        const scenarioStatus: SearchPathStatus = searchIntentResult.searchPathStatus === "PERPLEXITY_CACHED"
+          ? "PERPLEXITY_CACHED"
+          : searchIntentResult.source === "perplexity"
+            ? "DB_PLUS_PERPLEXITY"
+            : quickDiverse.length > 0
+              ? "DB_PLUS_FALLBACK"
+              : "FALLBACK_ONLY";
+
+        logSearchPathStatus(q, scenarioStatus, {
+          stage: "scenario-db-quick",
+          dbQuickCount: quickDiverse.length,
+          source: searchIntentResult.source,
+          requestId: searchIntentResult.debug?.request_id,
+          testMode: q.toLowerCase().trim() === "summer vacation",
+        });
 
         // Show DB results immediately
         if (quickDiverse.length > 0) {
@@ -1614,6 +1799,22 @@ const DiscoverPage = () => {
         const dbRelevant = filterByRelevance(dbQuickProducts, intent);
         collected = enforceClientDiversity(dbRelevant, new Set());
         console.log(`Stage 1 (DB quick): ${collected.length} results`);
+
+        const finalSearchPathStatus: SearchPathStatus = searchIntentResult.searchPathStatus === "PERPLEXITY_CACHED"
+          ? "PERPLEXITY_CACHED"
+          : searchIntentResult.source === "perplexity"
+            ? "DB_PLUS_PERPLEXITY"
+            : collected.length > 0
+              ? "DB_PLUS_FALLBACK"
+              : "FALLBACK_ONLY";
+
+        logSearchPathStatus(q, finalSearchPathStatus, {
+          stage: "db-quick",
+          dbQuickCount: collected.length,
+          source: searchIntentResult.source,
+          requestId: searchIntentResult.debug?.request_id,
+          testMode: q.toLowerCase().trim() === "summer vacation",
+        });
 
         // Show DB results immediately so user sees something
         if (collected.length > 0) {
