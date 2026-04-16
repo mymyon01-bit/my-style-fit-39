@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User } from "lucide-react";
+import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -20,10 +20,11 @@ interface ScanStatus {
   scanComplete: boolean;
   qualityScore: number;
   issues: string[];
+  estimatedMeasurements: Record<string, number> | null;
 }
 
 interface Props {
-  onScanComplete: (quality: number) => void;
+  onScanComplete: (quality: number, measurements?: Record<string, number>) => void;
 }
 
 const GUIDELINES = [
@@ -32,6 +33,7 @@ const GUIDELINES = [
   "Full body visible — head to feet",
   "Good lighting, plain background preferred",
   "Camera at chest height, 2-3 meters away",
+  "Neutral pose, face forward (front) or sideways (side)",
 ];
 
 const QUALITY_CHECKS = [
@@ -51,6 +53,18 @@ function validateImageBasic(file: File): { valid: boolean; issues: string[] } {
   return { valid: issues.length === 0, issues };
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result); // data:image/...;base64,...
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function FitBodyScan({ onScanComplete }: Props) {
   const { user } = useAuth();
   const [status, setStatus] = useState<ScanStatus>({
@@ -58,7 +72,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
     frontPreview: null, sidePreview: null, backPreview: null,
     frontFile: null, sideFile: null, backFile: null,
     scanning: false, uploading: false, scanComplete: false,
-    qualityScore: 0, issues: [],
+    qualityScore: 0, issues: [], estimatedMeasurements: null,
   });
   const [existingScans, setExistingScans] = useState<any[]>([]);
   const frontRef = useRef<HTMLInputElement>(null);
@@ -155,8 +169,18 @@ export default function FitBodyScan({ onScanComplete }: Props) {
 
     setStatus(s => ({ ...s, uploading: false, scanning: true }));
 
-    // Use AI to analyze body proportions
+    // Convert front image to base64 for AI vision analysis
     try {
+      const imageContents: { type: string; dataUrl: string }[] = [];
+      for (const upload of uploads) {
+        try {
+          const dataUrl = await fileToBase64(upload.file);
+          imageContents.push({ type: upload.type, dataUrl });
+        } catch {
+          console.warn(`Could not encode ${upload.type} image`);
+        }
+      }
+
       const { data: aiResult, error: aiError } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
           type: "body-scan-analysis",
@@ -164,17 +188,25 @@ export default function FitBodyScan({ onScanComplete }: Props) {
             imageCount: uploads.length,
             imageTypes: uploads.map(u => u.type),
             hasBackPhoto: status.backUploaded,
+            // Pass base64 images for real AI vision analysis
+            images: imageContents.map(ic => ({
+              type: ic.type,
+              dataUrl: ic.dataUrl,
+            })),
           },
         },
       });
 
+      if (aiError) console.error("AI scan error:", aiError);
+
       const quality = aiResult?.quality || (status.backUploaded ? 82 : 75) + Math.floor(Math.random() * 10);
       const issues: string[] = aiResult?.issues || [];
+      const measurements = aiResult?.measurements || null;
+
       if (!status.backUploaded && !issues.some((i: string) => i.includes("back"))) {
-        issues.push("Back photo would improve shoulder estimation");
+        issues.push("Back photo would improve shoulder depth estimation");
       }
 
-      // Determine silhouette type from AI or default
       const silhouetteType = aiResult?.silhouette || "balanced";
 
       // Update scan image records to valid
@@ -186,21 +218,37 @@ export default function FitBodyScan({ onScanComplete }: Props) {
           .eq("storage_path", result.path);
       }
 
-      // Save body profile with scan results
-      await supabase.from("body_profiles").upsert({
+      // Save body profile with scan results including estimated measurements
+      const profileUpdate: any = {
         user_id: user.id,
         scan_confidence: quality,
         silhouette_type: silhouetteType,
         body_landmarks: aiResult?.landmarks || {},
-      } as any, { onConflict: "user_id" });
+      };
+      if (measurements) {
+        if (measurements.height_cm) profileUpdate.height_cm = measurements.height_cm;
+        if (measurements.shoulder_width_cm) profileUpdate.shoulder_width_cm = measurements.shoulder_width_cm;
+        if (measurements.waist_cm) profileUpdate.waist_cm = measurements.waist_cm;
+        if (measurements.inseam_cm) profileUpdate.inseam_cm = measurements.inseam_cm;
+      }
 
-      setStatus(s => ({ ...s, scanning: false, scanComplete: true, qualityScore: quality, issues }));
-      onScanComplete(quality);
+      await supabase.from("body_profiles").upsert(profileUpdate, { onConflict: "user_id" });
+
+      setStatus(s => ({
+        ...s, scanning: false, scanComplete: true,
+        qualityScore: quality, issues,
+        estimatedMeasurements: measurements,
+      }));
+      onScanComplete(quality, measurements || undefined);
     } catch (err) {
       console.error("Scan analysis error:", err);
-      // Fallback to basic scoring
       const quality = (status.backUploaded ? 78 : 72) + Math.floor(Math.random() * 10);
-      setStatus(s => ({ ...s, scanning: false, scanComplete: true, qualityScore: quality, issues: ["AI analysis unavailable — basic scan used"] }));
+      setStatus(s => ({
+        ...s, scanning: false, scanComplete: true,
+        qualityScore: quality,
+        issues: ["AI analysis unavailable — basic scan used"],
+        estimatedMeasurements: null,
+      }));
       onScanComplete(quality);
     }
   };
@@ -211,7 +259,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
       frontPreview: null, sidePreview: null, backPreview: null,
       frontFile: null, sideFile: null, backFile: null,
       scanning: false, uploading: false, scanComplete: false,
-      qualityScore: 0, issues: [],
+      qualityScore: 0, issues: [], estimatedMeasurements: null,
     });
   };
 
@@ -242,7 +290,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
         </div>
       </div>
 
-      {/* Upload areas — front, side, back (optional) */}
+      {/* Upload areas */}
       <div className="grid grid-cols-3 gap-2">
         {(["front", "side", "back"] as const).map(side => {
           const uploaded = status[`${side}Uploaded`];
@@ -302,7 +350,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
                   <Upload className="h-4 w-4" />
                 </motion.div>
-                Analyzing body landmarks…
+                Analyzing body proportions…
               </>
             ) : (
               <>
@@ -329,11 +377,31 @@ export default function FitBodyScan({ onScanComplete }: Props) {
                 {QUALITY_CHECKS.map((check, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <span className="text-xs text-foreground/75">{check.label}</span>
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500/70" />
+                    {status.qualityScore >= 70 ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500/70" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 text-orange-500/70" />
+                    )}
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Estimated measurements from scan */}
+            {status.estimatedMeasurements && (
+              <div className="rounded-2xl border border-accent/20 bg-accent/[0.04] p-5">
+                <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/80 mb-3">ESTIMATED FROM SCAN</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(status.estimatedMeasurements).map(([key, val]) => (
+                    <div key={key} className="flex justify-between text-xs">
+                      <span className="text-foreground/70">{key.replace(/_/g, " ").replace("cm", "")}</span>
+                      <span className="font-medium text-foreground">{val} cm</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-foreground/50 mt-2">You can edit these in the BODY tab</p>
+              </div>
+            )}
 
             {status.issues.length > 0 && (
               <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 space-y-2">

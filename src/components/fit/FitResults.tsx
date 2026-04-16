@@ -1,15 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, User } from "lucide-react";
+import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, User, RotateCcw, Pencil } from "lucide-react";
 import { useState } from "react";
-import {
-  FitResult, SizeFitResult,
-} from "@/lib/fitEngine";
+import { FitResult, SizeFitResult } from "@/lib/fitEngine";
+import SafeImage from "@/components/SafeImage";
 
 interface FitProduct {
   id: string;
   name: string;
   brand: string;
-  price: number;
+  price: number | null;
   image: string;
   url: string;
   category: string;
@@ -20,6 +19,8 @@ interface Props {
   product: FitProduct;
   explanation: string | null;
   loadingExplanation: boolean;
+  onRescan?: () => void;
+  onEditMeasurements?: () => void;
 }
 
 const fitColor = (fit: string) => {
@@ -38,6 +39,12 @@ const fitBg = (fit: string) => {
   return "bg-blue-500";
 };
 
+const confidenceLabel = (mod: number) => {
+  if (mod >= 0.8) return { text: "HIGH CONFIDENCE", color: "text-green-500" };
+  if (mod >= 0.6) return { text: "MEDIUM CONFIDENCE", color: "text-accent" };
+  return { text: "LOW CONFIDENCE", color: "text-orange-500" };
+};
+
 function SizeCard({ result, isExpanded, onToggle }: {
   result: SizeFitResult;
   isExpanded: boolean;
@@ -51,10 +58,7 @@ function SizeCard({ result, isExpanded, onToggle }: {
         ? "border-foreground/[0.08] bg-card/40"
         : "border-foreground/[0.04] bg-card/20"
     }`}>
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center justify-between p-4"
-      >
+      <button onClick={onToggle} className="flex w-full items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <span className="font-display text-lg font-bold text-foreground">{result.size}</span>
           {result.recommended && (
@@ -108,15 +112,21 @@ function SizeCard({ result, isExpanded, onToggle }: {
   );
 }
 
-export default function FitResults({ result, product, explanation, loadingExplanation }: Props) {
+export default function FitResults({ result, product, explanation, loadingExplanation, onRescan, onEditMeasurements }: Props) {
   const [expandedSize, setExpandedSize] = useState<string | null>(result.recommendedSize);
+  const conf = confidenceLabel(result.confidenceModifier);
 
   return (
     <div className="space-y-5">
       {/* Product header */}
       <div className="flex gap-4">
         {product.image ? (
-          <img src={product.image} alt={product.name} className="h-36 w-24 rounded-xl object-cover" />
+          <SafeImage
+            src={product.image}
+            alt={product.name}
+            className="h-36 w-24 rounded-xl object-cover"
+            fallbackClassName="h-36 w-24 rounded-xl bg-foreground/[0.04] flex items-center justify-center"
+          />
         ) : (
           <div className="h-36 w-24 rounded-xl bg-foreground/[0.04] flex items-center justify-center">
             <span className="font-display text-2xl font-bold text-foreground/75">{product.name.charAt(0)}</span>
@@ -125,8 +135,8 @@ export default function FitResults({ result, product, explanation, loadingExplan
         <div className="flex-1 space-y-2">
           <p className="text-[10px] tracking-[0.1em] text-foreground/80">{product.brand}</p>
           <p className="font-display text-base font-medium text-foreground">{product.name}</p>
-          <p className="text-lg font-bold text-foreground">${product.price}</p>
-          <div className="flex gap-3 mt-1">
+          {product.price && <p className="text-lg font-bold text-foreground">${product.price}</p>}
+          <div className="flex gap-3 mt-1 flex-wrap">
             <div className="flex items-center gap-1">
               <ShieldCheck className="h-3 w-3 text-foreground/75" />
               <span className="text-[11px] text-foreground/80">Data: {result.productDataQuality}/100</span>
@@ -136,6 +146,10 @@ export default function FitResults({ result, product, explanation, loadingExplan
               <span className="text-[11px] text-foreground/80">Scan: {result.scanQuality}/100</span>
             </div>
           </div>
+          {/* Confidence badge */}
+          <div className={`text-[10px] font-semibold tracking-[0.1em] ${conf.color}`}>
+            {conf.text}
+          </div>
         </div>
       </div>
 
@@ -144,7 +158,7 @@ export default function FitResults({ result, product, explanation, loadingExplan
         <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
           <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
           <span className="text-xs text-orange-400/80">
-            Limited confidence — product data or scan quality is below ideal.
+            Limited confidence — product data or scan quality is below ideal. Treat this as an approximate recommendation.
           </span>
         </div>
       )}
@@ -186,6 +200,33 @@ export default function FitResults({ result, product, explanation, loadingExplan
           <p className="text-sm font-light leading-relaxed text-foreground/85">
             {explanation || result.summary}
           </p>
+        )}
+      </div>
+
+      {/* Shop Now */}
+      {product.url && product.url !== "#" && (
+        <a
+          href={product.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+        >
+          <ExternalLink className="h-4 w-4" />
+          SHOP NOW
+        </a>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center justify-center gap-6 pt-2">
+        {onRescan && (
+          <button onClick={onRescan} className="flex items-center gap-1.5 text-xs text-foreground/60 hover:text-foreground/80 transition-colors">
+            <RotateCcw className="h-3 w-3" /> Rescan body
+          </button>
+        )}
+        {onEditMeasurements && (
+          <button onClick={onEditMeasurements} className="flex items-center gap-1.5 text-xs text-foreground/60 hover:text-foreground/80 transition-colors">
+            <Pencil className="h-3 w-3" /> Edit measurements
+          </button>
         )}
       </div>
     </div>
