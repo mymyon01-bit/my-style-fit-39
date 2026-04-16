@@ -52,7 +52,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
     if (data) {
       if (data.height_cm) setHeight(data.height_cm);
       if (data.weight_kg) setWeight(data.weight_kg);
-      if ((data as any).body_avatar_url) setAvatarUrl((data as any).body_avatar_url);
+      // avatar removed
       if (data.silhouette_type) {
         const typeMap: Record<string, BodyTypeKey> = {
           "slim": "slim", "lean": "slim", "thin": "slim",
@@ -68,35 +68,6 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
     if (profile?.gender_preference) setGender(profile.gender_preference);
   };
 
-  const generateAvatar = async (force = false) => {
-    if (!user) { toast.error("Sign in to generate avatar"); return; }
-    if (avatarUrl && !force) return; // Already have one
-    setGeneratingAvatar(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-avatar", {
-        body: {
-          heightCm: height,
-          bodyType,
-          silhouette: bodyType,
-          hints: selectedHints,
-          gender: gender,
-          forceRegenerate: force,
-        },
-      });
-      if (error) throw error;
-      if (data?.avatarUrl) {
-        setAvatarUrl(data.avatarUrl);
-        toast.success(data.cached ? "Avatar loaded" : "Avatar generated");
-      } else if (data?.error) {
-        toast.error(data.error);
-      }
-    } catch (e: any) {
-      toast.error("Avatar generation failed");
-      console.error("Avatar error:", e);
-    } finally {
-      setGeneratingAvatar(false);
-    }
-  };
 
   const toggleHint = (hint: BodyHint) => {
     setSelectedHints(prev => {
@@ -184,41 +155,6 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
 
   return (
     <div className="space-y-6">
-      {/* Avatar */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="relative h-52 w-28 rounded-2xl border border-foreground/[0.06] bg-card/30 overflow-hidden flex items-center justify-center">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Body avatar" className="h-full w-full object-contain" />
-          ) : (
-            <User className="h-16 w-16 text-foreground/[0.08]" />
-          )}
-          {generatingAvatar && (
-            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-accent" />
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {!avatarUrl ? (
-            <button
-              onClick={() => generateAvatar(false)}
-              disabled={generatingAvatar || !user}
-              className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-[11px] font-medium text-accent disabled:opacity-40"
-            >
-              <Sparkles className="h-3 w-3" />
-              {generatingAvatar ? "Generating…" : "Generate Avatar"}
-            </button>
-          ) : (
-            <button
-              onClick={() => generateAvatar(true)}
-              disabled={generatingAvatar}
-              className="flex items-center gap-1.5 text-[10px] text-foreground/40 hover:text-foreground/60 transition-colors disabled:opacity-40"
-            >
-              <RefreshCw className="h-3 w-3" /> Regenerate
-            </button>
-          )}
-        </div>
-      </div>
 
       {/* Height & Weight */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-5">
