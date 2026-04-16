@@ -32,10 +32,10 @@ const AboutPage = () => {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <div className="mx-auto flex max-w-3xl items-center gap-4 px-8 pt-10 lg:pt-28">
-        <button onClick={() => navigate(-1)} className="hover-burgundy text-foreground/50">
+        <button onClick={() => navigate(-1)} className="hover-burgundy text-foreground/70">
           <ArrowLeft className="h-[18px] w-[18px]" />
         </button>
-        <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/45">{t("about").toUpperCase()}</span>
+        <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/65">{t("about").toUpperCase()}</span>
       </div>
 
       {/* Hero */}
@@ -44,7 +44,7 @@ const AboutPage = () => {
           <h1 className="font-display text-[28px] font-semibold leading-[1.2] text-foreground md:text-[36px] lg:text-[44px]">
             {t("aboutHeroTitle")}
           </h1>
-          <p className="mt-5 text-[14px] leading-[1.8] text-foreground/50 max-w-md md:text-[15px]">
+          <p className="mt-5 text-[14px] leading-[1.8] text-foreground/70 max-w-md md:text-[15px]">
             {t("aboutHeroDesc")}
           </p>
         </motion.div>
@@ -64,7 +64,7 @@ const AboutPage = () => {
                 <step.icon className="h-5 w-5 text-accent/60" strokeWidth={1.6} />
               </div>
               <p className="text-[13px] font-semibold text-foreground/80">{step.label}</p>
-              <p className="mt-1 text-[11px] text-foreground/40">{step.desc}</p>
+              <p className="mt-1 text-[11px] text-foreground/75">{step.desc}</p>
               {i < steps.length - 1 && (
                 <ArrowRight className="absolute right-0 top-5 hidden h-4 w-4 text-accent/20 md:block" />
               )}
@@ -84,7 +84,7 @@ const AboutPage = () => {
           {differentiators.map((d, i) => (
             <motion.div key={i} {...fade(i * 0.08)}>
               <p className="text-[14px] font-semibold text-foreground/80 md:text-[15px]">{d.title}</p>
-              <p className="mt-1.5 text-[12px] leading-[1.7] text-foreground/40">{d.desc}</p>
+              <p className="mt-1.5 text-[12px] leading-[1.7] text-foreground/75">{d.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -98,7 +98,7 @@ const AboutPage = () => {
           <h2 className="font-display text-[22px] font-semibold text-foreground md:text-[28px]">
             {t("aboutCtaTitle")}
           </h2>
-          <p className="mt-4 text-[13px] text-foreground/40">
+          <p className="mt-4 text-[13px] text-foreground/75">
             {t("aboutCtaDesc")}
           </p>
           <button

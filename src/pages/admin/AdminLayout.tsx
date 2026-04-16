@@ -36,7 +36,7 @@ const AdminLayout = () => {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="hidden md:flex w-56 flex-col border-r border-border/30 bg-card/30 p-4">
-        <button onClick={() => navigate("/")} className="mb-8 flex items-center gap-2 px-3 py-2 text-foreground/60 hover:text-foreground/80 transition-colors">
+        <button onClick={() => navigate("/")} className="mb-8 flex items-center gap-2 px-3 py-2 text-foreground/75 hover:text-foreground/80 transition-colors">
           <Home className="h-4 w-4" />
           <span className="text-[11px] tracking-[0.15em] font-medium">WARDROBE</span>
         </button>
@@ -49,7 +49,7 @@ const AdminLayout = () => {
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] transition-colors ${
                 isActive(item.path, item.exact)
                   ? "bg-accent/10 text-foreground/90 font-medium"
-                  : "text-foreground/50 hover:text-foreground/70 hover:bg-foreground/[0.03]"
+                  : "text-foreground/70 hover:text-foreground/70 hover:bg-foreground/[0.03]"
               }`}
             >
               <item.icon className="h-4 w-4" />
@@ -62,10 +62,10 @@ const AdminLayout = () => {
       {/* Mobile header */}
       <div className="flex flex-1 flex-col">
         <header className="flex items-center gap-4 border-b border-border/30 px-4 py-3 md:px-6">
-          <button onClick={() => navigate("/")} className="text-[10px] tracking-[0.15em] text-foreground/50 hover:text-foreground/70 md:hidden">
+          <button onClick={() => navigate("/")} className="text-[10px] tracking-[0.15em] text-foreground/70 hover:text-foreground/70 md:hidden">
             ← BACK
           </button>
-          <span className="text-[10px] tracking-[0.2em] font-medium text-foreground/40">ADMIN PANEL</span>
+          <span className="text-[10px] tracking-[0.2em] font-medium text-foreground/75">ADMIN PANEL</span>
         </header>
 
         {/* Mobile nav */}
@@ -77,7 +77,7 @@ const AdminLayout = () => {
               className={`shrink-0 px-3 py-3 text-[10px] tracking-[0.1em] transition-colors ${
                 isActive(item.path, item.exact)
                   ? "text-foreground/80 border-b-2 border-accent/40"
-                  : "text-foreground/40"
+                  : "text-foreground/75"
               }`}
             >
               {item.label}

@@ -37,7 +37,7 @@ const DesktopNav = () => {
             <button
               onClick={() => navigate("/install")}
               className={`hover-burgundy flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.25em] ${
-                isActive("/install") ? "text-foreground" : "text-foreground/50"
+                isActive("/install") ? "text-foreground" : "text-foreground/70"
               }`}
             >
               <Download className="h-3 w-3" />
@@ -49,7 +49,7 @@ const DesktopNav = () => {
             {user ? (
               <button
                 onClick={() => navigate("/settings")}
-                className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/50"
+                className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/70"
               >
                 SETTINGS
               </button>
@@ -57,7 +57,7 @@ const DesktopNav = () => {
               <>
                 <button
                   onClick={() => navigate("/auth")}
-                  className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/50"
+                  className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/70"
                 >
                   {t("logIn").toUpperCase()}
                 </button>
@@ -85,7 +85,7 @@ const DesktopNav = () => {
               className={`hover-burgundy text-[10px] font-semibold tracking-[0.3em] transition-colors ${
                 isActive(link.path)
                   ? "text-foreground/90"
-                  : "text-foreground/40 hover:text-foreground/60"
+                  : "text-foreground/75 hover:text-foreground/75"
               }`}
             >
               {link.label}

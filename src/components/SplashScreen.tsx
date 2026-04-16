@@ -96,7 +96,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
 
         {/* Logo inside */}
         <motion.span
-          className="relative z-10 font-display text-[11px] font-semibold tracking-[0.45em] text-foreground/40"
+          className="relative z-10 font-display text-[11px] font-semibold tracking-[0.45em] text-foreground/75"
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{
             opacity: lightReveal ? 0.7 : phase === "idle" ? 0.2 : 0.35,

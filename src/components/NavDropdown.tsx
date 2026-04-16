@@ -37,7 +37,7 @@ const NavDropdown = () => {
       {/* Trigger — always visible */}
       <button
         onClick={() => setOpen(!open)}
-        className="group flex items-center gap-2 text-foreground/40 transition-colors hover:text-foreground/70"
+        className="group flex items-center gap-2 text-foreground/75 transition-colors hover:text-foreground/70"
       >
         <div className="flex flex-col gap-[3px]">
           <span
@@ -91,7 +91,7 @@ const NavDropdown = () => {
                         className={`flex w-full items-center gap-3 px-5 py-3 text-left transition-colors ${
                           isActive
                             ? "text-foreground"
-                            : "text-foreground/30 hover:text-foreground/60"
+                            : "text-foreground/70 hover:text-foreground/75"
                         }`}
                       >
                         {isActive && (
@@ -114,7 +114,7 @@ const NavDropdown = () => {
                 <div className="border-t border-foreground/[0.04] px-5 py-3">
                   <button
                     onClick={() => navigate("/auth")}
-                    className="text-[10px] font-medium tracking-[0.15em] text-foreground/25 transition-colors hover:text-foreground/50"
+                    className="text-[10px] font-medium tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground/70"
                   >
                     SIGN IN →
                   </button>

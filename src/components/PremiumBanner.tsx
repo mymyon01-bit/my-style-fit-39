@@ -14,7 +14,7 @@ const PremiumBanner = () => {
           <p className="text-[13px] font-medium text-foreground/70">
             {t("premiumBannerTitle")}
           </p>
-          <p className="text-[11px] leading-relaxed text-foreground/40">
+          <p className="text-[11px] leading-relaxed text-foreground/75">
             {t("premiumBannerDesc")}
           </p>
         </div>

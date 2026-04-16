@@ -9,9 +9,9 @@ const AdminContent = () => {
         <div className="rounded-xl border border-border/20 bg-card/30 p-6 space-y-3">
           <div className="flex items-center gap-2">
             <Star className="h-4 w-4 text-accent/60" />
-            <span className="text-[12px] font-medium text-foreground/60">Featured Content</span>
+            <span className="text-[12px] font-medium text-foreground/75">Featured Content</span>
           </div>
-          <p className="text-[11px] text-foreground/40 leading-relaxed">
+          <p className="text-[11px] text-foreground/75 leading-relaxed">
             Mark products as featured in the Products tab. Featured items appear in the Discover page's "New / Featured" section.
           </p>
         </div>
@@ -19,9 +19,9 @@ const AdminContent = () => {
         <div className="rounded-xl border border-border/20 bg-card/30 p-6 space-y-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-accent/60" />
-            <span className="text-[12px] font-medium text-foreground/60">Trending Topics</span>
+            <span className="text-[12px] font-medium text-foreground/75">Trending Topics</span>
           </div>
-          <p className="text-[11px] text-foreground/40 leading-relaxed">
+          <p className="text-[11px] text-foreground/75 leading-relaxed">
             OOTD topics are community-driven. The most popular topics are surfaced automatically based on post count.
           </p>
         </div>

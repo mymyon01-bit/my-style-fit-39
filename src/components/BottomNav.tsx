@@ -24,7 +24,7 @@ const BottomNav = () => {
               key={tab.path}
               onClick={() => navigate(tab.path)}
               className={`hover-burgundy relative flex flex-col items-center gap-1.5 px-5 py-1.5 md:gap-2 md:px-6 ${
-                isActive ? "text-foreground" : "text-foreground/35"
+                isActive ? "text-foreground" : "text-foreground/75"
               }`}
             >
               <tab.icon className="h-[18px] w-[18px] md:h-5 md:w-5" strokeWidth={isActive ? 2.2 : 1.5} />

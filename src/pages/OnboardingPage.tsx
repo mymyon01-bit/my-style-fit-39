@@ -36,7 +36,7 @@ const OnboardingPage = () => {
 
   const chipClass = (active: boolean) =>
     `py-3 px-5 text-[12px] font-light transition-all duration-300 md:text-[13px] md:py-3.5 md:px-6 ${
-      active ? "text-accent/80" : "text-foreground/62 hover:text-foreground/60"
+      active ? "text-accent/80" : "text-foreground/75 hover:text-foreground/75"
     }`;
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,11 +113,11 @@ const OnboardingPage = () => {
             {profilePhotoPreview ? (
               <img src={profilePhotoPreview} alt="" className="h-full w-full object-cover" />
             ) : (
-              <Camera className="h-8 w-8 text-foreground/30" />
+              <Camera className="h-8 w-8 text-foreground/70" />
             )}
           </div>
           {!profilePhotoPreview && (
-            <span className="mt-3 block text-[10px] text-foreground/40">Add profile photo</span>
+            <span className="mt-3 block text-[10px] text-foreground/75">Add profile photo</span>
           )}
           {profilePhotoPreview && (
             <CheckCircle2 className="absolute -bottom-1 -right-1 h-6 w-6 text-green-500" />
@@ -130,7 +130,7 @@ const OnboardingPage = () => {
     // Style
     <motion.div key="style" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 px-8 pt-12 overflow-y-auto md:px-16">
       <h2 className="font-display text-xl font-light text-foreground/85 md:text-2xl">{t("whatsYourStyle")}</h2>
-      <p className="mt-3 text-[12px] text-foreground/62 md:text-[13px]">{t("selectStylesYouLove")}</p>
+      <p className="mt-3 text-[12px] text-foreground/75 md:text-[13px]">{t("selectStylesYouLove")}</p>
       <div className="mt-8 flex flex-wrap gap-2">
         {styleOptions.map(s => (
           <button key={s} onClick={() => toggle(selectedStyles, setSelectedStyles, s)} className={chipClass(selectedStyles.includes(s))}>
@@ -139,19 +139,19 @@ const OnboardingPage = () => {
         ))}
       </div>
 
-      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">{t("selectDislikedStyles")}</p>
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/80 md:text-[11px]">{t("selectDislikedStyles")}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {styleOptions.filter(s => !selectedStyles.includes(s)).map(s => (
           <button key={s} onClick={() => toggle(dislikedStyles, setDislikedStyles, s)}
             className={`py-3 px-5 text-[12px] font-light transition-all duration-300 md:text-[13px] ${
-              dislikedStyles.includes(s) ? "text-destructive/50 line-through" : "text-foreground/68 hover:text-foreground/80"
+              dislikedStyles.includes(s) ? "text-destructive/50 line-through" : "text-foreground/80 hover:text-foreground/80"
             }`}>
             {t(s as any)}
           </button>
         ))}
       </div>
 
-      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">{t("occasion")}</p>
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/80 md:text-[11px]">{t("occasion")}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {occasions.map(o => (
           <button key={o} onClick={() => toggle(selectedOccasions, setSelectedOccasions, o)} className={chipClass(selectedOccasions.includes(o))}>
@@ -160,7 +160,7 @@ const OnboardingPage = () => {
         ))}
       </div>
 
-      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">FAVORITE BRANDS</p>
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/80 md:text-[11px]">FAVORITE BRANDS</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {brandOptions.map(b => (
           <button key={b} onClick={() => toggle(selectedBrands, setSelectedBrands, b)} className={chipClass(selectedBrands.includes(b))}>
@@ -181,7 +181,7 @@ const OnboardingPage = () => {
         ))}
       </div>
 
-      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">{t("budgetRange")}</p>
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/80 md:text-[11px]">{t("budgetRange")}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {budgetOptions.map(b => (
           <button key={b} onClick={() => setSelectedBudget(b)} className={chipClass(selectedBudget === b)}>
@@ -194,8 +194,8 @@ const OnboardingPage = () => {
     // Body measurements
     <motion.div key="body" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 px-8 pt-12 md:px-16">
       <h2 className="font-display text-xl font-light text-foreground/85 md:text-2xl">{t("bodyScan")}</h2>
-      <p className="mt-3 text-[12px] text-foreground/62 md:text-[13px]">{t("bodyScanDesc")}</p>
-      <p className="mt-2 text-[10px] text-foreground/40">You can also do a full body scan later in the FIT section.</p>
+      <p className="mt-3 text-[12px] text-foreground/75 md:text-[13px]">{t("bodyScanDesc")}</p>
+      <p className="mt-2 text-[10px] text-foreground/75">You can also do a full body scan later in the FIT section.</p>
 
       <div className="mt-10 space-y-5">
         {[
@@ -206,7 +206,7 @@ const OnboardingPage = () => {
           { label: "Inseam", placeholder: "78 cm", key: "inseam" },
         ].map(field => (
           <div key={field.key}>
-            <label className="text-[10px] font-medium text-foreground/62 md:text-[11px]">{field.label}</label>
+            <label className="text-[10px] font-medium text-foreground/75 md:text-[11px]">{field.label}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -225,14 +225,14 @@ const OnboardingPage = () => {
       {isAnalyzing ? (
         <>
           <Loader2 className="h-8 w-8 animate-spin text-accent/80" />
-          <p className="mt-6 text-[12px] text-foreground/48">
+          <p className="mt-6 text-[12px] text-foreground/65">
             {uploadingPhoto ? "Uploading photo…" : t("analyzing")}
           </p>
         </>
       ) : (
         <>
           <h2 className="font-display text-2xl font-light text-foreground/85 md:text-3xl">{t("aiProfileReady")}</h2>
-          <p className="mt-5 text-[13px] leading-[1.8] text-foreground/48 max-w-[300px] md:text-[14px]">{t("profileGenerated")}</p>
+          <p className="mt-5 text-[13px] leading-[1.8] text-foreground/65 max-w-[300px] md:text-[14px]">{t("profileGenerated")}</p>
         </>
       )}
     </motion.div>,
@@ -268,13 +268,13 @@ const OnboardingPage = () => {
           <>
             <button
               onClick={handleNext}
-              className="flex w-full items-center justify-center gap-2 py-4 text-[11px] font-medium tracking-[0.15em] text-foreground/68 transition-colors hover:text-foreground md:text-[12px]"
+              className="flex w-full items-center justify-center gap-2 py-4 text-[11px] font-medium tracking-[0.15em] text-foreground/80 transition-colors hover:text-foreground md:text-[12px]"
             >
               {isLast ? t("seeRecommendations") : step === 0 ? t("getStarted") : t("next")}
               <ChevronRight className="h-4 w-4" />
             </button>
             {step > 0 && !isLast && (
-              <button onClick={() => setStep(step + 1)} className="mt-2 w-full py-2 text-[10px] text-foreground/68">
+              <button onClick={() => setStep(step + 1)} className="mt-2 w-full py-2 text-[10px] text-foreground/80">
                 {t("skip")}
               </button>
             )}

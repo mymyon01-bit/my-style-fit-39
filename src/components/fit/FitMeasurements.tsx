@@ -103,7 +103,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
                   ) : (
                     <>
                       <span className="text-sm font-medium text-foreground">{m.value} {unit}</span>
-                      <button onClick={() => startEdit(key)} className="text-foreground/60 hover:text-foreground/60">
+                      <button onClick={() => startEdit(key)} className="text-foreground/75 hover:text-foreground/75">
                         <Pencil className="h-3 w-3" />
                       </button>
                     </>

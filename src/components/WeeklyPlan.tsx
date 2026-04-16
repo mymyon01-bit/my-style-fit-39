@@ -49,28 +49,28 @@ const WeeklyPlan = () => {
       <div className="space-y-5 md:space-y-6">
         <div className="flex items-center gap-3">
           <CalendarDays className="h-4 w-4 text-accent/70" />
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/48 md:text-[11px]">WEEKLY PLAN</p>
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/65 md:text-[11px]">WEEKLY PLAN</p>
         </div>
         <p className="font-display text-lg text-foreground/80 md:text-xl">A week of styling, planned for you.</p>
-        <p className="text-[12px] leading-[1.8] text-foreground/48 max-w-[300px] md:text-[13px] md:max-w-sm">
+        <p className="text-[12px] leading-[1.8] text-foreground/65 max-w-[300px] md:text-[13px] md:max-w-sm">
           Five days of curated direction — less decision fatigue, more confidence.
         </p>
-        <button onClick={() => navigate(user ? "/profile" : "/auth")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/32 transition-colors hover:text-foreground/68 md:text-[11px]">
+        <button onClick={() => navigate(user ? "/profile" : "/auth")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/32 transition-colors hover:text-foreground/80 md:text-[11px]">
           {user ? "KEEP YOUR WEEKLY PLAN ACTIVE" : "GET STARTED"}
         </button>
       </div>
     );
   }
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-4 w-4 animate-spin text-foreground/80" /><span className="ml-3 text-[11px] text-foreground/60">Planning…</span></div>;
-  if (error) return <div className="py-14 text-center"><p className="text-[11px] text-foreground/48">{error}</p><button onClick={fetchWeekly} className="mt-2 text-[10px] text-accent/70 hover:text-accent">Retry</button></div>;
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-4 w-4 animate-spin text-foreground/80" /><span className="ml-3 text-[11px] text-foreground/75">Planning…</span></div>;
+  if (error) return <div className="py-14 text-center"><p className="text-[11px] text-foreground/65">{error}</p><button onClick={fetchWeekly} className="mt-2 text-[10px] text-accent/70 hover:text-accent">Retry</button></div>;
   if (days.length === 0) return null;
 
   return (
     <div className="space-y-7 md:space-y-8">
       <div className="flex items-center gap-3">
         <CalendarDays className="h-4 w-4 text-accent/80" />
-        <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/48 md:text-[11px]">WEEKLY PLAN</p>
+        <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/65 md:text-[11px]">WEEKLY PLAN</p>
       </div>
       <div className="space-y-1">
         {days.map((day, i) => (
@@ -80,7 +80,7 @@ const WeeklyPlan = () => {
                 {day.day?.slice(0, 3)?.toUpperCase() || `D${i + 1}`}
               </span>
               <div className="flex-1 min-w-0">
-                <p className={`text-[13px] transition-colors duration-300 md:text-[14px] ${expandedDay === i ? "text-foreground/68" : "text-foreground/68"}`}>{day.label}</p>
+                <p className={`text-[13px] transition-colors duration-300 md:text-[14px] ${expandedDay === i ? "text-foreground/80" : "text-foreground/80"}`}>{day.label}</p>
               </div>
               <div className={`h-1.5 w-1.5 rounded-full transition-colors ${expandedDay === i ? "bg-accent/50" : "bg-foreground/10"}`} />
             </button>
@@ -92,12 +92,12 @@ const WeeklyPlan = () => {
                   return (
                     <div key={key} className="flex items-center gap-3">
                       <div className="h-2.5 w-2.5 rounded-full shrink-0 md:h-3 md:w-3" style={{ backgroundColor: piece.color?.toLowerCase() || "#888" }} />
-                      <span className="text-[12px] text-foreground/48 md:text-[13px]">{piece.name}</span>
-                      <span className="text-[9px] text-foreground/60 capitalize md:text-[10px]">{key}</span>
+                      <span className="text-[12px] text-foreground/65 md:text-[13px]">{piece.name}</span>
+                      <span className="text-[9px] text-foreground/75 capitalize md:text-[10px]">{key}</span>
                     </div>
                   );
                 })}
-                <p className="text-[11px] font-light leading-[1.8] text-foreground/48 pt-1 md:text-[12px]">{day.explanation}</p>
+                <p className="text-[11px] font-light leading-[1.8] text-foreground/65 pt-1 md:text-[12px]">{day.explanation}</p>
               </motion.div>
             )}
           </motion.div>

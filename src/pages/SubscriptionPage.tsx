@@ -122,7 +122,7 @@ const FakePaymentModal = ({
           <h3 className="font-display text-lg font-light text-foreground/90">
             Payment Details
           </h3>
-          <div className="flex items-center gap-1.5 text-[10px] text-foreground/40">
+          <div className="flex items-center gap-1.5 text-[10px] text-foreground/75">
             <Shield className="h-3 w-3" />
             Secure (MVP Demo)
           </div>
@@ -130,7 +130,7 @@ const FakePaymentModal = ({
 
         <div className="mb-5 rounded-lg bg-foreground/[0.03] border border-border/20 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-[12px] text-foreground/60">{plan.name}</span>
+            <span className="text-[12px] text-foreground/75">{plan.name}</span>
             <span className="text-[14px] font-medium text-foreground/90">
               {plan.price} {plan.period}
             </span>
@@ -139,7 +139,7 @@ const FakePaymentModal = ({
 
         <div className="space-y-4">
           <div>
-            <label className="text-[10px] font-medium text-foreground/50 uppercase tracking-wider">
+            <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
               Cardholder Name
             </label>
             <input
@@ -147,27 +147,27 @@ const FakePaymentModal = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="John Doe"
-              className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30 transition-colors"
+              className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
             />
           </div>
           <div>
-            <label className="text-[10px] font-medium text-foreground/50 uppercase tracking-wider">
+            <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
               Card Number
             </label>
             <div className="relative mt-1.5">
-              <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/25" />
+              <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/70" />
               <input
                 type="text"
                 value={cardNumber}
                 onChange={(e) => setCardNumber(formatCard(e.target.value))}
                 placeholder="4242 4242 4242 4242"
-                className="w-full rounded-lg bg-foreground/[0.04] border border-border/20 pl-10 pr-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30 transition-colors"
+                className="w-full rounded-lg bg-foreground/[0.04] border border-border/20 pl-10 pr-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
               />
             </div>
           </div>
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-[10px] font-medium text-foreground/50 uppercase tracking-wider">
+              <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
                 Expiry
               </label>
               <input
@@ -175,11 +175,11 @@ const FakePaymentModal = ({
                 value={expiry}
                 onChange={(e) => setExpiry(formatExpiry(e.target.value))}
                 placeholder="MM/YY"
-                className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30 transition-colors"
+                className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
               />
             </div>
             <div className="flex-1">
-              <label className="text-[10px] font-medium text-foreground/50 uppercase tracking-wider">
+              <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
                 CVC
               </label>
               <input
@@ -187,7 +187,7 @@ const FakePaymentModal = ({
                 value={cvc}
                 onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder="123"
-                className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30 transition-colors"
+                className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
               />
             </div>
           </div>
@@ -208,7 +208,7 @@ const FakePaymentModal = ({
           )}
         </button>
 
-        <p className="mt-3 text-center text-[9px] text-foreground/30">
+        <p className="mt-3 text-center text-[9px] text-foreground/70">
           This is a demo payment. No real charges will be made.
         </p>
       </motion.div>
@@ -256,7 +256,7 @@ const SubscriptionPage = () => {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/10">
         <div className="flex items-center gap-3 px-6 py-4 max-w-3xl mx-auto">
-          <button onClick={() => navigate(-1)} className="text-foreground/60 hover:text-foreground transition-colors">
+          <button onClick={() => navigate(-1)} className="text-foreground/75 hover:text-foreground transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h1 className="font-display text-lg font-light text-foreground/85">Subscription</h1>
@@ -271,7 +271,7 @@ const SubscriptionPage = () => {
         <h2 className="font-display text-2xl font-light text-foreground/90">
           Unlock Your Full Style
         </h2>
-        <p className="mt-3 text-[13px] leading-relaxed text-foreground/50 max-w-xs mx-auto">
+        <p className="mt-3 text-[13px] leading-relaxed text-foreground/70 max-w-xs mx-auto">
           Get AI-powered daily outfits, unlimited saves, and advanced body scan features.
         </p>
         {subscription.isPremium && (
@@ -317,7 +317,7 @@ const SubscriptionPage = () => {
                   <h3 className="text-[15px] font-medium text-foreground/85">{plan.name}</h3>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className="text-2xl font-light text-foreground/90">{plan.price}</span>
-                    <span className="text-[11px] text-foreground/40">{plan.period}</span>
+                    <span className="text-[11px] text-foreground/75">{plan.period}</span>
                   </div>
                 </div>
                 {isCurrent && (
@@ -329,7 +329,7 @@ const SubscriptionPage = () => {
 
               <ul className="space-y-2.5 mb-5">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-[12px] text-foreground/60">
+                  <li key={f} className="flex items-start gap-2.5 text-[12px] text-foreground/75">
                     <Check className="h-3.5 w-3.5 mt-0.5 text-accent/60 shrink-0" />
                     {f}
                   </li>
@@ -343,8 +343,8 @@ const SubscriptionPage = () => {
                   plan.popular && !isCurrent
                     ? "bg-accent/80 text-white hover:bg-accent"
                     : isCurrent
-                    ? "bg-foreground/[0.05] text-foreground/30 cursor-default"
-                    : "bg-foreground/[0.06] text-foreground/60 hover:bg-foreground/10"
+                    ? "bg-foreground/[0.05] text-foreground/70 cursor-default"
+                    : "bg-foreground/[0.06] text-foreground/75 hover:bg-foreground/10"
                 }`}
               >
                 {isCurrent ? "Current Plan" : plan.cta}
@@ -356,7 +356,7 @@ const SubscriptionPage = () => {
 
       {/* FAQ */}
       <div className="px-6 pt-10 max-w-3xl mx-auto">
-        <h3 className="text-[10px] font-medium tracking-[0.2em] text-foreground/40 uppercase mb-4">
+        <h3 className="text-[10px] font-medium tracking-[0.2em] text-foreground/75 uppercase mb-4">
           Frequently Asked
         </h3>
         {[
@@ -366,7 +366,7 @@ const SubscriptionPage = () => {
         ].map((faq) => (
           <div key={faq.q} className="py-3 border-b border-border/10">
             <p className="text-[12px] font-medium text-foreground/70">{faq.q}</p>
-            <p className="mt-1 text-[11px] text-foreground/40">{faq.a}</p>
+            <p className="mt-1 text-[11px] text-foreground/75">{faq.a}</p>
           </div>
         ))}
       </div>

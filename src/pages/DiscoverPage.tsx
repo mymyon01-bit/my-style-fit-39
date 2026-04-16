@@ -518,7 +518,7 @@ const DiscoverPage = () => {
         <div className="mx-auto max-w-lg px-6 pt-10 pb-2 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           <div className="flex items-baseline justify-between">
             <span className="font-display text-[12px] font-semibold tracking-[0.35em] text-foreground/70 lg:hidden">WARDROBE</span>
-            <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/50">{t("discover").toUpperCase()}</span>
+            <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70">{t("discover").toUpperCase()}</span>
           </div>
         </div>
 
@@ -526,7 +526,7 @@ const DiscoverPage = () => {
           {/* Search with suggestions */}
           <div className="relative">
             <div className="flex items-center gap-3 pb-4">
-              <Search className="h-4 w-4 text-foreground/40 shrink-0" />
+              <Search className="h-4 w-4 text-foreground/75 shrink-0" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -535,11 +535,11 @@ const DiscoverPage = () => {
                 onFocus={() => setShowSuggestions(true)}
                 onKeyDown={e => e.key === "Enter" && handleTextSubmit()}
                 placeholder={t("describeStyle")}
-                className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/35"
+                className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/75"
               />
               {textInput.trim() && (
                 <div className="flex items-center gap-2">
-                  <button onClick={() => { setTextInput(""); setShowSuggestions(false); }} className="text-foreground/25 hover:text-foreground/40">
+                  <button onClick={() => { setTextInput(""); setShowSuggestions(false); }} className="text-foreground/70 hover:text-foreground/75">
                     <X className="h-3.5 w-3.5" />
                   </button>
                   <button onClick={() => handleTextSubmit()} className="hover-burgundy text-[10px] font-semibold tracking-[0.15em] text-accent/70">GO</button>
@@ -559,28 +559,28 @@ const DiscoverPage = () => {
                 >
                   {searchSuggestionResults.length > 0 ? (
                     <div className="py-2">
-                      <p className="px-4 py-1.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/30">{t("suggestions").toUpperCase()}</p>
+                      <p className="px-4 py-1.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/70">{t("suggestions").toUpperCase()}</p>
                       {searchSuggestionResults.map((suggestion, i) => (
                         <button
                           key={i}
                           onClick={() => handleTextSubmit(suggestion)}
-                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-foreground/60 transition-colors hover:bg-foreground/[0.04] hover:text-foreground/80"
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-foreground/75 transition-colors hover:bg-foreground/[0.04] hover:text-foreground/80"
                         >
-                          <Search className="h-3 w-3 text-foreground/20 shrink-0" />
+                          <Search className="h-3 w-3 text-foreground/70 shrink-0" />
                           {suggestion}
                         </button>
                       ))}
                     </div>
                   ) : (
                     <div className="py-2">
-                      <p className="px-4 py-1.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/30">{t("trending").toUpperCase()}</p>
+                      <p className="px-4 py-1.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/70">{t("trending").toUpperCase()}</p>
                       {TRENDING_SEARCHES.map((term, i) => (
                         <button
                           key={i}
                           onClick={() => handleTextSubmit(term)}
-                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-foreground/50 transition-colors hover:bg-foreground/[0.04] hover:text-foreground/70"
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground/70"
                         >
-                          <Sparkles className="h-3 w-3 text-accent/30 shrink-0" />
+                          <Sparkles className="h-3 w-3 text-accent/60 shrink-0" />
                           {term}
                         </button>
                       ))}
@@ -607,7 +607,7 @@ const DiscoverPage = () => {
                 className={`hover-burgundy shrink-0 rounded-full px-4 py-2 text-[11px] font-semibold tracking-[0.05em] transition-all ${
                   activeTab === tab.slug
                     ? "bg-accent/15 text-foreground"
-                    : "text-foreground/35"
+                    : "text-foreground/75"
                 }`}
               >
                 {tab.label}
@@ -628,7 +628,7 @@ const DiscoverPage = () => {
                   <button
                     onClick={() => setActiveSubcategory(null)}
                     className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
-                      !activeSubcategory ? "bg-foreground/[0.08] text-foreground/70" : "text-foreground/30 hover:text-foreground/50"
+                      !activeSubcategory ? "bg-foreground/[0.08] text-foreground/70" : "text-foreground/70 hover:text-foreground/70"
                     }`}
                   >
                     All
@@ -638,7 +638,7 @@ const DiscoverPage = () => {
                       key={sub.slug}
                       onClick={() => setActiveSubcategory(sub.slug)}
                       className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
-                        activeSubcategory === sub.slug ? "bg-foreground/[0.08] text-foreground/70" : "text-foreground/30 hover:text-foreground/50"
+                        activeSubcategory === sub.slug ? "bg-foreground/[0.08] text-foreground/70" : "text-foreground/70 hover:text-foreground/70"
                       }`}
                     >
                       {sub.label}
@@ -653,15 +653,15 @@ const DiscoverPage = () => {
           <div className="mt-4 flex items-center gap-3">
             <button
               onClick={() => setShowQuiz(true)}
-              className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/45"
+              className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/65"
             >
-              <Sparkles className="h-3.5 w-3.5 text-accent/50" />
+              <Sparkles className="h-3.5 w-3.5 text-accent/70" />
               {quizAnswers ? t("refine") : t("takeStyleQuiz")}
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`hover-burgundy flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold transition-all ${
-                showFilters || hasActiveFilters ? "border-accent/30 text-foreground/60" : "border-border/30 text-foreground/45"
+                showFilters || hasActiveFilters ? "border-accent/30 text-foreground/75" : "border-border/30 text-foreground/65"
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -675,7 +675,7 @@ const DiscoverPage = () => {
             {(quizAnswers || hasActiveFilters) && (
               <button
                 onClick={() => { setQuizAnswers(null); clearFilters(); setRecommendations([]); setHasGenerated(false); setTextInput(""); }}
-                className="hover-burgundy text-[10px] tracking-[0.15em] text-foreground/25"
+                className="hover-burgundy text-[10px] tracking-[0.15em] text-foreground/70"
               >
                 {t("reset").toUpperCase()}
               </button>
@@ -695,7 +695,7 @@ const DiscoverPage = () => {
                   }
                 }}
                 className={`hover-burgundy flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-semibold transition-all ${
-                  preferenceMode ? "border-accent/30 bg-accent/[0.06] text-accent/70" : "border-border/30 text-foreground/35"
+                  preferenceMode ? "border-accent/30 bg-accent/[0.06] text-accent/70" : "border-border/30 text-foreground/75"
                 }`}
               >
                 <Heart className="h-3 w-3" />
@@ -715,7 +715,7 @@ const DiscoverPage = () => {
               >
                 <div className="mt-4 space-y-4 rounded-xl border border-border/20 bg-card/30 p-4">
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("style").toUpperCase()}</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("style").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {STYLE_FILTERS.map(s => (
                         <button
@@ -724,7 +724,7 @@ const DiscoverPage = () => {
                           className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
                             selectedStyles.includes(s)
                               ? "bg-accent/15 text-foreground/80"
-                              : "bg-foreground/[0.03] text-foreground/35 hover:text-foreground/50"
+                              : "bg-foreground/[0.03] text-foreground/75 hover:text-foreground/70"
                           }`}
                         >
                           {s}
@@ -733,7 +733,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("preferredFit").toUpperCase()}</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("preferredFit").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {FIT_FILTERS.map(f => (
                         <button
@@ -742,7 +742,7 @@ const DiscoverPage = () => {
                           className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
                             selectedFit === f
                               ? "bg-accent/15 text-foreground/80"
-                              : "bg-foreground/[0.03] text-foreground/35 hover:text-foreground/50"
+                              : "bg-foreground/[0.03] text-foreground/75 hover:text-foreground/70"
                           }`}
                         >
                           {f}
@@ -751,7 +751,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("color").toUpperCase()}</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("color").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {COLOR_FILTERS.map(c => (
                         <button
@@ -760,7 +760,7 @@ const DiscoverPage = () => {
                           className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
                             selectedColor === c
                               ? "bg-accent/15 text-foreground/80"
-                              : "bg-foreground/[0.03] text-foreground/35 hover:text-foreground/50"
+                              : "bg-foreground/[0.03] text-foreground/75 hover:text-foreground/70"
                           }`}
                         >
                           {c}
@@ -770,7 +770,7 @@ const DiscoverPage = () => {
                   </div>
                   <div className="flex items-center justify-between border-t border-border/20 pt-3">
                     {hasActiveFilters && (
-                      <button onClick={clearFilters} className="text-[10px] text-foreground/30 hover:text-foreground/50">
+                      <button onClick={clearFilters} className="text-[10px] text-foreground/70 hover:text-foreground/70">
                         {t("clearAll")}
                       </button>
                     )}
@@ -814,16 +814,16 @@ const DiscoverPage = () => {
                       {activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
                     </p>
                     {interactionCount > 2 && (
-                      <p className="text-[10px] text-foreground/35 mt-1">{t("adaptingTaste")}</p>
+                      <p className="text-[10px] text-foreground/75 mt-1">{t("adaptingTaste")}</p>
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground/25">{recommendations.length} {t("items")}</span>
+                  <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
                 </div>
 
                 {Object.keys(groupedRecs).length > 1 ? (
                   Object.entries(groupedRecs).map(([category, items]) => (
                     <div key={category} className="space-y-4">
-                      <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/45 uppercase">
+                      <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/65 uppercase">
                         {category}
                       </p>
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
@@ -862,7 +862,7 @@ const DiscoverPage = () => {
                   <button
                     onClick={loadMore}
                     disabled={isLoadingMore}
-                    className="hover-burgundy flex items-center gap-2 rounded-lg border border-border/30 px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/45 transition-all hover:border-accent/30 hover:bg-accent/[0.04] disabled:opacity-40"
+                    className="hover-burgundy flex items-center gap-2 rounded-lg border border-border/30 px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/65 transition-all hover:border-accent/30 hover:bg-accent/[0.04] disabled:opacity-40"
                   >
                     {isLoadingMore ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -878,7 +878,7 @@ const DiscoverPage = () => {
                   <div className="space-y-5 border-t border-border/15 pt-8">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Wand2 className="h-3.5 w-3.5 text-accent/50" />
+                        <Wand2 className="h-3.5 w-3.5 text-accent/70" />
                         <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
                           {t("newStyleYouMightLike").toUpperCase()}
                         </p>
@@ -918,14 +918,14 @@ const DiscoverPage = () => {
             ) : hasGenerated ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Sparkles className="h-6 w-6 text-accent/25 mb-4" />
-                <p className="text-[12px] text-foreground/35">No results found</p>
-                <p className="text-[10px] text-foreground/20 mt-1">Try a different search or style</p>
+                <p className="text-[12px] text-foreground/75">No results found</p>
+                <p className="text-[10px] text-foreground/70 mt-1">Try a different search or style</p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Sparkles className="h-8 w-8 text-accent/15 mb-4" />
-                <p className="text-[12px] text-foreground/30">{t("describeStyle")}</p>
-                <p className="text-[10px] text-foreground/20 mt-1">Search or browse to discover items</p>
+                <p className="text-[12px] text-foreground/70">{t("describeStyle")}</p>
+                <p className="text-[10px] text-foreground/70 mt-1">Search or browse to discover items</p>
               </div>
             )}
           </div>
@@ -1014,11 +1014,11 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
         )}
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
-        <p className="text-[9px] font-medium tracking-[0.1em] text-foreground/35">{item.brand}</p>
+        <p className="text-[9px] font-medium tracking-[0.1em] text-foreground/75">{item.brand}</p>
         <p className="text-[12px] font-medium text-foreground/70 leading-tight line-clamp-2">{item.name}</p>
-        <p className="text-[11px] font-semibold text-foreground/50">{item.price}</p>
+        <p className="text-[11px] font-semibold text-foreground/70">{item.price}</p>
         {item.store_name && (
-          <p className="text-[8px] text-foreground/25">{item.store_name}</p>
+          <p className="text-[8px] text-foreground/70">{item.store_name}</p>
         )}
       </div>
     </motion.div>
