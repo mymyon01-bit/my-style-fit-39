@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import SafeImage from "@/components/SafeImage";
 import ShareButton from "@/components/ShareButton";
 import { toast } from "sonner";
+import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
+import OutfitLookCard from "@/components/OutfitLookCard";
 
 interface AIRecommendation {
   id: string;
@@ -273,7 +275,6 @@ const DiscoverPage = () => {
     if (!textInput.trim() || textInput.trim().length < 2) return [];
     return generateSuggestions(textInput).suggestions;
   }, [textInput]);
-
 
 
   // ── INSTANT INITIAL LOAD: DB-first small batch, then background expansion ──
@@ -842,6 +843,26 @@ const DiscoverPage = () => {
       .map(cat => ({ category: cat, items: groups[cat] }));
   }, [recommendations]);
 
+  // Generate outfit combinations from categorized products
+  const outfitCombinations = useMemo(() => {
+    const groups: Record<FashionCategory, AIRecommendation[]> = {
+      TOPS: [], BOTTOMS: [], SHOES: [], BAGS: [], ACCESSORIES: [],
+    };
+    for (const item of recommendations) {
+      const cat = classifyProduct(item);
+      if (cat) groups[cat].push(item);
+    }
+
+    const liked = new Set(
+      Object.entries(feedbackMap).filter(([, v]) => v === "like").map(([k]) => k)
+    );
+    const disliked = new Set(
+      Object.entries(feedbackMap).filter(([, v]) => v === "dislike").map(([k]) => k)
+    );
+
+    return generateOutfits(groups, 4, liked, disliked);
+  }, [recommendations, feedbackMap]);
+
   const interactionCount = Object.keys(feedbackMap).length;
 
   return (
@@ -1155,6 +1176,20 @@ const DiscoverPage = () => {
                   </div>
                   <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
                 </div>
+
+                {/* ── Styled Outfits ── */}
+                {outfitCombinations.length > 0 && (
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 uppercase">
+                      Styled Looks
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {outfitCombinations.map((outfit, i) => (
+                        <OutfitLookCard key={outfit.id} outfit={outfit} index={i} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {categorizedRecs.length > 0 ? (
                   categorizedRecs.map(({ category, items }) => (
