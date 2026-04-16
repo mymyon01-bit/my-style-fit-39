@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
 
@@ -22,7 +22,6 @@ const HomePage = () => {
     setIsLoading(true);
     await new Promise(r => setTimeout(r, 600));
     setIsLoading(false);
-    // Navigate to discover with mood + homepage source for premium AI routing
     navigate(`/discover?mood=${encodeURIComponent(query.trim())}&source=homepage`);
   }, [query, navigate]);
 
@@ -41,7 +40,7 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
-          className="absolute top-10 z-10 font-display text-[12px] font-medium tracking-[0.4em] text-foreground/68 md:text-[13px] lg:hidden"
+          className="absolute top-10 z-10 font-display text-[12px] font-semibold tracking-[0.4em] text-foreground/60 md:text-[13px] lg:hidden"
         >
           WARDROBE
         </motion.span>
@@ -61,17 +60,17 @@ const HomePage = () => {
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder={t("howAreYouFeeling")}
-              className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/80 md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
-                isFocused ? "placeholder:text-foreground/68" : ""
+              className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/50 md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
+                isFocused ? "placeholder:text-foreground/35" : ""
               }`}
             />
             <div className={`mx-auto h-px transition-all duration-700 ${
-              isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/[0.16]"
+              isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/20"
             }`} />
 
             {isLoading && (
               <div className="mt-7 flex justify-center md:mt-8 lg:mt-10">
-                <Loader2 className="h-4 w-4 animate-spin text-foreground/62" />
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/50" />
               </div>
             )}
 
@@ -82,20 +81,42 @@ const HomePage = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={handleSubmit}
-                  className="mx-auto mt-7 block text-[10px] font-medium tracking-[0.25em] text-foreground/80 transition-colors hover:text-foreground/80 md:mt-8 md:text-[11px] lg:mt-10"
+                  className="hover-burgundy mx-auto mt-7 flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] text-foreground/60 md:mt-8 lg:mt-10"
                 >
-                  ENTER ↵
+                  ENTER
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </motion.button>
               )}
             </AnimatePresence>
           </motion.div>
         </div>
 
+        {/* Quick action buttons */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.8 }}
+          className="absolute bottom-28 z-10 flex gap-4 md:bottom-32 lg:bottom-36"
+        >
+          <button
+            onClick={() => navigate("/discover")}
+            className="hover-burgundy rounded-lg border border-accent/15 bg-accent/[0.04] px-5 py-2.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/50 transition-all hover:bg-accent/[0.08]"
+          >
+            EXPLORE STYLES
+          </button>
+          <button
+            onClick={() => navigate("/about")}
+            className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/35 transition-all hover:text-foreground/50"
+          >
+            ABOUT
+          </button>
+        </motion.div>
+
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 1.2 }}
-          className="absolute bottom-16 z-10 text-[11px] font-light tracking-[0.18em] text-foreground/80 md:bottom-20 md:text-[12px] lg:bottom-24 lg:text-[13px]"
+          className="absolute bottom-14 z-10 text-[11px] font-medium tracking-[0.18em] text-foreground/40 md:bottom-18 md:text-[12px] lg:bottom-22 lg:text-[13px]"
         >
           {weather.loading
             ? "…"
