@@ -44,7 +44,7 @@ function getServiceClient() {
   );
 }
 
-// ─── DB-first: load cached products (trusted sources only) ───
+// ─── DB-first: load cached products ───
 async function loadFromDB(supabase: any, opts: {
   query?: string;
   category?: string;
@@ -59,7 +59,7 @@ async function loadFromDB(supabase: any, opts: {
     .select("*")
     .eq("image_valid", true)
     .eq("is_active", true)
-    .in("source_trust_level", ["high", "medium"]); // SECURITY: Only trusted sources
+    .in("source_trust_level", ["high", "medium"]); // trusted sources
 
   if (opts.category) q = q.eq("category", opts.category);
   if (opts.fit) q = q.eq("fit", opts.fit);
@@ -73,14 +73,22 @@ async function loadFromDB(supabase: any, opts: {
   // Double-check image safety and product-title validity on every result
   let results = data.filter((p: any) => isImageUrlSafe(p.image_url) && isFashionProduct(p.name || ""));
 
-  // Text relevance filter
+  // Text relevance filter with improved scoring
   if (opts.query) {
     const terms = opts.query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 2);
     if (terms.length > 0) {
       results = results.map((p: any) => {
-        const text = `${p.name} ${p.brand} ${p.category} ${(p.style_tags || []).join(" ")} ${(p.color_tags || []).join(" ")}`.toLowerCase();
-        const score = terms.filter((t: string) => text.includes(t)).length / terms.length;
-        return { ...p, _relevance: score };
+        const text = `${p.name} ${p.brand} ${p.category} ${(p.style_tags || []).join(" ")} ${(p.color_tags || []).join(" ")} ${p.fit || ""}`.toLowerCase();
+        // Weighted relevance: name match > brand > tags
+        let score = 0;
+        const nameLower = (p.name || "").toLowerCase();
+        const brandLower = (p.brand || "").toLowerCase();
+        for (const t of terms) {
+          if (nameLower.includes(t)) score += 3;
+          else if (brandLower.includes(t)) score += 2;
+          else if (text.includes(t)) score += 1;
+        }
+        return { ...p, _relevance: score / (terms.length * 3) };
       });
       results.sort((a: any, b: any) => b._relevance - a._relevance);
       const relevant = results.filter((r: any) => r._relevance > 0);
@@ -343,7 +351,7 @@ serve(async (req) => {
 
     console.log(`product-search: query="${query || ""}", category="${category || ""}", limit=${clampedLimit}, expand=${expandExternal}`);
 
-    // Step 1: DB-first load (trusted sources only)
+    // Step 1: DB-first load
     const dbProducts = await loadFromDB(supabase, {
       query: query || undefined,
       category,
@@ -376,11 +384,14 @@ serve(async (req) => {
     // Step 3: Merge DB + external, deduplicate
     const existingIds = new Set(dbProducts.map((p: any) => p.external_id || p.id));
     const existingUrls = new Set(dbProducts.map((p: any) => p.source_url).filter(Boolean));
-    const newExternal = externalProducts.filter((p: any) => 
-      !existingIds.has(p.external_id) && 
-      !existingUrls.has(p.source_url) && // URL-based dedup
-      isImageUrlSafe(p.image_url)
-    );
+    const existingNames = new Set(dbProducts.map((p: any) => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25)));
+    const newExternal = externalProducts.filter((p: any) => {
+      const nameKey = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
+      return !existingIds.has(p.external_id) && 
+        !existingUrls.has(p.source_url) &&
+        !existingNames.has(nameKey) &&
+        isImageUrlSafe(p.image_url);
+    });
 
     let allProducts = [...dbProducts, ...newExternal];
 
@@ -406,6 +417,8 @@ serve(async (req) => {
       platform: p.platform,
       _source: dbProducts.includes(p) ? "db" : "external",
     }));
+
+    console.log(`product-search result: ${normalized.length} total (${dbProducts.length} DB, ${newExternal.length} external)`);
 
     return new Response(JSON.stringify({
       products: normalized,

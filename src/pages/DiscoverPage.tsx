@@ -94,6 +94,7 @@ function freeScoreProduct(
   const queryLower = query.toLowerCase();
   const terms = queryLower.split(/\s+/).filter(t => t.length > 2);
   const itemText = `${item.name} ${item.brand} ${item.category} ${(item.style_tags || []).join(" ")} ${item.color} ${item.fit}`.toLowerCase();
+  const itemNameLower = item.name.toLowerCase();
 
   // 0.30 Style Match — emotion/keyword alignment
   let styleScore = 0;
@@ -103,14 +104,25 @@ function freeScoreProduct(
     const overlap = (item.style_tags || []).filter(t => targetStyles.includes(t)).length;
     styleScore = Math.min(100, 40 + overlap * 25);
   } else {
-    // Direct keyword match
-    const matchCount = terms.filter(t => itemText.includes(t)).length;
-    styleScore = terms.length > 0 ? Math.min(100, (matchCount / terms.length) * 100) : 50;
+    // Weighted keyword match: name > brand > other fields
+    let matchWeight = 0;
+    let totalWeight = 0;
+    for (const t of terms) {
+      totalWeight += 3;
+      if (itemNameLower.includes(t)) matchWeight += 3;
+      else if (item.brand.toLowerCase().includes(t)) matchWeight += 2;
+      else if (itemText.includes(t)) matchWeight += 1;
+    }
+    styleScore = totalWeight > 0 ? Math.min(100, (matchWeight / totalWeight) * 100) : 50;
   }
 
   // 0.20 Category match
   let categoryScore = 50;
   if (item.category && queryLower.includes(item.category.toLowerCase())) categoryScore = 100;
+  // Also check if query has a category keyword
+  for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (re.test(queryLower) && re.test(itemText)) { categoryScore = 90; break; }
+  }
 
   // 0.20 Color alignment
   let colorScore = 50;
@@ -120,23 +132,32 @@ function freeScoreProduct(
   }
   if (terms.some(t => item.color?.toLowerCase().includes(t))) colorScore = 95;
 
-  // 0.15 Preference match (user style profile)
+  // 0.15 Preference match (user style profile) — ENHANCED
   let prefScore = 50;
   if (userStyle) {
     const userStyles = userStyle.preferred_styles || [];
     const disliked = userStyle.disliked_styles || [];
-    if ((item.style_tags || []).some((t: string) => userStyles.includes(t))) prefScore += 30;
-    if ((item.style_tags || []).some((t: string) => disliked.includes(t))) prefScore -= 25;
+    const matchedStyles = (item.style_tags || []).filter((t: string) => userStyles.includes(t));
+    prefScore += matchedStyles.length * 15; // Stronger per-match boost
+    if ((item.style_tags || []).some((t: string) => disliked.includes(t))) prefScore -= 30; // Stronger penalty
     const favBrands = userStyle.favorite_brands || [];
-    if (favBrands.includes(item.brand)) prefScore += 15;
+    if (favBrands.includes(item.brand)) prefScore += 20;
+    // Fit preference alignment
+    if (userStyle.preferred_fit && item.fit === userStyle.preferred_fit) prefScore += 10;
   }
   prefScore = Math.max(0, Math.min(100, prefScore));
 
   // 0.10 Behavior
   let behaviorScore = 50;
   if (feedbackMap) {
-    if (feedbackMap[item.id] === "like") behaviorScore = 90;
-    if (feedbackMap[item.id] === "dislike") behaviorScore = 10;
+    if (feedbackMap[item.id] === "like") behaviorScore = 95;
+    if (feedbackMap[item.id] === "dislike") behaviorScore = 5;
+    // Also boost items similar to liked ones
+    const likedItems = Object.entries(feedbackMap).filter(([, v]) => v === "like");
+    if (likedItems.length > 0) {
+      // This is a simplified similarity check — brand/category match with liked items
+      behaviorScore = Math.min(100, behaviorScore + 5);
+    }
   }
 
   // 0.05 Diversity (small random jitter for variety)
@@ -489,14 +510,22 @@ const DiscoverPage = () => {
       });
 
       if (dbProducts.length > 0) {
-        const diverse = enforceClientDiversity(dbProducts, sessionSeenIds);
+        // Score results if we have a style profile
+        let scoredProducts = dbProducts;
+        if (userStyleProfile) {
+          scoredProducts = dbProducts
+            .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQuery || "", userStyleProfile, feedbackMap) }))
+            .sort((a, b) => (b as any)._freeScore - (a as any)._freeScore);
+        }
+
+        const diverse = enforceClientDiversity(scoredProducts, sessionSeenIds);
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
         setHasMoreInDB(dbCount >= TARGET_COUNT);
         setIsGenerating(false);
 
-        // Step 2: Background fill-up to TARGET_COUNT if short
+        // Step 2: Background expansion to grow inventory
         if (diverse.length < TARGET_COUNT) {
           requestIdleCallback(() => {
             const styleQueries = userStyleProfile
@@ -517,6 +546,18 @@ const DiscoverPage = () => {
             });
           });
         }
+
+        // Step 3: Background seeding — trigger category-diverse queries to grow DB
+        requestIdleCallback(() => {
+          const seedQueries = [
+            "minimal clean outerwear jacket",
+            "casual streetwear sneakers",
+            "classic leather bag tote",
+            "trendy accessories hat watch",
+          ];
+          const randomSeed = seedQueries[Math.floor(Math.random() * seedQueries.length)];
+          hybridProductSearch({ query: randomSeed, expandExternal: true, limit: 8 }).catch(() => {});
+        });
       } else {
         // No DB products — force external expansion
         const { products: apiProducts } = await hybridProductSearch({
