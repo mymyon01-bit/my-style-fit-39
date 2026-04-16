@@ -98,6 +98,27 @@ export type Database = {
         }
         Relationships: []
       }
+      circles: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       daily_recommendations: {
         Row: {
           context: Json | null
@@ -127,6 +148,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      daily_winners: {
+        Row: {
+          award_date: string
+          created_at: string
+          id: string
+          post_id: string | null
+          score: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          award_date: string
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          score?: number
+          title?: string
+          user_id: string
+        }
+        Update: {
+          award_date?: string
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          score?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_winners_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       image_failures: {
         Row: {
@@ -561,6 +620,7 @@ export type Database = {
           display_name: string | null
           email_verified: boolean | null
           gender_preference: string | null
+          hashtags: string[] | null
           id: string
           language: string | null
           location: string | null
@@ -578,6 +638,7 @@ export type Database = {
           display_name?: string | null
           email_verified?: boolean | null
           gender_preference?: string | null
+          hashtags?: string[] | null
           id?: string
           language?: string | null
           location?: string | null
@@ -595,6 +656,7 @@ export type Database = {
           display_name?: string | null
           email_verified?: boolean | null
           gender_preference?: string | null
+          hashtags?: string[] | null
           id?: string
           language?: string | null
           location?: string | null
@@ -670,6 +732,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_posts: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_highlight: boolean
+          media_type: string
+          media_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_highlight?: boolean
+          media_type?: string
+          media_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_highlight?: boolean
+          media_type?: string
+          media_url?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       style_profiles: {
         Row: {
