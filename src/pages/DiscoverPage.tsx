@@ -1177,6 +1177,20 @@ const DiscoverPage = () => {
                   <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
                 </div>
 
+                {/* ── Styled Outfits ── */}
+                {outfitCombinations.length > 0 && (
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 uppercase">
+                      Styled Looks
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {outfitCombinations.map((outfit, i) => (
+                        <OutfitLookCard key={outfit.id} outfit={outfit} index={i} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {categorizedRecs.length > 0 ? (
                   categorizedRecs.map(({ category, items }) => (
                     <div key={category} className="space-y-4">
