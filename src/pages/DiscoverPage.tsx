@@ -394,9 +394,9 @@ const DiscoverPage = () => {
         category,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 16,
+        limit: 8,
         excludeIds: Array.from(sessionSeenIds),
-        expandExternal: true,
+        expandExternal: false, // DB-first, expand only on load-more
         randomize: true,
       });
 
