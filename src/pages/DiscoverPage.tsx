@@ -886,7 +886,51 @@ const DiscoverPage = () => {
     }
   }
 
-  // Debounced search submit — AI intent first, then multi-query DB + external
+  // ── Query expansion: convert vague terms into concrete product queries ──
+  function expandSearchQuery(q: string): string[] {
+    const lower = q.toLowerCase().trim();
+    const expanded: string[] = [q];
+
+    // Emotion / vague word expansion
+    const VAGUE_EXPANSIONS: Record<string, string[]> = {
+      modern: ["modern slim jacket", "modern minimalist sneakers", "modern structured trousers"],
+      clean: ["clean minimal shirt", "clean white sneakers", "clean structured blazer"],
+      cozy: ["cozy oversized sweater", "cozy knit cardigan", "cozy fleece hoodie"],
+      bold: ["bold statement jacket", "bold graphic tee", "bold colored sneakers"],
+      moody: ["dark tonal jacket", "moody leather boots", "dark layered outfit"],
+      fresh: ["fresh casual sneakers", "fresh linen shirt", "fresh summer shorts"],
+      confident: ["tailored blazer", "sharp dress shoes", "structured coat"],
+      elegant: ["elegant silk blouse", "classic leather bag", "tailored wool trousers"],
+      chill: ["relaxed fit jeans", "casual hoodie", "comfort sneakers"],
+      soft: ["pastel knit sweater", "soft cotton tee", "light linen pants"],
+      dark: ["black leather jacket", "dark denim jeans", "dark minimal boots"],
+      lazy: ["oversized hoodie", "relaxed joggers", "slip-on sneakers"],
+      sharp: ["tailored suit jacket", "slim fit shirt", "oxford shoes"],
+      lowkey: ["minimal tee", "neutral toned pants", "clean low-top sneakers"],
+      romantic: ["flowy blouse", "delicate jewelry", "vintage inspired dress"],
+    };
+
+    // Check if query is a single vague word or emotion
+    const words = lower.split(/\s+/);
+    if (words.length <= 2) {
+      for (const [key, expansions] of Object.entries(VAGUE_EXPANSIONS)) {
+        if (lower.includes(key)) {
+          expanded.push(...expansions);
+          break;
+        }
+      }
+    }
+
+    // If query doesn't contain a product category, add category variants
+    const hasCategory = /\b(jacket|coat|shirt|hoodie|sweater|pants|jeans|shorts|sneakers?|boots?|shoes?|bag|hat|watch|dress|blazer|cardigan|vest|skirt|top|tee)\b/i.test(lower);
+    if (!hasCategory && expanded.length <= 1) {
+      expanded.push(`${q} jacket`, `${q} sneakers`, `${q} pants`);
+    }
+
+    return [...new Set(expanded)].slice(0, 4);
+  }
+
+  // Debounced search submit — DB-first instant display + ALWAYS external fetch
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
@@ -897,14 +941,6 @@ const DiscoverPage = () => {
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(async () => {
-      const cacheKey = getCacheKey("search", { q, styles: selectedStyles, fit: selectedFit });
-      const cached = getCachedResult(cacheKey);
-      if (cached) {
-        setRecommendations(cached);
-        setHasGenerated(true);
-        return;
-      }
-
       // Don't clear results yet — show old results while loading
       setIsGenerating(true);
       setHasGenerated(true);
@@ -914,7 +950,10 @@ const DiscoverPage = () => {
       const profileStyles = userStyleProfile?.preferred_styles || [];
       const searchStyles = selectedStyles.length > 0 ? selectedStyles : profileStyles.slice(0, 2);
 
-      // Step 1: AI intent interpretation (parallel with quick DB search + tag fallback)
+      // Expand vague queries into concrete product searches
+      const expandedQueries = expandSearchQuery(q);
+
+      // Step 1: Parallel — AI intent + quick DB search
       const [intentResult, quickDbResult] = await Promise.all([
         interpretSearchIntent(q),
         hybridSearchWithFallback(
@@ -924,88 +963,64 @@ const DiscoverPage = () => {
             fit: selectedFit || userStyleProfile?.preferred_fit || undefined,
             limit: 18,
             expandExternal: false,
-            randomize: false,
+            randomize: true, // Always randomize DB results
           },
-          { styles: searchStyles, fit: selectedFit || userStyleProfile?.preferred_fit, },
+          { styles: searchStyles, fit: selectedFit || userStyleProfile?.preferred_fit },
         ),
       ]);
 
       const { queries: aiQueries, style_tags: aiStyles } = intentResult;
       const mergedStyles = [...new Set([...searchStyles, ...aiStyles])];
 
-      // Step 2: Apply free-mode scoring and show results
-      if (quickDbResult.products.length >= 8) {
-        // Score and sort by emotional/intent relevance
+      // Step 2: Show DB results immediately (scored + shuffled)
+      if (quickDbResult.products.length > 0) {
         const scored = quickDbResult.products
           .map(p => ({ ...p, _freeScore: freeScoreProduct(p, q, userStyleProfile, feedbackMap) }))
-          .sort((a, b) => b._freeScore - a._freeScore);
+          .sort((a, b) => (b as any)._freeScore - (a as any)._freeScore);
         const diverse = enforceClientDiversity(scored, new Set());
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
         setHasMoreInDB(quickDbResult.dbCount >= 18);
-        resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
         setIsGenerating(false);
+      }
 
-        // Step 3: Background — use AI queries to find MORE diverse results
-        if (diverse.length < 18 && aiQueries.length > 1) {
-          const bgQueries = aiQueries.filter(aq => aq.toLowerCase() !== q.toLowerCase()).slice(0, 3);
-          Promise.all(
-            bgQueries.map(aq =>
-              hybridProductSearch({
-                query: aq,
-                styles: mergedStyles.length > 0 ? mergedStyles : undefined,
-                fit: selectedFit || undefined,
-                limit: 8,
-                excludeIds: Array.from(sessionSeenIds),
-                expandExternal: true,
-                randomize: false,
-              })
-            )
-          ).then(results => {
-            const allFresh = results.flatMap(r => r.products);
-            if (allFresh.length > 0) {
-              const freshDiverse = enforceClientDiversity(allFresh, sessionSeenIds);
-              freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-              setRecommendations(prev => {
-                const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set()).slice(0, 30);
-                resultCache.set(cacheKey, { data: merged, ts: Date.now() });
-                return merged;
-              });
-            }
-          });
-        }
-      } else {
-        // Few or no quick DB results — use AI-expanded queries with external expansion
-        const searchPromises = aiQueries.slice(0, 4).map(aq =>
+      // Step 3: ALWAYS run external search in background (core fix)
+      // Combine AI-expanded queries + vague-expanded queries
+      const allSearchQueries = [...new Set([...expandedQueries, ...aiQueries])].slice(0, 5);
+      const bgQueries = allSearchQueries.filter(aq => aq.toLowerCase() !== q.toLowerCase());
+
+      // Fire external searches — these will fetch new products AND cache them to DB
+      Promise.all(
+        (bgQueries.length > 0 ? bgQueries : [q]).slice(0, 4).map(aq =>
           hybridProductSearch({
             query: aq,
             styles: mergedStyles.length > 0 ? mergedStyles : undefined,
             fit: selectedFit || undefined,
             limit: 10,
-            expandExternal: true,
-            randomize: false,
+            excludeIds: Array.from(sessionSeenIds),
+            expandExternal: true, // ALWAYS expand externally
+            randomize: true,
           })
-        );
-
-        const results = await Promise.all(searchPromises);
-        const allProducts = [
-          ...quickDbResult.products,
-          ...results.flatMap(r => r.products),
-        ];
-
-        if (allProducts.length > 0) {
-          const diverse = enforceClientDiversity(allProducts, new Set());
-          diverse.forEach(p => sessionSeenIds.add(p.id));
-          setRecommendations(diverse.slice(0, 24));
-          resultCache.set(cacheKey, { data: diverse.slice(0, 24), ts: Date.now() });
-          setIsGenerating(false);
-        } else {
-          // Last resort: AI generation
-          setRecommendations([]);
+        )
+      ).then(results => {
+        const allFresh = results.flatMap(r => r.products);
+        if (allFresh.length > 0) {
+          const freshDiverse = enforceClientDiversity(allFresh, sessionSeenIds);
+          freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(prev => {
+            const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set()).slice(0, 30);
+            return merged;
+          });
+        }
+        // If we had zero DB results and zero external, fall back to AI
+        if (quickDbResult.products.length === 0 && allFresh.length === 0) {
           generateRecommendations(q);
         }
-      }
+        setIsGenerating(false);
+      }).catch(() => {
+        setIsGenerating(false);
+      });
     }, 250);
   };
 
