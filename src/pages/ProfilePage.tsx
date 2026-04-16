@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useSavedFolders } from "@/hooks/useSavedFolders";
 import { useAdmin } from "@/hooks/useAdmin";
+import PremiumBanner from "@/components/PremiumBanner";
 
 const ProfilePage = () => {
   const { t } = useI18n();
@@ -118,6 +119,9 @@ const ProfilePage = () => {
             </div>
           ))}
         </div>
+
+        {/* Premium Banner — only for free users */}
+        {!subscription.isPremium && <PremiumBanner />}
 
         <div className="h-px bg-accent/[0.12]" />
 

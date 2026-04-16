@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const DesktopNav = () => {
   const location = useLocation();
@@ -43,12 +44,31 @@ const DesktopNav = () => {
 
           <div className="h-3.5 w-px bg-border/40" />
 
-          <button
-            onClick={() => navigate(user ? "/profile" : "/auth")}
-            className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/50"
-          >
-            {user ? "YOU" : "SIGN IN"}
-          </button>
+          {user ? (
+            <button
+              onClick={() => navigate("/profile")}
+              className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/50"
+            >
+              YOU
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate("/auth")}
+                className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/50"
+              >
+                LOG IN
+              </button>
+              <button
+                onClick={() => navigate("/auth?mode=signup")}
+                className="hover-burgundy rounded-md border border-accent/25 px-3.5 py-1.5 text-[10px] font-semibold tracking-[0.25em] text-accent/70 transition-colors hover:bg-accent/[0.06] hover:text-accent"
+              >
+                SIGN UP
+              </button>
+            </>
+          )}
+
+          <LanguageSelector />
         </div>
       </div>
     </nav>
