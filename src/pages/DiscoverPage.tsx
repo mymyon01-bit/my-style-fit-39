@@ -115,6 +115,55 @@ function parseQueryIntent(query: string): QueryIntent {
   const lower = query.toLowerCase().trim();
   const words = lower.split(/\s+/).filter(w => w.length > 1);
 
+  // 0. Detect scenario (occasion/lifestyle query)
+  const SCENARIO_MAP: Record<string, { label: string; season: string | null; exclude: string[] }> = {
+    "summer vacation": { label: "Summer Vacation", season: "summer", exclude: ["wool", "parka", "puffer", "thermal", "fleece", "down jacket", "heavy"] },
+    "summer": { label: "Summer Style", season: "summer", exclude: ["wool", "parka", "puffer", "thermal", "fleece", "down jacket", "heavy", "fur"] },
+    "vacation": { label: "Vacation Outfit", season: "summer", exclude: ["formal", "suit", "blazer", "heavy", "wool"] },
+    "beach": { label: "Beach Look", season: "summer", exclude: ["boots", "coat", "blazer", "suit", "formal", "wool", "parka"] },
+    "travel": { label: "Travel Outfit", season: null, exclude: ["formal", "suit", "heels"] },
+    "airport": { label: "Airport Look", season: null, exclude: ["formal", "suit", "heels", "dress shoes"] },
+    "winter": { label: "Winter Style", season: "winter", exclude: ["sandals", "tank", "shorts", "linen", "swim"] },
+    "spring": { label: "Spring Style", season: "spring", exclude: ["parka", "heavy", "puffer", "sandals"] },
+    "fall": { label: "Fall Style", season: "fall", exclude: ["sandals", "tank", "swim", "linen"] },
+    "autumn": { label: "Autumn Style", season: "fall", exclude: ["sandals", "tank", "swim", "linen"] },
+    "rain": { label: "Rainy Day", season: null, exclude: ["sandals", "suede", "canvas"] },
+    "date night": { label: "Date Night", season: null, exclude: ["gym", "athletic", "joggers", "sweatpants", "cargo"] },
+    "date": { label: "Date Outfit", season: null, exclude: ["gym", "athletic", "joggers", "sweatpants"] },
+    "wedding": { label: "Wedding Guest", season: null, exclude: ["sneakers", "hoodie", "joggers", "cargo", "gym"] },
+    "office": { label: "Office Look", season: null, exclude: ["gym", "athletic", "hoodie", "cargo", "ripped"] },
+    "work": { label: "Work Outfit", season: null, exclude: ["gym", "athletic", "hoodie", "cargo", "ripped"] },
+    "gym": { label: "Gym & Workout", season: null, exclude: ["formal", "suit", "heels", "blazer", "loafers"] },
+    "workout": { label: "Workout Gear", season: null, exclude: ["formal", "suit", "heels", "blazer", "loafers"] },
+    "party": { label: "Party Outfit", season: null, exclude: ["athletic", "gym", "hiking", "cargo"] },
+    "festival": { label: "Festival Look", season: "summer", exclude: ["formal", "suit", "blazer", "wool", "heavy"] },
+    "casual": { label: "Casual Style", season: null, exclude: ["formal", "suit"] },
+    "formal": { label: "Formal Look", season: null, exclude: ["sneakers", "hoodie", "joggers", "cargo", "gym"] },
+    "streetwear": { label: "Streetwear", season: null, exclude: ["formal", "suit", "dress shoes", "loafers"] },
+    "hiking": { label: "Hiking Gear", season: null, exclude: ["formal", "heels", "suit", "loafers"] },
+    "school": { label: "School Outfit", season: null, exclude: ["formal", "suit", "heels"] },
+    "brunch": { label: "Brunch Look", season: null, exclude: ["gym", "athletic", "formal", "suit"] },
+    "concert": { label: "Concert Outfit", season: null, exclude: ["formal", "suit", "office"] },
+    "interview": { label: "Interview Look", season: null, exclude: ["gym", "hoodie", "joggers", "ripped", "cargo"] },
+    "picnic": { label: "Picnic Style", season: "summer", exclude: ["formal", "suit", "heels", "heavy"] },
+    "resort": { label: "Resort Wear", season: "summer", exclude: ["heavy", "parka", "wool", "boots"] },
+  };
+
+  // Check scenario (longest match first)
+  let scenarioLabel: string | null = null;
+  let seasonalContext: string | null = null;
+  let excludeKeywords: string[] = [];
+  const sortedScenarios = Object.keys(SCENARIO_MAP).sort((a, b) => b.length - a.length);
+  for (const key of sortedScenarios) {
+    if (lower.includes(key)) {
+      const info = SCENARIO_MAP[key];
+      scenarioLabel = info.label;
+      seasonalContext = info.season;
+      excludeKeywords = info.exclude;
+      break;
+    }
+  }
+
   // 1. Detect category lock
   let categoryLock: FashionCategory | null = null;
   for (const cat of CATEGORY_ORDER) {
@@ -138,14 +187,21 @@ function parseQueryIntent(query: string): QueryIntent {
   // 4. Detect brand intent
   const brandIntent = KNOWN_BRANDS.filter(b => lower.includes(b));
 
-  // 5. Remaining keywords (strip detected colors/brands/styles)
+  // 5. Remaining keywords
   const consumed = new Set<string>();
   [...colorIntent, ...brandIntent].forEach(w => w.split(/\s+/).forEach(p => consumed.add(p)));
   Object.values(STYLE_KEYWORD_MAP).flat().forEach(k => { if (lower.includes(k)) k.split(/\s+/).forEach(p => consumed.add(p)); });
-  // Also consume category keywords already matched
   const keywords = words.filter(w => !consumed.has(w) && w.length > 2);
 
-  return { rawQuery: query, categoryLock, styleIntent, colorIntent, brandIntent, keywords };
+  // 6. Determine query type
+  let queryType: QueryType = "product";
+  if (scenarioLabel) {
+    queryType = "scenario";
+  } else if (styleIntent.length > 0 && !categoryLock) {
+    queryType = "style";
+  }
+
+  return { rawQuery: query, queryType, categoryLock, styleIntent, colorIntent, brandIntent, keywords, scenarioLabel, seasonalContext, excludeKeywords };
 }
 
 // ── Strict relevance scorer based on parsed intent ──
