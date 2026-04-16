@@ -186,6 +186,42 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
 
   return (
     <div className="space-y-6">
+      {/* Avatar */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative h-52 w-28 rounded-2xl border border-foreground/[0.06] bg-card/30 overflow-hidden flex items-center justify-center">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Body avatar" className="h-full w-full object-contain" />
+          ) : (
+            <User className="h-16 w-16 text-foreground/[0.08]" />
+          )}
+          {generatingAvatar && (
+            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-accent" />
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {!avatarUrl ? (
+            <button
+              onClick={() => generateAvatar(false)}
+              disabled={generatingAvatar || !user}
+              className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-[11px] font-medium text-accent disabled:opacity-40"
+            >
+              <Sparkles className="h-3 w-3" />
+              {generatingAvatar ? "Generating…" : "Generate Avatar"}
+            </button>
+          ) : (
+            <button
+              onClick={() => generateAvatar(true)}
+              disabled={generatingAvatar}
+              className="flex items-center gap-1.5 text-[10px] text-foreground/40 hover:text-foreground/60 transition-colors disabled:opacity-40"
+            >
+              <RefreshCw className="h-3 w-3" /> Regenerate
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Height & Weight */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-5">
         <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">BASIC INFO</p>
