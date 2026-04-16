@@ -167,6 +167,7 @@ const DiscoverPage = () => {
   // ── Fetch from open APIs when DB cache is empty ──
   const fetchFromOpenAPIs = async (query?: string, category?: string): Promise<AIRecommendation[]> => {
     try {
+      // Fetch from both product-search (DummyJSON/FakeStore + commerce scraper) in one call
       const { data, error } = await supabase.functions.invoke("product-search", {
         body: { query: query || "", category, limit: 20 },
       });
@@ -174,6 +175,20 @@ const DiscoverPage = () => {
       return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http"));
     } catch (e) {
       console.error("Open API fetch error:", e);
+      return [];
+    }
+  };
+
+  // Direct commerce scraper call for explicit user searches
+  const fetchFromCommerceScraper = async (query: string): Promise<AIRecommendation[]> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("commerce-scraper", {
+        body: { query, platforms: ["naver", "ssense", "farfetch", "asos", "ssg"], limit: 15 },
+      });
+      if (error) throw error;
+      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http"));
+    } catch (e) {
+      console.error("Commerce scraper error:", e);
       return [];
     }
   };
