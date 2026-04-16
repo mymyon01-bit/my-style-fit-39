@@ -376,6 +376,71 @@ serve(async (req) => {
     const tier = determineTier(body, userInfo.userId, userInfo.isPremium);
     console.log(`AI routing: tier=${tier}, userId=${userInfo.userId?.slice(0, 8) || "guest"}, source=${source || "discover"}`);
 
+    // ─── Search intent interpretation (fast, lightweight) ───
+    if (action === "search-intent") {
+      const personalization = buildPersonalizationContext(userInfo);
+      
+      const systemPrompt = `You are a fashion search intent interpreter. Given a user's input (which may be in any language including Korean, English, Italian), interpret their style intent and generate 3-6 real-world shopping search queries that reflect what people actually search for on fashion retailers.
+
+Think like: "A stylist who understands what people actually search for."
+
+Rules:
+- Convert abstract style words into concrete product searches
+- Mix categories: tops, bottoms, shoes, outerwear, bags
+- Use popular, commercially relevant phrasing
+- Include fit/color/style modifiers when relevant
+- For non-English input, generate queries in BOTH the original language AND English
+- Queries should be 3-6 words each, product-focused
+- Add a "category" if clearly implied, otherwise null
+- Add relevant "style_tags" for filtering
+
+Return ONLY valid JSON:
+{
+  "queries": ["query1", "query2", "query3", "query4"],
+  "category": "clothing|bags|shoes|accessories|null",
+  "style_tags": ["tag1", "tag2"],
+  "interpreted_intent": "one sentence describing what the user wants"
+}
+
+Examples:
+- Input "modern" → queries: ["minimal tailored jacket", "clean slim trousers", "modern structured coat", "minimalist white sneakers", "contemporary wool blazer"]
+- Input "스트릿" → queries: ["streetwear oversized hoodie", "baggy cargo pants street", "오버사이즈 후디", "스트릿 조거팬츠", "chunky sneakers street style"]
+- Input "모던 블랙" → queries: ["black tailored jacket minimal", "slim black trousers modern", "블랙 코트 미니멀", "black leather chelsea boots"]
+- Input "clean outfit" → queries: ["minimal clean white shirt", "tailored neutral chinos", "clean leather sneakers", "structured tote bag minimal"]`;
+
+      const userPrompt = `User search input: "${prompt}"${personalization}`;
+
+      try {
+        const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 400, temperature: 0.4 });
+        const parsed = extractJSON(result.content);
+
+        if (parsed?.queries?.length) {
+          return new Response(JSON.stringify({
+            queries: parsed.queries.slice(0, 6),
+            category: parsed.category || null,
+            style_tags: parsed.style_tags || [],
+            interpreted_intent: parsed.interpreted_intent || "",
+            tier: result.tier,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e) {
+        console.error("Search intent error:", e);
+      }
+
+      // Fallback: return raw query as-is
+      return new Response(JSON.stringify({
+        queries: [prompt],
+        category: null,
+        style_tags: [],
+        interpreted_intent: prompt,
+        tier: "fallback",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── Browse action (DB-first, no AI) ───
     if (action === "browse") {
       const supabase = getServiceClient();
