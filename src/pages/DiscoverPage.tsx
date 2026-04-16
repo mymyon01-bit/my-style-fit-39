@@ -277,20 +277,6 @@ const DiscoverPage = () => {
   }, [textInput]);
 
 
-                {/* ── Styled Outfits ── */}
-                {outfitCombinations.length > 0 && (
-                  <div className="space-y-4">
-                    <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 uppercase">
-                      Styled Looks
-                    </p>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {outfitCombinations.map((outfit, i) => (
-                        <OutfitLookCard key={outfit.id} outfit={outfit} index={i} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
   // ── INSTANT INITIAL LOAD: DB-first small batch, then background expansion ──
   useEffect(() => {
     if (initialLoadDone.current) return;
