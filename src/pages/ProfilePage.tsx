@@ -274,12 +274,23 @@ const ProfilePage = () => {
           </div>
         </div>
 
+        {/* Hashtags */}
+        {profile?.hashtags && profile.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {profile.hashtags.map((tag: string) => (
+              <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
+            ))}
+          </div>
+        )}
+
         {/* Stats */}
-        <div className="flex gap-12">
+        <div className="flex gap-8 flex-wrap">
           {[
             { icon: Camera, label: t("posts"), value: postCount },
             { icon: Star, label: t("stars"), value: totalStars },
             { icon: Bookmark, label: t("saved"), value: savedCount },
+            { icon: Crown, label: "Circle", value: circleCount },
+            { icon: Bookmark, label: "Scrap", value: scrapCount },
           ].map(stat => (
             <div key={stat.label} className="text-center">
               <p className="text-xl font-light text-foreground/80">{stat.value}</p>
@@ -287,6 +298,7 @@ const ProfilePage = () => {
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-foreground/40">Added by {addedByCount} users</p>
 
         {!subscription.isPremium && <PremiumBanner />}
 
