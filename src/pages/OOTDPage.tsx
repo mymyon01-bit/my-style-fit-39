@@ -134,7 +134,11 @@ const OOTDPage = () => {
 
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 lg:pt-12">
         <AnimatePresence mode="wait">
-          {activeTab === "mypage" ? (
+          {activeTab === "scan" ? (
+            <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <OOTDAnalyzer />
+            </motion.div>
+          ) : activeTab === "mypage" ? (
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
               {!user ? (
                 <div className="py-20 text-center space-y-5 md:py-24 lg:py-28">
