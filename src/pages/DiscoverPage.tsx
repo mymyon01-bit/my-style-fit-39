@@ -66,7 +66,162 @@ function classifyProduct(item: AIRecommendation): FashionCategory | null {
   return null;
 }
 
-// ── Emotion / Intent mapping for client-side lightweight scoring ──
+// ── Query Intent Parser: extract structured intent from user query ──
+interface QueryIntent {
+  rawQuery: string;
+  categoryLock: FashionCategory | null;
+  styleIntent: string[];
+  colorIntent: string[];
+  brandIntent: string[];
+  keywords: string[]; // remaining meaningful terms
+}
+
+const STYLE_KEYWORD_MAP: Record<string, string[]> = {
+  minimal: ["minimal", "clean", "simple", "structured"],
+  street: ["street", "urban", "streetwear", "hip-hop"],
+  classic: ["classic", "traditional", "timeless", "old money", "oldmoney", "preppy"],
+  edgy: ["edgy", "punk", "dark", "avant-garde", "gothic"],
+  casual: ["casual", "everyday", "relaxed", "chill", "lazy", "comfort"],
+  formal: ["formal", "dressy", "office", "business", "work", "professional"],
+  chic: ["chic", "elegant", "sophisticated", "modern", "sleek"],
+  vintage: ["vintage", "retro", "90s", "80s", "70s", "thrift"],
+  sporty: ["sporty", "athletic", "sport", "active", "gym", "running"],
+  bohemian: ["bohemian", "boho", "hippie", "free-spirited"],
+};
+
+const COLOR_KEYWORDS = [
+  "black", "white", "grey", "gray", "navy", "blue", "red", "green", "brown",
+  "beige", "cream", "ivory", "tan", "camel", "khaki", "olive", "burgundy",
+  "wine", "pink", "purple", "yellow", "orange", "pastel", "neutral", "earth",
+  "dark", "light", "bright", "muted", "neon",
+];
+
+const KNOWN_BRANDS = [
+  "nike", "adidas", "zara", "uniqlo", "cos", "asos", "gucci", "prada",
+  "balenciaga", "new balance", "converse", "vans", "h&m", "mango",
+  "arket", "muji", "acne studios", "stussy", "supreme", "carhartt",
+  "the north face", "patagonia", "levi's", "levis", "gap", "ralph lauren",
+  "burberry", "saint laurent", "celine", "bottega veneta", "dior",
+];
+
+function parseQueryIntent(query: string): QueryIntent {
+  const lower = query.toLowerCase().trim();
+  const words = lower.split(/\s+/).filter(w => w.length > 1);
+
+  // 1. Detect category lock
+  let categoryLock: FashionCategory | null = null;
+  for (const cat of CATEGORY_ORDER) {
+    if (CATEGORY_KEYWORDS[cat].test(lower)) {
+      categoryLock = cat;
+      break;
+    }
+  }
+
+  // 2. Detect style intent
+  const styleIntent: string[] = [];
+  for (const [style, keywords] of Object.entries(STYLE_KEYWORD_MAP)) {
+    if (keywords.some(k => lower.includes(k))) {
+      styleIntent.push(style);
+    }
+  }
+
+  // 3. Detect color intent
+  const colorIntent = COLOR_KEYWORDS.filter(c => lower.includes(c));
+
+  // 4. Detect brand intent
+  const brandIntent = KNOWN_BRANDS.filter(b => lower.includes(b));
+
+  // 5. Remaining keywords (strip detected colors/brands/styles)
+  const consumed = new Set<string>();
+  [...colorIntent, ...brandIntent].forEach(w => w.split(/\s+/).forEach(p => consumed.add(p)));
+  Object.values(STYLE_KEYWORD_MAP).flat().forEach(k => { if (lower.includes(k)) k.split(/\s+/).forEach(p => consumed.add(p)); });
+  // Also consume category keywords already matched
+  const keywords = words.filter(w => !consumed.has(w) && w.length > 2);
+
+  return { rawQuery: query, categoryLock, styleIntent, colorIntent, brandIntent, keywords };
+}
+
+// ── Strict relevance scorer based on parsed intent ──
+const RELEVANCE_THRESHOLD = 25; // Items scoring below this are discarded
+
+function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
+  const itemName = (item.name || "").toLowerCase();
+  const itemBrand = (item.brand || "").toLowerCase();
+  const itemText = `${itemName} ${itemBrand} ${item.category || ""} ${(item.style_tags || []).join(" ")} ${item.color || ""} ${item.fit || ""}`.toLowerCase();
+  const itemCategory = classifyProduct(item);
+
+  let score = 0;
+
+  // 0.40 — Category match (HARD requirement when intent has category)
+  if (intent.categoryLock) {
+    if (itemCategory === intent.categoryLock) {
+      score += 40;
+    } else {
+      // Category mismatch when user specified a category = near-zero relevance
+      return 5;
+    }
+  } else {
+    score += 20; // No category lock → neutral baseline
+  }
+
+  // 0.25 — Style match
+  if (intent.styleIntent.length > 0) {
+    const itemStyles = item.style_tags || [];
+    const matched = intent.styleIntent.filter(s => itemStyles.includes(s)).length;
+    const styleKeywordMatch = intent.styleIntent.some(s =>
+      STYLE_KEYWORD_MAP[s]?.some(k => itemName.includes(k))
+    );
+    if (matched > 0) score += Math.min(25, 12 + matched * 8);
+    else if (styleKeywordMatch) score += 15;
+    else score += 3;
+  } else {
+    score += 12; // No style intent → neutral
+  }
+
+  // 0.20 — Color match
+  if (intent.colorIntent.length > 0) {
+    const colorMatch = intent.colorIntent.some(c => 
+      itemName.includes(c) || (item.color || "").toLowerCase().includes(c) || itemText.includes(c)
+    );
+    score += colorMatch ? 20 : 2;
+  } else {
+    score += 10; // No color intent → neutral
+  }
+
+  // 0.10 — Brand match
+  if (intent.brandIntent.length > 0) {
+    const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
+    score += brandMatch ? 10 : 0;
+  } else {
+    score += 5; // No brand intent → neutral
+  }
+
+  // 0.05 — Keyword match (remaining terms)
+  if (intent.keywords.length > 0) {
+    const keywordHits = intent.keywords.filter(k => itemText.includes(k)).length;
+    score += Math.min(5, (keywordHits / intent.keywords.length) * 5);
+  }
+
+  return Math.round(score);
+}
+
+// ── Apply strict relevance filter + sort ──
+function filterByRelevance(items: AIRecommendation[], intent: QueryIntent): AIRecommendation[] {
+  const scored = items.map(item => ({
+    item,
+    relevance: scoreRelevance(item, intent),
+  }));
+
+  // Hard filter: discard items below threshold
+  const passing = scored.filter(s => s.relevance >= RELEVANCE_THRESHOLD);
+
+  // Sort by relevance descending
+  passing.sort((a, b) => b.relevance - a.relevance);
+
+  return passing.map(s => s.item);
+}
+
+// Emotion / Intent mapping for feed scoring (non-search contexts)
 const EMOTION_STYLE_MAP: Record<string, string[]> = {
   clean: ["minimal", "cleanFit"], sharp: ["classic", "chic", "formal"],
   lazy: ["casual", "minimal"], confident: ["chic", "classic", "edgy"],
@@ -84,7 +239,7 @@ const EMOTION_COLOR_MAP: Record<string, string[]> = {
   elegant: ["black", "navy", "gold"], cozy: ["earth", "brown", "warm"],
 };
 
-// ── Free-mode lightweight scoring (no AI needed) ──
+// ── Feed scoring (for non-search contexts like "For You" tab) ──
 function freeScoreProduct(
   item: AIRecommendation,
   query: string,
@@ -96,7 +251,6 @@ function freeScoreProduct(
   const itemText = `${item.name} ${item.brand} ${item.category} ${(item.style_tags || []).join(" ")} ${item.color} ${item.fit}`.toLowerCase();
   const itemNameLower = item.name.toLowerCase();
 
-  // 0.30 Style Match — emotion/keyword alignment
   let styleScore = 0;
   const matchedEmotions = Object.keys(EMOTION_STYLE_MAP).filter(e => queryLower.includes(e));
   if (matchedEmotions.length > 0) {
@@ -104,7 +258,6 @@ function freeScoreProduct(
     const overlap = (item.style_tags || []).filter(t => targetStyles.includes(t)).length;
     styleScore = Math.min(100, 40 + overlap * 25);
   } else {
-    // Weighted keyword match: name > brand > other fields
     let matchWeight = 0;
     let totalWeight = 0;
     for (const t of terms) {
@@ -116,61 +269,28 @@ function freeScoreProduct(
     styleScore = totalWeight > 0 ? Math.min(100, (matchWeight / totalWeight) * 100) : 50;
   }
 
-  // 0.20 Category match
-  let categoryScore = 50;
-  if (item.category && queryLower.includes(item.category.toLowerCase())) categoryScore = 100;
-  // Also check if query has a category keyword
-  for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (re.test(queryLower) && re.test(itemText)) { categoryScore = 90; break; }
-  }
-
-  // 0.20 Color alignment
-  let colorScore = 50;
-  const matchedEmotionColors = matchedEmotions.flatMap(e => EMOTION_COLOR_MAP[e] || []);
-  if (matchedEmotionColors.length > 0 && item.color) {
-    if (matchedEmotionColors.some(c => item.color.toLowerCase().includes(c))) colorScore = 90;
-  }
-  if (terms.some(t => item.color?.toLowerCase().includes(t))) colorScore = 95;
-
-  // 0.15 Preference match (user style profile) — ENHANCED
   let prefScore = 50;
   if (userStyle) {
     const userStyles = userStyle.preferred_styles || [];
     const disliked = userStyle.disliked_styles || [];
     const matchedStyles = (item.style_tags || []).filter((t: string) => userStyles.includes(t));
-    prefScore += matchedStyles.length * 15; // Stronger per-match boost
-    if ((item.style_tags || []).some((t: string) => disliked.includes(t))) prefScore -= 30; // Stronger penalty
+    prefScore += matchedStyles.length * 15;
+    if ((item.style_tags || []).some((t: string) => disliked.includes(t))) prefScore -= 30;
     const favBrands = userStyle.favorite_brands || [];
     if (favBrands.includes(item.brand)) prefScore += 20;
-    // Fit preference alignment
     if (userStyle.preferred_fit && item.fit === userStyle.preferred_fit) prefScore += 10;
   }
   prefScore = Math.max(0, Math.min(100, prefScore));
 
-  // 0.10 Behavior
   let behaviorScore = 50;
   if (feedbackMap) {
     if (feedbackMap[item.id] === "like") behaviorScore = 95;
     if (feedbackMap[item.id] === "dislike") behaviorScore = 5;
-    // Also boost items similar to liked ones
-    const likedItems = Object.entries(feedbackMap).filter(([, v]) => v === "like");
-    if (likedItems.length > 0) {
-      // This is a simplified similarity check — brand/category match with liked items
-      behaviorScore = Math.min(100, behaviorScore + 5);
-    }
   }
 
-  // 0.05 Diversity (small random jitter for variety)
   const diversityScore = 40 + Math.random() * 20;
 
-  return Math.round(
-    0.30 * styleScore +
-    0.20 * categoryScore +
-    0.20 * colorScore +
-    0.15 * prefScore +
-    0.10 * behaviorScore +
-    0.05 * diversityScore
-  );
+  return Math.round(0.40 * styleScore + 0.25 * prefScore + 0.20 * behaviorScore + 0.15 * diversityScore);
 }
 
 // Client-side result cache
