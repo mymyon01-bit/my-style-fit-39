@@ -762,7 +762,8 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
         break;
       }
       case "body-scan-analysis": {
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        const isScanPremium = body.fitMode === "premium";
+
         if (!LOVABLE_API_KEY) {
           return new Response(JSON.stringify({
             quality: context.hasBackPhoto ? 80 : 73,
@@ -773,7 +774,7 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        const scanSystemPrompt = `You are a body proportion analyzer for fashion fit. Analyze the uploaded body scan photo(s) and estimate proportions for clothing size recommendation.
+        const baseScanPrompt = `You are a body proportion analyzer for fashion fit. Analyze the uploaded body scan photo(s) and estimate proportions for clothing size recommendation.
 
 Return ONLY valid JSON:
 {
@@ -806,34 +807,48 @@ RULES:
 - Set measurements to null if you cannot estimate them
 - Be conservative — never overstate confidence`;
 
-        // Build message content with images if provided
+        const premiumScanAddendum = `
+
+PREMIUM MODE — Additional requirements:
+- Cross-reference front and side photos for depth estimation
+- Estimate shoulder-to-hip ratio more precisely using both angles
+- Infer torso depth from side photo for chest/waist accuracy
+- Classify frame type: narrow, medium, broad
+- Add "frame_type" and "torso_depth_cm" to measurements if estimable
+- Increase quality score ceiling to 98 if images are excellent
+- Be more precise with measurements — use narrower estimation ranges`;
+
+        const scanSystemPrompt = isScanPremium
+          ? baseScanPrompt + premiumScanAddendum
+          : baseScanPrompt;
+
         const messageContent: any[] = [
-          { type: "text", text: `Analyze ${context.imageCount} body scan photo(s) (${context.imageTypes?.join(", ")}). Has back photo: ${context.hasBackPhoto}.` },
+          { type: "text", text: `Analyze ${context.imageCount} body scan photo(s) (${context.imageTypes?.join(", ")}). Has back photo: ${context.hasBackPhoto}. Mode: ${isScanPremium ? "PREMIUM — high precision" : "standard"}.` },
         ];
 
-        // Add actual images if provided as base64
         if (context.images?.length > 0) {
           for (const img of context.images) {
             if (img.dataUrl && img.dataUrl.startsWith("data:image")) {
-              messageContent.push({
-                type: "image_url",
-                image_url: { url: img.dataUrl },
-              });
+              messageContent.push({ type: "image_url", image_url: { url: img.dataUrl } });
             }
           }
         }
+
+        // Premium mode: use more capable model
+        const scanModel = isScanPremium ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
+        const scanMaxTokens = isScanPremium ? 800 : 500;
 
         try {
           const visionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: scanModel,
               messages: [
                 { role: "system", content: scanSystemPrompt },
                 { role: "user", content: messageContent },
               ],
-              max_tokens: 500,
+              max_tokens: scanMaxTokens,
               temperature: 0.2,
             }),
           });
