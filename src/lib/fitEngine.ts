@@ -286,20 +286,93 @@ export const mockProductFitData: Record<string, ProductFitData> = {
   },
 };
 
+// ─── Body Type & Hint System ─────────────────────────────────────────────────
+
+export type BodyTypeKey = "slim" | "regular" | "solid" | "heavy";
+export type BodyHint =
+  | "broad-shoulders" | "narrow-shoulders"
+  | "long-legs" | "short-legs"
+  | "short-torso" | "long-torso"
+  | "thick-thighs" | "slim-legs";
+
+// Statistical estimation from height + weight + body type + hints
+export function estimateBodyFromProfile(
+  heightCm: number,
+  weightKg: number,
+  bodyType: BodyTypeKey,
+  hints: BodyHint[]
+): Partial<Record<keyof BodyMeasurements, number>> {
+  // BMI-adjusted base ratios
+  const bmi = weightKg / ((heightCm / 100) ** 2);
+
+  // Base shoulder from height ratio (0.24-0.27 of height typical)
+  const shoulderRatio = bodyType === "slim" ? 0.245 : bodyType === "regular" ? 0.255 : bodyType === "solid" ? 0.265 : 0.27;
+  let shoulder = heightCm * shoulderRatio;
+
+  // Chest from weight/height correlation
+  const chestBase = bodyType === "slim" ? 86 : bodyType === "regular" ? 94 : bodyType === "solid" ? 102 : 110;
+  let chest = chestBase + (bmi - 22) * 1.8;
+
+  // Waist from BMI
+  const waistBase = bodyType === "slim" ? 72 : bodyType === "regular" ? 80 : bodyType === "solid" ? 88 : 96;
+  let waist = waistBase + (bmi - 22) * 2.2;
+
+  // Hip from weight
+  const hipBase = bodyType === "slim" ? 88 : bodyType === "regular" ? 96 : bodyType === "solid" ? 104 : 112;
+  let hip = hipBase + (bmi - 22) * 1.5;
+
+  // Inseam from height (typically 0.44-0.46 of height)
+  let inseam = heightCm * 0.45;
+  let torso = heightCm * 0.29;
+  let leg = heightCm * 0.48;
+  let thigh = bodyType === "slim" ? 50 : bodyType === "regular" ? 56 : bodyType === "solid" ? 62 : 68;
+  thigh += (bmi - 22) * 1.0;
+
+  // Apply hints
+  for (const hint of hints) {
+    switch (hint) {
+      case "broad-shoulders": shoulder += 3; break;
+      case "narrow-shoulders": shoulder -= 3; break;
+      case "long-legs": inseam += 4; leg += 4; torso -= 2; break;
+      case "short-legs": inseam -= 4; leg -= 4; torso += 2; break;
+      case "short-torso": torso -= 3; leg += 2; break;
+      case "long-torso": torso += 3; leg -= 2; break;
+      case "thick-thighs": thigh += 5; hip += 3; break;
+      case "slim-legs": thigh -= 4; break;
+    }
+  }
+
+  return {
+    heightCm,
+    shoulderWidthCm: Math.round(shoulder * 10) / 10,
+    chestCm: Math.round(chest),
+    waistCm: Math.round(waist),
+    hipCm: Math.round(hip),
+    inseamCm: Math.round(inseam),
+    outseamCm: Math.round(inseam + 26),
+    torsoLengthCm: Math.round(torso),
+    legLengthCm: Math.round(leg),
+    sleeveCm: Math.round(heightCm * 0.35),
+    thighCm: Math.round(thigh),
+    neckCm: Math.round(36 + (bmi - 22) * 0.5),
+    calfCm: Math.round(34 + (bmi - 22) * 0.6),
+  };
+}
+
 // ─── Default body for demo ───────────────────────────────────────────────────
 
 export const defaultBodyMeasurements: BodyMeasurements = {
-  heightCm: 178,
+  heightCm: 175,
   shoulderWidthCm: 45,
-  chestCm: 96,
-  waistCm: 82,
-  hipCm: 98,
-  inseamCm: 80,
-  outseamCm: 106,
+  chestCm: 94,
+  waistCm: 80,
+  hipCm: 96,
+  inseamCm: 79,
+  outseamCm: 105,
   torsoLengthCm: 46,
-  legLengthCm: 86,
-  sleeveCm: 62,
-  neckCm: 38,
+  legLengthCm: 84,
+  sleeveCm: 61,
+  neckCm: 37,
   thighCm: 56,
-  calfCm: 38,
+  calfCm: 36,
 };
