@@ -996,7 +996,7 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── LOAD MORE: Hybrid DB + external expansion ──
+  // ── LOAD MORE: Hybrid DB + external with relevance filtering ──
   const loadMore = async () => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
@@ -1005,39 +1005,48 @@ const DiscoverPage = () => {
       const category = activeTab !== "for-you" && activeTab !== "featured" ? activeTab : undefined;
       const searchQuery = lastPromptRef.current || (category ? `trending ${category}` : "fashion trending");
 
-      // Use hybrid search with external expansion and exclusion of seen items
+      // Parse intent for relevance filtering on load-more
+      const intent = lastPromptRef.current ? parseQueryIntent(lastPromptRef.current) : null;
+
       const { products: moreProducts, dbCount } = await hybridProductSearch({
         query: searchQuery,
         category,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 12,
+        limit: 20,
         excludeIds: Array.from(new Set([...existingIds, ...sessionSeenIds])),
-        expandExternal: !hasMoreInDB, // expand externally when DB is exhausted
-        randomize: true,
+        expandExternal: !hasMoreInDB,
+        randomize: !intent, // Only randomize for feed, not search
       });
 
-      const newProducts = enforceClientDiversity(moreProducts, existingIds);
+      // Apply relevance filter if we have a search intent
+      let filtered = moreProducts;
+      if (intent && intent.categoryLock) {
+        filtered = filterByRelevance(moreProducts, intent);
+      }
+
+      const newProducts = enforceClientDiversity(filtered, existingIds);
       
       if (newProducts.length > 0) {
         newProducts.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(prev => [...prev, ...newProducts]);
         setDbOffset(prev => prev + newProducts.length);
-        setHasMoreInDB(dbCount >= 12);
+        setHasMoreInDB(dbCount >= 20);
       } else {
-        // Last resort: external expansion with style queries
-        const styleQueries = userStyleProfile
-          ? buildStyleSearchQueries(userStyleProfile, searchQuery)
-          : [searchQuery];
-
+        // Try external expansion
         const { products: freshProducts } = await hybridProductSearch({
-          query: styleQueries[Math.floor(Math.random() * styleQueries.length)],
+          query: searchQuery,
           expandExternal: true,
           limit: 10,
           excludeIds: Array.from(new Set([...existingIds, ...sessionSeenIds])),
         });
 
-        const freshNew = enforceClientDiversity(freshProducts, existingIds);
+        let freshFiltered = freshProducts;
+        if (intent && intent.categoryLock) {
+          freshFiltered = filterByRelevance(freshProducts, intent);
+        }
+
+        const freshNew = enforceClientDiversity(freshFiltered, existingIds);
         if (freshNew.length > 0) {
           freshNew.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(prev => [...prev, ...freshNew]);
