@@ -227,6 +227,31 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
         <p className="text-[11px] font-bold tracking-[0.2em] text-foreground">BASIC INFO</p>
         
         <div className="space-y-4">
+          {/* Sex Selection */}
+          <div>
+            <span className="text-xs text-foreground/75">Sex</span>
+            <div className="mt-2 flex gap-2">
+              {(["male", "female"] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setGender(s);
+                    if (user) {
+                      supabase.from("profiles").update({ gender_preference: s }).eq("user_id", user.id).then(() => {});
+                    }
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-200 border ${
+                    gender === s
+                      ? "border-accent/40 bg-accent/10 text-accent"
+                      : "border-foreground/[0.06] bg-card/30 text-foreground/50 hover:text-foreground/70"
+                  }`}
+                >
+                  {s === "male" ? "Male" : "Female"}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-foreground/75">Height</span>
