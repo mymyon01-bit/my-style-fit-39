@@ -1563,7 +1563,7 @@ const DiscoverPage = () => {
               />
               {textInput.trim() && (
                 <div className="flex items-center gap-2">
-                  <button onClick={() => { setTextInput(""); setShowSuggestions(false); }} className="text-foreground/70 hover:text-foreground/75">
+                  <button onClick={() => { setTextInput(""); setShowSuggestions(false); setActiveScenario(null); }} className="text-foreground/70 hover:text-foreground/75">
                     <X className="h-3.5 w-3.5" />
                   </button>
                   <button onClick={() => handleTextSubmit()} className="hover-burgundy text-[10px] font-semibold tracking-[0.15em] text-accent/70">GO</button>
