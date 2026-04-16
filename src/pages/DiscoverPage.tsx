@@ -1409,7 +1409,8 @@ const DiscoverPage = () => {
           styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
           fit: selectedFit || undefined,
           limit: 30,
-          expandExternal: false,
+          freshSearch: true,
+          expandExternal: true,
           randomize: false,
         });
 
