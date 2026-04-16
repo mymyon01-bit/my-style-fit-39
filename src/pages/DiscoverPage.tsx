@@ -826,26 +826,6 @@ const DiscoverPage = () => {
     setSelectedColor(null);
   };
 
-  // ── Keyword-based fashion category classifier ──
-  const CATEGORY_ORDER = ["TOPS", "BOTTOMS", "SHOES", "BAGS", "ACCESSORIES"] as const;
-  type FashionCategory = typeof CATEGORY_ORDER[number];
-
-  const CATEGORY_KEYWORDS: Record<FashionCategory, RegExp> = {
-    TOPS: /\b(shirt|t-shirt|tee|hoodie|hoody|jacket|coat|blazer|sweater|cardigan|vest|polo|pullover|sweatshirt|bomber|parka|windbreaker|blouse|tunic|camisole|tank|henley|oxford|flannel|knit|top|jumper|cape|poncho|gilet|anorak|overcoat|trench)\b/i,
-    BOTTOMS: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|overalls?|jumpsuit|romper|slacks|culottes|cargo\s*pants|sweatpants|track\s*pants|bermuda|capri)\b/i,
-    SHOES: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|oxfords?|derby|brogues?|espadrilles?|slippers?|clogs?|pumps?|heels?|flats?|moccasins?)\b/i,
-    BAGS: /\b(bag|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|wallet|pouch|briefcase|weekender|fanny\s*pack|belt\s*bag|shoulder\s*bag|handbag)\b/i,
-    ACCESSORIES: /\b(hat|cap|beanie|watch|belt|scarf|gloves?|socks?|tie|sunglasses|ring|necklace|bracelet|earring|jewelry|jewellery|cufflinks?|keychain|headband|bandana|beret)\b/i,
-  };
-
-  function classifyProduct(item: AIRecommendation): FashionCategory | null {
-    const text = `${item.name} ${item.category}`.toLowerCase();
-    for (const cat of CATEGORY_ORDER) {
-      if (CATEGORY_KEYWORDS[cat].test(text)) return cat;
-    }
-    return null;
-  }
-
   // Group and order recommendations by fashion category
   const categorizedRecs = useMemo(() => {
     const groups: Record<FashionCategory, AIRecommendation[]> = {
