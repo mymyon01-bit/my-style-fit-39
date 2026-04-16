@@ -380,12 +380,31 @@ serve(async (req) => {
     if (action === "search-intent") {
       const personalization = buildPersonalizationContext(userInfo);
       
-      const systemPrompt = `You are a fashion PRODUCT search query generator. Given a user's input (any language including Korean, English, Italian), generate 4-6 shopping search queries for real purchasable fashion products.
+      // Build unconscious matching context from behavior
+      const behaviorContext = buildBehaviorInsight(userInfo);
+      
+      const systemPrompt = `You are an emotionally intelligent fashion search engine. Given a user's input — which may be a mood, feeling, vague expression, or specific item — interpret the TRUE intent and generate 4-6 product search queries.
+
+INPUT TYPES YOU MUST HANDLE:
+- Mood words: "clean", "sharp", "lazy fit", "soft"
+- Feelings: "confident", "lowkey", "cozy", "bold"
+- Vague: "idk something nice", "just browsing", "surprise me"
+- Specific: "black jacket", "minimal sneakers"
+- Mixed: "something sharp for a date", "lazy weekend fit"
+
+INTERPRETATION RULES:
+1. Detect emotional tone → map to style direction
+2. "clean" → minimal, structured, neutral colors
+3. "sharp" → tailored, fitted, dark tones
+4. "lazy"/"chill" → oversized, comfortable, soft fabrics
+5. "confident" → bold cuts, statement pieces, darker palette
+6. "soft" → light colors, relaxed fits, gentle textures
+7. "dark"/"moody" → black, layered, edgy silhouettes
+8. For vague inputs, lean on user's past behavior data if available
 
 CRITICAL RULES:
 - Every query MUST include a specific product type keyword: jacket, coat, trousers, pants, jeans, shirt, hoodie, sweater, sneakers, boots, shoes, bag, tote, backpack, hat, watch, belt, blazer, dress, skirt, top, cardigan, vest
-- NEVER generate vague queries like "modern style" or "street fashion" or "clean outfit"
-- ALWAYS target specific buyable items
+- NEVER generate vague queries like "modern style" or "street fashion"
 - Mix product categories: tops, bottoms, shoes, outerwear, bags, accessories
 - For non-English input, generate queries in BOTH the original language AND English
 - Each query should be 3-6 words with product type + style/color modifiers
@@ -395,15 +414,11 @@ Return ONLY valid JSON:
   "queries": ["query1", "query2", "query3", "query4"],
   "category": "clothing|bags|shoes|accessories|null",
   "style_tags": ["tag1", "tag2"],
-  "interpreted_intent": "one sentence describing what the user wants"
-}
-
-Examples:
-- Input "modern" → queries: ["minimal tailored blazer men", "slim fit chinos modern", "clean white leather sneakers", "structured wool coat minimal", "modern slim trousers grey"]
-- Input "스트릿" → queries: ["oversized hoodie streetwear", "baggy cargo pants street", "오버사이즈 후디 남자", "스트릿 조거팬츠", "chunky sneakers white"]
-- Input "모던 블랙" → queries: ["black tailored jacket slim", "slim black trousers men", "블랙 코트 미니멀", "black leather chelsea boots", "black crossbody bag minimal"]
-- Input "clean outfit" → queries: ["minimal white oxford shirt", "tailored neutral chinos slim", "clean leather sneakers white", "structured canvas tote bag"]
-- Input "casual" → queries: ["casual cotton t-shirt men", "relaxed fit jeans blue", "casual canvas sneakers", "lightweight bomber jacket"]`;
+  "color_direction": ["black", "neutral"],
+  "fit_direction": "oversized|slim|relaxed|tailored|regular",
+  "emotional_tone": "the detected emotion/mood",
+  "interpreted_intent": "one sentence describing what the user actually wants, even if they didn't say it explicitly"
+}`;
 
       const userPrompt = `User search input: "${prompt}"${personalization}`;
 
