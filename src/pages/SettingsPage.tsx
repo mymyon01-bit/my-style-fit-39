@@ -1,13 +1,17 @@
+import { useState, useRef } from "react";
 import { useI18n, type Language } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useTransition, type TransitionStyle } from "@/lib/transition";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Check, Moon, Sun, Monitor, RotateCcw, Shield, Layers,
-  User, Globe, Palette, Bell, Lock, Crown, HelpCircle
+  User, Globe, Palette, Bell, Lock, Crown, HelpCircle, LogOut,
+  CheckCircle, XCircle, Mail, Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const languages: { code: Language; label: string; native: string }[] = [
   { code: "en", label: "English", native: "English" },
@@ -19,9 +23,62 @@ const SettingsPage = () => {
   const { t, lang, setLang } = useI18n();
   const { theme, setTheme } = useTheme();
   const { transition, setTransition } = useTransition();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
   const navigate = useNavigate();
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const emailVerified = user?.email_confirmed_at != null;
+
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+    setResendingVerification(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email: user.email });
+      if (error) throw error;
+      toast.success("Verification email sent! Check your inbox.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send verification email");
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    if (newPassword !== confirmPassword) { toast.error("Passwords don't match"); return; }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Password updated successfully");
+      setChangingPassword(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update password");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleSignOut = async () => { await signOut(); navigate("/", { replace: true }); };
+
+  const handleResetProfile = async () => {
+    if (!user) return;
+    if (!confirm("This will reset your style and body profile. Continue?")) return;
+    await Promise.all([
+      supabase.from("style_profiles").delete().eq("user_id", user.id),
+      supabase.from("body_profiles").delete().eq("user_id", user.id),
+      supabase.from("profiles").update({ onboarded: false }).eq("user_id", user.id),
+    ]);
+    toast.success("Profile reset. You can redo onboarding.");
+    navigate("/onboarding");
+  };
 
   const themeOptions = [
     { value: "light" as const, icon: Sun, label: t("light") },
@@ -48,7 +105,7 @@ const SettingsPage = () => {
       </div>
 
       <div className="mx-auto max-w-lg px-8 space-y-14 md:max-w-2xl md:px-10 md:space-y-16 lg:max-w-3xl lg:px-12">
-        {/* Account */}
+        {/* Account & Verification */}
         {user && (
           <>
             <div className="space-y-5">
@@ -56,8 +113,25 @@ const SettingsPage = () => {
                 <User className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
                 <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("account").toUpperCase()}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-[13px] text-foreground/60">{user.email}</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[13px] text-foreground/60">{user.email}</p>
+                  {emailVerified ? (
+                    <span className="flex items-center gap-1 text-[10px] text-green-500/70"><CheckCircle className="h-3.5 w-3.5" /> Verified</span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[10px] text-orange-400/70"><XCircle className="h-3.5 w-3.5" /> Unverified</span>
+                  )}
+                </div>
+                {!emailVerified && (
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                    className="flex items-center gap-1.5 text-[11px] font-medium text-accent/60 hover:text-accent transition-colors disabled:opacity-50"
+                  >
+                    {resendingVerification ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                    Resend verification email
+                  </button>
+                )}
                 <button
                   onClick={() => navigate("/profile")}
                   className="text-[11px] font-medium text-accent/60 hover:text-accent transition-colors"
@@ -65,6 +139,50 @@ const SettingsPage = () => {
                   {t("viewProfile")} →
                 </button>
               </div>
+            </div>
+            <div className="h-px bg-border/30" />
+
+            {/* Security */}
+            <div className="space-y-5">
+              <div className="flex items-center gap-2">
+                <Lock className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
+                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">SECURITY</p>
+              </div>
+              {changingPassword ? (
+                <div className="space-y-3 rounded-xl border border-border/20 bg-card/30 p-4">
+                  <div>
+                    <label className="text-[10px] font-medium text-foreground/40">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Min 6 characters"
+                      className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/25 border-b border-border/20 focus:border-accent/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-foreground/40">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat password"
+                      className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/25 border-b border-border/20 focus:border-accent/30"
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={handleChangePassword} disabled={savingPassword} className="flex items-center gap-1 rounded-lg bg-accent/10 px-4 py-2 text-[11px] font-semibold text-accent/70 disabled:opacity-50">
+                      {savingPassword ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                      Update
+                    </button>
+                    <button onClick={() => { setChangingPassword(false); setNewPassword(""); setConfirmPassword(""); }} className="text-[11px] text-foreground/30">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setChangingPassword(true)} className="text-[11px] font-medium text-foreground/50 hover:text-foreground/70 transition-colors">
+                  Change password →
+                </button>
+              )}
             </div>
             <div className="h-px bg-border/30" />
           </>
@@ -118,17 +236,6 @@ const SettingsPage = () => {
 
         <div className="h-px bg-border/30" />
 
-        {/* Notifications */}
-        <div className="space-y-5">
-          <div className="flex items-center gap-2">
-            <Bell className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("notifications").toUpperCase()}</p>
-          </div>
-          <p className="text-[12px] text-foreground/35">{t("notificationsSoon")}</p>
-        </div>
-
-        <div className="h-px bg-border/30" />
-
         {/* Page Transition */}
         <div className="space-y-5">
           <div className="flex items-center gap-2">
@@ -177,21 +284,27 @@ const SettingsPage = () => {
 
         <div className="h-px bg-border/30" />
 
-        {/* Privacy & Actions */}
+        {/* Actions */}
         <div className="space-y-1">
-          <button className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/40 md:py-5">
-            <Lock className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            <span className="text-[13px] font-medium md:text-[14px]">{t("privacy")}</span>
-          </button>
-          <button className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/40 md:py-5">
-            <RotateCcw className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            <span className="text-[13px] font-medium md:text-[14px]">{t("resetProfile")}</span>
-          </button>
+          {user && (
+            <button onClick={handleResetProfile} className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/40 md:py-5">
+              <RotateCcw className="h-[18px] w-[18px]" strokeWidth={1.6} />
+              <span className="text-[13px] font-medium md:text-[14px]">{t("resetProfile")}</span>
+            </button>
+          )}
           <button className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/40 md:py-5">
             <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
             <span className="text-[13px] font-medium md:text-[14px]">{t("help")}</span>
           </button>
         </div>
+
+        {/* Sign out */}
+        {user && (
+          <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
+            <LogOut className="h-4 w-4" />
+            {t("signOut")}
+          </button>
+        )}
       </div>
     </div>
   );

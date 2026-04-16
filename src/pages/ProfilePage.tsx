@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, ChevronRight, Bookmark, Ruler, Palette, Shirt,
-  Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield
+  Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield,
+  Edit3, CheckCircle, XCircle, Upload, Save
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useSavedFolders } from "@/hooks/useSavedFolders";
 import { useAdmin } from "@/hooks/useAdmin";
 import PremiumBanner from "@/components/PremiumBanner";
+import { toast } from "sonner";
 
 const ProfilePage = () => {
   const { t } = useI18n();
@@ -26,6 +28,14 @@ const ProfilePage = () => {
   const [postCount, setPostCount] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editGender, setEditGender] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (user) loadProfileData(); }, [user]);
 
@@ -39,17 +49,84 @@ const ProfilePage = () => {
       supabase.from("saved_items").select("id", { count: "exact" }).eq("user_id", user.id),
       supabase.from("ootd_posts").select("id, star_count").eq("user_id", user.id),
     ]);
-    setProfile(profileRes.data);
+    const p = profileRes.data;
+    setProfile(p);
     setStyleProfile(styleRes.data);
     setBodyProfile(bodyRes.data);
     setSavedCount(savedRes.count || 0);
     const posts = postsRes.data || [];
     setPostCount(posts.length);
-    setTotalStars(posts.reduce((sum, p) => sum + (p.star_count || 0), 0));
+    setTotalStars(posts.reduce((sum: number, pt: any) => sum + (pt.star_count || 0), 0));
+    if (p) {
+      setEditName(p.display_name || "");
+      setEditBio(p.bio || "");
+      setEditLocation(p.location || "");
+      setEditGender(p.gender_preference || "");
+    }
     setIsLoading(false);
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Photo must be under 5MB"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("profile-photos")
+        .upload(path, file, { cacheControl: "3600", upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("profile-photos")
+        .getPublicUrl(path);
+
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("user_id", user.id);
+      setProfile((p: any) => ({ ...p, avatar_url: avatarUrl }));
+      toast.success("Profile photo updated");
+    } catch (err: any) {
+      console.error("Photo upload error:", err);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase.from("profiles").update({
+        display_name: editName.trim() || null,
+        bio: editBio.trim() || null,
+        location: editLocation.trim() || null,
+        gender_preference: editGender.trim() || null,
+      }).eq("user_id", user.id);
+      if (error) throw error;
+      setProfile((p: any) => ({
+        ...p,
+        display_name: editName.trim(),
+        bio: editBio.trim(),
+        location: editLocation.trim(),
+        gender_preference: editGender.trim(),
+      }));
+      setIsEditing(false);
+      toast.success("Profile updated");
+    } catch {
+      toast.error("Failed to save profile");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const handleSignOut = async () => { await signOut(); navigate("/", { replace: true }); };
+
+  const emailVerified = user?.email_confirmed_at != null;
 
   if (isLoading) {
     return (
@@ -79,21 +156,80 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-8 space-y-12 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
-        {/* Identity */}
+      <div className="mx-auto max-w-lg px-8 space-y-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
+        {/* Identity + Photo Upload */}
         <div className="flex items-center gap-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.03]">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-            ) : (
-              <User className="h-6 w-6 text-foreground/40" />
-            )}
+          <div className="relative">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.03] overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                <User className="h-6 w-6 text-foreground/40" />
+              )}
+            </div>
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent/70 hover:bg-accent/30 transition-colors"
+            >
+              {uploadingPhoto ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+            </button>
+            <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
           </div>
-          <div>
-            <p className="font-display text-lg text-foreground/80">{displayName}</p>
-            <p className="text-[11px] text-foreground/50 mt-1">{user?.email}</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="font-display text-lg text-foreground/80">{displayName}</p>
+              <button onClick={() => setIsEditing(!isEditing)} className="text-foreground/30 hover:text-foreground/50">
+                <Edit3 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <p className="text-[11px] text-foreground/50 mt-0.5">{user?.email}</p>
+            {profile?.bio && <p className="text-[11px] text-foreground/40 mt-1 italic">{profile.bio}</p>}
+            <div className="flex items-center gap-1.5 mt-1">
+              {emailVerified ? (
+                <span className="flex items-center gap-1 text-[9px] text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
+              ) : (
+                <span className="flex items-center gap-1 text-[9px] text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
+              )}
+              {profile?.location && <span className="text-[9px] text-foreground/30 ml-2">📍 {profile.location}</span>}
+            </div>
           </div>
         </div>
+
+        {/* Edit Profile Form */}
+        {isEditing && (
+          <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-4">
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/50">EDIT PROFILE</p>
+            {[
+              { label: "Display Name", value: editName, set: setEditName, placeholder: "Your name" },
+              { label: "Bio / Style Line", value: editBio, set: setEditBio, placeholder: "A short style description" },
+              { label: "Location", value: editLocation, set: setEditLocation, placeholder: "City, Country" },
+              { label: "Gender Preference", value: editGender, set: setEditGender, placeholder: "e.g. masculine, feminine, neutral" },
+            ].map(field => (
+              <div key={field.label}>
+                <label className="text-[10px] font-medium text-foreground/40">{field.label}</label>
+                <input
+                  type="text"
+                  value={field.value}
+                  onChange={e => field.set(e.target.value)}
+                  placeholder={field.placeholder}
+                  className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/25 border-b border-border/20 focus:border-accent/30 transition-colors"
+                />
+              </div>
+            ))}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-4 py-2 text-[11px] font-semibold text-accent/70 hover:bg-accent/15 disabled:opacity-50"
+              >
+                {savingProfile ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                Save
+              </button>
+              <button onClick={() => setIsEditing(false)} className="text-[11px] text-foreground/30 hover:text-foreground/50">Cancel</button>
+            </div>
+          </div>
+        )}
 
         {/* Subscription */}
         <div className="flex items-center gap-4">
@@ -126,7 +262,6 @@ const ProfilePage = () => {
           ))}
         </div>
 
-        {/* Premium Banner — only for free users */}
         {!subscription.isPremium && <PremiumBanner />}
 
         <div className="h-px bg-accent/[0.12]" />
@@ -141,10 +276,7 @@ const ProfilePage = () => {
           ) : (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {folders.map(folder => (
-                <button
-                  key={folder.id}
-                  className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 p-3 text-left transition-colors hover:bg-card/50"
-                >
+                <button key={folder.id} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 p-3 text-left transition-colors hover:bg-card/50">
                   <Folder className="h-4 w-4 text-accent/50 shrink-0" />
                   <span className="text-[11px] text-foreground/60 truncate">{folder.name}</span>
                 </button>
@@ -155,20 +287,44 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
-        {/* Style */}
+        {/* Style Profile */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("style").toUpperCase()}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("style").toUpperCase()}</p>
+            <button onClick={() => navigate("/onboarding")} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">
+              {styleProfile ? "EDIT" : "SET UP"}
+            </button>
+          </div>
           {styleProfile ? (
             <div className="space-y-3">
               {styleProfile.preferred_styles?.length > 0 && (
-                <div className="flex gap-3 flex-wrap">
-                  {styleProfile.preferred_styles.map((s: string) => (
-                    <span key={s} className="text-[12px] text-accent/70">{s}</span>
-                  ))}
+                <div>
+                  <p className="text-[9px] text-foreground/30 mb-1.5">PREFERRED</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {styleProfile.preferred_styles.map((s: string) => (
+                      <span key={s} className="rounded-full bg-accent/10 px-3 py-1 text-[10px] text-accent/70">{s}</span>
+                    ))}
+                  </div>
                 </div>
               )}
-              {styleProfile.preferred_fit && <p className="text-[12px] text-foreground/50">{t("preferredFit")}: {styleProfile.preferred_fit}</p>}
-              {styleProfile.budget && <p className="text-[12px] text-foreground/50">{t("budget")}: {styleProfile.budget}</p>}
+              {styleProfile.disliked_styles?.length > 0 && (
+                <div>
+                  <p className="text-[9px] text-foreground/30 mb-1.5">AVOID</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {styleProfile.disliked_styles.map((s: string) => (
+                      <span key={s} className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] text-destructive/50 line-through">{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {styleProfile.preferred_fit && <p className="text-[11px] text-foreground/50">{t("preferredFit")}: <span className="text-foreground/70">{styleProfile.preferred_fit}</span></p>}
+              {styleProfile.budget && <p className="text-[11px] text-foreground/50">{t("budget")}: <span className="text-foreground/70">{styleProfile.budget}</span></p>}
+              {styleProfile.favorite_brands?.length > 0 && (
+                <p className="text-[11px] text-foreground/50">Brands: <span className="text-foreground/70">{styleProfile.favorite_brands.join(", ")}</span></p>
+              )}
+              {styleProfile.occasions?.length > 0 && (
+                <p className="text-[11px] text-foreground/50">Occasions: <span className="text-foreground/70">{styleProfile.occasions.join(", ")}</span></p>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -178,15 +334,33 @@ const ProfilePage = () => {
           )}
         </div>
 
-        {/* Body */}
+        {/* Body Profile */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("bodyProfile").toUpperCase()}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("bodyProfile").toUpperCase()}</p>
+            <button onClick={() => navigate("/fit")} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">
+              {bodyProfile ? "RESCAN" : "START SCAN"}
+            </button>
+          </div>
           {bodyProfile ? (
-            <div className="flex flex-wrap gap-x-8 gap-y-2">
-              {bodyProfile.height_cm && <p className="text-[12px] text-foreground/50">{bodyProfile.height_cm}cm</p>}
-              {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/50">{bodyProfile.weight_kg}kg</p>}
-              {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/50">{t("shoulderWidth")} {bodyProfile.shoulder_width_cm}cm</p>}
-              {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/50">{t("waist")} {bodyProfile.waist_cm}cm</p>}
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-x-8 gap-y-2">
+                {bodyProfile.height_cm && <p className="text-[12px] text-foreground/50">{bodyProfile.height_cm}cm</p>}
+                {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/50">{bodyProfile.weight_kg}kg</p>}
+                {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/50">{t("shoulderWidth")} {bodyProfile.shoulder_width_cm}cm</p>}
+                {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/50">{t("waist")} {bodyProfile.waist_cm}cm</p>}
+              </div>
+              {bodyProfile.silhouette_type && (
+                <p className="text-[11px] text-foreground/40">Body type: <span className="text-foreground/60">{bodyProfile.silhouette_type}</span></p>
+              )}
+              {bodyProfile.scan_confidence > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 flex-1 rounded-full bg-foreground/[0.06] overflow-hidden">
+                    <div className="h-full rounded-full bg-accent/40" style={{ width: `${bodyProfile.scan_confidence}%` }} />
+                  </div>
+                  <span className="text-[10px] text-foreground/40">{bodyProfile.scan_confidence}%</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -204,6 +378,7 @@ const ProfilePage = () => {
             { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
             { icon: Palette, label: t("styleSettings"), action: () => navigate("/onboarding") },
             { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
+            { icon: Camera, label: "My OOTDs", action: () => navigate("/ootd") },
           ].map(section => (
             <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
               <section.icon className="h-[18px] w-[18px] text-foreground/40" strokeWidth={1.5} />

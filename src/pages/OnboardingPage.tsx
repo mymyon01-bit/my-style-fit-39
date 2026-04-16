@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Camera, User, Loader2 } from "lucide-react";
+import { ChevronRight, Camera, User, Loader2, Upload, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const styleOptions = ["minimal", "streetwear", "classic", "oldMoney", "chic", "cleanFit", "sporty"] as const;
 const fitOptions = ["slim", "regular", "relaxed2", "oversized"] as const;
 const budgetOptions = ["low", "mid", "high", "luxury"] as const;
 const occasions = ["daily", "office", "date", "travel"] as const;
+const brandOptions = ["Nike", "Zara", "H&M", "Uniqlo", "COS", "Arket", "Lemaire", "AMI Paris", "Acne Studios", "Our Legacy", "Stüssy", "New Balance"];
 
 const OnboardingPage = () => {
   const { t } = useI18n();
@@ -21,8 +23,13 @@ const OnboardingPage = () => {
   const [selectedFit, setSelectedFit] = useState<string>("");
   const [selectedBudget, setSelectedBudget] = useState<string>("");
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [bodyData, setBodyData] = useState({ height: "", weight: "", shoulder: "", waist: "" });
+  const [bodyData, setBodyData] = useState({ height: "", weight: "", shoulder: "", waist: "", inseam: "" });
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoRef = useRef<HTMLInputElement>(null);
 
   const toggle = (arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, val: string) =>
     set(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
@@ -32,30 +39,92 @@ const OnboardingPage = () => {
       active ? "text-accent/80" : "text-foreground/62 hover:text-foreground/60"
     }`;
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Photo must be under 5MB"); return; }
+    setProfilePhoto(file);
+    setProfilePhotoPreview(URL.createObjectURL(file));
+  };
+
+  const uploadProfilePhoto = async (): Promise<string | null> => {
+    if (!profilePhoto || !user) return null;
+    const ext = profilePhoto.name.split(".").pop() || "jpg";
+    const path = `${user.id}/avatar.${ext}`;
+    const { error } = await supabase.storage.from("profile-photos").upload(path, profilePhoto, { cacheControl: "3600", upsert: true });
+    if (error) { console.error("Photo upload error:", error); return null; }
+    const { data: { publicUrl } } = supabase.storage.from("profile-photos").getPublicUrl(path);
+    return publicUrl;
+  };
+
   const saveProfileData = async () => {
     if (!user) return;
     const userId = user.id;
+
+    // Upload profile photo if selected
+    let avatarUrl: string | null = null;
+    if (profilePhoto) {
+      setUploadingPhoto(true);
+      avatarUrl = await uploadProfilePhoto();
+      setUploadingPhoto(false);
+    }
+
+    // Save style profile
     await supabase.from("style_profiles").upsert({
-      user_id: userId, preferred_styles: selectedStyles, disliked_styles: dislikedStyles,
-      preferred_fit: selectedFit || null, budget: selectedBudget || null, occasions: selectedOccasions,
+      user_id: userId,
+      preferred_styles: selectedStyles,
+      disliked_styles: dislikedStyles,
+      preferred_fit: selectedFit || null,
+      budget: selectedBudget || null,
+      occasions: selectedOccasions,
+      favorite_brands: selectedBrands.length > 0 ? selectedBrands : null,
     } as any, { onConflict: "user_id" });
 
+    // Save body measurements
     const h = parseFloat(bodyData.height), w = parseFloat(bodyData.weight);
     const s = parseFloat(bodyData.shoulder), wa = parseFloat(bodyData.waist);
-    if (h || w || s || wa) {
+    const ins = parseFloat(bodyData.inseam);
+    if (h || w || s || wa || ins) {
       await supabase.from("body_profiles").upsert({
-        user_id: userId, height_cm: h || null, weight_kg: w || null,
-        shoulder_width_cm: s || null, waist_cm: wa || null,
+        user_id: userId,
+        height_cm: h || null,
+        weight_kg: w || null,
+        shoulder_width_cm: s || null,
+        waist_cm: wa || null,
+        inseam_cm: ins || null,
       } as any, { onConflict: "user_id" });
     }
-    await supabase.from("profiles").update({ onboarded: true } as any).eq("user_id", userId);
+
+    // Update profile
+    const profileUpdate: any = { onboarded: true };
+    if (avatarUrl) profileUpdate.avatar_url = avatarUrl;
+    await supabase.from("profiles").update(profileUpdate).eq("user_id", userId);
   };
 
   const steps = [
-    // Welcome
+    // Welcome + Profile Photo
     <motion.div key="welcome" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-1 flex-col items-center justify-center px-8 text-center md:px-16">
       <h1 className="font-display text-3xl font-light text-foreground/80 md:text-4xl">{t("onboardingTitle1")}</h1>
       <p className="mt-6 text-[13px] leading-[1.8] text-foreground/80 max-w-[280px] md:text-[14px] md:max-w-xs">{t("onboardingDesc1")}</p>
+      
+      <div className="mt-10">
+        <button onClick={() => photoRef.current?.click()} className="relative">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-foreground/[0.04] border-2 border-dashed border-foreground/10 overflow-hidden">
+            {profilePhotoPreview ? (
+              <img src={profilePhotoPreview} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <Camera className="h-8 w-8 text-foreground/30" />
+            )}
+          </div>
+          {!profilePhotoPreview && (
+            <span className="mt-3 block text-[10px] text-foreground/40">Add profile photo</span>
+          )}
+          {profilePhotoPreview && (
+            <CheckCircle2 className="absolute -bottom-1 -right-1 h-6 w-6 text-green-500" />
+          )}
+        </button>
+        <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+      </div>
     </motion.div>,
 
     // Style
@@ -90,6 +159,15 @@ const OnboardingPage = () => {
           </button>
         ))}
       </div>
+
+      <p className="mt-12 text-[10px] font-medium tracking-[0.2em] text-foreground/68 md:text-[11px]">FAVORITE BRANDS</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {brandOptions.map(b => (
+          <button key={b} onClick={() => toggle(selectedBrands, setSelectedBrands, b)} className={chipClass(selectedBrands.includes(b))}>
+            {b}
+          </button>
+        ))}
+      </div>
     </motion.div>,
 
     // Fit + Budget
@@ -113,21 +191,11 @@ const OnboardingPage = () => {
       </div>
     </motion.div>,
 
-    // Body
+    // Body measurements
     <motion.div key="body" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1 px-8 pt-12 md:px-16">
       <h2 className="font-display text-xl font-light text-foreground/85 md:text-2xl">{t("bodyScan")}</h2>
       <p className="mt-3 text-[12px] text-foreground/62 md:text-[13px]">{t("bodyScanDesc")}</p>
-
-      <div className="mt-10 grid grid-cols-2 gap-5">
-        <button className="flex flex-col items-center justify-center gap-4 py-16 text-foreground/80 hover:text-accent/70 transition-colors">
-          <User className="h-8 w-8" />
-          <span className="text-[10px] font-medium tracking-wider md:text-[11px]">{t("frontPhoto")}</span>
-        </button>
-        <button className="flex flex-col items-center justify-center gap-4 py-16 text-foreground/80 hover:text-accent/70 transition-colors">
-          <Camera className="h-8 w-8" />
-          <span className="text-[10px] font-medium tracking-wider md:text-[11px]">{t("sidePhoto")}</span>
-        </button>
-      </div>
+      <p className="mt-2 text-[10px] text-foreground/40">You can also do a full body scan later in the FIT section.</p>
 
       <div className="mt-10 space-y-5">
         {[
@@ -135,11 +203,13 @@ const OnboardingPage = () => {
           { label: t("weight"), placeholder: "70 kg", key: "weight" },
           { label: t("shoulderWidth"), placeholder: "45 cm", key: "shoulder" },
           { label: t("waist"), placeholder: "80 cm", key: "waist" },
+          { label: "Inseam", placeholder: "78 cm", key: "inseam" },
         ].map(field => (
           <div key={field.key}>
             <label className="text-[10px] font-medium text-foreground/62 md:text-[11px]">{field.label}</label>
             <input
               type="text"
+              inputMode="numeric"
               placeholder={field.placeholder}
               value={bodyData[field.key as keyof typeof bodyData]}
               onChange={e => setBodyData(prev => ({ ...prev, [field.key]: e.target.value }))}
@@ -155,7 +225,9 @@ const OnboardingPage = () => {
       {isAnalyzing ? (
         <>
           <Loader2 className="h-8 w-8 animate-spin text-accent/80" />
-          <p className="mt-6 text-[12px] text-foreground/48">{t("analyzing")}</p>
+          <p className="mt-6 text-[12px] text-foreground/48">
+            {uploadingPhoto ? "Uploading photo…" : t("analyzing")}
+          </p>
         </>
       ) : (
         <>
@@ -175,7 +247,7 @@ const OnboardingPage = () => {
       setStep(step + 1);
       setIsAnalyzing(true);
       await saveProfileData();
-      setTimeout(() => setIsAnalyzing(false), 2000);
+      setTimeout(() => setIsAnalyzing(false), 1500);
     } else {
       setStep(step + 1);
     }
@@ -183,7 +255,6 @@ const OnboardingPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Progress */}
       <div className="flex gap-2.5 px-8 pt-8 md:px-16">
         {steps.map((_, i) => (
           <div key={i} className={`h-px flex-1 transition-colors duration-500 ${i <= step ? "bg-accent/40" : "bg-foreground/[0.06]"}`} />
@@ -192,7 +263,6 @@ const OnboardingPage = () => {
 
       <AnimatePresence mode="wait">{steps[step]}</AnimatePresence>
 
-      {/* Actions */}
       <div className="px-8 pb-14 pt-8 md:px-16">
         {!isAnalyzing && (
           <>
