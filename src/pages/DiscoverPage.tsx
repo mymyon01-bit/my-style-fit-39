@@ -1062,11 +1062,42 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── Query expansion: convert vague terms into concrete product queries ──
+  // ── Query expansion: convert vague/lifestyle queries into concrete product searches ──
   function expandSearchQuery(q: string): string[] {
     const lower = q.toLowerCase().trim();
     const expanded: string[] = [];
 
+    // Occasion / lifestyle expansions — map intent to actual fashion items
+    const OCCASION_EXPANSIONS: Record<string, string[]> = {
+      "summer vacation": ["linen shirt", "shorts", "sandals", "sunglasses", "straw hat", "lightweight dress"],
+      "summer": ["linen shirt", "shorts", "sandals", "tank top", "lightweight dress", "sunglasses"],
+      "vacation": ["linen shirt", "resort wear", "sandals", "sunglasses", "lightweight shorts", "summer dress"],
+      "beach": ["swim shorts", "sandals", "linen shirt", "sunglasses", "straw hat", "tank top"],
+      "travel": ["comfortable sneakers", "versatile jacket", "crossbody bag", "casual pants", "lightweight shirt"],
+      "winter": ["wool coat", "knit sweater", "boots", "scarf", "gloves", "parka"],
+      "spring": ["light jacket", "sneakers", "cotton shirt", "chinos", "windbreaker"],
+      "fall": ["leather jacket", "boots", "sweater", "scarf", "corduroy pants"],
+      "autumn": ["leather jacket", "boots", "sweater", "scarf", "corduroy pants"],
+      "rain": ["rain jacket", "waterproof boots", "umbrella", "trench coat"],
+      "wedding": ["suit", "dress shoes", "tie", "formal dress", "clutch bag"],
+      "date": ["blazer", "slim pants", "clean sneakers", "dress shirt", "elegant dress"],
+      "date night": ["blazer", "slim pants", "dress shoes", "elegant dress", "clutch bag"],
+      "office": ["blazer", "dress shirt", "trousers", "loafers", "leather bag"],
+      "work": ["blazer", "dress shirt", "trousers", "loafers", "leather bag"],
+      "gym": ["athletic shorts", "running shoes", "sports tee", "hoodie", "joggers"],
+      "workout": ["athletic shorts", "running shoes", "sports tee", "tank top", "leggings"],
+      "party": ["statement jacket", "boots", "edgy top", "slim jeans", "accessories"],
+      "festival": ["graphic tee", "shorts", "sneakers", "sunglasses", "bucket hat"],
+      "casual": ["t-shirt", "jeans", "sneakers", "hoodie", "casual jacket"],
+      "formal": ["suit", "dress shirt", "dress shoes", "tie", "formal dress"],
+      "streetwear": ["oversized hoodie", "cargo pants", "sneakers", "cap", "crossbody bag"],
+      "hiking": ["hiking boots", "outdoor jacket", "cargo pants", "backpack"],
+      "camping": ["fleece jacket", "hiking boots", "cargo shorts", "backpack"],
+      "school": ["backpack", "sneakers", "hoodie", "jeans", "casual tee"],
+      "airport": ["comfortable sneakers", "joggers", "oversized hoodie", "crossbody bag", "sunglasses"],
+    };
+
+    // Emotion / vague word expansion
     const VAGUE_EXPANSIONS: Record<string, string[]> = {
       modern: ["modern slim jacket", "modern minimalist sneakers", "modern structured trousers"],
       clean: ["clean minimal shirt", "clean white sneakers", "clean structured blazer"],
@@ -1085,23 +1116,41 @@ const DiscoverPage = () => {
       romantic: ["flowy blouse", "delicate jewelry", "vintage inspired dress"],
     };
 
-    const words = lower.split(/\s+/);
-    if (words.length <= 2) {
+    // First check multi-word occasion phrases (longest match first)
+    const sortedOccasions = Object.keys(OCCASION_EXPANSIONS).sort((a, b) => b.length - a.length);
+    let matched = false;
+    for (const key of sortedOccasions) {
+      if (lower.includes(key)) {
+        expanded.push(...OCCASION_EXPANSIONS[key]);
+        matched = true;
+        break;
+      }
+    }
+
+    // Then check vague emotion words
+    if (!matched) {
       for (const [key, expansions] of Object.entries(VAGUE_EXPANSIONS)) {
         if (lower.includes(key)) {
           expanded.push(...expansions);
+          matched = true;
           break;
         }
       }
     }
 
-    // If query doesn't contain a product category, add category variants
-    const hasCategory = /\b(jacket|coat|shirt|hoodie|sweater|pants|jeans|shorts|sneakers?|boots?|shoes?|bag|hat|watch|dress|blazer|cardigan|vest|skirt|top|tee)\b/i.test(lower);
-    if (!hasCategory && expanded.length === 0) {
-      expanded.push(`${q} jacket`, `${q} sneakers`, `${q} pants`);
+    // If query has a product category keyword, just return it directly
+    const hasCategory = /\b(jacket|coat|shirt|hoodie|sweater|pants|jeans|shorts|sneakers?|boots?|shoes?|bag|hat|watch|dress|blazer|cardigan|vest|skirt|top|tee|sandals?|sunglasses)\b/i.test(lower);
+    if (hasCategory && !matched) {
+      // Query already contains a product term — use as-is
+      return [q];
     }
 
-    return [...new Set(expanded)].slice(0, 4);
+    // If still nothing matched and no product category, add generic category variants
+    if (!matched && !hasCategory) {
+      expanded.push(`${q} outfit`, `${q} clothing`, `${q} shoes`);
+    }
+
+    return [...new Set(expanded)].slice(0, 6);
   }
 
   // Debounced search submit — strict relevance filtering pipeline
@@ -1117,82 +1166,113 @@ const DiscoverPage = () => {
     debounceTimerRef.current = setTimeout(async () => {
       setIsGenerating(true);
       setHasGenerated(true);
-      setRecommendations([]); // Clear old results for search — don't show stale unrelated items
+      setRecommendations([]);
       lastPromptRef.current = q;
 
-      // Step 1: Parse query into structured intent (instant, no network)
+      // Step 1: Parse query into structured intent
       const intent = parseQueryIntent(q);
-      console.log("Search intent:", intent);
+      const isVagueQuery = !intent.categoryLock && intent.styleIntent.length === 0 && intent.colorIntent.length === 0 && intent.brandIntent.length === 0;
 
-      // Step 2: DB search with intent-derived filters
+      // Step 2: Expand query — for vague/lifestyle queries, expansions ARE the search
+      const expandedQueries = expandSearchQuery(q);
+      const isLifestyleQuery = isVagueQuery && expandedQueries.length > 1 && expandedQueries[0] !== q;
+
+      console.log("Search:", { query: q, intent, isVagueQuery, isLifestyleQuery, expandedQueries });
+
+      // Step 3: Choose search strategy
       const categoryMap: Record<string, string> = {
         TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
       };
       const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
-      const { products: dbProducts, dbCount } = await hybridProductSearch({
-        query: q,
-        category: dbCategory,
-        styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
-        fit: selectedFit || undefined,
-        limit: 30, // Fetch more to filter strictly
-        expandExternal: false,
-        randomize: false, // Don't randomize — we'll sort by relevance
-      });
+      if (isLifestyleQuery) {
+        // LIFESTYLE QUERY: search for each expanded item type separately
+        const results = await Promise.all(
+          expandedQueries.slice(0, 5).map(eq =>
+            hybridProductSearch({
+              query: eq,
+              limit: 8,
+              expandExternal: true,
+              excludeIds: Array.from(sessionSeenIds),
+              randomize: false,
+            })
+          )
+        );
 
-      // Step 3: Apply strict relevance filter to DB results
-      const relevantDb = filterByRelevance(dbProducts, intent);
-      const diverseDb = enforceClientDiversity(relevantDb, new Set());
-
-      if (diverseDb.length > 0) {
-        diverseDb.forEach(p => sessionSeenIds.add(p.id));
-        setRecommendations(diverseDb);
-        setDbOffset(diverseDb.length);
-        setHasMoreInDB(dbCount >= 30);
-        setIsGenerating(false);
-      }
-
-      // Step 4: ALWAYS run external search for fresh results
-      const expandedQueries = expandSearchQuery(q);
-      const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 3);
-
-      Promise.all(
-        searchQueries.map(sq =>
-          hybridProductSearch({
-            query: sq,
-            category: dbCategory,
-            styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
-            fit: selectedFit || undefined,
-            limit: 12,
-            excludeIds: Array.from(sessionSeenIds),
-            expandExternal: true,
-            randomize: false,
-          })
-        )
-      ).then(results => {
-        const allFresh = results.flatMap(r => r.products);
-        // Apply same strict relevance filter to external results
-        const relevantFresh = filterByRelevance(allFresh, intent);
-        const freshDiverse = enforceClientDiversity(relevantFresh, sessionSeenIds);
-
-        if (freshDiverse.length > 0) {
-          freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-          setRecommendations(prev => {
-            const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set()).slice(0, 30);
-            return merged;
-          });
-        }
-
-        // If total results still zero, try AI as last resort
-        if (diverseDb.length === 0 && freshDiverse.length === 0) {
+        const allProducts = results.flatMap(r => r.products);
+        // For lifestyle queries, re-parse each product against the expanded terms
+        const diverse = enforceClientDiversity(allProducts, new Set());
+        if (diverse.length > 0) {
+          diverse.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(diverse.slice(0, 24));
+        } else {
+          // Fallback to AI
           generateRecommendations(q);
         }
         setIsGenerating(false);
-      }).catch(() => {
-        setIsGenerating(false);
-      });
+      } else {
+        // SPECIFIC QUERY: DB-first with strict relevance filtering
+        const { products: dbProducts, dbCount } = await hybridProductSearch({
+          query: q,
+          category: dbCategory,
+          styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+          fit: selectedFit || undefined,
+          limit: 30,
+          expandExternal: false,
+          randomize: false,
+        });
+
+        const relevantDb = filterByRelevance(dbProducts, intent);
+        const diverseDb = enforceClientDiversity(relevantDb, new Set());
+
+        if (diverseDb.length > 0) {
+          diverseDb.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(diverseDb);
+          setDbOffset(diverseDb.length);
+          setHasMoreInDB(dbCount >= 30);
+          setIsGenerating(false);
+        }
+
+        // ALWAYS run external search for fresh results
+        const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 3);
+        Promise.all(
+          searchQueries.map(sq =>
+            hybridProductSearch({
+              query: sq,
+              category: dbCategory,
+              styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+              fit: selectedFit || undefined,
+              limit: 12,
+              excludeIds: Array.from(sessionSeenIds),
+              expandExternal: true,
+              randomize: false,
+            })
+          )
+        ).then(results => {
+          const allFresh = results.flatMap(r => r.products);
+          const relevantFresh = filterByRelevance(allFresh, intent);
+          const freshDiverse = enforceClientDiversity(relevantFresh, sessionSeenIds);
+
+          if (freshDiverse.length > 0) {
+            freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => {
+              const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set()).slice(0, 30);
+              return merged;
+            });
+          }
+
+          if (diverseDb.length === 0 && freshDiverse.length === 0) {
+            generateRecommendations(q);
+          }
+          setIsGenerating(false);
+        }).catch(() => {
+          setIsGenerating(false);
+        });
+      }
     }, 200);
   };
+
+
 
   const handleFeedback = useCallback(async (itemId: string, type: "like" | "dislike") => {
     setFeedbackMap(prev => {
