@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
@@ -14,16 +14,16 @@ interface AuthGateProps {
  * Wraps interactive elements. If user is guest, shows sign-up prompt instead of performing the action.
  * Usage: <AuthGate action="save items"><button onClick={...}>Save</button></AuthGate>
  */
-export const AuthGate = ({ children, action }: AuthGateProps) => {
+export const AuthGate = forwardRef<HTMLDivElement, AuthGateProps>(({ children, action }, ref) => {
   const { user } = useAuth();
   const [showPrompt, setShowPrompt] = useState(false);
   const navigate = useNavigate();
 
-  if (user) return <>{children}</>;
+  if (user) return <div ref={ref}>{children}</div>;
 
   return (
     <>
-      <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowPrompt(true); }} className="cursor-pointer">
+      <div ref={ref} onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowPrompt(true); }} className="cursor-pointer">
         {children}
       </div>
       <AnimatePresence>
@@ -37,7 +37,9 @@ export const AuthGate = ({ children, action }: AuthGateProps) => {
       </AnimatePresence>
     </>
   );
-};
+});
+
+AuthGate.displayName = "AuthGate";
 
 /**
  * Full-screen overlay prompt to sign up
