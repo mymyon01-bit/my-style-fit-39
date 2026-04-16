@@ -9,23 +9,33 @@ const corsHeaders = {
 
 // ─── AI Provider abstraction ───
 
-async function callPerplexity(systemPrompt: string, userPrompt: string, opts: { maxTokens?: number; temperature?: number; model?: string }) {
+async function callPerplexity(systemPrompt: string, userPrompt: string, opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number }) {
   const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
   if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY not configured");
 
-  const response = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: opts.model || "sonar",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: opts.maxTokens || 1500,
-      temperature: opts.temperature || 0.5,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutMs = opts.timeoutMs || 8000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: opts.model || "sonar",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: opts.maxTokens || 1500,
+        temperature: opts.temperature || 0.5,
+      }),
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const errText = await response.text();
@@ -88,7 +98,7 @@ async function callAI(
   tier: AITier,
   systemPrompt: string,
   userPrompt: string,
-  opts: { maxTokens?: number; temperature?: number } = {}
+  opts: { maxTokens?: number; temperature?: number; timeoutMs?: number } = {}
 ): Promise<{ content: string; citations: string[]; tier: AITier }> {
   const usePerplexity = tier !== "free";
   const perplexityModel = tier === "premium" ? "sonar-pro" : "sonar";
@@ -97,7 +107,7 @@ async function callAI(
 
   try {
     if (usePerplexity) {
-      const result = await callPerplexity(systemPrompt, userPrompt, { maxTokens, temperature, model: perplexityModel });
+      const result = await callPerplexity(systemPrompt, userPrompt, { maxTokens, temperature, model: perplexityModel, timeoutMs: opts.timeoutMs });
       return { ...result, tier };
     } else {
       const result = await callLovableAI(systemPrompt, userPrompt, { maxTokens, temperature });
@@ -449,52 +459,35 @@ Current profile: height=${context.height}cm, weight=${context.weight}kg, type=${
       // Build unconscious matching context from behavior
       const behaviorContext = buildBehaviorInsight(userInfo);
       
-      const systemPrompt = `You are an emotionally intelligent fashion search engine. Given a user's input — which may be a mood, feeling, vague expression, or specific item — interpret the TRUE intent and generate 4-6 product search queries.
+      // STRICT structured prompt — short output for speed (Perplexity must finish fast)
+      const systemPrompt = `You convert a user's fashion search input into 6-10 real shopping search queries.
 
-INPUT TYPES YOU MUST HANDLE:
-- Mood words: "clean", "sharp", "lazy fit", "soft"
-- Feelings: "confident", "lowkey", "cozy", "bold"
-- Vague: "idk something nice", "just browsing", "surprise me"
-- Specific: "black jacket", "minimal sneakers"
-- Mixed: "something sharp for a date", "lazy weekend fit"
+OUTPUT: ONLY a JSON object. No prose, no explanation, no markdown.
 
-INTERPRETATION RULES:
-1. Detect emotional tone → map to style direction
-2. "clean" → minimal, structured, neutral colors
-3. "sharp" → tailored, fitted, dark tones
-4. "lazy"/"chill" → oversized, comfortable, soft fabrics
-5. "confident" → bold cuts, statement pieces, darker palette
-6. "soft" → light colors, relaxed fits, gentle textures
-7. "dark"/"moody" → black, layered, edgy silhouettes
-8. For vague inputs, lean on user's past behavior data if available
+Schema:
+{"queries":["..."],"category":"clothing|bags|shoes|accessories|null","style_tags":["..."],"color_direction":["..."],"fit_direction":"oversized|slim|relaxed|tailored|regular|null","emotional_tone":"...","interpreted_intent":"..."}
 
-CRITICAL RULES:
-- Every query MUST include a specific product type keyword: jacket, coat, trousers, pants, jeans, shirt, hoodie, sweater, sneakers, boots, shoes, bag, tote, backpack, hat, watch, belt, blazer, dress, skirt, top, cardigan, vest
-- NEVER generate vague queries like "modern style" or "street fashion"
-- Mix product categories: tops, bottoms, shoes, outerwear, bags, accessories
-- For non-English input, generate queries in BOTH the original language AND English
-- Each query should be 3-6 words with product type + style/color modifiers
+Rules:
+- 6 to 10 queries, each 3-6 words.
+- Every query MUST contain a product noun: jacket, coat, trousers, pants, jeans, shirt, hoodie, sweater, sneakers, boots, shoes, bag, tote, backpack, hat, watch, belt, blazer, dress, skirt, top, cardigan, vest, sandals, sunglasses.
+- Mix categories (tops, bottoms, shoes, outerwear, bags, accessories) when input is a scenario/mood.
+- For scenarios like "summer vacation": linen shirt, relaxed shorts, sandals, resort bag, sunglasses, lightweight sneakers.
+- For specific items, refine with style + color + fit modifiers.
+- Map moods: clean→minimal, sharp→tailored, lazy/chill→oversized, confident→bold, soft→relaxed light, dark→edgy black.
+- interpreted_intent: ONE short sentence.
+- Return JSON ONLY.`;
 
-Return ONLY valid JSON:
-{
-  "queries": ["query1", "query2", "query3", "query4"],
-  "category": "clothing|bags|shoes|accessories|null",
-  "style_tags": ["tag1", "tag2"],
-  "color_direction": ["black", "neutral"],
-  "fit_direction": "oversized|slim|relaxed|tailored|regular",
-  "emotional_tone": "the detected emotion/mood",
-  "interpreted_intent": "one sentence describing what the user actually wants, even if they didn't say it explicitly"
-}`;
+      const userPrompt = `Input: "${prompt}"${personalization}${behaviorContext}`;
 
-      const userPrompt = `User search input: "${prompt}"${personalization}${behaviorContext}`;
-
+      // HARD timeout inside edge function = 1800ms (frontend has its own soft 1s timeout)
       try {
-        const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 500, temperature: 0.4 });
+        const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 400, temperature: 0.3, timeoutMs: 1800 });
         const parsed = extractJSON(result.content);
 
         if (parsed?.queries?.length) {
+          console.log(`search-intent OK (tier=${result.tier}, queries=${parsed.queries.length})`);
           return new Response(JSON.stringify({
-            queries: parsed.queries.slice(0, 6),
+            queries: parsed.queries.slice(0, 10),
             category: parsed.category || null,
             style_tags: parsed.style_tags || [],
             color_direction: parsed.color_direction || [],
@@ -507,7 +500,7 @@ Return ONLY valid JSON:
           });
         }
       } catch (e) {
-        console.error("Search intent error:", e);
+        console.error("Search intent error:", e instanceof Error ? e.message : e);
       }
 
       // Fallback: return raw query as-is
