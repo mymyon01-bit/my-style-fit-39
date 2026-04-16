@@ -1297,6 +1297,7 @@ const DiscoverPage = () => {
                             savedIds={savedIds}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
+                            onOpenDetail={setDetailProduct}
                           />
                         ))}
                       </div>
