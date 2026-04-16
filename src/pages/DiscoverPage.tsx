@@ -991,6 +991,12 @@ const DiscoverPage = () => {
         </div>
 
         <div className="mx-auto max-w-lg px-6 pt-6 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+          {/* Preference Banner */}
+          {profileLoaded && needsPreferences && (
+            <div className="mb-6">
+              <PreferenceBanner onOpenQuiz={() => setShowQuiz(true)} />
+            </div>
+          )}
           {/* Search with suggestions */}
           <div className="relative">
             <div className="flex items-center gap-3 pb-4">
