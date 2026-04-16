@@ -1,7 +1,7 @@
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, ChevronDown, X, Wand2 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
@@ -55,6 +55,10 @@ const DiscoverPage = () => {
   const [hasGenerated, setHasGenerated] = useState(false);
   const [showAuthHint, setShowAuthHint] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [preferenceMode, setPreferenceMode] = useState(false);
+  const [newStyleRecs, setNewStyleRecs] = useState<AIRecommendation[]>([]);
+  const [loadingNewStyle, setLoadingNewStyle] = useState(false);
+  const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
   const lastPromptRef = useRef("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,8 +108,18 @@ const DiscoverPage = () => {
   }, [moodParam]);
 
   useEffect(() => {
-    if (user) loadSavedIds();
+    if (user) {
+      loadSavedIds();
+      loadStyleProfile();
+    }
   }, [user]);
+
+  // Load user style profile for preference mode
+  const loadStyleProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle();
+    setUserStyleProfile(data);
+  };
 
   useEffect(() => {
     if (activeTab !== "for-you" && activeTab !== "featured") {
@@ -304,6 +318,36 @@ const DiscoverPage = () => {
     }
   }, [user, savedIds]);
 
+  // Generate "New Style You Might Like" AI recommendations
+  const generateNewStyleRecs = async () => {
+    if (loadingNewStyle) return;
+    setLoadingNewStyle(true);
+    try {
+      const styleContext = userStyleProfile
+        ? `User prefers: ${userStyleProfile.preferred_styles?.join(", ") || "various"}. Fit: ${userStyleProfile.preferred_fit || "regular"}. Budget: ${userStyleProfile.budget || "mid-range"}. Suggest something NEW and outside their comfort zone but still tasteful.`
+        : "Suggest trendy, fresh fashion items the user hasn't explored yet.";
+
+      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
+        body: {
+          action: "recommend",
+          prompt: `${styleContext} Show unique, unexpected styles that expand their wardrobe.`,
+          userId: user?.id || null,
+          source: "discover-new-style",
+          count: 4,
+          isSearch: true,
+        },
+      });
+      if (error) throw error;
+      const recs = (data?.recommendations || []).filter(
+        (r: AIRecommendation) => r.image_url && r.image_url.startsWith("http")
+      );
+      setNewStyleRecs(recs);
+    } catch (e) {
+      console.error("New style recs error:", e);
+    } finally {
+      setLoadingNewStyle(false);
+    }
+  };
   const toggleStyle = (s: string) => setSelectedStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null || selectedColor !== null;
@@ -497,6 +541,30 @@ const DiscoverPage = () => {
                 {t("reset").toUpperCase()}
               </button>
             )}
+            {/* Preference toggle for logged-in users */}
+            {user && userStyleProfile && (
+              <button
+                onClick={() => {
+                  setPreferenceMode(!preferenceMode);
+                  if (!preferenceMode && userStyleProfile) {
+                    // Auto-apply user preferences
+                    const styles = userStyleProfile.preferred_styles || [];
+                    setSelectedStyles(styles.filter((s: string) => STYLE_FILTERS.includes(s)));
+                    if (userStyleProfile.preferred_fit) setSelectedFit(userStyleProfile.preferred_fit);
+                    const prompt = `Items matching my style: ${styles.join(", ")}. Fit: ${userStyleProfile.preferred_fit || "regular"}`;
+                    generateRecommendations(prompt);
+                  } else {
+                    clearFilters();
+                  }
+                }}
+                className={`hover-burgundy flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-semibold transition-all ${
+                  preferenceMode ? "border-accent/30 bg-accent/[0.06] text-accent/70" : "border-border/30 text-foreground/35"
+                }`}
+              >
+                <Heart className="h-3 w-3" />
+                {t("myPreferences")}
+              </button>
+            )}
           </div>
 
           {/* Filter Panel */}
@@ -672,6 +740,54 @@ const DiscoverPage = () => {
                     {isLoadingMore ? t("loading").toUpperCase() : t("loadMore").toUpperCase()}
                   </button>
                 </div>
+
+                {/* AI Recommendation: New Style You Might Like */}
+                {user && (
+                  <div className="space-y-5 border-t border-border/15 pt-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="h-3.5 w-3.5 text-accent/50" />
+                        <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
+                          {t("newStyleYouMightLike").toUpperCase()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={generateNewStyleRecs}
+                        disabled={loadingNewStyle}
+                        className="hover-burgundy flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.04] px-4 py-2 text-[9px] font-semibold tracking-[0.15em] text-accent/60 transition-all hover:bg-accent/[0.08] disabled:opacity-40"
+                      >
+                        {loadingNewStyle ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        {t("tryNewStyle").toUpperCase()}
+                      </button>
+                    </div>
+
+                    {newStyleRecs.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                        {newStyleRecs.map((item, i) => (
+                          <RecommendationCard
+                            key={item.id}
+                            item={item}
+                            index={i}
+                            feedbackMap={feedbackMap}
+                            savedIds={savedIds}
+                            onFeedback={handleFeedback}
+                            onSave={handleSave}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {newStyleRecs.length === 0 && !loadingNewStyle && (
+                      <p className="text-center text-[11px] text-foreground/25 py-6">
+                        {t("tryNewStyle")} — discover something unexpected
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : hasGenerated && recommendations.length === 0 ? (
               <div className="py-20 text-center space-y-4">
