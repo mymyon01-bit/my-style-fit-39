@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { useI18n, type Language } from "@/lib/i18n";
 import { Globe } from "lucide-react";
 
-const languages: { code: Language; label: string }[] = [
-  { code: "en", label: "EN" },
-  { code: "ko", label: "KO" },
-  { code: "it", label: "IT" },
+const languages: { code: Language; label: string; native: string }[] = [
+  { code: "en", label: "EN", native: "English" },
+  { code: "ko", label: "KO", native: "한국어" },
+  { code: "it", label: "IT", native: "Italiano" },
 ];
 
 const LanguageSelector = () => {
