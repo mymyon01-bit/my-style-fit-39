@@ -1193,138 +1193,174 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── Query expansion: convert vague/lifestyle queries into concrete product searches ──
+  // ══════════════════════════════════════════════════════════════════════
+  // ── FALLBACK QUERY GENERATOR: rule-based, instant, no API needed ──
+  // ══════════════════════════════════════════════════════════════════════
+
   function expandSearchQuery(q: string): string[] {
     const lower = q.toLowerCase().trim();
-    const expanded: string[] = [];
+    const queries: string[] = [];
 
-    // Occasion / lifestyle expansions — map intent to actual fashion items
-    const OCCASION_EXPANSIONS: Record<string, string[]> = {
-      "summer vacation": ["linen shirt", "shorts", "sandals", "sunglasses", "straw hat", "lightweight dress"],
-      "summer": ["linen shirt", "shorts", "sandals", "tank top", "lightweight dress", "sunglasses"],
-      "vacation": ["linen shirt", "resort wear", "sandals", "sunglasses", "lightweight shorts", "summer dress"],
-      "beach": ["swim shorts", "sandals", "linen shirt", "sunglasses", "straw hat", "tank top"],
-      "travel": ["comfortable sneakers", "versatile jacket", "crossbody bag", "casual pants", "lightweight shirt"],
-      "winter": ["wool coat", "knit sweater", "boots", "scarf", "gloves", "parka"],
-      "spring": ["light jacket", "sneakers", "cotton shirt", "chinos", "windbreaker"],
-      "fall": ["leather jacket", "boots", "sweater", "scarf", "corduroy pants"],
-      "autumn": ["leather jacket", "boots", "sweater", "scarf", "corduroy pants"],
-      "rain": ["rain jacket", "waterproof boots", "umbrella", "trench coat"],
-      "wedding": ["suit", "dress shoes", "tie", "formal dress", "clutch bag"],
-      "date": ["blazer", "slim pants", "clean sneakers", "dress shirt", "elegant dress"],
-      "date night": ["blazer", "slim pants", "dress shoes", "elegant dress", "clutch bag"],
-      "office": ["blazer", "dress shirt", "trousers", "loafers", "leather bag"],
-      "work": ["blazer", "dress shirt", "trousers", "loafers", "leather bag"],
-      "gym": ["athletic shorts", "running shoes", "sports tee", "hoodie", "joggers"],
-      "workout": ["athletic shorts", "running shoes", "sports tee", "tank top", "leggings"],
-      "party": ["statement jacket", "boots", "edgy top", "slim jeans", "accessories"],
-      "festival": ["graphic tee", "shorts", "sneakers", "sunglasses", "bucket hat"],
-      "casual": ["t-shirt", "jeans", "sneakers", "hoodie", "casual jacket"],
-      "formal": ["suit", "dress shirt", "dress shoes", "tie", "formal dress"],
-      "streetwear": ["oversized hoodie", "cargo pants", "sneakers", "cap", "crossbody bag"],
-      "hiking": ["hiking boots", "outdoor jacket", "cargo pants", "backpack"],
-      "camping": ["fleece jacket", "hiking boots", "cargo shorts", "backpack"],
-      "school": ["backpack", "sneakers", "hoodie", "jeans", "casual tee"],
-      "airport": ["comfortable sneakers", "joggers", "oversized hoodie", "crossbody bag", "sunglasses"],
+    // ── 1. Detect query type using parseQueryIntent (already in scope) ──
+    const intent = parseQueryIntent(q);
+
+    // ── 2. Detect color (keep in all generated queries) ──
+    const detectedColor = intent.colorIntent[0] || "";
+    const colorPrefix = detectedColor ? `${detectedColor} ` : "";
+
+    // ── 3. Detect brand ──
+    const detectedBrand = intent.brandIntent[0] || "";
+
+    // ── Style modifiers to inject for richness ──
+    const STYLE_MODIFIERS = ["minimal", "oversized", "clean", "relaxed", "tailored"];
+
+    // ═══ SCENARIO queries ═══
+    const SCENARIO_EXPANSIONS: Record<string, string[]> = {
+      "summer vacation": ["linen shirt summer", "casual shorts men", "sandals summer", "sunglasses fashion", "straw hat", "lightweight tee", "resort wear", "swim shorts beach"],
+      "summer": ["linen shirt", "cotton shorts", "sandals", "tank top", "sunglasses", "lightweight dress", "straw bag", "espadrilles"],
+      "vacation": ["resort wear shirt", "linen shorts casual", "sandals vacation", "sunglasses travel", "crossbody bag", "summer dress"],
+      "beach": ["swim shorts", "sandals beach", "linen shirt", "straw hat", "tank top", "sunglasses polarized", "beach tote bag"],
+      "travel": ["comfortable sneakers", "versatile jacket", "crossbody bag travel", "casual pants stretch", "lightweight shirt", "backpack carry-on"],
+      "winter": ["wool coat winter", "knit sweater thick", "leather boots", "cashmere scarf", "gloves leather", "parka insulated", "thermal turtleneck"],
+      "spring": ["light jacket spring", "clean sneakers white", "cotton shirt pastel", "chinos slim", "windbreaker", "light cardigan"],
+      "fall": ["leather jacket brown", "suede boots", "knit sweater", "wool scarf", "corduroy pants", "flannel shirt"],
+      "autumn": ["leather jacket", "chelsea boots", "cable knit sweater", "wool coat", "corduroy trousers"],
+      "rain": ["rain jacket waterproof", "waterproof boots", "trench coat", "gore-tex sneakers", "packable jacket"],
+      "wedding": ["suit tailored", "dress shoes leather", "silk tie", "formal dress elegant", "clutch bag evening", "cufflinks"],
+      "date": ["blazer slim fit", "dress shirt clean", "slim pants", "clean sneakers", "elegant dress", "leather belt"],
+      "date night": ["blazer elegant", "slim trousers dark", "dress shoes polished", "silk blouse", "clutch bag", "statement jewelry"],
+      "office": ["blazer structured", "dress shirt cotton", "tailored trousers", "leather loafers", "leather briefcase", "slim belt"],
+      "work": ["blazer work", "button-down shirt", "dress pants", "oxford shoes", "leather tote bag", "minimal watch"],
+      "gym": ["athletic shorts dri-fit", "running shoes cushioned", "performance tee", "zip hoodie", "joggers tapered", "sports bra"],
+      "workout": ["training shorts", "running shoes", "muscle tee", "compression leggings", "athletic hoodie", "gym bag"],
+      "party": ["statement jacket", "leather boots", "edgy graphic top", "slim black jeans", "chain necklace", "bold sneakers"],
+      "festival": ["graphic tee vintage", "denim shorts", "high-top sneakers", "bucket hat", "crossbody bag small", "bold sunglasses"],
+      "casual": ["plain t-shirt quality", "slim jeans", "casual sneakers", "hoodie cotton", "casual jacket", "canvas bag"],
+      "formal": ["tailored suit", "dress shirt white", "oxford shoes leather", "silk tie", "formal dress", "leather belt"],
+      "streetwear": ["oversized hoodie graphic", "cargo pants wide", "chunky sneakers", "snapback cap", "crossbody bag street", "oversized tee"],
+      "hiking": ["hiking boots waterproof", "outdoor jacket technical", "cargo pants stretch", "trail backpack", "moisture-wicking tee"],
+      "camping": ["fleece jacket half-zip", "hiking boots", "cargo shorts durable", "technical backpack", "insulated vest"],
+      "school": ["casual backpack", "clean sneakers", "cotton hoodie", "slim jeans", "basic tee", "canvas shoes"],
+      "airport": ["comfortable joggers", "slip-on sneakers", "oversized hoodie soft", "crossbody bag", "sunglasses", "compression socks"],
+      "brunch": ["linen shirt relaxed", "chinos casual", "loafers suede", "tote bag canvas", "light cardigan"],
+      "concert": ["graphic tee band", "leather jacket", "black jeans slim", "boots", "statement accessories"],
+      "interview": ["tailored blazer navy", "dress shirt white", "slim trousers charcoal", "oxford shoes", "leather portfolio bag"],
+      "picnic": ["linen shirt pastel", "cotton shorts", "canvas sneakers", "straw hat", "tote bag"],
+      "resort": ["resort shirt printed", "swim shorts tailored", "leather sandals", "sunglasses aviator", "linen pants"],
     };
 
-    // Emotion / vague word expansion
-    const VAGUE_EXPANSIONS: Record<string, string[]> = {
-      modern: ["modern slim jacket", "modern minimalist sneakers", "modern structured trousers"],
-      clean: ["clean minimal shirt", "clean white sneakers", "clean structured blazer"],
-      cozy: ["cozy oversized sweater", "cozy knit cardigan", "cozy fleece hoodie"],
-      bold: ["bold statement jacket", "bold graphic tee", "bold colored sneakers"],
-      moody: ["dark tonal jacket", "moody leather boots", "dark layered outfit"],
-      fresh: ["fresh casual sneakers", "fresh linen shirt", "fresh summer shorts"],
-      confident: ["tailored blazer", "sharp dress shoes", "structured coat"],
-      elegant: ["elegant silk blouse", "classic leather bag", "tailored wool trousers"],
-      chill: ["relaxed fit jeans", "casual hoodie", "comfort sneakers"],
-      soft: ["pastel knit sweater", "soft cotton tee", "light linen pants"],
-      dark: ["black leather jacket", "dark denim jeans", "dark minimal boots"],
-      lazy: ["oversized hoodie", "relaxed joggers", "slip-on sneakers"],
-      sharp: ["tailored suit jacket", "slim fit shirt", "oxford shoes"],
-      lowkey: ["minimal tee", "neutral toned pants", "clean low-top sneakers"],
-      romantic: ["flowy blouse", "delicate jewelry", "vintage inspired dress"],
+    // ═══ STYLE / EMOTION queries ═══
+    const STYLE_EXPANSIONS: Record<string, string[]> = {
+      modern: ["modern slim jacket", "minimalist sneakers white", "structured trousers tapered", "clean tee premium", "modern leather bag"],
+      clean: ["clean minimal shirt white", "white sneakers leather", "structured blazer neutral", "slim chinos beige", "clean watch minimal"],
+      cozy: ["oversized knit sweater", "sherpa fleece hoodie", "knit cardigan chunky", "soft cotton joggers", "fuzzy slippers"],
+      bold: ["statement jacket colorful", "graphic tee bold", "colored sneakers bright", "patterned shirt", "bold accessories chain"],
+      moody: ["dark tonal jacket", "leather boots black", "dark denim slim", "turtleneck black", "minimal dark accessories"],
+      fresh: ["light sneakers casual", "linen shirt summer", "cotton shorts fresh", "pastel tee", "canvas bag light"],
+      confident: ["tailored blazer fitted", "sharp dress shoes", "structured overcoat", "slim belt leather", "quality watch"],
+      elegant: ["silk blouse", "classic leather bag", "tailored wool trousers", "heeled boots", "delicate jewelry gold"],
+      chill: ["relaxed jeans wide", "casual hoodie soft", "comfort sneakers slip-on", "oversized tee", "bucket hat"],
+      soft: ["pastel knit sweater", "soft cotton tee cream", "light linen pants", "suede loafers", "woven bag"],
+      dark: ["black leather jacket", "dark denim jeans slim", "black boots minimal", "black turtleneck", "dark accessories"],
+      lazy: ["oversized hoodie blank", "relaxed joggers cotton", "slip-on sneakers", "loose tee", "beanie knit"],
+      sharp: ["tailored suit jacket slim", "fitted dress shirt", "oxford shoes polished", "slim tie", "leather belt"],
+      lowkey: ["neutral tee minimal", "slim chinos earth tone", "clean low-top sneakers", "simple watch", "canvas tote"],
+      romantic: ["flowy blouse silk", "delicate jewelry", "vintage dress floral", "suede heels", "lace accessories"],
     };
 
-    // First check multi-word occasion phrases (longest match first)
-    const sortedOccasions = Object.keys(OCCASION_EXPANSIONS).sort((a, b) => b.length - a.length);
-    let matched = false;
-    for (const key of sortedOccasions) {
+    // ═══ PRODUCT queries: expand with style variants + nearby categories ═══
+    const PRODUCT_CATEGORY_SIBLINGS: Record<string, string[]> = {
+      jacket: ["outerwear", "coat", "blazer", "bomber jacket"],
+      coat: ["overcoat", "trench coat", "wool coat", "parka"],
+      blazer: ["sport coat", "tailored jacket", "structured blazer"],
+      shirt: ["button-down shirt", "oxford shirt", "dress shirt", "casual shirt"],
+      hoodie: ["zip hoodie", "pullover hoodie", "oversized hoodie", "fleece hoodie"],
+      sweater: ["knit sweater", "cashmere sweater", "crewneck sweater", "cardigan"],
+      pants: ["trousers", "chinos", "slim pants", "wide pants"],
+      jeans: ["slim jeans", "straight jeans", "wide leg jeans", "denim"],
+      shorts: ["casual shorts", "chino shorts", "athletic shorts"],
+      sneakers: ["low-top sneakers", "high-top sneakers", "running shoes", "leather sneakers"],
+      boots: ["chelsea boots", "leather boots", "ankle boots", "combat boots"],
+      shoes: ["loafers", "sneakers", "boots", "dress shoes"],
+      bag: ["tote bag", "crossbody bag", "backpack", "messenger bag"],
+      dress: ["midi dress", "maxi dress", "casual dress", "elegant dress"],
+    };
+
+    // ─── Check scenario first (longest match) ───
+    const sortedScenarios = Object.keys(SCENARIO_EXPANSIONS).sort((a, b) => b.length - a.length);
+    let scenarioMatched = false;
+    for (const key of sortedScenarios) {
       if (lower.includes(key)) {
-        expanded.push(...OCCASION_EXPANSIONS[key]);
-        matched = true;
+        const items = SCENARIO_EXPANSIONS[key];
+        // Add color prefix to each item if user specified a color
+        queries.push(...items.map(item => colorPrefix ? `${colorPrefix}${item}` : item));
+        scenarioMatched = true;
         break;
       }
     }
 
-    // Then check vague emotion words
-    if (!matched) {
-      for (const [key, expansions] of Object.entries(VAGUE_EXPANSIONS)) {
+    // ─── Check style/emotion ───
+    if (!scenarioMatched) {
+      const sortedStyles = Object.keys(STYLE_EXPANSIONS).sort((a, b) => b.length - a.length);
+      let styleMatched = false;
+      for (const key of sortedStyles) {
         if (lower.includes(key)) {
-          expanded.push(...expansions);
-          matched = true;
+          queries.push(...STYLE_EXPANSIONS[key].map(item => colorPrefix ? `${colorPrefix}${item}` : item));
+          styleMatched = true;
           break;
+        }
+      }
+
+      // ─── Product query: expand with variants ───
+      if (!styleMatched) {
+        const productCategoryMatch = lower.match(/\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|pants|trousers|jeans|shorts|skirt|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|hat|watch|dress|top|tee)\b/);
+
+        if (productCategoryMatch) {
+          const productKey = productCategoryMatch[1].replace(/s$/, ""); // normalize plural
+          // Original query stays first
+          queries.push(q);
+          // Brand variant
+          if (detectedBrand) {
+            queries.push(`${detectedBrand} ${productKey}`);
+          }
+          // Color + product
+          if (detectedColor) {
+            queries.push(`${detectedColor} ${productKey}`);
+          }
+          // Style-modified variants
+          const modifiers = STYLE_MODIFIERS.slice(0, 3);
+          modifiers.forEach(mod => queries.push(`${mod} ${colorPrefix}${productKey}`));
+          // Sibling categories
+          const siblings = PRODUCT_CATEGORY_SIBLINGS[productKey] || [];
+          siblings.slice(0, 3).forEach(sib => queries.push(`${colorPrefix}${sib}`));
+        } else {
+          // ─── Unknown / generic query: cross-category expansion ───
+          queries.push(q);
+          queries.push(`${q} jacket`);
+          queries.push(`${q} shirt`);
+          queries.push(`${q} sneakers`);
+          queries.push(`${q} pants`);
+          queries.push(`${q} bag`);
+          queries.push(`${q} accessories`);
+          // Add style-modified
+          queries.push(`minimal ${q}`);
+          queries.push(`casual ${q}`);
         }
       }
     }
 
-    // If query has a product category keyword, just return it directly
-    const hasCategory = /\b(jacket|coat|shirt|hoodie|sweater|pants|jeans|shorts|sneakers?|boots?|shoes?|bag|hat|watch|dress|blazer|cardigan|vest|skirt|top|tee|sandals?|sunglasses)\b/i.test(lower);
-    if (hasCategory && !matched) {
-      // Query already contains a product term — use as-is
-      return [q];
+    // ── Ensure minimum 5 queries: pad with cross-category if needed ──
+    if (queries.length < 5) {
+      const padCategories = ["jacket", "sneakers", "shirt", "bag", "accessories"];
+      for (const cat of padCategories) {
+        if (queries.length >= 5) break;
+        const padQuery = `${colorPrefix}${intent.styleIntent[0] || "casual"} ${cat}`;
+        if (!queries.includes(padQuery)) queries.push(padQuery);
+      }
     }
 
-    // If still nothing matched and no product category, add generic category variants
-    if (!matched && !hasCategory) {
-      expanded.push(`${q} outfit`, `${q} clothing`, `${q} shoes`);
-    }
-
-    return [...new Set(expanded)].slice(0, 6);
-  }
-
-  // ── Generate broadened search terms for fallback stages ──
-  function getBroaderSearchTerms(intent: QueryIntent): string[] {
-    const STYLE_NEIGHBORS: Record<string, string[]> = {
-      modern: ["minimal", "clean", "structured", "sleek"],
-      minimal: ["clean", "modern", "simple", "structured"],
-      street: ["casual", "urban", "sporty"],
-      classic: ["elegant", "formal", "timeless", "chic"],
-      edgy: ["dark", "punk", "avant-garde"],
-      casual: ["relaxed", "everyday", "comfortable"],
-      formal: ["classic", "elegant", "professional"],
-      chic: ["elegant", "modern", "sophisticated"],
-      vintage: ["retro", "classic", "thrift"],
-      sporty: ["athletic", "casual", "active"],
-    };
-
-    const CATEGORY_FAMILY: Record<string, string[]> = {
-      TOPS: ["shirt", "sweater", "hoodie", "top", "blouse", "jacket", "coat", "blazer", "cardigan", "vest"],
-      BOTTOMS: ["pants", "jeans", "trousers", "shorts", "skirt", "joggers", "chinos"],
-      SHOES: ["sneakers", "boots", "loafers", "sandals", "shoes"],
-      BAGS: ["bag", "tote", "backpack", "crossbody", "clutch"],
-      ACCESSORIES: ["hat", "watch", "scarf", "sunglasses", "belt"],
-    };
-
-    const broader: string[] = [];
-
-    // Broaden styles
-    for (const style of intent.styleIntent) {
-      const neighbors = STYLE_NEIGHBORS[style] || [];
-      neighbors.forEach(n => broader.push(`${n} ${intent.rawQuery}`));
-    }
-
-    // Broaden category family
-    if (intent.categoryLock) {
-      const family = CATEGORY_FAMILY[intent.categoryLock] || [];
-      family.slice(0, 4).forEach(term => {
-        const colorPart = intent.colorIntent.length > 0 ? ` ${intent.colorIntent[0]}` : "";
-        broader.push(`${colorPart} ${term}`.trim());
-      });
-    }
-
-    return [...new Set(broader)].slice(0, 6);
+    // Deduplicate and cap at 10
+    return [...new Set(queries)].slice(0, 10);
   }
 
   // ── Perplexity-powered query expansion via wardrobe-ai search-intent ──
