@@ -140,15 +140,25 @@ async function scrapePlatform(
     const result = await response.json();
     const extracted = result?.json?.products || result?.data?.json?.products || [];
 
-    return extracted
-      .filter(
-        (p: any) =>
-          p.title &&
-          p.price &&
-          p.image_url?.startsWith("http") &&
-          /\.(jpg|jpeg|png|webp|avif|gif)/i.test(p.image_url || "") &&
-          p.product_url?.startsWith("http")
-      )
+    // Pre-filter by basic URL shape
+    const candidates = extracted.filter(
+      (p: any) =>
+        p.title &&
+        p.price &&
+        p.image_url?.startsWith("https") &&
+        p.product_url?.startsWith("http")
+    );
+
+    // HEAD-validate images in parallel (discard failures immediately)
+    const validated = await Promise.all(
+      candidates.map(async (p: any) => {
+        const ok = await validateImageHead(p.image_url);
+        return ok ? p : null;
+      })
+    );
+
+    return validated
+      .filter(Boolean)
       .map((p: any, i: number) => ({
         external_id: `${platformId}-${hashString(p.product_url || p.title)}-${i}`,
         name: (p.title || "").slice(0, 150),
@@ -170,6 +180,26 @@ async function scrapePlatform(
   } catch (e) {
     console.error(`[${platformId}] Scrape failed:`, e);
     return [];
+  }
+}
+
+/** Validate that a URL returns a real image via HEAD request */
+async function validateImageHead(url: string): Promise<boolean> {
+  if (!url || !url.startsWith("https")) return false;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(url, {
+      method: "HEAD",
+      signal: controller.signal,
+      redirect: "follow",
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return false;
+    const ct = res.headers.get("content-type") || "";
+    return ct.startsWith("image/");
+  } catch {
+    return false;
   }
 }
 
