@@ -84,7 +84,7 @@ async function loadCachedProductsFromDB(opts: {
   if (error || !data) return [];
 
   return data
-    .filter((p: any) => p.image_url && p.image_url.startsWith("http"))
+    .filter((p: any) => p.image_url && p.image_url.startsWith("https"))
     .map((p: any) => ({
       id: p.external_id || p.id,
       name: p.name,
@@ -182,7 +182,7 @@ const DiscoverPage = () => {
         body: { query: query || "", category, limit: 20 },
       });
       if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http")).map((p: any) => ({
+      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https")).map((p: any) => ({
         ...p,
         platform: p.platform || null,
       }));
@@ -199,7 +199,7 @@ const DiscoverPage = () => {
         body: { query, platforms: ["naver", "ssense", "farfetch", "asos", "ssg"], limit: 15 },
       });
       if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http"));
+      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https"));
     } catch (e) {
       console.error("Commerce scraper error:", e);
       return [];
@@ -1075,6 +1075,10 @@ interface RecommendationCardProps {
 const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave }: RecommendationCardProps) => {
   const feedback = feedbackMap[item.id];
   const isSaved = savedIds.has(item.id);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  // If image is missing or failed to load, don't render the card at all
+  if (!item.image_url || !item.image_url.startsWith("http") || imgFailed) return null;
 
   return (
     <motion.div
@@ -1084,11 +1088,12 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
       className="group"
     >
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
-        <SafeImage
-          src={item.image_url || ""}
+        <img
+          src={item.image_url}
           alt={item.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading={index < 4 ? "eager" : "lazy"}
+          onError={() => setImgFailed(true)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 transition-all group-hover:opacity-100">
