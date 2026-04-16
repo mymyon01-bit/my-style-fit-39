@@ -18,7 +18,7 @@ const SectionHeader = ({ title, subtitle, onSeeAll }: SectionHeaderProps) => {
       {onSeeAll && (
         <button
           onClick={onSeeAll}
-          className="flex items-center gap-0.5 text-xs font-medium text-accent transition-colors hover:text-accent/80"
+          className="hover-burgundy flex items-center gap-0.5 text-xs font-semibold text-accent"
         >
           See all
           <ChevronRight className="h-3.5 w-3.5" />
