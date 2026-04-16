@@ -65,6 +65,92 @@ function classifyProduct(item: AIRecommendation): FashionCategory | null {
   return null;
 }
 
+// ── Emotion / Intent mapping for client-side lightweight scoring ──
+const EMOTION_STYLE_MAP: Record<string, string[]> = {
+  clean: ["minimal", "cleanFit"], sharp: ["classic", "chic", "formal"],
+  lazy: ["casual", "minimal"], confident: ["chic", "classic", "edgy"],
+  lowkey: ["minimal", "casual"], soft: ["casual", "minimal", "bohemian"],
+  bold: ["edgy", "streetwear"], cozy: ["casual", "vintage"],
+  elegant: ["classic", "chic", "formal"], chill: ["casual", "minimal", "sporty"],
+  dark: ["edgy", "minimal"], moody: ["edgy", "vintage"],
+  fresh: ["sporty", "casual", "minimal"], romantic: ["chic", "bohemian", "vintage"],
+};
+
+const EMOTION_COLOR_MAP: Record<string, string[]> = {
+  clean: ["white", "neutral", "light"], dark: ["black", "charcoal", "navy"],
+  soft: ["pastel", "beige", "cream"], bold: ["red", "orange", "bright"],
+  moody: ["burgundy", "dark", "forest"], fresh: ["white", "mint", "sky"],
+  elegant: ["black", "navy", "gold"], cozy: ["earth", "brown", "warm"],
+};
+
+// ── Free-mode lightweight scoring (no AI needed) ──
+function freeScoreProduct(
+  item: AIRecommendation,
+  query: string,
+  userStyle?: any,
+  feedbackMap?: Record<string, "like" | "dislike">,
+): number {
+  const queryLower = query.toLowerCase();
+  const terms = queryLower.split(/\s+/).filter(t => t.length > 2);
+  const itemText = `${item.name} ${item.brand} ${item.category} ${(item.style_tags || []).join(" ")} ${item.color} ${item.fit}`.toLowerCase();
+
+  // 0.30 Style Match — emotion/keyword alignment
+  let styleScore = 0;
+  const matchedEmotions = Object.keys(EMOTION_STYLE_MAP).filter(e => queryLower.includes(e));
+  if (matchedEmotions.length > 0) {
+    const targetStyles = [...new Set(matchedEmotions.flatMap(e => EMOTION_STYLE_MAP[e]))];
+    const overlap = (item.style_tags || []).filter(t => targetStyles.includes(t)).length;
+    styleScore = Math.min(100, 40 + overlap * 25);
+  } else {
+    // Direct keyword match
+    const matchCount = terms.filter(t => itemText.includes(t)).length;
+    styleScore = terms.length > 0 ? Math.min(100, (matchCount / terms.length) * 100) : 50;
+  }
+
+  // 0.20 Category match
+  let categoryScore = 50;
+  if (item.category && queryLower.includes(item.category.toLowerCase())) categoryScore = 100;
+
+  // 0.20 Color alignment
+  let colorScore = 50;
+  const matchedEmotionColors = matchedEmotions.flatMap(e => EMOTION_COLOR_MAP[e] || []);
+  if (matchedEmotionColors.length > 0 && item.color) {
+    if (matchedEmotionColors.some(c => item.color.toLowerCase().includes(c))) colorScore = 90;
+  }
+  if (terms.some(t => item.color?.toLowerCase().includes(t))) colorScore = 95;
+
+  // 0.15 Preference match (user style profile)
+  let prefScore = 50;
+  if (userStyle) {
+    const userStyles = userStyle.preferred_styles || [];
+    const disliked = userStyle.disliked_styles || [];
+    if ((item.style_tags || []).some((t: string) => userStyles.includes(t))) prefScore += 30;
+    if ((item.style_tags || []).some((t: string) => disliked.includes(t))) prefScore -= 25;
+    const favBrands = userStyle.favorite_brands || [];
+    if (favBrands.includes(item.brand)) prefScore += 15;
+  }
+  prefScore = Math.max(0, Math.min(100, prefScore));
+
+  // 0.10 Behavior
+  let behaviorScore = 50;
+  if (feedbackMap) {
+    if (feedbackMap[item.id] === "like") behaviorScore = 90;
+    if (feedbackMap[item.id] === "dislike") behaviorScore = 10;
+  }
+
+  // 0.05 Diversity (small random jitter for variety)
+  const diversityScore = 40 + Math.random() * 20;
+
+  return Math.round(
+    0.30 * styleScore +
+    0.20 * categoryScore +
+    0.20 * colorScore +
+    0.15 * prefScore +
+    0.10 * behaviorScore +
+    0.05 * diversityScore
+  );
+}
+
 // Client-side result cache
 const resultCache = new Map<string, { data: AIRecommendation[]; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
