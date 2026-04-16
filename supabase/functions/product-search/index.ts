@@ -68,11 +68,14 @@ async function loadFromDB(supabase: any, opts: {
   // If we have a text query, use ilike for direct DB-level text filtering
   if (opts.query) {
     const terms = opts.query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 2);
-    // Use the most specific term (longest) for DB-level filtering
-    const primaryTerms = terms.slice(0, 3);
-    for (const term of primaryTerms) {
-      // Search in name field — the most important match
-      q = q.or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%`);
+    if (terms.length > 0) {
+      // Build a single OR condition that matches ANY term in name/brand/category
+      const orClauses = terms.slice(0, 4).flatMap(term => [
+        `name.ilike.%${term}%`,
+        `brand.ilike.%${term}%`,
+        `category.ilike.%${term}%`,
+      ]);
+      q = q.or(orClauses.join(","));
     }
   }
 
