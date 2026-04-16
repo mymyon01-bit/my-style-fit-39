@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, HeartOff, MessageCircle, Send, Bookmark, BookmarkCheck, Crown } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Bookmark, BookmarkCheck, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import OOTDPostDetail from "@/components/OOTDPostDetail";
 import CrownedBoard from "@/components/CrownedBoard";
 
 interface OOTDPost {
@@ -36,13 +37,6 @@ interface ProfileInfo {
   avatar_url: string | null;
 }
 
-interface Comment {
-  id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-}
-
 type Tab = "community" | "mypage" | "crowned";
 
 const OOTDPage = () => {
@@ -60,11 +54,8 @@ const OOTDPage = () => {
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
-  const [expandedComments, setExpandedComments] = useState<string | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [commentText, setCommentText] = useState("");
-  const [loadingComments, setLoadingComments] = useState(false);
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
+  const [selectedPost, setSelectedPost] = useState<OOTDPost | null>(null);
 
   useEffect(() => {
     loadPosts();
@@ -90,10 +81,7 @@ const OOTDPage = () => {
 
     const userIds = [...new Set(fetched.map(p => p.user_id))];
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, avatar_url")
-        .in("user_id", userIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
       if (profiles) {
         const map: Record<string, ProfileInfo> = {};
         for (const p of profiles) map[p.user_id] = p as ProfileInfo;
@@ -147,7 +135,6 @@ const OOTDPage = () => {
   const handleReaction = async (postId: string, type: "like" | "dislike") => {
     if (!user) return;
     const current = reactions[postId];
-
     if (current === type) {
       await supabase.from("ootd_reactions").delete().eq("post_id", postId).eq("user_id", user.id);
       setReactions(prev => { const n = { ...prev }; delete n[postId]; return n; });
@@ -173,7 +160,6 @@ const OOTDPage = () => {
         dislike_count: type === "dislike" ? (p.dislike_count || 0) + 1 : p.dislike_count,
       } : p));
     }
-
     await supabase.from("interactions").insert({
       user_id: user.id, event_type: type, target_id: postId, target_type: "ootd", metadata: {},
     });
@@ -189,47 +175,56 @@ const OOTDPage = () => {
     }
   };
 
-  const toggleComments = async (postId: string) => {
-    if (expandedComments === postId) { setExpandedComments(null); return; }
-    setExpandedComments(postId);
-    setLoadingComments(true);
-    setCommentText("");
-    const { data } = await supabase
-      .from("ootd_comments").select("*").eq("post_id", postId)
-      .order("created_at", { ascending: true }).limit(50);
-
-    const fetched = (data || []) as Comment[];
-    const cUserIds = [...new Set(fetched.map(c => c.user_id))];
-    if (cUserIds.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", cUserIds);
-      if (profiles) {
-        const map: Record<string, ProfileInfo> = {};
-        for (const p of profiles) map[p.user_id] = p as ProfileInfo;
-        setProfileMap(prev => ({ ...prev, ...map }));
-      }
-    }
-    setComments(fetched);
-    setLoadingComments(false);
-  };
-
-  const submitComment = async () => {
-    if (!user || !expandedComments || !commentText.trim()) return;
-    const { data, error } = await supabase.from("ootd_comments").insert({
-      post_id: expandedComments, user_id: user.id, content: commentText.trim(),
-    }).select().single();
-
-    if (!error && data) {
-      setComments(prev => [...prev, data as Comment]);
-      setCommentText("");
-      await supabase.from("interactions").insert({
-        user_id: user.id, event_type: "comment", target_id: expandedComments, target_type: "ootd", metadata: {},
-      });
-    }
-  };
-
   const handlePosted = () => { loadPosts(); loadMyPosts(); loadTopics(); };
-  const getDisplayName = (userId: string) => profileMap[userId]?.display_name || "User";
-  const getAvatar = (userId: string) => profileMap[userId]?.avatar_url;
+  const getProfile = (userId: string) => profileMap[userId] || null;
+
+  // Render a post card (used in both community + my page)
+  const renderPostCard = (post: OOTDPost, index: number, showAuthor = true) => {
+    const profile = getProfile(post.user_id);
+    const likes = post.like_count || 0;
+
+    return (
+      <motion.div
+        key={post.id}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: index * 0.03 }}
+        className="mb-3 break-inside-avoid cursor-pointer group"
+        onClick={() => setSelectedPost(post)}
+      >
+        <div className="relative overflow-hidden rounded-xl">
+          <img
+            src={post.image_url}
+            alt={post.caption || ""}
+            className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+          {/* Subtle bottom overlay */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/40 to-transparent p-2.5 pt-8">
+            {showAuthor && (
+              <p className="text-[9px] font-medium text-white/70 truncate">
+                {profile?.display_name || "Anonymous"}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-0.5">
+              {likes > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Heart className="h-2.5 w-2.5 text-white/60" />
+                  <span className="text-[8px] text-white/60">{likes}</span>
+                </span>
+              )}
+              {(post.star_count || 0) > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                  <span className="text-[8px] text-white/70">{post.star_count}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
@@ -282,33 +277,21 @@ const OOTDPage = () => {
                 </div>
               ) : (
                 <>
-                  <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-14 text-foreground/80 hover:text-accent/80 transition-colors">
+                  <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
                     <Camera className="h-5 w-5" />
                     <span className="text-[10px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
                   </button>
-                  <div className="h-px bg-accent/[0.14]" />
 
                   {myPosts.length === 0 ? (
                     <div className="py-16 text-center space-y-3">
                       <p className="text-[13px] text-foreground/80">No outfits posted yet</p>
-                      <p className="text-[11px] text-foreground/80 max-w-[220px] mx-auto leading-relaxed">
+                      <p className="text-[11px] text-foreground/50 max-w-[220px] mx-auto leading-relaxed">
                         Upload daily looks to build your style identity.
                       </p>
                     </div>
                   ) : (
                     <div className="columns-2 gap-3 md:columns-3">
-                      {myPosts.map(post => (
-                        <div key={post.id} className="mb-3 break-inside-avoid">
-                          <img src={post.image_url} alt={post.caption || ""} className="w-full rounded-xl object-cover" loading="lazy" />
-                          <div className="pt-2 flex items-center justify-between px-0.5">
-                            <p className="text-[10px] text-foreground/60 truncate flex-1">{post.caption || ""}</p>
-                            <div className="flex items-center gap-0.5">
-                              <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                              <span className="text-[10px] text-foreground/50">{post.star_count || 0}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                      {myPosts.map((post, i) => renderPostCard(post, i, false))}
                     </div>
                   )}
                 </>
@@ -336,7 +319,7 @@ const OOTDPage = () => {
                 </div>
               )}
 
-              {/* Social Feed */}
+              {/* Social Feed — Card Grid */}
               {isLoading ? (
                 <div className="columns-2 gap-3 md:columns-3">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -359,145 +342,32 @@ const OOTDPage = () => {
                 </div>
               ) : (
                 <div className="columns-2 gap-3 md:columns-3">
-                  {posts.map((post, index) => {
-                    const isStarred = starredPosts.has(post.id);
-                    const reaction = reactions[post.id];
-                    const isCommentsOpen = expandedComments === post.id;
-                    const authorName = getDisplayName(post.user_id);
-                    const authorAvatar = getAvatar(post.user_id);
-                    const isSaved = savedPosts.has(post.id);
-
-                    return (
-                      <motion.div
-                        key={post.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="mb-4 break-inside-avoid"
-                      >
-                        <div className="relative overflow-hidden rounded-xl">
-                          <img src={post.image_url} alt={post.caption || ""} className="w-full object-cover" loading="lazy" />
-                          {(post.star_count || 0) > 0 && (
-                            <div className="absolute top-2 right-2 flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm">
-                              <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                              <span className="text-[9px] text-white/80">{post.star_count}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-2 px-0.5">
-                          <button onClick={() => navigate(`/user/${post.user_id}`)} className="flex items-center gap-1.5 mb-1 group">
-                            <div className="h-4 w-4 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
-                              {authorAvatar ? (
-                                <img src={authorAvatar} alt="" className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center text-[7px] font-bold text-foreground/30">
-                                  {authorName[0]?.toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                            <span className="text-[10px] font-medium text-foreground/60 group-hover:text-foreground/80 transition-colors">
-                              {authorName}
-                            </span>
-                          </button>
-
-                          {post.caption && (
-                            <p className="text-[10px] text-foreground/50 line-clamp-2 mb-1.5">{post.caption}</p>
-                          )}
-
-                          {/* Interactions */}
-                          <div className="flex items-center gap-3 mt-1">
-                            <AuthGate action="react">
-                              <button onClick={() => handleReaction(post.id, "like")} className={`flex items-center gap-0.5 transition-colors ${reaction === "like" ? "text-rose-400" : "text-foreground/30 hover:text-foreground/50"}`}>
-                                <Heart className={`h-3.5 w-3.5 ${reaction === "like" ? "fill-current" : ""}`} />
-                                {(post.like_count || 0) > 0 && <span className="text-[9px]">{post.like_count}</span>}
-                              </button>
-                            </AuthGate>
-
-                            <AuthGate action="react">
-                              <button onClick={() => handleReaction(post.id, "dislike")} className={`flex items-center gap-0.5 transition-colors ${reaction === "dislike" ? "text-blue-400" : "text-foreground/30 hover:text-foreground/50"}`}>
-                                <HeartOff className={`h-3.5 w-3.5 ${reaction === "dislike" ? "fill-current" : ""}`} />
-                              </button>
-                            </AuthGate>
-
-                            <button onClick={() => toggleComments(post.id)} className={`flex items-center gap-0.5 transition-colors ${isCommentsOpen ? "text-accent/70" : "text-foreground/30 hover:text-foreground/50"}`}>
-                              <MessageCircle className="h-3.5 w-3.5" />
-                            </button>
-
-                            <AuthGate action="save">
-                              <button onClick={() => handleSavePost(post.id)} className={`transition-colors ${isSaved ? "text-accent/70" : "text-foreground/30 hover:text-foreground/50"}`}>
-                                {isSaved ? <BookmarkCheck className="h-3.5 w-3.5 fill-current" /> : <Bookmark className="h-3.5 w-3.5" />}
-                              </button>
-                            </AuthGate>
-
-                            <AuthGate action="give stars">
-                              <button onClick={() => handleStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-0.5 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/30 hover:text-foreground/50"}`}>
-                                <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-current" : ""}`} />
-                              </button>
-                            </AuthGate>
-                          </div>
-
-                          {/* Comments */}
-                          <AnimatePresence>
-                            {isCommentsOpen && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="mt-2 space-y-2 overflow-hidden"
-                              >
-                                {loadingComments ? (
-                                  <Loader2 className="h-3 w-3 animate-spin text-foreground/30 mx-auto" />
-                                ) : (
-                                  <>
-                                    {comments.map(c => (
-                                      <div key={c.id} className="flex gap-2">
-                                        <span className="text-[9px] font-semibold text-foreground/50 flex-shrink-0">{getDisplayName(c.user_id)}</span>
-                                        <span className="text-[9px] text-foreground/40">{c.content}</span>
-                                      </div>
-                                    ))}
-                                    {comments.length === 0 && <p className="text-[9px] text-foreground/25 text-center py-1">No comments yet</p>}
-                                  </>
-                                )}
-                                {user && (
-                                  <div className="flex gap-1.5 mt-1">
-                                    <input
-                                      type="text"
-                                      value={commentText}
-                                      onChange={e => setCommentText(e.target.value)}
-                                      onKeyDown={e => e.key === "Enter" && submitComment()}
-                                      placeholder="Add a comment…"
-                                      className="flex-1 rounded-lg border border-border/20 bg-background px-2 py-1.5 text-[10px] text-foreground outline-none placeholder:text-foreground/20 focus:border-accent/30"
-                                    />
-                                    <button onClick={submitComment} disabled={!commentText.trim()} className="text-accent/50 hover:text-accent disabled:opacity-30">
-                                      <Send className="h-3 w-3" />
-                                    </button>
-                                  </div>
-                                )}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
-                          {/* Tags */}
-                          {post.topics && post.topics.length > 0 && (
-                            <div className="mt-2 flex gap-1.5 flex-wrap">
-                              {post.topics.map(tp => (
-                                <button key={tp} onClick={() => setActiveTopic(tp)} className="text-[9px] text-accent/60 hover:text-accent transition-colors">
-                                  #{tp}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                  {posts.map((post, i) => renderPostCard(post, i, true))}
                 </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Post Detail Modal */}
+      <AnimatePresence>
+        {selectedPost && (
+          <OOTDPostDetail
+            post={selectedPost}
+            profile={getProfile(selectedPost.user_id)}
+            reaction={reactions[selectedPost.id]}
+            isStarred={starredPosts.has(selectedPost.id)}
+            isSaved={savedPosts.has(selectedPost.id)}
+            starsLeft={starsLeft}
+            onClose={() => setSelectedPost(null)}
+            onReaction={handleReaction}
+            onStar={handleStar}
+            onSave={handleSavePost}
+            onTopicClick={(topic) => { setActiveTopic(topic); setActiveTab("community"); }}
+          />
+        )}
+      </AnimatePresence>
 
       <OOTDUploadSheet open={uploadOpen} onClose={() => setUploadOpen(false)} onPosted={handlePosted} />
     </div>
