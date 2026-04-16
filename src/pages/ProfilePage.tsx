@@ -121,13 +121,15 @@ const ProfilePage = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     setSavingProfile(true);
+    const parsedHashtags = editHashtags.split(/[,\s]+/).map(h => h.replace(/^#/, "").trim()).filter(Boolean);
     try {
       const { error } = await supabase.from("profiles").update({
         display_name: editName.trim() || null,
         bio: editBio.trim() || null,
         location: editLocation.trim() || null,
         gender_preference: editGender.trim() || null,
-      }).eq("user_id", user.id);
+        hashtags: parsedHashtags.length > 0 ? parsedHashtags : null,
+      } as any).eq("user_id", user.id);
       if (error) throw error;
       setProfile((p: any) => ({
         ...p,
@@ -135,6 +137,7 @@ const ProfilePage = () => {
         bio: editBio.trim(),
         location: editLocation.trim(),
         gender_preference: editGender.trim(),
+        hashtags: parsedHashtags,
       }));
       setIsEditing(false);
       toast.success("Profile updated");
