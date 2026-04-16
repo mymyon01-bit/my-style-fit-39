@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 
 const DesktopNav = () => {
@@ -43,6 +44,18 @@ const DesktopNav = () => {
               {link.label}
             </button>
           ))}
+
+          <button
+              onClick={() => navigate("/install")}
+              className={`hover-burgundy flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.25em] ${
+                isActive("/install")
+                  ? "text-foreground"
+                  : "text-foreground/50"
+              }`}
+            >
+              <Download className="h-3 w-3" />
+              {t("downloadApp").toUpperCase()}
+            </button>
 
           <div className="h-3.5 w-px bg-border/40" />
 

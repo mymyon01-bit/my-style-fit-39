@@ -23,6 +23,7 @@ const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
+const InstallPage = lazy(() => import("@/pages/InstallPage"));
 const AdminLayout = lazy(() => import("@/pages/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("@/pages/admin/AdminOverview"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
@@ -82,6 +83,7 @@ const AppRoutes = () => {
 
         {/* Public routes */}
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/install" element={<InstallPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomePage />} />
