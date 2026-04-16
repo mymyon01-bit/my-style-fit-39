@@ -57,50 +57,149 @@ function getCachedResult(key: string): AIRecommendation[] | null {
   return null;
 }
 
-// Fast DB-first load: fetch cached products directly from product_cache table
-async function loadCachedProductsFromDB(opts: {
+// ─── Style-to-search: convert user style profile into search queries ───
+function buildStyleSearchQueries(profile: any, searchText?: string): string[] {
+  const queries: string[] = [];
+  if (searchText) queries.push(searchText);
+
+  const styles = profile?.preferred_styles || [];
+  const fit = profile?.preferred_fit || "";
+  const brands = profile?.favorite_brands || [];
+  const occasions = profile?.occasions || [];
+
+  // Generate style-aware queries
+  if (styles.includes("minimal")) queries.push("minimal clean structured fashion");
+  if (styles.includes("street") || styles.includes("streetwear")) queries.push("oversized street style urban");
+  if (styles.includes("classic") || styles.includes("oldMoney")) queries.push("classic tailored elegant menswear");
+  if (styles.includes("casual")) queries.push("casual everyday comfortable wear");
+  if (styles.includes("edgy")) queries.push("edgy avant-garde dark fashion");
+  if (styles.includes("chic")) queries.push("chic modern sophisticated look");
+  if (styles.includes("vintage")) queries.push("vintage retro fashion pieces");
+
+  if (fit === "oversized") queries.push("oversized relaxed fit clothing");
+  if (fit === "slim") queries.push("slim fitted modern clothing");
+
+  if (occasions.includes("work")) queries.push("office workwear professional");
+  if (occasions.includes("date")) queries.push("date night outfit elegant");
+
+  // Add brand-specific queries
+  brands.slice(0, 2).forEach((b: string) => {
+    if (b !== "None") queries.push(`${b} new collection`);
+  });
+
+  // Always have a fallback
+  if (queries.length === 0) queries.push("trending fashion new arrivals");
+
+  return [...new Set(queries)].slice(0, 3);
+}
+
+// ─── Hybrid product search: DB-first + external expansion ───
+async function hybridProductSearch(opts: {
+  query?: string;
   category?: string;
-  subcategory?: string;
   styles?: string[];
   fit?: string;
-  searchQuery?: string;
   limit?: number;
-  offset?: number;
-}): Promise<AIRecommendation[]> {
-  let query = supabase
-    .from("product_cache")
-    .select("*")
-    .eq("image_valid", true)
-    .eq("is_active", true)
-    .order("trend_score", { ascending: false })
-    .range(opts.offset || 0, (opts.offset || 0) + (opts.limit || 12) - 1);
+  excludeIds?: string[];
+  expandExternal?: boolean;
+  randomize?: boolean;
+}): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("product-search", {
+      body: {
+        query: opts.query || "",
+        category: opts.category,
+        styles: opts.styles,
+        fit: opts.fit,
+        limit: opts.limit || 16,
+        excludeIds: opts.excludeIds || [],
+        expandExternal: opts.expandExternal ?? false,
+        randomize: opts.randomize ?? true,
+      },
+    });
+    if (error) throw error;
 
-  if (opts.category) query = query.eq("category", opts.category);
-  if (opts.subcategory) query = query.eq("subcategory", opts.subcategory);
-  if (opts.fit) query = query.eq("fit", opts.fit);
-  if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+    const products = (data?.products || [])
+      .filter((p: any) => p.image_url?.startsWith("https"))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        reason: p.reason || "Curated for you",
+        style_tags: p.style_tags || [],
+        color: p.color || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform || null,
+      }));
 
-  const { data, error } = await query;
-  if (error || !data) return [];
-
-  return data
-    .filter((p: any) => p.image_url && p.image_url.startsWith("https"))
-    .map((p: any) => ({
-      id: p.external_id || p.id,
-      name: p.name,
-      brand: p.brand || "",
-      price: p.price || "",
-      category: p.category || "",
-      reason: p.reason || "From your curated collection",
-      style_tags: p.style_tags || [],
-      color: (p.color_tags || [])[0] || "",
-      fit: p.fit || "regular",
-      image_url: p.image_url,
-      source_url: p.source_url,
-      store_name: p.store_name,
-      platform: p.platform || null,
-    }));
+    return {
+      products,
+      expanded: data?.expanded || false,
+      dbCount: data?.dbCount || 0,
+    };
+  } catch (e) {
+    console.error("Hybrid search error:", e);
+    return { products: [], expanded: false, dbCount: 0 };
+  }
 }
+
+// ─── Client-side diversity enforcement ───
+function enforceClientDiversity(items: AIRecommendation[], seenIds: Set<string>): AIRecommendation[] {
+  // Remove already seen
+  let result = items.filter(r => !seenIds.has(r.id));
+
+  // Dedup by name
+  const nameKeys = new Set<string>();
+  result = result.filter(r => {
+    const key = r.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
+    if (nameKeys.has(key)) return false;
+    nameKeys.add(key);
+    return true;
+  });
+
+  // Brand diversity: max 3 per brand
+  const brandCount: Record<string, number> = {};
+  result = result.filter(r => {
+    const b = (r.brand || "").toLowerCase();
+    brandCount[b] = (brandCount[b] || 0) + 1;
+    return brandCount[b] <= 3;
+  });
+
+  // Category interleaving for variety
+  if (result.length > 8) {
+    const byCategory: Record<string, AIRecommendation[]> = {};
+    result.forEach(r => {
+      const cat = r.category || "other";
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(r);
+    });
+
+    const categories = Object.keys(byCategory);
+    if (categories.length > 1) {
+      const interleaved: AIRecommendation[] = [];
+      let idx = 0;
+      while (interleaved.length < result.length) {
+        const cat = categories[idx % categories.length];
+        const item = byCategory[cat].shift();
+        if (item) interleaved.push(item);
+        idx++;
+        // Safety: break if all categories empty
+        if (categories.every(c => byCategory[c].length === 0)) break;
+      }
+      result = interleaved;
+    }
+  }
+
+  return result;
+}
+
+// Session-level seen products tracking
+const sessionSeenIds = new Set<string>();
 
 const DiscoverPage = () => {
   const { user } = useAuth();
