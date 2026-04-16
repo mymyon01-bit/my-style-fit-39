@@ -112,7 +112,53 @@ function inferStyleTags(title: string, desc: string): string[] {
   return tags;
 }
 
-// ─── Cache products to DB ───
+// ─── Source: Commerce Scraper (Firecrawl-powered) ───
+async function fetchFromCommerceScraper(query: string, limit = 15): Promise<any[]> {
+  try {
+    const baseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!baseUrl || !serviceKey) return [];
+
+    const res = await fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        query,
+        platforms: ["naver", "ssense", "farfetch", "asos", "ssg"],
+        limit,
+      }),
+    });
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.products || []).map((p: any) => ({
+      external_id: p.id,
+      name: p.name,
+      brand: p.brand,
+      price: p.price,
+      category: p.category,
+      subcategory: p.subcategory,
+      style_tags: p.style_tags || [],
+      color_tags: p.color ? [p.color] : [],
+      fit: p.fit || "regular",
+      image_url: p.image_url,
+      source_url: p.source_url,
+      store_name: p.store_name,
+      reason: p.reason,
+      platform: p.platform,
+      image_valid: true,
+      is_active: true,
+    }));
+  } catch (e) {
+    console.error("Commerce scraper fetch error:", e);
+    return [];
+  }
+}
+
+
 async function cacheToDB(supabase: any, products: any[]): Promise<number> {
   if (!products.length) return 0;
 
@@ -170,6 +216,11 @@ serve(async (req) => {
     }
     if (enabledSources.includes("fakestore")) {
       fetches.push(fetchFakeStore(category === "clothing" ? "men's clothing" : undefined));
+    }
+
+    // Try commerce scraper (Firecrawl) for real products if query exists
+    if (query && Deno.env.get("FIRECRAWL_API_KEY")) {
+      fetches.push(fetchFromCommerceScraper(query, limit));
     }
 
     const results = await Promise.all(fetches);
