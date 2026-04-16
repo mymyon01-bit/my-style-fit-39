@@ -211,7 +211,7 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
     const sanitizedQuery = query.replace(/[<>"'`;]/g, "").slice(0, 100);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000); // 12s max (reduced from 25s)
+    const timeout = setTimeout(() => controller.abort(), 45000); // 45s — scraping takes time
 
     const res = await fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
       method: "POST",
