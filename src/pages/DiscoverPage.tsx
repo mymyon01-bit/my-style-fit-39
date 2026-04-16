@@ -515,15 +515,15 @@ const DiscoverPage = () => {
           >
             <div className="rounded-2xl bg-card/95 backdrop-blur-xl p-6 shadow-elevated space-y-4">
               <p className="font-display text-[15px] font-semibold text-foreground/75">
-                Save your style and unlock personalized recommendations.
+                {t("saveStylePrompt")}
               </p>
               <div className="flex gap-3">
                 <button onClick={() => navigate("/auth")} className="hover-burgundy flex-1 py-3 text-[10px] font-semibold tracking-[0.15em] text-foreground/60">
-                  CREATE ACCOUNT
+                  {t("createAccount").toUpperCase()}
                 </button>
                 <div className="w-px bg-border/30" />
                 <button onClick={() => setShowAuthHint(false)} className="hover-burgundy px-4 py-3 text-[10px] text-foreground/30">
-                  LATER
+                  {t("later").toUpperCase()}
                 </button>
               </div>
             </div>
