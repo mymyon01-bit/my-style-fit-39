@@ -20,7 +20,7 @@ const PremiumBanner = () => {
           </p>
         </div>
       </div>
-      <button className="mt-4 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-accent/60 transition-colors hover:text-accent">
+      <button onClick={() => navigate("/subscription")} className="mt-4 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-accent/60 transition-colors hover:text-accent">
         {t("explorePremium").toUpperCase()}
         <ArrowRight className="h-3 w-3" />
       </button>
