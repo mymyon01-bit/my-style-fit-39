@@ -581,7 +581,7 @@ const DiscoverPage = () => {
     }
   };
 
-  // Debounced search submit — 400ms debounce to reduce API spam
+  // Debounced search submit — fast DB-first, background expansion
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
@@ -592,7 +592,6 @@ const DiscoverPage = () => {
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(async () => {
-      // Check cache first before clearing results
       const cacheKey = getCacheKey("search", { q, styles: selectedStyles, fit: selectedFit });
       const cached = getCachedResult(cacheKey);
       if (cached) {
@@ -601,33 +600,71 @@ const DiscoverPage = () => {
         return;
       }
 
-      setRecommendations([]);
+      // Don't clear results yet — show old results while loading
       setIsGenerating(true);
       setHasGenerated(true);
       lastPromptRef.current = q;
 
-      // Hybrid search: DB-first + external expansion
-      const { products, dbCount } = await hybridProductSearch({
+      // Step 1: Fast DB-only search (no external expansion)
+      const { products: dbProducts, dbCount } = await hybridProductSearch({
         query: q,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
         limit: 12,
-        expandExternal: true,
+        expandExternal: false,
         randomize: false,
       });
 
-      if (products.length > 0) {
-        const diverse = enforceClientDiversity(products, new Set());
+      if (dbProducts.length > 0) {
+        const diverse = enforceClientDiversity(dbProducts, new Set());
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
         setHasMoreInDB(dbCount >= 8);
         resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
         setIsGenerating(false);
+
+        // Step 2: Background external expansion for freshness
+        if (dbCount < 8) {
+          hybridProductSearch({
+            query: q,
+            expandExternal: true,
+            limit: 10,
+            excludeIds: diverse.map(p => p.id),
+          }).then(({ products: freshProducts }) => {
+            if (freshProducts.length > 0) {
+              const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
+              freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+              setRecommendations(prev => {
+                const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set());
+                resultCache.set(cacheKey, { data: merged, ts: Date.now() });
+                return merged;
+              });
+            }
+          });
+        }
       } else {
-        generateRecommendations(q);
+        // No DB results — try with external expansion
+        setRecommendations([]);
+        const { products } = await hybridProductSearch({
+          query: q,
+          expandExternal: true,
+          limit: 12,
+          randomize: false,
+        });
+
+        if (products.length > 0) {
+          const diverse = enforceClientDiversity(products, new Set());
+          diverse.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(diverse);
+          resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
+          setIsGenerating(false);
+        } else {
+          // Last resort: AI generation
+          generateRecommendations(q);
+        }
       }
-    }, 400);
+    }, 250); // Reduced debounce from 400ms to 250ms
   };
 
   const handleFeedback = useCallback(async (itemId: string, type: "like" | "dislike") => {
