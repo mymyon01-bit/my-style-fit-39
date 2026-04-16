@@ -345,6 +345,9 @@ const DiscoverPage = () => {
   const inflightRef = useRef<string | null>(null);
   const initialLoadDone = useRef(false);
 
+  // Product detail sheet
+  const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
+
   // Filters
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [selectedFit, setSelectedFit] = useState<string | null>(null);
