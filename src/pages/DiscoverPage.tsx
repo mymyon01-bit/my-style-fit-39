@@ -32,9 +32,9 @@ const STYLE_FILTERS = ["minimal", "street", "classic", "edgy", "casual", "formal
 const FIT_FILTERS = ["oversized", "regular", "slim"];
 const COLOR_FILTERS = ["neutral", "dark", "earth", "bold", "pastel", "mixed"];
 
-// Client-side result cache to avoid duplicate calls
+// Client-side result cache
 const resultCache = new Map<string, { data: AIRecommendation[]; ts: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 min
+const CACHE_TTL = 5 * 60 * 1000;
 
 function getCacheKey(action: string, params: Record<string, any>): string {
   return `${action}:${JSON.stringify(params)}`;
@@ -45,6 +45,50 @@ function getCachedResult(key: string): AIRecommendation[] | null {
   if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
   if (entry) resultCache.delete(key);
   return null;
+}
+
+// Fast DB-first load: fetch cached products directly from product_cache table
+async function loadCachedProductsFromDB(opts: {
+  category?: string;
+  subcategory?: string;
+  styles?: string[];
+  fit?: string;
+  searchQuery?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AIRecommendation[]> {
+  let query = supabase
+    .from("product_cache")
+    .select("*")
+    .eq("image_valid", true)
+    .eq("is_active", true)
+    .order("trend_score", { ascending: false })
+    .range(opts.offset || 0, (opts.offset || 0) + (opts.limit || 12) - 1);
+
+  if (opts.category) query = query.eq("category", opts.category);
+  if (opts.subcategory) query = query.eq("subcategory", opts.subcategory);
+  if (opts.fit) query = query.eq("fit", opts.fit);
+  if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  return data
+    .filter((p: any) => p.image_url && p.image_url.startsWith("http"))
+    .map((p: any) => ({
+      id: p.external_id || p.id,
+      name: p.name,
+      brand: p.brand || "",
+      price: p.price || "",
+      category: p.category || "",
+      reason: p.reason || "From your curated collection",
+      style_tags: p.style_tags || [],
+      color: (p.color_tags || [])[0] || "",
+      fit: p.fit || "regular",
+      image_url: p.image_url,
+      source_url: p.source_url,
+      store_name: p.store_name,
+    }));
 }
 
 const DiscoverPage = () => {
@@ -74,10 +118,13 @@ const DiscoverPage = () => {
   const [newStyleRecs, setNewStyleRecs] = useState<AIRecommendation[]>([]);
   const [loadingNewStyle, setLoadingNewStyle] = useState(false);
   const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
+  const [dbOffset, setDbOffset] = useState(0);
+  const [hasMoreInDB, setHasMoreInDB] = useState(true);
   const lastPromptRef = useRef("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inflightRef = useRef<string | null>(null); // prevent duplicate calls
+  const inflightRef = useRef<string | null>(null);
+  const initialLoadDone = useRef(false);
 
   // Filters
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -116,6 +163,29 @@ const DiscoverPage = () => {
     if (!textInput.trim() || textInput.trim().length < 2) return [];
     return generateSuggestions(textInput).suggestions;
   }, [textInput]);
+
+  // ── INSTANT INITIAL LOAD: Show cached products from DB immediately ──
+  useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
+    const loadInitial = async () => {
+      setIsGenerating(true);
+      setHasGenerated(true);
+      const cached = await loadCachedProductsFromDB({ limit: 12 });
+      if (cached.length > 0) {
+        setRecommendations(cached);
+        setDbOffset(cached.length);
+        setHasMoreInDB(cached.length >= 12);
+        setIsGenerating(false);
+      } else {
+        // No cached products — fall back to AI
+        setIsGenerating(false);
+        generateRecommendations("Recommend trending fashion items");
+      }
+    };
+    if (!moodParam) loadInitial();
+  }, []);
 
   useEffect(() => {
     if (moodParam && !hasGenerated) generateRecommendations(moodParam);
@@ -156,40 +226,40 @@ const DiscoverPage = () => {
       return;
     }
 
-    // Prevent duplicate in-flight
     if (inflightRef.current === cacheKey) return;
     inflightRef.current = cacheKey;
 
     setIsGenerating(true);
     setHasGenerated(true);
     setRecommendations([]);
+    setDbOffset(0);
     lastPromptRef.current = `Browse ${category}`;
+
     try {
-      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
-        body: {
-          action: "browse",
-          category,
-          subcategory: subcategory || undefined,
-          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
-          fit: selectedFit || undefined,
-          count: 12,
-        },
+      // Try DB first
+      const dbResults = await loadCachedProductsFromDB({
+        category,
+        subcategory: subcategory || undefined,
+        styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+        fit: selectedFit || undefined,
+        limit: 12,
       });
-      if (!error && data?.recommendations?.length >= 4) {
-        const validRecs = (data.recommendations as AIRecommendation[]).filter(
-          r => r.image_url && r.image_url.startsWith("http")
-        );
-        setRecommendations(validRecs);
-        resultCache.set(cacheKey, { data: validRecs, ts: Date.now() });
+
+      if (dbResults.length >= 4) {
+        setRecommendations(dbResults);
+        setDbOffset(dbResults.length);
+        setHasMoreInDB(dbResults.length >= 12);
+        resultCache.set(cacheKey, { data: dbResults, ts: Date.now() });
         setIsGenerating(false);
         inflightRef.current = null;
         return;
       }
+
+      // Fall back to AI
       const sub = subcategory ? ` — ${subcategory}` : "";
       await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
     } catch {
-      const sub = subcategory ? ` — ${subcategory}` : "";
-      await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
+      setIsGenerating(false);
     }
     inflightRef.current = null;
   };
@@ -228,9 +298,10 @@ const DiscoverPage = () => {
 
     setIsGenerating(true);
     setHasGenerated(true);
-    setRecommendations([]);
+    setDbOffset(0);
     setShowSuggestions(false);
     lastPromptRef.current = prompt;
+
     try {
       const filterContext = [];
       if (categoryFilter) filterContext.push(`Category: ${categoryFilter}`);
@@ -260,13 +331,11 @@ const DiscoverPage = () => {
       });
       if (error) throw error;
       const recs = (data?.recommendations || []).filter((r: AIRecommendation) => {
-        if (!r.image_url || !r.image_url.startsWith("http")) {
-          console.warn(`[WARDROBE] Filtered out imageless product: "${r.name}" (${r.id})`);
-          return false;
-        }
+        if (!r.image_url || !r.image_url.startsWith("http")) return false;
         return true;
       });
       setRecommendations(recs);
+      setDbOffset(recs.length);
       resultCache.set(cacheKey, { data: recs, ts: Date.now() });
     } catch (e: any) {
       console.error("Recommendation error:", e);
@@ -275,36 +344,64 @@ const DiscoverPage = () => {
       } else if (e?.message?.includes("credits") || e?.status === 402) {
         toast.error("AI credits exhausted. Please add funds.");
       }
-      setRecommendations([]);
     } finally {
       setIsGenerating(false);
       inflightRef.current = null;
     }
   };
 
+  // ── LOAD MORE: First try DB pagination, then AI ──
   const loadMore = async () => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
     try {
-      const existingIds = recommendations.map(r => r.id);
-      const prompt = lastPromptRef.current || `Show me more ${activeTab === "for-you" ? "fashion" : activeTab} items`;
+      const existingIds = new Set(recommendations.map(r => r.id));
 
+      // Try loading more from DB cache first
+      if (hasMoreInDB) {
+        const category = activeTab !== "for-you" && activeTab !== "featured" ? activeTab : undefined;
+        const dbMore = await loadCachedProductsFromDB({
+          category,
+          subcategory: activeSubcategory || undefined,
+          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+          fit: selectedFit || undefined,
+          limit: 8,
+          offset: dbOffset,
+        });
+
+        const newFromDB = dbMore.filter(r => !existingIds.has(r.id));
+        if (newFromDB.length > 0) {
+          setRecommendations(prev => [...prev, ...newFromDB]);
+          setDbOffset(prev => prev + newFromDB.length);
+          setHasMoreInDB(dbMore.length >= 8);
+          setIsLoadingMore(false);
+          return;
+        }
+        setHasMoreInDB(false);
+      }
+
+      // Fall back to AI for more
+      const prompt = lastPromptRef.current || `Show me more ${activeTab === "for-you" ? "fashion" : activeTab} items`;
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
           action: "recommend",
-          prompt: `${prompt}. Show different items from before.`,
+          prompt: `${prompt}. Show completely different items, different brands, different styles.`,
           quizAnswers,
           userId: user?.id || null,
           source: sourceParam || "discover",
           count: 6,
-          excludeIds: existingIds,
+          excludeIds: Array.from(existingIds),
         },
       });
       if (error) throw error;
       const newRecs = (data?.recommendations || []).filter(
-        (r: AIRecommendation) => !existingIds.includes(r.id) && r.image_url && r.image_url.startsWith("http")
+        (r: AIRecommendation) => !existingIds.has(r.id) && r.image_url && r.image_url.startsWith("http")
       );
-      setRecommendations(prev => [...prev, ...newRecs]);
+      if (newRecs.length > 0) {
+        setRecommendations(prev => [...prev, ...newRecs]);
+      } else {
+        toast("No more items to show right now");
+      }
     } catch (e) {
       console.error("Load more error:", e);
       toast.error("Failed to load more items");
@@ -321,12 +418,12 @@ const DiscoverPage = () => {
     setActiveTab("for-you");
     setActiveSubcategory(null);
     setShowSuggestions(false);
+    setRecommendations([]);
 
-    // Clear any pending debounce
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
       generateRecommendations(q);
-    }, 150); // short debounce for explicit submit
+    }, 150);
   };
 
   const handleFeedback = useCallback(async (itemId: string, type: "like" | "dislike") => {
@@ -815,171 +912,115 @@ const DiscoverPage = () => {
                         ))}
                       </div>
                     )}
-
-                    {newStyleRecs.length === 0 && !loadingNewStyle && (
-                      <p className="text-center text-[11px] text-foreground/25 py-6">
-                        {t("tryNewStyle")} — discover something unexpected
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
-            ) : hasGenerated && recommendations.length === 0 ? (
-              <div className="py-20 text-center space-y-4">
-                <p className="text-[14px] font-medium text-foreground/45">{t("noRecommendations")}</p>
-                <p className="text-[12px] text-foreground/25 max-w-[260px] mx-auto">
-                  {t("tryDifferent")}
-                </p>
+            ) : hasGenerated ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Sparkles className="h-6 w-6 text-accent/25 mb-4" />
+                <p className="text-[12px] text-foreground/35">No results found</p>
+                <p className="text-[10px] text-foreground/20 mt-1">Try a different search or style</p>
               </div>
             ) : (
-              <div className="py-16 text-center space-y-5">
-                <p className="font-display text-lg font-semibold text-foreground/55">{t("discoverStyle")}</p>
-                <p className="mx-auto max-w-[280px] text-[12px] leading-[1.8] text-foreground/35">
-                  {t("discoverDesc")}
-                </p>
-                <div className="flex flex-col items-center gap-3">
-                  <button onClick={() => setShowQuiz(true)} className="hover-burgundy text-[10px] font-semibold tracking-[0.2em] text-accent/50">
-                    {t("takeStyleQuiz").toUpperCase()}
-                  </button>
-                  <span className="text-[10px] text-foreground/18">{t("orBrowse")}</span>
-                </div>
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Sparkles className="h-8 w-8 text-accent/15 mb-4" />
+                <p className="text-[12px] text-foreground/30">{t("describeStyle")}</p>
+                <p className="text-[10px] text-foreground/20 mt-1">Search or browse to discover items</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Guest Auth Hint */}
-      <AnimatePresence>
-        {showAuthHint && !user && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-sm px-8"
-          >
-            <div className="rounded-2xl bg-card/95 backdrop-blur-xl p-6 shadow-elevated space-y-4">
-              <p className="font-display text-[15px] font-semibold text-foreground/75">
-                {t("saveStylePrompt")}
-              </p>
-              <div className="flex gap-3">
-                <button onClick={() => navigate("/auth")} className="hover-burgundy flex-1 py-3 text-[10px] font-semibold tracking-[0.15em] text-foreground/60">
-                  {t("createAccount").toUpperCase()}
-                </button>
-                <div className="w-px bg-border/30" />
-                <button onClick={() => setShowAuthHint(false)} className="hover-burgundy px-4 py-3 text-[10px] text-foreground/30">
-                  {t("later").toUpperCase()}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showAuthHint && (
+        <AuthGate action="save items">
+          <div />
+        </AuthGate>
+      )}
     </>
   );
 };
 
-// ─── Image-first Recommendation Card ───
+// ─── Product Card Component ───
 
-const RecommendationCard = ({
-  item, index, feedbackMap, savedIds, onFeedback, onSave
-}: {
+interface RecommendationCardProps {
   item: AIRecommendation;
   index: number;
   feedbackMap: Record<string, "like" | "dislike">;
   savedIds: Set<string>;
   onFeedback: (id: string, type: "like" | "dislike") => void;
   onSave: (id: string) => void;
-}) => {
-  const hasImage = item.image_url && item.image_url.startsWith("http");
+}
 
-  const handleCardClick = () => {
-    if (item.source_url) {
-      window.open(item.source_url, "_blank", "noopener,noreferrer");
-    }
-  };
+const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave }: RecommendationCardProps) => {
+  const feedback = feedbackMap[item.id];
+  const isSaved = savedIds.has(item.id);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+      transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.3 }}
       className="group"
     >
-      <div
-        className={`relative overflow-hidden rounded-xl bg-foreground/[0.03] ${item.source_url ? "cursor-pointer" : ""}`}
-        onClick={handleCardClick}
-      >
-        {hasImage ? (
-          <SafeImage
-            src={item.image_url!}
-            alt={item.name}
-            className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-            fallbackClassName="aspect-[3/4] w-full"
-            loading={index < 4 ? "eager" : "lazy"}
-          />
-        ) : (
-          <div className="aspect-[3/4] w-full flex flex-col items-center justify-center bg-foreground/[0.03]">
-            <div
-              className="h-12 w-12 rounded-full mb-3 opacity-40"
-              style={{ backgroundColor: item.color || "hsl(var(--accent))" }}
-            />
-            <p className="text-[9px] font-semibold tracking-[0.15em] text-foreground/25 uppercase">{item.category}</p>
-          </div>
-        )}
-
-        <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ring-1 ring-accent/20" />
-
-        <div className="absolute right-2 top-2 flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
-          <AuthGate action="save items">
-            <button
-              onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
-            >
-              <Bookmark className={`h-3.5 w-3.5 transition-colors ${savedIds.has(item.id) ? "fill-accent text-accent" : "text-foreground/50"}`} />
-            </button>
-          </AuthGate>
-          <ShareButton title={`${item.brand} — ${item.name}`} className="" />
-        </div>
-
-        <span className="absolute left-2 top-2 rounded-full bg-background/60 backdrop-blur-md px-2 py-0.5 text-[8px] font-semibold tracking-[0.1em] text-foreground/50 uppercase">
-          {item.category}
-        </span>
-
-        {item.source_url && (
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-gradient-to-t from-black/40 to-transparent pb-3 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-white/80">
-              VIEW ON {(item.store_name || item.brand || "STORE").toUpperCase()}
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-2.5 space-y-0.5 px-0.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">{item.brand}</p>
-        <p className="text-[13px] font-semibold leading-snug text-foreground/80 line-clamp-2">{item.name}</p>
-        <p className="text-[13px] font-bold text-foreground">{item.price}</p>
-      </div>
-
-      <div className="mt-2 flex items-center justify-between px-0.5">
-        <div className="flex gap-1 flex-wrap">
-          {item.style_tags?.slice(0, 2).map(tag => (
-            <span key={tag} className="text-[9px] text-foreground/25">{tag}</span>
-          ))}
-        </div>
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => onFeedback(item.id, "like")} className={`p-1.5 rounded-full transition-all ${feedbackMap[item.id] === "like" ? "text-accent/70 bg-accent/10" : "text-foreground/20 hover:text-foreground/35"}`}>
-            <Heart className={`h-3 w-3 ${feedbackMap[item.id] === "like" ? "fill-current" : ""}`} />
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
+        <SafeImage
+          src={item.image_url || ""}
+          alt={item.name}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading={index < 4 ? "eager" : "lazy"}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 transition-all group-hover:opacity-100">
+          <button
+            onClick={() => onFeedback(item.id, "like")}
+            className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
+              feedback === "like" ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
+            }`}
+          >
+            <Heart className="h-3 w-3" fill={feedback === "like" ? "currentColor" : "none"} />
           </button>
-          <button onClick={() => onFeedback(item.id, "dislike")} className={`p-1.5 rounded-full transition-all ${feedbackMap[item.id] === "dislike" ? "text-destructive/50 bg-destructive/10" : "text-foreground/20 hover:text-foreground/35"}`}>
+          <button
+            onClick={() => onFeedback(item.id, "dislike")}
+            className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
+              feedback === "dislike" ? "bg-red-500/30 text-red-400" : "bg-black/30 text-white/70 hover:text-white"
+            }`}
+          >
             <HeartOff className="h-3 w-3" />
           </button>
+          <button
+            onClick={() => onSave(item.id)}
+            className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
+              isSaved ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
+            }`}
+          >
+            <Bookmark className="h-3 w-3" fill={isSaved ? "currentColor" : "none"} />
+          </button>
+          <ShareButton
+            title={`${item.name} by ${item.brand}`}
+            url={item.source_url || window.location.href}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-md hover:text-white"
+          />
         </div>
+        {item.source_url && (
+          <a
+            href={item.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[8px] font-medium text-white/80 backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60"
+          >
+            SHOP →
+          </a>
+        )}
       </div>
-
-      {item.reason && (
-        <p className="mt-1.5 px-0.5 text-[10px] leading-[1.5] text-foreground/30 line-clamp-2">{item.reason}</p>
-      )}
+      <div className="mt-2.5 space-y-0.5 px-0.5">
+        <p className="text-[9px] font-medium tracking-[0.1em] text-foreground/35">{item.brand}</p>
+        <p className="text-[12px] font-medium text-foreground/70 leading-tight line-clamp-2">{item.name}</p>
+        <p className="text-[11px] font-semibold text-foreground/50">{item.price}</p>
+        {item.store_name && (
+          <p className="text-[8px] text-foreground/25">{item.store_name}</p>
+        )}
+      </div>
     </motion.div>
   );
 };

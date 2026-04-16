@@ -475,7 +475,14 @@ CRITICAL RULES:
 - Colors should be hex values
 - Keep reasons under 15 words
 - Each id must be unique (use brand-name-slug format)
-- Every product MUST have a valid image_url. Use real Unsplash fashion image URLs. Format: https://images.unsplash.com/photo-{id}?w=400&q=80
+- Every product MUST have a valid image_url from a RELIABLE source.
+  ALLOWED image sources (pick the most relevant):
+  • Pexels: https://images.pexels.com/photos/{id}/pexels-photo-{id}.jpeg?auto=compress&w=400
+  • Pixabay: https://cdn.pixabay.com/photo/{year}/{month}/{day}/{time}_{hash}.jpg
+  • Brand CDN images from real retailer sites (e.g. images.asos-media.com, lp2.hm.com, static.zara.net, images.nike.com)
+  DO NOT use Unsplash URLs — they frequently break.
+  DO NOT use placeholder or generated URLs.
+  Each image must be a real, publicly accessible fashion product photo.
 - For source_url: Provide the REAL product page URL on the brand's official website or major retailer
 - For store_name: Name of the retailer or brand store
 - Use style_tags to describe the item's aesthetic (e.g. minimal, street, classic, edgy, chic, vintage, bohemian, sporty)${excludeClause}${personalization}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream\n- Consider body profile for fit recommendations" : ""}`;
