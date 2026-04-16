@@ -1831,12 +1831,28 @@ const DiscoverPage = () => {
               </div>
             ) : hasGenerated && recommendations.length > 0 ? (
               <div className="space-y-12">
+                {/* Scenario context banner */}
+                {activeScenario && (
+                  <div className="rounded-xl border border-accent/15 bg-accent/[0.04] p-4">
+                    <p className="text-[11px] font-semibold tracking-[0.15em] text-accent/70 mb-2">
+                      {activeScenario.label.toUpperCase()} OUTFIT
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {activeScenario.items.map((item, i) => (
+                        <span key={i} className="rounded-full bg-foreground/[0.06] px-2.5 py-1 text-[10px] text-foreground/60">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
-                      {activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
+                      {activeScenario ? activeScenario.label.toUpperCase() : activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
                     </p>
-                    {interactionCount > 2 && (
+                    {interactionCount > 2 && !activeScenario && (
                       <p className="text-[10px] text-foreground/75 mt-1">{t("adaptingTaste")}</p>
                     )}
                   </div>
