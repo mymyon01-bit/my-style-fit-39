@@ -1460,7 +1460,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 transition-all group-hover:opacity-100">
           <button
-            onClick={() => onFeedback(item.id, "like")}
+            onClick={(e) => { e.stopPropagation(); onFeedback(item.id, "like"); }}
             className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
               feedback === "like" ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
             }`}
@@ -1468,7 +1468,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
             <Heart className="h-3 w-3" fill={feedback === "like" ? "currentColor" : "none"} />
           </button>
           <button
-            onClick={() => onFeedback(item.id, "dislike")}
+            onClick={(e) => { e.stopPropagation(); onFeedback(item.id, "dislike"); }}
             className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
               feedback === "dislike" ? "bg-red-500/30 text-red-400" : "bg-black/30 text-white/70 hover:text-white"
             }`}
@@ -1476,18 +1476,20 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
             <HeartOff className="h-3 w-3" />
           </button>
           <button
-            onClick={() => onSave(item.id)}
+            onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
             className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
               isSaved ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
             }`}
           >
             <Bookmark className="h-3 w-3" fill={isSaved ? "currentColor" : "none"} />
           </button>
-          <ShareButton
-            title={`${item.name} by ${item.brand}`}
-            url={item.source_url || window.location.href}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-md hover:text-white"
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <ShareButton
+              title={`${item.name} by ${item.brand}`}
+              url={item.source_url || window.location.href}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-md hover:text-white"
+            />
+          </div>
         </div>
         {item.platform && PLATFORM_LABELS[item.platform] && (
           <div className={`absolute top-2 left-2 rounded-full ${PLATFORM_LABELS[item.platform].color} px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm tracking-wide`}>
@@ -1495,14 +1497,12 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
           </div>
         )}
         {item.source_url && (
-          <a
-            href={item.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60"
+          <div
+            onClick={(e) => { e.stopPropagation(); window.open(item.source_url!, "_blank", "noopener,noreferrer"); }}
+            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60 cursor-pointer"
           >
             SHOP →
-          </a>
+          </div>
         )}
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
