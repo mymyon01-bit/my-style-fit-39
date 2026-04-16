@@ -205,7 +205,8 @@ function parseQueryIntent(query: string): QueryIntent {
 }
 
 // ── Strict relevance scorer based on parsed intent ──
-const RELEVANCE_THRESHOLD = 25; // Items scoring below this are discarded
+const RELEVANCE_THRESHOLD = 15; // Base threshold — progressive fallback will lower further if needed
+const MIN_RESULT_TARGET = 12; // Minimum products to show before considering search "successful"
 
 function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
   const itemName = (item.name || "").toLowerCase();
