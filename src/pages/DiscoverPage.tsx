@@ -120,6 +120,43 @@ const DiscoverPage = () => {
     setSavedIds(new Set((data || []).map(d => d.product_id)));
   };
 
+  // DB-first browse: load cached products by category without AI
+  const browseCategory = async (category: string, subcategory: string | null) => {
+    setIsGenerating(true);
+    setHasGenerated(true);
+    setRecommendations([]);
+    lastPromptRef.current = `Browse ${category}`;
+    try {
+      // First try the browse action (DB-cached products)
+      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
+        body: {
+          action: "browse",
+          category,
+          subcategory: subcategory || undefined,
+          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+          fit: selectedFit || undefined,
+          count: 12,
+        },
+      });
+      if (!error && data?.recommendations?.length >= 4) {
+        // Filter client-side: only show products with valid images
+        const validRecs = (data.recommendations as AIRecommendation[]).filter(
+          r => r.image_url && r.image_url.startsWith("http")
+        );
+        setRecommendations(validRecs);
+        setIsGenerating(false);
+        return;
+      }
+      // Not enough cached — fall back to AI
+      const sub = subcategory ? ` — ${subcategory}` : "";
+      await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
+    } catch {
+      // Fallback to AI
+      const sub = subcategory ? ` — ${subcategory}` : "";
+      await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
+    }
+  };
+
   const handleQuizComplete = (answers: StyleQuizAnswers) => {
     setQuizAnswers(answers);
     setShowQuiz(false);
