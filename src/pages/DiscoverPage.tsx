@@ -305,7 +305,7 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── INSTANT INITIAL LOAD: Show cached products from DB immediately ──
+  // ── INSTANT INITIAL LOAD: DB-first, then background expansion ──
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
@@ -313,22 +313,58 @@ const DiscoverPage = () => {
     const loadInitial = async () => {
       setIsGenerating(true);
       setHasGenerated(true);
-      const cached = await loadCachedProductsFromDB({ limit: 12 });
-      if (cached.length > 0) {
-        setRecommendations(cached);
-        setDbOffset(cached.length);
-        setHasMoreInDB(cached.length >= 12);
+
+      // Step 1: Fast DB load with randomization for freshness
+      const { products: dbProducts, dbCount } = await hybridProductSearch({
+        limit: 16,
+        randomize: true,
+      });
+
+      if (dbProducts.length > 0) {
+        const diverse = enforceClientDiversity(dbProducts, sessionSeenIds);
+        diverse.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(diverse);
+        setDbOffset(diverse.length);
+        setHasMoreInDB(dbCount >= 12);
         setIsGenerating(false);
+
+        // Step 2: Background expansion if DB results are limited or repetitive
+        if (dbCount < 12) {
+          const styleQueries = userStyleProfile
+            ? buildStyleSearchQueries(userStyleProfile)
+            : ["trending fashion new arrivals"];
+          
+          const { products: freshProducts } = await hybridProductSearch({
+            query: styleQueries[0],
+            expandExternal: true,
+            limit: 12,
+            excludeIds: Array.from(sessionSeenIds),
+          });
+
+          if (freshProducts.length > 0) {
+            const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
+            freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => {
+              const merged = [...prev, ...freshDiverse];
+              return enforceClientDiversity(merged, new Set());
+            });
+          }
+        }
       } else {
-        // No cached products — fetch from open APIs to seed inventory
-        const apiProducts = await fetchFromOpenAPIs("fashion trending");
+        // No DB products at all — force external expansion
+        const { products: apiProducts } = await hybridProductSearch({
+          query: "fashion trending new arrivals",
+          expandExternal: true,
+          limit: 16,
+        });
+
         if (apiProducts.length > 0) {
+          apiProducts.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(apiProducts);
           setDbOffset(apiProducts.length);
           setHasMoreInDB(false);
           setIsGenerating(false);
         } else {
-          // Last resort — AI generation
           setIsGenerating(false);
           generateRecommendations("Recommend trending fashion items");
         }
@@ -386,35 +422,24 @@ const DiscoverPage = () => {
     lastPromptRef.current = `Browse ${category}`;
 
     try {
-      // Try DB first
-      const dbResults = await loadCachedProductsFromDB({
+      // Hybrid: DB-first + external expansion if too few results
+      const { products, dbCount, expanded } = await hybridProductSearch({
         category,
-        subcategory: subcategory || undefined,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 12,
+        limit: 16,
+        excludeIds: Array.from(sessionSeenIds),
+        expandExternal: true,
+        randomize: true,
       });
 
-      if (dbResults.length >= 4) {
-        setRecommendations(dbResults);
-        setDbOffset(dbResults.length);
-        setHasMoreInDB(dbResults.length >= 12);
-        resultCache.set(cacheKey, { data: dbResults, ts: Date.now() });
-        setIsGenerating(false);
-        inflightRef.current = null;
-        return;
-      }
-
-      // Try open APIs before AI
-      const apiResults = await fetchFromOpenAPIs("", category);
-      if (apiResults.length >= 4) {
-        const merged = [...dbResults, ...apiResults].filter((item, idx, arr) =>
-          arr.findIndex(x => x.id === item.id) === idx
-        ).slice(0, 16);
-        setRecommendations(merged);
-        setDbOffset(merged.length);
-        setHasMoreInDB(false);
-        resultCache.set(cacheKey, { data: merged, ts: Date.now() });
+      if (products.length >= 4) {
+        const diverse = enforceClientDiversity(products, new Set());
+        diverse.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(diverse);
+        setDbOffset(diverse.length);
+        setHasMoreInDB(dbCount >= 12);
+        resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
         setIsGenerating(false);
         inflightRef.current = null;
         return;
@@ -532,57 +557,54 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── LOAD MORE: First try DB pagination, then AI ──
+  // ── LOAD MORE: Hybrid DB + external expansion ──
   const loadMore = async () => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
     try {
       const existingIds = new Set(recommendations.map(r => r.id));
+      const category = activeTab !== "for-you" && activeTab !== "featured" ? activeTab : undefined;
+      const searchQuery = lastPromptRef.current || (category ? `trending ${category}` : "fashion trending");
 
-      // Try loading more from DB cache first
-      if (hasMoreInDB) {
-        const category = activeTab !== "for-you" && activeTab !== "featured" ? activeTab : undefined;
-        const dbMore = await loadCachedProductsFromDB({
-          category,
-          subcategory: activeSubcategory || undefined,
-          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
-          fit: selectedFit || undefined,
-          limit: 8,
-          offset: dbOffset,
+      // Use hybrid search with external expansion and exclusion of seen items
+      const { products: moreProducts, dbCount } = await hybridProductSearch({
+        query: searchQuery,
+        category,
+        styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+        fit: selectedFit || undefined,
+        limit: 12,
+        excludeIds: Array.from(new Set([...existingIds, ...sessionSeenIds])),
+        expandExternal: !hasMoreInDB, // expand externally when DB is exhausted
+        randomize: true,
+      });
+
+      const newProducts = enforceClientDiversity(moreProducts, existingIds);
+      
+      if (newProducts.length > 0) {
+        newProducts.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(prev => [...prev, ...newProducts]);
+        setDbOffset(prev => prev + newProducts.length);
+        setHasMoreInDB(dbCount >= 12);
+      } else {
+        // Last resort: external expansion with style queries
+        const styleQueries = userStyleProfile
+          ? buildStyleSearchQueries(userStyleProfile, searchQuery)
+          : [searchQuery];
+
+        const { products: freshProducts } = await hybridProductSearch({
+          query: styleQueries[Math.floor(Math.random() * styleQueries.length)],
+          expandExternal: true,
+          limit: 10,
+          excludeIds: Array.from(new Set([...existingIds, ...sessionSeenIds])),
         });
 
-        const newFromDB = dbMore.filter(r => !existingIds.has(r.id));
-        if (newFromDB.length > 0) {
-          setRecommendations(prev => [...prev, ...newFromDB]);
-          setDbOffset(prev => prev + newFromDB.length);
-          setHasMoreInDB(dbMore.length >= 8);
-          setIsLoadingMore(false);
-          return;
+        const freshNew = enforceClientDiversity(freshProducts, existingIds);
+        if (freshNew.length > 0) {
+          freshNew.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(prev => [...prev, ...freshNew]);
+        } else {
+          toast("No more items to show right now");
         }
-        setHasMoreInDB(false);
-      }
-
-      // Fall back to AI for more
-      const prompt = lastPromptRef.current || `Show me more ${activeTab === "for-you" ? "fashion" : activeTab} items`;
-      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
-        body: {
-          action: "recommend",
-          prompt: `${prompt}. Show completely different items, different brands, different styles.`,
-          quizAnswers,
-          userId: user?.id || null,
-          source: sourceParam || "discover",
-          count: 6,
-          excludeIds: Array.from(existingIds),
-        },
-      });
-      if (error) throw error;
-      const newRecs = (data?.recommendations || []).filter(
-        (r: AIRecommendation) => !existingIds.has(r.id) && r.image_url && r.image_url.startsWith("http")
-      );
-      if (newRecs.length > 0) {
-        setRecommendations(prev => [...prev, ...newRecs]);
-      } else {
-        toast("No more items to show right now");
       }
     } catch (e) {
       console.error("Load more error:", e);
@@ -606,37 +628,24 @@ const DiscoverPage = () => {
     debounceTimerRef.current = setTimeout(async () => {
       setIsGenerating(true);
       setHasGenerated(true);
+      lastPromptRef.current = q;
 
-      // Try DB first for matching cached products
-      const dbResults = await loadCachedProductsFromDB({
-        searchQuery: q,
+      // Hybrid search: DB-first + external expansion for fresh results
+      const { products, dbCount } = await hybridProductSearch({
+        query: q,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
-        limit: 12,
+        fit: selectedFit || undefined,
+        limit: 20,
+        expandExternal: true, // Always expand on explicit search
+        randomize: false, // Use relevance sorting for searches
       });
 
-      if (dbResults.length >= 6) {
-        setRecommendations(dbResults);
-        setDbOffset(dbResults.length);
-        setIsGenerating(false);
-      }
-
-      // In parallel: fetch from commerce scraper + open APIs for fresh results
-      const [scraperResults, apiResults] = await Promise.all([
-        fetchFromCommerceScraper(q),
-        fetchFromOpenAPIs(q),
-      ]);
-
-      const existingIds = new Set((dbResults.length >= 6 ? dbResults : []).map(r => r.id));
-      const freshResults = [...scraperResults, ...apiResults]
-        .filter(r => !existingIds.has(r.id) && r.image_url?.startsWith("http"))
-        .filter((r, i, arr) => arr.findIndex(x => x.id === r.id) === i);
-
-      if (freshResults.length > 0 || dbResults.length >= 6) {
-        const merged = dbResults.length >= 6
-          ? [...dbResults, ...freshResults].slice(0, 24)
-          : freshResults.slice(0, 20);
-        setRecommendations(merged);
-        setDbOffset(merged.length);
+      if (products.length > 0) {
+        const diverse = enforceClientDiversity(products, new Set());
+        diverse.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(diverse);
+        setDbOffset(diverse.length);
+        setHasMoreInDB(dbCount >= 12);
         setIsGenerating(false);
       } else {
         // Fall back to AI
