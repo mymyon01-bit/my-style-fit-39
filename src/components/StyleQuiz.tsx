@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft, Plus, X } from "lucide-react";
 
 export interface StyleQuizAnswers {
   preferredStyles: string[];
@@ -24,15 +24,17 @@ interface QuizStep {
   subtitle: string;
   options: string[];
   multi?: boolean;
+  allowCustom?: boolean;
 }
 
 const STEPS: QuizStep[] = [
   {
     key: "preferredStyles",
     title: "What speaks to you?",
-    subtitle: "Select all that resonate",
+    subtitle: "Select all that resonate — or add your own",
     options: ["Minimal", "Street", "Classic", "Edgy", "Clean Fit", "Old Money", "Chic"],
     multi: true,
+    allowCustom: true,
   },
   {
     key: "fitPreference",
@@ -75,15 +77,17 @@ const STEPS: QuizStep[] = [
   {
     key: "dislikedStyles",
     title: "What's not for you?",
-    subtitle: "We'll steer away from these",
+    subtitle: "We'll steer away from these — or add your own",
     options: ["Sporty", "Loud Prints", "Ultra Slim", "Heavy Logos", "Oversized", "Formal"],
     multi: true,
+    allowCustom: true,
   },
 ];
 
 const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [customInput, setCustomInput] = useState("");
 
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -101,6 +105,20 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
     }
   };
 
+  const handleAddCustom = () => {
+    const trimmed = customInput.trim();
+    if (!trimmed) return;
+    if (current.multi) {
+      const arr = (selected as string[]) || [];
+      if (!arr.includes(trimmed)) {
+        setAnswers({ ...answers, [current.key]: [...arr, trimmed] });
+      }
+    } else {
+      setAnswers({ ...answers, [current.key]: trimmed });
+    }
+    setCustomInput("");
+  };
+
   const isSelected = (option: string) => {
     if (current.multi) return ((selected as string[]) || []).includes(option);
     return selected === option;
@@ -111,6 +129,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
     : !!selected;
 
   const handleNext = () => {
+    setCustomInput("");
     if (isLast) {
       onComplete({
         preferredStyles: (answers.preferredStyles as string[]) || [],
@@ -127,6 +146,21 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
     }
   };
 
+  const handleSkip = () => {
+    setCustomInput("");
+    if (isLast) {
+      // Skip last step = submit with whatever we have
+      handleNext();
+    } else {
+      setStep(step + 1);
+    }
+  };
+
+  // Get all custom items (items not in the original options)
+  const customItems = current.multi
+    ? ((selected as string[]) || []).filter(s => !current.options.includes(s))
+    : [];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -141,14 +175,14 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
             <div
               key={i}
               className={`h-[2px] flex-1 transition-all duration-500 ${
-                i <= step ? "bg-accent/50" : "bg-foreground/[0.06]"
+                i <= step ? "bg-accent/60" : "bg-foreground/[0.08]"
               }`}
             />
           ))}
         </div>
         <button
           onClick={onClose}
-          className="text-[10px] tracking-[0.2em] text-foreground/75 hover:text-foreground/75 transition-colors"
+          className="text-[11px] tracking-[0.2em] text-foreground/70 hover:text-foreground transition-colors"
         >
           CLOSE
         </button>
@@ -156,13 +190,13 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
 
       {/* Step counter */}
       <div className="px-8 pt-6 md:px-12">
-        <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">
+        <span className="text-[11px] font-medium tracking-[0.25em] text-foreground/70">
           {step + 1} / {STEPS.length}
         </span>
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col justify-center px-8 md:px-12 lg:px-16">
+      <div className="flex flex-1 flex-col justify-center px-8 md:px-12 lg:px-16 overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -172,10 +206,10 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="max-w-lg mx-auto w-full"
           >
-            <h2 className="font-display text-2xl font-light text-foreground/80 md:text-3xl">
+            <h2 className="font-display text-2xl font-light text-foreground/90 md:text-3xl">
               {current.title}
             </h2>
-            <p className="mt-3 text-[12px] text-foreground/80 md:text-[13px]">
+            <p className="mt-3 text-[13px] text-foreground/70 md:text-[14px]">
               {current.subtitle}
             </p>
 
@@ -186,14 +220,48 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
                   onClick={() => handleSelect(option)}
                   className={`rounded-full px-6 py-3.5 text-[13px] font-light transition-all duration-300 md:text-[14px] ${
                     isSelected(option)
-                      ? "bg-accent/15 text-accent/90 ring-1 ring-accent/25"
-                      : "text-foreground/80 hover:text-foreground/80 ring-1 ring-foreground/[0.06] hover:ring-foreground/[0.12]"
+                      ? "bg-accent/15 text-accent/90 ring-1 ring-accent/30"
+                      : "text-foreground/75 hover:text-foreground ring-1 ring-foreground/[0.08] hover:ring-foreground/[0.15]"
                   }`}
                 >
                   {option}
                 </button>
               ))}
+
+              {/* Show custom-added items */}
+              {customItems.map(item => (
+                <button
+                  key={item}
+                  onClick={() => handleSelect(item)}
+                  className="rounded-full px-6 py-3.5 text-[13px] font-light bg-accent/15 text-accent/90 ring-1 ring-accent/30 flex items-center gap-1.5"
+                >
+                  {item}
+                  <X className="h-3 w-3 opacity-60" />
+                </button>
+              ))}
             </div>
+
+            {/* Custom style input */}
+            {current.allowCustom && (
+              <div className="mt-6 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={customInput}
+                  onChange={e => setCustomInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleAddCustom()}
+                  placeholder="+ Add your own style…"
+                  maxLength={30}
+                  className="flex-1 rounded-full border border-foreground/[0.08] bg-transparent px-5 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/40 focus:border-accent/30 transition-colors"
+                />
+                <button
+                  onClick={handleAddCustom}
+                  disabled={!customInput.trim()}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-foreground/[0.08] text-foreground/60 hover:text-accent hover:border-accent/30 transition-colors disabled:opacity-30"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -201,8 +269,8 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
       {/* Navigation */}
       <div className="flex items-center justify-between px-8 pb-12 md:px-12">
         <button
-          onClick={() => step > 0 ? setStep(step - 1) : onClose()}
-          className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.15em] text-foreground/75 hover:text-foreground/75 transition-colors"
+          onClick={() => { setCustomInput(""); step > 0 ? setStep(step - 1) : onClose(); }}
+          className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] text-foreground/70 hover:text-foreground transition-colors"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           {step > 0 ? "BACK" : "EXIT"}
@@ -211,15 +279,15 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
         {canProceed ? (
           <button
             onClick={handleNext}
-            className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.15em] text-foreground/75 hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] text-foreground/80 hover:text-foreground transition-colors"
           >
             {isLast ? "SEE MY PICKS" : "NEXT"}
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         ) : (
           <button
-            onClick={() => !isLast && setStep(step + 1)}
-            className="text-[10px] text-foreground/80 transition-colors hover:text-foreground/75"
+            onClick={handleSkip}
+            className="text-[11px] text-foreground/60 transition-colors hover:text-foreground/80"
           >
             SKIP
           </button>
