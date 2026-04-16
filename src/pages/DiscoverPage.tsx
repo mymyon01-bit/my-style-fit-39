@@ -1286,17 +1286,18 @@ const DiscoverPage = () => {
       setIsGenerating(true);
       setHasGenerated(true);
       setRecommendations([]);
+      setActiveScenario(null);
       lastPromptRef.current = q;
 
       // Step 1: Parse query into structured intent
       const intent = parseQueryIntent(q);
-      const isVagueQuery = !intent.categoryLock && intent.styleIntent.length === 0 && intent.colorIntent.length === 0 && intent.brandIntent.length === 0;
 
-      // Step 2: Expand query — for vague/lifestyle queries, expansions ARE the search
+      // Step 2: Expand query — for scenario/lifestyle queries, expansions ARE the search
       const expandedQueries = expandSearchQuery(q);
-      const isLifestyleQuery = isVagueQuery && expandedQueries.length > 1 && expandedQueries[0] !== q;
+      const isScenarioQuery = intent.queryType === "scenario";
+      const isStyleQuery = intent.queryType === "style";
 
-      console.log("Search:", { query: q, intent, isVagueQuery, isLifestyleQuery, expandedQueries });
+      console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, expandedQueries });
 
       // Step 3: Choose search strategy
       const categoryMap: Record<string, string> = {
@@ -1304,10 +1305,12 @@ const DiscoverPage = () => {
       };
       const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
-      if (isLifestyleQuery) {
-        // LIFESTYLE QUERY: search for each expanded item type separately
+      if (isScenarioQuery) {
+        // SCENARIO QUERY: search for each expanded item type, then filter + balance
+        setActiveScenario({ label: intent.scenarioLabel!, items: expandedQueries });
+
         const results = await Promise.all(
-          expandedQueries.slice(0, 5).map(eq =>
+          expandedQueries.slice(0, 6).map(eq =>
             hybridProductSearch({
               query: eq,
               limit: 8,
@@ -1319,13 +1322,32 @@ const DiscoverPage = () => {
         );
 
         const allProducts = results.flatMap(r => r.products);
-        // For lifestyle queries, re-parse each product against the expanded terms
-        const diverse = enforceClientDiversity(allProducts, new Set());
+        // Apply scenario anti-relevance filter (exclude contradicting items)
+        const scenarioFiltered = filterForScenario(allProducts, intent);
+        const diverse = enforceClientDiversity(scenarioFiltered, new Set());
         if (diverse.length > 0) {
           diverse.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(diverse.slice(0, 24));
         } else {
-          // Fallback to AI
+          generateRecommendations(q);
+        }
+        setIsGenerating(false);
+      } else if (isStyleQuery) {
+        // STYLE QUERY: use style tags for DB search + external
+        const { products: dbProducts } = await hybridProductSearch({
+          query: q,
+          styles: intent.styleIntent,
+          limit: 24,
+          expandExternal: true,
+          randomize: false,
+        });
+
+        const relevantDb = filterByRelevance(dbProducts, intent);
+        const diverse = enforceClientDiversity(relevantDb, new Set());
+        if (diverse.length > 0) {
+          diverse.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(diverse);
+        } else {
           generateRecommendations(q);
         }
         setIsGenerating(false);
