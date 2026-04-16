@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Camera, Loader2, MapPin, Tag, Hash, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,7 @@ interface Topic {
   post_count: number;
 }
 
-export default function OOTDUploadSheet({ open, onClose, onPosted }: Props) {
+const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted }, ref) => {
   const { user } = useAuth();
   const weather = useWeather();
   const fileRef = useRef<HTMLInputElement>(null);
