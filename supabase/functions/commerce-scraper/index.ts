@@ -105,7 +105,7 @@ interface ScrapedProduct {
 
 // ─── Rate limiting ───
 const platformLastCall: Record<string, number> = {};
-const PLATFORM_COOLDOWN_MS = 15_000; // 15s per platform
+const PLATFORM_COOLDOWN_MS = 5_000; // 5s per platform (reduced for responsive search)
 
 function canCallPlatform(platformId: string): boolean {
   const last = platformLastCall[platformId] || 0;

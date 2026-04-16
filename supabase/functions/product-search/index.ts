@@ -191,7 +191,7 @@ function autoTagProduct(p: any): any {
 
 // ─── External expansion via commerce scraper (rate-limited) ───
 const lastScraperCall = { ts: 0 };
-const SCRAPER_COOLDOWN_MS = 3_000; // Min 3s between scraper calls (reduced from 10s)
+const SCRAPER_COOLDOWN_MS = 1_500; // Min 1.5s between scraper calls for responsive search
 
 async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[]> {
   // Rate limiting: prevent burst requests
