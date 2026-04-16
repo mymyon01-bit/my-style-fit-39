@@ -26,6 +26,7 @@ const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const InstallPage = lazy(() => import("@/pages/InstallPage"));
+const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
 const AdminLayout = lazy(() => import("@/pages/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("@/pages/admin/AdminOverview"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
