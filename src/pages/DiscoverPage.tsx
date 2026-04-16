@@ -348,6 +348,10 @@ const DiscoverPage = () => {
 
   // Product detail sheet
   const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
+  
+  // Whether user needs to complete preferences
+  const needsPreferences = !userStyleProfile && !quizAnswers;
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   // Filters
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
