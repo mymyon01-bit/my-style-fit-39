@@ -844,6 +844,26 @@ const DiscoverPage = () => {
       .map(cat => ({ category: cat, items: groups[cat] }));
   }, [recommendations]);
 
+  // Generate outfit combinations from categorized products
+  const outfitCombinations = useMemo(() => {
+    const groups: Record<FashionCategory, AIRecommendation[]> = {
+      TOPS: [], BOTTOMS: [], SHOES: [], BAGS: [], ACCESSORIES: [],
+    };
+    for (const item of recommendations) {
+      const cat = classifyProduct(item);
+      if (cat) groups[cat].push(item);
+    }
+
+    const liked = new Set(
+      Object.entries(feedbackMap).filter(([, v]) => v === "like").map(([k]) => k)
+    );
+    const disliked = new Set(
+      Object.entries(feedbackMap).filter(([, v]) => v === "dislike").map(([k]) => k)
+    );
+
+    return generateOutfits(groups, 4, liked, disliked);
+  }, [recommendations, feedbackMap]);
+
   const interactionCount = Object.keys(feedbackMap).length;
 
   return (
