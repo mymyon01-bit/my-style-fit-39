@@ -1414,6 +1414,14 @@ const DiscoverPage = () => {
           <div />
         </AuthGate>
       )}
+
+      <ProductDetailSheet
+        product={detailProduct}
+        open={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        isSaved={detailProduct ? savedIds.has(detailProduct.id) : false}
+        onSave={handleSave}
+      />
     </>
   );
 };
