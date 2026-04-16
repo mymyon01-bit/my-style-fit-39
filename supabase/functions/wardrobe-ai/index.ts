@@ -191,7 +191,7 @@ function buildPersonalizationContext(userInfo: { styleProfile: any; bodyProfile:
     if (sp.disliked_styles?.length) parts.push(`Disliked styles: ${sp.disliked_styles.join(", ")} — AVOID these`);
     if (sp.preferred_fit) parts.push(`Preferred fit: ${sp.preferred_fit}`);
     if (sp.budget) parts.push(`Budget range: ${sp.budget}`);
-    if (sp.favorite_brands?.length) parts.push(`Favorite brands (reference only, do NOT limit to these): ${sp.favorite_brands.join(", ")}`);
+    if (sp.favorite_brands?.length) parts.push(`Favorite brands (reference only): ${sp.favorite_brands.join(", ")}`);
     if (sp.occasions?.length) parts.push(`Common occasions: ${sp.occasions.join(", ")}`);
   }
 
@@ -220,50 +220,47 @@ function isValidImageUrl(url: unknown): boolean {
   if (!trimmed || trimmed === "null" || trimmed === "undefined") return false;
   try {
     const u = new URL(trimmed);
-    return u.protocol === "https:" || u.protocol === "http:";
+    return u.protocol === "https:";
   } catch {
     return false;
   }
 }
 
-async function cacheProducts(supabase: any, products: any[], searchQuery: string) {
-  const validProducts = products.filter(p => isValidImageUrl(p.image_url));
-  if (validProducts.length === 0) return;
+// ─── BLOCKED IMAGE DOMAINS: known unreliable or tracking-heavy sources ───
+const BLOCKED_IMAGE_DOMAINS = [
+  "via.placeholder.com",
+  "placehold.it",
+  "placekitten.com",
+  "dummyimage.com",
+  "fakeimg.pl",
+  "picsum.photos",
+  "lorempixel.com",
+  "placeholder.com",
+];
 
-  const rows = validProducts.map(p => ({
-    external_id: p.id,
-    name: p.name,
-    brand: p.brand || null,
-    price: p.price || null,
-    category: p.category || null,
-    subcategory: p.subcategory || null,
-    style_tags: p.style_tags || [],
-    color_tags: p.color ? [p.color] : [],
-    fit: p.fit || null,
-    image_url: p.image_url,
-    source_url: p.source_url || null,
-    store_name: p.store_name || p.brand || null,
-    reason: p.reason || null,
-    image_valid: true,
-    search_query: searchQuery.slice(0, 500),
-  }));
-
-  const { error } = await supabase
-    .from("product_cache")
-    .upsert(rows, { onConflict: "external_id", ignoreDuplicates: false });
-
-  if (error) console.error("Cache insert error:", error.message);
-  else console.log(`Cached ${rows.length} products for query: "${searchQuery.slice(0, 60)}"`);
+function isImageUrlSafe(url: string): boolean {
+  if (!isValidImageUrl(url)) return false;
+  try {
+    const u = new URL(url);
+    if (BLOCKED_IMAGE_DOMAINS.some(d => u.hostname.includes(d))) return false;
+    // Block overly long URLs (likely tracking)
+    if (url.length > 2000) return false;
+    // Block data URIs disguised as URLs
+    if (url.startsWith("data:")) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function logImageFailures(supabase: any, products: any[], source: string) {
-  const failed = products.filter(p => !isValidImageUrl(p.image_url));
+  const failed = products.filter(p => !isImageUrlSafe(p.image_url));
   if (failed.length === 0) return;
 
   const rows = failed.map(p => ({
     product_name: p.name || "Unknown",
     brand: p.brand || null,
-    image_url: p.image_url || null,
+    image_url: (p.image_url || "").slice(0, 500),
     failure_reason: !p.image_url ? "missing" : "invalid_url",
     source,
   }));
@@ -273,7 +270,7 @@ async function logImageFailures(supabase: any, products: any[], source: string) 
   });
 }
 
-// ─── Smart cached product search with style/text matching ───
+// ─── Smart cached product search with trust filtering ───
 
 async function getCachedProducts(supabase: any, opts: {
   category?: string;
@@ -290,6 +287,7 @@ async function getCachedProducts(supabase: any, opts: {
     .select("*")
     .eq("image_valid", true)
     .eq("is_active", true)
+    .in("source_trust_level", ["high", "medium"]) // SECURITY: Only trusted sources
     .order("trend_score", { ascending: false })
     .limit(opts.limit || 30);
 
@@ -304,23 +302,26 @@ async function getCachedProducts(supabase: any, opts: {
     return [];
   }
 
-  let results = (data || []).map((p: any) => ({
-    id: p.external_id || p.id,
-    name: p.name,
-    brand: p.brand,
-    price: p.price,
-    category: p.category,
-    subcategory: p.subcategory,
-    reason: p.reason || "From your curated collection",
-    style_tags: p.style_tags || [],
-    color: (p.color_tags || [])[0] || "",
-    fit: p.fit || "regular",
-    image_url: p.image_url,
-    source_url: p.source_url,
-    store_name: p.store_name,
-    _brand: p.brand, // keep for diversity
-    _trend: p.trend_score || 0,
-  }));
+  let results = (data || [])
+    .filter((p: any) => isImageUrlSafe(p.image_url)) // Double-check image safety
+    .map((p: any) => ({
+      id: p.external_id || p.id,
+      name: p.name,
+      brand: p.brand,
+      price: p.price,
+      category: p.category,
+      subcategory: p.subcategory,
+      reason: p.reason || "From your curated collection",
+      style_tags: p.style_tags || [],
+      color: (p.color_tags || [])[0] || "",
+      fit: p.fit || "regular",
+      image_url: p.image_url,
+      source_url: p.source_url,
+      store_name: p.store_name,
+      platform: p.platform,
+      _brand: p.brand,
+      _trend: p.trend_score || 0,
+    }));
 
   // Text-based relevance scoring if searchQuery provided
   if (opts.searchQuery) {
@@ -331,17 +332,13 @@ async function getCachedProducts(supabase: any, opts: {
         const matchCount = terms.filter(t => text.includes(t)).length;
         return { ...r, _relevance: matchCount / terms.length };
       });
-      // Sort by relevance first, then trend
       results.sort((a: any, b: any) => (b._relevance - a._relevance) || (b._trend - a._trend));
-      // Only keep items with some relevance
       const relevant = results.filter((r: any) => r._relevance > 0);
       if (relevant.length >= 4) results = relevant;
     }
   }
 
-  // Apply brand diversity: max 2 items per brand in top results
   results = applyBrandDiversity(results, 2);
-
   return results.slice(0, opts.limit || 20);
 }
 
@@ -363,7 +360,6 @@ function applyBrandDiversity(items: any[], maxPerBrand: number): any[] {
     }
   }
 
-  // Append overflow at the end for completeness
   return [...diverse, ...overflow];
 }
 
@@ -403,26 +399,26 @@ serve(async (req) => {
     }
 
     // ─── Recommend action ───
+    // SECURITY HARDENING: AI is ONLY used for search query interpretation and ranking.
+    // AI MUST NOT fabricate products. It can only help find and rank real cached products.
     if (action === "recommend") {
       const supabase = getServiceClient();
-      const itemCount = body.count || (tier === "premium" ? "10-12" : tier === "user" ? "8-10" : "6-8");
-      const excludeIds = body.excludeIds || [];
-      const excludeClause = excludeIds.length > 0 ? `\nDo NOT include items with these IDs: ${excludeIds.join(", ")}. Generate completely different products.` : "";
+      const itemCount = typeof body.count === "number" ? body.count : 12;
 
-      // Try cache first — for both browse AND search queries
+      // Step 1: Always try cache first with style-aware search
       const cachedResults = await getCachedProducts(supabase, {
         category: body.category,
         subcategory: body.subcategory,
         styles: body.styles,
         fit: body.fit,
         searchQuery: prompt,
-        limit: typeof itemCount === "number" ? itemCount : 12,
+        limit: itemCount,
       });
 
-      if (cachedResults.length >= 6) {
-        console.log(`Serving ${cachedResults.length} items from cache for: "${(prompt || "").slice(0, 60)}"`);
+      if (cachedResults.length >= 4) {
+        console.log(`Serving ${cachedResults.length} verified items from cache for: "${(prompt || "").slice(0, 60)}"`);
         return new Response(JSON.stringify({
-          recommendations: cachedResults.slice(0, typeof itemCount === "number" ? itemCount : 8),
+          recommendations: cachedResults.slice(0, itemCount),
           tier: "cached",
           citations: [],
           fromCache: true,
@@ -431,115 +427,98 @@ serve(async (req) => {
         });
       }
 
+      // Step 2: Use AI ONLY to generate better search queries for the commerce scraper
+      // AI does NOT generate products — it generates search terms
       const personalization = buildPersonalizationContext(userInfo);
+      
+      const searchQuerySystemPrompt = `You are a fashion search query optimizer. Given a user's style request and preferences, generate 3 specific search queries that would find matching real products on fashion retailers (SSENSE, ASOS, Farfetch, Naver Shopping).
 
-      const systemPrompt = `You are WARDROBE AI — a ${tier === "free" ? "helpful" : "premium"} fashion recommendation engine. Based on the user's style description, generate ${itemCount} curated product recommendations.
-
-IMPORTANT: Return ONLY valid JSON, no markdown, no explanation text.
-
-Return format:
+Return ONLY valid JSON:
 {
-  "recommendations": [
-    {
-      "id": "unique-id",
-      "name": "Product Name",
-      "brand": "Brand Name",
-      "price": "$XXX",
-      "category": "clothing|bags|shoes|accessories",
-      "subcategory": "e.g. sneakers|tote|formal|casual|boots|watch|belt",
-      "reason": "Short explanation why this fits the user",
-      "style_tags": ["tag1", "tag2"],
-      "color": "#hex color of the item",
-      "fit": "oversized|regular|slim",
-      "image_url": "https://images.unsplash.com/photo-XXXXX?w=400&q=80",
-      "source_url": "https://www.brandname.com/product-page",
-      "store_name": "Brand Official Store"
-    }
-  ]
+  "queries": ["query1", "query2", "query3"],
+  "category": "clothing|bags|shoes|accessories|null",
+  "style_tags": ["tag1", "tag2"]
 }
 
-Category structure:
-- clothing → men, women, unisex, formal, casual, street, sportswear
-- bags → handbag, tote, crossbody, clutch, backpack
-- shoes → sneakers, dress-shoes, boots, sandals
-- accessories → belt, watch, sunglasses, hat, jewelry
+Rules:
+- Queries should be concise, product-focused (e.g. "black oversized bomber jacket", "minimal leather tote bag")
+- Do NOT generate product names, prices, or image URLs
+- Do NOT fabricate brands or items
+- Focus on searchable product descriptions`;
 
-CRITICAL RULES:
-- BRAND DIVERSITY: Use a WIDE variety of brands. No single brand should appear more than twice. Include mainstream AND niche brands. Do NOT default to a small set of repeated brands.
-- Interpret the user's query as a STYLE FEELING — match the aesthetic, mood, and vibe, not just keywords.
-- Recommend REAL brands and realistic products
-- Match the user's stated preferences precisely
-- Always assign the correct category AND subcategory
-- Include variety across categories unless a specific category is requested
-- Prices should be realistic for the brand
-- Colors should be hex values
-- Keep reasons under 15 words
-- Each id must be unique (use brand-name-slug format)
-- Every product MUST have a valid image_url from a RELIABLE source.
-  ALLOWED image sources (pick the most relevant):
-  • Pexels: https://images.pexels.com/photos/{id}/pexels-photo-{id}.jpeg?auto=compress&w=400
-  • Pixabay: https://cdn.pixabay.com/photo/{year}/{month}/{day}/{time}_{hash}.jpg
-  • Brand CDN images from real retailer sites (e.g. images.asos-media.com, lp2.hm.com, static.zara.net, images.nike.com)
-  DO NOT use Unsplash URLs — they frequently break.
-  DO NOT use placeholder or generated URLs.
-  Each image must be a real, publicly accessible fashion product photo.
-- For source_url: Provide the REAL product page URL on the brand's official website or major retailer
-- For store_name: Name of the retailer or brand store
-- Use style_tags to describe the item's aesthetic (e.g. minimal, street, classic, edgy, chic, vintage, bohemian, sporty)${excludeClause}${personalization}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream\n- Consider body profile for fit recommendations" : ""}`;
+      const searchQueryUserPrompt = `User request: "${prompt}"${personalization}`;
 
-      const quizContext = quizAnswers
-        ? `\nQuiz answers: Styles: ${quizAnswers.preferredStyles?.join(", ")}. Fit: ${quizAnswers.fitPreference}. Colors: ${quizAnswers.colorPreference}. Vibe: ${quizAnswers.dailyVibe}. Occasion: ${quizAnswers.occasionPreference}. Budget: ${quizAnswers.budgetRange}. Avoid: ${quizAnswers.dislikedStyles?.join(", ")}.`
-        : "";
+      try {
+        const aiResult = await callAI(tier, searchQuerySystemPrompt, searchQueryUserPrompt, { maxTokens: 300, temperature: 0.4 });
+        const parsed = extractJSON(aiResult.content);
+        
+        if (parsed?.queries?.length) {
+          // Trigger commerce scraper with AI-refined queries in background
+          const baseUrl = Deno.env.get("SUPABASE_URL");
+          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+          
+          if (baseUrl && serviceKey) {
+            // Fire and forget — scraper will cache results for next request
+            for (const q of parsed.queries.slice(0, 2)) {
+              fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${serviceKey}`,
+                },
+                body: JSON.stringify({
+                  query: q,
+                  platforms: ["naver", "ssense", "farfetch", "asos"],
+                  limit: 10,
+                }),
+              }).catch(e => console.error("Background scraper trigger error:", e));
+            }
+          }
+        }
+      } catch (e) {
+        console.error("AI search query generation error:", e);
+      }
 
-      const userPrompt = `User style request: "${prompt}"${quizContext}\n\nGenerate curated product recommendations. IMPORTANT: Use diverse brands — do not repeat the same brand more than twice.`;
+      // Step 3: Return whatever real cached data we have (even if < 4)
+      // The commerce scraper will populate the cache for future requests
+      if (cachedResults.length > 0) {
+        return new Response(JSON.stringify({
+          recommendations: cachedResults,
+          tier: "cached",
+          citations: [],
+          fromCache: true,
+          expanding: true, // Signal to frontend that more results are being fetched
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 2200, temperature: 0.65 });
-      const parsed = extractJSON(result.content);
-
-      // Validate, filter imageless, and clean recommendations
-      const allRecs = (parsed?.recommendations || []).map((r: any, i: number) => ({
-        ...r,
-        id: r.id || `rec-${Date.now()}-${i}`,
-        image_url: r.image_url && isValidImageUrl(r.image_url) ? r.image_url : null,
-        source_url: r.source_url && r.source_url.startsWith("http") ? r.source_url : null,
-        store_name: r.store_name || r.brand || null,
-      }));
-
-      // STRICT: Only return products with valid images
-      let recs = allRecs.filter((r: any) => isValidImageUrl(r.image_url));
-
-      // Apply brand diversity on AI results too
-      recs = applyBrandDiversity(recs, 2);
-
-      // Cache valid products + log failures in background
-      const cachePromise = cacheProducts(supabase, recs, prompt || "");
-      const failurePromise = logImageFailures(supabase, allRecs, source || "discover");
-      
-      // Don't await — fire and forget
-      Promise.all([cachePromise, failurePromise]).catch(e => console.error("Background task error:", e));
-
+      // Step 4: No cached results at all — return empty with expanding flag
       return new Response(JSON.stringify({
-        recommendations: recs,
-        tier: result.tier,
-        citations: result.citations,
+        recommendations: [],
+        tier: "cached",
+        citations: [],
+        fromCache: true,
+        expanding: true,
+        message: "Searching for matching products. Please try again in a moment.",
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ─── Existing type-based actions ───
+    // ─── Existing type-based actions (styling advice, NOT product generation) ───
     let systemPrompt = "";
     let userPrompt = "";
 
     switch (type) {
       case "mood-styling": {
         const personalization = buildPersonalizationContext(userInfo);
-        systemPrompt = `You are WARDROBE AI — a ${tier === "free" ? "helpful" : "premium personal"} fashion stylist. ${tier !== "free" ? "Respond in calm, confident, editorial tone." : "Be concise and helpful."} Give concise, actionable style advice under ${tier === "premium" ? "150" : "120"} words. Be specific about clothing types, colors, fabrics. Never use bullet points. Never say "I recommend."`;
+        systemPrompt = `You are WARDROBE AI — a ${tier === "free" ? "helpful" : "premium personal"} fashion stylist. ${tier !== "free" ? "Respond in calm, confident, editorial tone." : "Be concise and helpful."} Give concise, actionable style advice under ${tier === "premium" ? "150" : "120"} words. Be specific about clothing types, colors, fabrics. Never use bullet points. Never say "I recommend." NEVER generate product listings or fake shopping results.`;
         userPrompt = `User mood: "${context.mood || "neutral"}". Weather: ${context.weather?.temp || 22}°C, ${context.weather?.condition || "clear"} in ${context.location || "unknown"}.${context.styles ? ` Style preferences: ${context.styles.join(", ")}.` : ""}${context.bodyType ? ` Body type: ${context.bodyType}.` : ""} Occasion: ${context.occasion || "daily"}.${personalization} Give personalized styling direction for today. Also suggest specific outfit pieces: a top, bottom, shoes, and optionally outerwear.`;
         break;
       }
       case "style-analysis": {
-        systemPrompt = `You are a fashion analyst AI. Analyze style preferences and body data to generate a concise style profile. Be specific, editorial, and actionable. Under 150 words.`;
+        systemPrompt = `You are a fashion analyst AI. Analyze style preferences and body data to generate a concise style profile. Be specific, editorial, and actionable. Under 150 words. NEVER generate product listings.`;
         userPrompt = `User data:
 Height: ${context.height || "unknown"}cm, Weight: ${context.weight || "unknown"}kg
 Preferred styles: ${context.preferredStyles?.join(", ") || "not specified"}
@@ -579,7 +558,7 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
         }
       }
       case "ootd-feedback": {
-        systemPrompt = `You are a fashion community AI that gives brief, supportive style feedback on outfit photos. Be specific about what works and one subtle suggestion. Under 50 words.`;
+        systemPrompt = `You are a fashion community AI that gives brief, supportive style feedback on outfit photos. Be specific about what works and one subtle suggestion. Under 50 words. NEVER generate product listings.`;
         userPrompt = `Outfit caption: "${context.caption || ""}". Style tags: ${context.styleTags?.join(", ") || "none"}. Weather: ${context.weather || "unknown"}. Occasion: ${context.occasion || "daily"}. Give brief style feedback.`;
         break;
       }
