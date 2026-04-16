@@ -438,6 +438,120 @@ Examples:
       });
     }
 
+    // ─── Outfit image analysis (OOTD → product queries) ───
+    if (action === "outfit-analyze") {
+      const imageUrl = body.imageUrl;
+      if (!imageUrl || typeof imageUrl !== "string") {
+        return new Response(JSON.stringify({ error: "imageUrl required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const personalization = buildPersonalizationContext(userInfo);
+
+      const analyzeSystemPrompt = `You are a fashion outfit analyzer. Analyze the outfit photo and extract structured data about what the person is wearing.
+
+Return ONLY valid JSON:
+{
+  "overall_style": "minimal|street|modern|formal|casual|chic|sporty|bohemian|vintage",
+  "color_palette": ["black", "white", "beige"],
+  "fit_type": "oversized|slim|relaxed|tailored|regular",
+  "items": [
+    { "category": "TOPS|BOTTOMS|SHOES|BAGS|ACCESSORIES", "description": "black oversized hoodie", "color": "black", "fit": "oversized" },
+    { "category": "BOTTOMS", "description": "baggy cargo pants", "color": "khaki", "fit": "relaxed" }
+  ],
+  "search_queries": [
+    "oversized black hoodie streetwear",
+    "baggy cargo pants khaki",
+    "white chunky sneakers"
+  ],
+  "style_summary": "A relaxed streetwear look with oversized proportions and neutral tones.",
+  "confidence": 0.85
+}
+
+Rules:
+- Identify 2-5 items (top, bottom, shoes mandatory if visible; bag/accessories optional)
+- Every search_query MUST include a product category keyword (hoodie, pants, sneakers, bag, etc.)
+- Generate 3-6 search queries mixing the detected items
+- Be specific about colors, fits, and styles
+- If image is unclear, set confidence < 0.5 and provide best guess`;
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        return new Response(JSON.stringify({ error: "AI not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      try {
+        // Use vision model to analyze the image
+        const visionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: analyzeSystemPrompt },
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: `Analyze this outfit photo and extract the style breakdown.${personalization}` },
+                  { type: "image_url", image_url: { url: imageUrl } },
+                ],
+              },
+            ],
+            max_tokens: 800,
+            temperature: 0.3,
+          }),
+        });
+
+        if (!visionResponse.ok) {
+          const errText = await visionResponse.text();
+          console.error("Vision API error:", visionResponse.status, errText);
+          throw new Error(`Vision API error (${visionResponse.status})`);
+        }
+
+        const visionData = await visionResponse.json();
+        const content = visionData.choices?.[0]?.message?.content || "";
+        const parsed = extractJSON(content);
+
+        if (parsed && parsed.items?.length > 0) {
+          return new Response(JSON.stringify({
+            analysis: parsed,
+            tier: tier,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Fallback if parsing fails
+        return new Response(JSON.stringify({
+          analysis: {
+            overall_style: "casual",
+            color_palette: ["neutral"],
+            fit_type: "regular",
+            items: [],
+            search_queries: [prompt || "casual outfit"],
+            style_summary: "Could not fully analyze the outfit. Try a clearer photo.",
+            confidence: 0.3,
+          },
+          tier: "fallback",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        console.error("Outfit analyze error:", e);
+        return new Response(JSON.stringify({
+          error: e instanceof Error ? e.message : "Analysis failed",
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ─── Browse action (DB-first, no AI) ───
     if (action === "browse") {
       const supabase = getServiceClient();
