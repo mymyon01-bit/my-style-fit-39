@@ -3,6 +3,7 @@ import { Heart, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
+import SafeImage from "@/components/SafeImage";
 import type { ProductScoreBreakdown } from "@/lib/recommendation";
 
 interface ProductCardProps {
@@ -24,13 +25,12 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
       onClick={() => navigate(`/fit/${product.id}`)}
     >
       <div className="relative overflow-hidden rounded-xl bg-card shadow-card">
-        <img
+        <SafeImage
           src={product.image}
           alt={product.name}
           className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-          loading="lazy"
+          fallbackClassName="aspect-[3/4] w-full"
         />
-        {/* Save button — gated */}
         <AuthGate action="save items">
           <button
             onClick={(e) => {
@@ -44,13 +44,10 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
             />
           </button>
         </AuthGate>
-        {/* Match badge */}
         {matchScore >= 70 && (
           <div className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 backdrop-blur-sm">
             <Sparkles className="h-3 w-3 text-primary-foreground" />
-            <span className="text-[10px] font-bold text-primary-foreground">
-              {matchScore}%
-            </span>
+            <span className="text-[10px] font-bold text-primary-foreground">{matchScore}%</span>
           </div>
         )}
       </div>
@@ -59,9 +56,7 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{product.brand}</p>
           <p className="text-sm font-medium leading-snug text-foreground">{product.name}</p>
           <p className="text-sm font-semibold text-foreground">${product.price}</p>
-          <p className="mt-1 text-[11px] leading-tight text-accent">
-            {displayReason}
-          </p>
+          <p className="mt-1 text-[11px] leading-tight text-accent">{displayReason}</p>
         </div>
       )}
     </div>
