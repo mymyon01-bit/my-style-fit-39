@@ -348,7 +348,7 @@ const DiscoverPage = () => {
       setLoadingNewStyle(false);
     }
   };
-
+  const toggleStyle = (s: string) => setSelectedStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null || selectedColor !== null;
 
