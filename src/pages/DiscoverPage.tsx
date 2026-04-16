@@ -1427,7 +1427,7 @@ interface RecommendationCardProps {
   onOpenDetail: (item: AIRecommendation) => void;
 }
 
-const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave }: RecommendationCardProps) => {
+const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave, onOpenDetail }: RecommendationCardProps) => {
   const feedback = feedbackMap[item.id];
   const isSaved = savedIds.has(item.id);
   const [imgFailed, setImgFailed] = useState(false);
@@ -1436,7 +1436,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
   if (!item.image_url || !item.image_url.startsWith("http") || imgFailed) return null;
 
   return (
-    <div className="group">
+    <div className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
         <img
           src={item.image_url}
