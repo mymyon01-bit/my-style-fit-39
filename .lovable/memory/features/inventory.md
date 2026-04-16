@@ -1,26 +1,32 @@
 ---
-name: Self-growing inventory system
-description: product_cache with trend scoring, scheduled validation, and DB-first Discover
+name: Multi-source inventory system
+description: product_cache with open APIs (DummyJSON, FakeStoreAPI), trend scoring, DB-first Discover, platform column
 type: feature
 ---
 ## Inventory System
 
+### Data Sources (Open APIs — no keys required)
+1. **DummyJSON** (`dummyjson.com/products`) — fashion categories, search, images
+2. **FakeStoreAPI** (`fakestoreapi.com/products`) — clothing, jewelry
+
 ### product_cache table
-Extended columns: `trend_score` (numeric), `is_active` (boolean), `last_validated` (timestamptz)
+Extended columns: `trend_score`, `is_active`, `last_validated`, `platform` (dummyjson|fakestore|ai_search)
+Unique constraint: `(platform, external_id)` for dedup
 
 ### Data flow
-1. AI search results → validated → cached in product_cache
-2. Discover loads from product_cache first (DB-first), AI only on active search
-3. getCachedProducts orders by trend_score DESC, filters is_active=true, image_valid=true
+1. Discover loads from product_cache first (DB-first)
+2. If cache empty → fetch from open APIs via `product-search` edge function
+3. Last resort → AI generation via `wardrobe-ai`
+4. All valid products cached to product_cache automatically
 
-### Scheduled maintenance
-Edge function: `inventory-maintenance`
-Cron: weekly (Sunday 3 AM UTC) via pg_cron
-Actions:
-- Re-validate images (HEAD request) for products not validated in 7+ days
-- Deactivate broken products (is_active=false)
-- Update trend_score = views*1 + likes*3 + saves*5 with age decay
+### Edge functions
+- `product-search`: Fetches from DummyJSON + FakeStoreAPI, normalizes, caches, returns
+- `wardrobe-ai`: AI recommendations with DB-first cache check
+- `inventory-maintenance`: Weekly cron for image validation + trend scoring
 
-### Trend score formula
-`rawScore = view_count*1 + like_count*3 + saves*5`
-`trendScore = rawScore * (1 - agePenalty)` where agePenalty applies after 30 days
+### ProductCard behavior
+- Products with `source_url` open external link in new tab
+- Products without `source_url` navigate to internal fit page
+
+### Extensibility
+Architecture ready for adding more sources (Naver, Amazon, Coupang) via API keys later

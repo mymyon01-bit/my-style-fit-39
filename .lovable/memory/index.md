@@ -16,4 +16,5 @@ Dual AI: Lovable AI (free/guest), Perplexity (homepage/logged-in/premium). Fallb
 - [Category tree](mem://features/categories) — Hierarchical product_categories with parent-child, seeded with fashion defaults
 - [Admin panel](mem://features/admin) — Role-based admin at /admin with sidebar, overview/users/products/categories/ootd/content/settings pages
 - [AI routing](mem://features/ai-routing) — Dual AI system: free→Lovable AI, homepage/user→Perplexity sonar, premium→Perplexity sonar-pro. Auto-fallback.
-- [Inventory system](mem://features/inventory) — Self-growing product_cache with trend_score, is_active, weekly cron validation via inventory-maintenance edge function
+- [Inventory system](mem://features/inventory) — Multi-source: DummyJSON + FakeStoreAPI (open, no keys). DB-first Discover. product-search edge function. Extensible for paid APIs later.
+- [Subscription](mem://features/subscription) — Free/premium_trial/premium plans with fake payment for MVP
