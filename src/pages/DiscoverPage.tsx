@@ -248,7 +248,7 @@ const DiscoverPage = () => {
         <div className="mx-auto max-w-lg px-6 pt-10 pb-2 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           <div className="flex items-baseline justify-between">
             <span className="font-display text-[12px] font-semibold tracking-[0.35em] text-foreground/70 lg:hidden">WARDROBE</span>
-            <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/50">DISCOVER</span>
+            <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/50">{t("discover").toUpperCase()}</span>
           </div>
         </div>
 
@@ -261,7 +261,7 @@ const DiscoverPage = () => {
               value={textInput}
               onChange={e => setTextInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleTextSubmit()}
-              placeholder="Describe your style…"
+              placeholder={t("describeStyle")}
               className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/35"
             />
             {textInput.trim() && (
