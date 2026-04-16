@@ -446,10 +446,10 @@ Return ONLY valid JSON:
   "interpreted_intent": "one sentence describing what the user actually wants, even if they didn't say it explicitly"
 }`;
 
-      const userPrompt = `User search input: "${prompt}"${personalization}`;
+      const userPrompt = `User search input: "${prompt}"${personalization}${behaviorContext}`;
 
       try {
-        const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 400, temperature: 0.4 });
+        const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 500, temperature: 0.4 });
         const parsed = extractJSON(result.content);
 
         if (parsed?.queries?.length) {
@@ -457,6 +457,9 @@ Return ONLY valid JSON:
             queries: parsed.queries.slice(0, 6),
             category: parsed.category || null,
             style_tags: parsed.style_tags || [],
+            color_direction: parsed.color_direction || [],
+            fit_direction: parsed.fit_direction || null,
+            emotional_tone: parsed.emotional_tone || null,
             interpreted_intent: parsed.interpreted_intent || "",
             tier: result.tier,
           }), {
