@@ -55,6 +55,10 @@ const DiscoverPage = () => {
   const [hasGenerated, setHasGenerated] = useState(false);
   const [showAuthHint, setShowAuthHint] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [preferenceMode, setPreferenceMode] = useState(false);
+  const [newStyleRecs, setNewStyleRecs] = useState<AIRecommendation[]>([]);
+  const [loadingNewStyle, setLoadingNewStyle] = useState(false);
+  const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
   const lastPromptRef = useRef("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
