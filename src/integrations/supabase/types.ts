@@ -188,12 +188,46 @@ export type Database = {
         }
         Relationships: []
       }
+      ootd_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ootd_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ootd_posts: {
         Row: {
           caption: string | null
           created_at: string
+          dislike_count: number | null
           id: string
           image_url: string
+          like_count: number | null
           linked_products: string[] | null
           occasion_tags: string[] | null
           star_count: number | null
@@ -206,8 +240,10 @@ export type Database = {
         Insert: {
           caption?: string | null
           created_at?: string
+          dislike_count?: number | null
           id?: string
           image_url: string
+          like_count?: number | null
           linked_products?: string[] | null
           occasion_tags?: string[] | null
           star_count?: number | null
@@ -220,8 +256,10 @@ export type Database = {
         Update: {
           caption?: string | null
           created_at?: string
+          dislike_count?: number | null
           id?: string
           image_url?: string
+          like_count?: number | null
           linked_products?: string[] | null
           occasion_tags?: string[] | null
           star_count?: number | null
@@ -232,6 +270,38 @@ export type Database = {
           weather_tag?: string | null
         }
         Relationships: []
+      }
+      ootd_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ootd_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ootd_stars: {
         Row: {
