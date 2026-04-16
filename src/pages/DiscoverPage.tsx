@@ -276,7 +276,7 @@ const DiscoverPage = () => {
 
 
 
-  // ── INSTANT INITIAL LOAD: DB-first, then background expansion ──
+  // ── INSTANT INITIAL LOAD: DB-first small batch, then background expansion ──
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
@@ -285,9 +285,9 @@ const DiscoverPage = () => {
       setIsGenerating(true);
       setHasGenerated(true);
 
-      // Step 1: Fast DB load with randomization for freshness
+      // Step 1: Fast DB load — small initial batch for instant render
       const { products: dbProducts, dbCount } = await hybridProductSearch({
-        limit: 16,
+        limit: 8,
         randomize: true,
       });
 
@@ -296,37 +296,36 @@ const DiscoverPage = () => {
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
-        setHasMoreInDB(dbCount >= 12);
+        setHasMoreInDB(dbCount >= 8);
         setIsGenerating(false);
 
-        // Step 2: Background expansion if DB results are limited or repetitive
-        if (dbCount < 12) {
-          const styleQueries = userStyleProfile
-            ? buildStyleSearchQueries(userStyleProfile)
-            : ["trending fashion new arrivals"];
-          
-          const { products: freshProducts } = await hybridProductSearch({
-            query: styleQueries[0],
-            expandExternal: true,
-            limit: 12,
-            excludeIds: Array.from(sessionSeenIds),
-          });
-
-          if (freshProducts.length > 0) {
-            const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
-            freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-            setRecommendations(prev => {
-              const merged = [...prev, ...freshDiverse];
-              return enforceClientDiversity(merged, new Set());
+        // Step 2: Background expansion — non-blocking, after first paint
+        if (dbCount < 8) {
+          requestIdleCallback(() => {
+            const styleQueries = userStyleProfile
+              ? buildStyleSearchQueries(userStyleProfile)
+              : ["trending fashion new arrivals"];
+            
+            hybridProductSearch({
+              query: styleQueries[0],
+              expandExternal: true,
+              limit: 8,
+              excludeIds: Array.from(sessionSeenIds),
+            }).then(({ products: freshProducts }) => {
+              if (freshProducts.length > 0) {
+                const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
+                freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+                setRecommendations(prev => enforceClientDiversity([...prev, ...freshDiverse], new Set()));
+              }
             });
-          }
+          });
         }
       } else {
-        // No DB products at all — force external expansion
+        // No DB products — force external expansion
         const { products: apiProducts } = await hybridProductSearch({
           query: "fashion trending new arrivals",
           expandExternal: true,
-          limit: 16,
+          limit: 8,
         });
 
         if (apiProducts.length > 0) {
@@ -334,11 +333,8 @@ const DiscoverPage = () => {
           setRecommendations(apiProducts);
           setDbOffset(apiProducts.length);
           setHasMoreInDB(false);
-          setIsGenerating(false);
-        } else {
-          setIsGenerating(false);
-          generateRecommendations("Recommend trending fashion items");
         }
+        setIsGenerating(false);
       }
     };
     if (!moodParam) loadInitial();
@@ -585,7 +581,7 @@ const DiscoverPage = () => {
     }
   };
 
-  // Debounced search submit
+  // Debounced search submit — 400ms debounce to reduce API spam
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
@@ -593,22 +589,31 @@ const DiscoverPage = () => {
     setActiveTab("for-you");
     setActiveSubcategory(null);
     setShowSuggestions(false);
-    setRecommendations([]);
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(async () => {
+      // Check cache first before clearing results
+      const cacheKey = getCacheKey("search", { q, styles: selectedStyles, fit: selectedFit });
+      const cached = getCachedResult(cacheKey);
+      if (cached) {
+        setRecommendations(cached);
+        setHasGenerated(true);
+        return;
+      }
+
+      setRecommendations([]);
       setIsGenerating(true);
       setHasGenerated(true);
       lastPromptRef.current = q;
 
-      // Hybrid search: DB-first + external expansion for fresh results
+      // Hybrid search: DB-first + external expansion
       const { products, dbCount } = await hybridProductSearch({
         query: q,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 20,
-        expandExternal: true, // Always expand on explicit search
-        randomize: false, // Use relevance sorting for searches
+        limit: 12,
+        expandExternal: true,
+        randomize: false,
       });
 
       if (products.length > 0) {
@@ -616,13 +621,13 @@ const DiscoverPage = () => {
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
-        setHasMoreInDB(dbCount >= 12);
+        setHasMoreInDB(dbCount >= 8);
+        resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
         setIsGenerating(false);
       } else {
-        // Fall back to AI
         generateRecommendations(q);
       }
-    }, 150);
+    }, 400);
   };
 
   const handleFeedback = useCallback(async (itemId: string, type: "like" | "dislike") => {
@@ -993,13 +998,12 @@ const DiscoverPage = () => {
             {isGenerating ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
+                  {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="animate-pulse">
                       <div className="aspect-[3/4] rounded-xl bg-foreground/[0.04]" />
                       <div className="mt-2.5 space-y-1.5 px-0.5">
                         <div className="h-2.5 w-16 rounded bg-foreground/[0.04]" />
                         <div className="h-3 w-24 rounded bg-foreground/[0.04]" />
-                        <div className="h-3 w-12 rounded bg-foreground/[0.04]" />
                       </div>
                     </div>
                   ))}
@@ -1160,18 +1164,14 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
   if (!item.image_url || !item.image_url.startsWith("http") || imgFailed) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.3 }}
-      className="group"
-    >
+    <div className="group">
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
         <img
           src={item.image_url}
           alt={item.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading={index < 4 ? "eager" : "lazy"}
+          decoding="async"
           onError={() => setImgFailed(true)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -1230,7 +1230,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
           <p className="text-[10px] text-foreground/60">{item.store_name}</p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 

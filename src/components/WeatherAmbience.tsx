@@ -88,9 +88,9 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
         />
       )}
 
-      {/* Rain streaks — more visible */}
+      {/* Rain streaks — reduced count for performance */}
       {isRain &&
-        Array.from({ length: 40 }).map((_, i) => (
+        Array.from({ length: 15 }).map((_, i) => (
           <motion.div
             key={`rain-${i}`}
             className="absolute w-px bg-foreground/[0.06]"
@@ -109,9 +109,9 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
           />
         ))}
 
-      {/* Snow particles — more visible */}
+      {/* Snow particles — reduced count for performance */}
       {isSnow &&
-        Array.from({ length: 30 }).map((_, i) => (
+        Array.from({ length: 12 }).map((_, i) => (
           <motion.div
             key={`snow-${i}`}
             className="absolute rounded-full bg-foreground/[0.08]"
