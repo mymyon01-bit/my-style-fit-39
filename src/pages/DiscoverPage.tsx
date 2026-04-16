@@ -66,14 +66,21 @@ function classifyProduct(item: AIRecommendation): FashionCategory | null {
   return null;
 }
 
+// ── Query type classification ──
+type QueryType = "product" | "style" | "scenario";
+
 // ── Query Intent Parser: extract structured intent from user query ──
 interface QueryIntent {
   rawQuery: string;
+  queryType: QueryType;
   categoryLock: FashionCategory | null;
   styleIntent: string[];
   colorIntent: string[];
   brandIntent: string[];
   keywords: string[]; // remaining meaningful terms
+  scenarioLabel: string | null; // human-readable scenario name
+  seasonalContext: string | null; // summer, winter, etc.
+  excludeKeywords: string[]; // items that contradict the scenario
 }
 
 const STYLE_KEYWORD_MAP: Record<string, string[]> = {
@@ -108,6 +115,55 @@ function parseQueryIntent(query: string): QueryIntent {
   const lower = query.toLowerCase().trim();
   const words = lower.split(/\s+/).filter(w => w.length > 1);
 
+  // 0. Detect scenario (occasion/lifestyle query)
+  const SCENARIO_MAP: Record<string, { label: string; season: string | null; exclude: string[] }> = {
+    "summer vacation": { label: "Summer Vacation", season: "summer", exclude: ["wool", "parka", "puffer", "thermal", "fleece", "down jacket", "heavy"] },
+    "summer": { label: "Summer Style", season: "summer", exclude: ["wool", "parka", "puffer", "thermal", "fleece", "down jacket", "heavy", "fur"] },
+    "vacation": { label: "Vacation Outfit", season: "summer", exclude: ["formal", "suit", "blazer", "heavy", "wool"] },
+    "beach": { label: "Beach Look", season: "summer", exclude: ["boots", "coat", "blazer", "suit", "formal", "wool", "parka"] },
+    "travel": { label: "Travel Outfit", season: null, exclude: ["formal", "suit", "heels"] },
+    "airport": { label: "Airport Look", season: null, exclude: ["formal", "suit", "heels", "dress shoes"] },
+    "winter": { label: "Winter Style", season: "winter", exclude: ["sandals", "tank", "shorts", "linen", "swim"] },
+    "spring": { label: "Spring Style", season: "spring", exclude: ["parka", "heavy", "puffer", "sandals"] },
+    "fall": { label: "Fall Style", season: "fall", exclude: ["sandals", "tank", "swim", "linen"] },
+    "autumn": { label: "Autumn Style", season: "fall", exclude: ["sandals", "tank", "swim", "linen"] },
+    "rain": { label: "Rainy Day", season: null, exclude: ["sandals", "suede", "canvas"] },
+    "date night": { label: "Date Night", season: null, exclude: ["gym", "athletic", "joggers", "sweatpants", "cargo"] },
+    "date": { label: "Date Outfit", season: null, exclude: ["gym", "athletic", "joggers", "sweatpants"] },
+    "wedding": { label: "Wedding Guest", season: null, exclude: ["sneakers", "hoodie", "joggers", "cargo", "gym"] },
+    "office": { label: "Office Look", season: null, exclude: ["gym", "athletic", "hoodie", "cargo", "ripped"] },
+    "work": { label: "Work Outfit", season: null, exclude: ["gym", "athletic", "hoodie", "cargo", "ripped"] },
+    "gym": { label: "Gym & Workout", season: null, exclude: ["formal", "suit", "heels", "blazer", "loafers"] },
+    "workout": { label: "Workout Gear", season: null, exclude: ["formal", "suit", "heels", "blazer", "loafers"] },
+    "party": { label: "Party Outfit", season: null, exclude: ["athletic", "gym", "hiking", "cargo"] },
+    "festival": { label: "Festival Look", season: "summer", exclude: ["formal", "suit", "blazer", "wool", "heavy"] },
+    "casual": { label: "Casual Style", season: null, exclude: ["formal", "suit"] },
+    "formal": { label: "Formal Look", season: null, exclude: ["sneakers", "hoodie", "joggers", "cargo", "gym"] },
+    "streetwear": { label: "Streetwear", season: null, exclude: ["formal", "suit", "dress shoes", "loafers"] },
+    "hiking": { label: "Hiking Gear", season: null, exclude: ["formal", "heels", "suit", "loafers"] },
+    "school": { label: "School Outfit", season: null, exclude: ["formal", "suit", "heels"] },
+    "brunch": { label: "Brunch Look", season: null, exclude: ["gym", "athletic", "formal", "suit"] },
+    "concert": { label: "Concert Outfit", season: null, exclude: ["formal", "suit", "office"] },
+    "interview": { label: "Interview Look", season: null, exclude: ["gym", "hoodie", "joggers", "ripped", "cargo"] },
+    "picnic": { label: "Picnic Style", season: "summer", exclude: ["formal", "suit", "heels", "heavy"] },
+    "resort": { label: "Resort Wear", season: "summer", exclude: ["heavy", "parka", "wool", "boots"] },
+  };
+
+  // Check scenario (longest match first)
+  let scenarioLabel: string | null = null;
+  let seasonalContext: string | null = null;
+  let excludeKeywords: string[] = [];
+  const sortedScenarios = Object.keys(SCENARIO_MAP).sort((a, b) => b.length - a.length);
+  for (const key of sortedScenarios) {
+    if (lower.includes(key)) {
+      const info = SCENARIO_MAP[key];
+      scenarioLabel = info.label;
+      seasonalContext = info.season;
+      excludeKeywords = info.exclude;
+      break;
+    }
+  }
+
   // 1. Detect category lock
   let categoryLock: FashionCategory | null = null;
   for (const cat of CATEGORY_ORDER) {
@@ -131,14 +187,21 @@ function parseQueryIntent(query: string): QueryIntent {
   // 4. Detect brand intent
   const brandIntent = KNOWN_BRANDS.filter(b => lower.includes(b));
 
-  // 5. Remaining keywords (strip detected colors/brands/styles)
+  // 5. Remaining keywords
   const consumed = new Set<string>();
   [...colorIntent, ...brandIntent].forEach(w => w.split(/\s+/).forEach(p => consumed.add(p)));
   Object.values(STYLE_KEYWORD_MAP).flat().forEach(k => { if (lower.includes(k)) k.split(/\s+/).forEach(p => consumed.add(p)); });
-  // Also consume category keywords already matched
   const keywords = words.filter(w => !consumed.has(w) && w.length > 2);
 
-  return { rawQuery: query, categoryLock, styleIntent, colorIntent, brandIntent, keywords };
+  // 6. Determine query type
+  let queryType: QueryType = "product";
+  if (scenarioLabel) {
+    queryType = "scenario";
+  } else if (styleIntent.length > 0 && !categoryLock) {
+    queryType = "style";
+  }
+
+  return { rawQuery: query, queryType, categoryLock, styleIntent, colorIntent, brandIntent, keywords, scenarioLabel, seasonalContext, excludeKeywords };
 }
 
 // ── Strict relevance scorer based on parsed intent ──
@@ -150,6 +213,13 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
   const itemText = `${itemName} ${itemBrand} ${item.category || ""} ${(item.style_tags || []).join(" ")} ${item.color || ""} ${item.fit || ""}`.toLowerCase();
   const itemCategory = classifyProduct(item);
 
+  // HARD BLOCK: If product contains excluded keywords for this scenario, reject it
+  if (intent.excludeKeywords.length > 0) {
+    if (intent.excludeKeywords.some(ex => itemName.includes(ex) || itemText.includes(ex))) {
+      return 0; // Completely irrelevant — e.g. wool coat for summer vacation
+    }
+  }
+
   let score = 0;
 
   // 0.40 — Category match (HARD requirement when intent has category)
@@ -157,11 +227,10 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     if (itemCategory === intent.categoryLock) {
       score += 40;
     } else {
-      // Category mismatch when user specified a category = near-zero relevance
       return 5;
     }
   } else {
-    score += 20; // No category lock → neutral baseline
+    score += 20;
   }
 
   // 0.25 — Style match
@@ -175,7 +244,7 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     else if (styleKeywordMatch) score += 15;
     else score += 3;
   } else {
-    score += 12; // No style intent → neutral
+    score += 12;
   }
 
   // 0.20 — Color match
@@ -185,7 +254,7 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     );
     score += colorMatch ? 20 : 2;
   } else {
-    score += 10; // No color intent → neutral
+    score += 10;
   }
 
   // 0.10 — Brand match
@@ -193,16 +262,64 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
     score += brandMatch ? 10 : 0;
   } else {
-    score += 5; // No brand intent → neutral
+    score += 5;
   }
 
-  // 0.05 — Keyword match (remaining terms)
+  // 0.05 — Keyword match
   if (intent.keywords.length > 0) {
     const keywordHits = intent.keywords.filter(k => itemText.includes(k)).length;
     score += Math.min(5, (keywordHits / intent.keywords.length) * 5);
   }
 
   return Math.round(score);
+}
+
+// ── Scenario-specific filter: ensures category balance for lifestyle queries ──
+function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRecommendation[] {
+  // First, apply exclude keywords filter
+  let filtered = items.filter(item => {
+    const itemName = (item.name || "").toLowerCase();
+    const itemText = `${itemName} ${item.category || ""} ${(item.style_tags || []).join(" ")}`.toLowerCase();
+    return !intent.excludeKeywords.some(ex => itemName.includes(ex) || itemText.includes(ex));
+  });
+
+  // Classify into categories
+  const byCategory: Record<string, AIRecommendation[]> = {};
+  for (const item of filtered) {
+    const cat = classifyProduct(item) || "OTHER";
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(item);
+  }
+
+  // Ensure category balance: pick items round-robin across categories
+  const categories = Object.keys(byCategory).filter(c => c !== "OTHER");
+  if (categories.length <= 1) return filtered; // Not enough variety to interleave
+
+  const balanced: AIRecommendation[] = [];
+  const maxPerCategory = Math.ceil(24 / categories.length);
+  let idx = 0;
+  const indices: Record<string, number> = {};
+  categories.forEach(c => indices[c] = 0);
+
+  // Round-robin pick: ensures mix of tops, bottoms, shoes, accessories
+  while (balanced.length < 24) {
+    const cat = categories[idx % categories.length];
+    const catItems = byCategory[cat];
+    if (catItems && indices[cat] < catItems.length && indices[cat] < maxPerCategory) {
+      balanced.push(catItems[indices[cat]]);
+      indices[cat]++;
+    }
+    idx++;
+    // Break if we've gone through all items
+    if (idx > categories.length * maxPerCategory) break;
+  }
+
+  // Add any remaining "OTHER" items at the end
+  if (byCategory["OTHER"]) {
+    balanced.push(...byCategory["OTHER"].slice(0, 4));
+  }
+
+  return balanced;
 }
 
 // ── Apply strict relevance filter + sort ──
@@ -646,6 +763,8 @@ const DiscoverPage = () => {
 
   // Product detail sheet
   const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
+  // Scenario context for display
+  const [activeScenario, setActiveScenario] = useState<{ label: string; items: string[] } | null>(null);
   
   // Whether user needs to complete preferences
   const needsPreferences = !userStyleProfile && !quizAnswers;
@@ -1167,17 +1286,18 @@ const DiscoverPage = () => {
       setIsGenerating(true);
       setHasGenerated(true);
       setRecommendations([]);
+      setActiveScenario(null);
       lastPromptRef.current = q;
 
       // Step 1: Parse query into structured intent
       const intent = parseQueryIntent(q);
-      const isVagueQuery = !intent.categoryLock && intent.styleIntent.length === 0 && intent.colorIntent.length === 0 && intent.brandIntent.length === 0;
 
-      // Step 2: Expand query — for vague/lifestyle queries, expansions ARE the search
+      // Step 2: Expand query — for scenario/lifestyle queries, expansions ARE the search
       const expandedQueries = expandSearchQuery(q);
-      const isLifestyleQuery = isVagueQuery && expandedQueries.length > 1 && expandedQueries[0] !== q;
+      const isScenarioQuery = intent.queryType === "scenario";
+      const isStyleQuery = intent.queryType === "style";
 
-      console.log("Search:", { query: q, intent, isVagueQuery, isLifestyleQuery, expandedQueries });
+      console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, expandedQueries });
 
       // Step 3: Choose search strategy
       const categoryMap: Record<string, string> = {
@@ -1185,10 +1305,12 @@ const DiscoverPage = () => {
       };
       const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
-      if (isLifestyleQuery) {
-        // LIFESTYLE QUERY: search for each expanded item type separately
+      if (isScenarioQuery) {
+        // SCENARIO QUERY: search for each expanded item type, then filter + balance
+        setActiveScenario({ label: intent.scenarioLabel!, items: expandedQueries });
+
         const results = await Promise.all(
-          expandedQueries.slice(0, 5).map(eq =>
+          expandedQueries.slice(0, 6).map(eq =>
             hybridProductSearch({
               query: eq,
               limit: 8,
@@ -1200,13 +1322,32 @@ const DiscoverPage = () => {
         );
 
         const allProducts = results.flatMap(r => r.products);
-        // For lifestyle queries, re-parse each product against the expanded terms
-        const diverse = enforceClientDiversity(allProducts, new Set());
+        // Apply scenario anti-relevance filter (exclude contradicting items)
+        const scenarioFiltered = filterForScenario(allProducts, intent);
+        const diverse = enforceClientDiversity(scenarioFiltered, new Set());
         if (diverse.length > 0) {
           diverse.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(diverse.slice(0, 24));
         } else {
-          // Fallback to AI
+          generateRecommendations(q);
+        }
+        setIsGenerating(false);
+      } else if (isStyleQuery) {
+        // STYLE QUERY: use style tags for DB search + external
+        const { products: dbProducts } = await hybridProductSearch({
+          query: q,
+          styles: intent.styleIntent,
+          limit: 24,
+          expandExternal: true,
+          randomize: false,
+        });
+
+        const relevantDb = filterByRelevance(dbProducts, intent);
+        const diverse = enforceClientDiversity(relevantDb, new Set());
+        if (diverse.length > 0) {
+          diverse.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(diverse);
+        } else {
           generateRecommendations(q);
         }
         setIsGenerating(false);
@@ -1422,7 +1563,7 @@ const DiscoverPage = () => {
               />
               {textInput.trim() && (
                 <div className="flex items-center gap-2">
-                  <button onClick={() => { setTextInput(""); setShowSuggestions(false); }} className="text-foreground/70 hover:text-foreground/75">
+                  <button onClick={() => { setTextInput(""); setShowSuggestions(false); setActiveScenario(null); }} className="text-foreground/70 hover:text-foreground/75">
                     <X className="h-3.5 w-3.5" />
                   </button>
                   <button onClick={() => handleTextSubmit()} className="hover-burgundy text-[10px] font-semibold tracking-[0.15em] text-accent/70">GO</button>
@@ -1690,12 +1831,28 @@ const DiscoverPage = () => {
               </div>
             ) : hasGenerated && recommendations.length > 0 ? (
               <div className="space-y-12">
+                {/* Scenario context banner */}
+                {activeScenario && (
+                  <div className="rounded-xl border border-accent/15 bg-accent/[0.04] p-4">
+                    <p className="text-[11px] font-semibold tracking-[0.15em] text-accent/70 mb-2">
+                      {activeScenario.label.toUpperCase()} OUTFIT
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {activeScenario.items.map((item, i) => (
+                        <span key={i} className="rounded-full bg-foreground/[0.06] px-2.5 py-1 text-[10px] text-foreground/60">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
-                      {activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
+                      {activeScenario ? activeScenario.label.toUpperCase() : activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
                     </p>
-                    {interactionCount > 2 && (
+                    {interactionCount > 2 && !activeScenario && (
                       <p className="text-[10px] text-foreground/75 mt-1">{t("adaptingTaste")}</p>
                     )}
                   </div>
