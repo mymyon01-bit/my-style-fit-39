@@ -2179,21 +2179,13 @@ const DiscoverPage = () => {
                   </div>
                 )}
 
-                {/* Load More */}
-                <div className="flex justify-center pt-4 pb-8">
-                  <button
-                    onClick={loadMore}
-                    disabled={isLoadingMore}
-                    className="hover-burgundy flex items-center gap-2 rounded-lg border border-border/30 px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/65 transition-all hover:border-accent/30 hover:bg-accent/[0.04] disabled:opacity-40"
-                  >
-                    {isLoadingMore ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    )}
-                    {isLoadingMore ? t("loading").toUpperCase() : t("loadMore").toUpperCase()}
-                  </button>
-                </div>
+                {/* Auto load-more sentinel + manual button */}
+                <div ref={loadMoreSentinelRef} className="h-1" />
+                {isLoadingMore && (
+                  <div className="flex justify-center pt-4 pb-8">
+                    <Loader2 className="h-4 w-4 animate-spin text-accent/50" />
+                  </div>
+                )}
 
                 {/* AI Recommendation: New Style */}
                 {user && (
