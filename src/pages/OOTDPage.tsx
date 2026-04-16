@@ -178,8 +178,18 @@ const OOTDPage = () => {
   const handlePosted = () => { loadPosts(); loadMyPosts(); loadTopics(); };
   const getProfile = (userId: string) => profileMap[userId] || null;
 
-  // Render a post card (used in both community + my page)
-  const renderPostCard = (post: OOTDPost, index: number, showAuthor = true) => {
+  // Sort posts: featured row first (top scored), then rest
+  const getFeaturedPosts = () => {
+    if (posts.length < 4) return { featured: [], rest: posts };
+    const scored = [...posts].sort((a, b) => {
+      const scoreA = (a.like_count || 0) * 3 + (a.star_count || 0) * 5 - (a.dislike_count || 0) * 2;
+      const scoreB = (b.like_count || 0) * 3 + (b.star_count || 0) * 5 - (b.dislike_count || 0) * 2;
+      return scoreB - scoreA;
+    });
+    return { featured: scored.slice(0, 3), rest: scored.slice(3) };
+  };
+
+  const renderPostCard = (post: OOTDPost, index: number, showAuthor = true, compact = false) => {
     const profile = getProfile(post.user_id);
     const likes = post.like_count || 0;
 
@@ -188,35 +198,34 @@ const OOTDPage = () => {
         key={post.id}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: index * 0.03 }}
-        className="mb-3 break-inside-avoid cursor-pointer group"
+        transition={{ delay: index * 0.02 }}
+        className="mb-2 break-inside-avoid cursor-pointer group"
         onClick={() => setSelectedPost(post)}
       >
-        <div className="relative overflow-hidden rounded-xl">
+        <div className="relative overflow-hidden rounded-lg">
           <img
             src={post.image_url}
             alt={post.caption || ""}
             className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
           />
-          {/* Subtle bottom overlay */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/40 to-transparent p-2.5 pt-8">
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-1.5 pt-6">
             {showAuthor && (
-              <p className="text-[9px] font-medium text-white/70 truncate">
+              <p className="text-[8px] font-medium text-white/70 truncate">
                 {profile?.display_name || "Anonymous"}
               </p>
             )}
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-1.5 mt-0.5">
               {likes > 0 && (
                 <span className="flex items-center gap-0.5">
-                  <Heart className="h-2.5 w-2.5 text-white/60" />
-                  <span className="text-[8px] text-white/60">{likes}</span>
+                  <Heart className="h-2 w-2 text-white/60" />
+                  <span className="text-[7px] text-white/60">{likes}</span>
                 </span>
               )}
               {(post.star_count || 0) > 0 && (
                 <span className="flex items-center gap-0.5">
-                  <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[8px] text-white/70">{post.star_count}</span>
+                  <Star className="h-2 w-2 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                  <span className="text-[7px] text-white/70">{post.star_count}</span>
                 </span>
               )}
             </div>
@@ -290,8 +299,8 @@ const OOTDPage = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="columns-2 gap-3 md:columns-3">
-                      {myPosts.map((post, i) => renderPostCard(post, i, false))}
+                    <div className="columns-3 gap-1.5 md:columns-4">
+                      {myPosts.map((post, i) => renderPostCard(post, i, false, true))}
                     </div>
                   )}
                 </>
@@ -319,12 +328,12 @@ const OOTDPage = () => {
                 </div>
               )}
 
-              {/* Social Feed — Card Grid */}
+              {/* Social Feed */}
               {isLoading ? (
-                <div className="columns-2 gap-3 md:columns-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="mb-3 break-inside-avoid animate-pulse">
-                      <div className="rounded-xl bg-foreground/[0.04]" style={{ height: `${180 + (i % 3) * 60}px` }} />
+                <div className="columns-3 gap-1.5 md:columns-4">
+                  {Array.from({ length: 9 }).map((_, i) => (
+                    <div key={i} className="mb-1.5 break-inside-avoid animate-pulse">
+                      <div className="rounded-lg bg-foreground/[0.04]" style={{ height: `${120 + (i % 3) * 40}px` }} />
                     </div>
                   ))}
                 </div>
@@ -340,11 +349,44 @@ const OOTDPage = () => {
                     </button>
                   )}
                 </div>
-              ) : (
-                <div className="columns-2 gap-3 md:columns-3">
-                  {posts.map((post, i) => renderPostCard(post, i, true))}
-                </div>
-              )}
+              ) : (() => {
+                const { featured, rest } = getFeaturedPosts();
+                return (
+                  <div className="space-y-3">
+                    {/* Algorithm Featured Row */}
+                    {featured.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-medium tracking-[0.2em] text-foreground/40 mb-1.5 block">FEATURED</span>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {featured.map((post, i) => (
+                            <motion.div
+                              key={post.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: i * 0.05 }}
+                              className="cursor-pointer group relative aspect-[3/4] overflow-hidden rounded-lg ring-1 ring-accent/10"
+                              onClick={() => setSelectedPost(post)}
+                            >
+                              <img src={post.image_url} alt={post.caption || ""} className="w-full h-full object-cover" />
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 pt-5">
+                                <p className="text-[8px] font-medium text-white/80 truncate">{getProfile(post.user_id)?.display_name || "Anonymous"}</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <Heart className="h-2 w-2 text-white/60" />
+                                  <span className="text-[7px] text-white/60">{post.like_count || 0}</span>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* Main Feed */}
+                    <div className="columns-3 gap-1.5 md:columns-4">
+                      {rest.map((post, i) => renderPostCard(post, i, true, true))}
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
         </AnimatePresence>
