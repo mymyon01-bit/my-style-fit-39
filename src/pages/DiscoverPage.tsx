@@ -1156,8 +1156,8 @@ const DiscoverPage = () => {
                   <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
                 </div>
 
-                {Object.keys(groupedRecs).length > 1 ? (
-                  Object.entries(groupedRecs).map(([category, items]) => (
+                {categorizedRecs.length > 0 ? (
+                  categorizedRecs.map(({ category, items }) => (
                     <div key={category} className="space-y-4">
                       <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/65 uppercase">
                         {category}
