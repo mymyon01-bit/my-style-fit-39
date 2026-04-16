@@ -229,6 +229,7 @@ const ProfilePage = () => {
               { label: "Bio / Style Line", value: editBio, set: setEditBio, placeholder: "A short style description" },
               { label: "Location", value: editLocation, set: setEditLocation, placeholder: "City, Country" },
               { label: "Gender Preference", value: editGender, set: setEditGender, placeholder: "e.g. masculine, feminine, neutral" },
+              { label: "Hashtags", value: editHashtags, set: setEditHashtags, placeholder: "#minimal, #street, #modern" },
             ].map(field => (
               <div key={field.label}>
                 <label className="text-[10px] font-medium text-foreground/75">{field.label}</label>
@@ -241,6 +242,7 @@ const ProfilePage = () => {
                 />
               </div>
             ))}
+
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={handleSaveProfile}
