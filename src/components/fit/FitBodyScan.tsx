@@ -287,7 +287,7 @@ export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
                   {isOptional && <span className="text-[11px] text-foreground/70 mt-0.5">optional</span>}
                 </>
               )}
-              <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUpload(side)} />
+              <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleUpload(side)} />
             </motion.button>
           );
         })}
