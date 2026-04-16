@@ -470,9 +470,10 @@ const DiscoverPage = () => {
   }, [user]);
 
   const loadStyleProfile = async () => {
-    if (!user) return;
+    if (!user) { setProfileLoaded(true); return; }
     const { data } = await supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle();
     setUserStyleProfile(data);
+    setProfileLoaded(true);
   };
 
   useEffect(() => {
