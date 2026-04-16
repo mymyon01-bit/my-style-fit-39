@@ -57,50 +57,149 @@ function getCachedResult(key: string): AIRecommendation[] | null {
   return null;
 }
 
-// Fast DB-first load: fetch cached products directly from product_cache table
-async function loadCachedProductsFromDB(opts: {
+// ─── Style-to-search: convert user style profile into search queries ───
+function buildStyleSearchQueries(profile: any, searchText?: string): string[] {
+  const queries: string[] = [];
+  if (searchText) queries.push(searchText);
+
+  const styles = profile?.preferred_styles || [];
+  const fit = profile?.preferred_fit || "";
+  const brands = profile?.favorite_brands || [];
+  const occasions = profile?.occasions || [];
+
+  // Generate style-aware queries
+  if (styles.includes("minimal")) queries.push("minimal clean structured fashion");
+  if (styles.includes("street") || styles.includes("streetwear")) queries.push("oversized street style urban");
+  if (styles.includes("classic") || styles.includes("oldMoney")) queries.push("classic tailored elegant menswear");
+  if (styles.includes("casual")) queries.push("casual everyday comfortable wear");
+  if (styles.includes("edgy")) queries.push("edgy avant-garde dark fashion");
+  if (styles.includes("chic")) queries.push("chic modern sophisticated look");
+  if (styles.includes("vintage")) queries.push("vintage retro fashion pieces");
+
+  if (fit === "oversized") queries.push("oversized relaxed fit clothing");
+  if (fit === "slim") queries.push("slim fitted modern clothing");
+
+  if (occasions.includes("work")) queries.push("office workwear professional");
+  if (occasions.includes("date")) queries.push("date night outfit elegant");
+
+  // Add brand-specific queries
+  brands.slice(0, 2).forEach((b: string) => {
+    if (b !== "None") queries.push(`${b} new collection`);
+  });
+
+  // Always have a fallback
+  if (queries.length === 0) queries.push("trending fashion new arrivals");
+
+  return [...new Set(queries)].slice(0, 3);
+}
+
+// ─── Hybrid product search: DB-first + external expansion ───
+async function hybridProductSearch(opts: {
+  query?: string;
   category?: string;
-  subcategory?: string;
   styles?: string[];
   fit?: string;
-  searchQuery?: string;
   limit?: number;
-  offset?: number;
-}): Promise<AIRecommendation[]> {
-  let query = supabase
-    .from("product_cache")
-    .select("*")
-    .eq("image_valid", true)
-    .eq("is_active", true)
-    .order("trend_score", { ascending: false })
-    .range(opts.offset || 0, (opts.offset || 0) + (opts.limit || 12) - 1);
+  excludeIds?: string[];
+  expandExternal?: boolean;
+  randomize?: boolean;
+}): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("product-search", {
+      body: {
+        query: opts.query || "",
+        category: opts.category,
+        styles: opts.styles,
+        fit: opts.fit,
+        limit: opts.limit || 16,
+        excludeIds: opts.excludeIds || [],
+        expandExternal: opts.expandExternal ?? false,
+        randomize: opts.randomize ?? true,
+      },
+    });
+    if (error) throw error;
 
-  if (opts.category) query = query.eq("category", opts.category);
-  if (opts.subcategory) query = query.eq("subcategory", opts.subcategory);
-  if (opts.fit) query = query.eq("fit", opts.fit);
-  if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+    const products = (data?.products || [])
+      .filter((p: any) => p.image_url?.startsWith("https"))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        reason: p.reason || "Curated for you",
+        style_tags: p.style_tags || [],
+        color: p.color || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform || null,
+      }));
 
-  const { data, error } = await query;
-  if (error || !data) return [];
-
-  return data
-    .filter((p: any) => p.image_url && p.image_url.startsWith("https"))
-    .map((p: any) => ({
-      id: p.external_id || p.id,
-      name: p.name,
-      brand: p.brand || "",
-      price: p.price || "",
-      category: p.category || "",
-      reason: p.reason || "From your curated collection",
-      style_tags: p.style_tags || [],
-      color: (p.color_tags || [])[0] || "",
-      fit: p.fit || "regular",
-      image_url: p.image_url,
-      source_url: p.source_url,
-      store_name: p.store_name,
-      platform: p.platform || null,
-    }));
+    return {
+      products,
+      expanded: data?.expanded || false,
+      dbCount: data?.dbCount || 0,
+    };
+  } catch (e) {
+    console.error("Hybrid search error:", e);
+    return { products: [], expanded: false, dbCount: 0 };
+  }
 }
+
+// ─── Client-side diversity enforcement ───
+function enforceClientDiversity(items: AIRecommendation[], seenIds: Set<string>): AIRecommendation[] {
+  // Remove already seen
+  let result = items.filter(r => !seenIds.has(r.id));
+
+  // Dedup by name
+  const nameKeys = new Set<string>();
+  result = result.filter(r => {
+    const key = r.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
+    if (nameKeys.has(key)) return false;
+    nameKeys.add(key);
+    return true;
+  });
+
+  // Brand diversity: max 3 per brand
+  const brandCount: Record<string, number> = {};
+  result = result.filter(r => {
+    const b = (r.brand || "").toLowerCase();
+    brandCount[b] = (brandCount[b] || 0) + 1;
+    return brandCount[b] <= 3;
+  });
+
+  // Category interleaving for variety
+  if (result.length > 8) {
+    const byCategory: Record<string, AIRecommendation[]> = {};
+    result.forEach(r => {
+      const cat = r.category || "other";
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(r);
+    });
+
+    const categories = Object.keys(byCategory);
+    if (categories.length > 1) {
+      const interleaved: AIRecommendation[] = [];
+      let idx = 0;
+      while (interleaved.length < result.length) {
+        const cat = categories[idx % categories.length];
+        const item = byCategory[cat].shift();
+        if (item) interleaved.push(item);
+        idx++;
+        // Safety: break if all categories empty
+        if (categories.every(c => byCategory[c].length === 0)) break;
+      }
+      result = interleaved;
+    }
+  }
+
+  return result;
+}
+
+// Session-level seen products tracking
+const sessionSeenIds = new Set<string>();
 
 const DiscoverPage = () => {
   const { user } = useAuth();
@@ -175,38 +274,9 @@ const DiscoverPage = () => {
     return generateSuggestions(textInput).suggestions;
   }, [textInput]);
 
-  // ── Fetch fresh products via commerce scraper ──
-  const fetchFromOpenAPIs = async (query?: string, category?: string): Promise<AIRecommendation[]> => {
-    try {
-      const { data, error } = await supabase.functions.invoke("product-search", {
-        body: { query: query || "", category, limit: 20 },
-      });
-      if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https")).map((p: any) => ({
-        ...p,
-        platform: p.platform || null,
-      }));
-    } catch (e) {
-      console.error("Product search error:", e);
-      return [];
-    }
-  };
 
-  // Direct commerce scraper call for explicit user searches
-  const fetchFromCommerceScraper = async (query: string): Promise<AIRecommendation[]> => {
-    try {
-      const { data, error } = await supabase.functions.invoke("commerce-scraper", {
-        body: { query, platforms: ["naver", "ssense", "farfetch", "asos", "ssg"], limit: 15 },
-      });
-      if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https"));
-    } catch (e) {
-      console.error("Commerce scraper error:", e);
-      return [];
-    }
-  };
 
-  // ── INSTANT INITIAL LOAD: Show cached products from DB immediately ──
+  // ── INSTANT INITIAL LOAD: DB-first, then background expansion ──
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
@@ -214,22 +284,58 @@ const DiscoverPage = () => {
     const loadInitial = async () => {
       setIsGenerating(true);
       setHasGenerated(true);
-      const cached = await loadCachedProductsFromDB({ limit: 12 });
-      if (cached.length > 0) {
-        setRecommendations(cached);
-        setDbOffset(cached.length);
-        setHasMoreInDB(cached.length >= 12);
+
+      // Step 1: Fast DB load with randomization for freshness
+      const { products: dbProducts, dbCount } = await hybridProductSearch({
+        limit: 16,
+        randomize: true,
+      });
+
+      if (dbProducts.length > 0) {
+        const diverse = enforceClientDiversity(dbProducts, sessionSeenIds);
+        diverse.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(diverse);
+        setDbOffset(diverse.length);
+        setHasMoreInDB(dbCount >= 12);
         setIsGenerating(false);
+
+        // Step 2: Background expansion if DB results are limited or repetitive
+        if (dbCount < 12) {
+          const styleQueries = userStyleProfile
+            ? buildStyleSearchQueries(userStyleProfile)
+            : ["trending fashion new arrivals"];
+          
+          const { products: freshProducts } = await hybridProductSearch({
+            query: styleQueries[0],
+            expandExternal: true,
+            limit: 12,
+            excludeIds: Array.from(sessionSeenIds),
+          });
+
+          if (freshProducts.length > 0) {
+            const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
+            freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => {
+              const merged = [...prev, ...freshDiverse];
+              return enforceClientDiversity(merged, new Set());
+            });
+          }
+        }
       } else {
-        // No cached products — fetch from open APIs to seed inventory
-        const apiProducts = await fetchFromOpenAPIs("fashion trending");
+        // No DB products at all — force external expansion
+        const { products: apiProducts } = await hybridProductSearch({
+          query: "fashion trending new arrivals",
+          expandExternal: true,
+          limit: 16,
+        });
+
         if (apiProducts.length > 0) {
+          apiProducts.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(apiProducts);
           setDbOffset(apiProducts.length);
           setHasMoreInDB(false);
           setIsGenerating(false);
         } else {
-          // Last resort — AI generation
           setIsGenerating(false);
           generateRecommendations("Recommend trending fashion items");
         }
@@ -287,35 +393,24 @@ const DiscoverPage = () => {
     lastPromptRef.current = `Browse ${category}`;
 
     try {
-      // Try DB first
-      const dbResults = await loadCachedProductsFromDB({
+      // Hybrid: DB-first + external expansion if too few results
+      const { products, dbCount, expanded } = await hybridProductSearch({
         category,
-        subcategory: subcategory || undefined,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 12,
+        limit: 16,
+        excludeIds: Array.from(sessionSeenIds),
+        expandExternal: true,
+        randomize: true,
       });
 
-      if (dbResults.length >= 4) {
-        setRecommendations(dbResults);
-        setDbOffset(dbResults.length);
-        setHasMoreInDB(dbResults.length >= 12);
-        resultCache.set(cacheKey, { data: dbResults, ts: Date.now() });
-        setIsGenerating(false);
-        inflightRef.current = null;
-        return;
-      }
-
-      // Try open APIs before AI
-      const apiResults = await fetchFromOpenAPIs("", category);
-      if (apiResults.length >= 4) {
-        const merged = [...dbResults, ...apiResults].filter((item, idx, arr) =>
-          arr.findIndex(x => x.id === item.id) === idx
-        ).slice(0, 16);
-        setRecommendations(merged);
-        setDbOffset(merged.length);
-        setHasMoreInDB(false);
-        resultCache.set(cacheKey, { data: merged, ts: Date.now() });
+      if (products.length >= 4) {
+        const diverse = enforceClientDiversity(products, new Set());
+        diverse.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(diverse);
+        setDbOffset(diverse.length);
+        setHasMoreInDB(dbCount >= 12);
+        resultCache.set(cacheKey, { data: diverse, ts: Date.now() });
         setIsGenerating(false);
         inflightRef.current = null;
         return;
@@ -433,57 +528,54 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── LOAD MORE: First try DB pagination, then AI ──
+  // ── LOAD MORE: Hybrid DB + external expansion ──
   const loadMore = async () => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
     try {
       const existingIds = new Set(recommendations.map(r => r.id));
+      const category = activeTab !== "for-you" && activeTab !== "featured" ? activeTab : undefined;
+      const searchQuery = lastPromptRef.current || (category ? `trending ${category}` : "fashion trending");
 
-      // Try loading more from DB cache first
-      if (hasMoreInDB) {
-        const category = activeTab !== "for-you" && activeTab !== "featured" ? activeTab : undefined;
-        const dbMore = await loadCachedProductsFromDB({
-          category,
-          subcategory: activeSubcategory || undefined,
-          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
-          fit: selectedFit || undefined,
-          limit: 8,
-          offset: dbOffset,
+      // Use hybrid search with external expansion and exclusion of seen items
+      const { products: moreProducts, dbCount } = await hybridProductSearch({
+        query: searchQuery,
+        category,
+        styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+        fit: selectedFit || undefined,
+        limit: 12,
+        excludeIds: Array.from(new Set([...existingIds, ...sessionSeenIds])),
+        expandExternal: !hasMoreInDB, // expand externally when DB is exhausted
+        randomize: true,
+      });
+
+      const newProducts = enforceClientDiversity(moreProducts, existingIds);
+      
+      if (newProducts.length > 0) {
+        newProducts.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(prev => [...prev, ...newProducts]);
+        setDbOffset(prev => prev + newProducts.length);
+        setHasMoreInDB(dbCount >= 12);
+      } else {
+        // Last resort: external expansion with style queries
+        const styleQueries = userStyleProfile
+          ? buildStyleSearchQueries(userStyleProfile, searchQuery)
+          : [searchQuery];
+
+        const { products: freshProducts } = await hybridProductSearch({
+          query: styleQueries[Math.floor(Math.random() * styleQueries.length)],
+          expandExternal: true,
+          limit: 10,
+          excludeIds: Array.from(new Set([...existingIds, ...sessionSeenIds])),
         });
 
-        const newFromDB = dbMore.filter(r => !existingIds.has(r.id));
-        if (newFromDB.length > 0) {
-          setRecommendations(prev => [...prev, ...newFromDB]);
-          setDbOffset(prev => prev + newFromDB.length);
-          setHasMoreInDB(dbMore.length >= 8);
-          setIsLoadingMore(false);
-          return;
+        const freshNew = enforceClientDiversity(freshProducts, existingIds);
+        if (freshNew.length > 0) {
+          freshNew.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(prev => [...prev, ...freshNew]);
+        } else {
+          toast("No more items to show right now");
         }
-        setHasMoreInDB(false);
-      }
-
-      // Fall back to AI for more
-      const prompt = lastPromptRef.current || `Show me more ${activeTab === "for-you" ? "fashion" : activeTab} items`;
-      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
-        body: {
-          action: "recommend",
-          prompt: `${prompt}. Show completely different items, different brands, different styles.`,
-          quizAnswers,
-          userId: user?.id || null,
-          source: sourceParam || "discover",
-          count: 6,
-          excludeIds: Array.from(existingIds),
-        },
-      });
-      if (error) throw error;
-      const newRecs = (data?.recommendations || []).filter(
-        (r: AIRecommendation) => !existingIds.has(r.id) && r.image_url && r.image_url.startsWith("http")
-      );
-      if (newRecs.length > 0) {
-        setRecommendations(prev => [...prev, ...newRecs]);
-      } else {
-        toast("No more items to show right now");
       }
     } catch (e) {
       console.error("Load more error:", e);
@@ -507,37 +599,24 @@ const DiscoverPage = () => {
     debounceTimerRef.current = setTimeout(async () => {
       setIsGenerating(true);
       setHasGenerated(true);
+      lastPromptRef.current = q;
 
-      // Try DB first for matching cached products
-      const dbResults = await loadCachedProductsFromDB({
-        searchQuery: q,
+      // Hybrid search: DB-first + external expansion for fresh results
+      const { products, dbCount } = await hybridProductSearch({
+        query: q,
         styles: selectedStyles.length > 0 ? selectedStyles : undefined,
-        limit: 12,
+        fit: selectedFit || undefined,
+        limit: 20,
+        expandExternal: true, // Always expand on explicit search
+        randomize: false, // Use relevance sorting for searches
       });
 
-      if (dbResults.length >= 6) {
-        setRecommendations(dbResults);
-        setDbOffset(dbResults.length);
-        setIsGenerating(false);
-      }
-
-      // In parallel: fetch from commerce scraper + open APIs for fresh results
-      const [scraperResults, apiResults] = await Promise.all([
-        fetchFromCommerceScraper(q),
-        fetchFromOpenAPIs(q),
-      ]);
-
-      const existingIds = new Set((dbResults.length >= 6 ? dbResults : []).map(r => r.id));
-      const freshResults = [...scraperResults, ...apiResults]
-        .filter(r => !existingIds.has(r.id) && r.image_url?.startsWith("http"))
-        .filter((r, i, arr) => arr.findIndex(x => x.id === r.id) === i);
-
-      if (freshResults.length > 0 || dbResults.length >= 6) {
-        const merged = dbResults.length >= 6
-          ? [...dbResults, ...freshResults].slice(0, 24)
-          : freshResults.slice(0, 20);
-        setRecommendations(merged);
-        setDbOffset(merged.length);
+      if (products.length > 0) {
+        const diverse = enforceClientDiversity(products, new Set());
+        diverse.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(diverse);
+        setDbOffset(diverse.length);
+        setHasMoreInDB(dbCount >= 12);
         setIsGenerating(false);
       } else {
         // Fall back to AI
