@@ -264,11 +264,28 @@ const DiscoverPage = () => {
     inflightRef.current = null;
   };
 
-  const handleQuizComplete = (answers: StyleQuizAnswers) => {
+  const handleQuizComplete = async (answers: StyleQuizAnswers) => {
     setQuizAnswers(answers);
     setShowQuiz(false);
     const prompt = buildPromptFromQuiz(answers);
     generateRecommendations(prompt, answers);
+
+    // Persist quiz answers to style_profiles if logged in
+    if (user) {
+      try {
+        await supabase.from("style_profiles").upsert({
+          user_id: user.id,
+          preferred_styles: answers.preferredStyles,
+          disliked_styles: answers.dislikedStyles,
+          preferred_fit: answers.fitPreference || null,
+          budget: answers.budgetRange || null,
+          occasions: answers.occasionPreference,
+          favorite_brands: answers.brandFamiliarity.filter(b => b !== "None"),
+        } as any, { onConflict: "user_id" });
+      } catch (err) {
+        console.error("Failed to save quiz answers:", err);
+      }
+    }
   };
 
   const buildPromptFromQuiz = (a: StyleQuizAnswers): string => {
@@ -277,7 +294,7 @@ const DiscoverPage = () => {
     if (a.fitPreference) parts.push(`Fit: ${a.fitPreference}`);
     if (a.colorPreference) parts.push(`Colors: ${a.colorPreference}`);
     if (a.dailyVibe) parts.push(`Vibe: ${a.dailyVibe}`);
-    if (a.occasionPreference) parts.push(`Occasion: ${a.occasionPreference}`);
+    if (a.occasionPreference?.length) parts.push(`Occasion: ${a.occasionPreference.join(", ")}`);
     if (a.budgetRange) parts.push(`Budget: ${a.budgetRange}`);
     if (a.dislikedStyles.length) parts.push(`Avoid: ${a.dislikedStyles.join(", ")}`);
     return parts.join(". ");
