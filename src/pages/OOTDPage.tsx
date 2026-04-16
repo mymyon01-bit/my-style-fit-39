@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, Hash, TrendingUp, Heart, HeartOff, MessageCircle, X, Send } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, HeartOff, MessageCircle, Send, Bookmark, BookmarkCheck, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
-import OOTDAnalyzer from "@/components/OOTDAnalyzer";
+import CrownedBoard from "@/components/CrownedBoard";
 
 interface OOTDPost {
   id: string;
@@ -41,10 +41,9 @@ interface Comment {
   user_id: string;
   content: string;
   created_at: string;
-  profile?: ProfileInfo | null;
 }
 
-type Tab = "community" | "mypage" | "scan";
+type Tab = "community" | "mypage" | "crowned";
 
 const OOTDPage = () => {
   const { t } = useI18n();
@@ -65,11 +64,12 @@ const OOTDPage = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadPosts();
     loadTopics();
-    if (user) { loadMyPosts(); loadTodayStars(); loadUserReactions(); }
+    if (user) { loadMyPosts(); loadTodayStars(); loadUserReactions(); loadSavedPosts(); }
   }, [user]);
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
@@ -88,7 +88,6 @@ const OOTDPage = () => {
     setPosts(fetched);
     setIsLoading(false);
 
-    // Load profiles for all post authors
     const userIds = [...new Set(fetched.map(p => p.user_id))];
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
@@ -128,12 +127,28 @@ const OOTDPage = () => {
     }
   };
 
+  const loadSavedPosts = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("saved_posts").select("post_id").eq("user_id", user.id);
+    if (data) setSavedPosts(new Set(data.map((d: any) => d.post_id)));
+  };
+
+  const handleSavePost = async (postId: string) => {
+    if (!user) return;
+    if (savedPosts.has(postId)) {
+      await supabase.from("saved_posts").delete().eq("user_id", user.id).eq("post_id", postId);
+      setSavedPosts(prev => { const n = new Set(prev); n.delete(postId); return n; });
+    } else {
+      await supabase.from("saved_posts").insert({ user_id: user.id, post_id: postId });
+      setSavedPosts(prev => new Set(prev).add(postId));
+    }
+  };
+
   const handleReaction = async (postId: string, type: "like" | "dislike") => {
     if (!user) return;
     const current = reactions[postId];
 
     if (current === type) {
-      // Remove reaction
       await supabase.from("ootd_reactions").delete().eq("post_id", postId).eq("user_id", user.id);
       setReactions(prev => { const n = { ...prev }; delete n[postId]; return n; });
       setPosts(prev => prev.map(p => p.id === postId ? {
@@ -142,7 +157,6 @@ const OOTDPage = () => {
         dislike_count: type === "dislike" ? Math.max(0, (p.dislike_count || 0) - 1) : p.dislike_count,
       } : p));
     } else if (current) {
-      // Switch reaction
       await supabase.from("ootd_reactions").update({ reaction: type }).eq("post_id", postId).eq("user_id", user.id);
       setReactions(prev => ({ ...prev, [postId]: type }));
       setPosts(prev => prev.map(p => p.id === postId ? {
@@ -151,7 +165,6 @@ const OOTDPage = () => {
         dislike_count: type === "dislike" ? (p.dislike_count || 0) + 1 : Math.max(0, (p.dislike_count || 0) - 1),
       } : p));
     } else {
-      // New reaction
       await supabase.from("ootd_reactions").insert({ post_id: postId, user_id: user.id, reaction: type });
       setReactions(prev => ({ ...prev, [postId]: type }));
       setPosts(prev => prev.map(p => p.id === postId ? {
@@ -162,11 +175,7 @@ const OOTDPage = () => {
     }
 
     await supabase.from("interactions").insert({
-      user_id: user.id,
-      event_type: type,
-      target_id: postId,
-      target_type: "ootd",
-      metadata: {},
+      user_id: user.id, event_type: type, target_id: postId, target_type: "ootd", metadata: {},
     });
   };
 
@@ -186,14 +195,10 @@ const OOTDPage = () => {
     setLoadingComments(true);
     setCommentText("");
     const { data } = await supabase
-      .from("ootd_comments")
-      .select("*")
-      .eq("post_id", postId)
-      .order("created_at", { ascending: true })
-      .limit(50);
+      .from("ootd_comments").select("*").eq("post_id", postId)
+      .order("created_at", { ascending: true }).limit(50);
 
     const fetched = (data || []) as Comment[];
-    // Load profiles for commenters
     const cUserIds = [...new Set(fetched.map(c => c.user_id))];
     if (cUserIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", cUserIds);
@@ -210,32 +215,24 @@ const OOTDPage = () => {
   const submitComment = async () => {
     if (!user || !expandedComments || !commentText.trim()) return;
     const { data, error } = await supabase.from("ootd_comments").insert({
-      post_id: expandedComments,
-      user_id: user.id,
-      content: commentText.trim(),
+      post_id: expandedComments, user_id: user.id, content: commentText.trim(),
     }).select().single();
 
     if (!error && data) {
       setComments(prev => [...prev, data as Comment]);
       setCommentText("");
       await supabase.from("interactions").insert({
-        user_id: user.id,
-        event_type: "comment",
-        target_id: expandedComments,
-        target_type: "ootd",
-        metadata: {},
+        user_id: user.id, event_type: "comment", target_id: expandedComments, target_type: "ootd", metadata: {},
       });
     }
   };
 
   const handlePosted = () => { loadPosts(); loadMyPosts(); loadTopics(); };
-
   const getDisplayName = (userId: string) => profileMap[userId]?.display_name || "User";
   const getAvatar = (userId: string) => profileMap[userId]?.avatar_url;
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
-      {/* Header */}
       <div className="mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         <div className="flex items-baseline justify-between mb-8">
           <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/80 lg:hidden">WARDROBE</span>
@@ -252,15 +249,16 @@ const OOTDPage = () => {
 
         {/* Tabs */}
         <div className="flex">
-          {(["scan", "mypage", "community"] as const).map(tab => (
+          {(["crowned", "mypage", "community"] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className="relative flex-1 pb-5 text-center">
-              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 flex items-center justify-center gap-1.5 ${
                 activeTab === tab ? "text-foreground/85" : "text-foreground/50"
               }`}>
-                {tab === "mypage" ? "MY PAGE" : tab === "scan" ? "STYLE SCAN" : "COMMUNITY"}
+                {tab === "crowned" && <Crown className={`h-3 w-3 ${activeTab === "crowned" ? "text-yellow-400" : ""}`} />}
+                {tab === "mypage" ? "MY PAGE" : tab === "crowned" ? "CROWNED" : "COMMUNITY"}
               </span>
               {activeTab === tab && (
-                <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/50" />
+                <motion.div layoutId="ootd-tab" className={`absolute bottom-0 left-1/4 right-1/4 h-px ${tab === "crowned" ? "bg-yellow-400/50" : "bg-accent/50"}`} />
               )}
             </button>
           ))}
@@ -270,9 +268,9 @@ const OOTDPage = () => {
 
       <div className="mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         <AnimatePresence mode="wait">
-          {activeTab === "scan" ? (
-            <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <OOTDAnalyzer />
+          {activeTab === "crowned" ? (
+            <motion.div key="crowned" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <CrownedBoard />
             </motion.div>
           ) : activeTab === "mypage" ? (
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
@@ -338,7 +336,7 @@ const OOTDPage = () => {
                 </div>
               )}
 
-              {/* Social Feed — Masonry */}
+              {/* Social Feed */}
               {isLoading ? (
                 <div className="columns-2 gap-3 md:columns-3">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -367,6 +365,7 @@ const OOTDPage = () => {
                     const isCommentsOpen = expandedComments === post.id;
                     const authorName = getDisplayName(post.user_id);
                     const authorAvatar = getAvatar(post.user_id);
+                    const isSaved = savedPosts.has(post.id);
 
                     return (
                       <motion.div
@@ -376,11 +375,8 @@ const OOTDPage = () => {
                         transition={{ delay: index * 0.03 }}
                         className="mb-4 break-inside-avoid"
                       >
-                        {/* Image */}
                         <div className="relative overflow-hidden rounded-xl">
                           <img src={post.image_url} alt={post.caption || ""} className="w-full object-cover" loading="lazy" />
-
-                          {/* Star badge */}
                           {(post.star_count || 0) > 0 && (
                             <div className="absolute top-2 right-2 flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm">
                               <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
@@ -389,12 +385,8 @@ const OOTDPage = () => {
                           )}
                         </div>
 
-                        {/* Author + caption */}
                         <div className="mt-2 px-0.5">
-                          <button
-                            onClick={() => navigate(`/user/${post.user_id}`)}
-                            className="flex items-center gap-1.5 mb-1 group"
-                          >
+                          <button onClick={() => navigate(`/user/${post.user_id}`)} className="flex items-center gap-1.5 mb-1 group">
                             <div className="h-4 w-4 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
                               {authorAvatar ? (
                                 <img src={authorAvatar} alt="" className="h-full w-full object-cover" />
@@ -432,6 +424,12 @@ const OOTDPage = () => {
                               <MessageCircle className="h-3.5 w-3.5" />
                             </button>
 
+                            <AuthGate action="save">
+                              <button onClick={() => handleSavePost(post.id)} className={`transition-colors ${isSaved ? "text-accent/70" : "text-foreground/30 hover:text-foreground/50"}`}>
+                                {isSaved ? <BookmarkCheck className="h-3.5 w-3.5 fill-current" /> : <Bookmark className="h-3.5 w-3.5" />}
+                              </button>
+                            </AuthGate>
+
                             <AuthGate action="give stars">
                               <button onClick={() => handleStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-0.5 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/30 hover:text-foreground/50"}`}>
                                 <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-current" : ""}`} />
@@ -439,7 +437,7 @@ const OOTDPage = () => {
                             </AuthGate>
                           </div>
 
-                          {/* Comments section */}
+                          {/* Comments */}
                           <AnimatePresence>
                             {isCommentsOpen && (
                               <motion.div
@@ -454,18 +452,13 @@ const OOTDPage = () => {
                                   <>
                                     {comments.map(c => (
                                       <div key={c.id} className="flex gap-2">
-                                        <span className="text-[9px] font-semibold text-foreground/50 flex-shrink-0">
-                                          {getDisplayName(c.user_id)}
-                                        </span>
+                                        <span className="text-[9px] font-semibold text-foreground/50 flex-shrink-0">{getDisplayName(c.user_id)}</span>
                                         <span className="text-[9px] text-foreground/40">{c.content}</span>
                                       </div>
                                     ))}
-                                    {comments.length === 0 && (
-                                      <p className="text-[9px] text-foreground/25 text-center py-1">No comments yet</p>
-                                    )}
+                                    {comments.length === 0 && <p className="text-[9px] text-foreground/25 text-center py-1">No comments yet</p>}
                                   </>
                                 )}
-
                                 {user && (
                                   <div className="flex gap-1.5 mt-1">
                                     <input
