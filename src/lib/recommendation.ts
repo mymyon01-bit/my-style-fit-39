@@ -22,6 +22,9 @@ export interface Product {
   recommendedSize: string;
   fitComment: string;
   url: string;
+  source_url?: string | null;
+  store_name?: string | null;
+  platform?: string | null;
 }
 
 // --- Types ---
