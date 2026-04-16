@@ -312,4 +312,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
       )}
     </AnimatePresence>
   );
-}
+});
+
+OOTDUploadSheet.displayName = "OOTDUploadSheet";
+
+export default OOTDUploadSheet;
