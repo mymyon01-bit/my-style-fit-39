@@ -302,6 +302,7 @@ export type Database = {
           last_validated: string | null
           like_count: number | null
           name: string
+          platform: string | null
           price: string | null
           reason: string | null
           search_query: string | null
@@ -328,6 +329,7 @@ export type Database = {
           last_validated?: string | null
           like_count?: number | null
           name: string
+          platform?: string | null
           price?: string | null
           reason?: string | null
           search_query?: string | null
@@ -354,6 +356,7 @@ export type Database = {
           last_validated?: string | null
           like_count?: number | null
           name?: string
+          platform?: string | null
           price?: string | null
           reason?: string | null
           search_query?: string | null
