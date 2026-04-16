@@ -10,6 +10,7 @@ const DesktopNav = () => {
     { path: "/discover", label: "DISCOVER" },
     { path: "/ootd", label: "OOTD" },
     { path: "/fit", label: "FIT" },
+    { path: "/about", label: "ABOUT" },
   ];
 
   const isActive = (path: string) =>
