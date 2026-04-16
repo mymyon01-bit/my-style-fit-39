@@ -213,6 +213,13 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
   const itemText = `${itemName} ${itemBrand} ${item.category || ""} ${(item.style_tags || []).join(" ")} ${item.color || ""} ${item.fit || ""}`.toLowerCase();
   const itemCategory = classifyProduct(item);
 
+  // HARD BLOCK: If product contains excluded keywords for this scenario, reject it
+  if (intent.excludeKeywords.length > 0) {
+    if (intent.excludeKeywords.some(ex => itemName.includes(ex) || itemText.includes(ex))) {
+      return 0; // Completely irrelevant — e.g. wool coat for summer vacation
+    }
+  }
+
   let score = 0;
 
   // 0.40 — Category match (HARD requirement when intent has category)
@@ -220,11 +227,10 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     if (itemCategory === intent.categoryLock) {
       score += 40;
     } else {
-      // Category mismatch when user specified a category = near-zero relevance
       return 5;
     }
   } else {
-    score += 20; // No category lock → neutral baseline
+    score += 20;
   }
 
   // 0.25 — Style match
@@ -238,7 +244,7 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     else if (styleKeywordMatch) score += 15;
     else score += 3;
   } else {
-    score += 12; // No style intent → neutral
+    score += 12;
   }
 
   // 0.20 — Color match
@@ -248,7 +254,7 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     );
     score += colorMatch ? 20 : 2;
   } else {
-    score += 10; // No color intent → neutral
+    score += 10;
   }
 
   // 0.10 — Brand match
@@ -256,16 +262,64 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
     score += brandMatch ? 10 : 0;
   } else {
-    score += 5; // No brand intent → neutral
+    score += 5;
   }
 
-  // 0.05 — Keyword match (remaining terms)
+  // 0.05 — Keyword match
   if (intent.keywords.length > 0) {
     const keywordHits = intent.keywords.filter(k => itemText.includes(k)).length;
     score += Math.min(5, (keywordHits / intent.keywords.length) * 5);
   }
 
   return Math.round(score);
+}
+
+// ── Scenario-specific filter: ensures category balance for lifestyle queries ──
+function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRecommendation[] {
+  // First, apply exclude keywords filter
+  let filtered = items.filter(item => {
+    const itemName = (item.name || "").toLowerCase();
+    const itemText = `${itemName} ${item.category || ""} ${(item.style_tags || []).join(" ")}`.toLowerCase();
+    return !intent.excludeKeywords.some(ex => itemName.includes(ex) || itemText.includes(ex));
+  });
+
+  // Classify into categories
+  const byCategory: Record<string, AIRecommendation[]> = {};
+  for (const item of filtered) {
+    const cat = classifyProduct(item) || "OTHER";
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(item);
+  }
+
+  // Ensure category balance: pick items round-robin across categories
+  const categories = Object.keys(byCategory).filter(c => c !== "OTHER");
+  if (categories.length <= 1) return filtered; // Not enough variety to interleave
+
+  const balanced: AIRecommendation[] = [];
+  const maxPerCategory = Math.ceil(24 / categories.length);
+  let idx = 0;
+  const indices: Record<string, number> = {};
+  categories.forEach(c => indices[c] = 0);
+
+  // Round-robin pick: ensures mix of tops, bottoms, shoes, accessories
+  while (balanced.length < 24) {
+    const cat = categories[idx % categories.length];
+    const catItems = byCategory[cat];
+    if (catItems && indices[cat] < catItems.length && indices[cat] < maxPerCategory) {
+      balanced.push(catItems[indices[cat]]);
+      indices[cat]++;
+    }
+    idx++;
+    // Break if we've gone through all items
+    if (idx > categories.length * maxPerCategory) break;
+  }
+
+  // Add any remaining "OTHER" items at the end
+  if (byCategory["OTHER"]) {
+    balanced.push(...byCategory["OTHER"].slice(0, 4));
+  }
+
+  return balanced;
 }
 
 // ── Apply strict relevance filter + sort ──
