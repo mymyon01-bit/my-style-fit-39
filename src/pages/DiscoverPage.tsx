@@ -1,12 +1,15 @@
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
 import { AuthGate } from "@/components/AuthGate";
 import { useCategories } from "@/hooks/useCategories";
 import { motion, AnimatePresence } from "framer-motion";
+import SafeImage from "@/components/SafeImage";
+import ShareButton from "@/components/ShareButton";
+import { toast } from "sonner";
 
 interface AIRecommendation {
   id: string;
@@ -18,6 +21,7 @@ interface AIRecommendation {
   style_tags: string[];
   color: string;
   fit: string;
+  image_url?: string | null;
 }
 
 const BROWSE_TABS = [
@@ -34,6 +38,8 @@ const STYLE_FILTERS = ["minimal", "street", "classic", "edgy", "casual", "formal
 const FIT_FILTERS = ["oversized", "regular", "slim"];
 const COLOR_FILTERS = ["neutral", "dark", "mixed", "bold"];
 
+const INITIAL_VISIBLE = 8;
+
 const DiscoverPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -49,10 +55,12 @@ const DiscoverPage = () => {
   const [textInput, setTextInput] = useState(moodParam || "");
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, "like" | "dislike">>({});
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [hasGenerated, setHasGenerated] = useState(false);
   const [showAuthHint, setShowAuthHint] = useState(false);
+  const lastPromptRef = useRef("");
 
   // Filters
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -67,7 +75,6 @@ const DiscoverPage = () => {
     if (user) loadSavedIds();
   }, [user]);
 
-  // When tab changes to a category, generate filtered recommendations
   useEffect(() => {
     if (activeTab !== "for-you" && activeTab !== "featured") {
       generateRecommendations(`Show me ${activeTab} items`, undefined, activeTab);
@@ -102,6 +109,8 @@ const DiscoverPage = () => {
   const generateRecommendations = async (prompt: string, quiz?: StyleQuizAnswers, categoryFilter?: string) => {
     setIsGenerating(true);
     setHasGenerated(true);
+    setRecommendations([]);
+    lastPromptRef.current = prompt;
     try {
       const filterContext = [];
       if (categoryFilter) filterContext.push(`Category: ${categoryFilter}`);
@@ -120,16 +129,58 @@ const DiscoverPage = () => {
           quizAnswers: quiz || quizAnswers,
           userId: user?.id || null,
           source: sourceParam || "discover",
-          count: 10,
+          count: 8,
         },
       });
       if (error) throw error;
-      setRecommendations(data?.recommendations || []);
-    } catch (e) {
+      const recs = (data?.recommendations || []).map((r: AIRecommendation) => {
+        if (!r.image_url || !r.image_url.startsWith("http")) {
+          console.warn(`[WARDROBE] Missing/invalid image for "${r.name}" (${r.id})`);
+        }
+        return r;
+      });
+      setRecommendations(recs);
+    } catch (e: any) {
       console.error("Recommendation error:", e);
+      if (e?.message?.includes("Rate limited") || e?.status === 429) {
+        toast.error("Too many requests — please wait a moment.");
+      } else if (e?.message?.includes("credits") || e?.status === 402) {
+        toast.error("AI credits exhausted. Please add funds.");
+      }
       setRecommendations([]);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const existingIds = recommendations.map(r => r.id);
+      const prompt = lastPromptRef.current || `Show me more ${activeTab === "for-you" ? "fashion" : activeTab} items`;
+
+      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
+        body: {
+          action: "recommend",
+          prompt: `${prompt}. Show different items from before.`,
+          quizAnswers,
+          userId: user?.id || null,
+          source: sourceParam || "discover",
+          count: 6,
+          excludeIds: existingIds,
+        },
+      });
+      if (error) throw error;
+      const newRecs = (data?.recommendations || []).filter(
+        (r: AIRecommendation) => !existingIds.includes(r.id)
+      );
+      setRecommendations(prev => [...prev, ...newRecs]);
+    } catch (e) {
+      console.error("Load more error:", e);
+      toast.error("Failed to load more items");
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -192,28 +243,28 @@ const DiscoverPage = () => {
         {/* Header */}
         <div className="mx-auto max-w-lg px-6 pt-10 pb-2 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           <div className="flex items-baseline justify-between">
-            <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/80 lg:hidden">WARDROBE</span>
-            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/60">DISCOVER</span>
+            <span className="font-display text-[12px] font-semibold tracking-[0.35em] text-foreground/70 lg:hidden">WARDROBE</span>
+            <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/50">DISCOVER</span>
           </div>
         </div>
 
         <div className="mx-auto max-w-lg px-6 pt-6 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           {/* Search */}
           <div className="flex items-center gap-3 pb-4">
-            <Search className="h-4 w-4 text-foreground/50 shrink-0" />
+            <Search className="h-4 w-4 text-foreground/40 shrink-0" />
             <input
               type="text"
               value={textInput}
               onChange={e => setTextInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleTextSubmit()}
               placeholder="Describe your style…"
-              className="flex-1 bg-transparent text-[14px] font-light text-foreground outline-none placeholder:text-foreground/40"
+              className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/35"
             />
             {textInput.trim() && (
-              <button onClick={handleTextSubmit} className="text-[10px] font-medium tracking-[0.15em] text-accent/80 hover:text-accent transition-colors">GO</button>
+              <button onClick={handleTextSubmit} className="hover-burgundy text-[10px] font-semibold tracking-[0.15em] text-accent/70">GO</button>
             )}
           </div>
-          <div className="h-px bg-accent/[0.12]" />
+          <div className="h-px bg-border/30" />
 
           {/* Category Tabs */}
           <div className="mt-4 flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide">
@@ -221,10 +272,10 @@ const DiscoverPage = () => {
               <button
                 key={tab.slug}
                 onClick={() => setActiveTab(tab.slug)}
-                className={`shrink-0 rounded-full px-4 py-2 text-[11px] font-medium tracking-[0.05em] transition-all ${
+                className={`hover-burgundy shrink-0 rounded-full px-4 py-2 text-[11px] font-semibold tracking-[0.05em] transition-all ${
                   activeTab === tab.slug
-                    ? "bg-accent/15 text-foreground/90"
-                    : "text-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.03]"
+                    ? "bg-accent/15 text-foreground"
+                    : "text-foreground/35"
                 }`}
               >
                 {tab.label}
@@ -236,15 +287,15 @@ const DiscoverPage = () => {
           <div className="mt-4 flex items-center gap-3">
             <button
               onClick={() => setShowQuiz(true)}
-              className="flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-medium text-foreground/50 hover:text-foreground/70 hover:border-accent/30 transition-all"
+              className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/45"
             >
-              <Sparkles className="h-3.5 w-3.5 text-accent/60" />
+              <Sparkles className="h-3.5 w-3.5 text-accent/50" />
               {quizAnswers ? "Refine" : "Style Quiz"}
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-medium transition-all ${
-                showFilters ? "border-accent/30 text-foreground/70" : "border-border/30 text-foreground/50 hover:text-foreground/70"
+              className={`hover-burgundy flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold transition-all ${
+                showFilters ? "border-accent/30 text-foreground/60" : "border-border/30 text-foreground/45"
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -253,7 +304,7 @@ const DiscoverPage = () => {
             {quizAnswers && (
               <button
                 onClick={() => { setQuizAnswers(null); setRecommendations([]); setHasGenerated(false); setTextInput(""); }}
-                className="text-[10px] tracking-[0.15em] text-foreground/30 hover:text-foreground/50 transition-colors"
+                className="hover-burgundy text-[10px] tracking-[0.15em] text-foreground/25"
               >
                 RESET
               </button>
@@ -271,16 +322,16 @@ const DiscoverPage = () => {
               >
                 <div className="mt-4 space-y-4 rounded-xl border border-border/20 bg-card/30 p-4">
                   <div>
-                    <p className="text-[9px] font-medium tracking-[0.2em] text-foreground/40 mb-2">STYLE</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">STYLE</p>
                     <div className="flex flex-wrap gap-2">
                       {STYLE_FILTERS.map(s => (
                         <button
                           key={s}
                           onClick={() => toggleStyle(s)}
-                          className={`rounded-full px-3 py-1.5 text-[10px] transition-all ${
+                          className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
                             selectedStyles.includes(s)
                               ? "bg-accent/15 text-foreground/80"
-                              : "bg-foreground/[0.03] text-foreground/40 hover:text-foreground/60"
+                              : "bg-foreground/[0.03] text-foreground/35 hover:text-foreground/50"
                           }`}
                         >
                           {s}
@@ -289,16 +340,16 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-medium tracking-[0.2em] text-foreground/40 mb-2">FIT</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">FIT</p>
                     <div className="flex flex-wrap gap-2">
                       {FIT_FILTERS.map(f => (
                         <button
                           key={f}
                           onClick={() => setSelectedFit(selectedFit === f ? null : f)}
-                          className={`rounded-full px-3 py-1.5 text-[10px] transition-all ${
+                          className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
                             selectedFit === f
                               ? "bg-accent/15 text-foreground/80"
-                              : "bg-foreground/[0.03] text-foreground/40 hover:text-foreground/60"
+                              : "bg-foreground/[0.03] text-foreground/35 hover:text-foreground/50"
                           }`}
                         >
                           {f}
@@ -307,16 +358,16 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-medium tracking-[0.2em] text-foreground/40 mb-2">COLOR</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">COLOR</p>
                     <div className="flex flex-wrap gap-2">
                       {COLOR_FILTERS.map(c => (
                         <button
                           key={c}
                           onClick={() => setSelectedColor(selectedColor === c ? null : c)}
-                          className={`rounded-full px-3 py-1.5 text-[10px] transition-all ${
+                          className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-all ${
                             selectedColor === c
                               ? "bg-accent/15 text-foreground/80"
-                              : "bg-foreground/[0.03] text-foreground/40 hover:text-foreground/60"
+                              : "bg-foreground/[0.03] text-foreground/35 hover:text-foreground/50"
                           }`}
                         >
                           {c}
@@ -329,7 +380,7 @@ const DiscoverPage = () => {
                       const prompt = textInput.trim() || `Recommend ${activeTab === "for-you" ? "fashion" : activeTab} items`;
                       generateRecommendations(prompt, undefined, activeTab !== "for-you" ? activeTab : undefined);
                     }}
-                    className="w-full py-2.5 text-[10px] font-medium tracking-[0.15em] text-accent/70 hover:text-accent transition-colors border-t border-border/20 pt-3"
+                    className="hover-burgundy w-full py-2.5 text-[10px] font-semibold tracking-[0.15em] text-accent/60 border-t border-border/20 pt-3"
                   >
                     APPLY FILTERS
                   </button>
@@ -341,29 +392,40 @@ const DiscoverPage = () => {
           {/* Results Area */}
           <div className="mt-8">
             {isGenerating ? (
-              <div className="flex flex-col items-center justify-center py-24 gap-3">
-                <Loader2 className="h-5 w-5 animate-spin text-accent/60" />
-                <p className="text-[11px] text-foreground/40">Curating recommendations…</p>
+              <div className="space-y-4">
+                {/* Skeleton grid */}
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="aspect-[3/4] rounded-xl bg-foreground/[0.04]" />
+                      <div className="mt-2.5 space-y-1.5 px-0.5">
+                        <div className="h-2.5 w-16 rounded bg-foreground/[0.04]" />
+                        <div className="h-3 w-24 rounded bg-foreground/[0.04]" />
+                        <div className="h-3 w-12 rounded bg-foreground/[0.04]" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : hasGenerated && recommendations.length > 0 ? (
               <div className="space-y-12">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-medium tracking-[0.25em] text-accent/70">
+                    <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
                       {activeTab === "for-you" ? "CURATED FOR YOU" : activeTab.toUpperCase()}
                     </p>
                     {interactionCount > 2 && (
-                      <p className="text-[10px] text-foreground/40 mt-1">Adapting to your taste…</p>
+                      <p className="text-[10px] text-foreground/35 mt-1">Adapting to your taste…</p>
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground/30">{recommendations.length} items</span>
+                  <span className="text-[10px] text-foreground/25">{recommendations.length} items</span>
                 </div>
 
                 {/* Grouped display */}
                 {Object.keys(groupedRecs).length > 1 ? (
                   Object.entries(groupedRecs).map(([category, items]) => (
                     <div key={category} className="space-y-4">
-                      <p className="text-[10px] font-medium tracking-[0.2em] text-foreground/50 uppercase">
+                      <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/45 uppercase">
                         {category}
                       </p>
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
@@ -396,25 +458,41 @@ const DiscoverPage = () => {
                     ))}
                   </div>
                 )}
+
+                {/* Load More */}
+                <div className="flex justify-center pt-4 pb-8">
+                  <button
+                    onClick={loadMore}
+                    disabled={isLoadingMore}
+                    className="hover-burgundy flex items-center gap-2 rounded-lg border border-border/30 px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/45 transition-all hover:border-accent/30 hover:bg-accent/[0.04] disabled:opacity-40"
+                  >
+                    {isLoadingMore ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                    {isLoadingMore ? "LOADING…" : "LOAD MORE"}
+                  </button>
+                </div>
               </div>
             ) : hasGenerated && recommendations.length === 0 ? (
               <div className="py-20 text-center space-y-4">
-                <p className="text-[14px] text-foreground/50">No recommendations found</p>
-                <p className="text-[12px] text-foreground/30 max-w-[260px] mx-auto">
+                <p className="text-[14px] font-medium text-foreground/45">No recommendations found</p>
+                <p className="text-[12px] text-foreground/25 max-w-[260px] mx-auto">
                   Try describing your style differently or take the quiz for better results.
                 </p>
               </div>
             ) : (
               <div className="py-16 text-center space-y-5">
-                <p className="font-display text-lg text-foreground/60">Discover your style</p>
-                <p className="mx-auto max-w-[280px] text-[12px] leading-[1.8] text-foreground/40">
+                <p className="font-display text-lg font-semibold text-foreground/55">Discover your style</p>
+                <p className="mx-auto max-w-[280px] text-[12px] leading-[1.8] text-foreground/35">
                   Tell us your preferences or browse by category to see curated recommendations.
                 </p>
                 <div className="flex flex-col items-center gap-3">
-                  <button onClick={() => setShowQuiz(true)} className="text-[10px] font-medium tracking-[0.2em] text-accent/60 hover:text-accent transition-colors">
+                  <button onClick={() => setShowQuiz(true)} className="hover-burgundy text-[10px] font-semibold tracking-[0.2em] text-accent/50">
                     TAKE STYLE QUIZ
                   </button>
-                  <span className="text-[10px] text-foreground/20">or browse categories above</span>
+                  <span className="text-[10px] text-foreground/18">or browse categories above</span>
                 </div>
               </div>
             )}
@@ -431,16 +509,16 @@ const DiscoverPage = () => {
             exit={{ opacity: 0, y: 20 }}
             className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-sm px-8"
           >
-            <div className="rounded-2xl bg-card/95 backdrop-blur-xl p-6 shadow-[0_8px_40px_-8px_hsl(0_0%_0%/0.3)] space-y-4">
-              <p className="font-display text-[15px] text-foreground/80">
+            <div className="rounded-2xl bg-card/95 backdrop-blur-xl p-6 shadow-elevated space-y-4">
+              <p className="font-display text-[15px] font-semibold text-foreground/75">
                 Save your style and unlock personalized recommendations.
               </p>
               <div className="flex gap-3">
-                <button onClick={() => navigate("/auth")} className="flex-1 py-3 text-[10px] font-semibold tracking-[0.15em] text-foreground/70 hover:text-foreground transition-colors">
+                <button onClick={() => navigate("/auth")} className="hover-burgundy flex-1 py-3 text-[10px] font-semibold tracking-[0.15em] text-foreground/60">
                   CREATE ACCOUNT
                 </button>
-                <div className="w-px bg-accent/[0.12]" />
-                <button onClick={() => setShowAuthHint(false)} className="px-4 py-3 text-[10px] text-foreground/40 hover:text-foreground/50 transition-colors">
+                <div className="w-px bg-border/30" />
+                <button onClick={() => setShowAuthHint(false)} className="hover-burgundy px-4 py-3 text-[10px] text-foreground/30">
                   LATER
                 </button>
               </div>
@@ -452,7 +530,8 @@ const DiscoverPage = () => {
   );
 };
 
-// Extracted card component
+// ─── Image-first Recommendation Card ───
+
 const RecommendationCard = ({
   item, index, feedbackMap, savedIds, onFeedback, onSave
 }: {
@@ -462,47 +541,85 @@ const RecommendationCard = ({
   savedIds: Set<string>;
   onFeedback: (id: string, type: "like" | "dislike") => void;
   onSave: (id: string) => void;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 24 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.06, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-    className="group"
-  >
-    <div className="relative overflow-hidden rounded-xl bg-foreground/[0.04] aspect-[3/4] flex flex-col items-center justify-center p-4">
-      <div className="h-8 w-8 rounded-full mb-3 opacity-60" style={{ backgroundColor: item.color || "hsl(var(--accent))" }} />
-      <p className="text-[10px] font-medium tracking-[0.12em] text-foreground/40 text-center">{item.brand}</p>
-      <p className="text-[12px] font-medium text-foreground/70 mt-1 text-center leading-tight">{item.name}</p>
-      <p className="text-[11px] font-medium text-foreground/50 mt-2">{item.price}</p>
-      <span className="absolute left-3 top-3 text-[9px] font-medium tracking-[0.1em] text-foreground/25 uppercase">{item.category}</span>
-      <AuthGate action="save items">
-        <button
-          onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
-          className="absolute right-3 top-3 p-2 rounded-full bg-foreground/[0.04] transition-colors hover:bg-foreground/[0.08]"
-        >
-          <Bookmark className={`h-3.5 w-3.5 transition-colors ${savedIds.has(item.id) ? "fill-accent text-accent" : "text-foreground/25"}`} />
-        </button>
-      </AuthGate>
-    </div>
-    <div className="mt-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1.5 flex-wrap">
+}) => {
+  const hasImage = item.image_url && item.image_url.startsWith("http");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+      className="group"
+    >
+      {/* Image container — dominant */}
+      <div className="relative overflow-hidden rounded-xl bg-foreground/[0.03]">
+        {hasImage ? (
+          <SafeImage
+            src={item.image_url!}
+            alt={item.name}
+            className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+            fallbackClassName="aspect-[3/4] w-full"
+            loading={index < 4 ? "eager" : "lazy"}
+          />
+        ) : (
+          <div className="aspect-[3/4] w-full flex flex-col items-center justify-center bg-foreground/[0.03]">
+            <div
+              className="h-12 w-12 rounded-full mb-3 opacity-40"
+              style={{ backgroundColor: item.color || "hsl(var(--accent))" }}
+            />
+            <p className="text-[9px] font-semibold tracking-[0.15em] text-foreground/25 uppercase">{item.category}</p>
+          </div>
+        )}
+
+        {/* Overlay actions */}
+        <div className="absolute right-2 top-2 flex flex-col gap-1.5">
+          <AuthGate action="save items">
+            <button
+              onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
+            >
+              <Bookmark className={`h-3.5 w-3.5 transition-colors ${savedIds.has(item.id) ? "fill-accent text-accent" : "text-foreground/50"}`} />
+            </button>
+          </AuthGate>
+          <ShareButton title={`${item.brand} — ${item.name}`} className="" />
+        </div>
+
+        {/* Category badge */}
+        <span className="absolute left-2 top-2 rounded-full bg-background/60 backdrop-blur-md px-2 py-0.5 text-[8px] font-semibold tracking-[0.1em] text-foreground/50 uppercase">
+          {item.category}
+        </span>
+      </div>
+
+      {/* Text — below image, compact */}
+      <div className="mt-2.5 space-y-0.5 px-0.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">{item.brand}</p>
+        <p className="text-[13px] font-semibold leading-snug text-foreground/80 line-clamp-2">{item.name}</p>
+        <p className="text-[13px] font-bold text-foreground">{item.price}</p>
+      </div>
+
+      {/* Feedback row */}
+      <div className="mt-2 flex items-center justify-between px-0.5">
+        <div className="flex gap-1 flex-wrap">
           {item.style_tags?.slice(0, 2).map(tag => (
-            <span key={tag} className="text-[9px] text-foreground/35">{tag}</span>
+            <span key={tag} className="text-[9px] text-foreground/25">{tag}</span>
           ))}
         </div>
         <div className="flex items-center gap-0.5">
-          <button onClick={() => onFeedback(item.id, "like")} className={`p-1.5 rounded-full transition-all ${feedbackMap[item.id] === "like" ? "text-accent/80 bg-accent/10" : "text-foreground/25 hover:text-foreground/40"}`}>
+          <button onClick={() => onFeedback(item.id, "like")} className={`p-1.5 rounded-full transition-all ${feedbackMap[item.id] === "like" ? "text-accent/70 bg-accent/10" : "text-foreground/20 hover:text-foreground/35"}`}>
             <Heart className={`h-3 w-3 ${feedbackMap[item.id] === "like" ? "fill-current" : ""}`} />
           </button>
-          <button onClick={() => onFeedback(item.id, "dislike")} className={`p-1.5 rounded-full transition-all ${feedbackMap[item.id] === "dislike" ? "text-destructive/60 bg-destructive/10" : "text-foreground/25 hover:text-foreground/40"}`}>
+          <button onClick={() => onFeedback(item.id, "dislike")} className={`p-1.5 rounded-full transition-all ${feedbackMap[item.id] === "dislike" ? "text-destructive/50 bg-destructive/10" : "text-foreground/20 hover:text-foreground/35"}`}>
             <HeartOff className="h-3 w-3" />
           </button>
         </div>
       </div>
-      <p className="text-[10px] leading-[1.6] text-foreground/40">{item.reason}</p>
-    </div>
-  </motion.div>
-);
+
+      {/* Reason — subtle */}
+      {item.reason && (
+        <p className="mt-1.5 px-0.5 text-[10px] leading-[1.5] text-foreground/30 line-clamp-2">{item.reason}</p>
+      )}
+    </motion.div>
+  );
+};
 
 export default DiscoverPage;
