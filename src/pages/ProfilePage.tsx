@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, ChevronRight, Bookmark, Ruler, Palette, Shirt,
   Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield,
-  Edit3, CheckCircle, XCircle, Upload, Save, Image
+  Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock
 } from "lucide-react";
 import StylePreferenceEditor from "@/components/StylePreferenceEditor";
 import { useNavigate } from "react-router-dom";
