@@ -1158,8 +1158,21 @@ const DiscoverPage = () => {
             ) : hasGenerated ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Sparkles className="h-6 w-6 text-accent/25 mb-4" />
-                <p className="text-[12px] text-foreground/75">No results found</p>
-                <p className="text-[10px] text-foreground/70 mt-1">Try a different search or style</p>
+                <p className="text-[12px] font-medium text-foreground/75">No verified products found</p>
+                <p className="text-[10px] text-foreground/50 mt-1 max-w-[240px]">
+                  We only show real, verified items. Try a different search or check back soon as our inventory grows.
+                </p>
+                <button
+                  onClick={() => {
+                    sessionSeenIds.clear();
+                    setRecommendations([]);
+                    setHasGenerated(false);
+                    setTextInput("");
+                  }}
+                  className="mt-4 text-[10px] font-semibold tracking-wider text-accent/70 hover:text-accent transition-colors"
+                >
+                  RESET & BROWSE
+                </button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -9,41 +9,67 @@ const corsHeaders = {
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
-// ─── Platform configs: public search URLs + extractors ───
+// ─── Blocked image domains ───
+const BLOCKED_IMAGE_DOMAINS = [
+  "via.placeholder.com", "placehold.it", "placekitten.com",
+  "dummyimage.com", "fakeimg.pl", "picsum.photos", "lorempixel.com",
+];
+
+function isImageUrlSafe(url: unknown): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol !== "https:") return false;
+    if (BLOCKED_IMAGE_DOMAINS.some(d => u.hostname.includes(d))) return false;
+    if (trimmed.length > 2000) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Platform configs: public search URLs only ───
 const PLATFORMS: Record<string, {
   searchUrl: (q: string) => string;
   name: string;
   enabled: boolean;
+  trustLevel: "high" | "medium" | "low";
 }> = {
   naver: {
     searchUrl: (q: string) =>
       `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
     name: "Naver Shopping",
     enabled: true,
+    trustLevel: "medium",
   },
   ssense: {
     searchUrl: (q: string) =>
       `https://www.ssense.com/en-us/men?q=${encodeURIComponent(q)}`,
     name: "SSENSE",
     enabled: true,
+    trustLevel: "high",
   },
   farfetch: {
     searchUrl: (q: string) =>
       `https://www.farfetch.com/shopping/men/search/items.aspx?q=${encodeURIComponent(q)}`,
     name: "Farfetch",
     enabled: true,
+    trustLevel: "high",
   },
   asos: {
     searchUrl: (q: string) =>
       `https://www.asos.com/search/?q=${encodeURIComponent(q)}`,
     name: "ASOS",
     enabled: true,
+    trustLevel: "medium",
   },
   ssg: {
     searchUrl: (q: string) =>
       `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(q)}`,
     name: "SSG",
     enabled: true,
+    trustLevel: "medium",
   },
 };
 
@@ -64,6 +90,17 @@ interface ScrapedProduct {
   platform: string;
   image_valid: boolean;
   is_active: boolean;
+  source_type: string;
+  source_trust_level: string;
+}
+
+// ─── Rate limiting ───
+const platformLastCall: Record<string, number> = {};
+const PLATFORM_COOLDOWN_MS = 15_000; // 15s per platform
+
+function canCallPlatform(platformId: string): boolean {
+  const last = platformLastCall[platformId] || 0;
+  return Date.now() - last >= PLATFORM_COOLDOWN_MS;
 }
 
 function getFirecrawlKey(): string {
@@ -88,10 +125,20 @@ async function scrapePlatform(
   const platform = PLATFORMS[platformId];
   if (!platform?.enabled) return [];
 
+  // Rate limit per platform
+  if (!canCallPlatform(platformId)) {
+    console.log(`[${platformId}] Rate limited, skipping`);
+    return [];
+  }
+  platformLastCall[platformId] = Date.now();
+
   const searchUrl = platform.searchUrl(query);
   console.log(`[${platformId}] Scraping: ${searchUrl}`);
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000); // 20s max per platform
+
     const response = await fetch(`${FIRECRAWL_V2}/scrape`, {
       method: "POST",
       headers: {
@@ -123,13 +170,16 @@ async function scrapePlatform(
                 },
               },
             },
-            prompt: `Extract all visible product listings from this ${platform.name} search results page. For each product, get: title, brand, price (with currency symbol), image_url (full https URL), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 15 products.`,
+            prompt: `Extract all visible product listings from this ${platform.name} search results page. For each product, get: title, brand, price (with currency symbol), image_url (full https URL), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
           },
         ],
         waitFor: 3000,
         onlyMainContent: true,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -140,18 +190,20 @@ async function scrapePlatform(
     const result = await response.json();
     const extracted = result?.json?.products || result?.data?.json?.products || [];
 
-    // Pre-filter by basic URL shape
+    // Pre-filter: must have title, price, safe image, valid product URL
     const candidates = extracted.filter(
       (p: any) =>
         p.title &&
+        p.title.length >= 3 &&
+        p.title.length <= 200 &&
         p.price &&
-        p.image_url?.startsWith("https") &&
+        isImageUrlSafe(p.image_url) &&
         p.product_url?.startsWith("http")
     );
 
-    // HEAD-validate images in parallel (discard failures immediately)
+    // HEAD-validate images in parallel (discard failures)
     const validated = await Promise.all(
-      candidates.map(async (p: any) => {
+      candidates.slice(0, 12).map(async (p: any) => {
         const ok = await validateImageHead(p.image_url);
         return ok ? p : null;
       })
@@ -176,6 +228,8 @@ async function scrapePlatform(
         platform: platformId,
         image_valid: true,
         is_active: true,
+        source_type: "scraper",
+        source_trust_level: platform.trustLevel,
       }));
   } catch (e) {
     console.error(`[${platformId}] Scrape failed:`, e);
@@ -185,7 +239,7 @@ async function scrapePlatform(
 
 /** Validate that a URL returns a real image via HEAD request */
 async function validateImageHead(url: string): Promise<boolean> {
-  if (!url || !url.startsWith("https")) return false;
+  if (!isImageUrlSafe(url)) return false;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
@@ -252,25 +306,38 @@ function inferColorFromTitle(title: string): string[] {
 // ─── Cache to DB ───
 async function cacheToDB(supabase: any, products: ScrapedProduct[]): Promise<number> {
   if (!products.length) return 0;
-  const rows = products.map((p) => ({
-    external_id: p.external_id,
-    name: p.name,
-    brand: p.brand,
-    price: p.price,
-    category: p.category,
-    subcategory: p.subcategory,
-    style_tags: p.style_tags,
-    color_tags: p.color_tags,
-    fit: p.fit,
-    image_url: p.image_url,
-    source_url: p.source_url,
-    store_name: p.store_name,
-    reason: p.reason,
-    platform: p.platform,
-    image_valid: true,
-    is_active: true,
-    last_validated: new Date().toISOString(),
-  }));
+
+  // Dedup by source_url before insert
+  const seenUrls = new Set<string>();
+  const rows = products
+    .filter(p => isImageUrlSafe(p.image_url))
+    .filter(p => {
+      if (!p.source_url) return true;
+      if (seenUrls.has(p.source_url)) return false;
+      seenUrls.add(p.source_url);
+      return true;
+    })
+    .map((p) => ({
+      external_id: p.external_id,
+      name: p.name,
+      brand: p.brand,
+      price: p.price,
+      category: p.category,
+      subcategory: p.subcategory,
+      style_tags: p.style_tags,
+      color_tags: p.color_tags,
+      fit: p.fit,
+      image_url: p.image_url,
+      source_url: p.source_url,
+      store_name: p.store_name,
+      reason: p.reason,
+      platform: p.platform,
+      image_valid: true,
+      is_active: true,
+      source_type: p.source_type || "scraper",
+      source_trust_level: p.source_trust_level || "medium",
+      last_validated: new Date().toISOString(),
+    }));
 
   const { error } = await supabase
     .from("product_cache")
@@ -283,6 +350,35 @@ async function cacheToDB(supabase: any, products: ScrapedProduct[]): Promise<num
   return rows.length;
 }
 
+// ─── Log rejected products for admin monitoring ───
+async function logRejectedProducts(supabase: any, products: any[], reason: string) {
+  const rows = products.slice(0, 20).map(p => ({
+    product_name: (p.title || p.name || "Unknown").slice(0, 200),
+    brand: p.brand || null,
+    image_url: (p.image_url || "").slice(0, 500),
+    failure_reason: reason,
+    source: p.platform || "unknown",
+  }));
+
+  await supabase.from("image_failures").insert(rows).catch((e: any) => 
+    console.error("Failed to log rejected products:", e)
+  );
+}
+
+// ─── Input validation ───
+function validateInput(body: any): { valid: boolean; error?: string } {
+  if (!body.query || typeof body.query !== "string" || body.query.trim().length < 2) {
+    return { valid: false, error: "Query must be at least 2 characters" };
+  }
+  if (body.query.length > 200) {
+    return { valid: false, error: "Query too long (max 200 characters)" };
+  }
+  if (body.limit && (typeof body.limit !== "number" || body.limit < 1 || body.limit > 30)) {
+    return { valid: false, error: "Limit must be 1-30" };
+  }
+  return { valid: true };
+}
+
 // ─── Main handler ───
 serve(async (req) => {
   if (req.method === "OPTIONS")
@@ -290,49 +386,63 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { query, platforms, limit = 20 } = body;
 
-    if (!query || typeof query !== "string" || query.trim().length < 2) {
+    const validation = validateInput(body);
+    if (!validation.valid) {
       return new Response(
-        JSON.stringify({ error: "Query must be at least 2 characters" }),
+        JSON.stringify({ error: validation.error }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const { query, platforms, limit = 20 } = body;
+    const clampedLimit = Math.min(limit, 30);
+
     const apiKey = getFirecrawlKey();
     const supabase = getServiceClient();
 
-    // Determine which platforms to scrape
+    // Sanitize query
+    const sanitizedQuery = query.replace(/[<>"'`;]/g, "").trim().slice(0, 100);
+
     const requestedPlatforms: string[] = platforms || Object.keys(PLATFORMS);
     const enabledPlatforms = requestedPlatforms.filter(
-      (p) => PLATFORMS[p]?.enabled
+      (p) => PLATFORMS[p]?.enabled && canCallPlatform(p)
     );
 
     console.log(
-      `commerce-scraper: query="${query}", platforms=[${enabledPlatforms.join(",")}]`
+      `commerce-scraper: query="${sanitizedQuery}", platforms=[${enabledPlatforms.join(",")}]`
     );
 
-    // Scrape platforms in parallel (max 3 concurrent to stay within rate limits)
-    const batchSize = 3;
+    // Scrape platforms in parallel (max 2 concurrent to stay within rate limits)
+    const batchSize = 2;
     let allProducts: ScrapedProduct[] = [];
 
     for (let i = 0; i < enabledPlatforms.length; i += batchSize) {
       const batch = enabledPlatforms.slice(i, i + batchSize);
       const results = await Promise.all(
-        batch.map((p) => scrapePlatform(p, query, apiKey))
+        batch.map((p) => scrapePlatform(p, sanitizedQuery, apiKey))
       );
       allProducts.push(...results.flat());
     }
 
+    // Track rejected products for admin monitoring
+    const preFilterCount = allProducts.length;
+
     // Deduplicate by title similarity
     const seen = new Set<string>();
     allProducts = allProducts.filter((p) => {
-      const key = p.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "")
-        .slice(0, 30);
+      const key = p.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30);
       if (seen.has(key)) return false;
       seen.add(key);
+      return true;
+    });
+
+    // URL-based dedup
+    const seenUrls = new Set<string>();
+    allProducts = allProducts.filter((p) => {
+      if (!p.source_url) return true;
+      if (seenUrls.has(p.source_url)) return false;
+      seenUrls.add(p.source_url);
       return true;
     });
 
@@ -344,14 +454,20 @@ serve(async (req) => {
       return brandCount[b] <= 3;
     });
 
-    // Platform diversity: max 5 per platform in top results
+    // Platform diversity: max 5 per platform
     const platCount: Record<string, number> = {};
     allProducts = allProducts.filter((p) => {
       platCount[p.platform] = (platCount[p.platform] || 0) + 1;
       return platCount[p.platform] <= 5;
     });
 
-    allProducts = allProducts.slice(0, limit);
+    allProducts = allProducts.slice(0, clampedLimit);
+
+    // Log rejection stats
+    const rejectedCount = preFilterCount - allProducts.length;
+    if (rejectedCount > 0) {
+      console.log(`Rejected ${rejectedCount} products (duplicates/diversity limits)`);
+    }
 
     // Cache to DB in background
     cacheToDB(supabase, allProducts)
@@ -360,7 +476,6 @@ serve(async (req) => {
       })
       .catch((e) => console.error("Cache error:", e));
 
-    // Normalize for response
     const normalized = allProducts.map((p) => ({
       id: p.external_id,
       name: p.name,
