@@ -805,13 +805,42 @@ const DiscoverPage = () => {
     setSelectedColor(null);
   };
 
-  // Group recommendations by category
-  const groupedRecs = recommendations.reduce<Record<string, AIRecommendation[]>>((acc, item) => {
-    const cat = item.category || "Other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item);
-    return acc;
-  }, {});
+  // ── Keyword-based fashion category classifier ──
+  const CATEGORY_ORDER = ["TOPS", "BOTTOMS", "SHOES", "BAGS", "ACCESSORIES"] as const;
+  type FashionCategory = typeof CATEGORY_ORDER[number];
+
+  const CATEGORY_KEYWORDS: Record<FashionCategory, RegExp> = {
+    TOPS: /\b(shirt|t-shirt|tee|hoodie|hoody|jacket|coat|blazer|sweater|cardigan|vest|polo|pullover|sweatshirt|bomber|parka|windbreaker|blouse|tunic|camisole|tank|henley|oxford|flannel|knit|top|jumper|cape|poncho|gilet|anorak|overcoat|trench)\b/i,
+    BOTTOMS: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|overalls?|jumpsuit|romper|slacks|culottes|cargo\s*pants|sweatpants|track\s*pants|bermuda|capri)\b/i,
+    SHOES: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|oxfords?|derby|brogues?|espadrilles?|slippers?|clogs?|pumps?|heels?|flats?|moccasins?)\b/i,
+    BAGS: /\b(bag|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|wallet|pouch|briefcase|weekender|fanny\s*pack|belt\s*bag|shoulder\s*bag|handbag)\b/i,
+    ACCESSORIES: /\b(hat|cap|beanie|watch|belt|scarf|gloves?|socks?|tie|sunglasses|ring|necklace|bracelet|earring|jewelry|jewellery|cufflinks?|keychain|headband|bandana|beret)\b/i,
+  };
+
+  function classifyProduct(item: AIRecommendation): FashionCategory | null {
+    const text = `${item.name} ${item.category}`.toLowerCase();
+    for (const cat of CATEGORY_ORDER) {
+      if (CATEGORY_KEYWORDS[cat].test(text)) return cat;
+    }
+    return null;
+  }
+
+  // Group and order recommendations by fashion category
+  const categorizedRecs = useMemo(() => {
+    const groups: Record<FashionCategory, AIRecommendation[]> = {
+      TOPS: [], BOTTOMS: [], SHOES: [], BAGS: [], ACCESSORIES: [],
+    };
+
+    for (const item of recommendations) {
+      const cat = classifyProduct(item);
+      if (cat) groups[cat].push(item);
+    }
+
+    // Return only non-empty categories in order
+    return CATEGORY_ORDER
+      .filter(cat => groups[cat].length > 0)
+      .map(cat => ({ category: cat, items: groups[cat] }));
+  }, [recommendations]);
 
   const interactionCount = Object.keys(feedbackMap).length;
 
@@ -1127,8 +1156,8 @@ const DiscoverPage = () => {
                   <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
                 </div>
 
-                {Object.keys(groupedRecs).length > 1 ? (
-                  Object.entries(groupedRecs).map(([category, items]) => (
+                {categorizedRecs.length > 0 ? (
+                  categorizedRecs.map(({ category, items }) => (
                     <div key={category} className="space-y-4">
                       <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/65 uppercase">
                         {category}
