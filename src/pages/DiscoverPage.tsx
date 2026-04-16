@@ -1465,9 +1465,9 @@ const DiscoverPage = () => {
         return result;
       }
     } catch (e) {
-      console.warn("[search-intent] failed, will use local fallback:", e);
+      console.info("[search-intent] AI unavailable, using local fallback (this is normal):", e instanceof Error ? e.message : e);
     }
-    // Fallback to local expansion
+    // Fallback to local expansion — always works, instant
     return { queries: expandSearchQuery(q) };
   }
 
