@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      body_scan_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_type: string
+          public_url: string | null
+          storage_path: string
+          updated_at: string
+          user_id: string
+          validation_notes: string | null
+          validation_status: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_type: string
+          public_url?: string | null
+          storage_path: string
+          updated_at?: string
+          user_id: string
+          validation_notes?: string | null
+          validation_status?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_type?: string
+          public_url?: string | null
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+          validation_notes?: string | null
+          validation_status?: string | null
+        }
+        Relationships: []
+      }
       daily_recommendations: {
         Row: {
           context: Json | null
@@ -440,33 +476,51 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
+          date_of_birth: string | null
           display_name: string | null
+          email_verified: boolean | null
+          gender_preference: string | null
           id: string
           language: string | null
+          location: string | null
           onboarded: boolean | null
+          phone: string | null
           theme: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string | null
+          email_verified?: boolean | null
+          gender_preference?: string | null
           id?: string
           language?: string | null
+          location?: string | null
           onboarded?: boolean | null
+          phone?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string | null
+          email_verified?: boolean | null
+          gender_preference?: string | null
           id?: string
           language?: string | null
+          location?: string | null
           onboarded?: boolean | null
+          phone?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
