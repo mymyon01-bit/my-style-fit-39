@@ -223,12 +223,13 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
 
   let score = 0;
 
-  // 0.40 — Category match (HARD requirement when intent has category)
+  // 0.40 — Category match (softer penalty when no lock — allow related categories)
   if (intent.categoryLock) {
     if (itemCategory === intent.categoryLock) {
       score += 40;
     } else {
-      return 5;
+      // Give partial credit if it's a related fashion item (not zero)
+      score += 8;
     }
   } else {
     score += 20;
