@@ -1507,14 +1507,15 @@ const DiscoverPage = () => {
         searchQueries = [...new Set([...cached.queries, ...localExpanded])].slice(0, 8);
         console.log("[search] using cached AI queries");
       } else {
-        // Race AI vs 1s soft timeout — fall back to local if slow
+        // Race AI vs 900ms soft timeout — fall back to local if slow.
+        // Late AI responses still resolve in background and populate intentCache for next time.
         const aiResult = await Promise.race([
           aiPromise,
           new Promise<{ queries: string[] }>((resolve) =>
             setTimeout(() => {
-              console.log("[search] Perplexity soft timeout (1s) — using local fallback. AI continues in background.");
+              console.log("[search] AI soft timeout (900ms) — using local fallback. AI continues in background.");
               resolve({ queries: localExpanded });
-            }, 1000)
+            }, 900)
           ),
         ]);
         searchQueries = [...new Set([...aiResult.queries, ...localExpanded])].slice(0, 8);
