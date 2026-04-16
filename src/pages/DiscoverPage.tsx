@@ -541,6 +541,30 @@ const DiscoverPage = () => {
                 {t("reset").toUpperCase()}
               </button>
             )}
+            {/* Preference toggle for logged-in users */}
+            {user && userStyleProfile && (
+              <button
+                onClick={() => {
+                  setPreferenceMode(!preferenceMode);
+                  if (!preferenceMode && userStyleProfile) {
+                    // Auto-apply user preferences
+                    const styles = userStyleProfile.preferred_styles || [];
+                    setSelectedStyles(styles.filter((s: string) => STYLE_FILTERS.includes(s)));
+                    if (userStyleProfile.preferred_fit) setSelectedFit(userStyleProfile.preferred_fit);
+                    const prompt = `Items matching my style: ${styles.join(", ")}. Fit: ${userStyleProfile.preferred_fit || "regular"}`;
+                    generateRecommendations(prompt);
+                  } else {
+                    clearFilters();
+                  }
+                }}
+                className={`hover-burgundy flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-semibold transition-all ${
+                  preferenceMode ? "border-accent/30 bg-accent/[0.06] text-accent/70" : "border-border/30 text-foreground/35"
+                }`}
+              >
+                <Heart className="h-3 w-3" />
+                {t("myPreferences")}
+              </button>
+            )}
           </div>
 
           {/* Filter Panel */}
