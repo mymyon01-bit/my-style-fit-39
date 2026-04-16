@@ -975,7 +975,7 @@ const DiscoverPage = () => {
 
     setIsGenerating(true);
     setHasGenerated(true);
-    setRecommendations([]);
+    // Don't clear recommendations — keep previous visible while loading
     setDbOffset(0);
     lastPromptRef.current = `Browse ${category}`;
 
