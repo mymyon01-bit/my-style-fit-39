@@ -214,7 +214,7 @@ const OOTDPage = () => {
                         }`}
                       >
                         <span className="text-accent/70 mr-0.5">#</span>{topic.name}
-                        <span className="ml-1.5 text-[9px] text-foreground/75">{topic.post_count}</span>
+                        <span className="ml-1.5 text-[11px] text-foreground/75">{topic.post_count}</span>
                       </button>
                     ))}
                   </div>

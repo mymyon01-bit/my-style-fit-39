@@ -61,7 +61,7 @@ const AdminProducts = () => {
                 <p className="text-[10px] text-foreground/75">{p.brand || "—"} · {p.product_categories?.name || "Uncategorized"}</p>
                 <div className="flex items-center gap-2">
                   {p.price && <span className="text-[11px] text-foreground/75">${p.price}</span>}
-                  {p.is_featured && <span className="text-[9px] bg-accent/10 text-accent/70 px-1.5 py-0.5 rounded">Featured</span>}
+                  {p.is_featured && <span className="text-[11px] bg-accent/10 text-accent/70 px-1.5 py-0.5 rounded">Featured</span>}
                 </div>
               </div>
             </div>

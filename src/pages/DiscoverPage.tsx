@@ -559,7 +559,7 @@ const DiscoverPage = () => {
                 >
                   {searchSuggestionResults.length > 0 ? (
                     <div className="py-2">
-                      <p className="px-4 py-1.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/70">{t("suggestions").toUpperCase()}</p>
+                      <p className="px-4 py-1.5 text-[11px] font-semibold tracking-[0.2em] text-foreground/70">{t("suggestions").toUpperCase()}</p>
                       {searchSuggestionResults.map((suggestion, i) => (
                         <button
                           key={i}
@@ -573,7 +573,7 @@ const DiscoverPage = () => {
                     </div>
                   ) : (
                     <div className="py-2">
-                      <p className="px-4 py-1.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/70">{t("trending").toUpperCase()}</p>
+                      <p className="px-4 py-1.5 text-[11px] font-semibold tracking-[0.2em] text-foreground/70">{t("trending").toUpperCase()}</p>
                       {TRENDING_SEARCHES.map((term, i) => (
                         <button
                           key={i}
@@ -667,7 +667,7 @@ const DiscoverPage = () => {
               <SlidersHorizontal className="h-3.5 w-3.5" />
               {t("filters")}
               {hasActiveFilters && (
-                <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent/20 text-[8px] font-bold text-accent">
+                <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent/20 text-[10px] font-bold text-accent">
                   {selectedStyles.length + (selectedFit ? 1 : 0) + (selectedColor ? 1 : 0)}
                 </span>
               )}
@@ -715,7 +715,7 @@ const DiscoverPage = () => {
               >
                 <div className="mt-4 space-y-4 rounded-xl border border-border/20 bg-card/30 p-4">
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("style").toUpperCase()}</p>
+                    <p className="text-[11px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("style").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {STYLE_FILTERS.map(s => (
                         <button
@@ -733,7 +733,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("preferredFit").toUpperCase()}</p>
+                    <p className="text-[11px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("preferredFit").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {FIT_FILTERS.map(f => (
                         <button
@@ -751,7 +751,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("color").toUpperCase()}</p>
+                    <p className="text-[11px] font-semibold tracking-[0.2em] text-foreground/75 mb-2">{t("color").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {COLOR_FILTERS.map(c => (
                         <button
@@ -886,7 +886,7 @@ const DiscoverPage = () => {
                       <button
                         onClick={generateNewStyleRecs}
                         disabled={loadingNewStyle}
-                        className="hover-burgundy flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.04] px-4 py-2 text-[9px] font-semibold tracking-[0.15em] text-accent/60 transition-all hover:bg-accent/[0.08] disabled:opacity-40"
+                        className="hover-burgundy flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.04] px-4 py-2 text-[11px] font-semibold tracking-[0.15em] text-accent/60 transition-all hover:bg-accent/[0.08] disabled:opacity-40"
                       >
                         {loadingNewStyle ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -1007,18 +1007,18 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
             href={item.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[8px] font-medium text-white/80 backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60"
+            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60"
           >
             SHOP →
           </a>
         )}
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
-        <p className="text-[9px] font-medium tracking-[0.1em] text-foreground/75">{item.brand}</p>
+        <p className="text-[11px] font-medium tracking-[0.1em] text-foreground/75">{item.brand}</p>
         <p className="text-[12px] font-medium text-foreground/70 leading-tight line-clamp-2">{item.name}</p>
         <p className="text-[11px] font-semibold text-foreground/70">{item.price}</p>
         {item.store_name && (
-          <p className="text-[8px] text-foreground/70">{item.store_name}</p>
+          <p className="text-[10px] text-foreground/70">{item.store_name}</p>
         )}
       </div>
     </motion.div>

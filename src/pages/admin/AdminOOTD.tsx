@@ -49,7 +49,7 @@ const AdminOOTD = () => {
                 {post.topics?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {post.topics.map((t: string) => (
-                      <span key={t} className="text-[9px] text-accent/60">#{t}</span>
+                      <span key={t} className="text-[11px] text-accent/60">#{t}</span>
                     ))}
                   </div>
                 )}

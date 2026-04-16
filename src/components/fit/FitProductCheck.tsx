@@ -71,10 +71,10 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
                 <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
                 <p className="text-[10px] text-foreground/80">{product.brand}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">
+                  <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">
                     {product.fitType}
                   </span>
-                  <span className="text-[9px] text-foreground/75">
+                  <span className="text-[11px] text-foreground/75">
                     Data: {product.dataQuality}/100
                   </span>
                 </div>

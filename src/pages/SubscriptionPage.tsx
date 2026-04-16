@@ -208,7 +208,7 @@ const FakePaymentModal = ({
           )}
         </button>
 
-        <p className="mt-3 text-center text-[9px] text-foreground/70">
+        <p className="mt-3 text-center text-[11px] text-foreground/70">
           This is a demo payment. No real charges will be made.
         </p>
       </motion.div>
@@ -302,12 +302,12 @@ const SubscriptionPage = () => {
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-2.5 left-5 rounded-full bg-accent/80 px-3 py-0.5 text-[9px] font-medium tracking-wider text-white uppercase">
+                <div className="absolute -top-2.5 left-5 rounded-full bg-accent/80 px-3 py-0.5 text-[11px] font-medium tracking-wider text-white uppercase">
                   Most Popular
                 </div>
               )}
               {plan.savings && (
-                <div className="absolute -top-2.5 right-5 rounded-full bg-emerald-500/80 px-3 py-0.5 text-[9px] font-medium tracking-wider text-foreground uppercase">
+                <div className="absolute -top-2.5 right-5 rounded-full bg-emerald-500/80 px-3 py-0.5 text-[11px] font-medium tracking-wider text-foreground uppercase">
                   {plan.savings}
                 </div>
               )}

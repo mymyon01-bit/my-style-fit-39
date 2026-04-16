@@ -117,13 +117,13 @@ const HomePage = () => {
         >
           <button
             onClick={() => navigate("/discover")}
-            className="hover-burgundy rounded-lg border border-accent/15 bg-accent/[0.04] px-5 py-2.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/70 transition-all hover:bg-accent/[0.08]"
+            className="hover-burgundy rounded-lg border border-accent/15 bg-accent/[0.04] px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground/70 transition-all hover:bg-accent/[0.08]"
           >
             {t("exploreStyles").toUpperCase()}
           </button>
           <button
             onClick={() => navigate("/about")}
-            className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/75 transition-all hover:text-foreground/70"
+            className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground/75 transition-all hover:text-foreground/70"
           >
             {t("about").toUpperCase()}
           </button>

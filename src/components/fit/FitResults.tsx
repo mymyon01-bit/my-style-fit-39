@@ -58,12 +58,12 @@ function SizeCard({ result, isExpanded, onToggle }: {
         <div className="flex items-center gap-3">
           <span className="font-display text-lg font-bold text-foreground">{result.size}</span>
           {result.recommended && (
-            <span className="text-[9px] font-semibold tracking-[0.1em] px-2 py-0.5 rounded-full bg-accent/15 text-accent">
+            <span className="text-[11px] font-semibold tracking-[0.1em] px-2 py-0.5 rounded-full bg-accent/15 text-accent">
               RECOMMENDED
             </span>
           )}
           {result.alternate && (
-            <span className="text-[9px] font-semibold tracking-[0.1em] px-2 py-0.5 rounded-full bg-foreground/5 text-foreground/80">
+            <span className="text-[11px] font-semibold tracking-[0.1em] px-2 py-0.5 rounded-full bg-foreground/5 text-foreground/80">
               ALTERNATE
             </span>
           )}
@@ -129,11 +129,11 @@ export default function FitResults({ result, product, explanation, loadingExplan
           <div className="flex gap-3 mt-1">
             <div className="flex items-center gap-1">
               <ShieldCheck className="h-3 w-3 text-foreground/75" />
-              <span className="text-[9px] text-foreground/80">Data: {result.productDataQuality}/100</span>
+              <span className="text-[11px] text-foreground/80">Data: {result.productDataQuality}/100</span>
             </div>
             <div className="flex items-center gap-1">
               <User className="h-3 w-3 text-foreground/75" />
-              <span className="text-[9px] text-foreground/80">Scan: {result.scanQuality}/100</span>
+              <span className="text-[11px] text-foreground/80">Scan: {result.scanQuality}/100</span>
             </div>
           </div>
         </div>

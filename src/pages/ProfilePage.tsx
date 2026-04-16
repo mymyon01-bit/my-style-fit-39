@@ -192,11 +192,11 @@ const ProfilePage = () => {
             {profile?.bio && <p className="text-[11px] text-foreground/75 mt-1 italic">{profile.bio}</p>}
             <div className="flex items-center gap-1.5 mt-1">
               {emailVerified ? (
-                <span className="flex items-center gap-1 text-[9px] text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
+                <span className="flex items-center gap-1 text-[11px] text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
               ) : (
-                <span className="flex items-center gap-1 text-[9px] text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
+                <span className="flex items-center gap-1 text-[11px] text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
               )}
-              {profile?.location && <span className="text-[9px] text-foreground/70 ml-2">📍 {profile.location}</span>}
+              {profile?.location && <span className="text-[11px] text-foreground/70 ml-2">📍 {profile.location}</span>}
             </div>
           </div>
         </div>
@@ -296,7 +296,7 @@ const ProfilePage = () => {
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("style").toUpperCase()}</p>
-            <button onClick={() => setEditingStyle(!editingStyle)} className="text-[9px] font-medium text-accent/70 hover:text-accent/70">
+            <button onClick={() => setEditingStyle(!editingStyle)} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">
               {editingStyle ? "CLOSE" : styleProfile ? "EDIT" : "SET UP"}
             </button>
           </div>
@@ -310,7 +310,7 @@ const ProfilePage = () => {
             <div className="space-y-3">
               {styleProfile.preferred_styles?.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-foreground/70 mb-1.5">PREFERRED</p>
+                  <p className="text-[11px] text-foreground/70 mb-1.5">PREFERRED</p>
                   <div className="flex gap-2 flex-wrap">
                     {styleProfile.preferred_styles.map((s: string) => (
                       <span key={s} className="rounded-full bg-accent/10 px-3 py-1 text-[10px] text-accent/70">{s}</span>
@@ -320,7 +320,7 @@ const ProfilePage = () => {
               )}
               {styleProfile.disliked_styles?.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-foreground/70 mb-1.5">AVOID</p>
+                  <p className="text-[11px] text-foreground/70 mb-1.5">AVOID</p>
                   <div className="flex gap-2 flex-wrap">
                     {styleProfile.disliked_styles.map((s: string) => (
                       <span key={s} className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] text-destructive/50 line-through">{s}</span>
@@ -349,7 +349,7 @@ const ProfilePage = () => {
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("bodyProfile").toUpperCase()}</p>
-            <button onClick={() => navigate("/fit")} className="text-[9px] font-medium text-accent/70 hover:text-accent/70">
+            <button onClick={() => navigate("/fit")} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">
               {bodyProfile ? "RESCAN" : "START SCAN"}
             </button>
           </div>
@@ -389,7 +389,7 @@ const ProfilePage = () => {
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">MY OOTDS</p>
-                <button onClick={() => navigate("/ootd")} className="text-[9px] font-medium text-accent/70 hover:text-accent/70">VIEW ALL</button>
+                <button onClick={() => navigate("/ootd")} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">VIEW ALL</button>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {myOotds.map(ootd => (
@@ -398,7 +398,7 @@ const ProfilePage = () => {
                     {(ootd.star_count || 0) > 0 && (
                       <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
                         <Star className="h-2.5 w-2.5 text-accent/70" />
-                        <span className="text-[8px] text-foreground/70">{ootd.star_count}</span>
+                        <span className="text-[10px] text-foreground/70">{ootd.star_count}</span>
                       </div>
                     )}
                   </div>

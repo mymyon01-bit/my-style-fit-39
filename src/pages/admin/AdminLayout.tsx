@@ -40,7 +40,7 @@ const AdminLayout = () => {
           <Home className="h-4 w-4" />
           <span className="text-[11px] tracking-[0.15em] font-medium">WARDROBE</span>
         </button>
-        <p className="px-3 mb-4 text-[9px] font-semibold tracking-[0.2em] text-accent/60 uppercase">Admin</p>
+        <p className="px-3 mb-4 text-[11px] font-semibold tracking-[0.2em] text-accent/60 uppercase">Admin</p>
         <nav className="space-y-0.5">
           {NAV_ITEMS.map(item => (
             <button

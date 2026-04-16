@@ -93,7 +93,7 @@ const WeeklyPlan = () => {
                     <div key={key} className="flex items-center gap-3">
                       <div className="h-2.5 w-2.5 rounded-full shrink-0 md:h-3 md:w-3" style={{ backgroundColor: piece.color?.toLowerCase() || "#888" }} />
                       <span className="text-[12px] text-foreground/65 md:text-[13px]">{piece.name}</span>
-                      <span className="text-[9px] text-foreground/75 capitalize md:text-[10px]">{key}</span>
+                      <span className="text-[11px] text-foreground/75 capitalize md:text-[10px]">{key}</span>
                     </div>
                   );
                 })}

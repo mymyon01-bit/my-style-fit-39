@@ -84,7 +84,7 @@ const OutfitComposition = ({ pieces, caption, tags }: OutfitCompositionProps) =>
                 />
                 {/* Bottom label */}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-2.5 pt-8">
-                  <p className="text-[9px] font-semibold tracking-[0.15em] text-white/70">{piece.brand}</p>
+                  <p className="text-[11px] font-semibold tracking-[0.15em] text-white/70">{piece.brand}</p>
                   <p className="text-[11px] font-medium text-white/90">{piece.label}</p>
                 </div>
                 {/* Tap highlight */}
@@ -138,7 +138,7 @@ const OutfitComposition = ({ pieces, caption, tags }: OutfitCompositionProps) =>
             {tags.map(tag => (
               <span
                 key={tag}
-                className="rounded-full bg-foreground/[0.04] px-2.5 py-0.5 text-[9px] font-medium tracking-[0.1em] text-foreground/80"
+                className="rounded-full bg-foreground/[0.04] px-2.5 py-0.5 text-[11px] font-medium tracking-[0.1em] text-foreground/80"
               >
                 {tag}
               </span>
