@@ -262,6 +262,7 @@ export type Database = {
           id: string
           image_url: string | null
           image_valid: boolean | null
+          is_active: boolean
           last_validated: string | null
           like_count: number | null
           name: string
@@ -272,6 +273,7 @@ export type Database = {
           store_name: string | null
           style_tags: string[] | null
           subcategory: string | null
+          trend_score: number
           updated_at: string
           view_count: number | null
         }
@@ -286,6 +288,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_valid?: boolean | null
+          is_active?: boolean
           last_validated?: string | null
           like_count?: number | null
           name: string
@@ -296,6 +299,7 @@ export type Database = {
           store_name?: string | null
           style_tags?: string[] | null
           subcategory?: string | null
+          trend_score?: number
           updated_at?: string
           view_count?: number | null
         }
@@ -310,6 +314,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_valid?: boolean | null
+          is_active?: boolean
           last_validated?: string | null
           like_count?: number | null
           name?: string
@@ -320,6 +325,7 @@ export type Database = {
           store_name?: string | null
           style_tags?: string[] | null
           subcategory?: string | null
+          trend_score?: number
           updated_at?: string
           view_count?: number | null
         }

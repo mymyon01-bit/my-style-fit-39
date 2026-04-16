@@ -285,7 +285,8 @@ async function getCachedProducts(supabase: any, opts: {
     .from("product_cache")
     .select("*")
     .eq("image_valid", true)
-    .order("created_at", { ascending: false })
+    .eq("is_active", true)
+    .order("trend_score", { ascending: false })
     .limit(opts.limit || 20);
 
   if (opts.category) query = query.eq("category", opts.category);
