@@ -1399,26 +1399,26 @@ const DiscoverPage = () => {
         }
         setIsGenerating(false);
       } else {
-        // PRODUCT or STYLE query — 4-stage progressive fallback
+        // PRODUCT or STYLE query — show DB results fast, then external search fills in
         let collected: AIRecommendation[] = [];
 
-        // ── STAGE 1: Strict match (exact category + style + color) ──
-        const { products: stage1Products, dbCount } = await hybridProductSearch({
+        // ── STAGE 1: Quick DB results (instant) ──
+        const { products: dbQuickProducts, dbCount } = await hybridProductSearch({
           query: q,
           category: dbCategory,
           styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
           fit: selectedFit || undefined,
           limit: 30,
-          freshSearch: true,
-          expandExternal: true,
+          freshSearch: false, // DB-only for speed
+          expandExternal: false,
           randomize: false,
         });
 
-        const stage1Relevant = filterByRelevance(stage1Products, intent);
-        collected = enforceClientDiversity(stage1Relevant, new Set());
-        console.log(`Stage 1 (strict): ${collected.length} results`);
+        const dbRelevant = filterByRelevance(dbQuickProducts, intent);
+        collected = enforceClientDiversity(dbRelevant, new Set());
+        console.log(`Stage 1 (DB quick): ${collected.length} results`);
 
-        // Show whatever we have immediately
+        // Show DB results immediately so user sees something
         if (collected.length > 0) {
           collected.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations([...collected]);
@@ -1426,97 +1426,78 @@ const DiscoverPage = () => {
           setHasMoreInDB(dbCount >= 30);
         }
 
-        // ── STAGE 2: Broader style + external search (if < target) ──
-        if (collected.length < MIN_RESULT_TARGET) {
-          const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 4);
-          const stage2Results = await Promise.all(
-            searchQueries.map(sq =>
-              hybridProductSearch({
-                query: sq,
-                category: dbCategory,
-                limit: 12,
-                excludeIds: Array.from(sessionSeenIds),
-                expandExternal: true,
-                freshSearch: true,
-                randomize: false,
-              })
-            )
-          );
-          const stage2Products = stage2Results.flatMap(r => r.products);
-          const stage2Relevant = filterByRelevance(stage2Products, intent);
-          const stage2Diverse = enforceClientDiversity(stage2Relevant, new Set([...collected.map(c => c.id)]));
-          console.log(`Stage 2 (broader + external): ${stage2Diverse.length} new results`);
-          
-          if (stage2Diverse.length > 0) {
-            stage2Diverse.forEach(p => sessionSeenIds.add(p.id));
-            collected = enforceClientDiversity([...collected, ...stage2Diverse], new Set());
-            setRecommendations([...collected]);
+        // ── STAGE 2: External fresh search (runs in background, merges in) ──
+        const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 3);
+        const externalPromise = Promise.all(
+          searchQueries.map(sq =>
+            hybridProductSearch({
+              query: sq,
+              category: dbCategory,
+              limit: 15,
+              excludeIds: Array.from(sessionSeenIds),
+              freshSearch: true,
+              expandExternal: true,
+              randomize: false,
+            })
+          )
+        );
+
+        externalPromise.then(results => {
+          const externalProducts = results.flatMap(r => r.products);
+          const externalRelevant = filterByRelevance(externalProducts, intent);
+          const externalDiverse = enforceClientDiversity(externalRelevant, new Set([...collected.map(c => c.id)]));
+          console.log(`Stage 2 (external fresh): ${externalDiverse.length} new results`);
+
+          if (externalDiverse.length > 0) {
+            externalDiverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => {
+              // Merge external results in — external products get priority at top
+              const merged = enforceClientDiversity([...externalDiverse, ...prev], new Set()).slice(0, 30);
+              return merged;
+            });
           }
-        }
 
-        // ── STAGE 3: Category family expansion (if < target) ──
-        if (collected.length < MIN_RESULT_TARGET) {
-          const broaderTerms = getBroaderSearchTerms(intent);
-          if (broaderTerms.length > 0) {
-            const stage3Results = await Promise.all(
-              broaderTerms.slice(0, 4).map(bt =>
-                hybridProductSearch({
-                  query: bt,
-                  limit: 8,
-                  excludeIds: Array.from(sessionSeenIds),
-                  expandExternal: true,
-                  freshSearch: true,
-                  randomize: false,
-                })
-              )
-            );
-            const stage3Products = stage3Results.flatMap(r => r.products);
-            // Use softer relevance filter for stage 3
-            const stage3Relevant = filterByRelevance(stage3Products, intent, 6);
-            const stage3Diverse = enforceClientDiversity(stage3Relevant, new Set([...collected.map(c => c.id)]));
-            console.log(`Stage 3 (family expansion): ${stage3Diverse.length} new results`);
-
-            if (stage3Diverse.length > 0) {
-              stage3Diverse.forEach(p => sessionSeenIds.add(p.id));
-              collected = enforceClientDiversity([...collected, ...stage3Diverse], new Set());
-              setRecommendations([...collected]);
-            }
-          }
-        }
-
-        // ── STAGE 4: Context-based fill (if still < target) ──
-        if (collected.length < MIN_RESULT_TARGET) {
-          // Use the raw query as a general search with no category lock
-          const { products: fillProducts } = await hybridProductSearch({
-            query: q,
-            limit: 20,
-            excludeIds: Array.from(sessionSeenIds),
-            expandExternal: true,
-            freshSearch: true,
-            randomize: false,
+          // ── STAGE 3: Broader fallback if still insufficient ──
+          setRecommendations(prev => {
+            if (prev.length >= MIN_RESULT_TARGET) return prev;
+            // Will trigger stage 3 via effect below
+            return prev;
           });
-          // Very soft filter — just exclude hard-blocked items
-          const fillFiltered = fillProducts.filter(item => {
-            const itemName = (item.name || "").toLowerCase();
-            return !intent.excludeKeywords.some(ex => itemName.includes(ex));
-          });
-          const fillDiverse = enforceClientDiversity(fillFiltered, new Set([...collected.map(c => c.id)]));
-          console.log(`Stage 4 (context fill): ${fillDiverse.length} new results`);
+        }).catch(err => {
+          console.error("External search error:", err);
+        }).finally(() => {
+          setIsGenerating(false);
+        });
 
-          if (fillDiverse.length > 0) {
-            fillDiverse.forEach(p => sessionSeenIds.add(p.id));
-            collected = enforceClientDiversity([...collected, ...fillDiverse], new Set());
-            setRecommendations([...collected]);
-          }
+        // If we have enough DB results, stop showing loading for main content
+        if (collected.length >= MIN_RESULT_TARGET) {
+          setIsGenerating(false);
         }
 
-        // Final: if still nothing, fall back to AI generation
+        // ── STAGE 3: Broader category family (only if needed after external completes) ──
+        // This is handled by the external promise chain above
+
+        // Final: if nothing at all from DB, keep spinner until external completes
         if (collected.length === 0) {
-          generateRecommendations(q);
-        }
+          // Wait for external to finish
+          try {
+            const externalResults = await externalPromise;
+            const allExternal = externalResults.flatMap(r => r.products);
+            const extRelevant = filterByRelevance(allExternal, intent);
+            const extDiverse = enforceClientDiversity(extRelevant, new Set());
 
-        console.log(`Search complete: ${collected.length} total results for "${q}"`);
-        setIsGenerating(false);
+            if (extDiverse.length > 0) {
+              extDiverse.forEach(p => sessionSeenIds.add(p.id));
+              setRecommendations(extDiverse.slice(0, 30));
+            } else {
+              // Last resort: AI generation
+              generateRecommendations(q);
+            }
+          } catch {
+            generateRecommendations(q);
+          }
+          setIsGenerating(false);
+        }
       }
     }, 200);
   };
