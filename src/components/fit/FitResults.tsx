@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, User, RotateCcw, Pencil } from "lucide-react";
+import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, User, RotateCcw, Pencil, Sparkles, Loader2, Lock } from "lucide-react";
 import { useState } from "react";
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
+import type { FitMode } from "@/pages/FitPage";
 
 interface FitProduct {
   id: string;
@@ -19,6 +20,10 @@ interface Props {
   product: FitProduct;
   explanation: string | null;
   loadingExplanation: boolean;
+  fitMode: FitMode;
+  canUsePremium: boolean;
+  refining: boolean;
+  onRefineFit?: () => void;
   onRescan?: () => void;
   onEditMeasurements?: () => void;
 }
@@ -112,12 +117,35 @@ function SizeCard({ result, isExpanded, onToggle }: {
   );
 }
 
-export default function FitResults({ result, product, explanation, loadingExplanation, onRescan, onEditMeasurements }: Props) {
+export default function FitResults({
+  result, product, explanation, loadingExplanation,
+  fitMode, canUsePremium, refining, onRefineFit,
+  onRescan, onEditMeasurements,
+}: Props) {
   const [expandedSize, setExpandedSize] = useState<string | null>(result.recommendedSize);
   const conf = confidenceLabel(result.confidenceModifier);
+  const isRefined = fitMode === "premium";
 
   return (
     <div className="space-y-5">
+      {/* Mode badge */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {isRefined ? (
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.15em] text-accent">
+              <Sparkles className="h-3 w-3" /> REFINED FIT
+            </span>
+          ) : (
+            <span className="text-[10px] font-semibold tracking-[0.15em] text-foreground/50">
+              ESTIMATED FIT
+            </span>
+          )}
+        </div>
+        <div className={`text-[10px] font-semibold tracking-[0.1em] ${conf.color}`}>
+          {conf.text}
+        </div>
+      </div>
+
       {/* Product header */}
       <div className="flex gap-4">
         {product.image ? (
@@ -146,14 +174,10 @@ export default function FitResults({ result, product, explanation, loadingExplan
               <span className="text-[11px] text-foreground/80">Scan: {result.scanQuality}/100</span>
             </div>
           </div>
-          {/* Confidence badge */}
-          <div className={`text-[10px] font-semibold tracking-[0.1em] ${conf.color}`}>
-            {conf.text}
-          </div>
         </div>
       </div>
 
-      {/* Confidence warning */}
+      {/* Low confidence warning */}
       {result.confidenceModifier < 0.7 && (
         <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
           <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
@@ -172,6 +196,38 @@ export default function FitResults({ result, product, explanation, loadingExplan
         )}
       </div>
 
+      {/* Refine Fit CTA — only show for non-refined results */}
+      {!isRefined && onRefineFit && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={onRefineFit}
+          disabled={refining}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition-all ${
+            canUsePremium
+              ? "border-accent/30 bg-accent/[0.06] text-accent hover:bg-accent/[0.12]"
+              : "border-foreground/10 bg-foreground/[0.03] text-foreground/50"
+          } disabled:opacity-50`}
+        >
+          {refining ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Refining analysis…
+            </>
+          ) : canUsePremium ? (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Refine Fit — High Precision
+            </>
+          ) : (
+            <>
+              <Lock className="h-3.5 w-3.5" />
+              Refined Fit (Premium)
+            </>
+          )}
+        </motion.button>
+      )}
+
       {/* Size breakdown */}
       <div>
         <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">SIZE-BY-SIZE BREAKDOWN</p>
@@ -189,7 +245,10 @@ export default function FitResults({ result, product, explanation, loadingExplan
 
       {/* AI Explanation */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">FIT ANALYSIS</p>
+        <div className="flex items-center gap-2 mb-3">
+          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">FIT ANALYSIS</p>
+          {isRefined && <Sparkles className="h-3 w-3 text-accent/60" />}
+        </div>
         {loadingExplanation ? (
           <div className="space-y-2">
             <div className="h-3 w-full rounded bg-foreground/[0.04] animate-pulse" />
