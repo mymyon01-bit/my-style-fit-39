@@ -7,47 +7,297 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type SearchIntentKind = "product" | "style" | "scenario";
+
+type SearchIntentDebug = {
+  request_id: string;
+  prompt: string;
+  tier: string;
+  provider_requested: boolean;
+  provider_selected: "perplexity" | "lovable" | "fallback";
+  api_key_present: boolean;
+  request_started: boolean;
+  request_started_at: string;
+  response_received: boolean;
+  response_status: number | null;
+  raw_response_preview: string | null;
+  api_response_parse_success: boolean;
+  api_response_parse_error: string | null;
+  content_parse_success: boolean;
+  content_parse_error: string | null;
+  validation_success: boolean;
+  validation_error: string | null;
+  soft_timeout_triggered: boolean;
+  hard_timeout_triggered: boolean;
+  fallback_triggered: boolean;
+  late_response_received: boolean;
+  successful_queries_cached: boolean;
+  endpoint: string | null;
+  model: string | null;
+  elapsed_ms: number | null;
+  test_mode: boolean;
+};
+
+type SearchIntentValidationResult = {
+  valid: boolean;
+  data?: { type: SearchIntentKind; queries: string[] };
+  reason?: string;
+};
+
+type PerplexityResponseFormat = {
+  type: "json_schema";
+  json_schema: {
+    name: string;
+    schema: Record<string, unknown>;
+  };
+};
+
+function previewText(value: string | null | undefined, max = 240) {
+  if (!value) return null;
+  return value.replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+function createSearchIntentDebug(args: {
+  requestId: string;
+  prompt: string;
+  tier: string;
+  providerRequested: boolean;
+  providerSelected: "perplexity" | "lovable" | "fallback";
+  apiKeyPresent: boolean;
+  endpoint: string | null;
+  model: string | null;
+  testMode: boolean;
+}): SearchIntentDebug {
+  return {
+    request_id: args.requestId,
+    prompt: args.prompt,
+    tier: args.tier,
+    provider_requested: args.providerRequested,
+    provider_selected: args.providerSelected,
+    api_key_present: args.apiKeyPresent,
+    request_started: false,
+    request_started_at: new Date().toISOString(),
+    response_received: false,
+    response_status: null,
+    raw_response_preview: null,
+    api_response_parse_success: false,
+    api_response_parse_error: null,
+    content_parse_success: false,
+    content_parse_error: null,
+    validation_success: false,
+    validation_error: null,
+    soft_timeout_triggered: false,
+    hard_timeout_triggered: false,
+    fallback_triggered: false,
+    late_response_received: false,
+    successful_queries_cached: false,
+    endpoint: args.endpoint,
+    model: args.model,
+    elapsed_ms: null,
+    test_mode: args.testMode,
+  };
+}
+
+function parseStrictJSONObject(content: string) {
+  return JSON.parse(content.trim());
+}
+
+function validateSearchIntentPayload(payload: unknown): SearchIntentValidationResult {
+  if (!payload || typeof payload !== "object") {
+    return { valid: false, reason: "payload is not an object" };
+  }
+
+  const candidate = payload as { type?: unknown; queries?: unknown };
+  if (candidate.type !== "product" && candidate.type !== "style" && candidate.type !== "scenario") {
+    return { valid: false, reason: "type must be one of product, style, scenario" };
+  }
+
+  if (!Array.isArray(candidate.queries)) {
+    return { valid: false, reason: "queries must be an array" };
+  }
+
+  const queries = candidate.queries
+    .map((query) => typeof query === "string" ? query.trim() : "")
+    .filter(Boolean);
+
+  if (queries.length < 3) {
+    return { valid: false, reason: "queries must contain at least 3 non-empty strings" };
+  }
+
+  return {
+    valid: true,
+    data: {
+      type: candidate.type,
+      queries: Array.from(new Set(queries)).slice(0, 10),
+    },
+  };
+}
+
+function logSearchIntentDebug(stage: string, debug: SearchIntentDebug, extra: Record<string, unknown> = {}) {
+  console.log(`[search-intent:${debug.request_id}] ${stage} ${JSON.stringify({
+    prompt: debug.prompt,
+    tier: debug.tier,
+    provider_requested: debug.provider_requested,
+    provider_selected: debug.provider_selected,
+    api_key_present: debug.api_key_present,
+    request_started_at: debug.request_started_at,
+    response_received: debug.response_received,
+    response_status: debug.response_status,
+    raw_response_preview: debug.raw_response_preview,
+    api_response_parse_success: debug.api_response_parse_success,
+    api_response_parse_error: debug.api_response_parse_error,
+    content_parse_success: debug.content_parse_success,
+    content_parse_error: debug.content_parse_error,
+    validation_success: debug.validation_success,
+    validation_error: debug.validation_error,
+    soft_timeout_triggered: debug.soft_timeout_triggered,
+    hard_timeout_triggered: debug.hard_timeout_triggered,
+    fallback_triggered: debug.fallback_triggered,
+    late_response_received: debug.late_response_received,
+    successful_queries_cached: debug.successful_queries_cached,
+    endpoint: debug.endpoint,
+    model: debug.model,
+    elapsed_ms: debug.elapsed_ms,
+    test_mode: debug.test_mode,
+    ...extra,
+  })}`);
+}
+
+function buildSearchIntentFallbackResponse(prompt: string, debug: SearchIntentDebug, reason: string) {
+  const fallbackQueries = [prompt].filter(Boolean);
+  debug.provider_selected = "fallback";
+  debug.fallback_triggered = true;
+  if (!debug.validation_error) debug.validation_error = reason;
+  logSearchIntentDebug("FALLBACK_TRIGGERED", debug, { reason, search_path_status: "FALLBACK_ONLY" });
+
+  return new Response(JSON.stringify({
+    type: "style",
+    queries: fallbackQueries,
+    category: null,
+    style_tags: [],
+    interpreted_intent: prompt,
+    tier: "fallback",
+    provider: "fallback",
+    cacheable: false,
+    search_path_status: "FALLBACK_ONLY",
+    debug,
+  }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 // ─── AI Provider abstraction ───
 
-async function callPerplexity(systemPrompt: string, userPrompt: string, opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number }) {
+async function callPerplexity(
+  systemPrompt: string,
+  userPrompt: string,
+  opts: {
+    maxTokens?: number;
+    temperature?: number;
+    model?: string;
+    timeoutMs?: number;
+    responseFormat?: PerplexityResponseFormat;
+    debug?: SearchIntentDebug;
+  },
+) {
   const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-  if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY not configured");
+  if (!PERPLEXITY_API_KEY) {
+    if (opts.debug) {
+      opts.debug.api_key_present = false;
+      logSearchIntentDebug("PERPLEXITY_KEY_MISSING", opts.debug);
+    }
+    throw new Error("PERPLEXITY_API_KEY not configured");
+  }
 
   const controller = new AbortController();
   const timeoutMs = opts.timeoutMs || 8000;
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const endpoint = "https://api.perplexity.ai/chat/completions";
+  const model = opts.model || "sonar";
+  const startedAt = Date.now();
+  let hardTimeoutTriggered = false;
+  const timer = setTimeout(() => {
+    hardTimeoutTriggered = true;
+    if (opts.debug) {
+      opts.debug.hard_timeout_triggered = true;
+      logSearchIntentDebug("PERPLEXITY_HARD_TIMEOUT", opts.debug, { timeout_ms: timeoutMs });
+    }
+    controller.abort("perplexity-hard-timeout");
+  }, timeoutMs);
 
-  let response: Response;
+  let rawBody = "";
   try {
-    response = await fetch("https://api.perplexity.ai/chat/completions", {
+    if (opts.debug) {
+      opts.debug.request_started = true;
+      opts.debug.endpoint = endpoint;
+      opts.debug.model = model;
+      logSearchIntentDebug("PERPLEXITY_REQUEST_STARTED", opts.debug, { timeout_ms: timeoutMs });
+    }
+
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
-        model: opts.model || "sonar",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         max_tokens: opts.maxTokens || 1500,
         temperature: opts.temperature || 0.5,
+        ...(opts.responseFormat ? { response_format: opts.responseFormat } : {}),
       }),
     });
+
+    rawBody = await response.text();
+
+    if (opts.debug) {
+      opts.debug.response_received = true;
+      opts.debug.response_status = response.status;
+      opts.debug.raw_response_preview = previewText(rawBody);
+      opts.debug.elapsed_ms = Date.now() - startedAt;
+      logSearchIntentDebug("PERPLEXITY_RESPONSE_RECEIVED", opts.debug);
+    }
+
+    if (!response.ok) {
+      console.error("Perplexity error:", response.status, rawBody);
+      throw new Error(`Perplexity error (${response.status})`);
+    }
+
+    let data: any;
+    try {
+      data = JSON.parse(rawBody);
+      if (opts.debug) {
+        opts.debug.api_response_parse_success = true;
+      }
+    } catch (error) {
+      if (opts.debug) {
+        opts.debug.api_response_parse_error = error instanceof Error ? error.message : "Unknown API parse failure";
+        logSearchIntentDebug("PERPLEXITY_API_PARSE_FAILED", opts.debug);
+      }
+      throw error;
+    }
+
+    return {
+      content: data.choices?.[0]?.message?.content || "",
+      citations: data.citations || [],
+      rawBody,
+    };
+  } catch (error) {
+    if (opts.debug) {
+      opts.debug.hard_timeout_triggered = opts.debug.hard_timeout_triggered || hardTimeoutTriggered;
+      opts.debug.elapsed_ms = Date.now() - startedAt;
+      if (!opts.debug.raw_response_preview && rawBody) {
+        opts.debug.raw_response_preview = previewText(rawBody);
+      }
+      logSearchIntentDebug("PERPLEXITY_REQUEST_FAILED", opts.debug, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
   }
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("Perplexity error:", response.status, errText);
-    throw new Error(`Perplexity error (${response.status})`);
-  }
-
-  const data = await response.json();
-  return {
-    content: data.choices?.[0]?.message?.content || "",
-    citations: data.citations || [],
-  };
 }
 
 async function callLovableAI(systemPrompt: string, userPrompt: string, opts: { maxTokens?: number; temperature?: number }) {
@@ -367,7 +617,7 @@ async function getCachedProducts(supabase: any, opts: {
   if (opts.searchQuery) {
     const terms = opts.searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 2);
     if (terms.length > 0) {
-      results = results.map(r => {
+      results = results.map((r: any) => {
         const text = `${r.name} ${r.brand} ${r.category} ${(r.style_tags || []).join(" ")} ${r.color} ${r.fit}`.toLowerCase();
         const matchCount = terms.filter(t => text.includes(t)).length;
         return { ...r, _relevance: matchCount / terms.length };
@@ -458,70 +708,159 @@ Current profile: height=${context.height}cm, weight=${context.weight}kg, type=${
 
     // ─── Search intent interpretation (fast, lightweight) ───
     if (action === "search-intent") {
+      const normalizedPrompt = typeof prompt === "string" ? prompt.trim() : "";
+      if (!normalizedPrompt) {
+        return new Response(JSON.stringify({ error: "prompt required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const personalization = buildPersonalizationContext(userInfo);
-      
+
       // Build unconscious matching context from behavior
       const behaviorContext = buildBehaviorInsight(userInfo);
-      
-      // STRICT structured prompt — minimal output for speed.
-      // Perplexity is a HELPER ONLY: if slow/fails, frontend falls back to local query expansion.
-      const systemPrompt = `You convert a user's fashion search input into 6 real shopping search queries.
 
-OUTPUT: ONLY raw JSON. No prose. No markdown. No code fences.
+      const isPerplexityTier = tier !== "free";
+      const provider = isPerplexityTier ? "perplexity" : "lovable";
+      const model = isPerplexityTier ? (tier === "premium" ? "sonar-pro" : "sonar") : "google/gemini-2.5-flash";
+      const requestId = crypto.randomUUID().slice(0, 8);
+      const testMode = normalizedPrompt.toLowerCase() === "summer vacation";
+      const debug = createSearchIntentDebug({
+        requestId,
+        prompt: normalizedPrompt,
+        tier,
+        providerRequested: isPerplexityTier,
+        providerSelected: provider,
+        apiKeyPresent: isPerplexityTier ? !!Deno.env.get("PERPLEXITY_API_KEY") : !!Deno.env.get("LOVABLE_API_KEY"),
+        endpoint: isPerplexityTier ? "https://api.perplexity.ai/chat/completions" : "https://ai.gateway.lovable.dev/v1/chat/completions",
+        model,
+        testMode,
+      });
 
-Schema:
-{"type":"product|style|scenario","queries":["q1","q2","q3","q4","q5","q6"],"category":"clothing|bags|shoes|accessories|null","style_tags":["..."]}
+      logSearchIntentDebug("REQUEST_RECEIVED", debug, { source: source || "discover" });
+
+      const systemPrompt = `Return ONLY JSON.
+
+{
+"type": "product | style | scenario",
+"queries": [
+"query 1",
+"query 2",
+"query 3",
+"query 4",
+"query 5",
+"query 6"
+]
+}
+
+No explanation.
+No extra text.
 
 Rules:
-- Exactly 6 queries, each 3-6 words.
-- Every query MUST contain a product noun (shirt, jacket, pants, jeans, sneakers, boots, bag, hat, etc.).
-- Scenario input ("summer vacation", "date night") → mix categories: 2 tops, 1 bottom, 1 shoes, 1 bag/accessory, 1 outerwear/extra.
-- Product input ("black hoodie") → 6 variations with style+color+fit modifiers.
-- JSON ONLY.`;
+- type must be exactly one of: product, style, scenario
+- queries must contain exactly 6 real shopping queries
+- every query must contain a concrete product noun
+- vague scenario input should expand into mixed outfit items
+- product input should stay category-specific`;
 
-      const userPrompt = `Input: "${prompt}"${personalization}${behaviorContext}`;
+      const userPrompt = `Input: "${normalizedPrompt}"${personalization}${behaviorContext}`;
+      const responseFormat: PerplexityResponseFormat = {
+        type: "json_schema",
+        json_schema: {
+          name: "wardrobe_search_queries",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              type: { type: "string", enum: ["product", "style", "scenario"] },
+              queries: {
+                type: "array",
+                minItems: 6,
+                maxItems: 6,
+                items: { type: "string", minLength: 2 },
+              },
+            },
+            required: ["type", "queries"],
+          },
+        },
+      };
 
-      // HARD timeout inside edge function = 1500ms.
-      // Frontend has its own 1s soft timeout — late responses still cache for next time.
-      // skipLovableFallback: don't chain a second AI call; frontend has local fallback.
       try {
-        const result = await callAI(tier, systemPrompt, userPrompt, {
-          maxTokens: 350,
-          temperature: 0.2,
-          timeoutMs: 1500,
-          skipLovableFallback: true,
-        });
-        const parsed = extractJSON(result.content);
+        let content = "";
 
-        if (parsed?.queries?.length) {
-          console.log(`search-intent OK (tier=${result.tier}, queries=${parsed.queries.length})`);
+        if (isPerplexityTier) {
+          const result = await callPerplexity(systemPrompt, userPrompt, {
+            maxTokens: 220,
+            temperature: 0.1,
+            model,
+            timeoutMs: 3000,
+            responseFormat,
+            debug,
+          });
+          content = result.content;
+        } else {
+          const startedAt = Date.now();
+          debug.request_started = true;
+          logSearchIntentDebug("NON_PERPLEXITY_PROVIDER_STARTED", debug);
+          const result = await callLovableAI(systemPrompt, userPrompt, {
+            maxTokens: 220,
+            temperature: 0.1,
+          });
+          content = result.content;
+          debug.response_received = true;
+          debug.response_status = 200;
+          debug.raw_response_preview = previewText(result.content);
+          debug.api_response_parse_success = true;
+          debug.elapsed_ms = Date.now() - startedAt;
+        }
+
+        try {
+          const strictParsed = parseStrictJSONObject(content);
+          debug.content_parse_success = true;
+          const validation = validateSearchIntentPayload(strictParsed);
+
+          if (!validation.valid || !validation.data) {
+            debug.validation_error = validation.reason || "Unknown validation failure";
+            logSearchIntentDebug("CONTENT_VALIDATION_FAILED", debug);
+            return buildSearchIntentFallbackResponse(normalizedPrompt, debug, debug.validation_error);
+          }
+
+          debug.validation_success = true;
+          logSearchIntentDebug("SUCCESS", debug, {
+            query_count: validation.data.queries.length,
+            search_path_status: isPerplexityTier ? "DB_PLUS_PERPLEXITY" : "DB_ONLY",
+          });
+
           return new Response(JSON.stringify({
-            queries: parsed.queries.slice(0, 10),
-            category: parsed.category || null,
-            style_tags: parsed.style_tags || [],
-            color_direction: parsed.color_direction || [],
-            fit_direction: parsed.fit_direction || null,
-            emotional_tone: parsed.emotional_tone || null,
-            interpreted_intent: parsed.interpreted_intent || "",
-            tier: result.tier,
+            type: validation.data.type,
+            queries: validation.data.queries,
+            category: null,
+            style_tags: [],
+            interpreted_intent: normalizedPrompt,
+            tier,
+            provider,
+            cacheable: isPerplexityTier,
+            search_path_status: isPerplexityTier ? "DB_PLUS_PERPLEXITY" : "DB_ONLY",
+            debug,
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
+        } catch (error) {
+          debug.content_parse_error = error instanceof Error ? error.message : "Unknown content parse failure";
+          logSearchIntentDebug("CONTENT_PARSE_FAILED", debug);
+          return buildSearchIntentFallbackResponse(normalizedPrompt, debug, debug.content_parse_error);
         }
-      } catch (e) {
-        console.error("Search intent error:", e instanceof Error ? e.message : e);
+      } catch (error) {
+        logSearchIntentDebug("REQUEST_FAILED", debug, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return buildSearchIntentFallbackResponse(
+          normalizedPrompt,
+          debug,
+          error instanceof Error ? error.message : "search-intent request failed",
+        );
       }
-
-      // Fallback: return raw query as-is
-      return new Response(JSON.stringify({
-        queries: [prompt],
-        category: null,
-        style_tags: [],
-        interpreted_intent: prompt,
-        tier: "fallback",
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     // ─── Outfit image analysis (OOTD → product queries) ───
@@ -805,6 +1144,7 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
       }
       case "body-scan-analysis": {
         const isScanPremium = body.fitMode === "premium";
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
         if (!LOVABLE_API_KEY) {
           return new Response(JSON.stringify({
