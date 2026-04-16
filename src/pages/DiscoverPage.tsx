@@ -66,14 +66,21 @@ function classifyProduct(item: AIRecommendation): FashionCategory | null {
   return null;
 }
 
+// ── Query type classification ──
+type QueryType = "product" | "style" | "scenario";
+
 // ── Query Intent Parser: extract structured intent from user query ──
 interface QueryIntent {
   rawQuery: string;
+  queryType: QueryType;
   categoryLock: FashionCategory | null;
   styleIntent: string[];
   colorIntent: string[];
   brandIntent: string[];
   keywords: string[]; // remaining meaningful terms
+  scenarioLabel: string | null; // human-readable scenario name
+  seasonalContext: string | null; // summer, winter, etc.
+  excludeKeywords: string[]; // items that contradict the scenario
 }
 
 const STYLE_KEYWORD_MAP: Record<string, string[]> = {
