@@ -194,10 +194,19 @@ function parseQueryIntent(query: string): QueryIntent {
   const keywords = words.filter(w => !consumed.has(w) && w.length > 2);
 
   // 6. Determine query type
+  // CRITICAL: If a specific product category is detected (e.g. "sneakers" in "casual sneakers"),
+  // treat as PRODUCT query — not scenario. Scenario only applies when no product keyword exists.
   let queryType: QueryType = "product";
-  if (scenarioLabel) {
+  if (scenarioLabel && !categoryLock) {
     queryType = "scenario";
-  } else if (styleIntent.length > 0 && !categoryLock) {
+  } else if (categoryLock) {
+    // Product category present — override scenario, keep as product search
+    queryType = "product";
+    // Still keep seasonal excludes if they apply (e.g. "summer sneakers" should exclude wool)
+    if (!scenarioLabel) {
+      excludeKeywords = [];
+    }
+  } else if (styleIntent.length > 0) {
     queryType = "style";
   }
 
