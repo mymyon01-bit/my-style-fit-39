@@ -763,6 +763,8 @@ const DiscoverPage = () => {
 
   // Product detail sheet
   const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
+  // Scenario context for display
+  const [activeScenario, setActiveScenario] = useState<{ label: string; items: string[] } | null>(null);
   
   // Whether user needs to complete preferences
   const needsPreferences = !userStyleProfile && !quizAnswers;
