@@ -93,6 +93,7 @@ const AppRoutes = () => {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/install" element={<InstallPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/discover" element={<DiscoverPage />} />

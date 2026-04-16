@@ -375,6 +375,7 @@ const ProfilePage = () => {
         {/* Links */}
         <div className="space-y-1">
           {[
+            { icon: Crown, label: "Subscription", action: () => navigate("/subscription") },
             { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
             { icon: Palette, label: t("styleSettings"), action: () => navigate("/onboarding") },
             { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
