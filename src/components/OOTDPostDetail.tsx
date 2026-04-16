@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Heart, HeartOff, MessageCircle, Star, Send, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
+import {
+  X, Heart, HeartOff, MessageCircle, Star, Send, Bookmark, BookmarkCheck,
+  Loader2, Trash2, Flag, ChevronDown, ChevronUp, MoreHorizontal, Edit3
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { AuthGate } from "@/components/AuthGate";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface OOTDPost {
   id: string;
@@ -29,6 +33,7 @@ interface Comment {
   user_id: string;
   content: string;
   created_at: string;
+  parent_id: string | null;
 }
 
 interface Props {
@@ -43,22 +48,30 @@ interface Props {
   onStar: (postId: string) => void;
   onSave: (postId: string) => void;
   onTopicClick: (topic: string) => void;
+  onEdit?: (post: OOTDPost) => void;
+  onDelete?: (postId: string) => void;
 }
 
 export default function OOTDPostDetail({
   post, profile, reaction, isStarred, isSaved, starsLeft,
-  onClose, onReaction, onStar, onSave, onTopicClick,
+  onClose, onReaction, onStar, onSave, onTopicClick, onEdit, onDelete,
 }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [loadingComments, setLoadingComments] = useState(true);
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
+  const [commentLikes, setCommentLikes] = useState<Set<string>>(new Set());
+  const [commentLikeCounts, setCommentLikeCounts] = useState<Record<string, number>>({});
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [showPostMenu, setShowPostMenu] = useState(false);
 
-  useEffect(() => {
-    loadComments();
-  }, [post.id]);
+  const isOwner = user?.id === post.user_id;
+  const title = post.caption ? post.caption.split(/\s+/)[0] : null;
+
+  useEffect(() => { loadComments(); }, [post.id]);
 
   const loadComments = async () => {
     setLoadingComments(true);
@@ -67,7 +80,7 @@ export default function OOTDPostDetail({
       .select("*")
       .eq("post_id", post.id)
       .order("created_at", { ascending: true })
-      .limit(50);
+      .limit(100);
 
     const fetched = (data || []) as Comment[];
     const userIds = [...new Set(fetched.map(c => c.user_id))];
@@ -79,19 +92,77 @@ export default function OOTDPostDetail({
         setProfileMap(map);
       }
     }
+
+    // Load comment likes
+    if (user) {
+      const commentIds = fetched.map(c => c.id);
+      if (commentIds.length > 0) {
+        const { data: likes } = await supabase.from("comment_likes").select("comment_id").eq("user_id", user.id).in("comment_id", commentIds);
+        if (likes) setCommentLikes(new Set(likes.map((l: any) => l.comment_id)));
+      }
+    }
+
+    // Count likes per comment
+    const commentIds = fetched.map(c => c.id);
+    if (commentIds.length > 0) {
+      const counts: Record<string, number> = {};
+      for (const c of fetched) counts[c.id] = 0;
+      const { data: allLikes } = await supabase.from("comment_likes").select("comment_id").in("comment_id", commentIds);
+      if (allLikes) {
+        for (const l of allLikes) counts[(l as any).comment_id] = (counts[(l as any).comment_id] || 0) + 1;
+      }
+      setCommentLikeCounts(counts);
+    }
+
     setComments(fetched);
     setLoadingComments(false);
   };
 
   const submitComment = async () => {
     if (!user || !commentText.trim()) return;
-    const { data, error } = await supabase.from("ootd_comments").insert({
+    const insertData: any = {
       post_id: post.id, user_id: user.id, content: commentText.trim(),
-    }).select().single();
+    };
+    if (replyTo) insertData.parent_id = replyTo.id;
+
+    const { data, error } = await supabase.from("ootd_comments").insert(insertData).select().single();
     if (!error && data) {
       setComments(prev => [...prev, data as Comment]);
       setCommentText("");
+      setReplyTo(null);
+      if (replyTo) setExpandedReplies(prev => new Set(prev).add(replyTo.id));
     }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    await supabase.from("ootd_comments").delete().eq("id", commentId);
+    setComments(prev => prev.filter(c => c.id !== commentId && c.parent_id !== commentId));
+    toast.success("Comment deleted");
+  };
+
+  const toggleCommentLike = async (commentId: string) => {
+    if (!user) return;
+    if (commentLikes.has(commentId)) {
+      await supabase.from("comment_likes").delete().eq("comment_id", commentId).eq("user_id", user.id);
+      setCommentLikes(prev => { const n = new Set(prev); n.delete(commentId); return n; });
+      setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) - 1) }));
+    } else {
+      await supabase.from("comment_likes").insert({ comment_id: commentId, user_id: user.id });
+      setCommentLikes(prev => new Set(prev).add(commentId));
+      setCommentLikeCounts(prev => ({ ...prev, [commentId]: (prev[commentId] || 0) + 1 }));
+    }
+  };
+
+  const reportComment = async (commentId: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("comment_reports").insert({ comment_id: commentId, reporter_id: user.id });
+    if (!error) toast.success("Comment reported");
+    else toast.error("Already reported");
+  };
+
+  const canDeleteComment = (comment: Comment) => {
+    if (!user) return false;
+    return user.id === comment.user_id || user.id === post.user_id;
   };
 
   const getCommentName = (userId: string) =>
@@ -105,6 +176,54 @@ export default function OOTDPostDetail({
     if (hrs < 24) return `${hrs}h`;
     return `${Math.floor(hrs / 24)}d`;
   };
+
+  const parentComments = comments.filter(c => !c.parent_id);
+  const getReplies = (parentId: string) => comments.filter(c => c.parent_id === parentId);
+
+  const renderComment = (c: Comment, isReply = false) => (
+    <div key={c.id} className={`flex gap-2 group ${isReply ? "ml-6 mt-1.5" : ""}`}>
+      <button
+        onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }}
+        className="h-5 w-5 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0 mt-0.5"
+      >
+        {profileMap[c.user_id]?.avatar_url ? (
+          <img src={profileMap[c.user_id].avatar_url!} className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center text-[7px] font-bold text-foreground/30">
+            {getCommentName(c.user_id)[0].toUpperCase()}
+          </div>
+        )}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5">
+          <button onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }} className="text-[10px] font-semibold text-foreground/60 hover:text-foreground/80">
+            {getCommentName(c.user_id)}
+          </button>
+          <span className="text-[8px] text-foreground/20">{timeAgo(c.created_at)}</span>
+        </div>
+        <p className="text-[10px] text-foreground/50 leading-relaxed">{c.content}</p>
+        <div className="flex items-center gap-3 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => toggleCommentLike(c.id)} className={`flex items-center gap-0.5 text-[8px] ${commentLikes.has(c.id) ? "text-rose-400" : "text-foreground/30 hover:text-foreground/50"}`}>
+            <Heart className={`h-2.5 w-2.5 ${commentLikes.has(c.id) ? "fill-current" : ""}`} />
+            {(commentLikeCounts[c.id] || 0) > 0 && <span>{commentLikeCounts[c.id]}</span>}
+          </button>
+          {!isReply && (
+            <button onClick={() => setReplyTo({ id: c.id, name: getCommentName(c.user_id) })} className="text-[8px] text-foreground/30 hover:text-foreground/50">
+              Reply
+            </button>
+          )}
+          {canDeleteComment(c) && (
+            <button onClick={() => deleteComment(c.id)} className="text-[8px] text-foreground/20 hover:text-destructive/60">
+              <Trash2 className="h-2.5 w-2.5" />
+            </button>
+          )}
+          <button onClick={() => reportComment(c.id)} className="text-[8px] text-foreground/20 hover:text-foreground/40">
+            <Flag className="h-2.5 w-2.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <motion.div
@@ -123,12 +242,34 @@ export default function OOTDPostDetail({
       >
         {/* Image */}
         <div className="relative flex-shrink-0">
-          <img src={post.image_url} alt="" className="w-full object-cover" style={{ maxHeight: "50vh" }} />
+          <img src={post.image_url} alt="" className="w-full aspect-[3/4] object-cover" />
           <button onClick={onClose} className="absolute top-3 right-3 rounded-full bg-black/40 p-1.5 text-white/70 hover:text-white backdrop-blur-sm">
             <X className="h-4 w-4" />
           </button>
+          {/* Post menu for owner */}
+          {(isOwner || onEdit || onDelete) && (
+            <div className="absolute top-3 left-3">
+              <button onClick={() => setShowPostMenu(!showPostMenu)} className="rounded-full bg-black/40 p-1.5 text-white/70 hover:text-white backdrop-blur-sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+              {showPostMenu && (
+                <div className="absolute top-8 left-0 rounded-lg bg-card border border-border shadow-lg py-1 min-w-[120px] z-10">
+                  {onEdit && isOwner && (
+                    <button onClick={() => { setShowPostMenu(false); onEdit(post); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-foreground/70 hover:bg-foreground/5">
+                      <Edit3 className="h-3 w-3" /> Edit Post
+                    </button>
+                  )}
+                  {onDelete && isOwner && (
+                    <button onClick={() => { setShowPostMenu(false); onDelete(post.id); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-destructive/70 hover:bg-destructive/5">
+                      <Trash2 className="h-3 w-3" /> Delete Post
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {(post.star_count || 0) > 0 && (
-            <div className="absolute top-3 left-3 flex items-center gap-0.5 rounded-full bg-black/40 px-2 py-1 backdrop-blur-sm">
+            <div className="absolute bottom-3 left-3 flex items-center gap-0.5 rounded-full bg-black/40 px-2 py-1 backdrop-blur-sm">
               <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
               <span className="text-[10px] font-medium text-white/80">{post.star_count}</span>
             </div>
@@ -159,20 +300,19 @@ export default function OOTDPostDetail({
             </div>
           </button>
 
-          {/* Message */}
+          {/* Title + Message */}
           {post.caption && (
-            <p className="text-[13px] text-foreground/70 leading-relaxed">"{post.caption}"</p>
+            <div>
+              {title && <p className="text-[11px] font-semibold text-foreground/60 mb-0.5">{title}</p>}
+              <p className="text-[12px] text-foreground/50 leading-relaxed">{post.caption}</p>
+            </div>
           )}
 
           {/* Hashtags / Topics */}
           {post.topics && post.topics.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {post.topics.map(tp => (
-                <button
-                  key={tp}
-                  onClick={() => { onClose(); onTopicClick(tp); }}
-                  className="text-[10px] font-medium text-accent/60 hover:text-accent transition-colors"
-                >
+                <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[10px] font-medium text-accent/60 hover:text-accent transition-colors">
                   #{tp}
                 </button>
               ))}
@@ -183,9 +323,7 @@ export default function OOTDPostDetail({
           {post.style_tags && post.style_tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {post.style_tags.map(tag => (
-                <span key={tag} className="rounded-full bg-foreground/[0.04] px-2.5 py-1 text-[9px] text-foreground/45">
-                  {tag}
-                </span>
+                <span key={tag} className="rounded-full bg-foreground/[0.04] px-2.5 py-1 text-[9px] text-foreground/45">{tag}</span>
               ))}
             </div>
           )}
@@ -198,25 +336,21 @@ export default function OOTDPostDetail({
                 <span className="text-[10px]">{post.like_count || 0}</span>
               </button>
             </AuthGate>
-
             <AuthGate action="react">
               <button onClick={() => onReaction(post.id, "dislike")} className={`flex items-center gap-1 transition-colors ${reaction === "dislike" ? "text-blue-400" : "text-foreground/40 hover:text-foreground/60"}`}>
                 <HeartOff className={`h-4 w-4 ${reaction === "dislike" ? "fill-current" : ""}`} />
                 <span className="text-[10px]">{post.dislike_count || 0}</span>
               </button>
             </AuthGate>
-
             <div className="flex items-center gap-1 text-foreground/40">
               <MessageCircle className="h-4 w-4" />
               <span className="text-[10px]">{comments.length}</span>
             </div>
-
             <AuthGate action="save">
               <button onClick={() => onSave(post.id)} className={`transition-colors ${isSaved ? "text-accent/70" : "text-foreground/40 hover:text-foreground/60"}`}>
                 {isSaved ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
               </button>
             </AuthGate>
-
             <AuthGate action="give stars">
               <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/40 hover:text-foreground/60"}`}>
                 <Star className={`h-4 w-4 ${isStarred ? "fill-current" : ""}`} />
@@ -224,39 +358,67 @@ export default function OOTDPostDetail({
             </AuthGate>
           </div>
 
-          {/* Comments */}
-          <div className="space-y-2.5">
+          {/* Threaded Comments */}
+          <div className="space-y-3">
             <p className="text-[9px] font-semibold tracking-[0.15em] text-foreground/40 uppercase">Comments</p>
             {loadingComments ? (
               <Loader2 className="h-3 w-3 animate-spin text-foreground/25 mx-auto" />
-            ) : comments.length === 0 ? (
+            ) : parentComments.length === 0 ? (
               <p className="text-[10px] text-foreground/25 text-center py-3">No comments yet</p>
             ) : (
-              comments.map(c => (
-                <div key={c.id} className="flex gap-2">
-                  <span className="text-[10px] font-semibold text-foreground/50 flex-shrink-0">{getCommentName(c.user_id)}</span>
-                  <span className="text-[10px] text-foreground/40 flex-1">{c.content}</span>
-                  <span className="text-[8px] text-foreground/20 flex-shrink-0">{timeAgo(c.created_at)}</span>
-                </div>
-              ))
+              parentComments.map(c => {
+                const replies = getReplies(c.id);
+                const isExpanded = expandedReplies.has(c.id);
+                return (
+                  <div key={c.id} className="space-y-1">
+                    {renderComment(c)}
+                    {replies.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => setExpandedReplies(prev => {
+                            const n = new Set(prev);
+                            isExpanded ? n.delete(c.id) : n.add(c.id);
+                            return n;
+                          })}
+                          className="ml-7 flex items-center gap-1 text-[8px] text-accent/50 hover:text-accent/70"
+                        >
+                          {isExpanded ? <ChevronUp className="h-2.5 w-2.5" /> : <ChevronDown className="h-2.5 w-2.5" />}
+                          {replies.length} {replies.length === 1 ? "reply" : "replies"}
+                        </button>
+                        {isExpanded && replies.map(r => renderComment(r, true))}
+                      </>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
 
         {/* Comment input */}
         {user && (
-          <div className="flex gap-2 p-4 border-t border-border/15 flex-shrink-0">
-            <input
-              type="text"
-              value={commentText}
-              onChange={e => setCommentText(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && submitComment()}
-              placeholder="Add a comment…"
-              className="flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[11px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
-            />
-            <button onClick={submitComment} disabled={!commentText.trim()} className="text-accent/60 hover:text-accent disabled:opacity-30">
-              <Send className="h-4 w-4" />
-            </button>
+          <div className="border-t border-border/15 flex-shrink-0">
+            {replyTo && (
+              <div className="flex items-center justify-between px-4 py-1.5 bg-foreground/[0.02]">
+                <span className="text-[9px] text-foreground/40">Replying to <span className="font-semibold">{replyTo.name}</span></span>
+                <button onClick={() => setReplyTo(null)} className="text-foreground/30 hover:text-foreground/50">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2 p-4">
+              <input
+                type="text"
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && submitComment()}
+                placeholder={replyTo ? `Reply to ${replyTo.name}…` : "Add a comment…"}
+                className="flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[11px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
+              />
+              <button onClick={submitComment} disabled={!commentText.trim()} className="text-accent/60 hover:text-accent disabled:opacity-30">
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </motion.div>

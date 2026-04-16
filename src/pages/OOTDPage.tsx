@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Bookmark, BookmarkCheck, Crown } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import CrownedBoard from "@/components/CrownedBoard";
+import { toast } from "sonner";
 
 interface OOTDPost {
   id: string;
@@ -39,6 +40,8 @@ interface ProfileInfo {
 
 type Tab = "community" | "mypage" | "crowned";
 
+const MAX_MESSAGE = 100;
+
 const OOTDPage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -56,6 +59,13 @@ const OOTDPage = () => {
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const [selectedPost, setSelectedPost] = useState<OOTDPost | null>(null);
+  // Edit state
+  const [editingPost, setEditingPost] = useState<OOTDPost | null>(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editTopics, setEditTopics] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  // Delete confirm
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     loadPosts();
@@ -138,27 +148,33 @@ const OOTDPage = () => {
     if (current === type) {
       await supabase.from("ootd_reactions").delete().eq("post_id", postId).eq("user_id", user.id);
       setReactions(prev => { const n = { ...prev }; delete n[postId]; return n; });
-      setPosts(prev => prev.map(p => p.id === postId ? {
+      const updatePosts = (list: OOTDPost[]) => list.map(p => p.id === postId ? {
         ...p,
         like_count: type === "like" ? Math.max(0, (p.like_count || 0) - 1) : p.like_count,
         dislike_count: type === "dislike" ? Math.max(0, (p.dislike_count || 0) - 1) : p.dislike_count,
-      } : p));
+      } : p);
+      setPosts(updatePosts);
+      setMyPosts(updatePosts);
     } else if (current) {
       await supabase.from("ootd_reactions").update({ reaction: type }).eq("post_id", postId).eq("user_id", user.id);
       setReactions(prev => ({ ...prev, [postId]: type }));
-      setPosts(prev => prev.map(p => p.id === postId ? {
+      const updatePosts = (list: OOTDPost[]) => list.map(p => p.id === postId ? {
         ...p,
         like_count: type === "like" ? (p.like_count || 0) + 1 : Math.max(0, (p.like_count || 0) - 1),
         dislike_count: type === "dislike" ? (p.dislike_count || 0) + 1 : Math.max(0, (p.dislike_count || 0) - 1),
-      } : p));
+      } : p);
+      setPosts(updatePosts);
+      setMyPosts(updatePosts);
     } else {
       await supabase.from("ootd_reactions").insert({ post_id: postId, user_id: user.id, reaction: type });
       setReactions(prev => ({ ...prev, [postId]: type }));
-      setPosts(prev => prev.map(p => p.id === postId ? {
+      const updatePosts = (list: OOTDPost[]) => list.map(p => p.id === postId ? {
         ...p,
         like_count: type === "like" ? (p.like_count || 0) + 1 : p.like_count,
         dislike_count: type === "dislike" ? (p.dislike_count || 0) + 1 : p.dislike_count,
-      } : p));
+      } : p);
+      setPosts(updatePosts);
+      setMyPosts(updatePosts);
     }
     await supabase.from("interactions").insert({
       user_id: user.id, event_type: type, target_id: postId, target_type: "ootd", metadata: {},
@@ -175,10 +191,55 @@ const OOTDPage = () => {
     }
   };
 
+  // Edit post
+  const handleEditPost = (post: OOTDPost) => {
+    setEditingPost(post);
+    setEditCaption(post.caption || "");
+    setEditTopics((post.topics || []).join(", "));
+    setSelectedPost(null);
+  };
+
+  const saveEditPost = async () => {
+    if (!editingPost || !user) return;
+    setSavingEdit(true);
+    const parsedTopics = editTopics.split(/[,\s]+/).map(t => t.replace(/^#/, "").trim().toLowerCase()).filter(Boolean);
+    const { error } = await supabase.from("ootd_posts").update({
+      caption: editCaption.slice(0, MAX_MESSAGE) || null,
+      topics: parsedTopics.length > 0 ? parsedTopics : null,
+    }).eq("id", editingPost.id);
+    if (!error) {
+      toast.success("Post updated");
+      setEditingPost(null);
+      loadMyPosts();
+      loadPosts();
+    } else {
+      toast.error("Failed to update");
+    }
+    setSavingEdit(false);
+  };
+
+  // Delete post
+  const handleDeletePost = (postId: string) => {
+    setDeleteConfirm(postId);
+    setSelectedPost(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm || !user) return;
+    const { error } = await supabase.from("ootd_posts").delete().eq("id", deleteConfirm);
+    if (!error) {
+      toast.success("Post deleted");
+      setMyPosts(prev => prev.filter(p => p.id !== deleteConfirm));
+      setPosts(prev => prev.filter(p => p.id !== deleteConfirm));
+    } else {
+      toast.error("Failed to delete");
+    }
+    setDeleteConfirm(null);
+  };
+
   const handlePosted = () => { loadPosts(); loadMyPosts(); loadTopics(); };
   const getProfile = (userId: string) => profileMap[userId] || null;
 
-  // Sort posts: featured row first (top scored), then rest
   const getFeaturedPosts = () => {
     if (posts.length < 4) return { featured: [], rest: posts };
     const scored = [...posts].sort((a, b) => {
@@ -189,9 +250,10 @@ const OOTDPage = () => {
     return { featured: scored.slice(0, 3), rest: scored.slice(3) };
   };
 
-  const renderPostCard = (post: OOTDPost, index: number, showAuthor = true, compact = false) => {
+  const renderPostCard = (post: OOTDPost, index: number, showAuthor = true, isMyPage = false) => {
     const profile = getProfile(post.user_id);
     const likes = post.like_count || 0;
+    const title = post.caption ? post.caption.split(/\s+/)[0] : null;
 
     return (
       <motion.div
@@ -199,18 +261,19 @@ const OOTDPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: index * 0.02 }}
-        className="mb-2 break-inside-avoid cursor-pointer group"
+        className="cursor-pointer group relative"
         onClick={() => setSelectedPost(post)}
       >
-        <div className="relative overflow-hidden rounded-lg">
+        <div className="relative overflow-hidden rounded-lg aspect-[3/4]">
           <img
             src={post.image_url}
             alt={post.caption || ""}
-            className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
           />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-1.5 pt-6">
-            {showAuthor && (
+            {title && <p className="text-[8px] font-semibold text-white/80 truncate">{title}</p>}
+            {showAuthor && !title && (
               <p className="text-[8px] font-medium text-white/70 truncate">
                 {profile?.display_name || "Anonymous"}
               </p>
@@ -231,6 +294,23 @@ const OOTDPage = () => {
             </div>
           </div>
         </div>
+        {/* My Page post actions */}
+        {isMyPage && (
+          <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <button
+              onClick={e => { e.stopPropagation(); handleEditPost(post); }}
+              className="rounded-full bg-black/50 p-1 text-white/70 hover:text-white backdrop-blur-sm"
+            >
+              <Edit3 className="h-2.5 w-2.5" />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); handleDeletePost(post.id); }}
+              className="rounded-full bg-black/50 p-1 text-white/70 hover:text-destructive backdrop-blur-sm"
+            >
+              <Trash2 className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        )}
       </motion.div>
     );
   };
@@ -299,7 +379,7 @@ const OOTDPage = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="columns-3 gap-1.5 md:columns-4">
+                    <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
                       {myPosts.map((post, i) => renderPostCard(post, i, false, true))}
                     </div>
                   )}
@@ -330,10 +410,10 @@ const OOTDPage = () => {
 
               {/* Social Feed */}
               {isLoading ? (
-                <div className="columns-3 gap-1.5 md:columns-4">
+                <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
                   {Array.from({ length: 9 }).map((_, i) => (
-                    <div key={i} className="mb-1.5 break-inside-avoid animate-pulse">
-                      <div className="rounded-lg bg-foreground/[0.04]" style={{ height: `${120 + (i % 3) * 40}px` }} />
+                    <div key={i} className="animate-pulse">
+                      <div className="rounded-lg bg-foreground/[0.04] aspect-[3/4]" />
                     </div>
                   ))}
                 </div>
@@ -353,7 +433,6 @@ const OOTDPage = () => {
                 const { featured, rest } = getFeaturedPosts();
                 return (
                   <div className="space-y-3">
-                    {/* Algorithm Featured Row */}
                     {featured.length > 0 && (
                       <div>
                         <span className="text-[9px] font-medium tracking-[0.2em] text-foreground/40 mb-1.5 block">FEATURED</span>
@@ -380,9 +459,8 @@ const OOTDPage = () => {
                         </div>
                       </div>
                     )}
-                    {/* Main Feed */}
-                    <div className="columns-3 gap-1.5 md:columns-4">
-                      {rest.map((post, i) => renderPostCard(post, i, true, true))}
+                    <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
+                      {rest.map((post, i) => renderPostCard(post, i, true))}
                     </div>
                   </div>
                 );
@@ -391,6 +469,91 @@ const OOTDPage = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Edit Post Modal */}
+      <AnimatePresence>
+        {editingPost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setEditingPost(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl bg-card border border-border p-5 space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground/80">Edit Post</h3>
+                <button onClick={() => setEditingPost(null)} className="text-foreground/40 hover:text-foreground/60">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-foreground/50">Message</label>
+                <input
+                  type="text"
+                  value={editCaption}
+                  onChange={e => setEditCaption(e.target.value.slice(0, MAX_MESSAGE))}
+                  maxLength={MAX_MESSAGE}
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-foreground outline-none focus:border-accent/30"
+                />
+                <span className="text-[9px] text-foreground/30">{editCaption.length}/{MAX_MESSAGE}</span>
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-foreground/50">Hashtags (comma separated)</label>
+                <input
+                  type="text"
+                  value={editTopics}
+                  onChange={e => setEditTopics(e.target.value)}
+                  placeholder="#minimal, #street"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-foreground outline-none focus:border-accent/30"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setEditingPost(null)} className="flex-1 rounded-lg border border-border py-2.5 text-[11px] font-medium text-foreground/60">Cancel</button>
+                <button onClick={saveEditPost} disabled={savingEdit} className="flex-1 rounded-lg bg-foreground py-2.5 text-[11px] font-semibold text-background disabled:opacity-50 flex items-center justify-center gap-1.5">
+                  {savingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirm Modal */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-xs rounded-2xl bg-card border border-border p-5 text-center space-y-4"
+            >
+              <Trash2 className="h-6 w-6 text-destructive/60 mx-auto" />
+              <p className="text-[13px] text-foreground/70">Delete this post?</p>
+              <p className="text-[10px] text-foreground/40">This will permanently remove it from your page, the feed, and rankings.</p>
+              <div className="flex gap-2">
+                <button onClick={() => setDeleteConfirm(null)} className="flex-1 rounded-lg border border-border py-2.5 text-[11px] font-medium text-foreground/60">Cancel</button>
+                <button onClick={confirmDelete} className="flex-1 rounded-lg bg-destructive/80 py-2.5 text-[11px] font-semibold text-white">Delete</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Post Detail Modal */}
       <AnimatePresence>
@@ -407,6 +570,8 @@ const OOTDPage = () => {
             onStar={handleStar}
             onSave={handleSavePost}
             onTopicClick={(topic) => { setActiveTopic(topic); setActiveTab("community"); }}
+            onEdit={user?.id === selectedPost.user_id ? handleEditPost : undefined}
+            onDelete={user?.id === selectedPost.user_id ? handleDeletePost : undefined}
           />
         )}
       </AnimatePresence>
