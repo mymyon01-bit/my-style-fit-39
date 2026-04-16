@@ -102,12 +102,17 @@ async function loadFromDB(supabase: any, opts: {
     results = results.filter((p: any) => !excludeSet.has(p.external_id) && !excludeSet.has(p.id));
   }
 
-  // Shuffle for variety when not doing text search
-  if (opts.randomize && !opts.query) {
-    for (let i = results.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [results[i], results[j]] = [results[j], results[i]];
-    }
+  // ALWAYS shuffle results for variety (Fisher-Yates)
+  for (let i = results.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [results[i], results[j]] = [results[j], results[i]];
+  }
+
+  // If we had text relevance, keep top results first but shuffle within tiers
+  if (opts.query) {
+    const top = results.filter((r: any) => (r._relevance || 0) > 0.3);
+    const rest = results.filter((r: any) => (r._relevance || 0) <= 0.3);
+    results = [...top, ...rest];
   }
 
   return results.slice(0, opts.limit);
