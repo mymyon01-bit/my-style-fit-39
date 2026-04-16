@@ -92,6 +92,36 @@ export type Database = {
         }
         Relationships: []
       }
+      image_failures: {
+        Row: {
+          brand: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          image_url: string | null
+          product_name: string | null
+          source: string | null
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          image_url?: string | null
+          product_name?: string | null
+          source?: string | null
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          image_url?: string | null
+          product_name?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       interactions: {
         Row: {
           created_at: string
@@ -217,6 +247,81 @@ export type Database = {
           id?: string
           name?: string
           post_count?: number
+        }
+        Relationships: []
+      }
+      product_cache: {
+        Row: {
+          brand: string | null
+          category: string | null
+          color_tags: string[] | null
+          created_at: string
+          currency: string | null
+          external_id: string | null
+          fit: string | null
+          id: string
+          image_url: string | null
+          image_valid: boolean | null
+          last_validated: string | null
+          like_count: number | null
+          name: string
+          price: string | null
+          reason: string | null
+          search_query: string | null
+          source_url: string | null
+          store_name: string | null
+          style_tags: string[] | null
+          subcategory: string | null
+          updated_at: string
+          view_count: number | null
+        }
+        Insert: {
+          brand?: string | null
+          category?: string | null
+          color_tags?: string[] | null
+          created_at?: string
+          currency?: string | null
+          external_id?: string | null
+          fit?: string | null
+          id?: string
+          image_url?: string | null
+          image_valid?: boolean | null
+          last_validated?: string | null
+          like_count?: number | null
+          name: string
+          price?: string | null
+          reason?: string | null
+          search_query?: string | null
+          source_url?: string | null
+          store_name?: string | null
+          style_tags?: string[] | null
+          subcategory?: string | null
+          updated_at?: string
+          view_count?: number | null
+        }
+        Update: {
+          brand?: string | null
+          category?: string | null
+          color_tags?: string[] | null
+          created_at?: string
+          currency?: string | null
+          external_id?: string | null
+          fit?: string | null
+          id?: string
+          image_url?: string | null
+          image_valid?: boolean | null
+          last_validated?: string | null
+          like_count?: number | null
+          name?: string
+          price?: string | null
+          reason?: string | null
+          search_query?: string | null
+          source_url?: string | null
+          store_name?: string | null
+          style_tags?: string[] | null
+          subcategory?: string | null
+          updated_at?: string
+          view_count?: number | null
         }
         Relationships: []
       }
