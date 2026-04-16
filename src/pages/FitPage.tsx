@@ -314,7 +314,7 @@ const FitPage = () => {
                 canUsePremium={canUsePremium}
               />
             )}
-            {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} />}
+            {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} onBulkUpdate={handleBulkUpdate} />}
             {activeTab === "check" && <FitProductCheck onSelectProduct={handleSelectProduct} />}
             {activeTab === "results" && fitResult && fitResultProduct ? (
               <FitResults
