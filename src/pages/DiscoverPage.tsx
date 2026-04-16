@@ -433,6 +433,10 @@ function freeScoreProduct(
 const resultCache = new Map<string, { data: AIRecommendation[]; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
 
+// AI intent cache — avoid re-calling Perplexity for same/similar queries
+const intentCache = new Map<string, { queries: string[]; category?: string; style_tags?: string[]; ts: number }>();
+const INTENT_CACHE_TTL = 10 * 60 * 1000;
+
 function getCacheKey(action: string, params: Record<string, any>): string {
   return `${action}:${JSON.stringify(params)}`;
 }
@@ -839,7 +843,7 @@ const DiscoverPage = () => {
       setIsGenerating(true);
       setHasGenerated(true);
 
-      const TARGET_COUNT = 18;
+      const TARGET_COUNT = 12;
 
       // Use style profile for personalized initial load
       const styleQuery = userStyleProfile
@@ -1372,8 +1376,15 @@ const DiscoverPage = () => {
     return [...new Set(queries)].slice(0, 10);
   }
 
-  // ── Perplexity-powered query expansion via wardrobe-ai search-intent ──
+  // ── Perplexity-powered query expansion via wardrobe-ai search-intent (cached) ──
   async function aiExpandQuery(q: string): Promise<{ queries: string[]; category?: string; style_tags?: string[] }> {
+    const cacheKey = q.toLowerCase().trim();
+    const cached = intentCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < INTENT_CACHE_TTL) {
+      console.log("AI intent cache hit:", cached.queries);
+      return { queries: cached.queries, category: cached.category, style_tags: cached.style_tags };
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
@@ -1385,7 +1396,9 @@ const DiscoverPage = () => {
       if (error) throw error;
       if (data?.queries?.length) {
         console.log("AI query expansion:", data.queries, "intent:", data.interpreted_intent);
-        return { queries: data.queries, category: data.category, style_tags: data.style_tags || [] };
+        const result = { queries: data.queries, category: data.category, style_tags: data.style_tags || [] };
+        intentCache.set(cacheKey, { ...result, ts: Date.now() });
+        return result;
       }
     } catch (e) {
       console.warn("AI query expansion failed, using local fallback:", e);
@@ -1407,7 +1420,7 @@ const DiscoverPage = () => {
     debounceTimerRef.current = setTimeout(async () => {
       setIsGenerating(true);
       setHasGenerated(true);
-      setRecommendations([]);
+      // Don't clear recommendations — keep previous results visible while loading
       setActiveScenario(null);
       lastPromptRef.current = q;
 
@@ -1443,11 +1456,39 @@ const DiscoverPage = () => {
       const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
       if (isScenarioQuery) {
-        // SCENARIO QUERY: search expanded items, then filter + balance
+        // SCENARIO QUERY: DB-first quick results, then external expansion
         setActiveScenario({ label: intent.scenarioLabel!, items: searchQueries });
 
-        const results = await Promise.all(
-          searchQueries.slice(0, 8).map(eq =>
+        // STAGE 1: Quick DB results for first 2 queries (instant)
+        const quickDbResults = await Promise.all(
+          searchQueries.slice(0, 2).map(eq =>
+            hybridProductSearch({
+              query: eq,
+              limit: 12,
+              expandExternal: false,
+              freshSearch: false,
+              excludeIds: Array.from(sessionSeenIds),
+              randomize: false,
+            })
+          )
+        );
+
+        const quickProducts = quickDbResults.flatMap(r => r.products);
+        const quickFiltered = filterForScenario(quickProducts, intent);
+        let quickDiverse = enforceClientDiversity(quickFiltered, new Set());
+
+        // Show DB results immediately
+        if (quickDiverse.length > 0) {
+          quickDiverse.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(quickDiverse);
+          if (quickDiverse.length >= MIN_RESULT_TARGET) {
+            setIsGenerating(false);
+          }
+        }
+
+        // STAGE 2: Full external search in background
+        Promise.all(
+          searchQueries.slice(0, 6).map(eq =>
             hybridProductSearch({
               query: eq,
               limit: 10,
@@ -1457,32 +1498,30 @@ const DiscoverPage = () => {
               randomize: false,
             })
           )
-        );
+        ).then(results => {
+          const allProducts = results.flatMap(r => r.products);
+          const scenarioFiltered = filterForScenario(allProducts, intent);
+          const diverse = enforceClientDiversity(scenarioFiltered, new Set([...quickDiverse.map(p => p.id)]));
 
-        let allProducts = results.flatMap(r => r.products);
-        let scenarioFiltered = filterForScenario(allProducts, intent);
-        let diverse = enforceClientDiversity(scenarioFiltered, new Set());
+          if (diverse.length > 0) {
+            diverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => {
+              const merged = enforceClientDiversity([...prev, ...diverse], new Set()).slice(0, 30);
+              return merged;
+            });
+          }
+        }).catch(err => {
+          console.error("Scenario external search error:", err);
+        }).finally(() => {
+          setIsGenerating(false);
+        });
 
-        // Fallback: if too few, broaden each expansion term
-        if (diverse.length < MIN_RESULT_TARGET) {
-          const extraQueries = searchQueries.slice(0, 4).map(eq => `trending ${eq}`);
-          const extraResults = await Promise.all(
-            extraQueries.map(eq =>
-              hybridProductSearch({ query: eq, limit: 8, expandExternal: true, excludeIds: Array.from(sessionSeenIds), randomize: false })
-            )
-          );
-          const extraProducts = extraResults.flatMap(r => r.products);
-          const extraFiltered = filterForScenario(extraProducts, intent);
-          diverse = enforceClientDiversity([...diverse, ...extraFiltered], new Set());
-        }
-
-        if (diverse.length > 0) {
-          diverse.forEach(p => sessionSeenIds.add(p.id));
-          setRecommendations(diverse.slice(0, 30));
+        // If no DB results at all, keep spinner until external completes
+        if (quickDiverse.length === 0) {
+          // spinner stays on via isGenerating
         } else {
-          generateRecommendations(q);
+          setIsGenerating(false);
         }
-        setIsGenerating(false);
       } else {
         // PRODUCT or STYLE query — show DB results fast, then external search fills in
         let collected: AIRecommendation[] = [];
@@ -1572,7 +1611,7 @@ const DiscoverPage = () => {
           setIsGenerating(false);
         }
       }
-    }, 200);
+    }, 400);
   };
 
 
@@ -1977,7 +2016,7 @@ const DiscoverPage = () => {
 
           {/* Results Area */}
           <div className="mt-8">
-            {isGenerating ? (
+            {isGenerating && recommendations.length === 0 ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -1986,12 +2025,13 @@ const DiscoverPage = () => {
                       <div className="mt-2.5 space-y-1.5 px-0.5">
                         <div className="h-2.5 w-16 rounded bg-foreground/[0.04]" />
                         <div className="h-3 w-24 rounded bg-foreground/[0.04]" />
+                        <div className="h-2.5 w-12 rounded bg-foreground/[0.04]" />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            ) : hasGenerated && recommendations.length > 0 ? (
+            ) : (hasGenerated || isGenerating) && recommendations.length > 0 ? (
               <div className="space-y-12">
                 {/* Scenario context banner */}
                 {activeScenario && (
@@ -2207,7 +2247,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
           src={item.image_url}
           alt={item.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading={index < 6 ? "eager" : "lazy"}
+          loading={index < 4 ? "eager" : "lazy"}
           decoding="async"
           onError={() => setImgFailed(true)}
         />
