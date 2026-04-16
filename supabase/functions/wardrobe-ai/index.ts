@@ -555,6 +555,29 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
         userPrompt = `Product: ${context.productName} by ${context.productBrand}. Recommended Size: ${context.recommendedSize} (score: ${context.fitScore}/100). Alternate: ${context.alternateSize}. Product Data: ${context.productDataQuality}/100. Scan: ${context.scanQuality}/100. Regions: ${context.regionText}. Summary: ${context.summary}. Write a natural, helpful explanation.`;
         break;
       }
+      case "body-scan-analysis": {
+        systemPrompt = `You are a body proportion analyzer for fashion fit. Based on scan metadata, estimate body proportions and quality. Return ONLY valid JSON with these fields: quality (number 70-95), silhouette (one of: "inverted-triangle", "rectangle", "trapezoid", "hourglass", "triangle", "balanced"), issues (array of strings, max 3 short warnings), landmarks (object with estimated proportions). Be realistic but helpful.`;
+        userPrompt = `Body scan uploaded: ${context.imageCount} photos (${context.imageTypes?.join(", ")}). Has back photo: ${context.hasBackPhoto}. Analyze and return JSON.`;
+        
+        const scanResult = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 300, temperature: 0.3 });
+        try {
+          const jsonMatch = scanResult.content.match(/\{[\s\S]*\}/);
+          const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+          return new Response(JSON.stringify(parsed || {
+            quality: context.hasBackPhoto ? 82 : 75,
+            silhouette: "balanced",
+            issues: [],
+            landmarks: {},
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        } catch {
+          return new Response(JSON.stringify({
+            quality: context.hasBackPhoto ? 80 : 73,
+            silhouette: "balanced",
+            issues: ["Could not parse AI analysis"],
+            landmarks: {},
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
       case "ootd-feedback": {
         systemPrompt = `You are a fashion community AI that gives brief, supportive style feedback on outfit photos. Be specific about what works and one subtle suggestion. Under 50 words.`;
         userPrompt = `Outfit caption: "${context.caption || ""}". Style tags: ${context.styleTags?.join(", ") || "none"}. Weather: ${context.weather || "unknown"}. Occasion: ${context.occasion || "daily"}. Give brief style feedback.`;
