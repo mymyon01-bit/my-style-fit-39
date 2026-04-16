@@ -141,23 +141,15 @@ const FitPage = () => {
 
   const handleMeasurementUpdate = useCallback((key: keyof BodyMeasurements, value: number) => {
     setMeasurements(prev => ({ ...prev, [key]: { value, confidence: "high" as ConfidenceLevel } }));
-    // Auto-save after manual edit
+    // Auto-save key measurements to DB
     if (user) {
-      const dbMap: Record<string, string> = {
-        heightCm: "height_cm",
-        shoulderWidthCm: "shoulder_width_cm",
-        waistCm: "waist_cm",
-        inseamCm: "inseam_cm",
+      const saveMap: Partial<Record<keyof BodyMeasurements, () => void>> = {
+        heightCm: () => supabase.from("body_profiles").update({ height_cm: value }).eq("user_id", user.id),
+        shoulderWidthCm: () => supabase.from("body_profiles").update({ shoulder_width_cm: value }).eq("user_id", user.id),
+        waistCm: () => supabase.from("body_profiles").update({ waist_cm: value }).eq("user_id", user.id),
+        inseamCm: () => supabase.from("body_profiles").update({ inseam_cm: value }).eq("user_id", user.id),
       };
-      const dbKey = dbMap[key];
-      if (dbKey) {
-        supabase.from("body_profiles")
-          .update({ [dbKey]: value })
-          .eq("user_id", user.id)
-          .then(({ error }) => {
-            if (error) console.error("Auto-save error:", error);
-          });
-      }
+      saveMap[key]?.();
     }
   }, [user]);
 
