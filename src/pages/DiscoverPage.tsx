@@ -32,6 +32,21 @@ const STYLE_FILTERS = ["minimal", "street", "classic", "edgy", "casual", "formal
 const FIT_FILTERS = ["oversized", "regular", "slim"];
 const COLOR_FILTERS = ["neutral", "dark", "earth", "bold", "pastel", "mixed"];
 
+// Client-side result cache to avoid duplicate calls
+const resultCache = new Map<string, { data: AIRecommendation[]; ts: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+function getCacheKey(action: string, params: Record<string, any>): string {
+  return `${action}:${JSON.stringify(params)}`;
+}
+
+function getCachedResult(key: string): AIRecommendation[] | null {
+  const entry = resultCache.get(key);
+  if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
+  if (entry) resultCache.delete(key);
+  return null;
+}
+
 const DiscoverPage = () => {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -61,6 +76,8 @@ const DiscoverPage = () => {
   const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
   const lastPromptRef = useRef("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inflightRef = useRef<string | null>(null); // prevent duplicate calls
 
   // Filters
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -81,7 +98,6 @@ const DiscoverPage = () => {
         });
       });
     } else {
-      // Fallback
       tabs.push(
         { slug: "clothing", label: "Clothing" },
         { slug: "bags", label: "Bags" },
@@ -93,11 +109,9 @@ const DiscoverPage = () => {
     return tabs;
   }, [categoryTree, t]);
 
-  // Get subcategories for active tab
   const activeTabData = browseTabs.find(t => t.slug === activeTab);
   const subcategories = activeTabData?.children || [];
 
-  // Search suggestions
   const searchSuggestionResults = useMemo(() => {
     if (!textInput.trim() || textInput.trim().length < 2) return [];
     return generateSuggestions(textInput).suggestions;
@@ -114,7 +128,6 @@ const DiscoverPage = () => {
     }
   }, [user]);
 
-  // Load user style profile for preference mode
   const loadStyleProfile = async () => {
     if (!user) return;
     const { data } = await supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle();
@@ -123,7 +136,6 @@ const DiscoverPage = () => {
 
   useEffect(() => {
     if (activeTab !== "for-you" && activeTab !== "featured") {
-      // DB-first: try browse (cached) first, only AI on search
       browseCategory(activeTab, activeSubcategory);
     }
   }, [activeTab, activeSubcategory]);
@@ -134,14 +146,25 @@ const DiscoverPage = () => {
     setSavedIds(new Set((data || []).map(d => d.product_id)));
   };
 
-  // DB-first browse: load cached products by category without AI
+  // DB-first browse with client cache
   const browseCategory = async (category: string, subcategory: string | null) => {
+    const cacheKey = getCacheKey("browse", { category, subcategory, styles: selectedStyles, fit: selectedFit });
+    const cached = getCachedResult(cacheKey);
+    if (cached) {
+      setRecommendations(cached);
+      setHasGenerated(true);
+      return;
+    }
+
+    // Prevent duplicate in-flight
+    if (inflightRef.current === cacheKey) return;
+    inflightRef.current = cacheKey;
+
     setIsGenerating(true);
     setHasGenerated(true);
     setRecommendations([]);
     lastPromptRef.current = `Browse ${category}`;
     try {
-      // First try the browse action (DB-cached products)
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
           action: "browse",
@@ -153,22 +176,22 @@ const DiscoverPage = () => {
         },
       });
       if (!error && data?.recommendations?.length >= 4) {
-        // Filter client-side: only show products with valid images
         const validRecs = (data.recommendations as AIRecommendation[]).filter(
           r => r.image_url && r.image_url.startsWith("http")
         );
         setRecommendations(validRecs);
+        resultCache.set(cacheKey, { data: validRecs, ts: Date.now() });
         setIsGenerating(false);
+        inflightRef.current = null;
         return;
       }
-      // Not enough cached — fall back to AI
       const sub = subcategory ? ` — ${subcategory}` : "";
       await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
     } catch {
-      // Fallback to AI
       const sub = subcategory ? ` — ${subcategory}` : "";
       await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
     }
+    inflightRef.current = null;
   };
 
   const handleQuizComplete = (answers: StyleQuizAnswers) => {
@@ -191,6 +214,18 @@ const DiscoverPage = () => {
   };
 
   const generateRecommendations = async (prompt: string, quiz?: StyleQuizAnswers, categoryFilter?: string) => {
+    const cacheKey = getCacheKey("recommend", { prompt, category: categoryFilter, styles: selectedStyles, fit: selectedFit, color: selectedColor });
+    const cached = getCachedResult(cacheKey);
+    if (cached) {
+      setRecommendations(cached);
+      setHasGenerated(true);
+      setIsGenerating(false);
+      return;
+    }
+
+    if (inflightRef.current === cacheKey) return;
+    inflightRef.current = cacheKey;
+
     setIsGenerating(true);
     setHasGenerated(true);
     setRecommendations([]);
@@ -224,7 +259,6 @@ const DiscoverPage = () => {
         },
       });
       if (error) throw error;
-      // STRICT: Only show products with valid images
       const recs = (data?.recommendations || []).filter((r: AIRecommendation) => {
         if (!r.image_url || !r.image_url.startsWith("http")) {
           console.warn(`[WARDROBE] Filtered out imageless product: "${r.name}" (${r.id})`);
@@ -233,6 +267,7 @@ const DiscoverPage = () => {
         return true;
       });
       setRecommendations(recs);
+      resultCache.set(cacheKey, { data: recs, ts: Date.now() });
     } catch (e: any) {
       console.error("Recommendation error:", e);
       if (e?.message?.includes("Rate limited") || e?.status === 429) {
@@ -243,6 +278,7 @@ const DiscoverPage = () => {
       setRecommendations([]);
     } finally {
       setIsGenerating(false);
+      inflightRef.current = null;
     }
   };
 
@@ -266,7 +302,7 @@ const DiscoverPage = () => {
       });
       if (error) throw error;
       const newRecs = (data?.recommendations || []).filter(
-        (r: AIRecommendation) => !existingIds.includes(r.id)
+        (r: AIRecommendation) => !existingIds.includes(r.id) && r.image_url && r.image_url.startsWith("http")
       );
       setRecommendations(prev => [...prev, ...newRecs]);
     } catch (e) {
@@ -277,6 +313,7 @@ const DiscoverPage = () => {
     }
   };
 
+  // Debounced search submit
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
@@ -284,7 +321,12 @@ const DiscoverPage = () => {
     setActiveTab("for-you");
     setActiveSubcategory(null);
     setShowSuggestions(false);
-    generateRecommendations(q);
+
+    // Clear any pending debounce
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      generateRecommendations(q);
+    }, 150); // short debounce for explicit submit
   };
 
   const handleFeedback = useCallback(async (itemId: string, type: "like" | "dislike") => {
@@ -318,19 +360,18 @@ const DiscoverPage = () => {
     }
   }, [user, savedIds]);
 
-  // Generate "New Style You Might Like" AI recommendations
   const generateNewStyleRecs = async () => {
     if (loadingNewStyle) return;
     setLoadingNewStyle(true);
     try {
       const styleContext = userStyleProfile
-        ? `User prefers: ${userStyleProfile.preferred_styles?.join(", ") || "various"}. Fit: ${userStyleProfile.preferred_fit || "regular"}. Budget: ${userStyleProfile.budget || "mid-range"}. Suggest something NEW and outside their comfort zone but still tasteful.`
-        : "Suggest trendy, fresh fashion items the user hasn't explored yet.";
+        ? `User prefers: ${userStyleProfile.preferred_styles?.join(", ") || "various"}. Fit: ${userStyleProfile.preferred_fit || "regular"}. Budget: ${userStyleProfile.budget || "mid-range"}. Suggest something NEW and outside their comfort zone but still tasteful. Use brands they have NOT seen before.`
+        : "Suggest trendy, fresh fashion items the user hasn't explored yet. Use diverse, unexpected brands.";
 
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
           action: "recommend",
-          prompt: `${styleContext} Show unique, unexpected styles that expand their wardrobe.`,
+          prompt: `${styleContext} Show unique, unexpected styles that expand their wardrobe. CRITICAL: use completely different brands from mainstream defaults.`,
           userId: user?.id || null,
           source: "discover-new-style",
           count: 4,
@@ -348,6 +389,7 @@ const DiscoverPage = () => {
       setLoadingNewStyle(false);
     }
   };
+
   const toggleStyle = (s: string) => setSelectedStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null || selectedColor !== null;
@@ -459,7 +501,7 @@ const DiscoverPage = () => {
 
           <div className="h-px bg-border/30" />
 
-          {/* Category Tabs — from DB */}
+          {/* Category Tabs */}
           <div className="mt-4 flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide">
             {browseTabs.map(tab => (
               <button
@@ -541,13 +583,11 @@ const DiscoverPage = () => {
                 {t("reset").toUpperCase()}
               </button>
             )}
-            {/* Preference toggle for logged-in users */}
             {user && userStyleProfile && (
               <button
                 onClick={() => {
                   setPreferenceMode(!preferenceMode);
                   if (!preferenceMode && userStyleProfile) {
-                    // Auto-apply user preferences
                     const styles = userStyleProfile.preferred_styles || [];
                     setSelectedStyles(styles.filter((s: string) => STYLE_FILTERS.includes(s)));
                     if (userStyleProfile.preferred_fit) setSelectedFit(userStyleProfile.preferred_fit);
@@ -577,7 +617,6 @@ const DiscoverPage = () => {
                 className="overflow-hidden"
               >
                 <div className="mt-4 space-y-4 rounded-xl border border-border/20 bg-card/30 p-4">
-                  {/* Style */}
                   <div>
                     <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("style").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
@@ -596,7 +635,6 @@ const DiscoverPage = () => {
                       ))}
                     </div>
                   </div>
-                  {/* Fit */}
                   <div>
                     <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("preferredFit").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
@@ -615,7 +653,6 @@ const DiscoverPage = () => {
                       ))}
                     </div>
                   </div>
-                  {/* Color */}
                   <div>
                     <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("color").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
@@ -634,7 +671,6 @@ const DiscoverPage = () => {
                       ))}
                     </div>
                   </div>
-                  {/* Apply */}
                   <div className="flex items-center justify-between border-t border-border/20 pt-3">
                     {hasActiveFilters && (
                       <button onClick={clearFilters} className="text-[10px] text-foreground/30 hover:text-foreground/50">
@@ -687,7 +723,6 @@ const DiscoverPage = () => {
                   <span className="text-[10px] text-foreground/25">{recommendations.length} {t("items")}</span>
                 </div>
 
-                {/* Grouped display */}
                 {Object.keys(groupedRecs).length > 1 ? (
                   Object.entries(groupedRecs).map(([category, items]) => (
                     <div key={category} className="space-y-4">
@@ -741,7 +776,7 @@ const DiscoverPage = () => {
                   </button>
                 </div>
 
-                {/* AI Recommendation: New Style You Might Like */}
+                {/* AI Recommendation: New Style */}
                 {user && (
                   <div className="space-y-5 border-t border-border/15 pt-8">
                     <div className="flex items-center justify-between">
