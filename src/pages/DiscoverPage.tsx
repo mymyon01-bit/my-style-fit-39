@@ -1492,6 +1492,7 @@ const DiscoverPage = () => {
             limit: 20,
             excludeIds: Array.from(sessionSeenIds),
             expandExternal: true,
+            freshSearch: true,
             randomize: false,
           });
           // Very soft filter — just exclude hard-blocked items
