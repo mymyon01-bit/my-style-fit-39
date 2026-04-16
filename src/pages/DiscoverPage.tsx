@@ -1,4 +1,5 @@
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -44,6 +45,7 @@ const INITIAL_VISIBLE = 8;
 
 const DiscoverPage = () => {
   const { user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const moodParam = searchParams.get("mood");
@@ -246,7 +248,7 @@ const DiscoverPage = () => {
         <div className="mx-auto max-w-lg px-6 pt-10 pb-2 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           <div className="flex items-baseline justify-between">
             <span className="font-display text-[12px] font-semibold tracking-[0.35em] text-foreground/70 lg:hidden">WARDROBE</span>
-            <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/50">DISCOVER</span>
+            <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/50">{t("discover").toUpperCase()}</span>
           </div>
         </div>
 
@@ -259,7 +261,7 @@ const DiscoverPage = () => {
               value={textInput}
               onChange={e => setTextInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleTextSubmit()}
-              placeholder="Describe your style…"
+              placeholder={t("describeStyle")}
               className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/35"
             />
             {textInput.trim() && (
@@ -292,7 +294,7 @@ const DiscoverPage = () => {
               className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/45"
             >
               <Sparkles className="h-3.5 w-3.5 text-accent/50" />
-              {quizAnswers ? "Refine" : "Style Quiz"}
+              {quizAnswers ? t("refine") : t("takeStyleQuiz")}
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -301,14 +303,14 @@ const DiscoverPage = () => {
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              Filters
+              {t("filters")}
             </button>
             {quizAnswers && (
               <button
                 onClick={() => { setQuizAnswers(null); setRecommendations([]); setHasGenerated(false); setTextInput(""); }}
                 className="hover-burgundy text-[10px] tracking-[0.15em] text-foreground/25"
               >
-                RESET
+                {t("reset").toUpperCase()}
               </button>
             )}
           </div>
@@ -324,7 +326,7 @@ const DiscoverPage = () => {
               >
                 <div className="mt-4 space-y-4 rounded-xl border border-border/20 bg-card/30 p-4">
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">STYLE</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("style").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {STYLE_FILTERS.map(s => (
                         <button
@@ -342,7 +344,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">FIT</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("preferredFit").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {FIT_FILTERS.map(f => (
                         <button
@@ -360,7 +362,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">COLOR</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("color").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {COLOR_FILTERS.map(c => (
                         <button
@@ -384,7 +386,7 @@ const DiscoverPage = () => {
                     }}
                     className="hover-burgundy w-full py-2.5 text-[10px] font-semibold tracking-[0.15em] text-accent/60 border-t border-border/20 pt-3"
                   >
-                    APPLY FILTERS
+                    {t("applyFilters").toUpperCase()}
                   </button>
                 </div>
               </motion.div>
@@ -414,13 +416,13 @@ const DiscoverPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
-                      {activeTab === "for-you" ? "CURATED FOR YOU" : activeTab.toUpperCase()}
+                      {activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
                     </p>
                     {interactionCount > 2 && (
-                      <p className="text-[10px] text-foreground/35 mt-1">Adapting to your taste…</p>
+                      <p className="text-[10px] text-foreground/35 mt-1">{t("adaptingTaste")}</p>
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground/25">{recommendations.length} items</span>
+                  <span className="text-[10px] text-foreground/25">{recommendations.length} {t("items")}</span>
                 </div>
 
                 {/* Grouped display */}
@@ -473,28 +475,28 @@ const DiscoverPage = () => {
                     ) : (
                       <ChevronDown className="h-3.5 w-3.5" />
                     )}
-                    {isLoadingMore ? "LOADING…" : "LOAD MORE"}
+                    {isLoadingMore ? t("loading").toUpperCase() : t("loadMore").toUpperCase()}
                   </button>
                 </div>
               </div>
             ) : hasGenerated && recommendations.length === 0 ? (
               <div className="py-20 text-center space-y-4">
-                <p className="text-[14px] font-medium text-foreground/45">No recommendations found</p>
+                <p className="text-[14px] font-medium text-foreground/45">{t("noRecommendations")}</p>
                 <p className="text-[12px] text-foreground/25 max-w-[260px] mx-auto">
-                  Try describing your style differently or take the quiz for better results.
+                  {t("tryDifferent")}
                 </p>
               </div>
             ) : (
               <div className="py-16 text-center space-y-5">
-                <p className="font-display text-lg font-semibold text-foreground/55">Discover your style</p>
+                <p className="font-display text-lg font-semibold text-foreground/55">{t("discoverStyle")}</p>
                 <p className="mx-auto max-w-[280px] text-[12px] leading-[1.8] text-foreground/35">
-                  Tell us your preferences or browse by category to see curated recommendations.
+                  {t("discoverDesc")}
                 </p>
                 <div className="flex flex-col items-center gap-3">
                   <button onClick={() => setShowQuiz(true)} className="hover-burgundy text-[10px] font-semibold tracking-[0.2em] text-accent/50">
-                    TAKE STYLE QUIZ
+                    {t("takeStyleQuiz").toUpperCase()}
                   </button>
-                  <span className="text-[10px] text-foreground/18">or browse categories above</span>
+                  <span className="text-[10px] text-foreground/18">{t("orBrowse")}</span>
                 </div>
               </div>
             )}
@@ -513,15 +515,15 @@ const DiscoverPage = () => {
           >
             <div className="rounded-2xl bg-card/95 backdrop-blur-xl p-6 shadow-elevated space-y-4">
               <p className="font-display text-[15px] font-semibold text-foreground/75">
-                Save your style and unlock personalized recommendations.
+                {t("saveStylePrompt")}
               </p>
               <div className="flex gap-3">
                 <button onClick={() => navigate("/auth")} className="hover-burgundy flex-1 py-3 text-[10px] font-semibold tracking-[0.15em] text-foreground/60">
-                  CREATE ACCOUNT
+                  {t("createAccount").toUpperCase()}
                 </button>
                 <div className="w-px bg-border/30" />
                 <button onClick={() => setShowAuthHint(false)} className="hover-burgundy px-4 py-3 text-[10px] text-foreground/30">
-                  LATER
+                  {t("later").toUpperCase()}
                 </button>
               </div>
             </div>

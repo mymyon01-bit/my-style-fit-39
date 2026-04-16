@@ -87,7 +87,7 @@ const HomePage = () => {
                   onClick={handleSubmit}
                   className="hover-burgundy mx-auto mt-7 flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] text-foreground/60 md:mt-8 lg:mt-10"
                 >
-                  ENTER
+                  {t("enter").toUpperCase()}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </motion.button>
               )}
@@ -106,13 +106,13 @@ const HomePage = () => {
             onClick={() => navigate("/discover")}
             className="hover-burgundy rounded-lg border border-accent/15 bg-accent/[0.04] px-5 py-2.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/50 transition-all hover:bg-accent/[0.08]"
           >
-            EXPLORE STYLES
+            {t("exploreStyles").toUpperCase()}
           </button>
           <button
             onClick={() => navigate("/about")}
             className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[9px] font-semibold tracking-[0.2em] text-foreground/35 transition-all hover:text-foreground/50"
           >
-            ABOUT
+            {t("about").toUpperCase()}
           </button>
         </motion.div>
 
