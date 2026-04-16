@@ -37,6 +37,10 @@ const ProfilePage = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [editingStyle, setEditingStyle] = useState(false);
+  const [editHashtags, setEditHashtags] = useState("");
+  const [circleCount, setCircleCount] = useState(0);
+  const [addedByCount, setAddedByCount] = useState(0);
+  const [scrapCount, setScrapCount] = useState(0);
   const [myOotds, setMyOotds] = useState<any[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,6 +57,17 @@ const ProfilePage = () => {
       supabase.from("ootd_posts").select("id, star_count").eq("user_id", user.id),
       supabase.from("ootd_posts").select("id, image_url, caption, star_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
     ]);
+
+    // Load circle & scrap counts
+    const [circleRes, addedByRes, scrapRes] = await Promise.all([
+      supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
+      supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+      supabase.from("saved_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]);
+    setCircleCount(circleRes.count || 0);
+    setAddedByCount(addedByRes.count || 0);
+    setScrapCount(scrapRes.count || 0);
+
     const p = profileRes.data;
     setProfile(p);
     setStyleProfile(styleRes.data);
@@ -67,6 +82,7 @@ const ProfilePage = () => {
       setEditBio(p.bio || "");
       setEditLocation(p.location || "");
       setEditGender(p.gender_preference || "");
+      setEditHashtags((p.hashtags || []).join(", "));
     }
     setIsLoading(false);
   };
@@ -105,13 +121,15 @@ const ProfilePage = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     setSavingProfile(true);
+    const parsedHashtags = editHashtags.split(/[,\s]+/).map(h => h.replace(/^#/, "").trim()).filter(Boolean);
     try {
       const { error } = await supabase.from("profiles").update({
         display_name: editName.trim() || null,
         bio: editBio.trim() || null,
         location: editLocation.trim() || null,
         gender_preference: editGender.trim() || null,
-      }).eq("user_id", user.id);
+        hashtags: parsedHashtags.length > 0 ? parsedHashtags : null,
+      } as any).eq("user_id", user.id);
       if (error) throw error;
       setProfile((p: any) => ({
         ...p,
@@ -119,6 +137,7 @@ const ProfilePage = () => {
         bio: editBio.trim(),
         location: editLocation.trim(),
         gender_preference: editGender.trim(),
+        hashtags: parsedHashtags,
       }));
       setIsEditing(false);
       toast.success("Profile updated");
@@ -210,6 +229,7 @@ const ProfilePage = () => {
               { label: "Bio / Style Line", value: editBio, set: setEditBio, placeholder: "A short style description" },
               { label: "Location", value: editLocation, set: setEditLocation, placeholder: "City, Country" },
               { label: "Gender Preference", value: editGender, set: setEditGender, placeholder: "e.g. masculine, feminine, neutral" },
+              { label: "Hashtags", value: editHashtags, set: setEditHashtags, placeholder: "#minimal, #street, #modern" },
             ].map(field => (
               <div key={field.label}>
                 <label className="text-[10px] font-medium text-foreground/75">{field.label}</label>
@@ -222,6 +242,7 @@ const ProfilePage = () => {
                 />
               </div>
             ))}
+
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={handleSaveProfile}
@@ -253,12 +274,23 @@ const ProfilePage = () => {
           </div>
         </div>
 
+        {/* Hashtags */}
+        {profile?.hashtags && profile.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {profile.hashtags.map((tag: string) => (
+              <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
+            ))}
+          </div>
+        )}
+
         {/* Stats */}
-        <div className="flex gap-12">
+        <div className="flex gap-8 flex-wrap">
           {[
             { icon: Camera, label: t("posts"), value: postCount },
             { icon: Star, label: t("stars"), value: totalStars },
             { icon: Bookmark, label: t("saved"), value: savedCount },
+            { icon: Crown, label: "Circle", value: circleCount },
+            { icon: Bookmark, label: "Scrap", value: scrapCount },
           ].map(stat => (
             <div key={stat.label} className="text-center">
               <p className="text-xl font-light text-foreground/80">{stat.value}</p>
@@ -266,6 +298,7 @@ const ProfilePage = () => {
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-foreground/40">Added by {addedByCount} users</p>
 
         {!subscription.isPremium && <PremiumBanner />}
 
