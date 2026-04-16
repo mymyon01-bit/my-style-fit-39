@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User, XCircle } from "lucide-react";
+import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User, XCircle, Sparkles, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import type { FitMode } from "@/pages/FitPage";
 
 interface ScanStatus {
   frontUploaded: boolean;
@@ -21,10 +22,12 @@ interface ScanStatus {
   qualityScore: number;
   issues: string[];
   estimatedMeasurements: Record<string, number> | null;
+  scanMode: FitMode;
 }
 
 interface Props {
-  onScanComplete: (quality: number, measurements?: Record<string, number>) => void;
+  onScanComplete: (quality: number, measurements?: Record<string, number>, mode?: FitMode) => void;
+  canUsePremium?: boolean;
 }
 
 const GUIDELINES = [
@@ -56,16 +59,13 @@ function validateImageBasic(file: File): { valid: boolean; issues: string[] } {
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result); // data:image/...;base64,...
-    };
+    reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-export default function FitBodyScan({ onScanComplete }: Props) {
+export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
   const { user } = useAuth();
   const [status, setStatus] = useState<ScanStatus>({
     frontUploaded: false, sideUploaded: false, backUploaded: false,
@@ -73,15 +73,14 @@ export default function FitBodyScan({ onScanComplete }: Props) {
     frontFile: null, sideFile: null, backFile: null,
     scanning: false, uploading: false, scanComplete: false,
     qualityScore: 0, issues: [], estimatedMeasurements: null,
+    scanMode: "free",
   });
   const [existingScans, setExistingScans] = useState<any[]>([]);
   const frontRef = useRef<HTMLInputElement>(null);
   const sideRef = useRef<HTMLInputElement>(null);
   const backRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (user) loadExistingScans();
-  }, [user]);
+  useEffect(() => { if (user) loadExistingScans(); }, [user]);
 
   const loadExistingScans = async () => {
     if (!user) return;
@@ -96,57 +95,44 @@ export default function FitBodyScan({ onScanComplete }: Props) {
   const handleUpload = (side: "front" | "side" | "back") => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const validation = validateImageBasic(file);
-    if (!validation.valid) {
-      toast.error(validation.issues.join(". "));
-      return;
-    }
-
+    if (!validation.valid) { toast.error(validation.issues.join(". ")); return; }
     const url = URL.createObjectURL(file);
-    setStatus(s => ({
-      ...s,
-      [`${side}Uploaded`]: true,
-      [`${side}Preview`]: url,
-      [`${side}File`]: file,
-    }));
+    setStatus(s => ({ ...s, [`${side}Uploaded`]: true, [`${side}Preview`]: url, [`${side}File`]: file }));
   };
 
   const uploadToStorage = async (file: File, imageType: string): Promise<string | null> => {
     if (!user) return null;
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${user.id}/${imageType}-${Date.now()}.${ext}`;
-
-    const { error } = await supabase.storage
-      .from("body-scans")
-      .upload(path, file, { cacheControl: "3600", upsert: true });
-
-    if (error) {
-      console.error(`Upload error (${imageType}):`, error);
-      return null;
-    }
+    const { error } = await supabase.storage.from("body-scans").upload(path, file, { cacheControl: "3600", upsert: true });
+    if (error) { console.error(`Upload error (${imageType}):`, error); return null; }
     return path;
   };
 
-  const runScan = async () => {
-    if (!user) {
-      toast.error("Please sign in to save your body scan");
+  const runScan = async (mode: FitMode = "free") => {
+    if (!user) { toast.error("Please sign in to save your body scan"); return; }
+    if (mode === "premium" && !canUsePremium) { toast("Premium subscription required"); return; }
+
+    // Premium quality gate
+    if (mode === "premium" && !status.frontUploaded) {
+      toast.error("Front photo required for precision scan");
+      return;
+    }
+    if (mode === "premium" && !status.sideUploaded) {
+      toast.error("Side photo required for precision scan");
       return;
     }
 
-    setStatus(s => ({ ...s, uploading: true }));
+    setStatus(s => ({ ...s, uploading: true, scanMode: mode }));
 
-    // Upload images to storage
     const uploads: { type: string; file: File }[] = [];
     if (status.frontFile) uploads.push({ type: "front", file: status.frontFile });
     if (status.sideFile) uploads.push({ type: "side", file: status.sideFile });
     if (status.backFile) uploads.push({ type: "back", file: status.backFile });
 
     const uploadResults = await Promise.all(
-      uploads.map(async ({ type, file }) => {
-        const path = await uploadToStorage(file, type);
-        return { type, path };
-      })
+      uploads.map(async ({ type, file }) => ({ type, path: await uploadToStorage(file, type) }))
     );
 
     const failedUploads = uploadResults.filter(r => !r.path);
@@ -156,43 +142,37 @@ export default function FitBodyScan({ onScanComplete }: Props) {
       return;
     }
 
-    // Save scan image records
     for (const result of uploadResults) {
       if (!result.path) continue;
       await supabase.from("body_scan_images").insert({
-        user_id: user.id,
-        image_type: result.type,
-        storage_path: result.path,
-        validation_status: "processing",
+        user_id: user.id, image_type: result.type, storage_path: result.path, validation_status: "processing",
       });
     }
 
     setStatus(s => ({ ...s, uploading: false, scanning: true }));
 
-    // Convert front image to base64 for AI vision analysis
     try {
+      // Free mode: use lightweight Lovable AI vision
+      // Premium mode: sends fitMode flag so backend uses deeper analysis
       const imageContents: { type: string; dataUrl: string }[] = [];
       for (const upload of uploads) {
         try {
           const dataUrl = await fileToBase64(upload.file);
           imageContents.push({ type: upload.type, dataUrl });
-        } catch {
-          console.warn(`Could not encode ${upload.type} image`);
-        }
+        } catch { console.warn(`Could not encode ${upload.type} image`); }
       }
 
       const { data: aiResult, error: aiError } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
           type: "body-scan-analysis",
+          fitMode: mode,
           context: {
             imageCount: uploads.length,
             imageTypes: uploads.map(u => u.type),
             hasBackPhoto: status.backUploaded,
-            // Pass base64 images for real AI vision analysis
-            images: imageContents.map(ic => ({
-              type: ic.type,
-              dataUrl: ic.dataUrl,
-            })),
+            images: mode === "free"
+              ? imageContents.slice(0, 1).map(ic => ({ type: ic.type, dataUrl: ic.dataUrl })) // Free: send only front
+              : imageContents.map(ic => ({ type: ic.type, dataUrl: ic.dataUrl })), // Premium: send all
           },
         },
       });
@@ -209,20 +189,13 @@ export default function FitBodyScan({ onScanComplete }: Props) {
 
       const silhouetteType = aiResult?.silhouette || "balanced";
 
-      // Update scan image records to valid
       for (const result of uploadResults) {
         if (!result.path) continue;
-        await supabase.from("body_scan_images")
-          .update({ validation_status: "valid" })
-          .eq("user_id", user.id)
-          .eq("storage_path", result.path);
+        await supabase.from("body_scan_images").update({ validation_status: "valid" }).eq("user_id", user.id).eq("storage_path", result.path);
       }
 
-      // Save body profile with scan results including estimated measurements
       const profileUpdate: any = {
-        user_id: user.id,
-        scan_confidence: quality,
-        silhouette_type: silhouetteType,
+        user_id: user.id, scan_confidence: quality, silhouette_type: silhouetteType,
         body_landmarks: aiResult?.landmarks || {},
       };
       if (measurements) {
@@ -231,25 +204,21 @@ export default function FitBodyScan({ onScanComplete }: Props) {
         if (measurements.waist_cm) profileUpdate.waist_cm = measurements.waist_cm;
         if (measurements.inseam_cm) profileUpdate.inseam_cm = measurements.inseam_cm;
       }
-
       await supabase.from("body_profiles").upsert(profileUpdate, { onConflict: "user_id" });
 
       setStatus(s => ({
         ...s, scanning: false, scanComplete: true,
-        qualityScore: quality, issues,
-        estimatedMeasurements: measurements,
+        qualityScore: quality, issues, estimatedMeasurements: measurements,
       }));
-      onScanComplete(quality, measurements || undefined);
+      onScanComplete(quality, measurements || undefined, mode);
     } catch (err) {
       console.error("Scan analysis error:", err);
       const quality = (status.backUploaded ? 78 : 72) + Math.floor(Math.random() * 10);
       setStatus(s => ({
-        ...s, scanning: false, scanComplete: true,
-        qualityScore: quality,
-        issues: ["AI analysis unavailable — basic scan used"],
-        estimatedMeasurements: null,
+        ...s, scanning: false, scanComplete: true, qualityScore: quality,
+        issues: ["AI analysis unavailable — basic scan used"], estimatedMeasurements: null,
       }));
-      onScanComplete(quality);
+      onScanComplete(quality, undefined, "free");
     }
   };
 
@@ -259,15 +228,15 @@ export default function FitBodyScan({ onScanComplete }: Props) {
       frontPreview: null, sidePreview: null, backPreview: null,
       frontFile: null, sideFile: null, backFile: null,
       scanning: false, uploading: false, scanComplete: false,
-      qualityScore: 0, issues: [], estimatedMeasurements: null,
+      qualityScore: 0, issues: [], estimatedMeasurements: null, scanMode: "free",
     });
   };
 
   const hasPreviousScan = existingScans.length > 0;
+  const canRunPremiumScan = canUsePremium && status.frontUploaded && status.sideUploaded;
 
   return (
     <div className="space-y-6">
-      {/* Previous scan notice */}
       {hasPreviousScan && !status.scanComplete && (
         <div className="rounded-xl border border-accent/20 bg-accent/[0.04] p-4">
           <p className="text-[11px] text-accent/70 font-medium">
@@ -277,7 +246,6 @@ export default function FitBodyScan({ onScanComplete }: Props) {
         </div>
       )}
 
-      {/* Guidelines */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
         <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">SCAN GUIDELINES</p>
         <div className="space-y-2">
@@ -290,14 +258,12 @@ export default function FitBodyScan({ onScanComplete }: Props) {
         </div>
       </div>
 
-      {/* Upload areas */}
       <div className="grid grid-cols-3 gap-2">
         {(["front", "side", "back"] as const).map(side => {
           const uploaded = status[`${side}Uploaded`];
           const preview = status[`${side}Preview`];
           const ref = side === "front" ? frontRef : side === "side" ? sideRef : backRef;
           const isOptional = side === "back";
-
           return (
             <motion.button
               key={side}
@@ -317,9 +283,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
                   <div className="h-14 w-10 rounded-lg border border-dashed border-foreground/10 flex items-center justify-center mb-2">
                     {side === "front" ? <User className="h-4 w-4 text-foreground/80" /> : <Camera className="h-4 w-4 text-foreground/80" />}
                   </div>
-                  <span className="text-[10px] font-semibold tracking-[0.1em] text-foreground/75">
-                    {side.toUpperCase()}
-                  </span>
+                  <span className="text-[10px] font-semibold tracking-[0.1em] text-foreground/75">{side.toUpperCase()}</span>
                   {isOptional && <span className="text-[11px] text-foreground/70 mt-0.5">optional</span>}
                 </>
               )}
@@ -329,36 +293,44 @@ export default function FitBodyScan({ onScanComplete }: Props) {
         })}
       </div>
 
-      {/* Scan button */}
+      {/* Scan buttons */}
       <AnimatePresence>
         {status.frontUploaded && status.sideUploaded && !status.scanComplete && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            onClick={runScan}
-            disabled={status.scanning || status.uploading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background disabled:opacity-50"
-          >
-            {status.uploading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading photos…
-              </>
-            ) : status.scanning ? (
-              <>
-                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-                  <Upload className="h-4 w-4" />
-                </motion.div>
-                Analyzing body proportions…
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4" />
-                Run Body Scan
-              </>
-            )}
-          </motion.button>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-2">
+            {/* Free scan — always available */}
+            <button
+              onClick={() => runScan("free")}
+              disabled={status.scanning || status.uploading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background disabled:opacity-50"
+            >
+              {status.uploading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading photos…</>
+              ) : status.scanning && status.scanMode === "free" ? (
+                <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}><Upload className="h-4 w-4" /></motion.div> Analyzing body proportions…</>
+              ) : (
+                <><Upload className="h-4 w-4" /> Run Body Scan</>
+              )}
+            </button>
+
+            {/* Premium scan — gated */}
+            <button
+              onClick={() => runScan("premium")}
+              disabled={status.scanning || status.uploading || !canRunPremiumScan}
+              className={`flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition-all disabled:opacity-50 ${
+                canUsePremium
+                  ? "border-accent/30 bg-accent/[0.06] text-accent"
+                  : "border-foreground/10 bg-foreground/[0.02] text-foreground/40"
+              }`}
+            >
+              {status.scanning && status.scanMode === "premium" ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Running precision scan…</>
+              ) : canUsePremium ? (
+                <><Sparkles className="h-4 w-4" /> High Precision Scan</>
+              ) : (
+                <><Lock className="h-3.5 w-3.5" /> Precision Scan (Premium)</>
+              )}
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -368,7 +340,10 @@ export default function FitBodyScan({ onScanComplete }: Props) {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">SCAN QUALITY</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">SCAN QUALITY</p>
+                  {status.scanMode === "premium" && <Sparkles className="h-3 w-3 text-accent/60" />}
+                </div>
                 <span className={`text-lg font-bold ${
                   status.qualityScore >= 85 ? "text-green-500" : status.qualityScore >= 70 ? "text-accent" : "text-orange-500"
                 }`}>{status.qualityScore}/100</span>
@@ -387,10 +362,11 @@ export default function FitBodyScan({ onScanComplete }: Props) {
               </div>
             </div>
 
-            {/* Estimated measurements from scan */}
             {status.estimatedMeasurements && (
               <div className="rounded-2xl border border-accent/20 bg-accent/[0.04] p-5">
-                <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/80 mb-3">ESTIMATED FROM SCAN</p>
+                <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/80 mb-3">
+                  {status.scanMode === "premium" ? "PRECISION ESTIMATES" : "ESTIMATED FROM SCAN"}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(status.estimatedMeasurements).map(([key, val]) => (
                     <div key={key} className="flex justify-between text-xs">
@@ -414,9 +390,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
               </div>
             )}
 
-            <p className="text-center text-[10px] text-foreground/75">
-              Scan saved to your profile
-            </p>
+            <p className="text-center text-[10px] text-foreground/75">Scan saved to your profile</p>
 
             <button onClick={resetScan} className="flex items-center gap-1.5 text-xs text-foreground/80 hover:text-foreground/80 mx-auto">
               <RotateCcw className="h-3 w-3" /> Retake scan

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,8 +12,10 @@ import FitBodyScan from "@/components/fit/FitBodyScan";
 import FitMeasurements from "@/components/fit/FitMeasurements";
 import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
+import { toast } from "sonner";
 
 type Tab = "scan" | "measurements" | "check" | "results";
+export type FitMode = "free" | "premium";
 
 interface SelectedProduct {
   id: string;
@@ -34,12 +37,9 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "results", label: "RESULTS" },
 ];
 
-// Generate approximate fit data for DB products without exact measurements
 function generateApproximateFitData(product: SelectedProduct): ProductFitData {
   const cat = product.category === "bottoms" ? "bottoms" : "tops";
   const fitType = (product.fitType || "regular") as "slim" | "regular" | "relaxed" | "oversized";
-  
-  // Generate approximate size chart based on category and fit type
   const fitOffsets = { slim: 0, regular: 4, relaxed: 8, oversized: 14 };
   const offset = fitOffsets[fitType] || 4;
 
@@ -75,7 +75,9 @@ function generateApproximateFitData(product: SelectedProduct): ProductFitData {
 const FitPage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
+  const { subscription } = useSubscription();
   const [activeTab, setActiveTab] = useState<Tab>("scan");
+  const [fitMode, setFitMode] = useState<FitMode>("free");
   const [scanQuality, setScanQuality] = useState(0);
   const [measurements, setMeasurements] = useState<
     Record<keyof BodyMeasurements, { value: number; confidence: ConfidenceLevel }>
@@ -90,6 +92,9 @@ const FitPage = () => {
   const [fitResult, setFitResult] = useState<FitResult | null>(null);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
+  const [refining, setRefining] = useState(false);
+
+  const canUsePremium = subscription.isPremium;
 
   useEffect(() => { if (user) loadBodyProfile(); }, [user]);
 
@@ -121,18 +126,19 @@ const FitPage = () => {
     }, { onConflict: "user_id" });
   };
 
-  const handleScanComplete = useCallback((quality: number, estimatedMeasurements?: Record<string, number>) => {
+  const handleScanComplete = useCallback((quality: number, estimatedMeasurements?: Record<string, number>, mode?: FitMode) => {
     setScanQuality(quality);
-    // If scan returned estimated measurements, apply them
+    if (mode) setFitMode(mode);
     if (estimatedMeasurements) {
       setMeasurements(prev => {
         const updated = { ...prev };
-        if (estimatedMeasurements.height_cm) updated.heightCm = { value: estimatedMeasurements.height_cm, confidence: "medium" };
-        if (estimatedMeasurements.shoulder_width_cm) updated.shoulderWidthCm = { value: estimatedMeasurements.shoulder_width_cm, confidence: "medium" };
-        if (estimatedMeasurements.waist_cm) updated.waistCm = { value: estimatedMeasurements.waist_cm, confidence: "medium" };
-        if (estimatedMeasurements.inseam_cm) updated.inseamCm = { value: estimatedMeasurements.inseam_cm, confidence: "medium" };
-        if (estimatedMeasurements.chest_cm) updated.chestCm = { value: estimatedMeasurements.chest_cm, confidence: "low" };
-        if (estimatedMeasurements.hip_cm) updated.hipCm = { value: estimatedMeasurements.hip_cm, confidence: "low" };
+        const conf: ConfidenceLevel = mode === "premium" ? "high" : "medium";
+        if (estimatedMeasurements.height_cm) updated.heightCm = { value: estimatedMeasurements.height_cm, confidence: conf };
+        if (estimatedMeasurements.shoulder_width_cm) updated.shoulderWidthCm = { value: estimatedMeasurements.shoulder_width_cm, confidence: conf };
+        if (estimatedMeasurements.waist_cm) updated.waistCm = { value: estimatedMeasurements.waist_cm, confidence: conf };
+        if (estimatedMeasurements.inseam_cm) updated.inseamCm = { value: estimatedMeasurements.inseam_cm, confidence: conf };
+        if (estimatedMeasurements.chest_cm) updated.chestCm = { value: estimatedMeasurements.chest_cm, confidence: mode === "premium" ? "medium" : "low" };
+        if (estimatedMeasurements.hip_cm) updated.hipCm = { value: estimatedMeasurements.hip_cm, confidence: mode === "premium" ? "medium" : "low" };
         return updated;
       });
     }
@@ -141,7 +147,6 @@ const FitPage = () => {
 
   const handleMeasurementUpdate = useCallback((key: keyof BodyMeasurements, value: number) => {
     setMeasurements(prev => ({ ...prev, [key]: { value, confidence: "high" as ConfidenceLevel } }));
-    // Auto-save key measurements to DB
     if (user) {
       const saveMap: Partial<Record<keyof BodyMeasurements, () => void>> = {
         heightCm: () => supabase.from("body_profiles").update({ height_cm: value }).eq("user_id", user.id),
@@ -154,7 +159,6 @@ const FitPage = () => {
   }, [user]);
 
   const handleSelectProduct = useCallback((product: SelectedProduct) => {
-    // Get fit data - from mock if available, otherwise generate approximate
     let fitData: ProductFitData;
     if (product.source === "mock" && mockProductFitData[product.id]) {
       fitData = mockProductFitData[product.id];
@@ -169,10 +173,11 @@ const FitPage = () => {
     setSelectedProduct(product);
     setFitResult(result);
     setActiveTab("results");
-    fetchExplanation(result, product);
-  }, [measurements, scanQuality]);
+    // Only fetch AI explanation in free mode (lightweight); premium gets deeper explanation on refine
+    fetchExplanation(result, product, fitMode);
+  }, [measurements, scanQuality, fitMode]);
 
-  const fetchExplanation = async (result: FitResult, product: SelectedProduct) => {
+  const fetchExplanation = async (result: FitResult, product: SelectedProduct, mode: FitMode) => {
     setLoadingExplanation(true);
     setExplanation(null);
     try {
@@ -180,6 +185,7 @@ const FitPage = () => {
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
           type: "fit-explanation",
+          fitMode: mode,
           context: {
             summary: result.summary,
             recommendedSize: result.recommendedSize,
@@ -197,6 +203,58 @@ const FitPage = () => {
     } catch { /* fallback to summary */ } finally { setLoadingExplanation(false); }
   };
 
+  const handleRefineFit = useCallback(async () => {
+    if (!canUsePremium) {
+      toast("Premium subscription required for high-precision scan");
+      return;
+    }
+    if (!selectedProduct || !fitResult) return;
+    if (scanQuality < 65) {
+      toast.error("Scan quality too low for precision analysis. Please retake your scan with clearer images.");
+      return;
+    }
+
+    setRefining(true);
+    setFitMode("premium");
+
+    try {
+      // Re-fetch explanation with premium tier
+      const regions = fitResult.sizeResults.find(s => s.recommended)?.regions || [];
+      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
+        body: {
+          type: "fit-explanation",
+          fitMode: "premium",
+          context: {
+            summary: fitResult.summary,
+            recommendedSize: fitResult.recommendedSize,
+            alternateSize: fitResult.alternateSize,
+            fitScore: fitResult.sizeResults.find(s => s.recommended)?.fitScore,
+            productName: selectedProduct.name,
+            productBrand: selectedProduct.brand,
+            productCategory: selectedProduct.category,
+            productFitType: selectedProduct.fitType,
+            productDataQuality: fitResult.productDataQuality,
+            scanQuality: fitResult.scanQuality,
+            regionText: regions.map(r => `${r.region}: ${r.fit} (${r.delta}cm)`).join(", "),
+            allSizes: fitResult.sizeResults.map(s => ({
+              size: s.size,
+              score: s.fitScore,
+              regions: s.regions.map(r => `${r.region}:${r.fit}(${r.delta}cm)`).join(","),
+            })),
+          },
+        },
+      });
+      if (!error && data?.response) {
+        setExplanation(data.response);
+        toast.success("Refined fit analysis complete");
+      }
+    } catch {
+      toast.error("Refinement failed");
+    } finally {
+      setRefining(false);
+    }
+  }, [canUsePremium, selectedProduct, fitResult, scanQuality]);
+
   const fitResultProduct = selectedProduct ? {
     id: selectedProduct.id,
     name: selectedProduct.name,
@@ -209,14 +267,12 @@ const FitPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
-      {/* Header */}
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
           <span className="font-display text-[12px] font-medium tracking-[0.35em] text-foreground/80 md:text-[13px] lg:hidden">WARDROBE</span>
           <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT</span>
         </div>
 
-        {/* Tabs */}
         <div className="flex">
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-5 text-center md:pb-6">
@@ -237,7 +293,12 @@ const FitPage = () => {
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-12">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
-            {activeTab === "scan" && <FitBodyScan onScanComplete={handleScanComplete} />}
+            {activeTab === "scan" && (
+              <FitBodyScan
+                onScanComplete={handleScanComplete}
+                canUsePremium={canUsePremium}
+              />
+            )}
             {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} />}
             {activeTab === "check" && <FitProductCheck onSelectProduct={handleSelectProduct} />}
             {activeTab === "results" && fitResult && fitResultProduct ? (
@@ -246,6 +307,10 @@ const FitPage = () => {
                 product={fitResultProduct}
                 explanation={explanation}
                 loadingExplanation={loadingExplanation}
+                fitMode={fitMode}
+                canUsePremium={canUsePremium}
+                refining={refining}
+                onRefineFit={handleRefineFit}
                 onRescan={() => setActiveTab("scan")}
                 onEditMeasurements={() => setActiveTab("measurements")}
               />
