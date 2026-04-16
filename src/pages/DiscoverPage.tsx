@@ -108,8 +108,18 @@ const DiscoverPage = () => {
   }, [moodParam]);
 
   useEffect(() => {
-    if (user) loadSavedIds();
+    if (user) {
+      loadSavedIds();
+      loadStyleProfile();
+    }
   }, [user]);
+
+  // Load user style profile for preference mode
+  const loadStyleProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle();
+    setUserStyleProfile(data);
+  };
 
   useEffect(() => {
     if (activeTab !== "for-you" && activeTab !== "featured") {
