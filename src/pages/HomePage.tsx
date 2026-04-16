@@ -129,18 +129,6 @@ const HomePage = () => {
           </button>
         </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 1.2 }}
-          className="absolute bottom-14 z-10 text-[11px] font-medium tracking-[0.18em] text-foreground/40 md:bottom-18 md:text-[12px] lg:bottom-22 lg:text-[13px]"
-        >
-          {weather.loading
-            ? "…"
-            : weather.error
-              ? `${weather.temp}° · ${weatherLabel}`
-              : `${weather.location} · ${weather.temp}° · ${weatherLabel}`}
-        </motion.p>
       </section>
     </div>
   );
