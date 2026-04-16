@@ -98,7 +98,7 @@ async function callAI(
   tier: AITier,
   systemPrompt: string,
   userPrompt: string,
-  opts: { maxTokens?: number; temperature?: number } = {}
+  opts: { maxTokens?: number; temperature?: number; timeoutMs?: number } = {}
 ): Promise<{ content: string; citations: string[]; tier: AITier }> {
   const usePerplexity = tier !== "free";
   const perplexityModel = tier === "premium" ? "sonar-pro" : "sonar";
@@ -107,7 +107,7 @@ async function callAI(
 
   try {
     if (usePerplexity) {
-      const result = await callPerplexity(systemPrompt, userPrompt, { maxTokens, temperature, model: perplexityModel });
+      const result = await callPerplexity(systemPrompt, userPrompt, { maxTokens, temperature, model: perplexityModel, timeoutMs: opts.timeoutMs });
       return { ...result, tier };
     } else {
       const result = await callLovableAI(systemPrompt, userPrompt, { maxTokens, temperature });
