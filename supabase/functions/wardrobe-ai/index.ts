@@ -212,6 +212,32 @@ function buildPersonalizationContext(userInfo: { styleProfile: any; bodyProfile:
   return parts.length > 0 ? `\n\nUser personalization data:\n${parts.join("\n")}` : "";
 }
 
+// ─── Unconscious behavior insight for search ───
+
+function buildBehaviorInsight(userInfo: { styleProfile: any; recentInteractions: any[] }): string {
+  const parts: string[] = [];
+  
+  // Analyze interaction patterns
+  const likes = userInfo.recentInteractions.filter(i => i.event_type === "like");
+  const dislikes = userInfo.recentInteractions.filter(i => i.event_type === "dislike");
+  const saves = userInfo.recentInteractions.filter(i => i.event_type === "save");
+  const views = userInfo.recentInteractions.filter(i => i.event_type === "view");
+  
+  if (likes.length > 3) {
+    // Extract patterns from metadata
+    const likedMeta = likes.map(l => l.metadata).filter(Boolean);
+    const likedTabs = likedMeta.map((m: any) => m.tab).filter(Boolean);
+    const uniqueTabs = [...new Set(likedTabs)];
+    if (uniqueTabs.length > 0) parts.push(`User gravitates toward: ${uniqueTabs.join(", ")} categories`);
+  }
+  
+  if (saves.length > 2) parts.push("User actively saves items — they're a deliberate shopper");
+  if (dislikes.length > likes.length) parts.push("User is selective — prioritize quality over variety");
+  if (views.length > 15) parts.push("User browses extensively — show diverse options");
+  
+  return parts.length > 0 ? `\n\nBehavior insight:\n${parts.join("\n")}` : "";
+}
+
 // ─── Product cache helpers ───
 
 function isValidImageUrl(url: unknown): boolean {
