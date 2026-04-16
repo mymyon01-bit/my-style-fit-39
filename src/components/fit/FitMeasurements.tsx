@@ -224,7 +224,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
 
       {/* Height & Weight */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">BASIC INFO</p>
+        <p className="text-[11px] font-bold tracking-[0.2em] text-foreground">BASIC INFO</p>
         
         <div className="space-y-4">
           <div>
