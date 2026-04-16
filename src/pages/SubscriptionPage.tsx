@@ -307,7 +307,7 @@ const SubscriptionPage = () => {
                 </div>
               )}
               {plan.savings && (
-                <div className="absolute -top-2.5 right-5 rounded-full bg-green-500/80 px-3 py-0.5 text-[9px] font-medium tracking-wider text-white uppercase">
+                <div className="absolute -top-2.5 right-5 rounded-full bg-emerald-500/80 px-3 py-0.5 text-[9px] font-medium tracking-wider text-foreground uppercase">
                   {plan.savings}
                 </div>
               )}
