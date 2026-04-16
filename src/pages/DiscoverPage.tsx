@@ -997,11 +997,9 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
             <Bookmark className="h-3 w-3" fill={isSaved ? "currentColor" : "none"} />
           </button>
           <ShareButton
-            title={item.name}
-            text={`Check out ${item.name} by ${item.brand}`}
+            title={`${item.name} by ${item.brand}`}
             url={item.source_url || window.location.href}
             className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-md hover:text-white"
-            iconSize={12}
           />
         </div>
         {item.source_url && (
