@@ -39,6 +39,7 @@ const DiscoverPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const moodParam = searchParams.get("mood");
+  const sourceParam = searchParams.get("source");
   const { tree: categoryTree } = useCategories();
 
   const [activeTab, setActiveTab] = useState("for-you");
