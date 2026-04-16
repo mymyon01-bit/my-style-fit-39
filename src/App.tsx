@@ -27,6 +27,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const InstallPage = lazy(() => import("@/pages/InstallPage"));
 const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
+const UserProfilePage = lazy(() => import("@/pages/UserProfilePage"));
 const AdminLayout = lazy(() => import("@/pages/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("@/pages/admin/AdminOverview"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
@@ -100,6 +101,7 @@ const AppRoutes = () => {
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
             <Route path="/ootd" element={<OOTDPage />} />
+            <Route path="/user/:userId" element={<UserProfilePage />} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           </Route>
 
