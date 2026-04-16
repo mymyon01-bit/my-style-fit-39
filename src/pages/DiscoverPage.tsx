@@ -1,4 +1,5 @@
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -44,6 +45,7 @@ const INITIAL_VISIBLE = 8;
 
 const DiscoverPage = () => {
   const { user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const moodParam = searchParams.get("mood");
