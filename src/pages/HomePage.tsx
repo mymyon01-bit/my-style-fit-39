@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { ArrowRight, Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const HomePage = () => {
   const { t } = useI18n();
@@ -36,14 +37,17 @@ const HomePage = () => {
       <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 
-        <motion.span
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
-          className="absolute top-10 z-10 font-display text-[12px] font-semibold tracking-[0.4em] text-foreground/60 md:text-[13px] lg:hidden"
+          className="absolute top-8 z-10 flex w-full items-center justify-between px-8 lg:hidden"
         >
-          WARDROBE
-        </motion.span>
+          <span className="font-display text-[12px] font-semibold tracking-[0.4em] text-foreground/60 md:text-[13px]">
+            WARDROBE
+          </span>
+          <LanguageSelector />
+        </motion.div>
 
         <div className="relative z-10 w-full max-w-md px-8 sm:max-w-lg md:max-w-xl lg:max-w-2xl">
           <motion.div
