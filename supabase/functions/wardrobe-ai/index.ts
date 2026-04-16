@@ -245,7 +245,8 @@ Return format:
       "name": "Product Name",
       "brand": "Brand Name",
       "price": "$XXX",
-      "category": "tops|bottoms|outerwear|shoes|accessories|bags|jewelry",
+      "category": "clothing|bags|shoes|accessories",
+      "subcategory": "e.g. sneakers|tote|formal|casual|boots|watch|belt",
       "reason": "Short explanation why this fits the user",
       "style_tags": ["tag1", "tag2"],
       "color": "#hex color of the item",
@@ -257,9 +258,16 @@ Return format:
   ]
 }
 
+Category structure:
+- clothing → men, women, unisex, formal, casual, street, sportswear
+- bags → handbag, tote, crossbody, clutch, backpack
+- shoes → sneakers, dress-shoes, boots, sandals
+- accessories → belt, watch, sunglasses, hat, jewelry
+
 Rules:
 - Recommend REAL brands and realistic products
 - Match the user's stated preferences precisely
+- Always assign the correct category AND subcategory from the structure above
 - Include variety across categories unless a specific category is requested
 - Prices should be realistic for the brand
 - Colors should be hex values
@@ -267,7 +275,8 @@ Rules:
 - Each id must be unique (use brand-name-slug format)
 - For image_url: Use real Unsplash fashion image URLs. Format: https://images.unsplash.com/photo-{id}?w=400&q=80
 - For source_url: Provide the REAL product page URL on the brand's official website or major retailer (e.g. nordstrom.com, ssense.com, zara.com, uniqlo.com). This must be a real, navigable URL.
-- For store_name: Name of the retailer or brand store${excludeClause}${personalization}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream\n- Consider body profile for fit recommendations" : ""}`;
+- For store_name: Name of the retailer or brand store
+- Use style_tags to describe the item's aesthetic (e.g. minimal, street, classic, edgy, chic, vintage, bohemian, sporty)${excludeClause}${personalization}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream\n- Consider body profile for fit recommendations" : ""}`;
 
       const quizContext = quizAnswers
         ? `\nQuiz answers: Styles: ${quizAnswers.preferredStyles?.join(", ")}. Fit: ${quizAnswers.fitPreference}. Colors: ${quizAnswers.colorPreference}. Vibe: ${quizAnswers.dailyVibe}. Occasion: ${quizAnswers.occasionPreference}. Budget: ${quizAnswers.budgetRange}. Avoid: ${quizAnswers.dislikedStyles?.join(", ")}.`

@@ -1,0 +1,127 @@
+/**
+ * WARDROBE Search Suggestion Engine
+ * Maps user input to structured tags and generates relevant suggestions.
+ */
+
+interface SuggestionResult {
+  suggestions: string[];
+  matchedTags: {
+    category?: string;
+    subcategory?: string;
+    style?: string;
+    fit?: string;
+    color?: string;
+  };
+}
+
+const STYLE_KEYWORDS: Record<string, string[]> = {
+  minimal: ["minimal", "minimalist", "clean", "simple", "basic"],
+  street: ["street", "streetwear", "urban", "hype", "skate"],
+  classic: ["classic", "timeless", "traditional", "preppy", "ivy"],
+  formal: ["formal", "office", "business", "professional", "suit", "dress code"],
+  casual: ["casual", "relaxed", "everyday", "chill", "laid-back", "comfy"],
+  sporty: ["sporty", "athletic", "sport", "gym", "active", "workout"],
+  edgy: ["edgy", "punk", "grunge", "dark", "gothic", "alternative"],
+  chic: ["chic", "elegant", "sophisticated", "luxury", "premium", "high-end"],
+  bohemian: ["boho", "bohemian", "hippie", "free-spirited", "flowy"],
+  vintage: ["vintage", "retro", "90s", "80s", "y2k", "old school"],
+};
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  clothing: ["clothing", "clothes", "wear", "outfit", "apparel", "garment"],
+  tops: ["top", "shirt", "tee", "t-shirt", "blouse", "sweater", "hoodie", "pullover", "knit", "polo", "tank"],
+  bottoms: ["pants", "trousers", "jeans", "shorts", "skirt", "chinos", "joggers", "slacks"],
+  outerwear: ["jacket", "coat", "blazer", "parka", "bomber", "windbreaker", "cardigan", "vest", "puffer", "trench", "overcoat"],
+  bags: ["bag", "handbag", "tote", "crossbody", "clutch", "backpack", "purse", "satchel", "duffel"],
+  shoes: ["shoes", "sneakers", "boots", "sandals", "loafers", "heels", "flats", "trainers", "oxfords", "derby", "mules"],
+  accessories: ["accessory", "accessories", "belt", "watch", "sunglasses", "hat", "jewelry", "ring", "necklace", "bracelet", "scarf", "gloves", "tie", "cap"],
+};
+
+const FIT_KEYWORDS: Record<string, string[]> = {
+  oversized: ["oversized", "baggy", "loose", "relaxed fit", "wide", "boxy", "oversize"],
+  regular: ["regular", "standard", "normal", "medium"],
+  slim: ["slim", "fitted", "skinny", "tight", "tailored", "narrow"],
+};
+
+const COLOR_KEYWORDS: Record<string, string[]> = {
+  neutral: ["neutral", "beige", "cream", "tan", "khaki", "off-white", "ivory", "nude", "camel"],
+  dark: ["dark", "black", "charcoal", "navy", "midnight", "onyx", "deep"],
+  bold: ["bold", "red", "yellow", "orange", "bright", "vibrant", "colorful", "neon", "pink", "purple"],
+  earth: ["earth", "brown", "olive", "green", "forest", "rust", "burgundy", "terracotta", "sage"],
+  pastel: ["pastel", "light blue", "lavender", "mint", "peach", "blush", "baby"],
+  mixed: ["mixed", "pattern", "print", "plaid", "stripe", "check", "floral"],
+};
+
+function findMatches(input: string, map: Record<string, string[]>): string[] {
+  const lower = input.toLowerCase();
+  return Object.entries(map)
+    .filter(([, keywords]) => keywords.some(kw => lower.includes(kw)))
+    .map(([key]) => key);
+}
+
+export function generateSuggestions(input: string): SuggestionResult {
+  if (!input || input.trim().length < 2) {
+    return { suggestions: [], matchedTags: {} };
+  }
+
+  const styles = findMatches(input, STYLE_KEYWORDS);
+  const categories = findMatches(input, CATEGORY_KEYWORDS);
+  const fits = findMatches(input, FIT_KEYWORDS);
+  const colors = findMatches(input, COLOR_KEYWORDS);
+
+  const matchedTags = {
+    style: styles[0],
+    category: categories[0],
+    fit: fits[0],
+    color: colors[0],
+  };
+
+  const suggestions: string[] = [];
+  const lower = input.toLowerCase().trim();
+
+  // Generate contextual suggestions based on matched tags
+  if (fits.length && categories.length) {
+    suggestions.push(`${fits[0]} ${categories[0]}`);
+  }
+  if (styles.length && categories.length) {
+    suggestions.push(`${styles[0]} ${categories[0]}`);
+  }
+  if (styles.length && !categories.length) {
+    suggestions.push(`${styles[0]} outerwear`);
+    suggestions.push(`${styles[0]} tops`);
+    suggestions.push(`${styles[0]} accessories`);
+  }
+  if (categories.length && !styles.length) {
+    suggestions.push(`casual ${categories[0]}`);
+    suggestions.push(`minimal ${categories[0]}`);
+    suggestions.push(`street ${categories[0]}`);
+  }
+  if (fits.length && !categories.length) {
+    suggestions.push(`${fits[0]} jackets`);
+    suggestions.push(`${fits[0]} tops`);
+  }
+  if (colors.length) {
+    const cat = categories[0] || "items";
+    suggestions.push(`${colors[0]} ${cat}`);
+  }
+
+  // Always add the original query as a refinement
+  if (!suggestions.includes(lower)) {
+    suggestions.unshift(lower);
+  }
+
+  // Deduplicate and limit
+  const unique = [...new Set(suggestions)].slice(0, 5);
+
+  return { suggestions: unique, matchedTags };
+}
+
+// Pre-defined trending suggestions for empty state
+export const TRENDING_SEARCHES = [
+  "minimal outerwear",
+  "oversized jackets",
+  "casual sneakers",
+  "dark accessories",
+  "street bags",
+  "chic formal",
+];

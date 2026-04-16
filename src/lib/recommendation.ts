@@ -16,7 +16,7 @@ export interface Product {
   brand: string;
   price: number;
   image: string;
-  category: "tops" | "bottoms" | "outerwear" | "shoes" | "accessories";
+  category: "clothing" | "bags" | "shoes" | "accessories" | "tops" | "bottoms" | "outerwear";
   fitScore: number;
   reason: string;
   recommendedSize: string;
