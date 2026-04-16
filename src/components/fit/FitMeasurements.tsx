@@ -224,7 +224,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
 
       {/* Height & Weight */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">BASIC INFO</p>
+        <p className="text-[11px] font-bold tracking-[0.2em] text-foreground">BASIC INFO</p>
         
         <div className="space-y-4">
           <div>
@@ -267,7 +267,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
 
       {/* Body Type */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-4">BODY TYPE</p>
+        <p className="text-[11px] font-bold tracking-[0.2em] text-foreground">BODY TYPE</p>
         <div className="grid grid-cols-4 gap-2">
           {BODY_TYPES.map(bt => (
             <motion.button
@@ -298,7 +298,10 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
 
       {/* Body Hints */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-4">BODY SHAPE HINTS</p>
+        <div className="flex items-center gap-2 mb-4">
+          <p className="text-[11px] font-bold tracking-[0.2em] text-foreground">BODY SHAPE HINTS</p>
+          <span className="text-[9px] font-semibold text-destructive/80 tracking-[0.1em]">(OPTIONAL)</span>
+        </div>
         <p className="text-[11px] text-foreground/50 mb-3">Tap what applies — helps fine-tune fit</p>
         <div className="flex flex-wrap gap-2">
           {BODY_HINTS.map(hint => (
@@ -319,8 +322,11 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
 
       {/* Free Text Description */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 mb-3">DESCRIBE YOUR BODY</p>
-        <p className="text-[11px] text-foreground/50 mb-3">Optional — AI will interpret this to improve fit</p>
+        <div className="flex items-center gap-2 mb-3">
+          <p className="text-[11px] font-bold tracking-[0.2em] text-foreground">DESCRIBE YOUR BODY</p>
+          <span className="text-[9px] font-semibold text-destructive/80 tracking-[0.1em]">(OPTIONAL)</span>
+        </div>
+        <p className="text-[11px] text-foreground/50 mb-3">AI will interpret this to improve fit</p>
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
@@ -378,7 +384,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
           >
             <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 overflow-hidden">
               <div className="px-5 py-3 border-b border-foreground/[0.04]">
-                <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">DETAILED MEASUREMENTS</p>
+                <p className="text-[11px] font-bold tracking-[0.2em] text-foreground">DETAILED MEASUREMENTS</p>
                 <p className="text-[10px] text-foreground/40 mt-0.5">Edit to override AI estimates</p>
               </div>
               <div className="divide-y divide-foreground/[0.04]">
