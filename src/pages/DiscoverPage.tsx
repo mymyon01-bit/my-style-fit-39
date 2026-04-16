@@ -740,6 +740,54 @@ const DiscoverPage = () => {
                     {isLoadingMore ? t("loading").toUpperCase() : t("loadMore").toUpperCase()}
                   </button>
                 </div>
+
+                {/* AI Recommendation: New Style You Might Like */}
+                {user && (
+                  <div className="space-y-5 border-t border-border/15 pt-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="h-3.5 w-3.5 text-accent/50" />
+                        <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
+                          {t("newStyleYouMightLike").toUpperCase()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={generateNewStyleRecs}
+                        disabled={loadingNewStyle}
+                        className="hover-burgundy flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.04] px-4 py-2 text-[9px] font-semibold tracking-[0.15em] text-accent/60 transition-all hover:bg-accent/[0.08] disabled:opacity-40"
+                      >
+                        {loadingNewStyle ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        {t("tryNewStyle").toUpperCase()}
+                      </button>
+                    </div>
+
+                    {newStyleRecs.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                        {newStyleRecs.map((item, i) => (
+                          <RecommendationCard
+                            key={item.id}
+                            item={item}
+                            index={i}
+                            feedbackMap={feedbackMap}
+                            savedIds={savedIds}
+                            onFeedback={handleFeedback}
+                            onSave={handleSave}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {newStyleRecs.length === 0 && !loadingNewStyle && (
+                      <p className="text-center text-[11px] text-foreground/25 py-6">
+                        {t("tryNewStyle")} — discover something unexpected
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : hasGenerated && recommendations.length === 0 ? (
               <div className="py-20 text-center space-y-4">
