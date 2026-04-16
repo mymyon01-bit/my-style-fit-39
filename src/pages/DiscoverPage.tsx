@@ -2,7 +2,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, ChevronDown, X, Wand2 } from "lucide-react";
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, forwardRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
 import { AuthGate } from "@/components/AuthGate";
@@ -16,6 +16,61 @@ import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
 import OutfitLookCard from "@/components/OutfitLookCard";
 import ProductDetailSheet from "@/components/ProductDetailSheet";
 import PreferenceBanner from "@/components/PreferenceBanner";
+
+// ── Direct DB query for instant initial load (no edge function overhead) ──
+async function directDbLoad(opts: {
+  styles?: string[];
+  fit?: string;
+  limit?: number;
+  excludeIds?: string[];
+}): Promise<AIRecommendation[]> {
+  try {
+    let query = supabase
+      .from("product_cache")
+      .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform, reason")
+      .eq("is_active", true)
+      .not("image_url", "is", null)
+      .order("trend_score", { ascending: false })
+      .limit(opts.limit || 12);
+
+    if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+    if (opts.fit) query = query.eq("fit", opts.fit);
+    if (opts.excludeIds?.length) query = query.not("id", "in", `(${opts.excludeIds.join(",")})`);
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data
+      .filter((p: any) => p.image_url?.startsWith("https"))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        reason: p.reason || "Curated for you",
+        style_tags: p.style_tags || [],
+        color: (p.color_tags || [])[0] || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ── Inflight request deduplication ──
+const inflightRequests = new Map<string, Promise<any>>();
+function deduplicatedSearch(key: string, fn: () => Promise<any>): Promise<any> {
+  const existing = inflightRequests.get(key);
+  if (existing) return existing;
+  const promise = fn().finally(() => inflightRequests.delete(key));
+  inflightRequests.set(key, promise);
+  return promise;
+}
 
 interface AIRecommendation {
   id: string;
@@ -484,7 +539,7 @@ function buildStyleSearchQueries(profile: any, searchText?: string): string[] {
   return [...new Set(queries)].slice(0, 3);
 }
 
-// ─── Hybrid product search: DB-first + external expansion ───
+// ─── Hybrid product search: DB-first + external expansion (with request dedup) ───
 async function hybridProductSearch(opts: {
   query?: string;
   category?: string;
@@ -494,51 +549,55 @@ async function hybridProductSearch(opts: {
   excludeIds?: string[];
   expandExternal?: boolean;
   randomize?: boolean;
-  freshSearch?: boolean; // NEW: forces external-first retrieval
+  freshSearch?: boolean;
 }): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
-  try {
-    const { data, error } = await supabase.functions.invoke("product-search", {
-      body: {
-        query: opts.query || "",
-        category: opts.category,
-        styles: opts.styles,
-        fit: opts.fit,
-        limit: opts.limit || 16,
-        excludeIds: opts.excludeIds || [],
-        expandExternal: opts.expandExternal ?? false,
-        randomize: opts.randomize ?? true,
-        freshSearch: opts.freshSearch ?? false,
-      },
-    });
-    if (error) throw error;
+  const dedupKey = `product-search:${opts.query}:${opts.category}:${opts.expandExternal}:${opts.freshSearch}`;
 
-    const products = (data?.products || [])
-      .filter((p: any) => p.image_url?.startsWith("https"))
-      .map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.brand || "",
-        price: p.price || "",
-        category: p.category || "",
-        reason: p.reason || "Curated for you",
-        style_tags: p.style_tags || [],
-        color: p.color || "",
-        fit: p.fit || "regular",
-        image_url: p.image_url,
-        source_url: p.source_url,
-        store_name: p.store_name,
-        platform: p.platform || null,
-      }));
+  return deduplicatedSearch(dedupKey, async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("product-search", {
+        body: {
+          query: opts.query || "",
+          category: opts.category,
+          styles: opts.styles,
+          fit: opts.fit,
+          limit: opts.limit || 16,
+          excludeIds: opts.excludeIds || [],
+          expandExternal: opts.expandExternal ?? false,
+          randomize: opts.randomize ?? true,
+          freshSearch: opts.freshSearch ?? false,
+        },
+      });
+      if (error) throw error;
 
-    return {
-      products,
-      expanded: data?.expanded || false,
-      dbCount: data?.dbCount || 0,
-    };
-  } catch (e) {
-    console.error("Hybrid search error:", e);
-    return { products: [], expanded: false, dbCount: 0 };
-  }
+      const products = (data?.products || [])
+        .filter((p: any) => p.image_url?.startsWith("https"))
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand || "",
+          price: p.price || "",
+          category: p.category || "",
+          reason: p.reason || "Curated for you",
+          style_tags: p.style_tags || [],
+          color: p.color || "",
+          fit: p.fit || "regular",
+          image_url: p.image_url,
+          source_url: p.source_url,
+          store_name: p.store_name,
+          platform: p.platform || null,
+        }));
+
+      return {
+        products,
+        expanded: data?.expanded || false,
+        dbCount: data?.dbCount || 0,
+      };
+    } catch (e) {
+      console.error("Hybrid search error:", e);
+      return { products: [], expanded: false, dbCount: 0 };
+    }
+  });
 }
 
 // ─── Tag-based fallback: direct DB query when network is slow ───
@@ -834,7 +893,27 @@ const DiscoverPage = () => {
   }, [textInput]);
 
 
-  // ── INSTANT INITIAL LOAD: DB-first small batch, then background expansion ──
+  // ── Infinite scroll: auto load-more via IntersectionObserver ──
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const isAutoLoading = useRef(false);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasGenerated && recommendations.length > 0 && !isLoadingMore && !isGenerating && !isAutoLoading.current) {
+          isAutoLoading.current = true;
+          loadMore().finally(() => { isAutoLoading.current = false; });
+        }
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasGenerated, recommendations.length, isLoadingMore, isGenerating]);
+
+  // ── INSTANT INITIAL LOAD: Direct DB query (no edge function), then background expansion ──
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
@@ -845,26 +924,21 @@ const DiscoverPage = () => {
 
       const TARGET_COUNT = 12;
 
-      // Use style profile for personalized initial load
-      const styleQuery = userStyleProfile
-        ? buildStyleSearchQueries(userStyleProfile)[0]
-        : undefined;
-
-      // Step 1: Fast DB load — large initial batch with style-aware query
-      const { products: dbProducts, dbCount } = await hybridProductSearch({
-        query: styleQuery,
-        styles: userStyleProfile?.preferred_styles?.length ? userStyleProfile.preferred_styles.slice(0, 3) : undefined,
-        fit: userStyleProfile?.preferred_fit || undefined,
+      // Step 1: INSTANT — Direct DB query, bypasses edge function for zero latency
+      const userStyles = userStyleProfile?.preferred_styles?.slice(0, 3);
+      const userFit = userStyleProfile?.preferred_fit;
+      const dbProducts = await directDbLoad({
+        styles: userStyles?.length ? userStyles : undefined,
+        fit: userFit || undefined,
         limit: TARGET_COUNT,
-        randomize: !styleQuery,
       });
 
       if (dbProducts.length > 0) {
-        // Score results if we have a style profile
         let scoredProducts = dbProducts;
         if (userStyleProfile) {
+          const styleQuery = buildStyleSearchQueries(userStyleProfile)[0] || "";
           scoredProducts = dbProducts
-            .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQuery || "", userStyleProfile, feedbackMap) }))
+            .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQuery, userStyleProfile, feedbackMap) }))
             .sort((a, b) => (b as any)._freeScore - (a as any)._freeScore);
         }
 
@@ -872,42 +946,28 @@ const DiscoverPage = () => {
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
-        setHasMoreInDB(dbCount >= TARGET_COUNT);
+        setHasMoreInDB(true);
         setIsGenerating(false);
 
-        // Step 2: Background expansion to grow inventory
-        if (diverse.length < TARGET_COUNT) {
-          requestIdleCallback(() => {
-            const styleQueries = userStyleProfile
-              ? buildStyleSearchQueries(userStyleProfile)
-              : ["trending fashion new arrivals"];
-            
-            hybridProductSearch({
-              query: styleQueries[0],
-              expandExternal: true,
-              limit: TARGET_COUNT - diverse.length,
-              excludeIds: Array.from(sessionSeenIds),
-            }).then(({ products: freshProducts }) => {
-              if (freshProducts.length > 0) {
-                const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
-                freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-                setRecommendations(prev => enforceClientDiversity([...prev, ...freshDiverse], new Set()));
-              }
-            });
-          });
-        }
+        // Step 2: Background expansion via edge function (non-blocking)
+        setTimeout(() => {
+          const styleQueries = userStyleProfile
+            ? buildStyleSearchQueries(userStyleProfile)
+            : ["trending fashion new arrivals"];
 
-        // Step 3: Background seeding — trigger category-diverse queries to grow DB
-        requestIdleCallback(() => {
-          const seedQueries = [
-            "minimal clean outerwear jacket",
-            "casual streetwear sneakers",
-            "classic leather bag tote",
-            "trendy accessories hat watch",
-          ];
-          const randomSeed = seedQueries[Math.floor(Math.random() * seedQueries.length)];
-          hybridProductSearch({ query: randomSeed, expandExternal: true, limit: 8 }).catch(() => {});
-        });
+          hybridProductSearch({
+            query: styleQueries[0],
+            expandExternal: true,
+            limit: TARGET_COUNT,
+            excludeIds: Array.from(sessionSeenIds),
+          }).then(({ products: freshProducts }) => {
+            if (freshProducts.length > 0) {
+              const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
+              freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+              setRecommendations(prev => enforceClientDiversity([...prev, ...freshDiverse], new Set()));
+            }
+          }).catch(() => {});
+        }, 100);
       } else {
         // No DB products — force external expansion
         const { products: apiProducts } = await hybridProductSearch({
@@ -2119,21 +2179,13 @@ const DiscoverPage = () => {
                   </div>
                 )}
 
-                {/* Load More */}
-                <div className="flex justify-center pt-4 pb-8">
-                  <button
-                    onClick={loadMore}
-                    disabled={isLoadingMore}
-                    className="hover-burgundy flex items-center gap-2 rounded-lg border border-border/30 px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/65 transition-all hover:border-accent/30 hover:bg-accent/[0.04] disabled:opacity-40"
-                  >
-                    {isLoadingMore ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    )}
-                    {isLoadingMore ? t("loading").toUpperCase() : t("loadMore").toUpperCase()}
-                  </button>
-                </div>
+                {/* Auto load-more sentinel + manual button */}
+                <div ref={loadMoreSentinelRef} className="h-1" />
+                {isLoadingMore && (
+                  <div className="flex justify-center pt-4 pb-8">
+                    <Loader2 className="h-4 w-4 animate-spin text-accent/50" />
+                  </div>
+                )}
 
                 {/* AI Recommendation: New Style */}
                 {user && (
@@ -2237,23 +2289,27 @@ interface RecommendationCardProps {
   onOpenDetail: (item: AIRecommendation) => void;
 }
 
-const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave, onOpenDetail }: RecommendationCardProps) => {
+const RecommendationCard = forwardRef<HTMLDivElement, RecommendationCardProps>(
+  ({ item, index, feedbackMap, savedIds, onFeedback, onSave, onOpenDetail }, ref) => {
   const feedback = feedbackMap[item.id];
   const isSaved = savedIds.has(item.id);
   const [imgFailed, setImgFailed] = useState(false);
 
-  // If image is missing or failed to load, don't render the card at all
   if (!item.image_url || !item.image_url.startsWith("http") || imgFailed) return null;
 
+  const isAboveFold = index < 4;
+
   return (
-    <div className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
+    <div ref={ref} className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
         <img
           src={item.image_url}
           alt={item.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading={index < 4 ? "eager" : "lazy"}
+          loading={isAboveFold ? "eager" : "lazy"}
           decoding="async"
+          fetchPriority={isAboveFold ? "high" : "auto"}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           onError={() => setImgFailed(true)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -2314,6 +2370,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
       </div>
     </div>
   );
-};
+});
+RecommendationCard.displayName = "RecommendationCard";
 
 export default DiscoverPage;
