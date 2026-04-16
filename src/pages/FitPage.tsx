@@ -151,12 +151,12 @@ const FitPage = () => {
       };
       const dbKey = dbMap[key];
       if (dbKey) {
-        supabase.from("body_profiles").upsert({
-          user_id: user.id,
-          [dbKey]: value,
-        }, { onConflict: "user_id" }).then(({ error }) => {
-          if (error) console.error("Auto-save error:", error);
-        });
+        supabase.from("body_profiles")
+          .update({ [dbKey]: value })
+          .eq("user_id", user.id)
+          .then(({ error }) => {
+            if (error) console.error("Auto-save error:", error);
+          });
       }
     }
   }, [user]);
