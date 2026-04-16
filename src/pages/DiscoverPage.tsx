@@ -324,20 +324,28 @@ function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRe
   return balanced;
 }
 
-// ── Apply strict relevance filter + sort ──
-function filterByRelevance(items: AIRecommendation[], intent: QueryIntent): AIRecommendation[] {
+// ── Apply relevance filter with progressive fallback ──
+function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTarget = MIN_RESULT_TARGET): AIRecommendation[] {
   const scored = items.map(item => ({
     item,
     relevance: scoreRelevance(item, intent),
   }));
 
-  // Hard filter: discard items below threshold
-  const passing = scored.filter(s => s.relevance >= RELEVANCE_THRESHOLD);
-
   // Sort by relevance descending
-  passing.sort((a, b) => b.relevance - a.relevance);
+  scored.sort((a, b) => b.relevance - a.relevance);
 
-  return passing.map(s => s.item);
+  // Progressive threshold: try strict first, then soften
+  const thresholds = [RELEVANCE_THRESHOLD, 10, 5];
+  for (const threshold of thresholds) {
+    const passing = scored.filter(s => s.relevance >= threshold);
+    if (passing.length >= minTarget || threshold === 5) {
+      console.log(`Relevance filter: ${passing.length} items passed at threshold ${threshold} (from ${items.length})`);
+      return passing.map(s => s.item);
+    }
+  }
+
+  // If nothing passes even threshold 5, return top items by score (never fully empty)
+  return scored.filter(s => s.relevance > 0).map(s => s.item);
 }
 
 // Emotion / Intent mapping for feed scoring (non-search contexts)
