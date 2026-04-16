@@ -72,6 +72,19 @@ const HomePage = () => {
               isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/20"
             }`} />
 
+            {/* Weather info below the line */}
+            {!weather.loading && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6, duration: 1 }}
+                className="mt-5 text-center text-[11px] font-medium tracking-[0.12em] text-foreground/35 md:text-[12px]"
+              >
+                {t("todaysTemp")} {weather.temp}° {t("weatherIs")} {weatherLabel.toLowerCase()}
+                {weather.location && !weather.error ? ` · ${weather.location}` : ""}
+              </motion.p>
+            )}
+
             {isLoading && (
               <div className="mt-7 flex justify-center md:mt-8 lg:mt-10">
                 <Loader2 className="h-4 w-4 animate-spin text-foreground/50" />
