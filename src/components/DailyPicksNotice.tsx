@@ -109,23 +109,26 @@ const DailyPicksNotice = () => {
           transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="fixed left-0 right-0 top-0 z-50"
         >
-          <div className="flex items-center justify-between gap-3 bg-accent/[0.06] px-4 py-2.5 backdrop-blur-md md:px-6">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Sparkles className="h-3 w-3 shrink-0 text-accent/70" />
-              <p className="truncate text-[11px] font-medium text-foreground/70 md:text-[12px]">
+          <div className="relative flex items-center justify-between gap-3 overflow-hidden bg-gradient-to-r from-amber-950/90 via-amber-900/80 to-yellow-900/70 px-4 py-2.5 backdrop-blur-md md:px-6">
+            {/* shimmer sweep */}
+            <div className="pointer-events-none absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-amber-300/10 to-transparent" />
+
+            <div className="relative flex items-center gap-2.5 min-w-0">
+              <Sparkles className="h-3 w-3 shrink-0 text-amber-400/90" />
+              <p className="truncate text-[11px] font-medium text-amber-100/90 md:text-[12px]">
                 {msg}
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="relative flex items-center gap-2 shrink-0">
               <button
                 onClick={handleAction}
-                className="rounded-md bg-accent/10 px-3 py-1 text-[10px] font-semibold tracking-[0.1em] text-accent transition-colors hover:bg-accent/20"
+                className="rounded-md bg-amber-400/20 px-3 py-1 text-[10px] font-semibold tracking-[0.1em] text-amber-300 transition-colors hover:bg-amber-400/30 border border-amber-400/20"
               >
                 VIEW
               </button>
               <button
                 onClick={dismiss}
-                className="flex h-5 w-5 items-center justify-center rounded-full text-foreground/30 transition-colors hover:text-foreground/60"
+                className="flex h-5 w-5 items-center justify-center rounded-full text-amber-200/40 transition-colors hover:text-amber-100/70"
               >
                 <X className="h-3 w-3" />
               </button>
