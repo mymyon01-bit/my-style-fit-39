@@ -39,6 +39,7 @@ const DiscoverPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const moodParam = searchParams.get("mood");
+  const sourceParam = searchParams.get("source");
   const { tree: categoryTree } = useCategories();
 
   const [activeTab, setActiveTab] = useState("for-you");
@@ -118,6 +119,7 @@ const DiscoverPage = () => {
           prompt: fullPrompt,
           quizAnswers: quiz || quizAnswers,
           userId: user?.id || null,
+          source: sourceParam || "discover",
           count: 10,
         },
       });
