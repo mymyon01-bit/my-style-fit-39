@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, ChevronRight, Bookmark, Ruler, Palette, Shirt,
   Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield,
-  Edit3, CheckCircle, XCircle, Upload, Save
+  Edit3, CheckCircle, XCircle, Upload, Save, Image
 } from "lucide-react";
+import StylePreferenceEditor from "@/components/StylePreferenceEditor";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useSavedFolders } from "@/hooks/useSavedFolders";
@@ -35,6 +36,8 @@ const ProfilePage = () => {
   const [editGender, setEditGender] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [editingStyle, setEditingStyle] = useState(false);
+  const [myOotds, setMyOotds] = useState<any[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (user) loadProfileData(); }, [user]);
@@ -42,12 +45,13 @@ const ProfilePage = () => {
   const loadProfileData = async () => {
     if (!user) return;
     setIsLoading(true);
-    const [profileRes, styleRes, bodyRes, savedRes, postsRes] = await Promise.all([
+    const [profileRes, styleRes, bodyRes, savedRes, postsRes, ootdsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("saved_items").select("id", { count: "exact" }).eq("user_id", user.id),
       supabase.from("ootd_posts").select("id, star_count").eq("user_id", user.id),
+      supabase.from("ootd_posts").select("id, image_url, caption, star_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
     ]);
     const p = profileRes.data;
     setProfile(p);
@@ -57,6 +61,7 @@ const ProfilePage = () => {
     const posts = postsRes.data || [];
     setPostCount(posts.length);
     setTotalStars(posts.reduce((sum: number, pt: any) => sum + (pt.star_count || 0), 0));
+    setMyOotds(ootdsRes.data || []);
     if (p) {
       setEditName(p.display_name || "");
       setEditBio(p.bio || "");
