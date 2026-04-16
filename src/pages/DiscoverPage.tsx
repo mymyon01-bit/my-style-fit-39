@@ -175,17 +175,19 @@ const DiscoverPage = () => {
     return generateSuggestions(textInput).suggestions;
   }, [textInput]);
 
-  // ── Fetch from open APIs when DB cache is empty ──
+  // ── Fetch fresh products via commerce scraper ──
   const fetchFromOpenAPIs = async (query?: string, category?: string): Promise<AIRecommendation[]> => {
     try {
-      // Fetch from both product-search (DummyJSON/FakeStore + commerce scraper) in one call
       const { data, error } = await supabase.functions.invoke("product-search", {
         body: { query: query || "", category, limit: 20 },
       });
       if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http"));
+      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http")).map((p: any) => ({
+        ...p,
+        platform: p.platform || null,
+      }));
     } catch (e) {
-      console.error("Open API fetch error:", e);
+      console.error("Product search error:", e);
       return [];
     }
   };
