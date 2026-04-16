@@ -161,14 +161,13 @@ const OOTDPage = () => {
       } : p));
     }
 
-    // Log interaction for recommendation engine
     await supabase.from("interactions").insert({
       user_id: user.id,
       event_type: type,
       target_id: postId,
       target_type: "ootd",
       metadata: {},
-    }).catch(() => {});
+    });
   };
 
   const handleStar = async (postId: string) => {
@@ -219,14 +218,13 @@ const OOTDPage = () => {
     if (!error && data) {
       setComments(prev => [...prev, data as Comment]);
       setCommentText("");
-      // Log as interaction
       await supabase.from("interactions").insert({
         user_id: user.id,
         event_type: "comment",
         target_id: expandedComments,
         target_type: "ootd",
         metadata: {},
-      }).catch(() => {});
+      });
     }
   };
 
