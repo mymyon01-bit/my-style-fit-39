@@ -170,7 +170,7 @@ async function scrapePlatform(
                 },
               },
             },
-            prompt: `Extract all visible product listings from this ${platform.name} search results page. For each product, get: title, brand, price (with currency symbol), image_url (full https URL), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
+            prompt: `Extract ONLY fashion product listings (clothing, shoes, bags, accessories) from this ${platform.name} search results page. IGNORE: editorial images, people photos, lifestyle images, banners, ads. For each PRODUCT, get: title (must be a product name like "Oversized Cotton Hoodie"), brand, price (with currency symbol), image_url (full https URL of the product image, NOT editorial/lifestyle photos), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
           },
         ],
         waitFor: 3000,
@@ -190,7 +190,10 @@ async function scrapePlatform(
     const result = await response.json();
     const extracted = result?.json?.products || result?.data?.json?.products || [];
 
-    // Pre-filter: must have title, price, safe image, valid product URL
+    // Pre-filter: must have title, price, safe image, valid product URL, and fashion-relevant title
+    const PRODUCT_KEYWORDS = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|top|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|purse|clutch|wallet|hat|cap|beanie|watch|belt|scarf|gloves?|socks?|tie|sunglasses|ring|necklace|bracelet|earring|bomber|parka|windbreaker|pullover|sweatshirt|chinos?|joggers?|leggings?|overalls?|jumpsuit|romper|blouse|tunic|camisole|tank|henley|oxford|flannel|denim|corduroy|knit|cashmere|leather|suede|canvas|cotton|wool|silk|linen|nylon|polyester)\b/i;
+    const NON_PRODUCT_KEYWORDS = /\b(lookbook|editorial|photoshoot|inspiration|outfit\s*of\s*the\s*day|ootd|how\s+to\s+wear|style\s+guide|fashion\s+week|runway|collection\s+overview|behind\s+the\s+scenes|interview|article|blog|news|magazine|trending\s+now)\b/i;
+
     const candidates = extracted.filter(
       (p: any) =>
         p.title &&
@@ -198,7 +201,9 @@ async function scrapePlatform(
         p.title.length <= 200 &&
         p.price &&
         isImageUrlSafe(p.image_url) &&
-        p.product_url?.startsWith("http")
+        p.product_url?.startsWith("http") &&
+        PRODUCT_KEYWORDS.test(p.title) &&
+        !NON_PRODUCT_KEYWORDS.test(p.title)
     );
 
     // HEAD-validate images in parallel (discard failures)
