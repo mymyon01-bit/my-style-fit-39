@@ -37,6 +37,10 @@ const ProfilePage = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [editingStyle, setEditingStyle] = useState(false);
+  const [editHashtags, setEditHashtags] = useState("");
+  const [circleCount, setCircleCount] = useState(0);
+  const [addedByCount, setAddedByCount] = useState(0);
+  const [scrapCount, setScrapCount] = useState(0);
   const [myOotds, setMyOotds] = useState<any[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
