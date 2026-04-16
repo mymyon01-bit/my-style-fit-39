@@ -617,7 +617,7 @@ async function getCachedProducts(supabase: any, opts: {
   if (opts.searchQuery) {
     const terms = opts.searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 2);
     if (terms.length > 0) {
-      results = results.map(r => {
+      results = results.map((r: any) => {
         const text = `${r.name} ${r.brand} ${r.category} ${(r.style_tags || []).join(" ")} ${r.color} ${r.fit}`.toLowerCase();
         const matchCount = terms.filter(t => text.includes(t)).length;
         return { ...r, _relevance: matchCount / terms.length };
@@ -1144,6 +1144,7 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
       }
       case "body-scan-analysis": {
         const isScanPremium = body.fitMode === "premium";
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
         if (!LOVABLE_API_KEY) {
           return new Response(JSON.stringify({
