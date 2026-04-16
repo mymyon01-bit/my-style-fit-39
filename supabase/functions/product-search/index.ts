@@ -414,34 +414,37 @@ serve(async (req) => {
     let externalProducts: any[] = [];
 
     if (freshSearch && query) {
-      // ═══ EXTERNAL-FIRST MODE: real internet search, then supplement with DB ═══
+      // ═══ EXTERNAL-FIRST MODE: real internet search + DB in parallel ═══
 
-      // Step 1: Run external search FIRST — this is the primary data source
-      const searchTerm = query;
-      externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 20));
-      externalProducts = externalProducts.map(autoTagProduct);
+      // Run BOTH external search and DB query in parallel
+      const [externalResult, dbResult] = await Promise.all([
+        fetchFromCommerceScraper(query, Math.min(clampedLimit, 20))
+          .then(products => products.map(autoTagProduct))
+          .catch(e => { console.error("External search failed:", e); return [] as any[]; }),
+        loadFromDB(supabase, {
+          query,
+          category,
+          styles,
+          fit,
+          limit: Math.min(clampedLimit, 20),
+          excludeIds,
+          randomize: false,
+        }),
+      ]);
 
-      console.log(`External search returned ${externalProducts.length} products for "${searchTerm}"`);
+      externalProducts = externalResult;
+      dbProducts = dbResult;
 
-      // Step 2: Cache valid external products to DB in background
+      console.log(`Fresh search: ${externalProducts.length} external, ${dbProducts.length} DB for "${query}"`);
+
+      // Cache valid external products to DB in background
       if (externalProducts.length > 0) {
         cacheToDB(supabase, externalProducts).then(n => {
           if (n > 0) console.log(`Cached ${n} new products from fresh search`);
         }).catch(e => console.error("Cache error:", e));
       }
 
-      // Step 3: Also load DB products to supplement (not replace) external results
-      dbProducts = await loadFromDB(supabase, {
-        query,
-        category,
-        styles,
-        fit,
-        limit: Math.min(clampedLimit, 20),
-        excludeIds,
-        randomize: false,
-      });
-
-      // Step 4: Merge — external results FIRST (higher priority), DB fills gaps
+      // Merge — external results FIRST (higher priority), DB fills gaps
       const externalIds = new Set(externalProducts.map((p: any) => p.external_id));
       const externalUrls = new Set(externalProducts.map((p: any) => p.source_url).filter(Boolean));
       const externalNames = new Set(externalProducts.map((p: any) => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25)));
