@@ -109,8 +109,8 @@ const DiscoverPage = () => {
 
   useEffect(() => {
     if (activeTab !== "for-you" && activeTab !== "featured") {
-      const sub = activeSubcategory ? ` — ${activeSubcategory}` : "";
-      generateRecommendations(`Show me ${activeTab}${sub} items`, undefined, activeTab);
+      // DB-first: try browse (cached) first, only AI on search
+      browseCategory(activeTab, activeSubcategory);
     }
   }, [activeTab, activeSubcategory]);
 
