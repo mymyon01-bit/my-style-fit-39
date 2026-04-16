@@ -61,8 +61,9 @@ async function loadFromDB(supabase: any, opts: {
   const { data, error } = await q;
   if (error || !data) return [];
 
-  // Double-check image safety on every result
-  let results = data.filter((p: any) => isImageUrlSafe(p.image_url));
+  // Double-check image safety and product-title validity on every result
+  const PRODUCT_TITLE_RE = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|top|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|purse|wallet|hat|cap|beanie|watch|belt|scarf|gloves?|socks?|bomber|parka|pullover|sweatshirt|chinos?|joggers?|blouse|knit|denim|leather|suede|canvas)\b/i;
+  let results = data.filter((p: any) => isImageUrlSafe(p.image_url) && PRODUCT_TITLE_RE.test(p.name || ""));
 
   // Text relevance filter
   if (opts.query) {
