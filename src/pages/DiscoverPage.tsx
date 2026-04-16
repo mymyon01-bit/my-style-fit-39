@@ -164,6 +164,20 @@ const DiscoverPage = () => {
     return generateSuggestions(textInput).suggestions;
   }, [textInput]);
 
+  // ── Fetch from open APIs when DB cache is empty ──
+  const fetchFromOpenAPIs = async (query?: string, category?: string): Promise<AIRecommendation[]> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("product-search", {
+        body: { query: query || "", category, limit: 20 },
+      });
+      if (error) throw error;
+      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http"));
+    } catch (e) {
+      console.error("Open API fetch error:", e);
+      return [];
+    }
+  };
+
   // ── INSTANT INITIAL LOAD: Show cached products from DB immediately ──
   useEffect(() => {
     if (initialLoadDone.current) return;
@@ -179,9 +193,18 @@ const DiscoverPage = () => {
         setHasMoreInDB(cached.length >= 12);
         setIsGenerating(false);
       } else {
-        // No cached products — fall back to AI
-        setIsGenerating(false);
-        generateRecommendations("Recommend trending fashion items");
+        // No cached products — fetch from open APIs to seed inventory
+        const apiProducts = await fetchFromOpenAPIs("fashion trending");
+        if (apiProducts.length > 0) {
+          setRecommendations(apiProducts);
+          setDbOffset(apiProducts.length);
+          setHasMoreInDB(false);
+          setIsGenerating(false);
+        } else {
+          // Last resort — AI generation
+          setIsGenerating(false);
+          generateRecommendations("Recommend trending fashion items");
+        }
       }
     };
     if (!moodParam) loadInitial();

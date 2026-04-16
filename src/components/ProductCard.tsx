@@ -23,7 +23,14 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
   return (
     <div
       className="group cursor-pointer animate-fade-up"
-      onClick={() => navigate(`/fit/${product.id}`)}
+      onClick={() => {
+        // If product has a real external URL, open in new tab
+        if (product.source_url && product.source_url.startsWith("http")) {
+          window.open(product.source_url, "_blank", "noopener,noreferrer");
+        } else {
+          navigate(`/fit/${product.id}`);
+        }
+      }}
     >
       <div className="relative overflow-hidden rounded-xl bg-card shadow-soft">
         <SafeImage
