@@ -17,6 +17,14 @@ import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound.tsx";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import AdminLayout from "@/pages/admin/AdminLayout";
+import AdminOverview from "@/pages/admin/AdminOverview";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminProducts from "@/pages/admin/AdminProducts";
+import AdminCategories from "@/pages/admin/AdminCategories";
+import AdminOOTD from "@/pages/admin/AdminOOTD";
+import AdminContent from "@/pages/admin/AdminContent";
+import AdminSettings from "@/pages/admin/AdminSettings";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -50,13 +58,23 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Auth page — redirect to home if already logged in */}
+      {/* Auth */}
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      {/* Protected routes */}
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
 
-      {/* Public routes — guest can browse */}
+      {/* Admin */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminOverview />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="products" element={<AdminProducts />} />
+        <Route path="categories" element={<AdminCategories />} />
+        <Route path="ootd" element={<AdminOOTD />} />
+        <Route path="content" element={<AdminContent />} />
+        <Route path="settings" element={<AdminSettings />} />
+      </Route>
+
+      {/* Public routes */}
       <Route path="/settings" element={<SettingsPage />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
