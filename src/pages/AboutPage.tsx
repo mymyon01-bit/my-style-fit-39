@@ -1,20 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 import { ArrowRight, Sparkles, Layers, RefreshCw, Bookmark, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
-
-const steps = [
-  { icon: Sparkles, label: "Style Input", desc: "Tell us your taste" },
-  { icon: Layers, label: "AI Engine", desc: "Smart matching" },
-  { icon: Bookmark, label: "Curated Results", desc: "Items that fit you" },
-  { icon: RefreshCw, label: "Feedback Loop", desc: "Gets smarter" },
-];
-
-const differentiators = [
-  { title: "No endless browsing", desc: "Every item is chosen for you." },
-  { title: "No random results", desc: "Recommendations adapt to your taste." },
-  { title: "No guessing sizes", desc: "FIT checks before you buy." },
-  { title: "No flat saved lists", desc: "Organized wardrobe folders." },
-];
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 20 },
@@ -25,6 +12,21 @@ const fade = (delay: number) => ({
 
 const AboutPage = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
+
+  const steps = [
+    { icon: Sparkles, label: t("aboutStep1Label"), desc: t("aboutStep1Desc") },
+    { icon: Layers, label: t("aboutStep2Label"), desc: t("aboutStep2Desc") },
+    { icon: Bookmark, label: t("aboutStep3Label"), desc: t("aboutStep3Desc") },
+    { icon: RefreshCw, label: t("aboutStep4Label"), desc: t("aboutStep4Desc") },
+  ];
+
+  const differentiators = [
+    { title: t("aboutDiff1Title"), desc: t("aboutDiff1Desc") },
+    { title: t("aboutDiff2Title"), desc: t("aboutDiff2Desc") },
+    { title: t("aboutDiff3Title"), desc: t("aboutDiff3Desc") },
+    { title: t("aboutDiff4Title"), desc: t("aboutDiff4Desc") },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,34 +35,31 @@ const AboutPage = () => {
         <button onClick={() => navigate(-1)} className="hover-burgundy text-foreground/50">
           <ArrowLeft className="h-[18px] w-[18px]" />
         </button>
-        <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/45">ABOUT</span>
+        <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/45">{t("about").toUpperCase()}</span>
       </div>
 
       {/* Hero */}
       <section className="mx-auto max-w-3xl px-8 pt-20 pb-24 lg:pt-28 lg:pb-32">
         <motion.div {...fade(0)} className="max-w-xl">
           <h1 className="font-display text-[28px] font-semibold leading-[1.2] text-foreground md:text-[36px] lg:text-[44px]">
-            Built around<br />your style
+            {t("aboutHeroTitle")}
           </h1>
           <p className="mt-5 text-[14px] leading-[1.8] text-foreground/50 max-w-md md:text-[15px]">
-            WARDROBE adapts to your taste, body, and behavior over time — so every recommendation feels right.
+            {t("aboutHeroDesc")}
           </p>
         </motion.div>
       </section>
 
-      {/* Decorative line */}
-      <div className="mx-auto max-w-3xl px-8">
-        <div className="h-px bg-accent/10" />
-      </div>
+      <div className="mx-auto max-w-3xl px-8"><div className="h-px bg-accent/10" /></div>
 
-      {/* How it works — visual flow */}
+      {/* How it works */}
       <section className="mx-auto max-w-3xl px-8 py-24 lg:py-32">
         <motion.p {...fade(0)} className="text-[10px] font-semibold tracking-[0.3em] text-accent/60 mb-12">
-          HOW IT WORKS
+          {t("aboutHowItWorks").toUpperCase()}
         </motion.p>
         <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-4">
           {steps.map((step, i) => (
-            <motion.div key={step.label} {...fade(i * 0.1)} className="relative">
+            <motion.div key={i} {...fade(i * 0.1)} className="relative">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/[0.06] border border-accent/10 mb-5">
                 <step.icon className="h-5 w-5 text-accent/60" strokeWidth={1.6} />
               </div>
@@ -74,18 +73,16 @@ const AboutPage = () => {
         </div>
       </section>
 
-      <div className="mx-auto max-w-3xl px-8">
-        <div className="h-px bg-accent/10" />
-      </div>
+      <div className="mx-auto max-w-3xl px-8"><div className="h-px bg-accent/10" /></div>
 
       {/* What makes it different */}
       <section className="mx-auto max-w-3xl px-8 py-24 lg:py-32">
         <motion.p {...fade(0)} className="text-[10px] font-semibold tracking-[0.3em] text-accent/60 mb-12">
-          WHAT MAKES IT DIFFERENT
+          {t("aboutWhatMakesDiff").toUpperCase()}
         </motion.p>
         <div className="grid gap-8 md:grid-cols-2 md:gap-10">
           {differentiators.map((d, i) => (
-            <motion.div key={d.title} {...fade(i * 0.08)}>
+            <motion.div key={i} {...fade(i * 0.08)}>
               <p className="text-[14px] font-semibold text-foreground/80 md:text-[15px]">{d.title}</p>
               <p className="mt-1.5 text-[12px] leading-[1.7] text-foreground/40">{d.desc}</p>
             </motion.div>
@@ -93,24 +90,22 @@ const AboutPage = () => {
         </div>
       </section>
 
-      <div className="mx-auto max-w-3xl px-8">
-        <div className="h-px bg-accent/10" />
-      </div>
+      <div className="mx-auto max-w-3xl px-8"><div className="h-px bg-accent/10" /></div>
 
       {/* CTA */}
       <section className="mx-auto max-w-3xl px-8 py-24 text-center lg:py-32">
         <motion.div {...fade(0)}>
           <h2 className="font-display text-[22px] font-semibold text-foreground md:text-[28px]">
-            Start discovering your style
+            {t("aboutCtaTitle")}
           </h2>
           <p className="mt-4 text-[13px] text-foreground/40">
-            No account needed. Just tell us how you feel.
+            {t("aboutCtaDesc")}
           </p>
           <button
             onClick={() => navigate("/discover")}
             className="hover-burgundy mt-8 inline-flex items-center gap-2.5 rounded-lg border border-accent/30 bg-accent/[0.06] px-7 py-3.5 text-[11px] font-semibold tracking-[0.15em] text-foreground/80 transition-all hover:bg-accent/[0.1] hover:border-accent/40"
           >
-            GO TO DISCOVER
+            {t("aboutCtaButton").toUpperCase()}
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </motion.div>
