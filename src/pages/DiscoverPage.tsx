@@ -1327,6 +1327,28 @@ const DiscoverPage = () => {
     return [...new Set(broader)].slice(0, 6);
   }
 
+  // ── Perplexity-powered query expansion via wardrobe-ai search-intent ──
+  async function aiExpandQuery(q: string): Promise<{ queries: string[]; category?: string; style_tags?: string[] }> {
+    try {
+      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
+        body: {
+          action: "search-intent",
+          prompt: q,
+          source: sourceParam || "discover",
+        },
+      });
+      if (error) throw error;
+      if (data?.queries?.length) {
+        console.log("AI query expansion:", data.queries, "intent:", data.interpreted_intent);
+        return { queries: data.queries, category: data.category, style_tags: data.style_tags || [] };
+      }
+    } catch (e) {
+      console.warn("AI query expansion failed, using local fallback:", e);
+    }
+    // Fallback to local expansion
+    return { queries: expandSearchQuery(q) };
+  }
+
   // Debounced search submit — progressive fallback pipeline
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
@@ -1346,11 +1368,29 @@ const DiscoverPage = () => {
 
       // Step 1: Parse query into structured intent
       const intent = parseQueryIntent(q);
-      const expandedQueries = expandSearchQuery(q);
       const isScenarioQuery = intent.queryType === "scenario";
-      const isStyleQuery = intent.queryType === "style";
 
-      console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, expandedQueries });
+      // Step 2: AI-powered query expansion (Perplexity for logged-in, Lovable AI for guests)
+      // Runs in parallel with local expansion as fallback
+      const localExpanded = expandSearchQuery(q);
+      const aiExpansionPromise = aiExpandQuery(q);
+
+      // Get AI queries (with timeout fallback to local)
+      let searchQueries: string[];
+      try {
+        const aiResult = await Promise.race([
+          aiExpansionPromise,
+          new Promise<{ queries: string[] }>((resolve) =>
+            setTimeout(() => resolve({ queries: localExpanded }), 4000)
+          ),
+        ]);
+        // Merge: AI queries first, then local ones for coverage
+        searchQueries = [...new Set([...aiResult.queries, ...localExpanded])].slice(0, 8);
+      } catch {
+        searchQueries = localExpanded;
+      }
+
+      console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, searchQueries });
 
       const categoryMap: Record<string, string> = {
         TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
@@ -1359,10 +1399,10 @@ const DiscoverPage = () => {
 
       if (isScenarioQuery) {
         // SCENARIO QUERY: search expanded items, then filter + balance
-        setActiveScenario({ label: intent.scenarioLabel!, items: expandedQueries });
+        setActiveScenario({ label: intent.scenarioLabel!, items: searchQueries });
 
         const results = await Promise.all(
-          expandedQueries.slice(0, 6).map(eq =>
+          searchQueries.slice(0, 8).map(eq =>
             hybridProductSearch({
               query: eq,
               limit: 10,
@@ -1380,7 +1420,7 @@ const DiscoverPage = () => {
 
         // Fallback: if too few, broaden each expansion term
         if (diverse.length < MIN_RESULT_TARGET) {
-          const extraQueries = expandedQueries.slice(0, 4).map(eq => `trending ${eq}`);
+          const extraQueries = searchQueries.slice(0, 4).map(eq => `trending ${eq}`);
           const extraResults = await Promise.all(
             extraQueries.map(eq =>
               hybridProductSearch({ query: eq, limit: 8, expandExternal: true, excludeIds: Array.from(sessionSeenIds), randomize: false })
@@ -1426,14 +1466,14 @@ const DiscoverPage = () => {
           setHasMoreInDB(dbCount >= 30);
         }
 
-        // ── STAGE 2: External fresh search (runs in background, merges in) ──
-        const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 3);
+        // ── STAGE 2: External fresh search using AI-expanded queries ──
+        const externalSearchQueries = [...new Set([q, ...searchQueries])].slice(0, 5);
         const externalPromise = Promise.all(
-          searchQueries.map(sq =>
+          externalSearchQueries.map(sq =>
             hybridProductSearch({
               query: sq,
               category: dbCategory,
-              limit: 15,
+              limit: 12,
               excludeIds: Array.from(sessionSeenIds),
               freshSearch: true,
               expandExternal: true,
@@ -1451,18 +1491,10 @@ const DiscoverPage = () => {
           if (externalDiverse.length > 0) {
             externalDiverse.forEach(p => sessionSeenIds.add(p.id));
             setRecommendations(prev => {
-              // Merge external results in — external products get priority at top
               const merged = enforceClientDiversity([...externalDiverse, ...prev], new Set()).slice(0, 30);
               return merged;
             });
           }
-
-          // ── STAGE 3: Broader fallback if still insufficient ──
-          setRecommendations(prev => {
-            if (prev.length >= MIN_RESULT_TARGET) return prev;
-            // Will trigger stage 3 via effect below
-            return prev;
-          });
         }).catch(err => {
           console.error("External search error:", err);
         }).finally(() => {
@@ -1474,12 +1506,8 @@ const DiscoverPage = () => {
           setIsGenerating(false);
         }
 
-        // ── STAGE 3: Broader category family (only if needed after external completes) ──
-        // This is handled by the external promise chain above
-
         // Final: if nothing at all from DB, keep spinner until external completes
         if (collected.length === 0) {
-          // Wait for external to finish
           try {
             const externalResults = await externalPromise;
             const allExternal = externalResults.flatMap(r => r.products);
