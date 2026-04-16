@@ -466,6 +466,8 @@ const DiscoverPage = () => {
     if (user) {
       loadSavedIds();
       loadStyleProfile();
+    } else {
+      setProfileLoaded(true);
     }
   }, [user]);
 
