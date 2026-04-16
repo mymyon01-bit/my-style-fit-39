@@ -191,7 +191,7 @@ function buildPersonalizationContext(userInfo: { styleProfile: any; bodyProfile:
     if (sp.disliked_styles?.length) parts.push(`Disliked styles: ${sp.disliked_styles.join(", ")} — AVOID these`);
     if (sp.preferred_fit) parts.push(`Preferred fit: ${sp.preferred_fit}`);
     if (sp.budget) parts.push(`Budget range: ${sp.budget}`);
-    if (sp.favorite_brands?.length) parts.push(`Favorite brands: ${sp.favorite_brands.join(", ")}`);
+    if (sp.favorite_brands?.length) parts.push(`Favorite brands (reference only, do NOT limit to these): ${sp.favorite_brands.join(", ")}`);
     if (sp.occasions?.length) parts.push(`Common occasions: ${sp.occasions.join(", ")}`);
   }
 
@@ -273,13 +273,17 @@ async function logImageFailures(supabase: any, products: any[], source: string) 
   });
 }
 
+// ─── Smart cached product search with style/text matching ───
+
 async function getCachedProducts(supabase: any, opts: {
   category?: string;
   subcategory?: string;
   styles?: string[];
   fit?: string;
   color?: string;
+  searchQuery?: string;
   limit?: number;
+  excludeBrands?: string[];
 }): Promise<any[]> {
   let query = supabase
     .from("product_cache")
@@ -287,7 +291,7 @@ async function getCachedProducts(supabase: any, opts: {
     .eq("image_valid", true)
     .eq("is_active", true)
     .order("trend_score", { ascending: false })
-    .limit(opts.limit || 20);
+    .limit(opts.limit || 30);
 
   if (opts.category) query = query.eq("category", opts.category);
   if (opts.subcategory) query = query.eq("subcategory", opts.subcategory);
@@ -299,7 +303,8 @@ async function getCachedProducts(supabase: any, opts: {
     console.error("Cache query error:", error.message);
     return [];
   }
-  return (data || []).map((p: any) => ({
+
+  let results = (data || []).map((p: any) => ({
     id: p.external_id || p.id,
     name: p.name,
     brand: p.brand,
@@ -313,7 +318,53 @@ async function getCachedProducts(supabase: any, opts: {
     image_url: p.image_url,
     source_url: p.source_url,
     store_name: p.store_name,
+    _brand: p.brand, // keep for diversity
+    _trend: p.trend_score || 0,
   }));
+
+  // Text-based relevance scoring if searchQuery provided
+  if (opts.searchQuery) {
+    const terms = opts.searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    if (terms.length > 0) {
+      results = results.map(r => {
+        const text = `${r.name} ${r.brand} ${r.category} ${(r.style_tags || []).join(" ")} ${r.color} ${r.fit}`.toLowerCase();
+        const matchCount = terms.filter(t => text.includes(t)).length;
+        return { ...r, _relevance: matchCount / terms.length };
+      });
+      // Sort by relevance first, then trend
+      results.sort((a: any, b: any) => (b._relevance - a._relevance) || (b._trend - a._trend));
+      // Only keep items with some relevance
+      const relevant = results.filter((r: any) => r._relevance > 0);
+      if (relevant.length >= 4) results = relevant;
+    }
+  }
+
+  // Apply brand diversity: max 2 items per brand in top results
+  results = applyBrandDiversity(results, 2);
+
+  return results.slice(0, opts.limit || 20);
+}
+
+// ─── Brand diversity enforcement ───
+
+function applyBrandDiversity(items: any[], maxPerBrand: number): any[] {
+  const brandCount: Record<string, number> = {};
+  const diverse: any[] = [];
+  const overflow: any[] = [];
+
+  for (const item of items) {
+    const brand = (item.brand || item._brand || "unknown").toLowerCase();
+    const count = brandCount[brand] || 0;
+    if (count < maxPerBrand) {
+      diverse.push(item);
+      brandCount[brand] = count + 1;
+    } else {
+      overflow.push(item);
+    }
+  }
+
+  // Append overflow at the end for completeness
+  return [...diverse, ...overflow];
 }
 
 // ─── Main handler ───
@@ -337,6 +388,7 @@ serve(async (req) => {
         subcategory: body.subcategory,
         styles: body.styles,
         fit: body.fit,
+        searchQuery: body.searchQuery,
         limit: body.count || 20,
       });
 
@@ -357,27 +409,26 @@ serve(async (req) => {
       const excludeIds = body.excludeIds || [];
       const excludeClause = excludeIds.length > 0 ? `\nDo NOT include items with these IDs: ${excludeIds.join(", ")}. Generate completely different products.` : "";
 
-      // Try cache first for category browsing (non-search)
-      if (!body.isSearch && body.category) {
-        const cached = await getCachedProducts(supabase, {
-          category: body.category,
-          subcategory: body.subcategory,
-          styles: body.styles,
-          fit: body.fit,
-          limit: typeof itemCount === "number" ? itemCount : 8,
-        });
+      // Try cache first — for both browse AND search queries
+      const cachedResults = await getCachedProducts(supabase, {
+        category: body.category,
+        subcategory: body.subcategory,
+        styles: body.styles,
+        fit: body.fit,
+        searchQuery: prompt,
+        limit: typeof itemCount === "number" ? itemCount : 12,
+      });
 
-        if (cached.length >= 4) {
-          console.log(`Serving ${cached.length} items from cache for category: ${body.category}`);
-          return new Response(JSON.stringify({
-            recommendations: cached,
-            tier: "cached",
-            citations: [],
-            fromCache: true,
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+      if (cachedResults.length >= 6) {
+        console.log(`Serving ${cachedResults.length} items from cache for: "${(prompt || "").slice(0, 60)}"`);
+        return new Response(JSON.stringify({
+          recommendations: cachedResults.slice(0, typeof itemCount === "number" ? itemCount : 8),
+          tier: "cached",
+          citations: [],
+          fromCache: true,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const personalization = buildPersonalizationContext(userInfo);
@@ -413,17 +464,19 @@ Category structure:
 - shoes → sneakers, dress-shoes, boots, sandals
 - accessories → belt, watch, sunglasses, hat, jewelry
 
-Rules:
+CRITICAL RULES:
+- BRAND DIVERSITY: Use a WIDE variety of brands. No single brand should appear more than twice. Include mainstream AND niche brands. Do NOT default to a small set of repeated brands.
+- Interpret the user's query as a STYLE FEELING — match the aesthetic, mood, and vibe, not just keywords.
 - Recommend REAL brands and realistic products
 - Match the user's stated preferences precisely
-- Always assign the correct category AND subcategory from the structure above
+- Always assign the correct category AND subcategory
 - Include variety across categories unless a specific category is requested
 - Prices should be realistic for the brand
 - Colors should be hex values
 - Keep reasons under 15 words
 - Each id must be unique (use brand-name-slug format)
-- CRITICAL: Every product MUST have a valid image_url. Use real Unsplash fashion image URLs. Format: https://images.unsplash.com/photo-{id}?w=400&q=80
-- For source_url: Provide the REAL product page URL on the brand's official website or major retailer (e.g. nordstrom.com, ssense.com, zara.com, uniqlo.com). This must be a real, navigable URL.
+- Every product MUST have a valid image_url. Use real Unsplash fashion image URLs. Format: https://images.unsplash.com/photo-{id}?w=400&q=80
+- For source_url: Provide the REAL product page URL on the brand's official website or major retailer
 - For store_name: Name of the retailer or brand store
 - Use style_tags to describe the item's aesthetic (e.g. minimal, street, classic, edgy, chic, vintage, bohemian, sporty)${excludeClause}${personalization}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream\n- Consider body profile for fit recommendations" : ""}`;
 
@@ -431,9 +484,9 @@ Rules:
         ? `\nQuiz answers: Styles: ${quizAnswers.preferredStyles?.join(", ")}. Fit: ${quizAnswers.fitPreference}. Colors: ${quizAnswers.colorPreference}. Vibe: ${quizAnswers.dailyVibe}. Occasion: ${quizAnswers.occasionPreference}. Budget: ${quizAnswers.budgetRange}. Avoid: ${quizAnswers.dislikedStyles?.join(", ")}.`
         : "";
 
-      const userPrompt = `User style request: "${prompt}"${quizContext}\n\nGenerate curated product recommendations.`;
+      const userPrompt = `User style request: "${prompt}"${quizContext}\n\nGenerate curated product recommendations. IMPORTANT: Use diverse brands — do not repeat the same brand more than twice.`;
 
-      const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 2200, temperature: 0.6 });
+      const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 2200, temperature: 0.65 });
       const parsed = extractJSON(result.content);
 
       // Validate, filter imageless, and clean recommendations
@@ -446,7 +499,10 @@ Rules:
       }));
 
       // STRICT: Only return products with valid images
-      const recs = allRecs.filter((r: any) => isValidImageUrl(r.image_url));
+      let recs = allRecs.filter((r: any) => isValidImageUrl(r.image_url));
+
+      // Apply brand diversity on AI results too
+      recs = applyBrandDiversity(recs, 2);
 
       // Cache valid products + log failures in background
       const cachePromise = cacheProducts(supabase, recs, prompt || "");
