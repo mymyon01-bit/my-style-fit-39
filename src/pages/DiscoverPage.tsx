@@ -1271,71 +1271,8 @@ const DiscoverPage = () => {
       }
     }, 200);
   };
-      const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
-      const { products: dbProducts, dbCount } = await hybridProductSearch({
-        query: q,
-        category: dbCategory,
-        styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
-        fit: selectedFit || undefined,
-        limit: 30, // Fetch more to filter strictly
-        expandExternal: false,
-        randomize: false, // Don't randomize — we'll sort by relevance
-      });
 
-      // Step 3: Apply strict relevance filter to DB results
-      const relevantDb = filterByRelevance(dbProducts, intent);
-      const diverseDb = enforceClientDiversity(relevantDb, new Set());
-
-      if (diverseDb.length > 0) {
-        diverseDb.forEach(p => sessionSeenIds.add(p.id));
-        setRecommendations(diverseDb);
-        setDbOffset(diverseDb.length);
-        setHasMoreInDB(dbCount >= 30);
-        setIsGenerating(false);
-      }
-
-      // Step 4: ALWAYS run external search for fresh results
-      const expandedQueries = expandSearchQuery(q);
-      const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 3);
-
-      Promise.all(
-        searchQueries.map(sq =>
-          hybridProductSearch({
-            query: sq,
-            category: dbCategory,
-            styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
-            fit: selectedFit || undefined,
-            limit: 12,
-            excludeIds: Array.from(sessionSeenIds),
-            expandExternal: true,
-            randomize: false,
-          })
-        )
-      ).then(results => {
-        const allFresh = results.flatMap(r => r.products);
-        // Apply same strict relevance filter to external results
-        const relevantFresh = filterByRelevance(allFresh, intent);
-        const freshDiverse = enforceClientDiversity(relevantFresh, sessionSeenIds);
-
-        if (freshDiverse.length > 0) {
-          freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-          setRecommendations(prev => {
-            const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set()).slice(0, 30);
-            return merged;
-          });
-        }
-
-        // If total results still zero, try AI as last resort
-        if (diverseDb.length === 0 && freshDiverse.length === 0) {
-          generateRecommendations(q);
-        }
-        setIsGenerating(false);
-      }).catch(() => {
-        setIsGenerating(false);
-      });
-    }, 200);
-  };
 
   const handleFeedback = useCallback(async (itemId: string, type: "like" | "dislike") => {
     setFeedbackMap(prev => {
