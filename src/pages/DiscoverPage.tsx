@@ -326,7 +326,7 @@ const DiscoverPage = () => {
               >
                 <div className="mt-4 space-y-4 rounded-xl border border-border/20 bg-card/30 p-4">
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">STYLE</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("style").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {STYLE_FILTERS.map(s => (
                         <button
@@ -344,7 +344,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">FIT</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("preferredFit").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {FIT_FILTERS.map(f => (
                         <button
@@ -362,7 +362,7 @@ const DiscoverPage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">COLOR</p>
+                    <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/35 mb-2">{t("color").toUpperCase()}</p>
                     <div className="flex flex-wrap gap-2">
                       {COLOR_FILTERS.map(c => (
                         <button
@@ -386,7 +386,7 @@ const DiscoverPage = () => {
                     }}
                     className="hover-burgundy w-full py-2.5 text-[10px] font-semibold tracking-[0.15em] text-accent/60 border-t border-border/20 pt-3"
                   >
-                    APPLY FILTERS
+                    {t("applyFilters").toUpperCase()}
                   </button>
                 </div>
               </motion.div>
