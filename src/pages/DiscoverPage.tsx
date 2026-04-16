@@ -1053,51 +1053,11 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── AI-powered intent interpretation ──
-  async function interpretSearchIntent(query: string): Promise<{
-    queries: string[];
-    category: string | null;
-    style_tags: string[];
-    interpreted_intent: string;
-  }> {
-    const intentCacheKey = `intent:${query}`;
-    const cached = resultCache.get(intentCacheKey);
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
-      return cached.data as any;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
-        body: {
-          action: "search-intent",
-          prompt: query,
-          userId: user?.id || null,
-          source: "discover-search",
-        },
-      });
-      if (error) throw error;
-
-      const result = {
-        queries: data?.queries || [query],
-        category: data?.category || null,
-        style_tags: data?.style_tags || [],
-        interpreted_intent: data?.interpreted_intent || query,
-      };
-
-      resultCache.set(intentCacheKey, { data: result as any, ts: Date.now() });
-      return result;
-    } catch (e) {
-      console.error("Intent interpretation error:", e);
-      return { queries: [query], category: null, style_tags: [], interpreted_intent: query };
-    }
-  }
-
   // ── Query expansion: convert vague terms into concrete product queries ──
   function expandSearchQuery(q: string): string[] {
     const lower = q.toLowerCase().trim();
-    const expanded: string[] = [q];
+    const expanded: string[] = [];
 
-    // Emotion / vague word expansion
     const VAGUE_EXPANSIONS: Record<string, string[]> = {
       modern: ["modern slim jacket", "modern minimalist sneakers", "modern structured trousers"],
       clean: ["clean minimal shirt", "clean white sneakers", "clean structured blazer"],
@@ -1116,7 +1076,6 @@ const DiscoverPage = () => {
       romantic: ["flowy blouse", "delicate jewelry", "vintage inspired dress"],
     };
 
-    // Check if query is a single vague word or emotion
     const words = lower.split(/\s+/);
     if (words.length <= 2) {
       for (const [key, expansions] of Object.entries(VAGUE_EXPANSIONS)) {
@@ -1129,7 +1088,7 @@ const DiscoverPage = () => {
 
     // If query doesn't contain a product category, add category variants
     const hasCategory = /\b(jacket|coat|shirt|hoodie|sweater|pants|jeans|shorts|sneakers?|boots?|shoes?|bag|hat|watch|dress|blazer|cardigan|vest|skirt|top|tee)\b/i.test(lower);
-    if (!hasCategory && expanded.length <= 1) {
+    if (!hasCategory && expanded.length === 0) {
       expanded.push(`${q} jacket`, `${q} sneakers`, `${q} pants`);
     }
 
