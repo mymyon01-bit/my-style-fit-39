@@ -16,11 +16,11 @@ const DesktopNav = () => {
     location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 hidden lg:block">
+    <nav className="fixed top-0 left-0 right-0 z-50 hidden lg:block bg-background/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-12 py-7">
         <button
           onClick={() => navigate("/")}
-          className="font-display text-[12px] font-medium tracking-[0.4em] text-foreground/62 transition-colors hover:text-foreground/80"
+          className="hover-burgundy font-display text-[12px] font-semibold tracking-[0.4em] text-foreground/70"
         >
           WARDROBE
         </button>
@@ -30,21 +30,21 @@ const DesktopNav = () => {
             <button
               key={link.path}
               onClick={() => navigate(link.path)}
-              className={`text-[10px] font-medium tracking-[0.25em] transition-colors duration-300 ${
+              className={`hover-burgundy text-[10px] font-semibold tracking-[0.25em] ${
                 isActive(link.path)
-                  ? "text-foreground/80"
-                  : "text-foreground/62 hover:text-foreground/62"
+                  ? "text-foreground"
+                  : "text-foreground/50"
               }`}
             >
               {link.label}
             </button>
           ))}
 
-          <div className="h-3.5 w-px bg-accent/[0.14]" />
+          <div className="h-3.5 w-px bg-border/40" />
 
           <button
             onClick={() => navigate(user ? "/profile" : "/auth")}
-            className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 transition-colors hover:text-foreground/62"
+            className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/50"
           >
             {user ? "YOU" : "SIGN IN"}
           </button>

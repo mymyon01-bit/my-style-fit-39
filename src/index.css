@@ -129,4 +129,43 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Burgundy hover system */
+  .hover-burgundy {
+    @apply transition-all duration-300;
+  }
+  .hover-burgundy:hover {
+    color: hsl(var(--accent));
+    text-shadow: 0 0 20px hsl(var(--accent) / 0.15);
+  }
+  .hover-burgundy-icon:hover {
+    color: hsl(var(--accent));
+    filter: drop-shadow(0 0 6px hsl(var(--accent) / 0.2));
+  }
+
+  /* Page transitions */
+  .page-enter-vertical {
+    animation: slideInVertical 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .page-enter-fade {
+    animation: fadeDarkLight 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .page-enter-split {
+    animation: splitOpen 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes slideInVertical {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeDarkLight {
+  0% { opacity: 0; filter: brightness(0.7); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+
+@keyframes splitOpen {
+  0% { opacity: 0; clip-path: inset(0 50% 0 50%); }
+  100% { opacity: 1; clip-path: inset(0 0 0 0); }
 }
