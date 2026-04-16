@@ -169,7 +169,7 @@ function autoTagProduct(p: any): any {
 
 // ─── External expansion via commerce scraper (rate-limited) ───
 const lastScraperCall = { ts: 0 };
-const SCRAPER_COOLDOWN_MS = 10_000; // Min 10s between scraper calls
+const SCRAPER_COOLDOWN_MS = 3_000; // Min 3s between scraper calls (reduced from 10s)
 
 async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[]> {
   // Rate limiting: prevent burst requests
@@ -189,7 +189,7 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
     const sanitizedQuery = query.replace(/[<>"'`;]/g, "").slice(0, 100);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 25s max
+    const timeout = setTimeout(() => controller.abort(), 12000); // 12s max (reduced from 25s)
 
     const res = await fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
       method: "POST",
