@@ -491,8 +491,45 @@ const DiscoverPage = () => {
     setRecommendations([]);
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = setTimeout(() => {
-      generateRecommendations(q);
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsGenerating(true);
+      setHasGenerated(true);
+
+      // Try DB first for matching cached products
+      const dbResults = await loadCachedProductsFromDB({
+        searchQuery: q,
+        styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+        limit: 12,
+      });
+
+      if (dbResults.length >= 6) {
+        setRecommendations(dbResults);
+        setDbOffset(dbResults.length);
+        setIsGenerating(false);
+      }
+
+      // In parallel: fetch from commerce scraper + open APIs for fresh results
+      const [scraperResults, apiResults] = await Promise.all([
+        fetchFromCommerceScraper(q),
+        fetchFromOpenAPIs(q),
+      ]);
+
+      const existingIds = new Set((dbResults.length >= 6 ? dbResults : []).map(r => r.id));
+      const freshResults = [...scraperResults, ...apiResults]
+        .filter(r => !existingIds.has(r.id) && r.image_url?.startsWith("http"))
+        .filter((r, i, arr) => arr.findIndex(x => x.id === r.id) === i);
+
+      if (freshResults.length > 0 || dbResults.length >= 6) {
+        const merged = dbResults.length >= 6
+          ? [...dbResults, ...freshResults].slice(0, 24)
+          : freshResults.slice(0, 20);
+        setRecommendations(merged);
+        setDbOffset(merged.length);
+        setIsGenerating(false);
+      } else {
+        // Fall back to AI
+        generateRecommendations(q);
+      }
     }, 150);
   };
 
