@@ -306,6 +306,8 @@ export type Database = {
           price: string | null
           reason: string | null
           search_query: string | null
+          source_trust_level: string
+          source_type: string
           source_url: string | null
           store_name: string | null
           style_tags: string[] | null
@@ -333,6 +335,8 @@ export type Database = {
           price?: string | null
           reason?: string | null
           search_query?: string | null
+          source_trust_level?: string
+          source_type?: string
           source_url?: string | null
           store_name?: string | null
           style_tags?: string[] | null
@@ -360,6 +364,8 @@ export type Database = {
           price?: string | null
           reason?: string | null
           search_query?: string | null
+          source_trust_level?: string
+          source_type?: string
           source_url?: string | null
           store_name?: string | null
           style_tags?: string[] | null
