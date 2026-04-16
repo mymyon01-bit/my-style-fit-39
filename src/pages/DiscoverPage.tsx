@@ -2058,7 +2058,12 @@ const DiscoverPage = () => {
                       <p className="text-[10px] text-foreground/75 mt-1">{t("adaptingTaste")}</p>
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
+                    {isGenerating && (
+                      <Loader2 className="h-3 w-3 animate-spin text-accent/50" />
+                    )}
+                  </div>
                 </div>
 
                 {/* ── Styled Outfits ── */}
