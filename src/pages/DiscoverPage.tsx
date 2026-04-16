@@ -773,9 +773,13 @@ const DiscoverPage = () => {
       const { queries: aiQueries, style_tags: aiStyles } = intentResult;
       const mergedStyles = [...new Set([...selectedStyles, ...aiStyles])];
 
-      // Step 2: Show quick DB results immediately if good
+      // Step 2: Apply free-mode scoring and show results
       if (quickDbResult.products.length >= 8) {
-        const diverse = enforceClientDiversity(quickDbResult.products, new Set());
+        // Score and sort by emotional/intent relevance
+        const scored = quickDbResult.products
+          .map(p => ({ ...p, _freeScore: freeScoreProduct(p, q, userStyleProfile, feedbackMap) }))
+          .sort((a, b) => b._freeScore - a._freeScore);
+        const diverse = enforceClientDiversity(scored, new Set());
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
