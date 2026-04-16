@@ -148,7 +148,7 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
     if (!res.ok) return [];
     const data = await res.json();
     return (data.products || [])
-      .filter((p: any) => isImageUrlSafe(p.image_url) && p.name && p.source_url?.startsWith("http"))
+      .filter((p: any) => isImageUrlSafe(p.image_url) && p.name && p.source_url?.startsWith("http") && isFashionProduct(p.name))
       .map((p: any) => ({
         external_id: p.id,
         name: (p.name || "").slice(0, 150),
