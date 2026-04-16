@@ -186,7 +186,9 @@ serve(async (req) => {
 
     // ─── Recommend action ───
     if (action === "recommend") {
-      const itemCount = tier === "premium" ? "10-12" : tier === "user" ? "8-10" : "6-8";
+      const itemCount = body.count || (tier === "premium" ? "10-12" : tier === "user" ? "8-10" : "6-8");
+      const excludeIds = body.excludeIds || [];
+      const excludeClause = excludeIds.length > 0 ? `\nDo NOT include items with these IDs: ${excludeIds.join(", ")}. Generate completely different products.` : "";
 
       const systemPrompt = `You are WARDROBE AI — a ${tier === "free" ? "helpful" : "premium"} fashion recommendation engine. Based on the user's style description, generate ${itemCount} curated product recommendations.
 
@@ -204,7 +206,8 @@ Return format:
       "reason": "Short explanation why this fits the user",
       "style_tags": ["tag1", "tag2"],
       "color": "#hex color of the item",
-      "fit": "oversized|regular|slim"
+      "fit": "oversized|regular|slim",
+      "image_url": "https://images.unsplash.com/photo-XXXXX?w=400&q=80"
     }
   ]
 }
@@ -216,7 +219,8 @@ Rules:
 - Prices should be realistic
 - Colors should be hex values
 - Keep reasons under 15 words
-- Each id must be unique (use brand-name-slug format)${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream" : ""}`;
+- Each id must be unique (use brand-name-slug format)
+- For image_url: Use real Unsplash image URLs that match the product type. Use format: https://images.unsplash.com/photo-{id}?w=400&q=80. Choose fashion/clothing photos that match the item category and color.${excludeClause}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream" : ""}`;
 
       const quizContext = quizAnswers
         ? `\nQuiz answers: Styles: ${quizAnswers.preferredStyles?.join(", ")}. Fit: ${quizAnswers.fitPreference}. Colors: ${quizAnswers.colorPreference}. Vibe: ${quizAnswers.dailyVibe}. Occasion: ${quizAnswers.occasionPreference}. Budget: ${quizAnswers.budgetRange}. Avoid: ${quizAnswers.dislikedStyles?.join(", ")}.`
@@ -224,11 +228,18 @@ Rules:
 
       const userPrompt = `User style request: "${prompt}"${quizContext}\n\nGenerate curated product recommendations.`;
 
-      const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 1800, temperature: 0.6 });
+      const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 2200, temperature: 0.6 });
       const parsed = extractJSON(result.content);
 
+      // Validate and clean recommendations
+      const recs = (parsed?.recommendations || []).map((r: any, i: number) => ({
+        ...r,
+        id: r.id || `rec-${Date.now()}-${i}`,
+        image_url: r.image_url && r.image_url.startsWith("http") ? r.image_url : null,
+      }));
+
       return new Response(JSON.stringify({
-        recommendations: parsed?.recommendations || [],
+        recommendations: recs,
         tier: result.tier,
         citations: result.citations,
       }), {
