@@ -258,6 +258,77 @@ async function hybridProductSearch(opts: {
   }
 }
 
+// ─── Tag-based fallback: direct DB query when network is slow ───
+async function tagBasedFallback(opts: {
+  styles?: string[];
+  fit?: string;
+  category?: string;
+  limit?: number;
+}): Promise<AIRecommendation[]> {
+  try {
+    let query = supabase
+      .from("product_cache")
+      .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform")
+      .eq("is_active", true)
+      .eq("image_valid", true)
+      .order("trend_score", { ascending: false })
+      .limit(opts.limit || 12);
+
+    if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+    if (opts.category) query = query.eq("category", opts.category);
+    if (opts.fit) query = query.eq("fit", opts.fit);
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data
+      .filter((p: any) => p.image_url?.startsWith("https"))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        reason: "From your style profile",
+        style_tags: p.style_tags || [],
+        color: (p.color_tags || [])[0] || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ─── Hybrid search with timeout fallback ───
+async function hybridSearchWithFallback(
+  opts: Parameters<typeof hybridProductSearch>[0],
+  fallbackOpts: { styles?: string[]; fit?: string; category?: string },
+  timeoutMs = 5000,
+): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const result = await hybridProductSearch(opts);
+    clearTimeout(timer);
+    if (result.products.length > 0) return result;
+
+    // If empty, try tag-based fallback
+    const fallback = await tagBasedFallback({ ...fallbackOpts, limit: opts.limit });
+    return { products: fallback, expanded: false, dbCount: fallback.length };
+  } catch {
+    clearTimeout(timer);
+    // Network timeout → use tag-based fallback
+    console.warn("Search timeout, using tag-based fallback");
+    const fallback = await tagBasedFallback({ ...fallbackOpts, limit: opts.limit });
+    return { products: fallback, expanded: false, dbCount: fallback.length };
+  }
+}
+
 // ─── Client-side diversity enforcement ───
 function enforceClientDiversity(items: AIRecommendation[], seenIds: Set<string>): AIRecommendation[] {
   // Remove already seen
