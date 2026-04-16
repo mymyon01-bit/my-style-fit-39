@@ -99,9 +99,15 @@ const ProfilePage = () => {
         <div className="flex items-center gap-4">
           <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/30"}`} />
           <div>
-            <p className="text-[11px] font-medium text-foreground/60">{subscription.isPremium ? "Premium" : "Free"}</p>
+            <p className="text-[11px] font-medium text-foreground/60">
+              {subscription.isPremium ? t("premiumFeature") : t("free")}
+            </p>
             {subscription.isPremium && subscription.daysRemaining !== null && (
-              <p className="text-[10px] text-foreground/40">{subscription.plan === "premium_trial" ? `Trial · ${subscription.daysRemaining}d remaining` : "Active"}</p>
+              <p className="text-[10px] text-foreground/40">
+                {subscription.plan === "premium_trial"
+                  ? t("trialRemaining").replace("{days}", String(subscription.daysRemaining))
+                  : t("active")}
+              </p>
             )}
           </div>
         </div>
@@ -109,9 +115,9 @@ const ProfilePage = () => {
         {/* Stats */}
         <div className="flex gap-12">
           {[
-            { icon: Camera, label: "Posts", value: postCount },
-            { icon: Star, label: "Stars", value: totalStars },
-            { icon: Bookmark, label: "Saved", value: savedCount },
+            { icon: Camera, label: t("posts"), value: postCount },
+            { icon: Star, label: t("stars"), value: totalStars },
+            { icon: Bookmark, label: t("saved"), value: savedCount },
           ].map(stat => (
             <div key={stat.label} className="text-center">
               <p className="text-xl font-light text-foreground/80">{stat.value}</p>
@@ -127,11 +133,11 @@ const ProfilePage = () => {
 
         {/* Saved Folders */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">SAVED</p>
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("saved").toUpperCase()}</p>
           {foldersLoading ? (
             <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
           ) : folders.length === 0 ? (
-            <p className="text-[12px] text-foreground/40">No saved items yet</p>
+            <p className="text-[12px] text-foreground/40">{t("noSavedYet")}</p>
           ) : (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {folders.map(folder => (
@@ -151,7 +157,7 @@ const ProfilePage = () => {
 
         {/* Style */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">STYLE</p>
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("style").toUpperCase()}</p>
           {styleProfile ? (
             <div className="space-y-3">
               {styleProfile.preferred_styles?.length > 0 && (
@@ -161,31 +167,31 @@ const ProfilePage = () => {
                   ))}
                 </div>
               )}
-              {styleProfile.preferred_fit && <p className="text-[12px] text-foreground/50">Fit: {styleProfile.preferred_fit}</p>}
-              {styleProfile.budget && <p className="text-[12px] text-foreground/50">Budget: {styleProfile.budget}</p>}
+              {styleProfile.preferred_fit && <p className="text-[12px] text-foreground/50">{t("preferredFit")}: {styleProfile.preferred_fit}</p>}
+              {styleProfile.budget && <p className="text-[12px] text-foreground/50">{t("budget")}: {styleProfile.budget}</p>}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[12px] text-foreground/40">Not set</p>
-              <button onClick={() => navigate("/onboarding")} className="text-[10px] font-medium text-accent/60 hover:text-accent">Complete profile →</button>
+              <p className="text-[12px] text-foreground/40">{t("notSet")}</p>
+              <button onClick={() => navigate("/onboarding")} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("completeProfile")}</button>
             </div>
           )}
         </div>
 
         {/* Body */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">BODY</p>
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("bodyProfile").toUpperCase()}</p>
           {bodyProfile ? (
             <div className="flex flex-wrap gap-x-8 gap-y-2">
               {bodyProfile.height_cm && <p className="text-[12px] text-foreground/50">{bodyProfile.height_cm}cm</p>}
               {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/50">{bodyProfile.weight_kg}kg</p>}
-              {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/50">Shoulder {bodyProfile.shoulder_width_cm}cm</p>}
-              {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/50">Waist {bodyProfile.waist_cm}cm</p>}
+              {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/50">{t("shoulderWidth")} {bodyProfile.shoulder_width_cm}cm</p>}
+              {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/50">{t("waist")} {bodyProfile.waist_cm}cm</p>}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[12px] text-foreground/40">No scan yet</p>
-              <button onClick={() => navigate("/fit")} className="text-[10px] font-medium text-accent/60 hover:text-accent">Start scan →</button>
+              <p className="text-[12px] text-foreground/40">{t("noScanYet")}</p>
+              <button onClick={() => navigate("/fit")} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("startScan")}</button>
             </div>
           )}
         </div>
@@ -195,9 +201,9 @@ const ProfilePage = () => {
         {/* Links */}
         <div className="space-y-1">
           {[
-            { icon: Ruler, label: "Fit Preferences", action: () => navigate("/fit") },
-            { icon: Palette, label: "Style Settings", action: () => navigate("/onboarding") },
-            { icon: Shirt, label: "Discover", action: () => navigate("/discover") },
+            { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
+            { icon: Palette, label: t("styleSettings"), action: () => navigate("/onboarding") },
+            { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
           ].map(section => (
             <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
               <section.icon className="h-[18px] w-[18px] text-foreground/40" strokeWidth={1.5} />
@@ -210,7 +216,7 @@ const ProfilePage = () => {
         {/* Sign out */}
         <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
           <LogOut className="h-4 w-4" />
-          Sign Out
+          {t("signOut")}
         </button>
       </div>
     </div>

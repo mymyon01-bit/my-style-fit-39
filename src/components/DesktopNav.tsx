@@ -1,17 +1,19 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import LanguageSelector from "@/components/LanguageSelector";
 
 const DesktopNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
 
   const links = [
-    { path: "/discover", label: "DISCOVER" },
+    { path: "/discover", label: t("discover").toUpperCase() },
     { path: "/ootd", label: "OOTD" },
-    { path: "/fit", label: "FIT" },
-    { path: "/about", label: "ABOUT" },
+    { path: "/fit", label: t("fit").toUpperCase() },
+    { path: "/about", label: t("about").toUpperCase() },
   ];
 
   const isActive = (path: string) =>
@@ -57,13 +59,13 @@ const DesktopNav = () => {
                 onClick={() => navigate("/auth")}
                 className="hover-burgundy text-[10px] font-semibold tracking-[0.25em] text-foreground/50"
               >
-                LOG IN
+                {t("logIn").toUpperCase()}
               </button>
               <button
                 onClick={() => navigate("/auth?mode=signup")}
                 className="hover-burgundy rounded-md border border-accent/25 px-3.5 py-1.5 text-[10px] font-semibold tracking-[0.25em] text-accent/70 transition-colors hover:bg-accent/[0.06] hover:text-accent"
               >
-                SIGN UP
+                {t("signUp").toUpperCase()}
               </button>
             </>
           )}

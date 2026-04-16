@@ -15,19 +15,6 @@ const languages: { code: Language; label: string; native: string }[] = [
   { code: "it", label: "Italian", native: "Italiano" },
 ];
 
-const themeOptions = [
-  { value: "light" as const, icon: Sun, label: "Light" },
-  { value: "dark" as const, icon: Moon, label: "Dark" },
-  { value: "system" as const, icon: Monitor, label: "System" },
-];
-
-const transitionOptions: { value: TransitionStyle; label: string; desc: string }[] = [
-  { value: "none", label: "None", desc: "No animation" },
-  { value: "vertical", label: "Vertical", desc: "Slide from bottom" },
-  { value: "fade", label: "Fade", desc: "Dark to light" },
-  { value: "split", label: "Split", desc: "Open from center" },
-];
-
 const SettingsPage = () => {
   const { t, lang, setLang } = useI18n();
   const { theme, setTheme } = useTheme();
@@ -36,6 +23,19 @@ const SettingsPage = () => {
   const { subscription } = useSubscription();
   const navigate = useNavigate();
 
+  const themeOptions = [
+    { value: "light" as const, icon: Sun, label: t("light") },
+    { value: "dark" as const, icon: Moon, label: t("dark") },
+    { value: "system" as const, icon: Monitor, label: t("system") },
+  ];
+
+  const transitionOptions: { value: TransitionStyle; label: string; desc: string }[] = [
+    { value: "none", label: t("none"), desc: t("noAnimation") },
+    { value: "vertical", label: t("vertical"), desc: t("slideFromBottom") },
+    { value: "fade", label: t("fade"), desc: t("darkToLight") },
+    { value: "split", label: t("split"), desc: t("openFromCenter") },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
@@ -43,7 +43,7 @@ const SettingsPage = () => {
           <button onClick={() => navigate(-1)} className="hover-burgundy text-foreground/50">
             <ArrowLeft className="h-[18px] w-[18px]" />
           </button>
-          <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/45 md:text-[11px]">SETTINGS</span>
+          <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/45 md:text-[11px]">{t("settings").toUpperCase()}</span>
         </div>
       </div>
 
@@ -54,7 +54,7 @@ const SettingsPage = () => {
             <div className="space-y-5">
               <div className="flex items-center gap-2">
                 <User className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">ACCOUNT</p>
+                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("account").toUpperCase()}</p>
               </div>
               <div className="space-y-2">
                 <p className="text-[13px] text-foreground/60">{user.email}</p>
@@ -62,7 +62,7 @@ const SettingsPage = () => {
                   onClick={() => navigate("/profile")}
                   className="text-[11px] font-medium text-accent/60 hover:text-accent transition-colors"
                 >
-                  View Profile →
+                  {t("viewProfile")} →
                 </button>
               </div>
             </div>
@@ -122,9 +122,9 @@ const SettingsPage = () => {
         <div className="space-y-5">
           <div className="flex items-center gap-2">
             <Bell className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">NOTIFICATIONS</p>
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("notifications").toUpperCase()}</p>
           </div>
-          <p className="text-[12px] text-foreground/35">Coming soon — get notified about daily picks and trending styles.</p>
+          <p className="text-[12px] text-foreground/35">{t("notificationsSoon")}</p>
         </div>
 
         <div className="h-px bg-border/30" />
@@ -133,7 +133,7 @@ const SettingsPage = () => {
         <div className="space-y-5">
           <div className="flex items-center gap-2">
             <Layers className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">PAGE TRANSITION</p>
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("pageTransition").toUpperCase()}</p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {transitionOptions.map((opt) => (
@@ -159,20 +159,18 @@ const SettingsPage = () => {
         <div className="space-y-5">
           <div className="flex items-center gap-2">
             <Crown className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">SUBSCRIPTION</p>
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("subscription").toUpperCase()}</p>
           </div>
           <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-2">
             <p className="text-[13px] font-medium text-foreground/65">
               {subscription.isPremium
                 ? subscription.plan === "premium_trial"
-                  ? `Premium Trial · ${subscription.daysRemaining}d remaining`
-                  : "Premium · Active"
-                : "Free Plan"}
+                  ? t("premiumTrialStatus").replace("{days}", String(subscription.daysRemaining))
+                  : t("premiumActive")
+                : t("freePlan")}
             </p>
             <p className="text-[11px] text-foreground/35">
-              {subscription.isPremium
-                ? "You have access to daily picks, weekly planning, and enhanced AI styling."
-                : "Upgrade to Premium for deeper recommendations and weekly planning."}
+              {subscription.isPremium ? t("premiumDesc") : t("upgradeDesc")}
             </p>
           </div>
         </div>
@@ -191,7 +189,7 @@ const SettingsPage = () => {
           </button>
           <button className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/40 md:py-5">
             <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            <span className="text-[13px] font-medium md:text-[14px]">Help</span>
+            <span className="text-[13px] font-medium md:text-[14px]">{t("help")}</span>
           </button>
         </div>
       </div>
