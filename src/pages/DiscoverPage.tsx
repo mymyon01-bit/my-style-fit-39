@@ -14,6 +14,7 @@ import ShareButton from "@/components/ShareButton";
 import { toast } from "sonner";
 import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
 import OutfitLookCard from "@/components/OutfitLookCard";
+import ProductDetailSheet from "@/components/ProductDetailSheet";
 
 interface AIRecommendation {
   id: string;
@@ -62,6 +63,92 @@ function classifyProduct(item: AIRecommendation): FashionCategory | null {
     if (CATEGORY_KEYWORDS[cat].test(text)) return cat;
   }
   return null;
+}
+
+// ── Emotion / Intent mapping for client-side lightweight scoring ──
+const EMOTION_STYLE_MAP: Record<string, string[]> = {
+  clean: ["minimal", "cleanFit"], sharp: ["classic", "chic", "formal"],
+  lazy: ["casual", "minimal"], confident: ["chic", "classic", "edgy"],
+  lowkey: ["minimal", "casual"], soft: ["casual", "minimal", "bohemian"],
+  bold: ["edgy", "streetwear"], cozy: ["casual", "vintage"],
+  elegant: ["classic", "chic", "formal"], chill: ["casual", "minimal", "sporty"],
+  dark: ["edgy", "minimal"], moody: ["edgy", "vintage"],
+  fresh: ["sporty", "casual", "minimal"], romantic: ["chic", "bohemian", "vintage"],
+};
+
+const EMOTION_COLOR_MAP: Record<string, string[]> = {
+  clean: ["white", "neutral", "light"], dark: ["black", "charcoal", "navy"],
+  soft: ["pastel", "beige", "cream"], bold: ["red", "orange", "bright"],
+  moody: ["burgundy", "dark", "forest"], fresh: ["white", "mint", "sky"],
+  elegant: ["black", "navy", "gold"], cozy: ["earth", "brown", "warm"],
+};
+
+// ── Free-mode lightweight scoring (no AI needed) ──
+function freeScoreProduct(
+  item: AIRecommendation,
+  query: string,
+  userStyle?: any,
+  feedbackMap?: Record<string, "like" | "dislike">,
+): number {
+  const queryLower = query.toLowerCase();
+  const terms = queryLower.split(/\s+/).filter(t => t.length > 2);
+  const itemText = `${item.name} ${item.brand} ${item.category} ${(item.style_tags || []).join(" ")} ${item.color} ${item.fit}`.toLowerCase();
+
+  // 0.30 Style Match — emotion/keyword alignment
+  let styleScore = 0;
+  const matchedEmotions = Object.keys(EMOTION_STYLE_MAP).filter(e => queryLower.includes(e));
+  if (matchedEmotions.length > 0) {
+    const targetStyles = [...new Set(matchedEmotions.flatMap(e => EMOTION_STYLE_MAP[e]))];
+    const overlap = (item.style_tags || []).filter(t => targetStyles.includes(t)).length;
+    styleScore = Math.min(100, 40 + overlap * 25);
+  } else {
+    // Direct keyword match
+    const matchCount = terms.filter(t => itemText.includes(t)).length;
+    styleScore = terms.length > 0 ? Math.min(100, (matchCount / terms.length) * 100) : 50;
+  }
+
+  // 0.20 Category match
+  let categoryScore = 50;
+  if (item.category && queryLower.includes(item.category.toLowerCase())) categoryScore = 100;
+
+  // 0.20 Color alignment
+  let colorScore = 50;
+  const matchedEmotionColors = matchedEmotions.flatMap(e => EMOTION_COLOR_MAP[e] || []);
+  if (matchedEmotionColors.length > 0 && item.color) {
+    if (matchedEmotionColors.some(c => item.color.toLowerCase().includes(c))) colorScore = 90;
+  }
+  if (terms.some(t => item.color?.toLowerCase().includes(t))) colorScore = 95;
+
+  // 0.15 Preference match (user style profile)
+  let prefScore = 50;
+  if (userStyle) {
+    const userStyles = userStyle.preferred_styles || [];
+    const disliked = userStyle.disliked_styles || [];
+    if ((item.style_tags || []).some((t: string) => userStyles.includes(t))) prefScore += 30;
+    if ((item.style_tags || []).some((t: string) => disliked.includes(t))) prefScore -= 25;
+    const favBrands = userStyle.favorite_brands || [];
+    if (favBrands.includes(item.brand)) prefScore += 15;
+  }
+  prefScore = Math.max(0, Math.min(100, prefScore));
+
+  // 0.10 Behavior
+  let behaviorScore = 50;
+  if (feedbackMap) {
+    if (feedbackMap[item.id] === "like") behaviorScore = 90;
+    if (feedbackMap[item.id] === "dislike") behaviorScore = 10;
+  }
+
+  // 0.05 Diversity (small random jitter for variety)
+  const diversityScore = 40 + Math.random() * 20;
+
+  return Math.round(
+    0.30 * styleScore +
+    0.20 * categoryScore +
+    0.20 * colorScore +
+    0.15 * prefScore +
+    0.10 * behaviorScore +
+    0.05 * diversityScore
+  );
 }
 
 // Client-side result cache
@@ -257,6 +344,9 @@ const DiscoverPage = () => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inflightRef = useRef<string | null>(null);
   const initialLoadDone = useRef(false);
+
+  // Product detail sheet
+  const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
 
   // Filters
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -683,9 +773,13 @@ const DiscoverPage = () => {
       const { queries: aiQueries, style_tags: aiStyles } = intentResult;
       const mergedStyles = [...new Set([...selectedStyles, ...aiStyles])];
 
-      // Step 2: Show quick DB results immediately if good
+      // Step 2: Apply free-mode scoring and show results
       if (quickDbResult.products.length >= 8) {
-        const diverse = enforceClientDiversity(quickDbResult.products, new Set());
+        // Score and sort by emotional/intent relevance
+        const scored = quickDbResult.products
+          .map(p => ({ ...p, _freeScore: freeScoreProduct(p, q, userStyleProfile, feedbackMap) }))
+          .sort((a, b) => b._freeScore - a._freeScore);
+        const diverse = enforceClientDiversity(scored, new Set());
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
@@ -1207,6 +1301,7 @@ const DiscoverPage = () => {
                             savedIds={savedIds}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
+                            onOpenDetail={setDetailProduct}
                           />
                         ))}
                       </div>
@@ -1223,6 +1318,7 @@ const DiscoverPage = () => {
                         savedIds={savedIds}
                         onFeedback={handleFeedback}
                         onSave={handleSave}
+                        onOpenDetail={setDetailProduct}
                       />
                     ))}
                   </div>
@@ -1279,6 +1375,7 @@ const DiscoverPage = () => {
                             savedIds={savedIds}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
+                            onOpenDetail={setDetailProduct}
                           />
                         ))}
                       </div>
@@ -1321,6 +1418,14 @@ const DiscoverPage = () => {
           <div />
         </AuthGate>
       )}
+
+      <ProductDetailSheet
+        product={detailProduct}
+        open={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        isSaved={detailProduct ? savedIds.has(detailProduct.id) : false}
+        onSave={handleSave}
+      />
     </>
   );
 };
@@ -1334,9 +1439,10 @@ interface RecommendationCardProps {
   savedIds: Set<string>;
   onFeedback: (id: string, type: "like" | "dislike") => void;
   onSave: (id: string) => void;
+  onOpenDetail: (item: AIRecommendation) => void;
 }
 
-const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave }: RecommendationCardProps) => {
+const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave, onOpenDetail }: RecommendationCardProps) => {
   const feedback = feedbackMap[item.id];
   const isSaved = savedIds.has(item.id);
   const [imgFailed, setImgFailed] = useState(false);
@@ -1345,7 +1451,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
   if (!item.image_url || !item.image_url.startsWith("http") || imgFailed) return null;
 
   return (
-    <div className="group">
+    <div className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
         <img
           src={item.image_url}
@@ -1358,7 +1464,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 transition-all group-hover:opacity-100">
           <button
-            onClick={() => onFeedback(item.id, "like")}
+            onClick={(e) => { e.stopPropagation(); onFeedback(item.id, "like"); }}
             className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
               feedback === "like" ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
             }`}
@@ -1366,7 +1472,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
             <Heart className="h-3 w-3" fill={feedback === "like" ? "currentColor" : "none"} />
           </button>
           <button
-            onClick={() => onFeedback(item.id, "dislike")}
+            onClick={(e) => { e.stopPropagation(); onFeedback(item.id, "dislike"); }}
             className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
               feedback === "dislike" ? "bg-red-500/30 text-red-400" : "bg-black/30 text-white/70 hover:text-white"
             }`}
@@ -1374,18 +1480,20 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
             <HeartOff className="h-3 w-3" />
           </button>
           <button
-            onClick={() => onSave(item.id)}
+            onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
             className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
               isSaved ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
             }`}
           >
             <Bookmark className="h-3 w-3" fill={isSaved ? "currentColor" : "none"} />
           </button>
-          <ShareButton
-            title={`${item.name} by ${item.brand}`}
-            url={item.source_url || window.location.href}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-md hover:text-white"
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <ShareButton
+              title={`${item.name} by ${item.brand}`}
+              url={item.source_url || window.location.href}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-md hover:text-white"
+            />
+          </div>
         </div>
         {item.platform && PLATFORM_LABELS[item.platform] && (
           <div className={`absolute top-2 left-2 rounded-full ${PLATFORM_LABELS[item.platform].color} px-2 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm tracking-wide`}>
@@ -1393,14 +1501,12 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
           </div>
         )}
         {item.source_url && (
-          <a
-            href={item.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60"
+          <div
+            onClick={(e) => { e.stopPropagation(); window.open(item.source_url!, "_blank", "noopener,noreferrer"); }}
+            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/60 cursor-pointer"
           >
             SHOP →
-          </a>
+          </div>
         )}
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
