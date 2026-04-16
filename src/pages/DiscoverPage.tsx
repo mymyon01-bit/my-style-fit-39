@@ -118,6 +118,7 @@ const DiscoverPage = () => {
           prompt: fullPrompt,
           quizAnswers: quiz || quizAnswers,
           userId: user?.id || null,
+          source: "discover",
           count: 10,
         },
       });
