@@ -889,7 +889,27 @@ const DiscoverPage = () => {
   }, [textInput]);
 
 
-  // ── INSTANT INITIAL LOAD: DB-first small batch, then background expansion ──
+  // ── Infinite scroll: auto load-more via IntersectionObserver ──
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const isAutoLoading = useRef(false);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasGenerated && recommendations.length > 0 && !isLoadingMore && !isGenerating && !isAutoLoading.current) {
+          isAutoLoading.current = true;
+          loadMore().finally(() => { isAutoLoading.current = false; });
+        }
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasGenerated, recommendations.length, isLoadingMore, isGenerating]);
+
+  // ── INSTANT INITIAL LOAD: Direct DB query (no edge function), then background expansion ──
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
@@ -900,26 +920,21 @@ const DiscoverPage = () => {
 
       const TARGET_COUNT = 12;
 
-      // Use style profile for personalized initial load
-      const styleQuery = userStyleProfile
-        ? buildStyleSearchQueries(userStyleProfile)[0]
-        : undefined;
-
-      // Step 1: Fast DB load — large initial batch with style-aware query
-      const { products: dbProducts, dbCount } = await hybridProductSearch({
-        query: styleQuery,
-        styles: userStyleProfile?.preferred_styles?.length ? userStyleProfile.preferred_styles.slice(0, 3) : undefined,
-        fit: userStyleProfile?.preferred_fit || undefined,
+      // Step 1: INSTANT — Direct DB query, bypasses edge function for zero latency
+      const userStyles = userStyleProfile?.preferred_styles?.slice(0, 3);
+      const userFit = userStyleProfile?.preferred_fit;
+      const dbProducts = await directDbLoad({
+        styles: userStyles?.length ? userStyles : undefined,
+        fit: userFit || undefined,
         limit: TARGET_COUNT,
-        randomize: !styleQuery,
       });
 
       if (dbProducts.length > 0) {
-        // Score results if we have a style profile
         let scoredProducts = dbProducts;
         if (userStyleProfile) {
+          const styleQuery = buildStyleSearchQueries(userStyleProfile)[0] || "";
           scoredProducts = dbProducts
-            .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQuery || "", userStyleProfile, feedbackMap) }))
+            .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQuery, userStyleProfile, feedbackMap) }))
             .sort((a, b) => (b as any)._freeScore - (a as any)._freeScore);
         }
 
@@ -927,42 +942,28 @@ const DiscoverPage = () => {
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
-        setHasMoreInDB(dbCount >= TARGET_COUNT);
+        setHasMoreInDB(true);
         setIsGenerating(false);
 
-        // Step 2: Background expansion to grow inventory
-        if (diverse.length < TARGET_COUNT) {
-          requestIdleCallback(() => {
-            const styleQueries = userStyleProfile
-              ? buildStyleSearchQueries(userStyleProfile)
-              : ["trending fashion new arrivals"];
-            
-            hybridProductSearch({
-              query: styleQueries[0],
-              expandExternal: true,
-              limit: TARGET_COUNT - diverse.length,
-              excludeIds: Array.from(sessionSeenIds),
-            }).then(({ products: freshProducts }) => {
-              if (freshProducts.length > 0) {
-                const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
-                freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-                setRecommendations(prev => enforceClientDiversity([...prev, ...freshDiverse], new Set()));
-              }
-            });
-          });
-        }
+        // Step 2: Background expansion via edge function (non-blocking)
+        setTimeout(() => {
+          const styleQueries = userStyleProfile
+            ? buildStyleSearchQueries(userStyleProfile)
+            : ["trending fashion new arrivals"];
 
-        // Step 3: Background seeding — trigger category-diverse queries to grow DB
-        requestIdleCallback(() => {
-          const seedQueries = [
-            "minimal clean outerwear jacket",
-            "casual streetwear sneakers",
-            "classic leather bag tote",
-            "trendy accessories hat watch",
-          ];
-          const randomSeed = seedQueries[Math.floor(Math.random() * seedQueries.length)];
-          hybridProductSearch({ query: randomSeed, expandExternal: true, limit: 8 }).catch(() => {});
-        });
+          hybridProductSearch({
+            query: styleQueries[0],
+            expandExternal: true,
+            limit: TARGET_COUNT,
+            excludeIds: Array.from(sessionSeenIds),
+          }).then(({ products: freshProducts }) => {
+            if (freshProducts.length > 0) {
+              const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
+              freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+              setRecommendations(prev => enforceClientDiversity([...prev, ...freshDiverse], new Set()));
+            }
+          }).catch(() => {});
+        }, 100);
       } else {
         // No DB products — force external expansion
         const { products: apiProducts } = await hybridProductSearch({
