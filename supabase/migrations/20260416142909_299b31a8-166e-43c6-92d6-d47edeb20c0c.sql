@@ -1,0 +1,1 @@
+ALTER TABLE public.body_profiles ADD COLUMN IF NOT EXISTS body_avatar_url TEXT DEFAULT NULL;

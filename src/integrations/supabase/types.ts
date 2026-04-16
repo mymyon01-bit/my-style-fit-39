@@ -37,6 +37,7 @@ export type Database = {
       }
       body_profiles: {
         Row: {
+          body_avatar_url: string | null
           body_landmarks: Json | null
           created_at: string
           height_cm: number | null
@@ -52,6 +53,7 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          body_avatar_url?: string | null
           body_landmarks?: Json | null
           created_at?: string
           height_cm?: number | null
@@ -67,6 +69,7 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          body_avatar_url?: string | null
           body_landmarks?: Json | null
           created_at?: string
           height_cm?: number | null
