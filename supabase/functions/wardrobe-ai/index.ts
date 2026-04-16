@@ -132,6 +132,12 @@ function extractJSON(content: string): any | null {
   return null;
 }
 
+function getServiceClient() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  return createClient(supabaseUrl, supabaseKey);
+}
+
 async function getUserInfo(req: Request): Promise<{
   userId: string | null;
   isPremium: boolean;
@@ -143,10 +149,7 @@ async function getUserInfo(req: Request): Promise<{
   const empty = { userId: null, isPremium: false, styleProfile: null, bodyProfile: null, recentInteractions: [] };
   if (!authHeader || !authHeader.startsWith("Bearer ")) return empty;
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
+  const supabase = getServiceClient();
   const token = authHeader.replace("Bearer ", "");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   if (token === anonKey) return empty;
@@ -155,7 +158,6 @@ async function getUserInfo(req: Request): Promise<{
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) return empty;
 
-    // Fetch subscription, style profile, body profile, and recent interactions in parallel
     const [subRes, styleRes, bodyRes, interactionsRes] = await Promise.all([
       supabase.from("subscriptions").select("plan, status, trial_end_date").eq("user_id", user.id).maybeSingle(),
       supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
@@ -202,13 +204,115 @@ function buildPersonalizationContext(userInfo: { styleProfile: any; bodyProfile:
     if (bodyParts.length) parts.push(`Body: ${bodyParts.join(", ")}`);
   }
 
-  // Extract taste signals from recent interactions
   const liked = userInfo.recentInteractions.filter(i => i.event_type === "like").map(i => i.target_id);
   const disliked = userInfo.recentInteractions.filter(i => i.event_type === "dislike").map(i => i.target_id);
   if (liked.length) parts.push(`Recently liked items: ${liked.slice(0, 8).join(", ")}`);
   if (disliked.length) parts.push(`Recently disliked items: ${disliked.slice(0, 5).join(", ")} — avoid similar`);
 
   return parts.length > 0 ? `\n\nUser personalization data:\n${parts.join("\n")}` : "";
+}
+
+// ─── Product cache helpers ───
+
+function isValidImageUrl(url: unknown): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") return false;
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+async function cacheProducts(supabase: any, products: any[], searchQuery: string) {
+  const validProducts = products.filter(p => isValidImageUrl(p.image_url));
+  if (validProducts.length === 0) return;
+
+  const rows = validProducts.map(p => ({
+    external_id: p.id,
+    name: p.name,
+    brand: p.brand || null,
+    price: p.price || null,
+    category: p.category || null,
+    subcategory: p.subcategory || null,
+    style_tags: p.style_tags || [],
+    color_tags: p.color ? [p.color] : [],
+    fit: p.fit || null,
+    image_url: p.image_url,
+    source_url: p.source_url || null,
+    store_name: p.store_name || p.brand || null,
+    reason: p.reason || null,
+    image_valid: true,
+    search_query: searchQuery.slice(0, 500),
+  }));
+
+  const { error } = await supabase
+    .from("product_cache")
+    .upsert(rows, { onConflict: "external_id", ignoreDuplicates: false });
+
+  if (error) console.error("Cache insert error:", error.message);
+  else console.log(`Cached ${rows.length} products for query: "${searchQuery.slice(0, 60)}"`);
+}
+
+async function logImageFailures(supabase: any, products: any[], source: string) {
+  const failed = products.filter(p => !isValidImageUrl(p.image_url));
+  if (failed.length === 0) return;
+
+  const rows = failed.map(p => ({
+    product_name: p.name || "Unknown",
+    brand: p.brand || null,
+    image_url: p.image_url || null,
+    failure_reason: !p.image_url ? "missing" : "invalid_url",
+    source,
+  }));
+
+  await supabase.from("image_failures").insert(rows).then(({ error }: any) => {
+    if (error) console.error("Image failure log error:", error.message);
+  });
+}
+
+async function getCachedProducts(supabase: any, opts: {
+  category?: string;
+  subcategory?: string;
+  styles?: string[];
+  fit?: string;
+  color?: string;
+  limit?: number;
+}): Promise<any[]> {
+  let query = supabase
+    .from("product_cache")
+    .select("*")
+    .eq("image_valid", true)
+    .order("created_at", { ascending: false })
+    .limit(opts.limit || 20);
+
+  if (opts.category) query = query.eq("category", opts.category);
+  if (opts.subcategory) query = query.eq("subcategory", opts.subcategory);
+  if (opts.fit) query = query.eq("fit", opts.fit);
+  if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Cache query error:", error.message);
+    return [];
+  }
+  return (data || []).map((p: any) => ({
+    id: p.external_id || p.id,
+    name: p.name,
+    brand: p.brand,
+    price: p.price,
+    category: p.category,
+    subcategory: p.subcategory,
+    reason: p.reason || "From your curated collection",
+    style_tags: p.style_tags || [],
+    color: (p.color_tags || [])[0] || "",
+    fit: p.fit || "regular",
+    image_url: p.image_url,
+    source_url: p.source_url,
+    store_name: p.store_name,
+  }));
 }
 
 // ─── Main handler ───
@@ -220,16 +324,60 @@ serve(async (req) => {
     const body = await req.json();
     const { type, context, action, prompt, quizAnswers, source } = body;
 
-    // Determine AI tier + fetch user data
     const userInfo = await getUserInfo(req);
     const tier = determineTier(body, userInfo.userId, userInfo.isPremium);
     console.log(`AI routing: tier=${tier}, userId=${userInfo.userId?.slice(0, 8) || "guest"}, source=${source || "discover"}`);
 
+    // ─── Browse action (DB-first, no AI) ───
+    if (action === "browse") {
+      const supabase = getServiceClient();
+      const cached = await getCachedProducts(supabase, {
+        category: body.category,
+        subcategory: body.subcategory,
+        styles: body.styles,
+        fit: body.fit,
+        limit: body.count || 20,
+      });
+
+      return new Response(JSON.stringify({
+        recommendations: cached,
+        tier: "cached",
+        citations: [],
+        fromCache: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── Recommend action ───
     if (action === "recommend") {
+      const supabase = getServiceClient();
       const itemCount = body.count || (tier === "premium" ? "10-12" : tier === "user" ? "8-10" : "6-8");
       const excludeIds = body.excludeIds || [];
       const excludeClause = excludeIds.length > 0 ? `\nDo NOT include items with these IDs: ${excludeIds.join(", ")}. Generate completely different products.` : "";
+
+      // Try cache first for category browsing (non-search)
+      if (!body.isSearch && body.category) {
+        const cached = await getCachedProducts(supabase, {
+          category: body.category,
+          subcategory: body.subcategory,
+          styles: body.styles,
+          fit: body.fit,
+          limit: typeof itemCount === "number" ? itemCount : 8,
+        });
+
+        if (cached.length >= 4) {
+          console.log(`Serving ${cached.length} items from cache for category: ${body.category}`);
+          return new Response(JSON.stringify({
+            recommendations: cached,
+            tier: "cached",
+            citations: [],
+            fromCache: true,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
 
       const personalization = buildPersonalizationContext(userInfo);
 
@@ -273,7 +421,7 @@ Rules:
 - Colors should be hex values
 - Keep reasons under 15 words
 - Each id must be unique (use brand-name-slug format)
-- For image_url: Use real Unsplash fashion image URLs. Format: https://images.unsplash.com/photo-{id}?w=400&q=80
+- CRITICAL: Every product MUST have a valid image_url. Use real Unsplash fashion image URLs. Format: https://images.unsplash.com/photo-{id}?w=400&q=80
 - For source_url: Provide the REAL product page URL on the brand's official website or major retailer (e.g. nordstrom.com, ssense.com, zara.com, uniqlo.com). This must be a real, navigable URL.
 - For store_name: Name of the retailer or brand store
 - Use style_tags to describe the item's aesthetic (e.g. minimal, street, classic, edgy, chic, vintage, bohemian, sporty)${excludeClause}${personalization}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream\n- Consider body profile for fit recommendations" : ""}`;
@@ -287,14 +435,24 @@ Rules:
       const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 2200, temperature: 0.6 });
       const parsed = extractJSON(result.content);
 
-      // Validate and clean recommendations
-      const recs = (parsed?.recommendations || []).map((r: any, i: number) => ({
+      // Validate, filter imageless, and clean recommendations
+      const allRecs = (parsed?.recommendations || []).map((r: any, i: number) => ({
         ...r,
         id: r.id || `rec-${Date.now()}-${i}`,
-        image_url: r.image_url && r.image_url.startsWith("http") ? r.image_url : null,
+        image_url: r.image_url && isValidImageUrl(r.image_url) ? r.image_url : null,
         source_url: r.source_url && r.source_url.startsWith("http") ? r.source_url : null,
         store_name: r.store_name || r.brand || null,
       }));
+
+      // STRICT: Only return products with valid images
+      const recs = allRecs.filter((r: any) => isValidImageUrl(r.image_url));
+
+      // Cache valid products + log failures in background
+      const cachePromise = cacheProducts(supabase, recs, prompt || "");
+      const failurePromise = logImageFailures(supabase, allRecs, source || "discover");
+      
+      // Don't await — fire and forget
+      Promise.all([cachePromise, failurePromise]).catch(e => console.error("Background task error:", e));
 
       return new Response(JSON.stringify({
         recommendations: recs,

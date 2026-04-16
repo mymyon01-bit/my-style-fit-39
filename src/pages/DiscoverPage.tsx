@@ -109,8 +109,8 @@ const DiscoverPage = () => {
 
   useEffect(() => {
     if (activeTab !== "for-you" && activeTab !== "featured") {
-      const sub = activeSubcategory ? ` — ${activeSubcategory}` : "";
-      generateRecommendations(`Show me ${activeTab}${sub} items`, undefined, activeTab);
+      // DB-first: try browse (cached) first, only AI on search
+      browseCategory(activeTab, activeSubcategory);
     }
   }, [activeTab, activeSubcategory]);
 
@@ -118,6 +118,43 @@ const DiscoverPage = () => {
     if (!user) return;
     const { data } = await supabase.from("saved_items").select("product_id").eq("user_id", user.id);
     setSavedIds(new Set((data || []).map(d => d.product_id)));
+  };
+
+  // DB-first browse: load cached products by category without AI
+  const browseCategory = async (category: string, subcategory: string | null) => {
+    setIsGenerating(true);
+    setHasGenerated(true);
+    setRecommendations([]);
+    lastPromptRef.current = `Browse ${category}`;
+    try {
+      // First try the browse action (DB-cached products)
+      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
+        body: {
+          action: "browse",
+          category,
+          subcategory: subcategory || undefined,
+          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+          fit: selectedFit || undefined,
+          count: 12,
+        },
+      });
+      if (!error && data?.recommendations?.length >= 4) {
+        // Filter client-side: only show products with valid images
+        const validRecs = (data.recommendations as AIRecommendation[]).filter(
+          r => r.image_url && r.image_url.startsWith("http")
+        );
+        setRecommendations(validRecs);
+        setIsGenerating(false);
+        return;
+      }
+      // Not enough cached — fall back to AI
+      const sub = subcategory ? ` — ${subcategory}` : "";
+      await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
+    } catch {
+      // Fallback to AI
+      const sub = subcategory ? ` — ${subcategory}` : "";
+      await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
+    }
   };
 
   const handleQuizComplete = (answers: StyleQuizAnswers) => {
@@ -165,14 +202,21 @@ const DiscoverPage = () => {
           userId: user?.id || null,
           source: sourceParam || "discover",
           count: 8,
+          isSearch: true,
+          category: categoryFilter || undefined,
+          subcategory: activeSubcategory || undefined,
+          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+          fit: selectedFit || undefined,
         },
       });
       if (error) throw error;
-      const recs = (data?.recommendations || []).map((r: AIRecommendation) => {
+      // STRICT: Only show products with valid images
+      const recs = (data?.recommendations || []).filter((r: AIRecommendation) => {
         if (!r.image_url || !r.image_url.startsWith("http")) {
-          console.warn(`[WARDROBE] Missing/invalid image for "${r.name}" (${r.id})`);
+          console.warn(`[WARDROBE] Filtered out imageless product: "${r.name}" (${r.id})`);
+          return false;
         }
-        return r;
+        return true;
       });
       setRecommendations(recs);
     } catch (e: any) {
