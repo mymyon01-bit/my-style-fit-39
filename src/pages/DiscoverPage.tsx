@@ -539,7 +539,7 @@ function buildStyleSearchQueries(profile: any, searchText?: string): string[] {
   return [...new Set(queries)].slice(0, 3);
 }
 
-// ─── Hybrid product search: DB-first + external expansion ───
+// ─── Hybrid product search: DB-first + external expansion (with request dedup) ───
 async function hybridProductSearch(opts: {
   query?: string;
   category?: string;
@@ -549,51 +549,55 @@ async function hybridProductSearch(opts: {
   excludeIds?: string[];
   expandExternal?: boolean;
   randomize?: boolean;
-  freshSearch?: boolean; // NEW: forces external-first retrieval
+  freshSearch?: boolean;
 }): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
-  try {
-    const { data, error } = await supabase.functions.invoke("product-search", {
-      body: {
-        query: opts.query || "",
-        category: opts.category,
-        styles: opts.styles,
-        fit: opts.fit,
-        limit: opts.limit || 16,
-        excludeIds: opts.excludeIds || [],
-        expandExternal: opts.expandExternal ?? false,
-        randomize: opts.randomize ?? true,
-        freshSearch: opts.freshSearch ?? false,
-      },
-    });
-    if (error) throw error;
+  const dedupKey = `product-search:${opts.query}:${opts.category}:${opts.expandExternal}:${opts.freshSearch}`;
 
-    const products = (data?.products || [])
-      .filter((p: any) => p.image_url?.startsWith("https"))
-      .map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.brand || "",
-        price: p.price || "",
-        category: p.category || "",
-        reason: p.reason || "Curated for you",
-        style_tags: p.style_tags || [],
-        color: p.color || "",
-        fit: p.fit || "regular",
-        image_url: p.image_url,
-        source_url: p.source_url,
-        store_name: p.store_name,
-        platform: p.platform || null,
-      }));
+  return deduplicatedSearch(dedupKey, async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("product-search", {
+        body: {
+          query: opts.query || "",
+          category: opts.category,
+          styles: opts.styles,
+          fit: opts.fit,
+          limit: opts.limit || 16,
+          excludeIds: opts.excludeIds || [],
+          expandExternal: opts.expandExternal ?? false,
+          randomize: opts.randomize ?? true,
+          freshSearch: opts.freshSearch ?? false,
+        },
+      });
+      if (error) throw error;
 
-    return {
-      products,
-      expanded: data?.expanded || false,
-      dbCount: data?.dbCount || 0,
-    };
-  } catch (e) {
-    console.error("Hybrid search error:", e);
-    return { products: [], expanded: false, dbCount: 0 };
-  }
+      const products = (data?.products || [])
+        .filter((p: any) => p.image_url?.startsWith("https"))
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand || "",
+          price: p.price || "",
+          category: p.category || "",
+          reason: p.reason || "Curated for you",
+          style_tags: p.style_tags || [],
+          color: p.color || "",
+          fit: p.fit || "regular",
+          image_url: p.image_url,
+          source_url: p.source_url,
+          store_name: p.store_name,
+          platform: p.platform || null,
+        }));
+
+      return {
+        products,
+        expanded: data?.expanded || false,
+        dbCount: data?.dbCount || 0,
+      };
+    } catch (e) {
+      console.error("Hybrid search error:", e);
+      return { products: [], expanded: false, dbCount: 0 };
+    }
+  });
 }
 
 // ─── Tag-based fallback: direct DB query when network is slow ───
