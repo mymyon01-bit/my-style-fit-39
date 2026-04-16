@@ -1436,16 +1436,19 @@ const DiscoverPage = () => {
     return [...new Set(queries)].slice(0, 10);
   }
 
-  // ── Perplexity-powered query expansion via wardrobe-ai search-intent (cached) ──
+  // ── Perplexity-powered query expansion via wardrobe-ai search-intent (cached, non-blocking) ──
+  // Soft timeout = 1s. If Perplexity doesn't respond by then, we proceed with local fallback.
+  // Late responses still resolve and populate cache for the NEXT search.
   async function aiExpandQuery(q: string): Promise<{ queries: string[]; category?: string; style_tags?: string[] }> {
     const cacheKey = q.toLowerCase().trim();
     const cached = intentCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < INTENT_CACHE_TTL) {
-      console.log("AI intent cache hit:", cached.queries);
+      console.log("[search-intent] cache hit for:", cacheKey);
       return { queries: cached.queries, category: cached.category, style_tags: cached.style_tags };
     }
 
     try {
+      const t0 = performance.now();
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
           action: "search-intent",
@@ -1453,15 +1456,16 @@ const DiscoverPage = () => {
           source: sourceParam || "discover",
         },
       });
+      const elapsed = Math.round(performance.now() - t0);
       if (error) throw error;
       if (data?.queries?.length) {
-        console.log("AI query expansion:", data.queries, "intent:", data.interpreted_intent);
+        console.log(`[search-intent] OK in ${elapsed}ms (tier=${data.tier}, queries=${data.queries.length})`);
         const result = { queries: data.queries, category: data.category, style_tags: data.style_tags || [] };
         intentCache.set(cacheKey, { ...result, ts: Date.now() });
         return result;
       }
     } catch (e) {
-      console.warn("AI query expansion failed, using local fallback:", e);
+      console.warn("[search-intent] failed, will use local fallback:", e);
     }
     // Fallback to local expansion
     return { queries: expandSearchQuery(q) };
@@ -1488,24 +1492,32 @@ const DiscoverPage = () => {
       const intent = parseQueryIntent(q);
       const isScenarioQuery = intent.queryType === "scenario";
 
-      // Step 2: AI-powered query expansion (Perplexity for logged-in, Lovable AI for guests)
-      // Runs in parallel with local expansion as fallback
+      // Step 2: AI-powered query expansion (Perplexity) with STRICT 1s soft timeout.
+      // Local fallback always available — never block search on AI.
       const localExpanded = expandSearchQuery(q);
-      const aiExpansionPromise = aiExpandQuery(q);
+      const cacheKey = q.toLowerCase().trim();
+      const cached = intentCache.get(cacheKey);
 
-      // Get AI queries (with timeout fallback to local)
+      // Fire AI expansion in background (no await blocking) — populates cache when it returns
+      const aiPromise = aiExpandQuery(q).catch(() => ({ queries: localExpanded }));
+
       let searchQueries: string[];
-      try {
+      if (cached && Date.now() - cached.ts < INTENT_CACHE_TTL) {
+        // Cache hit → use AI queries instantly
+        searchQueries = [...new Set([...cached.queries, ...localExpanded])].slice(0, 8);
+        console.log("[search] using cached AI queries");
+      } else {
+        // Race AI vs 1s soft timeout — fall back to local if slow
         const aiResult = await Promise.race([
-          aiExpansionPromise,
+          aiPromise,
           new Promise<{ queries: string[] }>((resolve) =>
-            setTimeout(() => resolve({ queries: localExpanded }), 4000)
+            setTimeout(() => {
+              console.log("[search] Perplexity soft timeout (1s) — using local fallback. AI continues in background.");
+              resolve({ queries: localExpanded });
+            }, 1000)
           ),
         ]);
-        // Merge: AI queries first, then local ones for coverage
         searchQueries = [...new Set([...aiResult.queries, ...localExpanded])].slice(0, 8);
-      } catch {
-        searchQueries = localExpanded;
       }
 
       console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, searchQueries });
