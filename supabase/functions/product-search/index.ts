@@ -284,31 +284,62 @@ async function cacheToDB(supabase: any, products: any[]): Promise<number> {
   return dedupedRows.length;
 }
 
-// ─── Diversity enforcement ───
+// ─── Diversity enforcement (upgraded) ───
 function enforceDiversity(products: any[], opts: { maxPerBrand?: number; maxPerPlatform?: number } = {}): any[] {
-  const maxBrand = opts.maxPerBrand || 3;
-  const maxPlat = opts.maxPerPlatform || 5;
+  const maxBrand = opts.maxPerBrand || 2; // Reduced from 3 → 2
+  const maxPlat = opts.maxPerPlatform || 4; // Reduced from 5 → 4
   
-  const seen = new Set<string>();
+  // 1. Dedup by normalized title
+  const seenTitles = new Set<string>();
   let result = products.filter(p => {
     const key = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30);
-    if (seen.has(key)) return false;
-    seen.add(key);
+    if (seenTitles.has(key)) return false;
+    seenTitles.add(key);
     return true;
   });
 
+  // 2. Dedup by image URL (strip query params)
+  const seenImages = new Set<string>();
+  result = result.filter(p => {
+    if (!p.image_url) return false;
+    const imgKey = (p.image_url || "").split("?")[0].toLowerCase();
+    if (seenImages.has(imgKey)) return false;
+    seenImages.add(imgKey);
+    return true;
+  });
+
+  // 3. Dedup by source URL
+  const seenUrls = new Set<string>();
+  result = result.filter(p => {
+    if (!p.source_url) return true;
+    const urlKey = (p.source_url || "").split("?")[0].toLowerCase();
+    if (seenUrls.has(urlKey)) return false;
+    seenUrls.add(urlKey);
+    return true;
+  });
+
+  // 4. Brand cap
   const brandCount: Record<string, number> = {};
   result = result.filter(p => {
-    const b = (p.brand || "").toLowerCase();
+    const b = (p.brand || "unknown").toLowerCase();
     brandCount[b] = (brandCount[b] || 0) + 1;
     return brandCount[b] <= maxBrand;
   });
 
+  // 5. Platform cap
   const platCount: Record<string, number> = {};
   result = result.filter(p => {
-    const pl = (p.platform || "").toLowerCase();
+    const pl = (p.platform || "unknown").toLowerCase();
     platCount[pl] = (platCount[pl] || 0) + 1;
     return platCount[pl] <= maxPlat;
+  });
+
+  // 6. Style combo diversity: max 3 with identical style_tags
+  const styleComboCount: Record<string, number> = {};
+  result = result.filter(p => {
+    const combo = (p.style_tags || []).sort().join(",") || "none";
+    styleComboCount[combo] = (styleComboCount[combo] || 0) + 1;
+    return styleComboCount[combo] <= 3;
   });
 
   return result;
