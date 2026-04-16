@@ -154,7 +154,7 @@ const ProfilePage = () => {
                 <Shield className="h-[18px] w-[18px]" />
               </button>
             )}
-            <button onClick={() => navigate("/settings")} className="text-foreground/60 hover:text-foreground/70 transition-colors">
+            <button onClick={() => navigate("/settings")} className="text-foreground/75 hover:text-foreground/70 transition-colors">
               <Settings className="h-[18px] w-[18px]" />
             </button>
           </div>
@@ -169,7 +169,7 @@ const ProfilePage = () => {
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
               ) : (
-                <User className="h-6 w-6 text-foreground/40" />
+                <User className="h-6 w-6 text-foreground/75" />
               )}
             </div>
             <button
@@ -184,19 +184,19 @@ const ProfilePage = () => {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <p className="font-display text-lg text-foreground/80">{displayName}</p>
-              <button onClick={() => setIsEditing(!isEditing)} className="text-foreground/30 hover:text-foreground/50">
+              <button onClick={() => setIsEditing(!isEditing)} className="text-foreground/70 hover:text-foreground/70">
                 <Edit3 className="h-3.5 w-3.5" />
               </button>
             </div>
-            <p className="text-[11px] text-foreground/50 mt-0.5">{user?.email}</p>
-            {profile?.bio && <p className="text-[11px] text-foreground/40 mt-1 italic">{profile.bio}</p>}
+            <p className="text-[11px] text-foreground/70 mt-0.5">{user?.email}</p>
+            {profile?.bio && <p className="text-[11px] text-foreground/75 mt-1 italic">{profile.bio}</p>}
             <div className="flex items-center gap-1.5 mt-1">
               {emailVerified ? (
-                <span className="flex items-center gap-1 text-[9px] text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
+                <span className="flex items-center gap-1 text-[11px] text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
               ) : (
-                <span className="flex items-center gap-1 text-[9px] text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
+                <span className="flex items-center gap-1 text-[11px] text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
               )}
-              {profile?.location && <span className="text-[9px] text-foreground/30 ml-2">📍 {profile.location}</span>}
+              {profile?.location && <span className="text-[11px] text-foreground/70 ml-2">📍 {profile.location}</span>}
             </div>
           </div>
         </div>
@@ -204,7 +204,7 @@ const ProfilePage = () => {
         {/* Edit Profile Form */}
         {isEditing && (
           <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-4">
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/50">EDIT PROFILE</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">EDIT PROFILE</p>
             {[
               { label: "Display Name", value: editName, set: setEditName, placeholder: "Your name" },
               { label: "Bio / Style Line", value: editBio, set: setEditBio, placeholder: "A short style description" },
@@ -212,13 +212,13 @@ const ProfilePage = () => {
               { label: "Gender Preference", value: editGender, set: setEditGender, placeholder: "e.g. masculine, feminine, neutral" },
             ].map(field => (
               <div key={field.label}>
-                <label className="text-[10px] font-medium text-foreground/40">{field.label}</label>
+                <label className="text-[10px] font-medium text-foreground/75">{field.label}</label>
                 <input
                   type="text"
                   value={field.value}
                   onChange={e => field.set(e.target.value)}
                   placeholder={field.placeholder}
-                  className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/25 border-b border-border/20 focus:border-accent/30 transition-colors"
+                  className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/50 border-b border-border/20 focus:border-accent/30 transition-colors"
                 />
               </div>
             ))}
@@ -231,20 +231,20 @@ const ProfilePage = () => {
                 {savingProfile ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                 Save
               </button>
-              <button onClick={() => setIsEditing(false)} className="text-[11px] text-foreground/30 hover:text-foreground/50">Cancel</button>
+              <button onClick={() => setIsEditing(false)} className="text-[11px] text-foreground/70 hover:text-foreground/70">Cancel</button>
             </div>
           </div>
         )}
 
         {/* Subscription */}
         <div className="flex items-center gap-4">
-          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/30"}`} />
+          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/70"}`} />
           <div>
-            <p className="text-[11px] font-medium text-foreground/60">
+            <p className="text-[11px] font-medium text-foreground/75">
               {subscription.isPremium ? t("premiumFeature") : t("free")}
             </p>
             {subscription.isPremium && subscription.daysRemaining !== null && (
-              <p className="text-[10px] text-foreground/40">
+              <p className="text-[10px] text-foreground/75">
                 {subscription.plan === "premium_trial"
                   ? t("trialRemaining").replace("{days}", String(subscription.daysRemaining))
                   : t("active")}
@@ -262,7 +262,7 @@ const ProfilePage = () => {
           ].map(stat => (
             <div key={stat.label} className="text-center">
               <p className="text-xl font-light text-foreground/80">{stat.value}</p>
-              <p className="text-[10px] text-foreground/50 mt-1.5">{stat.label}</p>
+              <p className="text-[10px] text-foreground/70 mt-1.5">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -273,17 +273,17 @@ const ProfilePage = () => {
 
         {/* Saved Folders */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("saved").toUpperCase()}</p>
+          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("saved").toUpperCase()}</p>
           {foldersLoading ? (
-            <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
+            <Loader2 className="h-3 w-3 animate-spin text-foreground/70" />
           ) : folders.length === 0 ? (
-            <p className="text-[12px] text-foreground/40">{t("noSavedYet")}</p>
+            <p className="text-[12px] text-foreground/75">{t("noSavedYet")}</p>
           ) : (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {folders.map(folder => (
                 <button key={folder.id} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 p-3 text-left transition-colors hover:bg-card/50">
-                  <Folder className="h-4 w-4 text-accent/50 shrink-0" />
-                  <span className="text-[11px] text-foreground/60 truncate">{folder.name}</span>
+                  <Folder className="h-4 w-4 text-accent/70 shrink-0" />
+                  <span className="text-[11px] text-foreground/75 truncate">{folder.name}</span>
                 </button>
               ))}
             </div>
@@ -295,8 +295,8 @@ const ProfilePage = () => {
         {/* Style Profile */}
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("style").toUpperCase()}</p>
-            <button onClick={() => setEditingStyle(!editingStyle)} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">
+            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("style").toUpperCase()}</p>
+            <button onClick={() => setEditingStyle(!editingStyle)} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">
               {editingStyle ? "CLOSE" : styleProfile ? "EDIT" : "SET UP"}
             </button>
           </div>
@@ -310,7 +310,7 @@ const ProfilePage = () => {
             <div className="space-y-3">
               {styleProfile.preferred_styles?.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-foreground/30 mb-1.5">PREFERRED</p>
+                  <p className="text-[11px] text-foreground/70 mb-1.5">PREFERRED</p>
                   <div className="flex gap-2 flex-wrap">
                     {styleProfile.preferred_styles.map((s: string) => (
                       <span key={s} className="rounded-full bg-accent/10 px-3 py-1 text-[10px] text-accent/70">{s}</span>
@@ -320,7 +320,7 @@ const ProfilePage = () => {
               )}
               {styleProfile.disliked_styles?.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-foreground/30 mb-1.5">AVOID</p>
+                  <p className="text-[11px] text-foreground/70 mb-1.5">AVOID</p>
                   <div className="flex gap-2 flex-wrap">
                     {styleProfile.disliked_styles.map((s: string) => (
                       <span key={s} className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] text-destructive/50 line-through">{s}</span>
@@ -328,18 +328,18 @@ const ProfilePage = () => {
                   </div>
                 </div>
               )}
-              {styleProfile.preferred_fit && <p className="text-[11px] text-foreground/50">{t("preferredFit")}: <span className="text-foreground/70">{styleProfile.preferred_fit}</span></p>}
-              {styleProfile.budget && <p className="text-[11px] text-foreground/50">{t("budget")}: <span className="text-foreground/70">{styleProfile.budget}</span></p>}
+              {styleProfile.preferred_fit && <p className="text-[11px] text-foreground/70">{t("preferredFit")}: <span className="text-foreground/70">{styleProfile.preferred_fit}</span></p>}
+              {styleProfile.budget && <p className="text-[11px] text-foreground/70">{t("budget")}: <span className="text-foreground/70">{styleProfile.budget}</span></p>}
               {styleProfile.favorite_brands?.length > 0 && (
-                <p className="text-[11px] text-foreground/50">Brands: <span className="text-foreground/70">{styleProfile.favorite_brands.join(", ")}</span></p>
+                <p className="text-[11px] text-foreground/70">Brands: <span className="text-foreground/70">{styleProfile.favorite_brands.join(", ")}</span></p>
               )}
               {styleProfile.occasions?.length > 0 && (
-                <p className="text-[11px] text-foreground/50">Occasions: <span className="text-foreground/70">{styleProfile.occasions.join(", ")}</span></p>
+                <p className="text-[11px] text-foreground/70">Occasions: <span className="text-foreground/70">{styleProfile.occasions.join(", ")}</span></p>
               )}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[12px] text-foreground/40">{t("notSet")}</p>
+              <p className="text-[12px] text-foreground/75">{t("notSet")}</p>
               <button onClick={() => setEditingStyle(true)} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("completeProfile")}</button>
             </div>
           )}
@@ -348,34 +348,34 @@ const ProfilePage = () => {
         {/* Body Profile */}
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("bodyProfile").toUpperCase()}</p>
-            <button onClick={() => navigate("/fit")} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">
+            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("bodyProfile").toUpperCase()}</p>
+            <button onClick={() => navigate("/fit")} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">
               {bodyProfile ? "RESCAN" : "START SCAN"}
             </button>
           </div>
           {bodyProfile ? (
             <div className="space-y-3">
               <div className="flex flex-wrap gap-x-8 gap-y-2">
-                {bodyProfile.height_cm && <p className="text-[12px] text-foreground/50">{bodyProfile.height_cm}cm</p>}
-                {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/50">{bodyProfile.weight_kg}kg</p>}
-                {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/50">{t("shoulderWidth")} {bodyProfile.shoulder_width_cm}cm</p>}
-                {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/50">{t("waist")} {bodyProfile.waist_cm}cm</p>}
+                {bodyProfile.height_cm && <p className="text-[12px] text-foreground/70">{bodyProfile.height_cm}cm</p>}
+                {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/70">{bodyProfile.weight_kg}kg</p>}
+                {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/70">{t("shoulderWidth")} {bodyProfile.shoulder_width_cm}cm</p>}
+                {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/70">{t("waist")} {bodyProfile.waist_cm}cm</p>}
               </div>
               {bodyProfile.silhouette_type && (
-                <p className="text-[11px] text-foreground/40">Body type: <span className="text-foreground/60">{bodyProfile.silhouette_type}</span></p>
+                <p className="text-[11px] text-foreground/75">Body type: <span className="text-foreground/75">{bodyProfile.silhouette_type}</span></p>
               )}
               {bodyProfile.scan_confidence > 0 && (
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 flex-1 rounded-full bg-foreground/[0.06] overflow-hidden">
                     <div className="h-full rounded-full bg-accent/40" style={{ width: `${bodyProfile.scan_confidence}%` }} />
                   </div>
-                  <span className="text-[10px] text-foreground/40">{bodyProfile.scan_confidence}%</span>
+                  <span className="text-[10px] text-foreground/75">{bodyProfile.scan_confidence}%</span>
                 </div>
               )}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[12px] text-foreground/40">{t("noScanYet")}</p>
+              <p className="text-[12px] text-foreground/75">{t("noScanYet")}</p>
               <button onClick={() => navigate("/fit")} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("startScan")}</button>
             </div>
           )}
@@ -388,8 +388,8 @@ const ProfilePage = () => {
           <>
             <div className="space-y-5">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">MY OOTDS</p>
-                <button onClick={() => navigate("/ootd")} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">VIEW ALL</button>
+                <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">MY OOTDS</p>
+                <button onClick={() => navigate("/ootd")} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">VIEW ALL</button>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {myOotds.map(ootd => (
@@ -398,7 +398,7 @@ const ProfilePage = () => {
                     {(ootd.star_count || 0) > 0 && (
                       <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
                         <Star className="h-2.5 w-2.5 text-accent/70" />
-                        <span className="text-[8px] text-foreground/70">{ootd.star_count}</span>
+                        <span className="text-[10px] text-foreground/70">{ootd.star_count}</span>
                       </div>
                     )}
                   </div>
@@ -418,9 +418,9 @@ const ProfilePage = () => {
             { icon: Camera, label: "Post OOTD", action: () => navigate("/ootd") },
           ].map(section => (
             <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
-              <section.icon className="h-[18px] w-[18px] text-foreground/40" strokeWidth={1.5} />
-              <span className="flex-1 text-left text-[13px] text-foreground/50">{section.label}</span>
-              <ChevronRight className="h-4 w-4 text-foreground/30" />
+              <section.icon className="h-[18px] w-[18px] text-foreground/75" strokeWidth={1.5} />
+              <span className="flex-1 text-left text-[13px] text-foreground/70">{section.label}</span>
+              <ChevronRight className="h-4 w-4 text-foreground/70" />
             </button>
           ))}
         </div>

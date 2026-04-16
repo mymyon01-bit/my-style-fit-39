@@ -58,7 +58,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
         <div className="relative h-48 w-24 rounded-2xl border border-foreground/[0.06] bg-card/30 flex items-center justify-center">
           <User className="h-16 w-16 text-foreground/8" />
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-card border border-foreground/[0.06] px-3 py-1">
-            <span className="text-[9px] font-semibold tracking-[0.15em] text-foreground/80">AVATAR</span>
+            <span className="text-[11px] font-semibold tracking-[0.15em] text-foreground/80">AVATAR</span>
           </div>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-foreground/80">{label}</span>
-                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${confidenceBg[m.confidence]} ${confidenceColor[m.confidence]}`}>
+                  <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${confidenceBg[m.confidence]} ${confidenceColor[m.confidence]}`}>
                     {m.confidence}
                   </span>
                 </div>
@@ -103,7 +103,7 @@ export default function FitMeasurements({ measurements, onUpdate }: Props) {
                   ) : (
                     <>
                       <span className="text-sm font-medium text-foreground">{m.value} {unit}</span>
-                      <button onClick={() => startEdit(key)} className="text-foreground/60 hover:text-foreground/60">
+                      <button onClick={() => startEdit(key)} className="text-foreground/75 hover:text-foreground/75">
                         <Pencil className="h-3 w-3" />
                       </button>
                     </>

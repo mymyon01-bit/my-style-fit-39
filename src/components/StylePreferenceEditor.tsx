@@ -42,8 +42,8 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
   const chip = (active: boolean, variant?: "dislike") =>
     `rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-all ${
       variant === "dislike"
-        ? active ? "bg-destructive/10 text-destructive/60 line-through" : "bg-foreground/[0.04] text-foreground/40"
-        : active ? "bg-accent/15 text-accent/80" : "bg-foreground/[0.04] text-foreground/40"
+        ? active ? "bg-destructive/10 text-destructive/60 line-through" : "bg-foreground/[0.04] text-foreground/75"
+        : active ? "bg-accent/15 text-accent/80" : "bg-foreground/[0.04] text-foreground/75"
     }`;
 
   const handleSave = async () => {
@@ -77,16 +77,16 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
   return (
     <div className="rounded-2xl border border-border/20 bg-card/40 p-5 space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/50">EDIT STYLE PROFILE</p>
-        <button onClick={onClose} className="text-foreground/30 hover:text-foreground/50"><X className="h-4 w-4" /></button>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">EDIT STYLE PROFILE</p>
+        <button onClick={onClose} className="text-foreground/70 hover:text-foreground/70"><X className="h-4 w-4" /></button>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1">
         {tabs.map(tb => (
           <button key={tb.id} onClick={() => setTab(tb.id)}
-            className={`flex-1 py-2 text-[9px] font-semibold tracking-[0.15em] rounded-lg transition-colors ${
-              tab === tb.id ? "bg-accent/10 text-accent/70" : "text-foreground/30 hover:text-foreground/50"
+            className={`flex-1 py-2 text-[11px] font-semibold tracking-[0.15em] rounded-lg transition-colors ${
+              tab === tb.id ? "bg-accent/10 text-accent/70" : "text-foreground/70 hover:text-foreground/70"
             }`}>
             {tb.label}
           </button>
@@ -96,7 +96,7 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
       {tab === "styles" && (
         <div className="space-y-4">
           <div>
-            <p className="text-[9px] text-foreground/40 mb-2">PREFERRED</p>
+            <p className="text-[11px] text-foreground/75 mb-2">PREFERRED</p>
             <div className="flex flex-wrap gap-1.5">
               {STYLES.map(s => (
                 <button key={s} onClick={() => toggle(styles, setStyles, s)} className={chip(styles.includes(s))}>
@@ -106,7 +106,7 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
             </div>
           </div>
           <div>
-            <p className="text-[9px] text-foreground/40 mb-2">AVOID</p>
+            <p className="text-[11px] text-foreground/75 mb-2">AVOID</p>
             <div className="flex flex-wrap gap-1.5">
               {STYLES.filter(s => !styles.includes(s)).map(s => (
                 <button key={s} onClick={() => toggle(disliked, setDisliked, s)} className={chip(disliked.includes(s), "dislike")}>
@@ -116,7 +116,7 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
             </div>
           </div>
           <div>
-            <p className="text-[9px] text-foreground/40 mb-2">OCCASIONS</p>
+            <p className="text-[11px] text-foreground/75 mb-2">OCCASIONS</p>
             <div className="flex flex-wrap gap-1.5">
               {OCCASIONS.map(o => (
                 <button key={o} onClick={() => toggle(occasions, setOccasions, o)} className={chip(occasions.includes(o))}>
@@ -131,7 +131,7 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
       {tab === "fit" && (
         <div className="space-y-4">
           <div>
-            <p className="text-[9px] text-foreground/40 mb-2">PREFERRED FIT</p>
+            <p className="text-[11px] text-foreground/75 mb-2">PREFERRED FIT</p>
             <div className="flex flex-wrap gap-1.5">
               {FITS.map(f => (
                 <button key={f} onClick={() => setFit(f)} className={chip(fit === f)}>
@@ -141,7 +141,7 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
             </div>
           </div>
           <div>
-            <p className="text-[9px] text-foreground/40 mb-2">BUDGET RANGE</p>
+            <p className="text-[11px] text-foreground/75 mb-2">BUDGET RANGE</p>
             <div className="flex flex-wrap gap-1.5">
               {BUDGETS.map(b => (
                 <button key={b} onClick={() => setBudget(b)} className={chip(budget === b)}>
@@ -155,7 +155,7 @@ export default function StylePreferenceEditor({ initial, onSave, onClose }: Prop
 
       {tab === "brands" && (
         <div>
-          <p className="text-[9px] text-foreground/40 mb-2">FAVORITE BRANDS</p>
+          <p className="text-[11px] text-foreground/75 mb-2">FAVORITE BRANDS</p>
           <div className="flex flex-wrap gap-1.5">
             {BRANDS.map(b => (
               <button key={b} onClick={() => toggle(brands, setBrands, b)} className={chip(brands.includes(b))}>

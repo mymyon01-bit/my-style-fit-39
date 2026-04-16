@@ -60,7 +60,7 @@ const AuthPage = () => {
             Weather-aware. Body-conscious. Always relevant.
           </p>
           <div className="h-px w-14 mx-auto bg-accent/[0.16]" />
-          <p className="text-[12px] text-foreground/68">
+          <p className="text-[12px] text-foreground/80">
             3 months of Premium included with every new account.
           </p>
         </div>
@@ -69,7 +69,7 @@ const AuthPage = () => {
       {/* Form side */}
       <div className="flex flex-1 flex-col lg:w-1/2">
         <div className="px-8 pt-10 lg:hidden">
-          <button onClick={() => navigate("/")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/62 hover:text-foreground/60 transition-colors">
+          <button onClick={() => navigate("/")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/75 hover:text-foreground/75 transition-colors">
             ← BACK
           </button>
         </div>
@@ -94,7 +94,7 @@ const AuthPage = () => {
                 <button
                   onClick={handleGoogle}
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-3 py-4.5 text-[12px] font-medium text-foreground/68 transition-colors hover:text-foreground/85 disabled:opacity-50 md:text-[13px]"
+                  className="flex w-full items-center justify-center gap-3 py-4.5 text-[12px] font-medium text-foreground/80 transition-colors hover:text-foreground/85 disabled:opacity-50 md:text-[13px]"
                 >
                   <svg className="h-4.5 w-4.5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -107,7 +107,7 @@ const AuthPage = () => {
 
                 <div className="my-10 flex items-center gap-4">
                   <div className="h-px flex-1 bg-accent/[0.12]" />
-                  <span className="text-[10px] text-foreground/68">or</span>
+                  <span className="text-[10px] text-foreground/80">or</span>
                   <div className="h-px flex-1 bg-accent/[0.12]" />
                 </div>
               </>
@@ -135,7 +135,7 @@ const AuthPage = () => {
                     minLength={6}
                     className="w-full bg-transparent py-4 pr-10 text-[14px] text-foreground outline-none placeholder:text-foreground/80 border-b border-accent/[0.08] focus:border-foreground/18 transition-colors md:text-base"
                   />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-foreground/68">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-foreground/80">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -166,7 +166,7 @@ const AuthPage = () => {
               </button>
             </form>
 
-            <p className="mt-12 text-center text-[11px] text-foreground/48 md:text-[12px]">
+            <p className="mt-12 text-center text-[11px] text-foreground/65 md:text-[12px]">
               {mode === "login" ? (
                 <>No account?{" "}
                   <button onClick={() => { setMode("signup"); setError(null); setMessage(null); }} className="text-accent/70 hover:text-accent">Sign up</button>

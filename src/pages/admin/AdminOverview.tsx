@@ -51,7 +51,7 @@ const AdminOverview = () => {
           <div key={card.label} className="rounded-xl bg-card/50 border border-border/20 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <card.icon className="h-4 w-4 text-accent/60" />
-              <span className="text-[10px] tracking-[0.1em] text-foreground/50 uppercase">{card.label}</span>
+              <span className="text-[10px] tracking-[0.1em] text-foreground/70 uppercase">{card.label}</span>
             </div>
             <p className="text-2xl font-light text-foreground/80">{card.value}</p>
           </div>

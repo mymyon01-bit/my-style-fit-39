@@ -97,10 +97,10 @@ const SettingsPage = () => {
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-center gap-4 mb-12 md:mb-14 lg:mb-16">
-          <button onClick={() => navigate(-1)} className="hover-burgundy text-foreground/50">
+          <button onClick={() => navigate(-1)} className="hover-burgundy text-foreground/70">
             <ArrowLeft className="h-[18px] w-[18px]" />
           </button>
-          <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/45 md:text-[11px]">{t("settings").toUpperCase()}</span>
+          <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/65 md:text-[11px]">{t("settings").toUpperCase()}</span>
         </div>
       </div>
 
@@ -110,12 +110,12 @@ const SettingsPage = () => {
           <>
             <div className="space-y-5">
               <div className="flex items-center gap-2">
-                <User className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("account").toUpperCase()}</p>
+                <User className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
+                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">{t("account").toUpperCase()}</p>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-[13px] text-foreground/60">{user.email}</p>
+                  <p className="text-[13px] text-foreground/75">{user.email}</p>
                   {emailVerified ? (
                     <span className="flex items-center gap-1 text-[10px] text-green-500/70"><CheckCircle className="h-3.5 w-3.5" /> Verified</span>
                   ) : (
@@ -145,29 +145,29 @@ const SettingsPage = () => {
             {/* Security */}
             <div className="space-y-5">
               <div className="flex items-center gap-2">
-                <Lock className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">SECURITY</p>
+                <Lock className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
+                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">SECURITY</p>
               </div>
               {changingPassword ? (
                 <div className="space-y-3 rounded-xl border border-border/20 bg-card/30 p-4">
                   <div>
-                    <label className="text-[10px] font-medium text-foreground/40">New Password</label>
+                    <label className="text-[10px] font-medium text-foreground/75">New Password</label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                       placeholder="Min 6 characters"
-                      className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/25 border-b border-border/20 focus:border-accent/30"
+                      className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/50 border-b border-border/20 focus:border-accent/30"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-medium text-foreground/40">Confirm Password</label>
+                    <label className="text-[10px] font-medium text-foreground/75">Confirm Password</label>
                     <input
                       type="password"
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
                       placeholder="Repeat password"
-                      className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/25 border-b border-border/20 focus:border-accent/30"
+                      className="mt-1 w-full bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/50 border-b border-border/20 focus:border-accent/30"
                     />
                   </div>
                   <div className="flex gap-3 pt-2">
@@ -175,11 +175,11 @@ const SettingsPage = () => {
                       {savingPassword ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                       Update
                     </button>
-                    <button onClick={() => { setChangingPassword(false); setNewPassword(""); setConfirmPassword(""); }} className="text-[11px] text-foreground/30">Cancel</button>
+                    <button onClick={() => { setChangingPassword(false); setNewPassword(""); setConfirmPassword(""); }} className="text-[11px] text-foreground/70">Cancel</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setChangingPassword(true)} className="text-[11px] font-medium text-foreground/50 hover:text-foreground/70 transition-colors">
+                <button onClick={() => setChangingPassword(true)} className="text-[11px] font-medium text-foreground/70 hover:text-foreground/70 transition-colors">
                   Change password →
                 </button>
               )}
@@ -191,8 +191,8 @@ const SettingsPage = () => {
         {/* Language */}
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <Globe className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("language").toUpperCase()}</p>
+            <Globe className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">{t("language").toUpperCase()}</p>
           </div>
           <div className="space-y-1">
             {languages.map((l) => (
@@ -200,7 +200,7 @@ const SettingsPage = () => {
                 key={l.code}
                 onClick={() => setLang(l.code)}
                 className={`hover-burgundy flex w-full items-center justify-between py-4 md:py-5 ${
-                  lang === l.code ? "text-foreground" : "text-foreground/50"
+                  lang === l.code ? "text-foreground" : "text-foreground/70"
                 }`}
               >
                 <p className="text-[13px] font-medium md:text-[14px]">{l.native}</p>
@@ -215,8 +215,8 @@ const SettingsPage = () => {
         {/* Appearance */}
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <Palette className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("appearance").toUpperCase()}</p>
+            <Palette className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">{t("appearance").toUpperCase()}</p>
           </div>
           <div className="flex gap-10 md:gap-12">
             {themeOptions.map((opt) => (
@@ -224,7 +224,7 @@ const SettingsPage = () => {
                 key={opt.value}
                 onClick={() => setTheme(opt.value)}
                 className={`hover-burgundy flex flex-col items-center gap-3 ${
-                  theme === opt.value ? "text-foreground" : "text-foreground/40"
+                  theme === opt.value ? "text-foreground" : "text-foreground/75"
                 }`}
               >
                 <opt.icon className="h-5 w-5 md:h-6 md:w-6" strokeWidth={1.8} />
@@ -239,8 +239,8 @@ const SettingsPage = () => {
         {/* Page Transition */}
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <Layers className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("pageTransition").toUpperCase()}</p>
+            <Layers className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">{t("pageTransition").toUpperCase()}</p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {transitionOptions.map((opt) => (
@@ -250,11 +250,11 @@ const SettingsPage = () => {
                 className={`hover-burgundy rounded-lg border px-4 py-3.5 text-left transition-all duration-300 ${
                   transition === opt.value
                     ? "border-accent/40 bg-accent/[0.06] text-foreground"
-                    : "border-border/30 text-foreground/40"
+                    : "border-border/30 text-foreground/75"
                 }`}
               >
                 <p className="text-[12px] font-semibold md:text-[13px]">{opt.label}</p>
-                <p className="mt-1 text-[10px] text-foreground/35">{opt.desc}</p>
+                <p className="mt-1 text-[10px] text-foreground/75">{opt.desc}</p>
               </button>
             ))}
           </div>
@@ -265,8 +265,8 @@ const SettingsPage = () => {
         {/* Subscription */}
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <Crown className="h-3.5 w-3.5 text-foreground/40" strokeWidth={1.8} />
-            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/55 md:text-[11px]">{t("subscription").toUpperCase()}</p>
+            <Crown className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">{t("subscription").toUpperCase()}</p>
           </div>
           <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-2">
             <p className="text-[13px] font-medium text-foreground/65">
@@ -276,7 +276,7 @@ const SettingsPage = () => {
                   : t("premiumActive")
                 : t("freePlan")}
             </p>
-            <p className="text-[11px] text-foreground/35">
+            <p className="text-[11px] text-foreground/75">
               {subscription.isPremium ? t("premiumDesc") : t("upgradeDesc")}
             </p>
           </div>
@@ -287,12 +287,12 @@ const SettingsPage = () => {
         {/* Actions */}
         <div className="space-y-1">
           {user && (
-            <button onClick={handleResetProfile} className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/40 md:py-5">
+            <button onClick={handleResetProfile} className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/75 md:py-5">
               <RotateCcw className="h-[18px] w-[18px]" strokeWidth={1.6} />
               <span className="text-[13px] font-medium md:text-[14px]">{t("resetProfile")}</span>
             </button>
           )}
-          <button className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/40 md:py-5">
+          <button className="hover-burgundy flex w-full items-center gap-4 py-4.5 text-foreground/75 md:py-5">
             <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
             <span className="text-[13px] font-medium md:text-[14px]">{t("help")}</span>
           </button>

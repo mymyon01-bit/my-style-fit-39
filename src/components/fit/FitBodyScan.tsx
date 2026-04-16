@@ -225,7 +225,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
           <p className="text-[11px] text-accent/70 font-medium">
             You have a previous body scan ({existingScans.length} images).
           </p>
-          <p className="text-[10px] text-foreground/40 mt-1">Upload new photos to update your scan.</p>
+          <p className="text-[10px] text-foreground/75 mt-1">Upload new photos to update your scan.</p>
         </div>
       )}
 
@@ -262,17 +262,17 @@ export default function FitBodyScan({ onScanComplete }: Props) {
                   <img src={preview} alt={side} className="absolute inset-0 h-full w-full object-cover opacity-80" />
                   <div className="absolute inset-0 bg-background/40" />
                   <CheckCircle2 className="relative z-10 h-5 w-5 text-green-500" />
-                  <span className="relative z-10 mt-1 text-[9px] font-semibold text-green-400">{side.toUpperCase()}</span>
+                  <span className="relative z-10 mt-1 text-[11px] font-semibold text-green-400">{side.toUpperCase()}</span>
                 </>
               ) : (
                 <>
                   <div className="h-14 w-10 rounded-lg border border-dashed border-foreground/10 flex items-center justify-center mb-2">
                     {side === "front" ? <User className="h-4 w-4 text-foreground/80" /> : <Camera className="h-4 w-4 text-foreground/80" />}
                   </div>
-                  <span className="text-[8px] font-semibold tracking-[0.1em] text-foreground/62">
+                  <span className="text-[10px] font-semibold tracking-[0.1em] text-foreground/75">
                     {side.toUpperCase()}
                   </span>
-                  {isOptional && <span className="text-[7px] text-foreground/30 mt-0.5">optional</span>}
+                  {isOptional && <span className="text-[11px] text-foreground/70 mt-0.5">optional</span>}
                 </>
               )}
               <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUpload(side)} />
@@ -328,7 +328,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
               <div className="space-y-2">
                 {QUALITY_CHECKS.map((check, i) => (
                   <div key={i} className="flex items-center justify-between">
-                    <span className="text-xs text-foreground/60">{check.label}</span>
+                    <span className="text-xs text-foreground/75">{check.label}</span>
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-500/70" />
                   </div>
                 ))}
@@ -346,7 +346,7 @@ export default function FitBodyScan({ onScanComplete }: Props) {
               </div>
             )}
 
-            <p className="text-center text-[10px] text-foreground/40">
+            <p className="text-center text-[10px] text-foreground/75">
               Scan saved to your profile
             </p>
 

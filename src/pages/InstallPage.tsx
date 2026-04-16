@@ -73,7 +73,7 @@ const InstallPage = () => {
           <h1 className="font-display text-2xl font-bold tracking-wide text-foreground lg:text-3xl">
             {t("downloadApp")}
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-foreground/50 lg:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-foreground/70 lg:text-base">
             {t("downloadAppDesc")}
           </p>
         </motion.div>
@@ -120,20 +120,20 @@ const InstallPage = () => {
               className="flex w-full items-center justify-between px-5 py-4"
             >
               <div className="flex items-center gap-3">
-                <Apple className="h-5 w-5 text-foreground/60" />
+                <Apple className="h-5 w-5 text-foreground/75" />
                 <span className="text-sm font-semibold tracking-wide text-foreground/80">
                   iPhone / iPad
                 </span>
               </div>
               <ChevronDown
-                className={`h-4 w-4 text-foreground/40 transition-transform ${
+                className={`h-4 w-4 text-foreground/75 transition-transform ${
                   activeGuide === "ios" ? "rotate-180" : ""
                 }`}
               />
             </button>
             {activeGuide === "ios" && (
               <div className="border-t border-border/20 px-5 pb-5 pt-4">
-                <ol className="space-y-3 text-[13px] leading-relaxed text-foreground/60">
+                <ol className="space-y-3 text-[13px] leading-relaxed text-foreground/75">
                   <li className="flex gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">1</span>
                     {t("iosStep1")}
@@ -158,20 +158,20 @@ const InstallPage = () => {
               className="flex w-full items-center justify-between px-5 py-4"
             >
               <div className="flex items-center gap-3">
-                <Smartphone className="h-5 w-5 text-foreground/60" />
+                <Smartphone className="h-5 w-5 text-foreground/75" />
                 <span className="text-sm font-semibold tracking-wide text-foreground/80">
                   Android
                 </span>
               </div>
               <ChevronDown
-                className={`h-4 w-4 text-foreground/40 transition-transform ${
+                className={`h-4 w-4 text-foreground/75 transition-transform ${
                   activeGuide === "android" ? "rotate-180" : ""
                 }`}
               />
             </button>
             {activeGuide === "android" && (
               <div className="border-t border-border/20 px-5 pb-5 pt-4">
-                <ol className="space-y-3 text-[13px] leading-relaxed text-foreground/60">
+                <ol className="space-y-3 text-[13px] leading-relaxed text-foreground/75">
                   <li className="flex gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">1</span>
                     {t("androidStep1")}
@@ -197,7 +197,7 @@ const InstallPage = () => {
           transition={{ delay: 0.7 }}
           className="mt-12"
         >
-          <h2 className="mb-5 text-center text-[10px] font-semibold tracking-[0.25em] text-foreground/40">
+          <h2 className="mb-5 text-center text-[10px] font-semibold tracking-[0.25em] text-foreground/75">
             {t("appFeatures").toUpperCase()}
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -212,7 +212,7 @@ const InstallPage = () => {
                 className="flex items-center gap-3 rounded-lg border border-border/20 bg-card/30 px-4 py-3"
               >
                 <span className="text-lg">{f.icon}</span>
-                <span className="text-[11px] font-medium text-foreground/60">{f.label}</span>
+                <span className="text-[11px] font-medium text-foreground/75">{f.label}</span>
               </div>
             ))}
           </div>

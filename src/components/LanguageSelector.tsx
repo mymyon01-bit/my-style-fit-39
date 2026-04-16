@@ -25,7 +25,7 @@ const LanguageSelector = () => {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="hover-burgundy flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-foreground/40 transition-colors hover:text-foreground/60"
+        className="hover-burgundy flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-foreground/75 transition-colors hover:text-foreground/75"
       >
         <Globe className="h-3.5 w-3.5" strokeWidth={1.5} />
         {lang.toUpperCase()}
@@ -40,7 +40,7 @@ const LanguageSelector = () => {
               className={`flex w-full items-center px-4 py-2.5 text-[10px] font-semibold tracking-[0.2em] transition-colors ${
                 lang === l.code
                   ? "text-accent"
-                  : "text-foreground/50 hover:bg-accent/[0.06] hover:text-foreground/70"
+                  : "text-foreground/70 hover:bg-accent/[0.06] hover:text-foreground/70"
               }`}
             >
               {l.label}

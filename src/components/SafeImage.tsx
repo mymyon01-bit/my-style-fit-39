@@ -56,7 +56,7 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, ...pr
   if (!currentSrc || failed) {
     return (
       <div className={`flex items-center justify-center bg-foreground/[0.04] ${fallbackClassName || className || ""}`}>
-        <ImageOff className="h-5 w-5 text-foreground/20" />
+        <ImageOff className="h-5 w-5 text-foreground/70" />
       </div>
     );
   }

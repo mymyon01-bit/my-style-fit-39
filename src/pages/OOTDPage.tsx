@@ -106,10 +106,10 @@ const OOTDPage = () => {
             {user && (
               <div className="flex items-center gap-1.5">
                 <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                <span className="text-[10px] font-medium text-foreground/68">{starsLeft}</span>
+                <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
               </div>
             )}
-            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/62 md:text-[11px]">OOTD</span>
+            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">OOTD</span>
           </div>
         </div>
 
@@ -118,7 +118,7 @@ const OOTDPage = () => {
           {(["mypage", "community"] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className="relative flex-1 pb-5 text-center md:pb-6">
               <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 md:text-[11px] ${
-                activeTab === tab ? "text-foreground/85" : "text-foreground/62"
+                activeTab === tab ? "text-foreground/85" : "text-foreground/75"
               }`}>
                 {tab === "mypage" ? "MY PAGE" : "COMMUNITY"}
               </span>
@@ -137,15 +137,15 @@ const OOTDPage = () => {
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
               {!user ? (
                 <div className="py-20 text-center space-y-5 md:py-24 lg:py-28">
-                  <Camera className="h-6 w-6 text-foreground/48 mx-auto" />
-                  <p className="text-[14px] text-foreground/60">Sign in to create your style page</p>
+                  <Camera className="h-6 w-6 text-foreground/65 mx-auto" />
+                  <p className="text-[14px] text-foreground/75">Sign in to create your style page</p>
                   <button onClick={() => navigate("/auth")} className="text-[10px] font-medium tracking-[0.2em] text-accent/80 hover:text-accent">SIGN IN</button>
                 </div>
               ) : (
                 <>
                   <button
                     onClick={() => setUploadOpen(true)}
-                    className="flex w-full items-center justify-center gap-3 py-14 text-foreground/68 hover:text-accent/80 transition-colors md:py-16"
+                    className="flex w-full items-center justify-center gap-3 py-14 text-foreground/80 hover:text-accent/80 transition-colors md:py-16"
                   >
                     <Camera className="h-5 w-5" />
                     <span className="text-[10px] font-medium tracking-[0.2em] md:text-[11px]">POST YOUR OOTD</span>
@@ -155,7 +155,7 @@ const OOTDPage = () => {
                   {myPosts.length === 0 ? (
                     <div className="py-16 text-center space-y-3 md:py-20">
                       <p className="text-[13px] text-foreground/80">No outfits posted yet</p>
-                      <p className="text-[11px] text-foreground/68 max-w-[220px] mx-auto leading-relaxed">
+                      <p className="text-[11px] text-foreground/80 max-w-[220px] mx-auto leading-relaxed">
                         Upload daily looks to build your style identity.
                       </p>
                     </div>
@@ -165,7 +165,7 @@ const OOTDPage = () => {
                         <div key={post.id} className="group">
                           <img src={post.image_url} alt={post.caption || ""} className="aspect-[3/4] w-full object-cover" />
                           <div className="pt-3 flex items-center justify-between">
-                            <p className="text-[11px] text-foreground/68 truncate flex-1 md:text-[12px]">{post.caption || ""}</p>
+                            <p className="text-[11px] text-foreground/80 truncate flex-1 md:text-[12px]">{post.caption || ""}</p>
                             <div className="flex items-center gap-0.5">
                               <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                               <span className="text-[10px] text-foreground/80">{post.star_count || 0}</span>
@@ -192,13 +192,13 @@ const OOTDPage = () => {
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5">
                     <TrendingUp className="h-3 w-3 text-accent/60" />
-                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">TOPICS</span>
+                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/70">TOPICS</span>
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => setActiveTopic(null)}
                       className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
-                        !activeTopic ? "border-accent bg-accent/10 text-accent" : "border-border text-foreground/50 hover:text-foreground/70"
+                        !activeTopic ? "border-accent bg-accent/10 text-accent" : "border-border text-foreground/70 hover:text-foreground/70"
                       }`}
                     >
                       All
@@ -210,11 +210,11 @@ const OOTDPage = () => {
                         className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
                           activeTopic === topic.name
                             ? "border-accent bg-accent/10 text-accent"
-                            : "border-border text-foreground/50 hover:text-foreground/70"
+                            : "border-border text-foreground/70 hover:text-foreground/70"
                         }`}
                       >
-                        <span className="text-accent/50 mr-0.5">#</span>{topic.name}
-                        <span className="ml-1.5 text-[9px] text-foreground/35">{topic.post_count}</span>
+                        <span className="text-accent/70 mr-0.5">#</span>{topic.name}
+                        <span className="ml-1.5 text-[11px] text-foreground/75">{topic.post_count}</span>
                       </button>
                     ))}
                   </div>
@@ -227,12 +227,12 @@ const OOTDPage = () => {
                 </div>
               ) : posts.length === 0 ? (
                 <div className="py-20 text-center space-y-4 md:py-24 lg:py-28">
-                  <Camera className="h-6 w-6 text-foreground/48 mx-auto" />
-                  <p className="text-[14px] text-foreground/68">
+                  <Camera className="h-6 w-6 text-foreground/65 mx-auto" />
+                  <p className="text-[14px] text-foreground/80">
                     {activeTopic ? `No posts in #${activeTopic} yet` : "Community feed is growing"}
                   </p>
                   {user && (
-                    <button onClick={() => { setActiveTab("mypage"); setUploadOpen(true); }} className="text-[10px] font-medium tracking-[0.2em] text-foreground/62 hover:text-foreground/60">
+                    <button onClick={() => { setActiveTab("mypage"); setUploadOpen(true); }} className="text-[10px] font-medium tracking-[0.2em] text-foreground/75 hover:text-foreground/75">
                       POST FIRST
                     </button>
                   )}
@@ -283,7 +283,7 @@ const OOTDPage = () => {
                             </button>
                           ))}
                           {post.style_tags && post.style_tags.map(tag => (
-                            <span key={tag} className="text-[10px] text-foreground/50">{tag}</span>
+                            <span key={tag} className="text-[10px] text-foreground/70">{tag}</span>
                           ))}
                         </div>
                       </motion.div>

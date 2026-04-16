@@ -40,7 +40,7 @@ const queryClient = new QueryClient();
 
 const PageLoader = () => (
   <div className="flex min-h-[60vh] items-center justify-center">
-    <Loader2 className="h-5 w-5 animate-spin text-accent/40" />
+    <Loader2 className="h-5 w-5 animate-spin text-accent/65" />
   </div>
 );
 

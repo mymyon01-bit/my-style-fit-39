@@ -148,7 +148,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
         </div>
         <button
           onClick={onClose}
-          className="text-[10px] tracking-[0.2em] text-foreground/62 hover:text-foreground/62 transition-colors"
+          className="text-[10px] tracking-[0.2em] text-foreground/75 hover:text-foreground/75 transition-colors"
         >
           CLOSE
         </button>
@@ -156,7 +156,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
 
       {/* Step counter */}
       <div className="px-8 pt-6 md:px-12">
-        <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/60">
+        <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">
           {step + 1} / {STEPS.length}
         </span>
       </div>
@@ -187,7 +187,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
                   className={`rounded-full px-6 py-3.5 text-[13px] font-light transition-all duration-300 md:text-[14px] ${
                     isSelected(option)
                       ? "bg-accent/15 text-accent/90 ring-1 ring-accent/25"
-                      : "text-foreground/68 hover:text-foreground/68 ring-1 ring-foreground/[0.06] hover:ring-foreground/[0.12]"
+                      : "text-foreground/80 hover:text-foreground/80 ring-1 ring-foreground/[0.06] hover:ring-foreground/[0.12]"
                   }`}
                 >
                   {option}
@@ -202,7 +202,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
       <div className="flex items-center justify-between px-8 pb-12 md:px-12">
         <button
           onClick={() => step > 0 ? setStep(step - 1) : onClose()}
-          className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.15em] text-foreground/62 hover:text-foreground/62 transition-colors"
+          className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.15em] text-foreground/75 hover:text-foreground/75 transition-colors"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           {step > 0 ? "BACK" : "EXIT"}
@@ -211,7 +211,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
         {canProceed ? (
           <button
             onClick={handleNext}
-            className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.15em] text-foreground/60 hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.15em] text-foreground/75 hover:text-foreground transition-colors"
           >
             {isLast ? "SEE MY PICKS" : "NEXT"}
             <ChevronRight className="h-3.5 w-3.5" />
@@ -219,7 +219,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
         ) : (
           <button
             onClick={() => !isLast && setStep(step + 1)}
-            className="text-[10px] text-foreground/80 transition-colors hover:text-foreground/62"
+            className="text-[10px] text-foreground/80 transition-colors hover:text-foreground/75"
           >
             SKIP
           </button>

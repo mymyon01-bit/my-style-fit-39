@@ -59,7 +59,7 @@ const ResetPasswordPage = () => {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
-          <p className="text-sm text-foreground/50">Verifying recovery link…</p>
+          <p className="text-sm text-foreground/70">Verifying recovery link…</p>
           <Loader2 className="h-5 w-5 animate-spin text-accent mx-auto" />
         </motion.div>
       </div>
