@@ -84,7 +84,7 @@ async function loadCachedProductsFromDB(opts: {
   if (error || !data) return [];
 
   return data
-    .filter((p: any) => p.image_url && p.image_url.startsWith("http"))
+    .filter((p: any) => p.image_url && p.image_url.startsWith("https"))
     .map((p: any) => ({
       id: p.external_id || p.id,
       name: p.name,
@@ -182,7 +182,7 @@ const DiscoverPage = () => {
         body: { query: query || "", category, limit: 20 },
       });
       if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http")).map((p: any) => ({
+      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https")).map((p: any) => ({
         ...p,
         platform: p.platform || null,
       }));
@@ -199,7 +199,7 @@ const DiscoverPage = () => {
         body: { query, platforms: ["naver", "ssense", "farfetch", "asos", "ssg"], limit: 15 },
       });
       if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("http"));
+      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https"));
     } catch (e) {
       console.error("Commerce scraper error:", e);
       return [];
