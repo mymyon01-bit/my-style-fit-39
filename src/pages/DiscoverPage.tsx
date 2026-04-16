@@ -294,7 +294,7 @@ const DiscoverPage = () => {
               className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/45"
             >
               <Sparkles className="h-3.5 w-3.5 text-accent/50" />
-              {quizAnswers ? "Refine" : "Style Quiz"}
+              {quizAnswers ? t("refine") : t("takeStyleQuiz")}
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -303,14 +303,14 @@ const DiscoverPage = () => {
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              Filters
+              {t("filters")}
             </button>
             {quizAnswers && (
               <button
                 onClick={() => { setQuizAnswers(null); setRecommendations([]); setHasGenerated(false); setTextInput(""); }}
                 className="hover-burgundy text-[10px] tracking-[0.15em] text-foreground/25"
               >
-                RESET
+                {t("reset").toUpperCase()}
               </button>
             )}
           </div>
