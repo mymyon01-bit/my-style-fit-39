@@ -172,6 +172,11 @@ serve(async (req) => {
       fetches.push(fetchFakeStore(category === "clothing" ? "men's clothing" : undefined));
     }
 
+    // Try commerce scraper (Firecrawl) for real products if query exists
+    if (query && Deno.env.get("FIRECRAWL_API_KEY")) {
+      fetches.push(fetchFromCommerceScraper(query, limit));
+    }
+
     const results = await Promise.all(fetches);
     let allProducts = results.flat();
 
