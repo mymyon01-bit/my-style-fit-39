@@ -1437,6 +1437,7 @@ const DiscoverPage = () => {
                 limit: 12,
                 excludeIds: Array.from(sessionSeenIds),
                 expandExternal: true,
+                freshSearch: true,
                 randomize: false,
               })
             )
