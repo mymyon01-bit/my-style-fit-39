@@ -318,7 +318,37 @@ const DiscoverPage = () => {
     }
   }, [user, savedIds]);
 
-  const toggleStyle = (s: string) => setSelectedStyles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  // Generate "New Style You Might Like" AI recommendations
+  const generateNewStyleRecs = async () => {
+    if (loadingNewStyle) return;
+    setLoadingNewStyle(true);
+    try {
+      const styleContext = userStyleProfile
+        ? `User prefers: ${userStyleProfile.preferred_styles?.join(", ") || "various"}. Fit: ${userStyleProfile.preferred_fit || "regular"}. Budget: ${userStyleProfile.budget || "mid-range"}. Suggest something NEW and outside their comfort zone but still tasteful.`
+        : "Suggest trendy, fresh fashion items the user hasn't explored yet.";
+
+      const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
+        body: {
+          action: "recommend",
+          prompt: `${styleContext} Show unique, unexpected styles that expand their wardrobe.`,
+          userId: user?.id || null,
+          source: "discover-new-style",
+          count: 4,
+          isSearch: true,
+        },
+      });
+      if (error) throw error;
+      const recs = (data?.recommendations || []).filter(
+        (r: AIRecommendation) => r.image_url && r.image_url.startsWith("http")
+      );
+      setNewStyleRecs(recs);
+    } catch (e) {
+      console.error("New style recs error:", e);
+    } finally {
+      setLoadingNewStyle(false);
+    }
+  };
+
 
   const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null || selectedColor !== null;
 
