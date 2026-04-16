@@ -403,90 +403,167 @@ serve(async (req) => {
       excludeIds = [],
       expandExternal = false,
       randomize = false,
+      freshSearch = false, // NEW: forces external-first retrieval
     } = body;
     const supabase = getServiceClient();
     const clampedLimit = Math.min(limit, 50);
 
-    console.log(`product-search: query="${query || ""}", category="${category || ""}", limit=${clampedLimit}, expand=${expandExternal}`);
+    console.log(`product-search: query="${query || ""}", category="${category || ""}", limit=${clampedLimit}, expand=${expandExternal}, fresh=${freshSearch}`);
 
-    // Step 1: DB-first load
-    const dbProducts = await loadFromDB(supabase, {
-      query: query || undefined,
-      category,
-      styles,
-      fit,
-      limit: Math.min(clampedLimit, 30),
-      excludeIds,
-      randomize,
-    });
-
-    const needsExpansion = expandExternal || dbProducts.length < 8;
+    let dbProducts: any[] = [];
     let externalProducts: any[] = [];
 
-    // Step 2: External expansion if needed (rate-limited)
-    if (needsExpansion && (query || category)) {
-      const searchTerm = query || `trending ${category || "fashion"}`;
-      externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 15));
-      
-      // Auto-tag products that lack style/color/fit tags
+    if (freshSearch && query) {
+      // ═══ EXTERNAL-FIRST MODE: real internet search, then supplement with DB ═══
+
+      // Step 1: Run external search FIRST — this is the primary data source
+      const searchTerm = query;
+      externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 20));
       externalProducts = externalProducts.map(autoTagProduct);
-      
-      // Cache new products in background
+
+      console.log(`External search returned ${externalProducts.length} products for "${searchTerm}"`);
+
+      // Step 2: Cache valid external products to DB in background
       if (externalProducts.length > 0) {
         cacheToDB(supabase, externalProducts).then(n => {
-          if (n > 0) console.log(`Cached ${n} new products`);
+          if (n > 0) console.log(`Cached ${n} new products from fresh search`);
         }).catch(e => console.error("Cache error:", e));
       }
+
+      // Step 3: Also load DB products to supplement (not replace) external results
+      dbProducts = await loadFromDB(supabase, {
+        query,
+        category,
+        styles,
+        fit,
+        limit: Math.min(clampedLimit, 20),
+        excludeIds,
+        randomize: false,
+      });
+
+      // Step 4: Merge — external results FIRST (higher priority), DB fills gaps
+      const externalIds = new Set(externalProducts.map((p: any) => p.external_id));
+      const externalUrls = new Set(externalProducts.map((p: any) => p.source_url).filter(Boolean));
+      const externalNames = new Set(externalProducts.map((p: any) => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25)));
+
+      const uniqueDbProducts = dbProducts.filter((p: any) => {
+        const nameKey = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
+        return !externalIds.has(p.external_id) &&
+          !externalUrls.has(p.source_url) &&
+          !externalNames.has(nameKey);
+      });
+
+      // External products come first, then DB supplements
+      let allProducts = [...externalProducts, ...uniqueDbProducts];
+      allProducts = enforceDiversity(allProducts);
+      allProducts = allProducts.slice(0, clampedLimit);
+
+      const normalized = allProducts.map(p => ({
+        id: p.external_id || p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        subcategory: p.subcategory || "",
+        reason: p.reason || "",
+        style_tags: p.style_tags || [],
+        color: (p.color_tags || [])[0] || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform,
+        _source: externalProducts.includes(p) ? "external" : "db",
+      }));
+
+      console.log(`product-search (fresh): ${normalized.length} total (${externalProducts.length} external, ${uniqueDbProducts.length} DB supplement)`);
+
+      return new Response(JSON.stringify({
+        products: normalized,
+        count: normalized.length,
+        dbCount: uniqueDbProducts.length,
+        externalCount: externalProducts.length,
+        expanded: true,
+        freshSearch: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else {
+      // ═══ DB-FIRST MODE: for feed browsing, category tabs, repeat visits ═══
+
+      // Step 1: DB-first load
+      dbProducts = await loadFromDB(supabase, {
+        query: query || undefined,
+        category,
+        styles,
+        fit,
+        limit: Math.min(clampedLimit, 30),
+        excludeIds,
+        randomize,
+      });
+
+      const needsExpansion = expandExternal || dbProducts.length < 8;
+
+      // Step 2: External expansion if needed (rate-limited)
+      if (needsExpansion && (query || category)) {
+        const searchTerm = query || `trending ${category || "fashion"}`;
+        externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 15));
+        externalProducts = externalProducts.map(autoTagProduct);
+
+        if (externalProducts.length > 0) {
+          cacheToDB(supabase, externalProducts).then(n => {
+            if (n > 0) console.log(`Cached ${n} new products`);
+          }).catch(e => console.error("Cache error:", e));
+        }
+      }
+
+      // Step 3: Merge DB + external, deduplicate
+      const existingIds = new Set(dbProducts.map((p: any) => p.external_id || p.id));
+      const existingUrls = new Set(dbProducts.map((p: any) => p.source_url).filter(Boolean));
+      const existingNames = new Set(dbProducts.map((p: any) => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25)));
+      const newExternal = externalProducts.filter((p: any) => {
+        const nameKey = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
+        return !existingIds.has(p.external_id) && 
+          !existingUrls.has(p.source_url) &&
+          !existingNames.has(nameKey) &&
+          isImageUrlSafe(p.image_url);
+      });
+
+      let allProducts = [...dbProducts, ...newExternal];
+      allProducts = enforceDiversity(allProducts);
+      allProducts = allProducts.slice(0, clampedLimit);
+
+      const normalized = allProducts.map(p => ({
+        id: p.external_id || p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        subcategory: p.subcategory || "",
+        reason: p.reason || "",
+        style_tags: p.style_tags || [],
+        color: (p.color_tags || [])[0] || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform,
+        _source: dbProducts.includes(p) ? "db" : "external",
+      }));
+
+      console.log(`product-search result: ${normalized.length} total (${dbProducts.length} DB, ${newExternal.length} external)`);
+
+      return new Response(JSON.stringify({
+        products: normalized,
+        count: normalized.length,
+        dbCount: dbProducts.length,
+        externalCount: newExternal.length,
+        expanded: needsExpansion,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    // Step 3: Merge DB + external, deduplicate
-    const existingIds = new Set(dbProducts.map((p: any) => p.external_id || p.id));
-    const existingUrls = new Set(dbProducts.map((p: any) => p.source_url).filter(Boolean));
-    const existingNames = new Set(dbProducts.map((p: any) => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25)));
-    const newExternal = externalProducts.filter((p: any) => {
-      const nameKey = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
-      return !existingIds.has(p.external_id) && 
-        !existingUrls.has(p.source_url) &&
-        !existingNames.has(nameKey) &&
-        isImageUrlSafe(p.image_url);
-    });
-
-    let allProducts = [...dbProducts, ...newExternal];
-
-    // Step 4: Enforce diversity
-    allProducts = enforceDiversity(allProducts);
-    allProducts = allProducts.slice(0, clampedLimit);
-
-    // Return normalized products
-    const normalized = allProducts.map(p => ({
-      id: p.external_id || p.id,
-      name: p.name,
-      brand: p.brand || "",
-      price: p.price || "",
-      category: p.category || "",
-      subcategory: p.subcategory || "",
-      reason: p.reason || "",
-      style_tags: p.style_tags || [],
-      color: (p.color_tags || [])[0] || "",
-      fit: p.fit || "regular",
-      image_url: p.image_url,
-      source_url: p.source_url,
-      store_name: p.store_name,
-      platform: p.platform,
-      _source: dbProducts.includes(p) ? "db" : "external",
-    }));
-
-    console.log(`product-search result: ${normalized.length} total (${dbProducts.length} DB, ${newExternal.length} external)`);
-
-    return new Response(JSON.stringify({
-      products: normalized,
-      count: normalized.length,
-      dbCount: dbProducts.length,
-      externalCount: newExternal.length,
-      expanded: needsExpansion,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
 
   } catch (e) {
     console.error("product-search error:", e);
