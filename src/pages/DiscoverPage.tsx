@@ -274,36 +274,7 @@ const DiscoverPage = () => {
     return generateSuggestions(textInput).suggestions;
   }, [textInput]);
 
-  // ── Fetch fresh products via commerce scraper ──
-  const fetchFromOpenAPIs = async (query?: string, category?: string): Promise<AIRecommendation[]> => {
-    try {
-      const { data, error } = await supabase.functions.invoke("product-search", {
-        body: { query: query || "", category, limit: 20 },
-      });
-      if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https")).map((p: any) => ({
-        ...p,
-        platform: p.platform || null,
-      }));
-    } catch (e) {
-      console.error("Product search error:", e);
-      return [];
-    }
-  };
 
-  // Direct commerce scraper call for explicit user searches
-  const fetchFromCommerceScraper = async (query: string): Promise<AIRecommendation[]> => {
-    try {
-      const { data, error } = await supabase.functions.invoke("commerce-scraper", {
-        body: { query, platforms: ["naver", "ssense", "farfetch", "asos", "ssg"], limit: 15 },
-      });
-      if (error) throw error;
-      return (data?.products || []).filter((p: any) => p.image_url?.startsWith("https"));
-    } catch (e) {
-      console.error("Commerce scraper error:", e);
-      return [];
-    }
-  };
 
   // ── INSTANT INITIAL LOAD: DB-first, then background expansion ──
   useEffect(() => {
