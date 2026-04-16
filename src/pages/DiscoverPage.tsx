@@ -489,14 +489,22 @@ const DiscoverPage = () => {
       });
 
       if (dbProducts.length > 0) {
-        const diverse = enforceClientDiversity(dbProducts, sessionSeenIds);
+        // Score results if we have a style profile
+        let scoredProducts = dbProducts;
+        if (userStyleProfile) {
+          scoredProducts = dbProducts
+            .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQuery || "", userStyleProfile, feedbackMap) }))
+            .sort((a, b) => (b as any)._freeScore - (a as any)._freeScore);
+        }
+
+        const diverse = enforceClientDiversity(scoredProducts, sessionSeenIds);
         diverse.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(diverse);
         setDbOffset(diverse.length);
         setHasMoreInDB(dbCount >= TARGET_COUNT);
         setIsGenerating(false);
 
-        // Step 2: Background fill-up to TARGET_COUNT if short
+        // Step 2: Background expansion to grow inventory
         if (diverse.length < TARGET_COUNT) {
           requestIdleCallback(() => {
             const styleQueries = userStyleProfile
@@ -517,6 +525,18 @@ const DiscoverPage = () => {
             });
           });
         }
+
+        // Step 3: Background seeding — trigger category-diverse queries to grow DB
+        requestIdleCallback(() => {
+          const seedQueries = [
+            "minimal clean outerwear jacket",
+            "casual streetwear sneakers",
+            "classic leather bag tote",
+            "trendy accessories hat watch",
+          ];
+          const randomSeed = seedQueries[Math.floor(Math.random() * seedQueries.length)];
+          hybridProductSearch({ query: randomSeed, expandExternal: true, limit: 8 }).catch(() => {});
+        });
       } else {
         // No DB products — force external expansion
         const { products: apiProducts } = await hybridProductSearch({
