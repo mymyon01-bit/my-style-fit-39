@@ -1424,6 +1424,7 @@ interface RecommendationCardProps {
   savedIds: Set<string>;
   onFeedback: (id: string, type: "like" | "dislike") => void;
   onSave: (id: string) => void;
+  onOpenDetail: (item: AIRecommendation) => void;
 }
 
 const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave }: RecommendationCardProps) => {
