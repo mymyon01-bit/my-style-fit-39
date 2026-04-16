@@ -416,13 +416,13 @@ const DiscoverPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
-                      {activeTab === "for-you" ? "CURATED FOR YOU" : activeTab.toUpperCase()}
+                      {activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
                     </p>
                     {interactionCount > 2 && (
-                      <p className="text-[10px] text-foreground/35 mt-1">Adapting to your taste…</p>
+                      <p className="text-[10px] text-foreground/35 mt-1">{t("adaptingTaste")}</p>
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground/25">{recommendations.length} items</span>
+                  <span className="text-[10px] text-foreground/25">{recommendations.length} {t("items")}</span>
                 </div>
 
                 {/* Grouped display */}
