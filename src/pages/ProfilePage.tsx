@@ -42,6 +42,7 @@ const ProfilePage = () => {
   const [addedByCount, setAddedByCount] = useState(0);
   const [scrapCount, setScrapCount] = useState(0);
   const [myOotds, setMyOotds] = useState<any[]>([]);
+  const [isPrivate, setIsPrivate] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (user) loadProfileData(); }, [user]);
@@ -83,6 +84,7 @@ const ProfilePage = () => {
       setEditLocation(p.location || "");
       setEditGender(p.gender_preference || "");
       setEditHashtags((p.hashtags || []).join(", "));
+      setIsPrivate(p.is_private || false);
     }
     setIsLoading(false);
   };
@@ -283,6 +285,25 @@ const ProfilePage = () => {
           </div>
         )}
 
+        {/* Privacy Toggle */}
+        <div className="flex items-center justify-between rounded-xl border border-border/20 bg-card/30 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Lock className="h-3.5 w-3.5 text-foreground/50" />
+            <span className="text-[11px] text-foreground/60">Private Account</span>
+          </div>
+          <button
+            onClick={async () => {
+              const newVal = !isPrivate;
+              setIsPrivate(newVal);
+              await supabase.from("profiles").update({ is_private: newVal } as any).eq("user_id", user!.id);
+              toast.success(newVal ? "Account set to private" : "Account set to public");
+            }}
+            className={`relative h-5 w-9 rounded-full transition-colors ${isPrivate ? "bg-accent/60" : "bg-foreground/10"}`}
+          >
+            <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-transform ${isPrivate ? "translate-x-4" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+
         {/* Stats */}
         <div className="flex gap-8 flex-wrap">
           {[
@@ -290,6 +311,7 @@ const ProfilePage = () => {
             { icon: Star, label: t("stars"), value: totalStars },
             { icon: Bookmark, label: t("saved"), value: savedCount },
             { icon: Crown, label: "Circle", value: circleCount },
+            { icon: Crown, label: "Ripple", value: addedByCount },
             { icon: Bookmark, label: "Scrap", value: scrapCount },
           ].map(stat => (
             <div key={stat.label} className="text-center">
@@ -298,7 +320,6 @@ const ProfilePage = () => {
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-foreground/40">Added by {addedByCount} users</p>
 
         {!subscription.isPremium && <PremiumBanner />}
 
