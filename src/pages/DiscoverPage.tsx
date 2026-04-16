@@ -1062,11 +1062,42 @@ const DiscoverPage = () => {
     }
   };
 
-  // ── Query expansion: convert vague terms into concrete product queries ──
+  // ── Query expansion: convert vague/lifestyle queries into concrete product searches ──
   function expandSearchQuery(q: string): string[] {
     const lower = q.toLowerCase().trim();
     const expanded: string[] = [];
 
+    // Occasion / lifestyle expansions — map intent to actual fashion items
+    const OCCASION_EXPANSIONS: Record<string, string[]> = {
+      "summer vacation": ["linen shirt", "shorts", "sandals", "sunglasses", "straw hat", "lightweight dress"],
+      "summer": ["linen shirt", "shorts", "sandals", "tank top", "lightweight dress", "sunglasses"],
+      "vacation": ["linen shirt", "resort wear", "sandals", "sunglasses", "lightweight shorts", "summer dress"],
+      "beach": ["swim shorts", "sandals", "linen shirt", "sunglasses", "straw hat", "tank top"],
+      "travel": ["comfortable sneakers", "versatile jacket", "crossbody bag", "casual pants", "lightweight shirt"],
+      "winter": ["wool coat", "knit sweater", "boots", "scarf", "gloves", "parka"],
+      "spring": ["light jacket", "sneakers", "cotton shirt", "chinos", "windbreaker"],
+      "fall": ["leather jacket", "boots", "sweater", "scarf", "corduroy pants"],
+      "autumn": ["leather jacket", "boots", "sweater", "scarf", "corduroy pants"],
+      "rain": ["rain jacket", "waterproof boots", "umbrella", "trench coat"],
+      "wedding": ["suit", "dress shoes", "tie", "formal dress", "clutch bag"],
+      "date": ["blazer", "slim pants", "clean sneakers", "dress shirt", "elegant dress"],
+      "date night": ["blazer", "slim pants", "dress shoes", "elegant dress", "clutch bag"],
+      "office": ["blazer", "dress shirt", "trousers", "loafers", "leather bag"],
+      "work": ["blazer", "dress shirt", "trousers", "loafers", "leather bag"],
+      "gym": ["athletic shorts", "running shoes", "sports tee", "hoodie", "joggers"],
+      "workout": ["athletic shorts", "running shoes", "sports tee", "tank top", "leggings"],
+      "party": ["statement jacket", "boots", "edgy top", "slim jeans", "accessories"],
+      "festival": ["graphic tee", "shorts", "sneakers", "sunglasses", "bucket hat"],
+      "casual": ["t-shirt", "jeans", "sneakers", "hoodie", "casual jacket"],
+      "formal": ["suit", "dress shirt", "dress shoes", "tie", "formal dress"],
+      "streetwear": ["oversized hoodie", "cargo pants", "sneakers", "cap", "crossbody bag"],
+      "hiking": ["hiking boots", "outdoor jacket", "cargo pants", "backpack"],
+      "camping": ["fleece jacket", "hiking boots", "cargo shorts", "backpack"],
+      "school": ["backpack", "sneakers", "hoodie", "jeans", "casual tee"],
+      "airport": ["comfortable sneakers", "joggers", "oversized hoodie", "crossbody bag", "sunglasses"],
+    };
+
+    // Emotion / vague word expansion
     const VAGUE_EXPANSIONS: Record<string, string[]> = {
       modern: ["modern slim jacket", "modern minimalist sneakers", "modern structured trousers"],
       clean: ["clean minimal shirt", "clean white sneakers", "clean structured blazer"],
@@ -1085,23 +1116,41 @@ const DiscoverPage = () => {
       romantic: ["flowy blouse", "delicate jewelry", "vintage inspired dress"],
     };
 
-    const words = lower.split(/\s+/);
-    if (words.length <= 2) {
+    // First check multi-word occasion phrases (longest match first)
+    const sortedOccasions = Object.keys(OCCASION_EXPANSIONS).sort((a, b) => b.length - a.length);
+    let matched = false;
+    for (const key of sortedOccasions) {
+      if (lower.includes(key)) {
+        expanded.push(...OCCASION_EXPANSIONS[key]);
+        matched = true;
+        break;
+      }
+    }
+
+    // Then check vague emotion words
+    if (!matched) {
       for (const [key, expansions] of Object.entries(VAGUE_EXPANSIONS)) {
         if (lower.includes(key)) {
           expanded.push(...expansions);
+          matched = true;
           break;
         }
       }
     }
 
-    // If query doesn't contain a product category, add category variants
-    const hasCategory = /\b(jacket|coat|shirt|hoodie|sweater|pants|jeans|shorts|sneakers?|boots?|shoes?|bag|hat|watch|dress|blazer|cardigan|vest|skirt|top|tee)\b/i.test(lower);
-    if (!hasCategory && expanded.length === 0) {
-      expanded.push(`${q} jacket`, `${q} sneakers`, `${q} pants`);
+    // If query has a product category keyword, just return it directly
+    const hasCategory = /\b(jacket|coat|shirt|hoodie|sweater|pants|jeans|shorts|sneakers?|boots?|shoes?|bag|hat|watch|dress|blazer|cardigan|vest|skirt|top|tee|sandals?|sunglasses)\b/i.test(lower);
+    if (hasCategory && !matched) {
+      // Query already contains a product term — use as-is
+      return [q];
     }
 
-    return [...new Set(expanded)].slice(0, 4);
+    // If still nothing matched and no product category, add generic category variants
+    if (!matched && !hasCategory) {
+      expanded.push(`${q} outfit`, `${q} clothing`, `${q} shoes`);
+    }
+
+    return [...new Set(expanded)].slice(0, 6);
   }
 
   // Debounced search submit — strict relevance filtering pipeline
