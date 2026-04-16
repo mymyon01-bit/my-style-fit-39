@@ -98,7 +98,7 @@ async function callAI(
   tier: AITier,
   systemPrompt: string,
   userPrompt: string,
-  opts: { maxTokens?: number; temperature?: number; timeoutMs?: number } = {}
+  opts: { maxTokens?: number; temperature?: number; timeoutMs?: number; skipLovableFallback?: boolean } = {}
 ): Promise<{ content: string; citations: string[]; tier: AITier }> {
   const usePerplexity = tier !== "free";
   const perplexityModel = tier === "premium" ? "sonar-pro" : "sonar";
@@ -114,8 +114,12 @@ async function callAI(
       return { ...result, tier };
     }
   } catch (e) {
+    // For latency-sensitive paths (search-intent), skip the Lovable AI fallback —
+    // the frontend has its own local query expansion fallback. Failing fast keeps
+    // the edge function under the client's soft timeout budget.
+    if (opts.skipLovableFallback) throw e;
     if (usePerplexity) {
-      console.warn(`Perplexity failed for tier "${tier}", falling back to Lovable AI:`, e);
+      console.warn(`Perplexity failed for tier "${tier}", falling back to Lovable AI:`, e instanceof Error ? e.message : e);
       try {
         const result = await callLovableAI(systemPrompt, userPrompt, { maxTokens: opts.maxTokens || 1500, temperature: opts.temperature || 0.5 });
         return { ...result, tier: "free" };
@@ -459,29 +463,34 @@ Current profile: height=${context.height}cm, weight=${context.weight}kg, type=${
       // Build unconscious matching context from behavior
       const behaviorContext = buildBehaviorInsight(userInfo);
       
-      // STRICT structured prompt — short output for speed (Perplexity must finish fast)
-      const systemPrompt = `You convert a user's fashion search input into 6-10 real shopping search queries.
+      // STRICT structured prompt — minimal output for speed.
+      // Perplexity is a HELPER ONLY: if slow/fails, frontend falls back to local query expansion.
+      const systemPrompt = `You convert a user's fashion search input into 6 real shopping search queries.
 
-OUTPUT: ONLY a JSON object. No prose, no explanation, no markdown.
+OUTPUT: ONLY raw JSON. No prose. No markdown. No code fences.
 
 Schema:
-{"queries":["..."],"category":"clothing|bags|shoes|accessories|null","style_tags":["..."],"color_direction":["..."],"fit_direction":"oversized|slim|relaxed|tailored|regular|null","emotional_tone":"...","interpreted_intent":"..."}
+{"type":"product|style|scenario","queries":["q1","q2","q3","q4","q5","q6"],"category":"clothing|bags|shoes|accessories|null","style_tags":["..."]}
 
 Rules:
-- 6 to 10 queries, each 3-6 words.
-- Every query MUST contain a product noun: jacket, coat, trousers, pants, jeans, shirt, hoodie, sweater, sneakers, boots, shoes, bag, tote, backpack, hat, watch, belt, blazer, dress, skirt, top, cardigan, vest, sandals, sunglasses.
-- Mix categories (tops, bottoms, shoes, outerwear, bags, accessories) when input is a scenario/mood.
-- For scenarios like "summer vacation": linen shirt, relaxed shorts, sandals, resort bag, sunglasses, lightweight sneakers.
-- For specific items, refine with style + color + fit modifiers.
-- Map moods: clean→minimal, sharp→tailored, lazy/chill→oversized, confident→bold, soft→relaxed light, dark→edgy black.
-- interpreted_intent: ONE short sentence.
-- Return JSON ONLY.`;
+- Exactly 6 queries, each 3-6 words.
+- Every query MUST contain a product noun (shirt, jacket, pants, jeans, sneakers, boots, bag, hat, etc.).
+- Scenario input ("summer vacation", "date night") → mix categories: 2 tops, 1 bottom, 1 shoes, 1 bag/accessory, 1 outerwear/extra.
+- Product input ("black hoodie") → 6 variations with style+color+fit modifiers.
+- JSON ONLY.`;
 
       const userPrompt = `Input: "${prompt}"${personalization}${behaviorContext}`;
 
-      // HARD timeout inside edge function = 1800ms (frontend has its own soft 1s timeout)
+      // HARD timeout inside edge function = 1500ms.
+      // Frontend has its own 1s soft timeout — late responses still cache for next time.
+      // skipLovableFallback: don't chain a second AI call; frontend has local fallback.
       try {
-        const result = await callAI(tier, systemPrompt, userPrompt, { maxTokens: 400, temperature: 0.3, timeoutMs: 1800 });
+        const result = await callAI(tier, systemPrompt, userPrompt, {
+          maxTokens: 350,
+          temperature: 0.2,
+          timeoutMs: 1500,
+          skipLovableFallback: true,
+        });
         const parsed = extractJSON(result.content);
 
         if (parsed?.queries?.length) {
