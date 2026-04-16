@@ -43,7 +43,7 @@ const HomePage = () => {
           transition={{ duration: 1.5 }}
           className="absolute top-8 z-10 flex w-full items-center justify-between px-8 lg:hidden"
         >
-          <span className="font-display text-[12px] font-semibold tracking-[0.4em] text-foreground/75 md:text-[13px]">
+          <span className="font-display text-[12px] font-semibold tracking-[0.4em] text-foreground md:text-[13px]">
             WARDROBE
           </span>
           <LanguageSelector />
@@ -64,8 +64,8 @@ const HomePage = () => {
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder={t("howAreYouFeeling")}
-              className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/50 md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
-                isFocused ? "placeholder:text-foreground/75" : ""
+              className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/70 md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
+                isFocused ? "placeholder:text-foreground/90" : ""
               }`}
             />
             <div className={`mx-auto h-px transition-all duration-700 ${
@@ -78,7 +78,7 @@ const HomePage = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 1 }}
-                className="mt-5 text-center text-[11px] font-medium tracking-[0.12em] text-foreground/75 md:text-[12px]"
+                className="mt-5 text-center text-[11px] font-medium tracking-[0.12em] text-foreground/90 md:text-[12px]"
               >
                 {t("todaysTemp")} {weather.temp}° {t("weatherIs")} {weatherLabel.toLowerCase()}
                 {weather.location && !weather.error ? ` · ${weather.location}` : ""}
@@ -98,7 +98,7 @@ const HomePage = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={handleSubmit}
-                  className="hover-burgundy mx-auto mt-7 flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] text-foreground/75 md:mt-8 lg:mt-10"
+                  className="hover-burgundy mx-auto mt-7 flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] text-foreground md:mt-8 lg:mt-10"
                 >
                   {t("enter").toUpperCase()}
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -117,13 +117,13 @@ const HomePage = () => {
         >
           <button
             onClick={() => navigate("/discover")}
-            className="hover-burgundy rounded-lg border border-accent/15 bg-accent/[0.04] px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground/70 transition-all hover:bg-accent/[0.08]"
+            className="hover-burgundy rounded-lg border border-accent/15 bg-accent/[0.04] px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:bg-accent/[0.08]"
           >
             {t("exploreStyles").toUpperCase()}
           </button>
           <button
             onClick={() => navigate("/about")}
-            className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground/75 transition-all hover:text-foreground/70"
+            className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:text-foreground"
           >
             {t("about").toUpperCase()}
           </button>
