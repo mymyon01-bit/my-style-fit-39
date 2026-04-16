@@ -202,14 +202,21 @@ const DiscoverPage = () => {
           userId: user?.id || null,
           source: sourceParam || "discover",
           count: 8,
+          isSearch: true,
+          category: categoryFilter || undefined,
+          subcategory: activeSubcategory || undefined,
+          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+          fit: selectedFit || undefined,
         },
       });
       if (error) throw error;
-      const recs = (data?.recommendations || []).map((r: AIRecommendation) => {
+      // STRICT: Only show products with valid images
+      const recs = (data?.recommendations || []).filter((r: AIRecommendation) => {
         if (!r.image_url || !r.image_url.startsWith("http")) {
-          console.warn(`[WARDROBE] Missing/invalid image for "${r.name}" (${r.id})`);
+          console.warn(`[WARDROBE] Filtered out imageless product: "${r.name}" (${r.id})`);
+          return false;
         }
-        return r;
+        return true;
       });
       setRecommendations(recs);
     } catch (e: any) {
