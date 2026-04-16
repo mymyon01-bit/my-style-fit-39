@@ -44,7 +44,7 @@ function getServiceClient() {
   );
 }
 
-// ─── DB-first: load cached products ───
+// ─── DB-first: load cached products with strict text matching ───
 async function loadFromDB(supabase: any, opts: {
   query?: string;
   category?: string;
@@ -59,11 +59,22 @@ async function loadFromDB(supabase: any, opts: {
     .select("*")
     .eq("image_valid", true)
     .eq("is_active", true)
-    .in("source_trust_level", ["high", "medium"]); // trusted sources
+    .in("source_trust_level", ["high", "medium"]);
 
   if (opts.category) q = q.eq("category", opts.category);
   if (opts.fit) q = q.eq("fit", opts.fit);
   if (opts.styles?.length) q = q.overlaps("style_tags", opts.styles);
+
+  // If we have a text query, use ilike for direct DB-level text filtering
+  if (opts.query) {
+    const terms = opts.query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 2);
+    // Use the most specific term (longest) for DB-level filtering
+    const primaryTerms = terms.slice(0, 3);
+    for (const term of primaryTerms) {
+      // Search in name field — the most important match
+      q = q.or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%`);
+    }
+  }
 
   q = q.order("trend_score", { ascending: false }).limit(opts.limit * 3);
 
@@ -73,26 +84,42 @@ async function loadFromDB(supabase: any, opts: {
   // Double-check image safety and product-title validity on every result
   let results = data.filter((p: any) => isImageUrlSafe(p.image_url) && isFashionProduct(p.name || ""));
 
-  // Text relevance filter with improved scoring
+  // Strict text relevance scoring
   if (opts.query) {
     const terms = opts.query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 2);
     if (terms.length > 0) {
       results = results.map((p: any) => {
-        const text = `${p.name} ${p.brand} ${p.category} ${(p.style_tags || []).join(" ")} ${(p.color_tags || []).join(" ")} ${p.fit || ""}`.toLowerCase();
-        // Weighted relevance: name match > brand > tags
-        let score = 0;
         const nameLower = (p.name || "").toLowerCase();
         const brandLower = (p.brand || "").toLowerCase();
+        const categoryLower = (p.category || "").toLowerCase();
+        const tagsText = [...(p.style_tags || []), ...(p.color_tags || []), p.fit || ""].join(" ").toLowerCase();
+
+        let score = 0;
+        let maxPossible = terms.length * 3;
+
         for (const t of terms) {
           if (nameLower.includes(t)) score += 3;
           else if (brandLower.includes(t)) score += 2;
-          else if (text.includes(t)) score += 1;
+          else if (categoryLower.includes(t)) score += 2;
+          else if (tagsText.includes(t)) score += 1;
         }
-        return { ...p, _relevance: score / (terms.length * 3) };
+
+        const relevance = maxPossible > 0 ? score / maxPossible : 0;
+        return { ...p, _relevance: relevance };
       });
-      results.sort((a: any, b: any) => b._relevance - a._relevance);
-      const relevant = results.filter((r: any) => r._relevance > 0);
-      if (relevant.length >= 4) results = relevant;
+
+      // STRICT: only keep items with relevance > 0.15 (at least some term match)
+      const relevant = results.filter((r: any) => r._relevance > 0.15);
+      // Sort by relevance
+      relevant.sort((a: any, b: any) => b._relevance - a._relevance);
+
+      // If we have enough relevant results, use only those
+      if (relevant.length >= 3) {
+        results = relevant;
+      } else {
+        // Not enough relevant results — return what we have but mark as low relevance
+        results.sort((a: any, b: any) => (b._relevance || 0) - (a._relevance || 0));
+      }
     }
   }
 
@@ -102,17 +129,12 @@ async function loadFromDB(supabase: any, opts: {
     results = results.filter((p: any) => !excludeSet.has(p.external_id) && !excludeSet.has(p.id));
   }
 
-  // ALWAYS shuffle results for variety (Fisher-Yates)
-  for (let i = results.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [results[i], results[j]] = [results[j], results[i]];
-  }
-
-  // If we had text relevance, keep top results first but shuffle within tiers
-  if (opts.query) {
-    const top = results.filter((r: any) => (r._relevance || 0) > 0.3);
-    const rest = results.filter((r: any) => (r._relevance || 0) <= 0.3);
-    results = [...top, ...rest];
+  // Only shuffle if randomize is requested (for feed, not search)
+  if (opts.randomize) {
+    for (let i = results.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [results[i], results[j]] = [results[j], results[i]];
+    }
   }
 
   return results.slice(0, opts.limit);
