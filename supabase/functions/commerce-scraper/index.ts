@@ -15,6 +15,15 @@ const BLOCKED_IMAGE_DOMAINS = [
   "dummyimage.com", "fakeimg.pl", "picsum.photos", "lorempixel.com",
 ];
 
+// ─── Fashion product title validator ───
+const FASHION_TITLE_RE = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|top|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|purse|wallet|hat|cap|beanie|watch|belt|scarf|gloves?|socks?|bomber|parka|pullover|sweatshirt|chinos?|joggers?|blouse|knit|denim|leather|suede|canvas|necklace|bracelet|earring|ring|sunglasses|tie|cufflinks|headband|bandana|beret|mules?|oxfords?|derby|brogues?|espadrilles?|pumps?|heels?|flats?|clutch|satchel|duffle|messenger|crossbody|jumpsuit|romper|overalls?|flannel|henley|anorak|trench|gilet|poncho|cape|leggings?|culottes|slacks|windbreaker|camisole|tunic|tank|fedora|frame|hoops)\b/i;
+const NON_FASHION_RE = /\b(banana|food|fruit|tofu|두부|바나나|grocery|snack|vitamin|supplement|gift\s*card|상품\s*권|교환권|charger|cable|phone|laptop|tablet|kitchen|cook|recipe|drink|beverage|coffee|tea|milk|cream|soap|detergent|shampoo|tissue|diaper|pet\s*food|toy|game|book|movie|music|electronics?)\b/i;
+
+function isFashionProduct(name: string): boolean {
+  if (NON_FASHION_RE.test(name)) return false;
+  return FASHION_TITLE_RE.test(name);
+}
+
 function isImageUrlSafe(url: unknown): boolean {
   if (!url || typeof url !== "string") return false;
   const trimmed = url.trim();
@@ -432,6 +441,9 @@ serve(async (req) => {
 
     // Track rejected products for admin monitoring
     const preFilterCount = allProducts.length;
+
+    // Filter non-fashion items
+    allProducts = allProducts.filter((p) => isFashionProduct(p.name));
 
     // Deduplicate by title similarity
     const seen = new Set<string>();
