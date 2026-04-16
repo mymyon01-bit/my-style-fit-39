@@ -2,7 +2,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, ChevronDown, X, Wand2 } from "lucide-react";
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, forwardRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
 import { AuthGate } from "@/components/AuthGate";
@@ -16,6 +16,61 @@ import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
 import OutfitLookCard from "@/components/OutfitLookCard";
 import ProductDetailSheet from "@/components/ProductDetailSheet";
 import PreferenceBanner from "@/components/PreferenceBanner";
+
+// ── Direct DB query for instant initial load (no edge function overhead) ──
+async function directDbLoad(opts: {
+  styles?: string[];
+  fit?: string;
+  limit?: number;
+  excludeIds?: string[];
+}): Promise<AIRecommendation[]> {
+  try {
+    let query = supabase
+      .from("product_cache")
+      .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform, reason")
+      .eq("is_active", true)
+      .not("image_url", "is", null)
+      .order("trend_score", { ascending: false })
+      .limit(opts.limit || 12);
+
+    if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+    if (opts.fit) query = query.eq("fit", opts.fit);
+    if (opts.excludeIds?.length) query = query.not("id", "in", `(${opts.excludeIds.join(",")})`);
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data
+      .filter((p: any) => p.image_url?.startsWith("https"))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        reason: p.reason || "Curated for you",
+        style_tags: p.style_tags || [],
+        color: (p.color_tags || [])[0] || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ── Inflight request deduplication ──
+const inflightRequests = new Map<string, Promise<any>>();
+function deduplicatedSearch(key: string, fn: () => Promise<any>): Promise<any> {
+  const existing = inflightRequests.get(key);
+  if (existing) return existing;
+  const promise = fn().finally(() => inflightRequests.delete(key));
+  inflightRequests.set(key, promise);
+  return promise;
+}
 
 interface AIRecommendation {
   id: string;
