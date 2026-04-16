@@ -402,6 +402,46 @@ serve(async (req) => {
     const tier = determineTier(body, userInfo.userId, userInfo.isPremium);
     console.log(`AI routing: tier=${tier}, userId=${userInfo.userId?.slice(0, 8) || "guest"}, source=${source || "discover"}`);
 
+    // ─── Body description interpretation (lightweight) ───
+    if (type === "body-description-interpret") {
+      const descSystemPrompt = `You are a body proportion interpreter for a fashion fit system. The user describes their body in natural language (may be Korean or English). Convert this into structured adjustment signals.
+
+Return ONLY valid JSON:
+{
+  "bodyType": "slim|regular|solid|heavy" or null (if no change implied),
+  "hints": ["broad-shoulders", "narrow-shoulders", "long-legs", "short-legs", "short-torso", "long-torso", "thick-thighs", "slim-legs"],
+  "fitPreferences": {
+    "preferLonger": true/false,
+    "preferLoose": true/false
+  }
+}
+
+RULES:
+- Only include hints that are clearly stated or strongly implied
+- "어깨가 넓고" → "broad-shoulders"
+- "허벅지가 두꺼운" → "thick-thighs"  
+- "상체는 마르고 하체는 큼" → bodyType: "regular", hints: ["narrow-shoulders", "thick-thighs"]
+- "기장은 길게" → fitPreferences.preferLonger = true
+- "팔이 짧은 편" → no direct hint match, skip
+- Be conservative — only return signals you're confident about`;
+
+      const descUserPrompt = `User description: "${context.description}"
+Current profile: height=${context.height}cm, weight=${context.weight}kg, type=${context.bodyType}, hints=${context.hints?.join(", ") || "none"}`;
+
+      try {
+        const result = await callLovableAI(descSystemPrompt, descUserPrompt, { maxTokens: 300, temperature: 0.2 });
+        const parsed = extractJSON(result.content);
+        return new Response(JSON.stringify({ adjustments: parsed || {} }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        console.error("Body description interpret error:", e);
+        return new Response(JSON.stringify({ adjustments: {} }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ─── Search intent interpretation (fast, lightweight) ───
     if (action === "search-intent") {
       const personalization = buildPersonalizationContext(userInfo);

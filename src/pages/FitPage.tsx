@@ -158,6 +158,21 @@ const FitPage = () => {
     }
   }, [user]);
 
+  const handleBulkUpdate = useCallback((updates: Partial<Record<keyof BodyMeasurements, number>>) => {
+    setMeasurements(prev => {
+      const next = { ...prev };
+      for (const [key, val] of Object.entries(updates)) {
+        if (val !== undefined) {
+          next[key as keyof BodyMeasurements] = {
+            value: val,
+            confidence: "medium" as ConfidenceLevel,
+          };
+        }
+      }
+      return next;
+    });
+  }, []);
+
   const handleSelectProduct = useCallback((product: SelectedProduct) => {
     let fitData: ProductFitData;
     if (product.source === "mock" && mockProductFitData[product.id]) {
@@ -299,7 +314,7 @@ const FitPage = () => {
                 canUsePremium={canUsePremium}
               />
             )}
-            {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} />}
+            {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} onBulkUpdate={handleBulkUpdate} />}
             {activeTab === "check" && <FitProductCheck onSelectProduct={handleSelectProduct} />}
             {activeTab === "results" && fitResult && fitResultProduct ? (
               <FitResults
