@@ -43,7 +43,7 @@ const LanguageSelector = () => {
                   : "text-foreground/70 hover:bg-accent/[0.06] hover:text-foreground/70"
               }`}
             >
-              {l.label}
+              {l.native}
             </button>
           ))}
         </div>
