@@ -481,6 +481,7 @@ async function hybridProductSearch(opts: {
   excludeIds?: string[];
   expandExternal?: boolean;
   randomize?: boolean;
+  freshSearch?: boolean; // NEW: forces external-first retrieval
 }): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
   try {
     const { data, error } = await supabase.functions.invoke("product-search", {
@@ -493,6 +494,7 @@ async function hybridProductSearch(opts: {
         excludeIds: opts.excludeIds || [],
         expandExternal: opts.expandExternal ?? false,
         randomize: opts.randomize ?? true,
+        freshSearch: opts.freshSearch ?? false,
       },
     });
     if (error) throw error;
