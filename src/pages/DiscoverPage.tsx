@@ -2289,23 +2289,27 @@ interface RecommendationCardProps {
   onOpenDetail: (item: AIRecommendation) => void;
 }
 
-const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, onSave, onOpenDetail }: RecommendationCardProps) => {
+const RecommendationCard = forwardRef<HTMLDivElement, RecommendationCardProps>(
+  ({ item, index, feedbackMap, savedIds, onFeedback, onSave, onOpenDetail }, ref) => {
   const feedback = feedbackMap[item.id];
   const isSaved = savedIds.has(item.id);
   const [imgFailed, setImgFailed] = useState(false);
 
-  // If image is missing or failed to load, don't render the card at all
   if (!item.image_url || !item.image_url.startsWith("http") || imgFailed) return null;
 
+  const isAboveFold = index < 4;
+
   return (
-    <div className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
+    <div ref={ref} className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
         <img
           src={item.image_url}
           alt={item.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading={index < 4 ? "eager" : "lazy"}
+          loading={isAboveFold ? "eager" : "lazy"}
           decoding="async"
+          fetchPriority={isAboveFold ? "high" : "auto"}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           onError={() => setImgFailed(true)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -2366,6 +2370,7 @@ const RecommendationCard = ({ item, index, feedbackMap, savedIds, onFeedback, on
       </div>
     </div>
   );
-};
+});
+RecommendationCard.displayName = "RecommendationCard";
 
 export default DiscoverPage;
