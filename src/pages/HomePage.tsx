@@ -22,8 +22,8 @@ const HomePage = () => {
     setIsLoading(true);
     await new Promise(r => setTimeout(r, 600));
     setIsLoading(false);
-    // Navigate to discover with mood as query param
-    navigate(`/discover?mood=${encodeURIComponent(query.trim())}`);
+    // Navigate to discover with mood + homepage source for premium AI routing
+    navigate(`/discover?mood=${encodeURIComponent(query.trim())}&source=homepage`);
   }, [query, navigate]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
