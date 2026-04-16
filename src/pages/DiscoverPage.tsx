@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import SafeImage from "@/components/SafeImage";
 import ShareButton from "@/components/ShareButton";
 import { toast } from "sonner";
+import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
+import OutfitLookCard from "@/components/OutfitLookCard";
 
 interface AIRecommendation {
   id: string;
