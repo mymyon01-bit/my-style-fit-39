@@ -105,6 +105,55 @@ async function loadFromDB(supabase: any, opts: {
   return results.slice(0, opts.limit);
 }
 
+// ─── Auto-tag classifier: adds style/color/fit tags if missing ───
+function autoTagProduct(p: any): any {
+  const name = (p.name || "").toLowerCase();
+  const brand = (p.brand || "").toLowerCase();
+
+  // Style tags inference
+  if (!p.style_tags?.length) {
+    const tags: string[] = [];
+    if (/minimal|clean|structured|tailored/.test(name)) tags.push("minimal");
+    if (/street|urban|oversized|baggy|cargo/.test(name)) tags.push("street");
+    if (/classic|elegant|formal|blazer|suit/.test(name)) tags.push("classic");
+    if (/edgy|dark|leather|chain|punk/.test(name)) tags.push("edgy");
+    if (/casual|relaxed|everyday|comfort/.test(name)) tags.push("casual");
+    if (/chic|modern|sleek|slim/.test(name)) tags.push("chic");
+    if (/vintage|retro|90s|80s/.test(name)) tags.push("vintage");
+    if (/sport|athletic|track|jersey/.test(name)) tags.push("sporty");
+    // Brand-based inference
+    if (/cos|arket|muji|uniqlo/.test(brand)) tags.push("minimal");
+    if (/nike|adidas|puma|new balance/.test(brand)) tags.push("sporty");
+    if (/gucci|prada|balenciaga/.test(brand)) tags.push("chic");
+    p.style_tags = tags.length > 0 ? tags : ["casual"];
+  }
+
+  // Color tags inference
+  if (!p.color_tags?.length) {
+    const colors: string[] = [];
+    if (/black|noir|블랙/.test(name)) colors.push("black");
+    if (/white|blanc|화이트/.test(name)) colors.push("white");
+    if (/grey|gray|그레이/.test(name)) colors.push("grey");
+    if (/navy|네이비/.test(name)) colors.push("navy");
+    if (/beige|cream|ivory|베이지/.test(name)) colors.push("beige");
+    if (/brown|tan|camel|브라운/.test(name)) colors.push("brown");
+    if (/red|burgundy|wine|레드/.test(name)) colors.push("red");
+    if (/blue|블루/.test(name)) colors.push("blue");
+    if (/green|olive|카키/.test(name)) colors.push("green");
+    p.color_tags = colors.length > 0 ? colors : ["neutral"];
+  }
+
+  // Fit inference
+  if (!p.fit) {
+    if (/oversized|oversize|오버사이즈|boxy/.test(name)) p.fit = "oversized";
+    else if (/slim|skinny|fitted|타이트/.test(name)) p.fit = "slim";
+    else if (/relaxed|loose|wide|와이드/.test(name)) p.fit = "relaxed";
+    else p.fit = "regular";
+  }
+
+  return p;
+}
+
 // ─── External expansion via commerce scraper (rate-limited) ───
 const lastScraperCall = { ts: 0 };
 const SCRAPER_COOLDOWN_MS = 10_000; // Min 10s between scraper calls
@@ -312,6 +361,9 @@ serve(async (req) => {
     if (needsExpansion && (query || category)) {
       const searchTerm = query || `trending ${category || "fashion"}`;
       externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 15));
+      
+      // Auto-tag products that lack style/color/fit tags
+      externalProducts = externalProducts.map(autoTagProduct);
       
       // Cache new products in background
       if (externalProducts.length > 0) {

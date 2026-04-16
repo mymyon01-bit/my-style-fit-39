@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
 import OutfitLookCard from "@/components/OutfitLookCard";
 import ProductDetailSheet from "@/components/ProductDetailSheet";
+import PreferenceBanner from "@/components/PreferenceBanner";
 
 interface AIRecommendation {
   id: string;
@@ -257,6 +258,77 @@ async function hybridProductSearch(opts: {
   }
 }
 
+// ─── Tag-based fallback: direct DB query when network is slow ───
+async function tagBasedFallback(opts: {
+  styles?: string[];
+  fit?: string;
+  category?: string;
+  limit?: number;
+}): Promise<AIRecommendation[]> {
+  try {
+    let query = supabase
+      .from("product_cache")
+      .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform")
+      .eq("is_active", true)
+      .eq("image_valid", true)
+      .order("trend_score", { ascending: false })
+      .limit(opts.limit || 12);
+
+    if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+    if (opts.category) query = query.eq("category", opts.category);
+    if (opts.fit) query = query.eq("fit", opts.fit);
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data
+      .filter((p: any) => p.image_url?.startsWith("https"))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        reason: "From your style profile",
+        style_tags: p.style_tags || [],
+        color: (p.color_tags || [])[0] || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ─── Hybrid search with timeout fallback ───
+async function hybridSearchWithFallback(
+  opts: Parameters<typeof hybridProductSearch>[0],
+  fallbackOpts: { styles?: string[]; fit?: string; category?: string },
+  timeoutMs = 5000,
+): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const result = await hybridProductSearch(opts);
+    clearTimeout(timer);
+    if (result.products.length > 0) return result;
+
+    // If empty, try tag-based fallback
+    const fallback = await tagBasedFallback({ ...fallbackOpts, limit: opts.limit });
+    return { products: fallback, expanded: false, dbCount: fallback.length };
+  } catch {
+    clearTimeout(timer);
+    // Network timeout → use tag-based fallback
+    console.warn("Search timeout, using tag-based fallback");
+    const fallback = await tagBasedFallback({ ...fallbackOpts, limit: opts.limit });
+    return { products: fallback, expanded: false, dbCount: fallback.length };
+  }
+}
+
 // ─── Client-side diversity enforcement ───
 function enforceClientDiversity(items: AIRecommendation[], seenIds: Set<string>): AIRecommendation[] {
   // Remove already seen
@@ -347,6 +419,10 @@ const DiscoverPage = () => {
 
   // Product detail sheet
   const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
+  
+  // Whether user needs to complete preferences
+  const needsPreferences = !userStyleProfile && !quizAnswers;
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   // Filters
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -398,10 +474,18 @@ const DiscoverPage = () => {
 
       const TARGET_COUNT = 18;
 
-      // Step 1: Fast DB load — large initial batch
+      // Use style profile for personalized initial load
+      const styleQuery = userStyleProfile
+        ? buildStyleSearchQueries(userStyleProfile)[0]
+        : undefined;
+
+      // Step 1: Fast DB load — large initial batch with style-aware query
       const { products: dbProducts, dbCount } = await hybridProductSearch({
+        query: styleQuery,
+        styles: userStyleProfile?.preferred_styles?.length ? userStyleProfile.preferred_styles.slice(0, 3) : undefined,
+        fit: userStyleProfile?.preferred_fit || undefined,
         limit: TARGET_COUNT,
-        randomize: true,
+        randomize: !styleQuery,
       });
 
       if (dbProducts.length > 0) {
@@ -461,13 +545,16 @@ const DiscoverPage = () => {
     if (user) {
       loadSavedIds();
       loadStyleProfile();
+    } else {
+      setProfileLoaded(true);
     }
   }, [user]);
 
   const loadStyleProfile = async () => {
-    if (!user) return;
+    if (!user) { setProfileLoaded(true); return; }
     const { data } = await supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle();
     setUserStyleProfile(data);
+    setProfileLoaded(true);
   };
 
   useEffect(() => {
@@ -537,20 +624,45 @@ const DiscoverPage = () => {
   const handleQuizComplete = async (answers: StyleQuizAnswers) => {
     setQuizAnswers(answers);
     setShowQuiz(false);
-    const prompt = buildPromptFromQuiz(answers);
-    generateRecommendations(prompt, answers);
+    
+    // Build synthetic style profile from quiz for immediate use
+    const syntheticProfile = {
+      preferred_styles: answers.preferredStyles,
+      disliked_styles: answers.dislikedStyles,
+      preferred_fit: answers.fitPreference,
+      budget: answers.budgetRange,
+      occasions: answers.occasionPreference,
+      favorite_brands: answers.brandFamiliarity.filter(b => b !== "None"),
+    };
+    setUserStyleProfile(syntheticProfile);
+
+    // Use DB-first with quiz preferences before falling back to AI
+    const styleQueries = buildStyleSearchQueries(syntheticProfile);
+    const { products } = await hybridSearchWithFallback(
+      { query: styleQueries[0], styles: answers.preferredStyles.slice(0, 3), fit: answers.fitPreference || undefined, limit: 18, randomize: false },
+      { styles: answers.preferredStyles, fit: answers.fitPreference || undefined },
+    );
+
+    if (products.length >= 4) {
+      const scored = products
+        .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQueries[0], syntheticProfile, feedbackMap) }))
+        .sort((a, b) => b._freeScore - a._freeScore);
+      const diverse = enforceClientDiversity(scored, new Set());
+      diverse.forEach(p => sessionSeenIds.add(p.id));
+      setRecommendations(diverse);
+      setHasGenerated(true);
+    } else {
+      // Fallback to AI
+      const prompt = buildPromptFromQuiz(answers);
+      generateRecommendations(prompt, answers);
+    }
 
     // Persist quiz answers to style_profiles if logged in
     if (user) {
       try {
         await supabase.from("style_profiles").upsert({
           user_id: user.id,
-          preferred_styles: answers.preferredStyles,
-          disliked_styles: answers.dislikedStyles,
-          preferred_fit: answers.fitPreference || null,
-          budget: answers.budgetRange || null,
-          occasions: answers.occasionPreference,
-          favorite_brands: answers.brandFamiliarity.filter(b => b !== "None"),
+          ...syntheticProfile,
         } as any, { onConflict: "user_id" });
       } catch (err) {
         console.error("Failed to save quiz answers:", err);
@@ -757,21 +869,28 @@ const DiscoverPage = () => {
       setHasGenerated(true);
       lastPromptRef.current = q;
 
-      // Step 1: AI intent interpretation (parallel with quick DB search)
+      // Merge user style profile into search for better results
+      const profileStyles = userStyleProfile?.preferred_styles || [];
+      const searchStyles = selectedStyles.length > 0 ? selectedStyles : profileStyles.slice(0, 2);
+
+      // Step 1: AI intent interpretation (parallel with quick DB search + tag fallback)
       const [intentResult, quickDbResult] = await Promise.all([
         interpretSearchIntent(q),
-        hybridProductSearch({
-          query: q,
-          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
-          fit: selectedFit || undefined,
-          limit: 18,
-          expandExternal: false,
-          randomize: false,
-        }),
+        hybridSearchWithFallback(
+          {
+            query: q,
+            styles: searchStyles.length > 0 ? searchStyles : undefined,
+            fit: selectedFit || userStyleProfile?.preferred_fit || undefined,
+            limit: 18,
+            expandExternal: false,
+            randomize: false,
+          },
+          { styles: searchStyles, fit: selectedFit || userStyleProfile?.preferred_fit, },
+        ),
       ]);
 
       const { queries: aiQueries, style_tags: aiStyles } = intentResult;
-      const mergedStyles = [...new Set([...selectedStyles, ...aiStyles])];
+      const mergedStyles = [...new Set([...searchStyles, ...aiStyles])];
 
       // Step 2: Apply free-mode scoring and show results
       if (quickDbResult.products.length >= 8) {
@@ -975,6 +1094,12 @@ const DiscoverPage = () => {
         </div>
 
         <div className="mx-auto max-w-lg px-6 pt-6 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+          {/* Preference Banner */}
+          {profileLoaded && needsPreferences && (
+            <div className="mb-6">
+              <PreferenceBanner onOpenQuiz={() => setShowQuiz(true)} />
+            </div>
+          )}
           {/* Search with suggestions */}
           <div className="relative">
             <div className="flex items-center gap-3 pb-4">
