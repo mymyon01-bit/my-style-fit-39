@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronDown, Sparkles, Loader2, User, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, Sparkles, Loader2 } from "lucide-react";
 import { BodyMeasurements, ConfidenceLevel, estimateBodyFromProfile, type BodyTypeKey, type BodyHint } from "@/lib/fitEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
