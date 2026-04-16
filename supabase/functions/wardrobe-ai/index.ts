@@ -750,8 +750,15 @@ Generate: 1) A short style profile summary (2 sentences). 2) Silhouette recommen
         break;
       }
       case "fit-explanation": {
-        systemPrompt = `You are a concise fashion fit advisor. Never invent data. Only explain what you're given. Under 60 words.`;
-        userPrompt = `Product: ${context.productName} by ${context.productBrand}. Recommended Size: ${context.recommendedSize} (score: ${context.fitScore}/100). Alternate: ${context.alternateSize}. Product Data: ${context.productDataQuality}/100. Scan: ${context.scanQuality}/100. Regions: ${context.regionText}. Summary: ${context.summary}. Write a natural, helpful explanation.`;
+        const isFitPremium = body.fitMode === "premium";
+        if (isFitPremium) {
+          systemPrompt = `You are a premium fashion fit advisor. Provide detailed, confident analysis. Explain region-by-region fit implications, suggest styling adjustments if needed, and note brand-specific tendencies if recognizable. Be precise and editorial. Under 120 words. Never invent data.`;
+          const allSizesText = context.allSizes?.map((s: any) => `${s.size}: score ${s.score}, ${s.regions}`).join(" | ") || "";
+          userPrompt = `Product: ${context.productName} by ${context.productBrand} (${context.productCategory || "clothing"}, ${context.productFitType || "regular"} fit). Recommended Size: ${context.recommendedSize} (score: ${context.fitScore}/100). Alternate: ${context.alternateSize}. Product Data: ${context.productDataQuality}/100. Scan: ${context.scanQuality}/100. Regions: ${context.regionText}. All sizes: ${allSizesText}. Summary: ${context.summary}. Provide a detailed, premium fit analysis with regional insights and styling advice.`;
+        } else {
+          systemPrompt = `You are a concise fashion fit advisor. Never invent data. Only explain what you're given. Under 60 words.`;
+          userPrompt = `Product: ${context.productName} by ${context.productBrand}. Recommended Size: ${context.recommendedSize} (score: ${context.fitScore}/100). Alternate: ${context.alternateSize}. Product Data: ${context.productDataQuality}/100. Scan: ${context.scanQuality}/100. Regions: ${context.regionText}. Summary: ${context.summary}. Write a natural, helpful explanation.`;
+        }
         break;
       }
       case "body-scan-analysis": {
