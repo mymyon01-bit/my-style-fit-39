@@ -403,10 +403,18 @@ const DiscoverPage = () => {
 
       const TARGET_COUNT = 18;
 
-      // Step 1: Fast DB load — large initial batch
+      // Use style profile for personalized initial load
+      const styleQuery = userStyleProfile
+        ? buildStyleSearchQueries(userStyleProfile)[0]
+        : undefined;
+
+      // Step 1: Fast DB load — large initial batch with style-aware query
       const { products: dbProducts, dbCount } = await hybridProductSearch({
+        query: styleQuery,
+        styles: userStyleProfile?.preferred_styles?.length ? userStyleProfile.preferred_styles.slice(0, 3) : undefined,
+        fit: userStyleProfile?.preferred_fit || undefined,
         limit: TARGET_COUNT,
-        randomize: true,
+        randomize: !styleQuery,
       });
 
       if (dbProducts.length > 0) {
