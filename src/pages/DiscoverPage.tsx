@@ -22,6 +22,8 @@ interface AIRecommendation {
   color: string;
   fit: string;
   image_url?: string | null;
+  source_url?: string | null;
+  store_name?: string | null;
 }
 
 const BROWSE_TABS = [
@@ -544,6 +546,12 @@ const RecommendationCard = ({
 }) => {
   const hasImage = item.image_url && item.image_url.startsWith("http");
 
+  const handleCardClick = () => {
+    if (item.source_url) {
+      window.open(item.source_url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -551,8 +559,11 @@ const RecommendationCard = ({
       transition={{ delay: index * 0.05, duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
       className="group"
     >
-      {/* Image container — dominant */}
-      <div className="relative overflow-hidden rounded-xl bg-foreground/[0.03]">
+      {/* Image container — dominant, clickable */}
+      <div
+        className={`relative overflow-hidden rounded-xl bg-foreground/[0.03] ${item.source_url ? "cursor-pointer" : ""}`}
+        onClick={handleCardClick}
+      >
         {hasImage ? (
           <SafeImage
             src={item.image_url!}
@@ -571,8 +582,11 @@ const RecommendationCard = ({
           </div>
         )}
 
+        {/* Hover glow overlay */}
+        <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ring-1 ring-accent/20" />
+
         {/* Overlay actions */}
-        <div className="absolute right-2 top-2 flex flex-col gap-1.5">
+        <div className="absolute right-2 top-2 flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
           <AuthGate action="save items">
             <button
               onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
@@ -588,6 +602,15 @@ const RecommendationCard = ({
         <span className="absolute left-2 top-2 rounded-full bg-background/60 backdrop-blur-md px-2 py-0.5 text-[8px] font-semibold tracking-[0.1em] text-foreground/50 uppercase">
           {item.category}
         </span>
+
+        {/* Shop label on hover */}
+        {item.source_url && (
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-gradient-to-t from-black/40 to-transparent pb-3 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <span className="text-[10px] font-semibold tracking-[0.2em] text-white/80">
+              VIEW ON {(item.store_name || item.brand || "STORE").toUpperCase()}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Text — below image, compact */}

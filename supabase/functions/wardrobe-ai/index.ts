@@ -78,13 +78,9 @@ async function callLovableAI(systemPrompt: string, userPrompt: string, opts: { m
 type AITier = "free" | "user" | "premium" | "homepage";
 
 function determineTier(body: any, userId: string | null, isPremium: boolean): AITier {
-  // Homepage always gets Perplexity
   if (body.source === "homepage") return "homepage";
-  // Premium users get enhanced Perplexity
   if (isPremium) return "premium";
-  // Logged-in users get standard Perplexity
   if (userId) return "user";
-  // Free/guest gets Lovable AI
   return "free";
 }
 
@@ -108,7 +104,6 @@ async function callAI(
       return { ...result, tier };
     }
   } catch (e) {
-    // Fallback: if Perplexity fails, fall back to Lovable AI
     if (usePerplexity) {
       console.warn(`Perplexity failed for tier "${tier}", falling back to Lovable AI:`, e);
       try {
@@ -137,37 +132,83 @@ function extractJSON(content: string): any | null {
   return null;
 }
 
-async function getUserInfo(req: Request): Promise<{ userId: string | null; isPremium: boolean }> {
+async function getUserInfo(req: Request): Promise<{
+  userId: string | null;
+  isPremium: boolean;
+  styleProfile: any | null;
+  bodyProfile: any | null;
+  recentInteractions: any[];
+}> {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return { userId: null, isPremium: false };
+  const empty = { userId: null, isPremium: false, styleProfile: null, bodyProfile: null, recentInteractions: [] };
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return empty;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   const token = authHeader.replace("Bearer ", "");
-  // Skip if it's the anon key itself
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (token === anonKey) return { userId: null, isPremium: false };
+  if (token === anonKey) return empty;
 
   try {
     const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return { userId: null, isPremium: false };
+    if (!user) return empty;
 
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("plan, status, trial_end_date")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Fetch subscription, style profile, body profile, and recent interactions in parallel
+    const [subRes, styleRes, bodyRes, interactionsRes] = await Promise.all([
+      supabase.from("subscriptions").select("plan, status, trial_end_date").eq("user_id", user.id).maybeSingle(),
+      supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase.from("body_profiles").select("height_cm, weight_kg, shoulder_width_cm, waist_cm, silhouette_type").eq("user_id", user.id).maybeSingle(),
+      supabase.from("interactions").select("target_id, event_type, metadata").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
+    ]);
 
+    const sub = subRes.data;
     const isPremium = !!(sub && (sub.plan === "premium_trial" || sub.plan === "premium") &&
       sub.status === "active" &&
       (!sub.trial_end_date || new Date(sub.trial_end_date) > new Date()));
 
-    return { userId: user.id, isPremium };
+    return {
+      userId: user.id,
+      isPremium,
+      styleProfile: styleRes.data || null,
+      bodyProfile: bodyRes.data || null,
+      recentInteractions: interactionsRes.data || [],
+    };
   } catch {
-    return { userId: null, isPremium: false };
+    return empty;
   }
+}
+
+function buildPersonalizationContext(userInfo: { styleProfile: any; bodyProfile: any; recentInteractions: any[] }): string {
+  const parts: string[] = [];
+
+  if (userInfo.styleProfile) {
+    const sp = userInfo.styleProfile;
+    if (sp.preferred_styles?.length) parts.push(`Preferred styles: ${sp.preferred_styles.join(", ")}`);
+    if (sp.disliked_styles?.length) parts.push(`Disliked styles: ${sp.disliked_styles.join(", ")} — AVOID these`);
+    if (sp.preferred_fit) parts.push(`Preferred fit: ${sp.preferred_fit}`);
+    if (sp.budget) parts.push(`Budget range: ${sp.budget}`);
+    if (sp.favorite_brands?.length) parts.push(`Favorite brands: ${sp.favorite_brands.join(", ")}`);
+    if (sp.occasions?.length) parts.push(`Common occasions: ${sp.occasions.join(", ")}`);
+  }
+
+  if (userInfo.bodyProfile) {
+    const bp = userInfo.bodyProfile;
+    const bodyParts: string[] = [];
+    if (bp.height_cm) bodyParts.push(`${bp.height_cm}cm tall`);
+    if (bp.weight_kg) bodyParts.push(`${bp.weight_kg}kg`);
+    if (bp.silhouette_type) bodyParts.push(`${bp.silhouette_type} build`);
+    if (bodyParts.length) parts.push(`Body: ${bodyParts.join(", ")}`);
+  }
+
+  // Extract taste signals from recent interactions
+  const liked = userInfo.recentInteractions.filter(i => i.event_type === "like").map(i => i.target_id);
+  const disliked = userInfo.recentInteractions.filter(i => i.event_type === "dislike").map(i => i.target_id);
+  if (liked.length) parts.push(`Recently liked items: ${liked.slice(0, 8).join(", ")}`);
+  if (disliked.length) parts.push(`Recently disliked items: ${disliked.slice(0, 5).join(", ")} — avoid similar`);
+
+  return parts.length > 0 ? `\n\nUser personalization data:\n${parts.join("\n")}` : "";
 }
 
 // ─── Main handler ───
@@ -179,16 +220,18 @@ serve(async (req) => {
     const body = await req.json();
     const { type, context, action, prompt, quizAnswers, source } = body;
 
-    // Determine AI tier
-    const { userId, isPremium } = await getUserInfo(req);
-    const tier = determineTier(body, userId, isPremium);
-    console.log(`AI routing: tier=${tier}, userId=${userId?.slice(0, 8) || "guest"}, source=${source || "discover"}`);
+    // Determine AI tier + fetch user data
+    const userInfo = await getUserInfo(req);
+    const tier = determineTier(body, userInfo.userId, userInfo.isPremium);
+    console.log(`AI routing: tier=${tier}, userId=${userInfo.userId?.slice(0, 8) || "guest"}, source=${source || "discover"}`);
 
     // ─── Recommend action ───
     if (action === "recommend") {
       const itemCount = body.count || (tier === "premium" ? "10-12" : tier === "user" ? "8-10" : "6-8");
       const excludeIds = body.excludeIds || [];
       const excludeClause = excludeIds.length > 0 ? `\nDo NOT include items with these IDs: ${excludeIds.join(", ")}. Generate completely different products.` : "";
+
+      const personalization = buildPersonalizationContext(userInfo);
 
       const systemPrompt = `You are WARDROBE AI — a ${tier === "free" ? "helpful" : "premium"} fashion recommendation engine. Based on the user's style description, generate ${itemCount} curated product recommendations.
 
@@ -207,7 +250,9 @@ Return format:
       "style_tags": ["tag1", "tag2"],
       "color": "#hex color of the item",
       "fit": "oversized|regular|slim",
-      "image_url": "https://images.unsplash.com/photo-XXXXX?w=400&q=80"
+      "image_url": "https://images.unsplash.com/photo-XXXXX?w=400&q=80",
+      "source_url": "https://www.brandname.com/product-page",
+      "store_name": "Brand Official Store"
     }
   ]
 }
@@ -215,12 +260,14 @@ Return format:
 Rules:
 - Recommend REAL brands and realistic products
 - Match the user's stated preferences precisely
-- Include variety across categories
-- Prices should be realistic
+- Include variety across categories unless a specific category is requested
+- Prices should be realistic for the brand
 - Colors should be hex values
 - Keep reasons under 15 words
 - Each id must be unique (use brand-name-slug format)
-- For image_url: Use real Unsplash image URLs that match the product type. Use format: https://images.unsplash.com/photo-{id}?w=400&q=80. Choose fashion/clothing photos that match the item category and color.${excludeClause}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream" : ""}`;
+- For image_url: Use real Unsplash fashion image URLs. Format: https://images.unsplash.com/photo-{id}?w=400&q=80
+- For source_url: Provide the REAL product page URL on the brand's official website or major retailer (e.g. nordstrom.com, ssense.com, zara.com, uniqlo.com). This must be a real, navigable URL.
+- For store_name: Name of the retailer or brand store${excludeClause}${personalization}${tier === "premium" ? "\n- Provide deeper style reasoning in explanations\n- Include more niche/designer brands alongside mainstream\n- Consider body profile for fit recommendations" : ""}`;
 
       const quizContext = quizAnswers
         ? `\nQuiz answers: Styles: ${quizAnswers.preferredStyles?.join(", ")}. Fit: ${quizAnswers.fitPreference}. Colors: ${quizAnswers.colorPreference}. Vibe: ${quizAnswers.dailyVibe}. Occasion: ${quizAnswers.occasionPreference}. Budget: ${quizAnswers.budgetRange}. Avoid: ${quizAnswers.dislikedStyles?.join(", ")}.`
@@ -236,6 +283,8 @@ Rules:
         ...r,
         id: r.id || `rec-${Date.now()}-${i}`,
         image_url: r.image_url && r.image_url.startsWith("http") ? r.image_url : null,
+        source_url: r.source_url && r.source_url.startsWith("http") ? r.source_url : null,
+        store_name: r.store_name || r.brand || null,
       }));
 
       return new Response(JSON.stringify({
@@ -253,8 +302,9 @@ Rules:
 
     switch (type) {
       case "mood-styling": {
+        const personalization = buildPersonalizationContext(userInfo);
         systemPrompt = `You are WARDROBE AI — a ${tier === "free" ? "helpful" : "premium personal"} fashion stylist. ${tier !== "free" ? "Respond in calm, confident, editorial tone." : "Be concise and helpful."} Give concise, actionable style advice under ${tier === "premium" ? "150" : "120"} words. Be specific about clothing types, colors, fabrics. Never use bullet points. Never say "I recommend."`;
-        userPrompt = `User mood: "${context.mood || "neutral"}". Weather: ${context.weather?.temp || 22}°C, ${context.weather?.condition || "clear"} in ${context.location || "unknown"}.${context.styles ? ` Style preferences: ${context.styles.join(", ")}.` : ""}${context.bodyType ? ` Body type: ${context.bodyType}.` : ""} Occasion: ${context.occasion || "daily"}. Give personalized styling direction for today. Also suggest specific outfit pieces: a top, bottom, shoes, and optionally outerwear.`;
+        userPrompt = `User mood: "${context.mood || "neutral"}". Weather: ${context.weather?.temp || 22}°C, ${context.weather?.condition || "clear"} in ${context.location || "unknown"}.${context.styles ? ` Style preferences: ${context.styles.join(", ")}.` : ""}${context.bodyType ? ` Body type: ${context.bodyType}.` : ""} Occasion: ${context.occasion || "daily"}.${personalization} Give personalized styling direction for today. Also suggest specific outfit pieces: a top, bottom, shoes, and optionally outerwear.`;
         break;
       }
       case "style-analysis": {
