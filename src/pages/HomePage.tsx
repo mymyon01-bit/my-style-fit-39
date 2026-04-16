@@ -64,8 +64,8 @@ const HomePage = () => {
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder={t("howAreYouFeeling")}
-              className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-light tracking-wide text-foreground outline-none transition-all duration-700 placeholder:text-foreground/70 md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
-                isFocused ? "placeholder:text-foreground/90" : ""
+              className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-semibold tracking-tight text-foreground outline-none transition-all duration-700 placeholder:text-foreground placeholder:font-semibold md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
+                isFocused ? "placeholder:text-foreground" : ""
               }`}
             />
             <div className={`mx-auto h-px transition-all duration-700 ${
