@@ -119,7 +119,7 @@ const DiscoverPage = () => {
           prompt: fullPrompt,
           quizAnswers: quiz || quizAnswers,
           userId: user?.id || null,
-          source: "discover",
+          source: sourceParam || "discover",
           count: 10,
         },
       });
