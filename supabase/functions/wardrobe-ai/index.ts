@@ -380,19 +380,15 @@ serve(async (req) => {
     if (action === "search-intent") {
       const personalization = buildPersonalizationContext(userInfo);
       
-      const systemPrompt = `You are a fashion search intent interpreter. Given a user's input (which may be in any language including Korean, English, Italian), interpret their style intent and generate 3-6 real-world shopping search queries that reflect what people actually search for on fashion retailers.
+      const systemPrompt = `You are a fashion PRODUCT search query generator. Given a user's input (any language including Korean, English, Italian), generate 4-6 shopping search queries for real purchasable fashion products.
 
-Think like: "A stylist who understands what people actually search for."
-
-Rules:
-- Convert abstract style words into concrete product searches
-- Mix categories: tops, bottoms, shoes, outerwear, bags
-- Use popular, commercially relevant phrasing
-- Include fit/color/style modifiers when relevant
+CRITICAL RULES:
+- Every query MUST include a specific product type keyword: jacket, coat, trousers, pants, jeans, shirt, hoodie, sweater, sneakers, boots, shoes, bag, tote, backpack, hat, watch, belt, blazer, dress, skirt, top, cardigan, vest
+- NEVER generate vague queries like "modern style" or "street fashion" or "clean outfit"
+- ALWAYS target specific buyable items
+- Mix product categories: tops, bottoms, shoes, outerwear, bags, accessories
 - For non-English input, generate queries in BOTH the original language AND English
-- Queries should be 3-6 words each, product-focused
-- Add a "category" if clearly implied, otherwise null
-- Add relevant "style_tags" for filtering
+- Each query should be 3-6 words with product type + style/color modifiers
 
 Return ONLY valid JSON:
 {
@@ -403,10 +399,11 @@ Return ONLY valid JSON:
 }
 
 Examples:
-- Input "modern" → queries: ["minimal tailored jacket", "clean slim trousers", "modern structured coat", "minimalist white sneakers", "contemporary wool blazer"]
-- Input "스트릿" → queries: ["streetwear oversized hoodie", "baggy cargo pants street", "오버사이즈 후디", "스트릿 조거팬츠", "chunky sneakers street style"]
-- Input "모던 블랙" → queries: ["black tailored jacket minimal", "slim black trousers modern", "블랙 코트 미니멀", "black leather chelsea boots"]
-- Input "clean outfit" → queries: ["minimal clean white shirt", "tailored neutral chinos", "clean leather sneakers", "structured tote bag minimal"]`;
+- Input "modern" → queries: ["minimal tailored blazer men", "slim fit chinos modern", "clean white leather sneakers", "structured wool coat minimal", "modern slim trousers grey"]
+- Input "스트릿" → queries: ["oversized hoodie streetwear", "baggy cargo pants street", "오버사이즈 후디 남자", "스트릿 조거팬츠", "chunky sneakers white"]
+- Input "모던 블랙" → queries: ["black tailored jacket slim", "slim black trousers men", "블랙 코트 미니멀", "black leather chelsea boots", "black crossbody bag minimal"]
+- Input "clean outfit" → queries: ["minimal white oxford shirt", "tailored neutral chinos slim", "clean leather sneakers white", "structured canvas tote bag"]
+- Input "casual" → queries: ["casual cotton t-shirt men", "relaxed fit jeans blue", "casual canvas sneakers", "lightweight bomber jacket"]`;
 
       const userPrompt = `User search input: "${prompt}"${personalization}`;
 
