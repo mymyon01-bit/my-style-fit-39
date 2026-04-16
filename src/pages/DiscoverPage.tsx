@@ -1166,17 +1166,111 @@ const DiscoverPage = () => {
     debounceTimerRef.current = setTimeout(async () => {
       setIsGenerating(true);
       setHasGenerated(true);
-      setRecommendations([]); // Clear old results for search — don't show stale unrelated items
+      setRecommendations([]);
       lastPromptRef.current = q;
 
-      // Step 1: Parse query into structured intent (instant, no network)
+      // Step 1: Parse query into structured intent
       const intent = parseQueryIntent(q);
-      console.log("Search intent:", intent);
+      const isVagueQuery = !intent.categoryLock && intent.styleIntent.length === 0 && intent.colorIntent.length === 0 && intent.brandIntent.length === 0;
 
-      // Step 2: DB search with intent-derived filters
+      // Step 2: Expand query — for vague/lifestyle queries, expansions ARE the search
+      const expandedQueries = expandSearchQuery(q);
+      const isLifestyleQuery = isVagueQuery && expandedQueries.length > 1 && expandedQueries[0] !== q;
+
+      console.log("Search:", { query: q, intent, isVagueQuery, isLifestyleQuery, expandedQueries });
+
+      // Step 3: Choose search strategy
       const categoryMap: Record<string, string> = {
         TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
       };
+      const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
+
+      if (isLifestyleQuery) {
+        // LIFESTYLE QUERY: search for each expanded item type separately
+        const results = await Promise.all(
+          expandedQueries.slice(0, 5).map(eq =>
+            hybridProductSearch({
+              query: eq,
+              limit: 8,
+              expandExternal: true,
+              excludeIds: Array.from(sessionSeenIds),
+              randomize: false,
+            })
+          )
+        );
+
+        const allProducts = results.flatMap(r => r.products);
+        // For lifestyle queries, re-parse each product against the expanded terms
+        const diverse = enforceClientDiversity(allProducts, new Set());
+        if (diverse.length > 0) {
+          diverse.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(diverse.slice(0, 24));
+        } else {
+          // Fallback to AI
+          generateRecommendations(q);
+        }
+        setIsGenerating(false);
+      } else {
+        // SPECIFIC QUERY: DB-first with strict relevance filtering
+        const { products: dbProducts, dbCount } = await hybridProductSearch({
+          query: q,
+          category: dbCategory,
+          styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+          fit: selectedFit || undefined,
+          limit: 30,
+          expandExternal: false,
+          randomize: false,
+        });
+
+        const relevantDb = filterByRelevance(dbProducts, intent);
+        const diverseDb = enforceClientDiversity(relevantDb, new Set());
+
+        if (diverseDb.length > 0) {
+          diverseDb.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(diverseDb);
+          setDbOffset(diverseDb.length);
+          setHasMoreInDB(dbCount >= 30);
+          setIsGenerating(false);
+        }
+
+        // ALWAYS run external search for fresh results
+        const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 3);
+        Promise.all(
+          searchQueries.map(sq =>
+            hybridProductSearch({
+              query: sq,
+              category: dbCategory,
+              styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+              fit: selectedFit || undefined,
+              limit: 12,
+              excludeIds: Array.from(sessionSeenIds),
+              expandExternal: true,
+              randomize: false,
+            })
+          )
+        ).then(results => {
+          const allFresh = results.flatMap(r => r.products);
+          const relevantFresh = filterByRelevance(allFresh, intent);
+          const freshDiverse = enforceClientDiversity(relevantFresh, sessionSeenIds);
+
+          if (freshDiverse.length > 0) {
+            freshDiverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => {
+              const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set()).slice(0, 30);
+              return merged;
+            });
+          }
+
+          if (diverseDb.length === 0 && freshDiverse.length === 0) {
+            generateRecommendations(q);
+          }
+          setIsGenerating(false);
+        }).catch(() => {
+          setIsGenerating(false);
+        });
+      }
+    }, 200);
+  };
       const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
       const { products: dbProducts, dbCount } = await hybridProductSearch({
