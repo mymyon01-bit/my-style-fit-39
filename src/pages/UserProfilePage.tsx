@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck } from "lucide-react";
+import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { AuthGate } from "@/components/AuthGate";
+import { toast } from "sonner";
 
 interface UserProfileData {
   user_id: string;
@@ -12,6 +13,7 @@ interface UserProfileData {
   avatar_url: string | null;
   bio: string | null;
   hashtags: string[] | null;
+  is_private: boolean | null;
 }
 
 interface OOTDPost {
@@ -38,8 +40,10 @@ const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [inCircle, setInCircle] = useState(false);
   const [circleCount, setCircleCount] = useState(0);
-  const [addedByCount, setAddedByCount] = useState(0);
+  const [rippleCount, setRippleCount] = useState(0);
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [postCount, setPostCount] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -47,12 +51,13 @@ const UserProfilePage = () => {
     loadPosts();
     loadCircleInfo();
     loadDailyWins();
+    loadBlockStatus();
   }, [userId]);
 
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, bio, hashtags")
+      .select("user_id, display_name, avatar_url, bio, hashtags, is_private")
       .eq("user_id", userId!)
       .maybeSingle();
     setProfile(data as UserProfileData | null);
@@ -66,26 +71,20 @@ const UserProfilePage = () => {
       .eq("user_id", userId!)
       .order("created_at", { ascending: false })
       .limit(30);
-    setPosts((data as OOTDPost[]) || []);
+    const fetched = (data as OOTDPost[]) || [];
+    setPosts(fetched);
+    setPostCount(fetched.length);
     setLoading(false);
   };
 
   const loadCircleInfo = async () => {
-    // How many people this user follows
-    const { count: following } = await supabase
-      .from("circles")
-      .select("id", { count: "exact", head: true })
-      .eq("follower_id", userId!);
+    const [{ count: following }, { count: followers }] = await Promise.all([
+      supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", userId!),
+      supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", userId!),
+    ]);
     setCircleCount(following || 0);
+    setRippleCount(followers || 0);
 
-    // How many follow this user
-    const { count: followers } = await supabase
-      .from("circles")
-      .select("id", { count: "exact", head: true })
-      .eq("following_id", userId!);
-    setAddedByCount(followers || 0);
-
-    // Check if current user is in circle
     if (user && user.id !== userId) {
       const { data } = await supabase
         .from("circles")
@@ -107,19 +106,50 @@ const UserProfilePage = () => {
     setDailyWins((data as DailyWin[]) || []);
   };
 
+  const loadBlockStatus = async () => {
+    if (!user || user.id === userId) return;
+    const { data } = await supabase
+      .from("blocked_users")
+      .select("id")
+      .eq("blocker_id", user.id)
+      .eq("blocked_id", userId!)
+      .maybeSingle();
+    setIsBlocked(!!data);
+  };
+
   const toggleCircle = async () => {
     if (!user || user.id === userId) return;
     if (inCircle) {
       await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
       setInCircle(false);
-      setAddedByCount(prev => Math.max(0, prev - 1));
+      setRippleCount(prev => Math.max(0, prev - 1));
     } else {
       await supabase.from("circles").insert({ follower_id: user.id, following_id: userId! });
       setInCircle(true);
-      setAddedByCount(prev => prev + 1);
+      setRippleCount(prev => prev + 1);
     }
   };
 
+  const toggleBlock = async () => {
+    if (!user || user.id === userId) return;
+    if (isBlocked) {
+      await supabase.from("blocked_users").delete().eq("blocker_id", user.id).eq("blocked_id", userId!);
+      setIsBlocked(false);
+      toast.success("User unblocked");
+    } else {
+      await supabase.from("blocked_users").insert({ blocker_id: user.id, blocked_id: userId! });
+      setIsBlocked(true);
+      // Also remove from circle
+      if (inCircle) {
+        await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
+        setInCircle(false);
+        setRippleCount(prev => Math.max(0, prev - 1));
+      }
+      toast.success("User blocked");
+    }
+  };
+
+  const isPrivate = profile?.is_private && user?.id !== userId && !inCircle;
   const styleTags = [...new Set(posts.flatMap(p => p.style_tags || []))].slice(0, 6);
   const hashtags = profile?.hashtags || [];
 
@@ -149,40 +179,52 @@ const UserProfilePage = () => {
                 <h2 className="font-display text-base font-semibold text-foreground/90">
                   {profile.display_name || "Anonymous"}
                 </h2>
-                {dailyWins.length > 0 && (
-                  <Crown className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                )}
+                {dailyWins.length > 0 && <Crown className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
+                {profile.is_private && <Lock className="h-3 w-3 text-foreground/30" />}
               </div>
               {profile.bio && (
                 <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2">{profile.bio}</p>
               )}
 
-              {/* Circle stats */}
+              {/* Stats: Posts, Circle, Ripple */}
               <div className="flex items-center gap-4 mt-2">
                 <span className="text-[10px] text-foreground/50">
-                  <span className="font-semibold text-foreground/70">{circleCount}</span> in circle
+                  <span className="font-semibold text-foreground/70">{postCount}</span> posts
                 </span>
                 <span className="text-[10px] text-foreground/50">
-                  <span className="font-semibold text-foreground/70">{addedByCount}</span> added by
+                  <span className="font-semibold text-foreground/70">{circleCount}</span> circle
                 </span>
-                <span className="text-[10px] text-foreground/40">{posts.length} posts</span>
+                <span className="text-[10px] text-foreground/50">
+                  <span className="font-semibold text-foreground/70">{rippleCount}</span> ripple
+                </span>
               </div>
 
-              {/* Circle button */}
+              {/* Actions */}
               {user && user.id !== userId && (
-                <AuthGate action="join circle">
+                <div className="flex items-center gap-2 mt-2">
+                  <AuthGate action="join circle">
+                    <button
+                      onClick={toggleCircle}
+                      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold transition-all ${
+                        inCircle
+                          ? "bg-accent/10 text-accent/70 border border-accent/20"
+                          : "bg-foreground/[0.06] text-foreground/60 hover:bg-accent/10 hover:text-accent/70"
+                      }`}
+                    >
+                      {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                      {inCircle ? "IN CIRCLE" : "JOIN CIRCLE"}
+                    </button>
+                  </AuthGate>
                   <button
-                    onClick={toggleCircle}
-                    className={`mt-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold transition-all ${
-                      inCircle
-                        ? "bg-accent/10 text-accent/70 border border-accent/20"
-                        : "bg-foreground/[0.06] text-foreground/60 hover:bg-accent/10 hover:text-accent/70"
+                    onClick={toggleBlock}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-medium transition-all ${
+                      isBlocked ? "bg-destructive/10 text-destructive/60 border border-destructive/20" : "text-foreground/30 hover:text-foreground/50"
                     }`}
                   >
-                    {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                    {inCircle ? "IN CIRCLE" : "ADD TO CIRCLE"}
+                    <ShieldOff className="h-3 w-3" />
+                    {isBlocked ? "BLOCKED" : "BLOCK"}
                   </button>
-                </AuthGate>
+                </div>
               )}
             </div>
           </div>
@@ -209,10 +251,7 @@ const UserProfilePage = () => {
         {dailyWins.length > 0 && (
           <div className="mb-6 flex items-center gap-2 flex-wrap">
             {dailyWins.map(win => (
-              <span
-                key={win.award_date}
-                className="flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 text-[9px] font-semibold text-yellow-400/80"
-              >
+              <span key={win.award_date} className="flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 text-[9px] font-semibold text-yellow-400/80">
                 <Crown className="h-2.5 w-2.5" />
                 {win.title} · {win.award_date}
               </span>
@@ -220,48 +259,53 @@ const UserProfilePage = () => {
           </div>
         )}
 
-        {/* Style identity */}
-        {styleTags.length > 0 && (
-          <div className="mb-6">
-            <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/40 uppercase mb-2">Style Identity</p>
-            <div className="flex flex-wrap gap-1.5">
-              {styleTags.map(tag => (
-                <span key={tag} className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent/70">
-                  {tag}
-                </span>
-              ))}
-            </div>
+        {/* Private profile gate */}
+        {isPrivate ? (
+          <div className="py-20 text-center space-y-4">
+            <Lock className="h-8 w-8 text-foreground/20 mx-auto" />
+            <p className="text-[13px] text-foreground/50">This account is private</p>
+            <p className="text-[10px] text-foreground/30">Join their circle to see posts</p>
           </div>
-        )}
-
-        <div className="h-px bg-border/20 mb-6" />
-
-        {/* Posts grid */}
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
-          </div>
-        ) : posts.length === 0 ? (
-          <p className="text-center text-[12px] text-foreground/40 py-16">No outfits posted yet</p>
         ) : (
-          <div className="columns-2 gap-3 md:columns-3">
-            {posts.map((post, i) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="mb-3 break-inside-avoid"
-              >
-                <div className="overflow-hidden rounded-xl">
-                  <img src={post.image_url} alt={post.caption || ""} className="w-full object-cover" loading="lazy" />
+          <>
+            {/* Style identity */}
+            {styleTags.length > 0 && (
+              <div className="mb-6">
+                <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/40 uppercase mb-2">Style Identity</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {styleTags.map(tag => (
+                    <span key={tag} className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent/70">{tag}</span>
+                  ))}
                 </div>
-                {post.caption && (
-                  <p className="mt-1.5 text-[10px] text-foreground/50 line-clamp-2 px-0.5">{post.caption}</p>
-                )}
-              </motion.div>
-            ))}
-          </div>
+              </div>
+            )}
+
+            <div className="h-px bg-border/20 mb-6" />
+
+            {/* Posts grid */}
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
+              </div>
+            ) : posts.length === 0 ? (
+              <p className="text-center text-[12px] text-foreground/40 py-16">No outfits posted yet</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
+                {posts.map((post, i) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                  >
+                    <div className="overflow-hidden rounded-lg aspect-[3/4]">
+                      <img src={post.image_url} alt={post.caption || ""} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

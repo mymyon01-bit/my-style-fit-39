@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_users: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       body_profiles: {
         Row: {
           body_landmarks: Json | null
@@ -118,6 +139,67 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_reports: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          reporter_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reporter_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reporter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_comments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_recommendations: {
         Row: {
@@ -252,6 +334,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          parent_id: string | null
           post_id: string
           user_id: string
         }
@@ -259,6 +342,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           post_id: string
           user_id: string
         }
@@ -266,10 +350,18 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          parent_id?: string | null
           post_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ootd_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ootd_comments_post_id_fkey"
             columns: ["post_id"]
@@ -622,6 +714,7 @@ export type Database = {
           gender_preference: string | null
           hashtags: string[] | null
           id: string
+          is_private: boolean | null
           language: string | null
           location: string | null
           onboarded: boolean | null
@@ -640,6 +733,7 @@ export type Database = {
           gender_preference?: string | null
           hashtags?: string[] | null
           id?: string
+          is_private?: boolean | null
           language?: string | null
           location?: string | null
           onboarded?: boolean | null
@@ -658,6 +752,7 @@ export type Database = {
           gender_preference?: string | null
           hashtags?: string[] | null
           id?: string
+          is_private?: boolean | null
           language?: string | null
           location?: string | null
           onboarded?: boolean | null
