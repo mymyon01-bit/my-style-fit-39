@@ -1136,7 +1136,7 @@ const DiscoverPage = () => {
     return [...new Set(expanded)].slice(0, 4);
   }
 
-  // Debounced search submit — DB-first instant display + ALWAYS external fetch
+  // Debounced search submit — strict relevance filtering pipeline
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
@@ -1147,87 +1147,83 @@ const DiscoverPage = () => {
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(async () => {
-      // Don't clear results yet — show old results while loading
       setIsGenerating(true);
       setHasGenerated(true);
+      setRecommendations([]); // Clear old results for search — don't show stale unrelated items
       lastPromptRef.current = q;
 
-      // Merge user style profile into search for better results
-      const profileStyles = userStyleProfile?.preferred_styles || [];
-      const searchStyles = selectedStyles.length > 0 ? selectedStyles : profileStyles.slice(0, 2);
+      // Step 1: Parse query into structured intent (instant, no network)
+      const intent = parseQueryIntent(q);
+      console.log("Search intent:", intent);
 
-      // Expand vague queries into concrete product searches
-      const expandedQueries = expandSearchQuery(q);
+      // Step 2: DB search with intent-derived filters
+      const categoryMap: Record<string, string> = {
+        TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
+      };
+      const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
-      // Step 1: Parallel — AI intent + quick DB search
-      const [intentResult, quickDbResult] = await Promise.all([
-        interpretSearchIntent(q),
-        hybridSearchWithFallback(
-          {
-            query: q,
-            styles: searchStyles.length > 0 ? searchStyles : undefined,
-            fit: selectedFit || userStyleProfile?.preferred_fit || undefined,
-            limit: 18,
-            expandExternal: false,
-            randomize: true, // Always randomize DB results
-          },
-          { styles: searchStyles, fit: selectedFit || userStyleProfile?.preferred_fit },
-        ),
-      ]);
+      const { products: dbProducts, dbCount } = await hybridProductSearch({
+        query: q,
+        category: dbCategory,
+        styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+        fit: selectedFit || undefined,
+        limit: 30, // Fetch more to filter strictly
+        expandExternal: false,
+        randomize: false, // Don't randomize — we'll sort by relevance
+      });
 
-      const { queries: aiQueries, style_tags: aiStyles } = intentResult;
-      const mergedStyles = [...new Set([...searchStyles, ...aiStyles])];
+      // Step 3: Apply strict relevance filter to DB results
+      const relevantDb = filterByRelevance(dbProducts, intent);
+      const diverseDb = enforceClientDiversity(relevantDb, new Set());
 
-      // Step 2: Show DB results immediately (scored + shuffled)
-      if (quickDbResult.products.length > 0) {
-        const scored = quickDbResult.products
-          .map(p => ({ ...p, _freeScore: freeScoreProduct(p, q, userStyleProfile, feedbackMap) }))
-          .sort((a, b) => (b as any)._freeScore - (a as any)._freeScore);
-        const diverse = enforceClientDiversity(scored, new Set());
-        diverse.forEach(p => sessionSeenIds.add(p.id));
-        setRecommendations(diverse);
-        setDbOffset(diverse.length);
-        setHasMoreInDB(quickDbResult.dbCount >= 18);
+      if (diverseDb.length > 0) {
+        diverseDb.forEach(p => sessionSeenIds.add(p.id));
+        setRecommendations(diverseDb);
+        setDbOffset(diverseDb.length);
+        setHasMoreInDB(dbCount >= 30);
         setIsGenerating(false);
       }
 
-      // Step 3: ALWAYS run external search in background (core fix)
-      // Combine AI-expanded queries + vague-expanded queries
-      const allSearchQueries = [...new Set([...expandedQueries, ...aiQueries])].slice(0, 5);
-      const bgQueries = allSearchQueries.filter(aq => aq.toLowerCase() !== q.toLowerCase());
+      // Step 4: ALWAYS run external search for fresh results
+      const expandedQueries = expandSearchQuery(q);
+      const searchQueries = [...new Set([q, ...expandedQueries])].slice(0, 3);
 
-      // Fire external searches — these will fetch new products AND cache them to DB
       Promise.all(
-        (bgQueries.length > 0 ? bgQueries : [q]).slice(0, 4).map(aq =>
+        searchQueries.map(sq =>
           hybridProductSearch({
-            query: aq,
-            styles: mergedStyles.length > 0 ? mergedStyles : undefined,
+            query: sq,
+            category: dbCategory,
+            styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
             fit: selectedFit || undefined,
-            limit: 10,
+            limit: 12,
             excludeIds: Array.from(sessionSeenIds),
-            expandExternal: true, // ALWAYS expand externally
-            randomize: true,
+            expandExternal: true,
+            randomize: false,
           })
         )
       ).then(results => {
         const allFresh = results.flatMap(r => r.products);
-        if (allFresh.length > 0) {
-          const freshDiverse = enforceClientDiversity(allFresh, sessionSeenIds);
+        // Apply same strict relevance filter to external results
+        const relevantFresh = filterByRelevance(allFresh, intent);
+        const freshDiverse = enforceClientDiversity(relevantFresh, sessionSeenIds);
+
+        if (freshDiverse.length > 0) {
           freshDiverse.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(prev => {
             const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set()).slice(0, 30);
             return merged;
           });
         }
-        // If we had zero DB results and zero external, fall back to AI
-        if (quickDbResult.products.length === 0 && allFresh.length === 0) {
+
+        // If total results still zero, try AI as last resort
+        if (diverseDb.length === 0 && freshDiverse.length === 0) {
           generateRecommendations(q);
         }
         setIsGenerating(false);
       }).catch(() => {
         setIsGenerating(false);
       });
-    }, 250);
+    }, 200);
   };
 
   const handleFeedback = useCallback(async (itemId: string, type: "like" | "dislike") => {
