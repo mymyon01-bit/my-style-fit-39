@@ -296,11 +296,17 @@ const ProfilePage = () => {
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">{t("style").toUpperCase()}</p>
-            <button onClick={() => navigate("/onboarding")} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">
-              {styleProfile ? "EDIT" : "SET UP"}
+            <button onClick={() => setEditingStyle(!editingStyle)} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">
+              {editingStyle ? "CLOSE" : styleProfile ? "EDIT" : "SET UP"}
             </button>
           </div>
-          {styleProfile ? (
+          {editingStyle ? (
+            <StylePreferenceEditor
+              initial={styleProfile}
+              onSave={() => { setEditingStyle(false); loadProfileData(); }}
+              onClose={() => setEditingStyle(false)}
+            />
+          ) : styleProfile ? (
             <div className="space-y-3">
               {styleProfile.preferred_styles?.length > 0 && (
                 <div>
@@ -334,7 +340,7 @@ const ProfilePage = () => {
           ) : (
             <div className="space-y-2">
               <p className="text-[12px] text-foreground/40">{t("notSet")}</p>
-              <button onClick={() => navigate("/onboarding")} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("completeProfile")}</button>
+              <button onClick={() => setEditingStyle(true)} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("completeProfile")}</button>
             </div>
           )}
         </div>
@@ -377,14 +383,39 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
+        {/* My OOTDs */}
+        {myOotds.length > 0 && (
+          <>
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/50">MY OOTDS</p>
+                <button onClick={() => navigate("/ootd")} className="text-[9px] font-medium text-accent/50 hover:text-accent/70">VIEW ALL</button>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {myOotds.map(ootd => (
+                  <div key={ootd.id} className="relative aspect-square rounded-lg overflow-hidden bg-foreground/[0.04]">
+                    <img src={ootd.image_url} alt={ootd.caption || ""} className="h-full w-full object-cover" loading="lazy" />
+                    {(ootd.star_count || 0) > 0 && (
+                      <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
+                        <Star className="h-2.5 w-2.5 text-accent/70" />
+                        <span className="text-[8px] text-foreground/70">{ootd.star_count}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="h-px bg-accent/[0.12]" />
+          </>
+        )}
+
         {/* Links */}
         <div className="space-y-1">
           {[
             { icon: Crown, label: "Subscription", action: () => navigate("/subscription") },
             { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
-            { icon: Palette, label: t("styleSettings"), action: () => navigate("/onboarding") },
             { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
-            { icon: Camera, label: "My OOTDs", action: () => navigate("/ootd") },
+            { icon: Camera, label: "Post OOTD", action: () => navigate("/ootd") },
           ].map(section => (
             <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
               <section.icon className="h-[18px] w-[18px] text-foreground/40" strokeWidth={1.5} />
