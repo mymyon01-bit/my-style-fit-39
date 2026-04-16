@@ -918,22 +918,25 @@ const DiscoverPage = () => {
             ) : hasGenerated ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Sparkles className="h-6 w-6 text-accent/25 mb-4" />
-                <p className="text-[12px] text-foreground/35">{t("noResults")}</p>
-                <p className="text-[10px] text-foreground/20 mt-1">{t("tryDifferentSearch")}</p>
+                <p className="text-[12px] text-foreground/35">No results found</p>
+                <p className="text-[10px] text-foreground/20 mt-1">Try a different search or style</p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Sparkles className="h-8 w-8 text-accent/15 mb-4" />
-                <p className="text-[12px] text-foreground/30">{t("discoverPrompt")}</p>
-                <p className="text-[10px] text-foreground/20 mt-1">{t("describeMood")}</p>
+                <p className="text-[12px] text-foreground/30">{t("describeStyle")}</p>
+                <p className="text-[10px] text-foreground/20 mt-1">Search or browse to discover items</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Auth hint */}
-      <AuthGate open={showAuthHint} onClose={() => setShowAuthHint(false)} />
+      {showAuthHint && (
+        <AuthGate action="save items">
+          <div />
+        </AuthGate>
+      )}
     </>
   );
 };
