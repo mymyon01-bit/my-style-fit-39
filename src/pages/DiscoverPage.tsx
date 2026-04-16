@@ -350,52 +350,138 @@ async function hybridSearchWithFallback(
   }
 }
 
-// ─── Client-side diversity enforcement ───
+// ─── Advanced dedup: image URL, source URL, and fuzzy title matching ───
+function normalizeTitle(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30);
+}
+
+function titlesAreSimilar(a: string, b: string): boolean {
+  const na = normalizeTitle(a);
+  const nb = normalizeTitle(b);
+  if (na === nb) return true;
+  // Check if one contains the other (>90% overlap)
+  if (na.length > 5 && nb.length > 5) {
+    if (na.includes(nb) || nb.includes(na)) return true;
+    // Simple character overlap ratio
+    const shorter = na.length < nb.length ? na : nb;
+    const longer = na.length >= nb.length ? na : nb;
+    let matches = 0;
+    for (let i = 0; i < shorter.length; i++) {
+      if (longer.includes(shorter[i])) matches++;
+    }
+    if (matches / longer.length > 0.9) return true;
+  }
+  return false;
+}
+
+// Session-level brand exposure tracking (how many times each brand shown)
+const sessionBrandExposure: Record<string, number> = {};
+const sessionSeenImages = new Set<string>();
+const sessionSeenUrls = new Set<string>();
+
+// ─── Client-side diversity enforcement (upgraded) ───
 function enforceClientDiversity(items: AIRecommendation[], seenIds: Set<string>): AIRecommendation[] {
-  // Remove already seen
+  // 1. Remove already seen by ID
   let result = items.filter(r => !seenIds.has(r.id));
 
-  // Dedup by name
-  const nameKeys = new Set<string>();
+  // 2. Dedup by image URL
+  const imageKeys = new Set<string>(sessionSeenImages);
   result = result.filter(r => {
-    const key = r.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
-    if (nameKeys.has(key)) return false;
-    nameKeys.add(key);
+    if (!r.image_url) return false;
+    const imgKey = r.image_url.split("?")[0].toLowerCase(); // strip query params
+    if (imageKeys.has(imgKey)) return false;
+    imageKeys.add(imgKey);
     return true;
   });
 
-  // Brand diversity: max 3 per brand
-  const brandCount: Record<string, number> = {};
+  // 3. Dedup by source URL
+  const urlKeys = new Set<string>(sessionSeenUrls);
   result = result.filter(r => {
-    const b = (r.brand || "").toLowerCase();
-    brandCount[b] = (brandCount[b] || 0) + 1;
-    return brandCount[b] <= 3;
+    if (!r.source_url) return true;
+    const urlKey = r.source_url.split("?")[0].toLowerCase();
+    if (urlKeys.has(urlKey)) return false;
+    urlKeys.add(urlKey);
+    return true;
   });
 
-  // Category interleaving for variety
-  if (result.length > 8) {
+  // 4. Dedup by fuzzy title similarity (>90% match)
+  const keptTitles: string[] = [];
+  result = result.filter(r => {
+    if (keptTitles.some(t => titlesAreSimilar(r.name, t))) return false;
+    keptTitles.push(r.name);
+    return true;
+  });
+
+  // 5. Brand diversity: max 2 per brand (reduced from 3)
+  // Penalize brands already over-exposed in session
+  const brandCount: Record<string, number> = {};
+  result = result.filter(r => {
+    const b = (r.brand || "unknown").toLowerCase();
+    brandCount[b] = (brandCount[b] || 0) + 1;
+    const sessionCount = sessionBrandExposure[b] || 0;
+    // Allow max 2 per result set, and reduce if already over-exposed in session
+    const maxAllowed = sessionCount > 4 ? 1 : 2;
+    return brandCount[b] <= maxAllowed;
+  });
+
+  // 6. Style diversity: max 4 items with identical style_tags combination
+  const styleComboCount: Record<string, number> = {};
+  result = result.filter(r => {
+    const combo = (r.style_tags || []).sort().join(",") || "none";
+    styleComboCount[combo] = (styleComboCount[combo] || 0) + 1;
+    return styleComboCount[combo] <= 4;
+  });
+
+  // 7. Category interleaving (round-robin across categories)
+  if (result.length > 6) {
+    const classified = result.map(r => ({ item: r, cat: classifyProduct(r) || "other" }));
     const byCategory: Record<string, AIRecommendation[]> = {};
-    result.forEach(r => {
-      const cat = r.category || "other";
+    classified.forEach(({ item, cat }) => {
       if (!byCategory[cat]) byCategory[cat] = [];
-      byCategory[cat].push(r);
+      byCategory[cat].push(item);
     });
 
-    const categories = Object.keys(byCategory);
+    const categories = Object.keys(byCategory).sort((a, b) =>
+      (byCategory[b]?.length || 0) - (byCategory[a]?.length || 0)
+    );
+
     if (categories.length > 1) {
       const interleaved: AIRecommendation[] = [];
       let idx = 0;
-      while (interleaved.length < result.length) {
+      const maxLen = result.length;
+      while (interleaved.length < maxLen) {
         const cat = categories[idx % categories.length];
-        const item = byCategory[cat].shift();
+        const item = byCategory[cat]?.shift();
         if (item) interleaved.push(item);
         idx++;
-        // Safety: break if all categories empty
-        if (categories.every(c => byCategory[c].length === 0)) break;
+        if (categories.every(c => !byCategory[c]?.length)) break;
       }
       result = interleaved;
     }
   }
+
+  // 8. Final shuffle within quality tiers (top half stays roughly on top, but shuffled)
+  if (result.length > 4) {
+    const midpoint = Math.ceil(result.length / 2);
+    const topHalf = result.slice(0, midpoint);
+    const bottomHalf = result.slice(midpoint);
+    // Shuffle each half
+    for (const half of [topHalf, bottomHalf]) {
+      for (let i = half.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [half[i], half[j]] = [half[j], half[i]];
+      }
+    }
+    result = [...topHalf, ...bottomHalf];
+  }
+
+  // Track what we're showing in session memory
+  result.forEach(r => {
+    const b = (r.brand || "unknown").toLowerCase();
+    sessionBrandExposure[b] = (sessionBrandExposure[b] || 0) + 1;
+    if (r.image_url) sessionSeenImages.add(r.image_url.split("?")[0].toLowerCase());
+    if (r.source_url) sessionSeenUrls.add(r.source_url.split("?")[0].toLowerCase());
+  });
 
   return result;
 }
