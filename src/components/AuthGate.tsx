@@ -23,7 +23,7 @@ export const AuthGate = forwardRef<HTMLDivElement, AuthGateProps>(({ children, a
 
   return (
     <>
-      <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowPrompt(true); }} className="cursor-pointer">
+      <div ref={ref} onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowPrompt(true); }} className="cursor-pointer">
         {children}
       </div>
       <AnimatePresence>
@@ -37,7 +37,9 @@ export const AuthGate = forwardRef<HTMLDivElement, AuthGateProps>(({ children, a
       </AnimatePresence>
     </>
   );
-};
+});
+
+AuthGate.displayName = "AuthGate";
 
 /**
  * Full-screen overlay prompt to sign up
