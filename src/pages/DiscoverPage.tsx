@@ -624,20 +624,45 @@ const DiscoverPage = () => {
   const handleQuizComplete = async (answers: StyleQuizAnswers) => {
     setQuizAnswers(answers);
     setShowQuiz(false);
-    const prompt = buildPromptFromQuiz(answers);
-    generateRecommendations(prompt, answers);
+    
+    // Build synthetic style profile from quiz for immediate use
+    const syntheticProfile = {
+      preferred_styles: answers.preferredStyles,
+      disliked_styles: answers.dislikedStyles,
+      preferred_fit: answers.fitPreference,
+      budget: answers.budgetRange,
+      occasions: answers.occasionPreference,
+      favorite_brands: answers.brandFamiliarity.filter(b => b !== "None"),
+    };
+    setUserStyleProfile(syntheticProfile);
+
+    // Use DB-first with quiz preferences before falling back to AI
+    const styleQueries = buildStyleSearchQueries(syntheticProfile);
+    const { products } = await hybridSearchWithFallback(
+      { query: styleQueries[0], styles: answers.preferredStyles.slice(0, 3), fit: answers.fitPreference || undefined, limit: 18, randomize: false },
+      { styles: answers.preferredStyles, fit: answers.fitPreference || undefined },
+    );
+
+    if (products.length >= 4) {
+      const scored = products
+        .map(p => ({ ...p, _freeScore: freeScoreProduct(p, styleQueries[0], syntheticProfile, feedbackMap) }))
+        .sort((a, b) => b._freeScore - a._freeScore);
+      const diverse = enforceClientDiversity(scored, new Set());
+      diverse.forEach(p => sessionSeenIds.add(p.id));
+      setRecommendations(diverse);
+      setHasGenerated(true);
+    } else {
+      // Fallback to AI
+      const prompt = buildPromptFromQuiz(answers);
+      generateRecommendations(prompt, answers);
+    }
 
     // Persist quiz answers to style_profiles if logged in
     if (user) {
       try {
         await supabase.from("style_profiles").upsert({
           user_id: user.id,
-          preferred_styles: answers.preferredStyles,
-          disliked_styles: answers.dislikedStyles,
-          preferred_fit: answers.fitPreference || null,
-          budget: answers.budgetRange || null,
-          occasions: answers.occasionPreference,
-          favorite_brands: answers.brandFamiliarity.filter(b => b !== "None"),
+          ...syntheticProfile,
         } as any, { onConflict: "user_id" });
       } catch (err) {
         console.error("Failed to save quiz answers:", err);
