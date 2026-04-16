@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { TransitionProvider } from "@/lib/transition";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
+import DesktopNav from "@/components/DesktopNav";
 import SplashScreen from "@/components/SplashScreen";
 import { Loader2 } from "lucide-react";
 
@@ -63,41 +64,47 @@ const AppRoutes = () => {
     );
   }
 
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
+
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Auth */}
-        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+    <>
+      {!isAdmin && <DesktopNav />}
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Auth */}
+          <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
 
-        {/* Admin */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminOverview />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="categories" element={<AdminCategories />} />
-          <Route path="ootd" element={<AdminOOTD />} />
-          <Route path="content" element={<AdminContent />} />
-          <Route path="settings" element={<AdminSettings />} />
-        </Route>
+          {/* Admin */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="ootd" element={<AdminOOTD />} />
+            <Route path="content" element={<AdminContent />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
 
-        {/* Public routes */}
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/install" element={<InstallPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/discover" element={<DiscoverPage />} />
-          <Route path="/fit" element={<FitPage />} />
-          <Route path="/fit/:productId" element={<FitPage />} />
-          <Route path="/ootd" element={<OOTDPage />} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        </Route>
+          {/* Public routes */}
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/install" element={<InstallPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/discover" element={<DiscoverPage />} />
+            <Route path="/fit" element={<FitPage />} />
+            <Route path="/fit/:productId" element={<FitPage />} />
+            <Route path="/ootd" element={<OOTDPage />} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 };
 
