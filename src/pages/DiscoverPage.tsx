@@ -278,7 +278,22 @@ const DiscoverPage = () => {
         return;
       }
 
-      // Fall back to AI
+      // Try open APIs before AI
+      const apiResults = await fetchFromOpenAPIs("", category);
+      if (apiResults.length >= 4) {
+        const merged = [...dbResults, ...apiResults].filter((item, idx, arr) =>
+          arr.findIndex(x => x.id === item.id) === idx
+        ).slice(0, 16);
+        setRecommendations(merged);
+        setDbOffset(merged.length);
+        setHasMoreInDB(false);
+        resultCache.set(cacheKey, { data: merged, ts: Date.now() });
+        setIsGenerating(false);
+        inflightRef.current = null;
+        return;
+      }
+
+      // Last resort: AI
       const sub = subcategory ? ` — ${subcategory}` : "";
       await generateRecommendations(`Show me ${category}${sub} items`, undefined, category);
     } catch {
