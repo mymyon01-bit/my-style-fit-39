@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronDown, Sparkles, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Sparkles, Loader2, User, RefreshCw } from "lucide-react";
 import { BodyMeasurements, ConfidenceLevel, estimateBodyFromProfile, type BodyTypeKey, type BodyHint } from "@/lib/fitEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -40,8 +40,10 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [interpreting, setInterpreting] = useState(false);
   const [interpreted, setInterpreted] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [generatingAvatar, setGeneratingAvatar] = useState(false);
+  const [gender, setGender] = useState<string | null>(null);
 
-  // Load saved profile data
   useEffect(() => {
     if (user) loadSavedProfile();
   }, [user]);
@@ -52,6 +54,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
     if (data) {
       if (data.height_cm) setHeight(data.height_cm);
       if (data.weight_kg) setWeight(data.weight_kg);
+      if ((data as any).body_avatar_url) setAvatarUrl((data as any).body_avatar_url);
       if (data.silhouette_type) {
         const typeMap: Record<string, BodyTypeKey> = {
           "slim": "slim", "lean": "slim", "thin": "slim",
@@ -61,6 +64,39 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
         };
         setBodyType(typeMap[data.silhouette_type] || "regular");
       }
+    }
+    // Load gender from profile
+    const { data: profile } = await supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle();
+    if (profile?.gender_preference) setGender(profile.gender_preference);
+  };
+
+  const generateAvatar = async (force = false) => {
+    if (!user) { toast.error("Sign in to generate avatar"); return; }
+    if (avatarUrl && !force) return; // Already have one
+    setGeneratingAvatar(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-avatar", {
+        body: {
+          heightCm: height,
+          bodyType,
+          silhouette: bodyType,
+          hints: selectedHints,
+          gender: gender,
+          forceRegenerate: force,
+        },
+      });
+      if (error) throw error;
+      if (data?.avatarUrl) {
+        setAvatarUrl(data.avatarUrl);
+        toast.success(data.cached ? "Avatar loaded" : "Avatar generated");
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    } catch (e: any) {
+      toast.error("Avatar generation failed");
+      console.error("Avatar error:", e);
+    } finally {
+      setGeneratingAvatar(false);
     }
   };
 
