@@ -224,11 +224,10 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!baseUrl || !serviceKey) return [];
 
-    // 50s budget. Inner scraper takes ~30s per platform but runs platforms in 2-wide
-    // batches, so 5 platforms ≈ 45s worst case. The parent edge function has plenty
-    // of wall clock; what we MUST avoid is killing scraper before it returns anything.
+    // 25s budget. The scraper now runs all 5 platforms in parallel, each capped
+    // at 15s, so wall-clock is ~15-20s. Tight enough to leave room for fallback.
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 50000);
+    const timeout = setTimeout(() => controller.abort(), 25000);
 
     const res = await fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
       method: "POST",
@@ -238,8 +237,8 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
       },
       body: JSON.stringify({
         query: sanitizedQuery,
-        platforms: ["naver", "ssense", "farfetch", "asos", "ssg"],
-        limit: Math.min(limit, 15),
+        platforms: ["asos", "ssense", "farfetch", "naver", "ssg"],
+        limit: Math.min(limit, 20),
       }),
       signal: controller.signal,
     });
