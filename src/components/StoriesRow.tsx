@@ -31,6 +31,8 @@ interface Props {
   onUploadClick: () => void;
   onOpenStories: (userIndex: number, allUserStories: UserStories[]) => void;
   refreshKey?: number;
+  /** When true, only show stories from users the current user follows (their circle) + their own. */
+  circlesOnly?: boolean;
 }
 
 const SEEN_KEY = "wardrobe.seenStories";
@@ -43,7 +45,7 @@ const getSeen = (): Record<string, string> => {
   }
 };
 
-const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey }: Props) => {
+const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false }: Props) => {
   const { user } = useAuth();
   const [grouped, setGrouped] = useState<UserStories[]>([]);
   const [myProfile, setMyProfile] = useState<ProfileLite | null>(null);
@@ -51,18 +53,31 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey }: Props) => {
 
   useEffect(() => {
     load();
-  }, [user, refreshKey]);
+  }, [user, refreshKey, circlesOnly]);
 
   const load = async () => {
     setLoading(true);
     const nowIso = new Date().toISOString();
-    const { data: stories } = await supabase
+
+    // If circlesOnly, fetch the user's followings to filter
+    let allowedUserIds: string[] | null = null;
+    if (circlesOnly && user) {
+      const { data: follows } = await supabase
+        .from("circles")
+        .select("following_id")
+        .eq("follower_id", user.id);
+      allowedUserIds = [user.id, ...((follows || []).map((f: any) => f.following_id))];
+    }
+
+    let q = supabase
       .from("stories")
       .select("id, user_id, media_url, media_type, created_at, expires_at, caption")
       .or(`expires_at.gt.${nowIso},expires_at.is.null`)
       .eq("is_highlight", false)
       .order("created_at", { ascending: false })
       .limit(100);
+    if (allowedUserIds) q = q.in("user_id", allowedUserIds);
+    const { data: stories } = await q;
 
     const list = (stories || []) as Story[];
     const userIds = [...new Set(list.map((s) => s.user_id))];
