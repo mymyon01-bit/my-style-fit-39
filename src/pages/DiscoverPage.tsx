@@ -1772,7 +1772,7 @@ const DiscoverPage = () => {
             const lateProducts = results.flatMap(r => r.products);
             if (!lateProducts.length) return;
             const lateIntent = parseQueryIntent(q);
-            const lateRelevant = filterByRelevance(lateProducts, lateIntent);
+            const lateRelevant = filterByRelevance(lateProducts, lateIntent, MIN_RESULT_TARGET, userSignals);
             const lateDiverse = enforceClientDiversity(lateRelevant, new Set(Array.from(sessionSeenIds)));
             if (!lateDiverse.length) return;
             lateDiverse.forEach(p => sessionSeenIds.add(p.id));
@@ -1936,7 +1936,7 @@ const DiscoverPage = () => {
           randomize: false,
         });
 
-        const dbRelevant = filterByRelevance(dbQuickProducts, intent);
+        const dbRelevant = filterByRelevance(dbQuickProducts, intent, MIN_RESULT_TARGET, userSignals);
         collected = enforceClientDiversity(dbRelevant, new Set());
         console.log(`Stage 1 (DB quick): ${collected.length} results`);
 
@@ -1982,7 +1982,7 @@ const DiscoverPage = () => {
 
         externalPromise.then(results => {
           const externalProducts = results.flatMap(r => r.products);
-          const externalRelevant = filterByRelevance(externalProducts, intent);
+          const externalRelevant = filterByRelevance(externalProducts, intent, MIN_RESULT_TARGET, userSignals);
           const externalDiverse = enforceClientDiversity(externalRelevant, new Set([...collected.map(c => c.id)]));
           console.log(`Stage 2 (external fresh): ${externalDiverse.length} new results`);
 
@@ -2009,7 +2009,7 @@ const DiscoverPage = () => {
           try {
             const externalResults = await externalPromise;
             const allExternal = externalResults.flatMap(r => r.products);
-            const extRelevant = filterByRelevance(allExternal, intent);
+            const extRelevant = filterByRelevance(allExternal, intent, MIN_RESULT_TARGET, userSignals);
             const extDiverse = enforceClientDiversity(extRelevant, new Set());
 
             if (extDiverse.length > 0) {
