@@ -448,6 +448,25 @@ function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRe
   return balanced;
 }
 
+// ── STRICT relevance filter (no progressive fallback) — used for LATE merges
+// so weak items can't replace good initial DB results.
+function filterByRelevanceStrict(items: AIRecommendation[], intent: QueryIntent, signals?: UserSignals): AIRecommendation[] {
+  const scored = items
+    .map(item => ({ item, relevance: scoreRelevance(item, intent, signals) }))
+    .filter(s => s.relevance >= RELEVANCE_THRESHOLD)
+    .sort((a, b) => b.relevance - a.relevance);
+  return scored.map(s => s.item);
+}
+
+// ── Stable append-only merge: keeps existing order, appends new items only.
+// Never reorders or removes already-rendered items → no flicker.
+function appendUnique(prev: AIRecommendation[], incoming: AIRecommendation[], cap = 40): AIRecommendation[] {
+  const seen = new Set(prev.map(p => p.id));
+  const additions = incoming.filter(p => !seen.has(p.id));
+  if (additions.length === 0) return prev;
+  return [...prev, ...additions].slice(0, cap);
+}
+
 // ── Apply relevance filter with progressive fallback ──
 function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTarget = MIN_RESULT_TARGET, signals?: UserSignals): AIRecommendation[] {
   const scored = items.map(item => ({
