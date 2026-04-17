@@ -233,10 +233,10 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
                 <button
                   key={item}
                   onClick={() => handleSelect(item)}
-                  className="rounded-full px-6 py-3.5 text-[13px] font-light bg-accent/15 text-accent/90 ring-1 ring-accent/30 flex items-center gap-1.5"
+                  className="rounded-full px-6 py-3.5 text-[13px] font-light bg-accent text-accent-foreground ring-1 ring-accent shadow-[0_0_0_3px_hsl(var(--accent)/0.18)] flex items-center gap-1.5"
                 >
                   {item}
-                  <X className="h-3 w-3 opacity-60" />
+                  <X className="h-3 w-3 opacity-70" />
                 </button>
               ))}
             </div>
