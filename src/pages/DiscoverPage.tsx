@@ -72,6 +72,32 @@ function deduplicatedSearch(key: string, fn: () => Promise<any>): Promise<any> {
   return promise;
 }
 
+// ── Background search-discovery trigger ──
+// Fires the new ingestion engine. Cooled down per-query so a quick retype
+// doesn't spam Perplexity + Firecrawl.
+const _discoveryFired = new Map<string, number>();
+const DISCOVERY_COOLDOWN_MS = 5 * 60_000; // 5 minutes per query
+async function triggerSearchDiscovery(rawQuery: string): Promise<{ inserted: number; candidatesFound: number; usedPerplexity?: boolean } | null> {
+  const key = rawQuery.toLowerCase().trim();
+  if (!key) return null;
+  const last = _discoveryFired.get(key) || 0;
+  if (Date.now() - last < DISCOVERY_COOLDOWN_MS) {
+    console.info("[search] DISCOVERY_COOLDOWN_SKIP", { query: key });
+    return null;
+  }
+  _discoveryFired.set(key, Date.now());
+  try {
+    const { data, error } = await supabase.functions.invoke("search-discovery", {
+      body: { query: rawQuery, maxQueries: 6, maxCandidates: 18 },
+    });
+    if (error) throw error;
+    return data as any;
+  } catch (e) {
+    console.warn("[search-discovery] failed", e);
+    return null;
+  }
+}
+
 interface AIRecommendation {
   id: string;
   name: string;
