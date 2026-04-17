@@ -69,6 +69,14 @@ const OOTDPage = () => {
   const [savingEdit, setSavingEdit] = useState(false);
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  // Stories
+  const [storyUploadOpen, setStoryUploadOpen] = useState(false);
+  const [storiesRefreshKey, setStoriesRefreshKey] = useState(0);
+  const [viewerState, setViewerState] = useState<{ open: boolean; index: number; users: UserStories[] }>({
+    open: false,
+    index: 0,
+    users: [],
+  });
 
   useEffect(() => {
     loadPosts();
