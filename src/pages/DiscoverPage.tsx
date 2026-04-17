@@ -2463,7 +2463,12 @@ const DiscoverPage = () => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
+                {/* Search interpretation label (Step 3) — shown for non-scenario searches */}
+                {!activeScenario && searchExplanation && (
+                  <p className="text-[11px] tracking-[0.05em] text-foreground/55 italic">
+                    {searchExplanation}
+                  </p>
+                )}
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
                       {activeScenario ? activeScenario.label.toUpperCase() : activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
