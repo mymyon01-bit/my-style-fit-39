@@ -331,30 +331,30 @@ export default function OOTDPostDetail({
           )}
 
           {/* Interactions */}
-          <div className="flex items-center gap-4 py-1 border-y border-border/15">
+          <div className="flex items-center gap-4 py-2 border-y border-border/15">
             <AuthGate action="react">
-              <button onClick={() => onReaction(post.id, "like")} className={`flex items-center gap-1 transition-colors ${reaction === "like" ? "text-rose-400" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onReaction(post.id, "like")} className={`flex items-center gap-1 transition-colors ${reaction === "like" ? "text-rose-400" : "text-foreground/50 hover:text-foreground/80"}`}>
                 <Heart className={`h-4 w-4 ${reaction === "like" ? "fill-current" : ""}`} />
-                <span className="text-[10px]">{post.like_count || 0}</span>
+                <span className="text-[11px]">{post.like_count || 0}</span>
               </button>
             </AuthGate>
             <AuthGate action="react">
-              <button onClick={() => onReaction(post.id, "dislike")} className={`flex items-center gap-1 transition-colors ${reaction === "dislike" ? "text-blue-400" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onReaction(post.id, "dislike")} className={`flex items-center gap-1 transition-colors ${reaction === "dislike" ? "text-blue-400" : "text-foreground/50 hover:text-foreground/80"}`}>
                 <HeartOff className={`h-4 w-4 ${reaction === "dislike" ? "fill-current" : ""}`} />
-                <span className="text-[10px]">{post.dislike_count || 0}</span>
+                <span className="text-[11px]">{post.dislike_count || 0}</span>
               </button>
             </AuthGate>
-            <div className="flex items-center gap-1 text-foreground/40">
+            <div className="flex items-center gap-1 text-foreground/50">
               <MessageCircle className="h-4 w-4" />
-              <span className="text-[10px]">{comments.length}</span>
+              <span className="text-[11px]">{comments.length}</span>
             </div>
             <AuthGate action="save">
-              <button onClick={() => onSave(post.id)} className={`transition-colors ${isSaved ? "text-accent/70" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onSave(post.id)} className={`transition-colors ${isSaved ? "text-accent/80" : "text-foreground/50 hover:text-foreground/80"}`}>
                 {isSaved ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
               </button>
             </AuthGate>
             <AuthGate action="give stars">
-              <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/50 hover:text-foreground/80"}`}>
                 <Star className={`h-4 w-4 ${isStarred ? "fill-current" : ""}`} />
               </button>
             </AuthGate>
@@ -362,11 +362,11 @@ export default function OOTDPostDetail({
 
           {/* Threaded Comments */}
           <div className="space-y-3">
-            <p className="text-[9px] font-semibold tracking-[0.15em] text-foreground/40 uppercase">Comments</p>
+            <p className="text-[11px] font-semibold tracking-[0.15em] text-foreground/55 uppercase">Comments</p>
             {loadingComments ? (
               <Loader2 className="h-3 w-3 animate-spin text-foreground/25 mx-auto" />
             ) : parentComments.length === 0 ? (
-              <p className="text-[10px] text-foreground/25 text-center py-3">No comments yet</p>
+              <p className="text-[12px] text-foreground/35 text-center py-3">No comments yet</p>
             ) : (
               parentComments.map(c => {
                 const replies = getReplies(c.id);
