@@ -242,9 +242,10 @@ async function extractProducts(
   try {
     const extracted = result?.json?.products || result?.data?.json?.products || [];
 
-    // Pre-filter: must have title, price, safe image, valid product URL, and fashion-relevant title
-    const PRODUCT_KEYWORDS = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|top|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|purse|clutch|wallet|hat|cap|beanie|watch|belt|scarf|gloves?|socks?|tie|sunglasses|ring|necklace|bracelet|earring|bomber|parka|windbreaker|pullover|sweatshirt|chinos?|joggers?|leggings?|overalls?|jumpsuit|romper|blouse|tunic|camisole|tank|henley|oxford|flannel|denim|corduroy|knit|cashmere|leather|suede|canvas|cotton|wool|silk|linen|nylon|polyester)\b/i;
-    const NON_PRODUCT_KEYWORDS = /\b(lookbook|editorial|photoshoot|inspiration|outfit\s*of\s*the\s*day|ootd|how\s+to\s+wear|style\s+guide|fashion\s+week|runway|collection\s+overview|behind\s+the\s+scenes|interview|article|blog|news|magazine|trending\s+now)\b/i;
+    // RELAXED filter: just need a title, price, safe image URL, and a product link.
+    // Fashion-relevance is checked once via isFashionProduct (which already covers
+    // a wide vocabulary). The previous double-whitelist was rejecting valid items.
+    const NON_PRODUCT_KEYWORDS = /\b(lookbook|editorial|photoshoot|how\s+to\s+wear|style\s+guide|fashion\s+week|runway|behind\s+the\s+scenes)\b/i;
 
     const candidates = extracted.filter(
       (p: any) =>
@@ -254,11 +255,12 @@ async function extractProducts(
         p.price &&
         isImageUrlSafe(p.image_url) &&
         p.product_url?.startsWith("http") &&
-        PRODUCT_KEYWORDS.test(p.title) &&
         !NON_PRODUCT_KEYWORDS.test(p.title)
     );
 
-    // HEAD-validate images in parallel (discard failures)
+    // HEAD-validate images in parallel — but accept on failure (relaxed validation).
+    // validateImageHead now returns true on network errors so we don't discard
+    // every external result over a flaky probe.
     const validated = await Promise.all(
       candidates.slice(0, 12).map(async (p: any) => {
         const ok = await validateImageHead(p.image_url);
@@ -293,6 +295,79 @@ async function extractProducts(
     return products;
   } catch (e) {
     console.error(`[${platformId}] Scrape failed:`, e);
+    return [];
+  }
+}
+
+// ─── Firecrawl Web Search fallback ───
+// When platform scrapers fail or return too few items, hit Firecrawl Search
+// for a generic shopping query. Fast (~3s), no JS rendering. We treat results
+// as a "web" platform with medium trust.
+async function firecrawlSearchFallback(
+  query: string,
+  apiKey: string,
+  limit = 10
+): Promise<ScrapedProduct[]> {
+  const startedAt = Date.now();
+  console.log(`[firecrawl-search] START fallback for "${query}"`);
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(`${FIRECRAWL_V2}/search`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${query} buy shop product`,
+        limit: Math.min(limit, 15),
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.error(`[firecrawl-search] HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    const results: any[] = data?.data?.web || data?.web || data?.data || [];
+    const products: ScrapedProduct[] = [];
+    for (const r of results.slice(0, limit)) {
+      const url = r.url || r.link;
+      const title = (r.title || "").slice(0, 150);
+      if (!url || !title || !isFashionProduct(title)) continue;
+      // No image from search → skip (we still need a visual). Real ingestion
+      // will happen on next platform scrape; this fallback is best-effort only.
+      const img = r.image || r.thumbnail || r.metadata?.ogImage;
+      if (!isImageUrlSafe(img)) continue;
+      products.push({
+        external_id: `web-${hashString(url)}`,
+        name: title,
+        brand: r.metadata?.siteName || "",
+        price: "—",
+        category: mapCategory(title),
+        subcategory: "",
+        style_tags: inferStyleFromTitle(title),
+        color_tags: inferColorFromTitle(title),
+        fit: "regular",
+        image_url: img,
+        source_url: url,
+        store_name: r.metadata?.siteName || "Web",
+        reason: "Web search result",
+        platform: "web",
+        image_valid: true,
+        is_active: true,
+        source_type: "web_search",
+        source_trust_level: "low",
+      });
+    }
+    const elapsed = Date.now() - startedAt;
+    console.log(`[firecrawl-search] DONE in ${elapsed}ms — results=${results.length}, validated=${products.length}`);
+    return products;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[firecrawl-search] failed: ${msg}`);
     return [];
   }
 }
