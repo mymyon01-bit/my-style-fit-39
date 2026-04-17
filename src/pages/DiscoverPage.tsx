@@ -1694,11 +1694,21 @@ const DiscoverPage = () => {
       setHasGenerated(true);
       // Don't clear recommendations — keep previous results visible while loading
       setActiveScenario(null);
+      setSearchExplanation(null);
       lastPromptRef.current = q;
 
       // Step 1: Parse query into structured intent
       const intent = parseQueryIntent(q);
       const isScenarioQuery = intent.queryType === "scenario";
+
+      // Build user taste signals (Step 3 — blends likes / saves / preferred styles into ranking)
+      const userSignals: UserSignals = {
+        styleProfile: userStyleProfile,
+        feedbackMap,
+        savedIds,
+      };
+      // Show contextual explanation label
+      setSearchExplanation(buildSearchExplanation(intent, userSignals));
 
       // Step 2: AI-powered query expansion (Perplexity) with STRICT 1.5s soft timeout.
       // Local fallback always available — never block search on AI.
