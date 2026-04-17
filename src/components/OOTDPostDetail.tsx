@@ -276,8 +276,10 @@ export default function OOTDPostDetail({
           )}
         </div>
 
+        {/* Right column: details + comments + input */}
+        <div className="flex flex-col flex-1 md:h-[85vh] min-h-0">
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
           {/* Author */}
           <button
             onClick={() => { onClose(); navigate(`/user/${post.user_id}`); }}
