@@ -148,9 +148,9 @@ async function scrapePlatform(
   console.log(`[${platformId}] Scraping: ${searchUrl}`);
 
   try {
-    // 14s per platform — must fit inside the 18s budget the caller gives us.
+    // Firecrawl typically needs 15–25s per page. 30s is the realistic ceiling.
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 14000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     const response = await fetch(`${FIRECRAWL_V2}/scrape`, {
       method: "POST",
