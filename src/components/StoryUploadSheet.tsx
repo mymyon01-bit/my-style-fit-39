@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, Video } from "lucide-react";
+import { X, Camera, Loader2, Video, Globe2, Users, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
@@ -21,6 +21,7 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [caption, setCaption] = useState("");
+  const [audience, setAudience] = useState<"all" | "circles" | "friends">("all");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string>("");
 
@@ -29,6 +30,7 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
       setFile(null);
       setPreview(null);
       setCaption("");
+      setAudience("all");
       setUploading(false);
       setProgress("");
     }
@@ -83,7 +85,8 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
         media_url: publicUrl,
         media_type: mediaType,
         caption: caption.trim() || null,
-      });
+        audience,
+      } as any);
       if (insErr) throw insErr;
 
       toast.success("Story posted · expires in 24h");
