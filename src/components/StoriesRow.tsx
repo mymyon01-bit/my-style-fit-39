@@ -11,6 +11,7 @@ interface Story {
   media_type: string;
   created_at: string;
   expires_at: string | null;
+  caption?: string | null;
 }
 
 interface ProfileLite {
@@ -57,7 +58,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey }: Props) => {
     const nowIso = new Date().toISOString();
     const { data: stories } = await supabase
       .from("stories")
-      .select("id, user_id, media_url, media_type, created_at, expires_at")
+      .select("id, user_id, media_url, media_type, created_at, expires_at, caption")
       .or(`expires_at.gt.${nowIso},expires_at.is.null`)
       .eq("is_highlight", false)
       .order("created_at", { ascending: false })
