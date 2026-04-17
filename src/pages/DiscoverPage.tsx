@@ -1834,7 +1834,7 @@ const DiscoverPage = () => {
     };
   }
 
-  // Debounced search submit — progressive fallback pipeline
+  // Debounced search submit — SESSION-based lifecycle (append-only, controlled cycles).
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
@@ -1845,9 +1845,51 @@ const DiscoverPage = () => {
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(async () => {
+      // ── Open a fresh search session ─────────────────────────────────────
+      const sessionId = Date.now() + Math.floor(Math.random() * 1000);
+      const session = { id: sessionId, query: q, cycle: 0, totalAdded: 0, emptyCycles: 0, stopped: false };
+      searchSessionRef.current = session;
+
+      // Helpers bound to THIS session only
+      const isCurrent = () => searchSessionRef.current.id === sessionId && !session.stopped;
+      const stopSession = (reason: string) => {
+        if (session.stopped) return;
+        session.stopped = true;
+        if (searchSessionRef.current.id === sessionId) setIsGenerating(false);
+        console.info("[search-session] STOP", { sessionId, query: q, reason, totalAdded: session.totalAdded, cycles: session.cycle });
+      };
+      const appendCycle = (label: string, incoming: AIRecommendation[]) => {
+        if (!isCurrent()) return 0;
+        session.cycle++;
+        const before = session.totalAdded;
+        let addedCount = 0;
+        if (incoming.length > 0) {
+          incoming.forEach(p => sessionSeenIds.add(p.id));
+          setRecommendations(prev => {
+            const merged = appendUnique(prev, incoming, 80);
+            addedCount = merged.length - prev.length;
+            session.totalAdded = before + addedCount;
+            return merged;
+          });
+        }
+        if (addedCount === 0) session.emptyCycles++;
+        else session.emptyCycles = 0;
+        console.info("[search-session] CYCLE", {
+          sessionId, query: q, cycle: session.cycle, label,
+          incoming: incoming.length, added: addedCount,
+          totalAdded: session.totalAdded, emptyCycles: session.emptyCycles,
+        });
+        // Stop conditions
+        if (session.totalAdded >= SESSION_TARGET) stopSession(`reached target ${SESSION_TARGET}`);
+        else if (session.emptyCycles >= SESSION_MAX_EMPTY_CYCLES) stopSession(`${SESSION_MAX_EMPTY_CYCLES} empty cycles in a row`);
+        return addedCount;
+      };
+
+      console.info("[search-session] START", { sessionId, query: q });
       setIsGenerating(true);
       setHasGenerated(true);
-      // Don't clear recommendations — keep previous results visible while loading
+      // Append-only: do NOT clear previous results here. New session may reuse them
+      // visually until new ones append on top — prevents the empty-flash flicker.
       setActiveScenario(null);
       setSearchExplanation(null);
       lastPromptRef.current = q;
@@ -1856,17 +1898,20 @@ const DiscoverPage = () => {
       const intent = parseQueryIntent(q);
       const isScenarioQuery = intent.queryType === "scenario";
 
-      // Build user taste signals (Step 3 — blends likes / saves / preferred styles into ranking)
+      // Build user taste signals
       const userSignals: UserSignals = {
         styleProfile: userStyleProfile,
         feedbackMap,
         savedIds,
       };
-      // Show contextual explanation label
       setSearchExplanation(buildSearchExplanation(intent, userSignals));
 
-      // Step 2: AI-powered query expansion (Perplexity) with STRICT 1.5s soft timeout.
-      // Local fallback always available — never block search on AI.
+      // Reset visible list once per NEW query (not per re-submit of same query).
+      // We do it by clearing only when the previous prompt differs.
+      // Note: keep the list if same query — new cycles will simply append.
+      // (Already handled: new session id + append-only means stale items just stay)
+
+      // Step 2: AI query expansion with soft timeout
       const localExpanded = expandSearchQuery(q);
       const cacheKey = q.toLowerCase().trim();
       const cached = intentCache.get(cacheKey);
@@ -1883,63 +1928,27 @@ const DiscoverPage = () => {
           cacheable: !cached.isFallback,
           searchPathStatus: cached.isFallback ? "FALLBACK_ONLY" : "PERPLEXITY_CACHED",
         };
-        console.info("[search] using cached queries", { query: q, queries: cached.queries.length, isFallback: !!cached.isFallback });
       } else {
         const aiPromise = aiExpandQuery(q);
-
-        // Late-response handler: when Perplexity arrives AFTER the soft timeout,
-        // (a) cache the better queries for future searches AND
-        // (b) fire a background ingestion using those queries that merges into the visible UI.
-        // This is what makes Perplexity actually contribute to the *current* search experience.
+        // Late Perplexity result → background ingestion that APPENDS to current session
         void aiPromise.then((lateResult) => {
           if (!softTimeoutTriggered) return;
-          const lateWasPerplexity = lateResult.source === "perplexity";
-          console.info("[search] LATE_AI_RESPONSE", {
-            query: q,
-            source: lateResult.source,
-            latePerplexityResponseReceived: lateWasPerplexity,
-            successfulQueriesCached: lateWasPerplexity && lateResult.cacheable,
-            requestId: lateResult.debug?.request_id,
-          });
-
-          // Only enrich the active search if Perplexity actually returned good queries
-          // AND the user is still looking at this query (not typed something new).
-          if (!lateWasPerplexity || !lateResult.cacheable) return;
-          if (lastPromptRef.current !== q) return;
-
-          // Background ingestion: hit external scraper for the top 4 Perplexity queries
-          // and merge any new validated products into the visible results.
+          if (lateResult.source !== "perplexity" || !lateResult.cacheable) return;
+          if (!isCurrent()) return;
           const lateQueries = lateResult.queries.slice(0, 4);
-          console.info("[search] LATE_BACKGROUND_INGESTION_START", { query: q, lateQueries });
           Promise.all(
             lateQueries.map(lq =>
               hybridProductSearch({
-                query: lq,
-                limit: 10,
+                query: lq, limit: 10,
                 excludeIds: Array.from(sessionSeenIds),
-                freshSearch: true,
-                expandExternal: true,
-                randomize: false,
+                freshSearch: true, expandExternal: true, randomize: false,
               }).catch(() => ({ products: [] as AIRecommendation[], expanded: false, dbCount: 0 }))
             )
           ).then(results => {
-            if (lastPromptRef.current !== q) return; // user moved on
+            if (!isCurrent()) return;
             const lateProducts = results.flatMap(r => r.products);
-            if (!lateProducts.length) return;
-            const lateIntent = parseQueryIntent(q);
-            const lateRelevant = filterByRelevance(lateProducts, lateIntent, MIN_RESULT_TARGET, userSignals);
-            const lateDiverse = enforceClientDiversity(lateRelevant, new Set(Array.from(sessionSeenIds)));
-            if (!lateDiverse.length) return;
-            lateDiverse.forEach(p => sessionSeenIds.add(p.id));
-            setRecommendations(prev => {
-              const merged = enforceClientDiversity([...prev, ...lateDiverse], new Set()).slice(0, 30);
-              console.info("[search] LATE_INGESTION_MERGED", {
-                query: q,
-                newProducts: lateDiverse.length,
-                totalAfterMerge: merged.length,
-              });
-              return merged;
-            });
+            const lateRelevant = filterByRelevanceStrict(lateProducts, intent, userSignals);
+            appendCycle("late-perplexity", lateRelevant);
           });
         }).catch(() => {});
 
@@ -1948,24 +1957,11 @@ const DiscoverPage = () => {
           new Promise<SearchIntentResult>((resolve) =>
             setTimeout(() => {
               softTimeoutTriggered = true;
-              console.info(`[search] AI soft timeout (${SEARCH_INTENT_SOFT_TIMEOUT_MS}ms) — using local fallback. AI continues in background.`, {
-                query: q,
-              });
-              // Cache fallback briefly so a quick retype doesn't re-race Perplexity needlessly.
-              intentCache.set(cacheKey, {
-                queries: localExpanded,
-                ts: Date.now(),
-                isFallback: true,
-              });
+              intentCache.set(cacheKey, { queries: localExpanded, ts: Date.now(), isFallback: true });
               resolve({
-                queries: localExpanded,
-                source: "fallback",
-                cacheable: false,
+                queries: localExpanded, source: "fallback", cacheable: false,
                 searchPathStatus: "FALLBACK_ONLY",
-                debug: {
-                  soft_timeout_triggered: true,
-                  fallback_triggered: true,
-                },
+                debug: { soft_timeout_triggered: true, fallback_triggered: true },
               });
             }, SEARCH_INTENT_SOFT_TIMEOUT_MS)
           ),
@@ -1973,19 +1969,6 @@ const DiscoverPage = () => {
       }
 
       const searchQueries = [...new Set([...searchIntentResult.queries, ...localExpanded])].slice(0, 8);
-
-      console.info("[search] QUERY_INTELLIGENCE_RESULT", {
-        query: q,
-        source: searchIntentResult.source,
-        searchPathStatus: searchIntentResult.searchPathStatus,
-        softTimeoutTriggered,
-        hardTimeoutTriggered: searchIntentResult.debug?.hard_timeout_triggered ?? false,
-        fallbackTriggered: searchIntentResult.searchPathStatus === "FALLBACK_ONLY" || searchIntentResult.debug?.fallback_triggered === true,
-        responseStatus: searchIntentResult.debug?.response_status ?? null,
-        rawResponsePreview: searchIntentResult.debug?.raw_response_preview ?? null,
-        successfulQueriesCached: searchIntentResult.cacheable,
-      });
-
       console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, searchQueries });
 
       const categoryMap: Record<string, string> = {
@@ -1994,146 +1977,71 @@ const DiscoverPage = () => {
       const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
       if (isScenarioQuery) {
-        // SCENARIO QUERY: DB-first quick results, then external expansion
         setActiveScenario({ label: intent.scenarioLabel!, items: searchQueries });
 
-        // STAGE 1: Quick DB results for first 2 queries (instant)
+        // CYCLE 1: Quick DB results (instant)
         const quickDbResults = await Promise.all(
           searchQueries.slice(0, 2).map(eq =>
             hybridProductSearch({
-              query: eq,
-              limit: 12,
-              expandExternal: false,
-              freshSearch: false,
-              excludeIds: Array.from(sessionSeenIds),
-              randomize: false,
+              query: eq, limit: 12, expandExternal: false, freshSearch: false,
+              excludeIds: Array.from(sessionSeenIds), randomize: false,
             })
           )
         );
-
+        if (!isCurrent()) return;
         const quickProducts = quickDbResults.flatMap(r => r.products);
         const quickFiltered = filterForScenario(quickProducts, intent);
-        let quickDiverse = enforceClientDiversity(quickFiltered, new Set());
-        const scenarioStatus: SearchPathStatus = searchIntentResult.searchPathStatus === "PERPLEXITY_CACHED"
-          ? "PERPLEXITY_CACHED"
-          : searchIntentResult.source === "perplexity"
-            ? "DB_PLUS_PERPLEXITY"
-            : quickDiverse.length > 0
-              ? "DB_PLUS_FALLBACK"
-              : "FALLBACK_ONLY";
+        const quickDiverse = enforceClientDiversity(quickFiltered, new Set(Array.from(sessionSeenIds)));
+        appendCycle("scenario-db-quick", quickDiverse);
 
-        logSearchPathStatus(q, scenarioStatus, {
-          stage: "scenario-db-quick",
-          dbQuickCount: quickDiverse.length,
-          source: searchIntentResult.source,
-          requestId: searchIntentResult.debug?.request_id,
-          testMode: q.toLowerCase().trim() === "summer vacation",
-        });
-
-        // Show DB results immediately
-        if (quickDiverse.length > 0) {
-          quickDiverse.forEach(p => sessionSeenIds.add(p.id));
-          setRecommendations(quickDiverse);
-          if (quickDiverse.length >= MIN_RESULT_TARGET) {
-            setIsGenerating(false);
-          }
-        }
-
-        // STAGE 2: Full external search in background (cap concurrency to 3)
+        // CYCLE 2: Full external search
         Promise.all(
           searchQueries.slice(0, 3).map(eq =>
             hybridProductSearch({
-              query: eq,
-              limit: 10,
-              expandExternal: true,
-              freshSearch: true,
-              excludeIds: Array.from(sessionSeenIds),
-              randomize: false,
+              query: eq, limit: 10, expandExternal: true, freshSearch: true,
+              excludeIds: Array.from(sessionSeenIds), randomize: false,
             })
           )
         ).then(results => {
-          if (lastPromptRef.current !== q) return;
+          if (!isCurrent()) return;
           const allProducts = results.flatMap(r => r.products);
           const scenarioFiltered = filterForScenario(allProducts, intent);
-          // STRICT relevance for late merges — only high-quality additions
           const strict = filterByRelevanceStrict(scenarioFiltered, intent, userSignals);
-          if (strict.length > 0) {
-            strict.forEach(p => sessionSeenIds.add(p.id));
-            // Append-only — never reorder or drop existing items
-            setRecommendations(prev => appendUnique(prev, strict, 80));
-          }
+          appendCycle("scenario-external", strict);
         }).catch(err => {
           console.error("Scenario external search error:", err);
         }).finally(() => {
-          setIsGenerating(false);
+          // External cycle finished — if no stop yet, finalize loading state
+          if (isCurrent()) stopSession("scenario-external complete");
         });
-
-        // If no DB results at all, keep spinner until external completes
-        if (quickDiverse.length === 0) {
-          // spinner stays on via isGenerating
-        } else {
-          setIsGenerating(false);
-        }
       } else {
-        // PRODUCT or STYLE query — show DB results fast, then external search fills in
-        let collected: AIRecommendation[] = [];
-
-        // ── STAGE 1: Quick DB results (instant) ──
+        // PRODUCT or STYLE query
+        // CYCLE 1: Quick DB
         const { products: dbQuickProducts, dbCount } = await hybridProductSearch({
-          query: q,
-          category: dbCategory,
+          query: q, category: dbCategory,
           styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
           fit: selectedFit || undefined,
-          limit: 30,
-          freshSearch: false, // DB-only for speed
-          expandExternal: false,
-          randomize: false,
+          limit: 30, freshSearch: false, expandExternal: false, randomize: false,
         });
-
+        if (!isCurrent()) return;
         const dbRelevant = filterByRelevance(dbQuickProducts, intent, MIN_RESULT_TARGET, userSignals);
-        collected = enforceClientDiversity(dbRelevant, new Set());
-        console.log(`Stage 1 (DB quick): ${collected.length} results`);
-
-        const finalSearchPathStatus: SearchPathStatus = searchIntentResult.searchPathStatus === "PERPLEXITY_CACHED"
-          ? "PERPLEXITY_CACHED"
-          : searchIntentResult.source === "perplexity"
-            ? "DB_PLUS_PERPLEXITY"
-            : collected.length > 0
-              ? "DB_PLUS_FALLBACK"
-              : "FALLBACK_ONLY";
-
-        logSearchPathStatus(q, finalSearchPathStatus, {
-          stage: "db-quick",
-          dbQuickCount: collected.length,
-          source: searchIntentResult.source,
-          requestId: searchIntentResult.debug?.request_id,
-          testMode: q.toLowerCase().trim() === "summer vacation",
-        });
-
-        // Show DB results immediately so user sees something
-        if (collected.length > 0) {
-          collected.forEach(p => sessionSeenIds.add(p.id));
-          setRecommendations([...collected]);
-          setDbOffset(collected.length);
+        const dbDiverse = enforceClientDiversity(dbRelevant, new Set(Array.from(sessionSeenIds)));
+        appendCycle("db-quick", dbDiverse);
+        if (isCurrent()) {
+          setDbOffset(dbDiverse.length);
           setHasMoreInDB(dbCount >= 30);
         }
 
-        // ── STAGE 1.5: Fire-and-forget search-discovery (grows DB long-term) ──
-        // New purpose-built ingestion: Perplexity expands → discovers product URLs →
-        // Firecrawl extracts → DB insert. After it completes, re-query DB to surface.
+        // CYCLE 1.5: Background search-discovery (long-term DB growth)
         triggerSearchDiscovery(q).then(async (result) => {
-          if (lastPromptRef.current !== q) return;
-          if (!result || result.inserted === 0) return;
-          console.info("[search] DISCOVERY_INSERTED", result);
+          if (!isCurrent() || !result || result.inserted === 0) return;
           try {
             const { data: fresh } = await supabase
               .from("product_cache")
               .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform, reason")
-              .eq("search_query", q)
-              .eq("is_active", true)
-              .order("created_at", { ascending: false })
-              .limit(20);
-            if (!fresh?.length) return;
+              .eq("search_query", q).eq("is_active", true)
+              .order("created_at", { ascending: false }).limit(20);
+            if (!fresh?.length || !isCurrent()) return;
             const mapped: AIRecommendation[] = fresh.map((p: any) => ({
               id: p.id, name: p.name, brand: p.brand || "", price: p.price || "",
               category: p.category || "", reason: p.reason || "Just discovered",
@@ -2142,78 +2050,49 @@ const DiscoverPage = () => {
               store_name: p.store_name, platform: p.platform || "web_search",
             }));
             const newOnes = mapped.filter(p => !sessionSeenIds.has(p.id));
-            if (!newOnes.length) return;
-            // STRICT relevance for late merges — high-quality additions only
             const filtered = filterByRelevanceStrict(newOnes, intent, userSignals);
-            if (!filtered.length) return;
-            filtered.forEach(p => sessionSeenIds.add(p.id));
-            // Append-only — never reorder existing results
-            setRecommendations(prev => appendUnique(prev, filtered, 80));
-            console.info("[search] DISCOVERY_MERGED", { added: filtered.length });
+            appendCycle("discovery-ingestion", filtered);
           } catch (e) {
             console.warn("[search] DISCOVERY_REFETCH_FAIL", e);
           }
         }).catch(e => console.warn("[search] DISCOVERY_FAIL", e));
 
-        // ── STAGE 2: External fresh search using AI-expanded queries (cap to 3) ──
+        // CYCLE 2: External fresh search
         const externalSearchQueries = [...new Set([q, ...searchQueries])].slice(0, 3);
-        const externalPromise = Promise.all(
+        Promise.all(
           externalSearchQueries.map(sq =>
             hybridProductSearch({
-              query: sq,
-              category: dbCategory,
-              limit: 12,
+              query: sq, category: dbCategory, limit: 12,
               excludeIds: Array.from(sessionSeenIds),
-              freshSearch: true,
-              expandExternal: true,
-              randomize: false,
+              freshSearch: true, expandExternal: true, randomize: false,
             })
           )
-        );
-
-        externalPromise.then(results => {
-          if (lastPromptRef.current !== q) return;
+        ).then(results => {
+          if (!isCurrent()) return;
           const externalProducts = results.flatMap(r => r.products);
-          // STRICT relevance — don't let weak items push out good ones
           const externalStrict = filterByRelevanceStrict(externalProducts, intent, userSignals);
-          console.log(`Stage 2 (external fresh strict): ${externalStrict.length} new results`);
-
-          if (externalStrict.length > 0) {
-            externalStrict.forEach(p => sessionSeenIds.add(p.id));
-            // Append-only — keeps initial results stable, just adds new ones
-            setRecommendations(prev => appendUnique(prev, externalStrict, 80));
-          }
+          appendCycle("external-fresh", externalStrict);
         }).catch(err => {
           console.error("External search error:", err);
         }).finally(() => {
-          setIsGenerating(false);
-        });
-
-        // If we have enough DB results, stop showing loading for main content
-        if (collected.length >= MIN_RESULT_TARGET) {
-          setIsGenerating(false);
-        }
-
-        // Final: if nothing at all from DB, keep spinner until external completes
-        if (collected.length === 0) {
-          try {
-            const externalResults = await externalPromise;
-            const allExternal = externalResults.flatMap(r => r.products);
-            const extRelevant = filterByRelevance(allExternal, intent, MIN_RESULT_TARGET, userSignals);
-            const extDiverse = enforceClientDiversity(extRelevant, new Set());
-
-            if (extDiverse.length > 0) {
-              extDiverse.forEach(p => sessionSeenIds.add(p.id));
-              setRecommendations(extDiverse.slice(0, 30));
-            } else {
-              // Last resort: AI generation
-              generateRecommendations(q);
-            }
-          } catch {
-            generateRecommendations(q);
+          // CYCLE 3 fallback expansion if still under min target
+          if (!isCurrent()) return;
+          if (session.totalAdded >= 8) {
+            stopSession("external-fresh complete");
+            return;
           }
-          setIsGenerating(false);
-        }
+          // Widen: drop category/styles, broader query
+          hybridProductSearch({
+            query: q, limit: 20,
+            excludeIds: Array.from(sessionSeenIds),
+            freshSearch: true, expandExternal: true, randomize: true,
+          }).then(({ products: wide }) => {
+            if (!isCurrent()) return;
+            const wideRelevant = filterByRelevance(wide, intent, 4, userSignals);
+            appendCycle("fallback-broaden", wideRelevant);
+            stopSession("fallback-broaden complete");
+          }).catch(() => stopSession("fallback-broaden failed"));
+        });
       }
     }, 400);
   };
