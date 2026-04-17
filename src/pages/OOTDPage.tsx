@@ -265,6 +265,7 @@ const OOTDPage = () => {
     const profile = getProfile(post.user_id);
     const likes = post.like_count || 0;
     const title = post.caption ? post.caption.split(/\s+/)[0] : null;
+    const initial = (profile?.display_name?.[0] || "?").toUpperCase();
 
     return (
       <motion.div
@@ -282,6 +283,24 @@ const OOTDPage = () => {
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
           />
+          {/* Profile circle on top — community feed only */}
+          {showAuthor && !isMyPage && (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/u/${post.user_id}`); }}
+              className="absolute top-2 left-2 z-10"
+              aria-label={profile?.display_name || "View profile"}
+            >
+              <div className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-white/90 shadow-md bg-foreground/20 backdrop-blur-sm">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.display_name || ""} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[11px] font-semibold text-white">
+                    {initial}
+                  </div>
+                )}
+              </div>
+            </button>
+          )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-1.5 pt-6">
             {title && <p className="text-[8px] font-semibold text-white/80 truncate">{title}</p>}
             {showAuthor && !title && (
