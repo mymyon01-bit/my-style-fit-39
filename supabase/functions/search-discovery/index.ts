@@ -132,12 +132,12 @@ async function perplexityExpand(query: string): Promise<{ queries: string[]; use
           {
             role: "system",
             content:
-              "You are a shopping query generator. Return ONLY a JSON array of 6-8 specific shopping queries (each 3-7 words) that a user could type into a fashion store search to find products matching their intent. No prose, no numbering, just the JSON array.",
+              "You are a shopping query generator. Return ONLY a JSON array of 12-15 DIVERSE shopping queries (each 3-7 words) covering exact match, gendered variants, color variants, fit variants, style variants, and adjacent category items. The queries should form a 'query family' that broadens supply for a fashion store search. No prose, no numbering, just the JSON array.",
           },
           { role: "user", content: query },
         ],
-        max_tokens: 400,
-        temperature: 0.3,
+        max_tokens: 700,
+        temperature: 0.5,
       }),
     });
     clearTimeout(timer);
@@ -156,9 +156,12 @@ async function perplexityExpand(query: string): Promise<{ queries: string[]; use
     const cleaned = parsed
       .map((s) => String(s).trim())
       .filter((s) => s.length > 2 && s.length < 80)
-      .slice(0, 8);
+      .slice(0, 15);
     if (cleaned.length < 3) return { queries: fallbackExpand(query), usedPerplexity: false };
-    return { queries: cleaned, usedPerplexity: true };
+    // Merge perplexity output with deterministic fallback for extra coverage
+    const fb = fallbackExpand(query);
+    const merged = [...new Set([...cleaned, ...fb])].slice(0, 15);
+    return { queries: merged, usedPerplexity: true };
   } catch (e) {
     log("perplexity_error", { msg: (e as Error).message });
     return { queries: fallbackExpand(query), usedPerplexity: false };
@@ -207,7 +210,8 @@ async function discoverUrls(shoppingQueries: string[]): Promise<DiscoveredCandid
     log("discover_skip", { reason: "no_perplexity_key" });
     return [];
   }
-  const tasks = shoppingQueries.slice(0, 6).map((q) => discoverForQuery(q));
+  // Run up to 12 parallel discovery passes — much more supply per call
+  const tasks = shoppingQueries.slice(0, 12).map((q) => discoverForQuery(q));
   const settled = await Promise.allSettled(tasks);
   const all: DiscoveredCandidate[] = [];
   for (const s of settled) {
@@ -222,7 +226,8 @@ async function discoverUrls(shoppingQueries: string[]): Promise<DiscoveredCandid
     seen.add(key);
     deduped.push(c);
   }
-  return deduped.slice(0, 30);
+  log("discover_total", { passes: tasks.length, candidates: deduped.length });
+  return deduped.slice(0, 50);
 }
 
 async function discoverForQuery(q: string): Promise<DiscoveredCandidate[]> {
