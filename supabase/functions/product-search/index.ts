@@ -235,11 +235,15 @@ function autoTagProduct(p: any): any {
     else p.fit = "regular";
   }
 
+  // Re-classify category from product name when missing or generic
+  const generic = !p.category || ["other", "clothing", "general", "fashion", "miscellaneous"].includes(String(p.category).toLowerCase());
+  if (generic) {
+    const inferred = inferCategoryFromText(p.name || "");
+    if (inferred) p.category = inferred;
+  }
+
   return p;
 }
-
-// ─── External expansion + inventory growth ───
-function sanitizeSearchQuery(query: string): string {
   const cleaned = query.replace(/[<>"'`;]/g, "").trim();
   if (!cleaned) return "";
   const tokens = cleaned.split(/\s+/);
