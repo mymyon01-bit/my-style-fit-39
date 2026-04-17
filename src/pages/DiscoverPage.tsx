@@ -1963,10 +1963,6 @@ const DiscoverPage = () => {
           // spinner stays on via isGenerating
         } else {
           setIsGenerating(false);
-        }
-      } else {
-          setIsGenerating(false);
-        }
       } else {
         // PRODUCT or STYLE query — show DB results fast, then external search fills in
         let collected: AIRecommendation[] = [];
