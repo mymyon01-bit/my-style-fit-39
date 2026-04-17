@@ -1398,6 +1398,9 @@ const DiscoverPage = () => {
     setShowSuggestions(false);
     lastPromptRef.current = prompt;
 
+    // Kick off "How about this?" DB recommendations in parallel — instant render
+    loadDbRecommendations(prompt);
+
     try {
       const filterContext = [];
       if (categoryFilter) filterContext.push(`Category: ${categoryFilter}`);
