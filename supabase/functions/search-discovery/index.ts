@@ -756,21 +756,45 @@ serve(async (req) => {
     const t0 = Date.now();
     const expandOnly: boolean = body.expandOnly === true;
 
-    // 1. Expand
-    const { queries, usedPerplexity } = await perplexityExpand(rawQuery);
-    const shoppingQueries = queries.slice(0, maxQueries);
-    log("expand_done", { rawQuery, count: shoppingQueries.length, usedPerplexity, queries: shoppingQueries });
+    // 0. Detect primary category lock (deterministic)
+    const primaryCategory = detectPrimaryCategory(rawQuery);
+    log("intent_detected", { rawQuery, primaryCategory });
+
+    // 1. Expand (category-aware)
+    const { queries, usedPerplexity } = await perplexityExpand(rawQuery, primaryCategory);
+
+    // 1b. Guardrail: drop expansions that drift to wrong category
+    const { kept, rejected: guardRejects } = categoryGuard(queries, primaryCategory);
+    const shoppingQueries = kept.slice(0, maxQueries);
+    log("expand_done", {
+      rawQuery,
+      primaryCategory,
+      count: shoppingQueries.length,
+      usedPerplexity,
+      guardRejects: guardRejects.length,
+      queries: shoppingQueries,
+    });
 
     // Lightweight mode: caller just wants the query family, no scraping cost.
     if (expandOnly) {
       return new Response(
-        JSON.stringify({ ok: true, rawQuery, queries: shoppingQueries, usedPerplexity, ms: Date.now() - t0 }),
+        JSON.stringify({ ok: true, rawQuery, primaryCategory, queries: shoppingQueries, usedPerplexity, ms: Date.now() - t0 }),
         { headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
 
     // 2. Discover URLs
-    const candidates = (await discoverUrls(shoppingQueries)).slice(0, maxCandidates);
+    let candidates = (await discoverUrls(shoppingQueries)).slice(0, maxCandidates);
+
+    // 2b. Pre-extraction URL/title category filter
+    if (primaryCategory) {
+      const before = candidates.length;
+      candidates = candidates.filter((c) => {
+        const text = `${c.title || ""} ${c.url || ""}`;
+        return queryMatchesCategory(text, primaryCategory);
+      });
+      log("url_category_filter", { primaryCategory, before, after: candidates.length });
+    }
     log("discover_done", { totalCandidates: candidates.length });
 
     if (candidates.length === 0) {
@@ -778,6 +802,7 @@ serve(async (req) => {
         JSON.stringify({
           ok: true,
           rawQuery,
+          primaryCategory,
           shoppingQueries,
           usedPerplexity,
           candidatesFound: 0,
@@ -786,7 +811,7 @@ serve(async (req) => {
           extracted: 0,
           rejected: 0,
           ms: Date.now() - t0,
-          note: "No product URLs discovered. Discovery layer may be down.",
+          note: "No product URLs discovered after category filter.",
         }),
         { headers: { ...cors, "Content-Type": "application/json" } }
       );
@@ -797,12 +822,28 @@ serve(async (req) => {
       extractCandidate(c, supabase).catch(() => null)
     );
     const settled = await Promise.allSettled(extractTasks);
-    const extracted: ExtractedProduct[] = [];
+    let extracted: ExtractedProduct[] = [];
     let rejected = 0;
     for (const s of settled) {
       if (s.status === "fulfilled" && s.value) extracted.push(s.value);
       else rejected++;
     }
+
+    // 3b. Post-extraction category filter — title must match the lock
+    if (primaryCategory) {
+      const before = extracted.length;
+      extracted = extracted.filter((p) => {
+        const cat = categorize(p.title).category;
+        if (cat === primaryCategory) return true;
+        // tolerate "accessories" only if title literally mentions a bag for bags-lock
+        if (primaryCategory === "bags" && cat === "accessories") {
+          return /\b(bag|tote|backpack|crossbody|clutch|purse|satchel|messenger|handbag)\b/i.test(p.title);
+        }
+        return false;
+      });
+      log("extract_category_filter", { primaryCategory, before, after: extracted.length });
+    }
+
     log("extract_done", { extracted: extracted.length, rejected });
 
     // 4. Validate images in parallel (best effort)
