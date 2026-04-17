@@ -2469,6 +2469,8 @@ const DiscoverPage = () => {
                     {searchExplanation}
                   </p>
                 )}
+
+                <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
                       {activeScenario ? activeScenario.label.toUpperCase() : activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
