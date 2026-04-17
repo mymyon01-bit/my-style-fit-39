@@ -739,9 +739,9 @@ serve(async (req) => {
       );
     }
 
-    // 3. Extract (parallel, capped)
+    // 3. Extract (parallel, capped) — domain-aware Firecrawl gating
     const extractTasks = candidates.map((c) =>
-      extractCandidate(c).catch(() => null)
+      extractCandidate(c, supabase).catch(() => null)
     );
     const settled = await Promise.allSettled(extractTasks);
     const extracted: ExtractedProduct[] = [];
