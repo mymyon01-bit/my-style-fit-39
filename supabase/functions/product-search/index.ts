@@ -58,84 +58,84 @@ async function loadFromDB(supabase: any, opts: {
     .from("product_cache")
     .select("*")
     .eq("image_valid", true)
-    .eq("is_active", true)
-    .in("source_trust_level", ["high", "medium"]);
+    .eq("is_active", true);
 
   if (opts.category) q = q.eq("category", opts.category);
   if (opts.fit) q = q.eq("fit", opts.fit);
   if (opts.styles?.length) q = q.overlaps("style_tags", opts.styles);
 
-  // If we have a text query, use ilike for direct DB-level text filtering
-  if (opts.query) {
-    const terms = opts.query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 2);
-    if (terms.length > 0) {
-      // Build a single OR condition that matches ANY term in name/brand/category
-      const orClauses = terms.slice(0, 4).flatMap(term => [
-        `name.ilike.%${term}%`,
-        `brand.ilike.%${term}%`,
-        `category.ilike.%${term}%`,
-      ]);
-      q = q.or(orClauses.join(","));
-    }
+  const normalizedQuery = opts.query ? sanitizeSearchQuery(opts.query).toLowerCase() : "";
+  const terms = normalizedQuery.split(/\s+/).filter((t: string) => t.length > 1);
+
+  if (terms.length > 0) {
+    const orClauses = terms.slice(0, 6).flatMap(term => [
+      `name.ilike.%${term}%`,
+      `brand.ilike.%${term}%`,
+      `category.ilike.%${term}%`,
+      `subcategory.ilike.%${term}%`,
+      `search_query.ilike.%${term}%`,
+    ]);
+    q = q.or(orClauses.join(","));
   }
 
-  q = q.order("trend_score", { ascending: false }).limit(opts.limit * 3);
+  q = q
+    .order("created_at", { ascending: false })
+    .order("trend_score", { ascending: false })
+    .limit(Math.min(opts.limit * 6, 120));
 
   const { data, error } = await q;
   if (error || !data) return [];
 
-  // Double-check image safety and product-title validity on every result
-  let results = data.filter((p: any) => isImageUrlSafe(p.image_url) && isFashionProduct(p.name || ""));
+  const now = Date.now();
+  let results = data
+    .filter((p: any) => isImageUrlSafe(p.image_url) && isFashionProduct(p.name || ""))
+    .map((p: any) => {
+      const nameLower = (p.name || "").toLowerCase();
+      const brandLower = (p.brand || "").toLowerCase();
+      const categoryLower = (p.category || "").toLowerCase();
+      const subcategoryLower = (p.subcategory || "").toLowerCase();
+      const searchQueryLower = (p.search_query || "").toLowerCase();
+      const tagsText = [...(p.style_tags || []), ...(p.color_tags || []), p.fit || ""].join(" ").toLowerCase();
 
-  // Strict text relevance scoring
-  if (opts.query) {
-    const terms = opts.query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 2);
-    if (terms.length > 0) {
-      results = results.map((p: any) => {
-        const nameLower = (p.name || "").toLowerCase();
-        const brandLower = (p.brand || "").toLowerCase();
-        const categoryLower = (p.category || "").toLowerCase();
-        const tagsText = [...(p.style_tags || []), ...(p.color_tags || []), p.fit || ""].join(" ").toLowerCase();
+      const createdAtMs = p.created_at ? new Date(p.created_at).getTime() : 0;
+      const ageDays = createdAtMs ? (now - createdAtMs) / 86_400_000 : 999;
+      const freshnessBonus = Math.max(0, 10 - ageDays);
+      const trustBonus =
+        p.source_trust_level === "high" ? 8 :
+        p.source_trust_level === "medium" ? 4 :
+        1;
 
-        let score = 0;
-        let maxPossible = terms.length * 3;
+      let score = Number(p.trend_score || 0) + freshnessBonus + trustBonus;
 
+      if (terms.length > 0) {
+        if (searchQueryLower === normalizedQuery) score += 14;
         for (const t of terms) {
-          if (nameLower.includes(t)) score += 3;
-          else if (brandLower.includes(t)) score += 2;
-          else if (categoryLower.includes(t)) score += 2;
-          else if (tagsText.includes(t)) score += 1;
+          if (nameLower.includes(t)) score += 6;
+          else if (brandLower.includes(t)) score += 5;
+          else if (categoryLower.includes(t) || subcategoryLower.includes(t)) score += 4;
+          else if (searchQueryLower.includes(t)) score += 3;
+          else if (tagsText.includes(t)) score += 2;
         }
-
-        const relevance = maxPossible > 0 ? score / maxPossible : 0;
-        return { ...p, _relevance: relevance };
-      });
-
-      // RELAXED: keep items with any term overlap (relevance > 0). If still
-      // not enough, fall back to all results sorted by relevance — never starve.
-      const relevant = results.filter((r: any) => (r._relevance || 0) > 0);
-      relevant.sort((a: any, b: any) => b._relevance - a._relevance);
-
-      if (relevant.length >= 3) {
-        results = relevant;
-      } else {
-        results.sort((a: any, b: any) => (b._relevance || 0) - (a._relevance || 0));
       }
-    }
-  }
 
-  // Exclude already-seen IDs
+      return { ...p, _dbScore: score };
+    });
+
+  results.sort((a: any, b: any) => (b._dbScore || 0) - (a._dbScore || 0));
+
   if (opts.excludeIds?.length) {
     const excludeSet = new Set(opts.excludeIds);
     results = results.filter((p: any) => !excludeSet.has(p.external_id) && !excludeSet.has(p.id));
   }
 
-  // Only shuffle if randomize is requested (for feed, not search)
-  if (opts.randomize) {
-    for (let i = results.length - 1; i > 0; i--) {
+  if (opts.randomize && results.length > 1) {
+    const windowSize = Math.min(results.length, Math.max(opts.limit * 2, 12));
+    const head = results.slice(0, windowSize);
+    for (let i = head.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [results[i], results[j]] = [results[j], results[i]];
+      [head[i], head[j]] = [head[j], head[i]];
     }
+    results = [...head, ...results.slice(windowSize)];
   }
 
   return results.slice(0, opts.limit);
@@ -190,42 +190,64 @@ function autoTagProduct(p: any): any {
   return p;
 }
 
-// ─── External expansion via commerce scraper ───
-// PER-QUERY DEDUP (not global cooldown). The previous global SCRAPER_COOLDOWN_MS
-// blocked 4 of every 5 parallel expanded queries from ever reaching the scraper,
-// which is the root cause of "0 external" results in the logs. We now allow
-// every distinct query to fire, but suppress the SAME query within a 30s window.
-const recentQueryCalls = new Map<string, number>();
-const QUERY_DEDUP_WINDOW_MS = 30_000;
+// ─── External expansion + inventory growth ───
+function sanitizeSearchQuery(query: string): string {
+  const cleaned = query.replace(/[<>"'`;]/g, "").trim();
+  if (!cleaned) return "";
+  const tokens = cleaned.split(/\s+/);
+  const deduped = tokens.filter((token, index) => index === 0 || token.toLowerCase() !== tokens[index - 1].toLowerCase());
+  return deduped.join(" ").slice(0, 100);
+}
+
+function normalizeIdentityKey(value: unknown): string | null {
+  if (!value || typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.split("?")[0].toLowerCase();
+}
+
+function normalizeTitleKey(value: unknown): string {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 50);
+}
+
+function mergeUniqueProducts(existing: any[], incoming: any[]): any[] {
+  const seenIds = new Set<string>();
+  const seenUrls = new Set<string>();
+  const seenImages = new Set<string>();
+  const seenTitles = new Set<string>();
+  const out: any[] = [];
+
+  for (const item of [...existing, ...incoming]) {
+    const id = String(item.external_id || item.id || "");
+    const urlKey = normalizeIdentityKey(item.source_url);
+    const imageKey = normalizeIdentityKey(item.image_url);
+    const titleKey = normalizeTitleKey(item.name);
+    if (!id && !urlKey && !imageKey && !titleKey) continue;
+    if (id && seenIds.has(id)) continue;
+    if (urlKey && seenUrls.has(urlKey)) continue;
+    if (imageKey && seenImages.has(imageKey)) continue;
+    if (titleKey && seenTitles.has(titleKey)) continue;
+    if (id) seenIds.add(id);
+    if (urlKey) seenUrls.add(urlKey);
+    if (imageKey) seenImages.add(imageKey);
+    if (titleKey) seenTitles.add(titleKey);
+    out.push(item);
+  }
+
+  return out;
+}
 
 async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[]> {
-  const sanitizedQuery = query.replace(/[<>"'`;]/g, "").slice(0, 100).trim();
+  const sanitizedQuery = sanitizeSearchQuery(query);
   if (!sanitizedQuery) return [];
-
-  // Per-query dedup (not a global lock)
-  const now = Date.now();
-  const lastCall = recentQueryCalls.get(sanitizedQuery) || 0;
-  if (now - lastCall < QUERY_DEDUP_WINDOW_MS) {
-    console.log(`[SEARCH_DEBUG] scraper dedup skip for "${sanitizedQuery}" (called ${now - lastCall}ms ago)`);
-    return [];
-  }
-  recentQueryCalls.set(sanitizedQuery, now);
-  // Clean old entries to avoid memory growth
-  if (recentQueryCalls.size > 200) {
-    for (const [k, v] of recentQueryCalls) {
-      if (now - v > QUERY_DEDUP_WINDOW_MS) recentQueryCalls.delete(k);
-    }
-  }
 
   try {
     const baseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!baseUrl || !serviceKey) return [];
 
-    // 25s budget. The scraper now runs all 5 platforms in parallel, each capped
-    // at 15s, so wall-clock is ~15-20s. Tight enough to leave room for fallback.
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
+    const timeout = setTimeout(() => controller.abort(), 25_000);
 
     const res = await fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
       method: "POST",
@@ -236,7 +258,7 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
       body: JSON.stringify({
         query: sanitizedQuery,
         platforms: ["asos", "ssense", "farfetch", "naver", "ssg"],
-        limit: Math.min(limit, 20),
+        limit: Math.min(limit, 24),
       }),
       signal: controller.signal,
     });
@@ -245,6 +267,13 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
 
     if (!res.ok) return [];
     const data = await res.json();
+    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({
+      stage: "COMMERCE_SCRAPER",
+      query: sanitizedQuery,
+      returned: (data.products || []).length,
+      debug: data.debug || [],
+    })}`);
+
     return (data.products || [])
       .filter((p: any) => isImageUrlSafe(p.image_url) && p.name && p.source_url?.startsWith("http") && isFashionProduct(p.name))
       .map((p: any) => ({
@@ -254,14 +283,14 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
         price: p.price,
         category: p.category,
         subcategory: p.subcategory,
-        style_tags: p.style_tags || [],
-        color_tags: p.color ? [p.color] : [],
+        style_tags: Array.isArray(p.style_tags) ? p.style_tags : [],
+        color_tags: Array.isArray(p.color_tags) ? p.color_tags : p.color ? [p.color] : [],
         fit: p.fit || "regular",
         image_url: p.image_url,
         source_url: p.source_url,
         store_name: p.store_name,
         reason: p.reason,
-        platform: p.platform,
+        platform: p.platform || "web_search",
         image_valid: true,
         is_active: true,
         source_type: "scraper",
@@ -273,11 +302,88 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
   }
 }
 
-async function cacheToDB(supabase: any, products: any[]): Promise<number> {
+async function fetchFromDiscovery(supabase: any, query: string, limit = 12): Promise<any[]> {
+  const sanitizedQuery = sanitizeSearchQuery(query);
+  if (!sanitizedQuery) return [];
+
+  try {
+    const baseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!baseUrl || !serviceKey) return [];
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25_000);
+
+    const res = await fetch(`${baseUrl}/functions/v1/search-discovery`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        query: sanitizedQuery,
+        maxQueries: 4,
+        maxCandidates: Math.min(Math.max(limit, 12), 18),
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.error(`[SEARCH_DISCOVERY] HTTP ${res.status}`);
+      return [];
+    }
+
+    const payload = await res.json().catch(() => null);
+    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({
+      stage: "DISCOVERY_TRIGGER",
+      query: sanitizedQuery,
+      inserted: payload?.inserted ?? 0,
+      validated: payload?.validated ?? 0,
+      candidatesFound: payload?.candidatesFound ?? 0,
+    })}`);
+
+    const { data, error } = await supabase
+      .from("product_cache")
+      .select("*")
+      .eq("is_active", true)
+      .eq("image_valid", true)
+      .eq("search_query", sanitizedQuery)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(limit * 2, 24));
+
+    if (error || !data) return [];
+
+    return data
+      .filter((p: any) => isImageUrlSafe(p.image_url) && isFashionProduct(p.name || ""))
+      .map((p: any) => autoTagProduct(p));
+  } catch (e) {
+    console.error("Search discovery fetch error:", e);
+    return [];
+  }
+}
+
+async function cacheToDB(supabase: any, products: any[], sourceQuery?: string): Promise<number> {
   if (!products.length) return 0;
 
+  const normalizedQuery = sourceQuery ? sanitizeSearchQuery(sourceQuery) : null;
+  const seenBatch = new Set<string>();
+
   const rows = products
-    .filter(p => isImageUrlSafe(p.image_url))
+    .filter(p => isImageUrlSafe(p.image_url) && p.name && p.source_url?.startsWith("http"))
+    .map(p => autoTagProduct({ ...p }))
+    .filter(p => {
+      const key = [
+        normalizeIdentityKey(p.source_url),
+        normalizeIdentityKey(p.image_url),
+        normalizeTitleKey(p.name),
+      ].filter(Boolean).join("|");
+      if (!key) return false;
+      if (seenBatch.has(key)) return false;
+      seenBatch.add(key);
+      return true;
+    })
     .map(p => ({
       external_id: p.external_id,
       name: (p.name || "").slice(0, 200),
@@ -297,64 +403,57 @@ async function cacheToDB(supabase: any, products: any[]): Promise<number> {
       is_active: true,
       source_type: p.source_type || "scraper",
       source_trust_level: p.source_trust_level || "medium",
+      search_query: normalizedQuery,
       last_validated: new Date().toISOString(),
     }));
 
-  // Dedup by source_url before insert
-  const seenUrls = new Set<string>();
-  const dedupedRows = rows.filter(r => {
-    if (!r.source_url) return true;
-    if (seenUrls.has(r.source_url)) return false;
-    seenUrls.add(r.source_url);
-    return true;
-  });
+  if (!rows.length) return 0;
 
   const { error } = await supabase
     .from("product_cache")
-    .upsert(dedupedRows, { onConflict: "platform,external_id", ignoreDuplicates: true });
+    .upsert(rows, { onConflict: "platform,external_id" });
 
   if (error) {
     console.error("Cache error:", error.message);
     return 0;
   }
-  return dedupedRows.length;
+
+  return rows.length;
 }
 
 // ─── Diversity enforcement (upgraded) ───
 function enforceDiversity(products: any[], opts: { maxPerBrand?: number; maxPerPlatform?: number } = {}): any[] {
-  const maxBrand = opts.maxPerBrand || 2; // Reduced from 3 → 2
-  const maxPlat = opts.maxPerPlatform || 4; // Reduced from 5 → 4
-  
-  // 1. Dedup by normalized title
+  const maxBrand = opts.maxPerBrand || 3;
+  const maxPlat = opts.maxPerPlatform || 6;
+
   const seenTitles = new Set<string>();
   let result = products.filter(p => {
-    const key = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30);
+    const key = normalizeTitleKey(p.name);
+    if (!key) return false;
     if (seenTitles.has(key)) return false;
     seenTitles.add(key);
     return true;
   });
 
-  // 2. Dedup by image URL (strip query params)
   const seenImages = new Set<string>();
   result = result.filter(p => {
     if (!p.image_url) return false;
-    const imgKey = (p.image_url || "").split("?")[0].toLowerCase();
+    const imgKey = normalizeIdentityKey(p.image_url);
+    if (!imgKey) return false;
     if (seenImages.has(imgKey)) return false;
     seenImages.add(imgKey);
     return true;
   });
 
-  // 3. Dedup by source URL
   const seenUrls = new Set<string>();
   result = result.filter(p => {
-    if (!p.source_url) return true;
-    const urlKey = (p.source_url || "").split("?")[0].toLowerCase();
+    const urlKey = normalizeIdentityKey(p.source_url);
+    if (!urlKey) return true;
     if (seenUrls.has(urlKey)) return false;
     seenUrls.add(urlKey);
     return true;
   });
 
-  // 4. Brand cap
   const brandCount: Record<string, number> = {};
   result = result.filter(p => {
     const b = (p.brand || "unknown").toLowerCase();
@@ -362,7 +461,6 @@ function enforceDiversity(products: any[], opts: { maxPerBrand?: number; maxPerP
     return brandCount[b] <= maxBrand;
   });
 
-  // 5. Platform cap
   const platCount: Record<string, number> = {};
   result = result.filter(p => {
     const pl = (p.platform || "unknown").toLowerCase();
@@ -370,12 +468,11 @@ function enforceDiversity(products: any[], opts: { maxPerBrand?: number; maxPerP
     return platCount[pl] <= maxPlat;
   });
 
-  // 6. Style combo diversity: max 3 with identical style_tags
   const styleComboCount: Record<string, number> = {};
   result = result.filter(p => {
     const combo = (p.style_tags || []).sort().join(",") || "none";
     styleComboCount[combo] = (styleComboCount[combo] || 0) + 1;
-    return styleComboCount[combo] <= 3;
+    return styleComboCount[combo] <= 4;
   });
 
   return result;
@@ -428,19 +525,19 @@ serve(async (req) => {
     let externalProducts: any[] = [];
 
     if (freshSearch && query) {
-      // ═══ EXTERNAL-FIRST MODE: real internet search + DB in parallel ═══
+      const normalizedQuery = sanitizeSearchQuery(query);
+      const minTarget = Math.min(clampedLimit, 12);
 
-      // Run BOTH external search and DB query in parallel
       const [externalResult, dbResult] = await Promise.all([
-        fetchFromCommerceScraper(query, Math.min(clampedLimit, 20))
+        fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
           .then(products => products.map(autoTagProduct))
           .catch(e => { console.error("External search failed:", e); return [] as any[]; }),
         loadFromDB(supabase, {
-          query,
+          query: normalizedQuery,
           category,
           styles,
           fit,
-          limit: Math.min(clampedLimit, 20),
+          limit: Math.min(clampedLimit, 24),
           excludeIds,
           randomize: false,
         }),
@@ -449,104 +546,86 @@ serve(async (req) => {
       externalProducts = externalResult;
       dbProducts = dbResult;
 
-      // Cache valid external products to DB and AWAIT count for logging
-      let insertedCount = 0;
-      let duplicateRejections = 0;
-      if (externalProducts.length > 0) {
-        try {
-          insertedCount = await cacheToDB(supabase, externalProducts);
-          duplicateRejections = externalProducts.length - insertedCount;
-        } catch (e) {
-          console.error("Cache error:", e);
-        }
+      const storedCount = externalProducts.length > 0
+        ? await cacheToDB(supabase, externalProducts, normalizedQuery)
+        : 0;
+
+      let discoveryProducts: any[] = [];
+      let allProducts = enforceDiversity(mergeUniqueProducts(externalProducts, dbProducts));
+
+      if (allProducts.length < minTarget) {
+        discoveryProducts = await fetchFromDiscovery(supabase, normalizedQuery, minTarget);
+        allProducts = enforceDiversity(mergeUniqueProducts(allProducts, discoveryProducts));
       }
 
-      console.log(`[SEARCH_DEBUG] ${JSON.stringify({
-        stage: "FRESH_SEARCH_COMPLETE",
-        raw_query: query,
-        external_fetched: externalProducts.length,
-        db_supplement: dbProducts.length,
-        valid_count: externalProducts.length,
-        inserted_count: insertedCount,
-        duplicate_rejections: duplicateRejections,
-        path: externalProducts.length > 0 ? "DB_PLUS_EXTERNAL" : "DB_ONLY",
-      })}`);
-
-      // Merge — external results FIRST (higher priority), DB fills gaps
-      const externalIds = new Set(externalProducts.map((p: any) => p.external_id));
-      const externalUrls = new Set(externalProducts.map((p: any) => p.source_url).filter(Boolean));
-      const externalNames = new Set(externalProducts.map((p: any) => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25)));
-
-      const uniqueDbProducts = dbProducts.filter((p: any) => {
-        const nameKey = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
-        return !externalIds.has(p.external_id) &&
-          !externalUrls.has(p.source_url) &&
-          !externalNames.has(nameKey);
-      });
-
-      // External products come first, then DB supplements
-      let allProducts = [...externalProducts, ...uniqueDbProducts];
-      allProducts = enforceDiversity(allProducts);
-
-      // GUARANTEE: never return fewer than 6 items. If we're short, broaden the
-      // search by dropping the text query (use category/styles only) — and as a
-      // last resort, pull top trending fashion items from cache.
-      if (allProducts.length < 6) {
-        const seenIds = new Set(allProducts.map((p: any) => p.external_id || p.id));
-        const broaden = await loadFromDB(supabase, {
+      if (allProducts.length < minTarget) {
+        const broadenedDb = await loadFromDB(supabase, {
+          query: normalizedQuery,
           category,
           styles,
           fit,
-          limit: 20,
-          excludeIds: [...seenIds],
+          limit: minTarget * 2,
+          excludeIds: allProducts.map((p: any) => p.external_id || p.id),
           randomize: true,
         });
-        for (const p of broaden) {
-          if (allProducts.length >= 12) break;
-          allProducts.push(p);
-        }
-        // Last resort: any trending fashion item
-        if (allProducts.length < 6) {
-          const trending = await loadFromDB(supabase, {
-            limit: 20,
-            excludeIds: [...new Set(allProducts.map((p: any) => p.external_id || p.id))],
-            randomize: true,
-          });
-          for (const p of trending) {
-            if (allProducts.length >= 12) break;
-            allProducts.push(p);
-          }
-        }
-        console.log(`[SEARCH_DEBUG] broadened fallback engaged → total=${allProducts.length}`);
+        allProducts = enforceDiversity(mergeUniqueProducts(allProducts, broadenedDb));
+      }
+
+      if (allProducts.length < minTarget) {
+        const fallbackDb = await loadFromDB(supabase, {
+          category,
+          styles,
+          fit,
+          limit: minTarget * 2,
+          excludeIds: allProducts.map((p: any) => p.external_id || p.id),
+          randomize: true,
+        });
+        allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
 
       allProducts = allProducts.slice(0, clampedLimit);
 
-      const normalized = allProducts.map(p => ({
-        id: p.external_id || p.id,
-        name: p.name,
-        brand: p.brand || "",
-        price: p.price || "",
-        category: p.category || "",
-        subcategory: p.subcategory || "",
-        reason: p.reason || "",
-        style_tags: p.style_tags || [],
-        color: (p.color_tags || [])[0] || "",
-        fit: p.fit || "regular",
-        image_url: p.image_url,
-        source_url: p.source_url,
-        store_name: p.store_name,
-        platform: p.platform,
-        _source: externalProducts.includes(p) ? "external" : "db",
-      }));
+      const externalKeys = new Set(externalProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
+      const discoveryKeys = new Set(discoveryProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
 
-      console.log(`product-search (fresh): ${normalized.length} total (${externalProducts.length} external, ${uniqueDbProducts.length} DB supplement)`);
+      const normalized = allProducts.map(p => {
+        const identity = [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|");
+        return {
+          id: p.external_id || p.id,
+          name: p.name,
+          brand: p.brand || "",
+          price: p.price || "",
+          category: p.category || "",
+          subcategory: p.subcategory || "",
+          reason: p.reason || "",
+          style_tags: p.style_tags || [],
+          color: (p.color_tags || [])[0] || "",
+          fit: p.fit || "regular",
+          image_url: p.image_url,
+          source_url: p.source_url,
+          store_name: p.store_name,
+          platform: p.platform,
+          _source: externalKeys.has(identity) ? "external" : discoveryKeys.has(identity) ? "discovery" : "db",
+        };
+      });
+
+      console.log(`[SEARCH_SUPPLY] ${JSON.stringify({
+        stage: "FRESH_SEARCH_COMPLETE",
+        raw_query: normalizedQuery,
+        external_fetched: externalProducts.length,
+        discovery_fetched: discoveryProducts.length,
+        db_supplement: dbProducts.length,
+        stored_count: storedCount,
+        final_count: normalized.length,
+      })}`);
 
       return new Response(JSON.stringify({
         products: normalized,
         count: normalized.length,
-        dbCount: uniqueDbProducts.length,
+        dbCount: dbProducts.length,
         externalCount: externalProducts.length,
+        discoveryCount: discoveryProducts.length,
+        storedCount,
         expanded: true,
         freshSearch: true,
       }), {
@@ -554,9 +633,8 @@ serve(async (req) => {
       });
 
     } else {
-      // ═══ DB-FIRST MODE: for feed browsing, category tabs, repeat visits ═══
+      const minTarget = Math.min(clampedLimit, 12);
 
-      // Step 1: DB-first load
       dbProducts = await loadFromDB(supabase, {
         query: query || undefined,
         category,
@@ -567,63 +645,93 @@ serve(async (req) => {
         randomize,
       });
 
-      const needsExpansion = expandExternal || dbProducts.length < 8;
+      const needsExpansion = expandExternal || dbProducts.length < minTarget;
+      let discoveryProducts: any[] = [];
 
-      // Step 2: External expansion if needed (rate-limited)
       if (needsExpansion && (query || category)) {
-        const searchTerm = query || `trending ${category || "fashion"}`;
-        externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 15));
+        const searchTerm = sanitizeSearchQuery(query || `trending ${category || "fashion"}`);
+        externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 18));
         externalProducts = externalProducts.map(autoTagProduct);
 
         if (externalProducts.length > 0) {
-          cacheToDB(supabase, externalProducts).then(n => {
-            if (n > 0) console.log(`Cached ${n} new products`);
-          }).catch(e => console.error("Cache error:", e));
+          await cacheToDB(supabase, externalProducts, searchTerm);
+        }
+
+        let mergedForThreshold = mergeUniqueProducts(dbProducts, externalProducts);
+        if (mergedForThreshold.length < minTarget) {
+          discoveryProducts = await fetchFromDiscovery(supabase, searchTerm, minTarget);
+          mergedForThreshold = mergeUniqueProducts(mergedForThreshold, discoveryProducts);
+        }
+
+        if (mergedForThreshold.length < minTarget) {
+          const broadenedDb = await loadFromDB(supabase, {
+            category,
+            styles,
+            fit,
+            limit: minTarget * 2,
+            excludeIds: [...excludeIds, ...mergedForThreshold.map((p: any) => p.external_id || p.id)],
+            randomize: true,
+          });
+          dbProducts = mergeUniqueProducts(dbProducts, broadenedDb);
         }
       }
 
-      // Step 3: Merge DB + external, deduplicate
-      const existingIds = new Set(dbProducts.map((p: any) => p.external_id || p.id));
-      const existingUrls = new Set(dbProducts.map((p: any) => p.source_url).filter(Boolean));
-      const existingNames = new Set(dbProducts.map((p: any) => (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25)));
-      const newExternal = externalProducts.filter((p: any) => {
-        const nameKey = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
-        return !existingIds.has(p.external_id) && 
-          !existingUrls.has(p.source_url) &&
-          !existingNames.has(nameKey) &&
-          isImageUrlSafe(p.image_url);
-      });
+      let allProducts = mergeUniqueProducts(dbProducts, externalProducts);
+      allProducts = mergeUniqueProducts(allProducts, discoveryProducts);
 
-      let allProducts = [...dbProducts, ...newExternal];
+      if (allProducts.length < minTarget) {
+        const trending = await loadFromDB(supabase, {
+          limit: minTarget * 2,
+          excludeIds: [...excludeIds, ...allProducts.map((p: any) => p.external_id || p.id)],
+          randomize: true,
+        });
+        allProducts = mergeUniqueProducts(allProducts, trending);
+      }
+
       allProducts = enforceDiversity(allProducts);
       allProducts = allProducts.slice(0, clampedLimit);
 
-      const normalized = allProducts.map(p => ({
-        id: p.external_id || p.id,
-        name: p.name,
-        brand: p.brand || "",
-        price: p.price || "",
-        category: p.category || "",
-        subcategory: p.subcategory || "",
-        reason: p.reason || "",
-        style_tags: p.style_tags || [],
-        color: (p.color_tags || [])[0] || "",
-        fit: p.fit || "regular",
-        image_url: p.image_url,
-        source_url: p.source_url,
-        store_name: p.store_name,
-        platform: p.platform,
-        _source: dbProducts.includes(p) ? "db" : "external",
-      }));
+      const externalKeys = new Set(externalProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
+      const discoveryKeys = new Set(discoveryProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
 
-      console.log(`product-search result: ${normalized.length} total (${dbProducts.length} DB, ${newExternal.length} external)`);
+      const normalized = allProducts.map(p => {
+        const identity = [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|");
+        return {
+          id: p.external_id || p.id,
+          name: p.name,
+          brand: p.brand || "",
+          price: p.price || "",
+          category: p.category || "",
+          subcategory: p.subcategory || "",
+          reason: p.reason || "",
+          style_tags: p.style_tags || [],
+          color: (p.color_tags || [])[0] || "",
+          fit: p.fit || "regular",
+          image_url: p.image_url,
+          source_url: p.source_url,
+          store_name: p.store_name,
+          platform: p.platform,
+          _source: externalKeys.has(identity) ? "external" : discoveryKeys.has(identity) ? "discovery" : "db",
+        };
+      });
+
+      console.log(`[SEARCH_SUPPLY] ${JSON.stringify({
+        stage: "DB_FIRST_COMPLETE",
+        query: query || "",
+        category: category || "",
+        db_count: dbProducts.length,
+        external_count: externalProducts.length,
+        discovery_count: discoveryProducts.length,
+        final_count: normalized.length,
+      })}`);
 
       return new Response(JSON.stringify({
         products: normalized,
         count: normalized.length,
         dbCount: dbProducts.length,
-        externalCount: newExternal.length,
-        expanded: needsExpansion,
+        externalCount: externalProducts.length,
+        discoveryCount: discoveryProducts.length,
+        expanded: needsExpansion || discoveryProducts.length > 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
