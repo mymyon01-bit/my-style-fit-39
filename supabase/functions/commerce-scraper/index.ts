@@ -39,17 +39,16 @@ function isImageUrlSafe(url: unknown): boolean {
 }
 
 // ─── Platform configs: public search URLs only ───
-// Platform reliability is graded from logs:
-//   ASOS    → fast, reliable, lightweight HTML  (KEEP ENABLED)
-//   SSENSE  → frequent 502 Bad Gateway from Firecrawl, but works ~50% (RETRY ENABLED)
-//   Naver   → heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
-//   Farfetch→ heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
-//   SSG     → heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
+// All platforms re-enabled. We tolerate partial failure: each source is
+// attempted; if it times out or 5xx's, we skip it for THIS request only and
+// continue with whatever results other sources returned. Never disable
+// permanently — a source that fails now may work in 2 minutes.
 const PLATFORMS: Record<string, {
   searchUrl: (q: string) => string;
   name: string;
   enabled: boolean;
   trustLevel: "high" | "medium" | "low";
+  priority: number; // lower = called first
 }> = {
   asos: {
     searchUrl: (q: string) =>
@@ -57,6 +56,7 @@ const PLATFORMS: Record<string, {
     name: "ASOS",
     enabled: true,
     trustLevel: "medium",
+    priority: 1, // fastest, most reliable
   },
   ssense: {
     searchUrl: (q: string) =>
@@ -64,29 +64,31 @@ const PLATFORMS: Record<string, {
     name: "SSENSE",
     enabled: true,
     trustLevel: "high",
-  },
-  // Disabled by default — these sources time out >90% of the time and burn the
-  // 30s budget that working platforms need. Re-enable individually when needed.
-  naver: {
-    searchUrl: (q: string) =>
-      `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
-    name: "Naver Shopping",
-    enabled: false,
-    trustLevel: "medium",
+    priority: 2,
   },
   farfetch: {
     searchUrl: (q: string) =>
       `https://www.farfetch.com/shopping/men/search/items.aspx?q=${encodeURIComponent(q)}`,
     name: "Farfetch",
-    enabled: false,
+    enabled: true,
     trustLevel: "high",
+    priority: 3,
+  },
+  naver: {
+    searchUrl: (q: string) =>
+      `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
+    name: "Naver Shopping",
+    enabled: true,
+    trustLevel: "medium",
+    priority: 4,
   },
   ssg: {
     searchUrl: (q: string) =>
       `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(q)}`,
     name: "SSG",
-    enabled: false,
+    enabled: true,
     trustLevel: "medium",
+    priority: 5,
   },
 };
 
