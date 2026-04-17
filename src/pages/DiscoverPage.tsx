@@ -1929,9 +1929,9 @@ const DiscoverPage = () => {
           }
         }
 
-        // STAGE 2: Full external search in background
+        // STAGE 2: Full external search in background (cap concurrency to 3)
         Promise.all(
-          searchQueries.slice(0, 6).map(eq =>
+          searchQueries.slice(0, 3).map(eq =>
             hybridProductSearch({
               query: eq,
               limit: 10,
@@ -1942,16 +1942,15 @@ const DiscoverPage = () => {
             })
           )
         ).then(results => {
+          if (lastPromptRef.current !== q) return;
           const allProducts = results.flatMap(r => r.products);
           const scenarioFiltered = filterForScenario(allProducts, intent);
-          const diverse = enforceClientDiversity(scenarioFiltered, new Set([...quickDiverse.map(p => p.id)]));
-
-          if (diverse.length > 0) {
-            diverse.forEach(p => sessionSeenIds.add(p.id));
-            setRecommendations(prev => {
-              const merged = enforceClientDiversity([...prev, ...diverse], new Set()).slice(0, 30);
-              return merged;
-            });
+          // STRICT relevance for late merges — only high-quality additions
+          const strict = filterByRelevanceStrict(scenarioFiltered, intent, userSignals);
+          if (strict.length > 0) {
+            strict.forEach(p => sessionSeenIds.add(p.id));
+            // Append-only — never reorder or drop existing items
+            setRecommendations(prev => appendUnique(prev, strict, 40));
           }
         }).catch(err => {
           console.error("Scenario external search error:", err);
@@ -1963,6 +1962,9 @@ const DiscoverPage = () => {
         if (quickDiverse.length === 0) {
           // spinner stays on via isGenerating
         } else {
+          setIsGenerating(false);
+        }
+      } else {
           setIsGenerating(false);
         }
       } else {
