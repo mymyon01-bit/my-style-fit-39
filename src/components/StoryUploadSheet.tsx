@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, Video } from "lucide-react";
+import { X, Camera, Loader2, Video, Globe2, Users, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
@@ -21,6 +21,7 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [caption, setCaption] = useState("");
+  const [audience, setAudience] = useState<"all" | "circles" | "friends">("all");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string>("");
 
@@ -29,6 +30,7 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
       setFile(null);
       setPreview(null);
       setCaption("");
+      setAudience("all");
       setUploading(false);
       setProgress("");
     }
@@ -83,7 +85,8 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
         media_url: publicUrl,
         media_type: mediaType,
         caption: caption.trim() || null,
-      });
+        audience,
+      } as any);
       if (insErr) throw insErr;
 
       toast.success("Story posted · expires in 24h");
@@ -172,6 +175,37 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
                   maxLength={80}
                   className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-accent/40"
                 />
+
+                {/* Audience selector */}
+                <div>
+                  <p className="text-[10px] font-medium tracking-[0.18em] text-foreground/50 mb-2">SHARE WITH</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { v: "all", label: "Everyone", Icon: Globe2 },
+                      { v: "circles", label: "My circle", Icon: Users },
+                      { v: "friends", label: "Friends", Icon: UserCheck },
+                    ] as const).map(({ v, label, Icon }) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setAudience(v)}
+                        className={`flex flex-col items-center gap-1 rounded-xl border py-2.5 transition-all ${
+                          audience === v
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border/40 text-foreground/55 hover:text-foreground/80"
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        <span className="text-[10px] font-medium">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-foreground/40 mt-1.5">
+                    {audience === "all" && "Visible to everyone on Wardrobe."}
+                    {audience === "circles" && "Only people who follow you can see this."}
+                    {audience === "friends" && "Only people you follow back can see this."}
+                  </p>
+                </div>
 
                 <button
                   onClick={handlePost}

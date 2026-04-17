@@ -862,6 +862,7 @@ export type Database = {
       }
       stories: {
         Row: {
+          audience: string
           caption: string | null
           created_at: string
           expires_at: string | null
@@ -872,6 +873,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          audience?: string
           caption?: string | null
           created_at?: string
           expires_at?: string | null
@@ -882,6 +884,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          audience?: string
           caption?: string | null
           created_at?: string
           expires_at?: string | null
