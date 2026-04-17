@@ -971,6 +971,8 @@ const DiscoverPage = () => {
   const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
   // Scenario context for display
   const [activeScenario, setActiveScenario] = useState<{ label: string; items: string[] } | null>(null);
+  // Step 3: human-readable explanation of what the search interpreted
+  const [searchExplanation, setSearchExplanation] = useState<string | null>(null);
   
   // Whether user needs to complete preferences
   const needsPreferences = !userStyleProfile && !quizAnswers;
