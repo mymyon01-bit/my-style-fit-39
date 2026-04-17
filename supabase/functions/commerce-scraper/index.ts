@@ -273,7 +273,7 @@ async function extractProducts(
       })
     );
 
-    return validated
+    const products = validated
       .filter(Boolean)
       .map((p: any, i: number) => ({
         external_id: `${platformId}-${hashString(p.product_url || p.title)}-${i}`,
@@ -295,6 +295,9 @@ async function extractProducts(
         source_type: "scraper",
         source_trust_level: platform.trustLevel,
       }));
+    const elapsed = Date.now() - startedAt;
+    console.log(`[${platformId}] DONE in ${elapsed}ms — extracted=${extracted.length}, candidates=${candidates.length}, validated=${products.length}`);
+    return products;
   } catch (e) {
     console.error(`[${platformId}] Scrape failed:`, e);
     return [];
