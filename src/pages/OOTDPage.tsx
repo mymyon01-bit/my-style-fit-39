@@ -12,6 +12,7 @@ import CrownedBoard from "@/components/CrownedBoard";
 import StoriesRow, { type UserStories } from "@/components/StoriesRow";
 import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
+import MyPageProfileHeader from "@/components/MyPageProfileHeader";
 import { toast } from "sonner";
 
 interface OOTDPost {
@@ -360,6 +361,15 @@ const OOTDPage = () => {
             <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">OOTD</span>
           </div>
         </div>
+
+        {/* My Page profile header — owner-only quick edit + privacy */}
+        {activeTab === "mypage" && user && (
+          <MyPageProfileHeader
+            postCount={myPosts.length}
+            totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
+            refreshKey={storiesRefreshKey}
+          />
+        )}
 
         {/* Stories row — Community shows everyone, My Page shows your circle */}
         {activeTab !== "crowned" && (
