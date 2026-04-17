@@ -2594,9 +2594,9 @@ const DiscoverPage = () => {
             ) : hasGenerated ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Sparkles className="h-6 w-6 text-accent/25 mb-4" />
-                <p className="text-[12px] font-medium text-foreground/75">No verified products found</p>
-                <p className="text-[10px] text-foreground/50 mt-1 max-w-[240px]">
-                  We only show real, verified items. Try a different search or check back soon as our inventory grows.
+                <p className="text-[12px] font-medium text-foreground/75">Looking for fresh picks…</p>
+                <p className="text-[10px] text-foreground/50 mt-1 max-w-[260px]">
+                  Our shops are restocking. Try a broader keyword or browse trending picks while we refresh inventory.
                 </p>
                 <button
                   onClick={() => {

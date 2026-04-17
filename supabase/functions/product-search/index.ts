@@ -111,16 +111,14 @@ async function loadFromDB(supabase: any, opts: {
         return { ...p, _relevance: relevance };
       });
 
-      // STRICT: only keep items with relevance > 0.15 (at least some term match)
-      const relevant = results.filter((r: any) => r._relevance > 0.15);
-      // Sort by relevance
+      // RELAXED: keep items with any term overlap (relevance > 0). If still
+      // not enough, fall back to all results sorted by relevance — never starve.
+      const relevant = results.filter((r: any) => (r._relevance || 0) > 0);
       relevant.sort((a: any, b: any) => b._relevance - a._relevance);
 
-      // If we have enough relevant results, use only those
       if (relevant.length >= 3) {
         results = relevant;
       } else {
-        // Not enough relevant results — return what we have but mark as low relevance
         results.sort((a: any, b: any) => (b._relevance || 0) - (a._relevance || 0));
       }
     }
@@ -224,11 +222,10 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!baseUrl || !serviceKey) return [];
 
-    // 50s budget. Inner scraper takes ~30s per platform but runs platforms in 2-wide
-    // batches, so 5 platforms ≈ 45s worst case. The parent edge function has plenty
-    // of wall clock; what we MUST avoid is killing scraper before it returns anything.
+    // 25s budget. The scraper now runs all 5 platforms in parallel, each capped
+    // at 15s, so wall-clock is ~15-20s. Tight enough to leave room for fallback.
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 50000);
+    const timeout = setTimeout(() => controller.abort(), 25000);
 
     const res = await fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
       method: "POST",
@@ -238,8 +235,8 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
       },
       body: JSON.stringify({
         query: sanitizedQuery,
-        platforms: ["naver", "ssense", "farfetch", "asos", "ssg"],
-        limit: Math.min(limit, 15),
+        platforms: ["asos", "ssense", "farfetch", "naver", "ssg"],
+        limit: Math.min(limit, 20),
       }),
       signal: controller.signal,
     });
@@ -490,6 +487,39 @@ serve(async (req) => {
       // External products come first, then DB supplements
       let allProducts = [...externalProducts, ...uniqueDbProducts];
       allProducts = enforceDiversity(allProducts);
+
+      // GUARANTEE: never return fewer than 6 items. If we're short, broaden the
+      // search by dropping the text query (use category/styles only) — and as a
+      // last resort, pull top trending fashion items from cache.
+      if (allProducts.length < 6) {
+        const seenIds = new Set(allProducts.map((p: any) => p.external_id || p.id));
+        const broaden = await loadFromDB(supabase, {
+          category,
+          styles,
+          fit,
+          limit: 20,
+          excludeIds: [...seenIds],
+          randomize: true,
+        });
+        for (const p of broaden) {
+          if (allProducts.length >= 12) break;
+          allProducts.push(p);
+        }
+        // Last resort: any trending fashion item
+        if (allProducts.length < 6) {
+          const trending = await loadFromDB(supabase, {
+            limit: 20,
+            excludeIds: [...new Set(allProducts.map((p: any) => p.external_id || p.id))],
+            randomize: true,
+          });
+          for (const p of trending) {
+            if (allProducts.length >= 12) break;
+            allProducts.push(p);
+          }
+        }
+        console.log(`[SEARCH_DEBUG] broadened fallback engaged → total=${allProducts.length}`);
+      }
+
       allProducts = allProducts.slice(0, clampedLimit);
 
       const normalized = allProducts.map(p => ({

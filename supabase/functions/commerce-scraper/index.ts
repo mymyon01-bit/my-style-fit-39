@@ -39,17 +39,16 @@ function isImageUrlSafe(url: unknown): boolean {
 }
 
 // ─── Platform configs: public search URLs only ───
-// Platform reliability is graded from logs:
-//   ASOS    → fast, reliable, lightweight HTML  (KEEP ENABLED)
-//   SSENSE  → frequent 502 Bad Gateway from Firecrawl, but works ~50% (RETRY ENABLED)
-//   Naver   → heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
-//   Farfetch→ heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
-//   SSG     → heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
+// All platforms re-enabled. We tolerate partial failure: each source is
+// attempted; if it times out or 5xx's, we skip it for THIS request only and
+// continue with whatever results other sources returned. Never disable
+// permanently — a source that fails now may work in 2 minutes.
 const PLATFORMS: Record<string, {
   searchUrl: (q: string) => string;
   name: string;
   enabled: boolean;
   trustLevel: "high" | "medium" | "low";
+  priority: number; // lower = called first
 }> = {
   asos: {
     searchUrl: (q: string) =>
@@ -57,6 +56,7 @@ const PLATFORMS: Record<string, {
     name: "ASOS",
     enabled: true,
     trustLevel: "medium",
+    priority: 1, // fastest, most reliable
   },
   ssense: {
     searchUrl: (q: string) =>
@@ -64,29 +64,31 @@ const PLATFORMS: Record<string, {
     name: "SSENSE",
     enabled: true,
     trustLevel: "high",
-  },
-  // Disabled by default — these sources time out >90% of the time and burn the
-  // 30s budget that working platforms need. Re-enable individually when needed.
-  naver: {
-    searchUrl: (q: string) =>
-      `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
-    name: "Naver Shopping",
-    enabled: false,
-    trustLevel: "medium",
+    priority: 2,
   },
   farfetch: {
     searchUrl: (q: string) =>
       `https://www.farfetch.com/shopping/men/search/items.aspx?q=${encodeURIComponent(q)}`,
     name: "Farfetch",
-    enabled: false,
+    enabled: true,
     trustLevel: "high",
+    priority: 3,
+  },
+  naver: {
+    searchUrl: (q: string) =>
+      `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
+    name: "Naver Shopping",
+    enabled: true,
+    trustLevel: "medium",
+    priority: 4,
   },
   ssg: {
     searchUrl: (q: string) =>
       `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(q)}`,
     name: "SSG",
-    enabled: false,
+    enabled: true,
     trustLevel: "medium",
+    priority: 5,
   },
 };
 
@@ -156,9 +158,10 @@ async function scrapePlatform(
   const startedAt = Date.now();
   console.log(`[${platformId}] START scrape: ${searchUrl}`);
 
-  // Retry once on transient failure (502/504/timeout). After 2 attempts, give up.
-  const MAX_ATTEMPTS = 2;
-  const PER_ATTEMPT_TIMEOUT_MS = 25000; // 25s per attempt × 2 = 50s budget per platform
+  // Tighter per-attempt timeout (15s) so one slow platform can't starve others.
+  // Single attempt only — retry is wasteful when 5 platforms run in parallel.
+  const MAX_ATTEMPTS = 1;
+  const PER_ATTEMPT_TIMEOUT_MS = 15000;
   let lastError: string | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -200,7 +203,7 @@ async function scrapePlatform(
               prompt: `Extract ONLY fashion product listings (clothing, shoes, bags, accessories) from this ${platform.name} search results page. IGNORE: editorial images, people photos, lifestyle images, banners, ads. For each PRODUCT, get: title (must be a product name like "Oversized Cotton Hoodie"), brand, price (with currency symbol), image_url (full https URL of the product image, NOT editorial/lifestyle photos), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
             },
           ],
-          waitFor: 1500,
+          waitFor: 1000,
           onlyMainContent: true,
         }),
         signal: controller.signal,
@@ -210,32 +213,22 @@ async function scrapePlatform(
       if (!response.ok) {
         const errText = await response.text();
         lastError = `${response.status}: ${errText.slice(0, 120)}`;
-        console.error(`[${platformId}] attempt ${attempt}/${MAX_ATTEMPTS} Firecrawl error ${lastError}`);
-        // Retry on 5xx (transient). Don't retry on 4xx (client error).
-        if (response.status >= 500 && attempt < MAX_ATTEMPTS) {
-          await new Promise((r) => setTimeout(r, 700));
-          continue;
-        }
+        console.error(`[${platformId}] Firecrawl error ${lastError}`);
         return [];
       }
 
       const result = await response.json();
-      // success — fall through to extraction below
       return await extractProducts(result, platform, platformId, startedAt);
     } catch (e) {
       clearTimeout(timeout);
       const msg = e instanceof Error ? e.message : String(e);
       lastError = msg;
       const elapsed = Date.now() - startedAt;
-      console.error(`[${platformId}] attempt ${attempt}/${MAX_ATTEMPTS} failed after ${elapsed}ms: ${msg}`);
-      if (attempt < MAX_ATTEMPTS && msg.includes("abort")) {
-        await new Promise((r) => setTimeout(r, 500));
-        continue;
-      }
+      console.error(`[${platformId}] failed after ${elapsed}ms: ${msg}`);
       return [];
     }
   }
-  console.error(`[${platformId}] gave up after ${MAX_ATTEMPTS} attempts: ${lastError}`);
+  console.error(`[${platformId}] gave up: ${lastError}`);
   return [];
 }
 
@@ -249,9 +242,10 @@ async function extractProducts(
   try {
     const extracted = result?.json?.products || result?.data?.json?.products || [];
 
-    // Pre-filter: must have title, price, safe image, valid product URL, and fashion-relevant title
-    const PRODUCT_KEYWORDS = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|top|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|purse|clutch|wallet|hat|cap|beanie|watch|belt|scarf|gloves?|socks?|tie|sunglasses|ring|necklace|bracelet|earring|bomber|parka|windbreaker|pullover|sweatshirt|chinos?|joggers?|leggings?|overalls?|jumpsuit|romper|blouse|tunic|camisole|tank|henley|oxford|flannel|denim|corduroy|knit|cashmere|leather|suede|canvas|cotton|wool|silk|linen|nylon|polyester)\b/i;
-    const NON_PRODUCT_KEYWORDS = /\b(lookbook|editorial|photoshoot|inspiration|outfit\s*of\s*the\s*day|ootd|how\s+to\s+wear|style\s+guide|fashion\s+week|runway|collection\s+overview|behind\s+the\s+scenes|interview|article|blog|news|magazine|trending\s+now)\b/i;
+    // RELAXED filter: just need a title, price, safe image URL, and a product link.
+    // Fashion-relevance is checked once via isFashionProduct (which already covers
+    // a wide vocabulary). The previous double-whitelist was rejecting valid items.
+    const NON_PRODUCT_KEYWORDS = /\b(lookbook|editorial|photoshoot|how\s+to\s+wear|style\s+guide|fashion\s+week|runway|behind\s+the\s+scenes)\b/i;
 
     const candidates = extracted.filter(
       (p: any) =>
@@ -261,11 +255,12 @@ async function extractProducts(
         p.price &&
         isImageUrlSafe(p.image_url) &&
         p.product_url?.startsWith("http") &&
-        PRODUCT_KEYWORDS.test(p.title) &&
         !NON_PRODUCT_KEYWORDS.test(p.title)
     );
 
-    // HEAD-validate images in parallel (discard failures)
+    // HEAD-validate images in parallel — but accept on failure (relaxed validation).
+    // validateImageHead now returns true on network errors so we don't discard
+    // every external result over a flaky probe.
     const validated = await Promise.all(
       candidates.slice(0, 12).map(async (p: any) => {
         const ok = await validateImageHead(p.image_url);
@@ -300,6 +295,79 @@ async function extractProducts(
     return products;
   } catch (e) {
     console.error(`[${platformId}] Scrape failed:`, e);
+    return [];
+  }
+}
+
+// ─── Firecrawl Web Search fallback ───
+// When platform scrapers fail or return too few items, hit Firecrawl Search
+// for a generic shopping query. Fast (~3s), no JS rendering. We treat results
+// as a "web" platform with medium trust.
+async function firecrawlSearchFallback(
+  query: string,
+  apiKey: string,
+  limit = 10
+): Promise<ScrapedProduct[]> {
+  const startedAt = Date.now();
+  console.log(`[firecrawl-search] START fallback for "${query}"`);
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(`${FIRECRAWL_V2}/search`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${query} buy shop product`,
+        limit: Math.min(limit, 15),
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.error(`[firecrawl-search] HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    const results: any[] = data?.data?.web || data?.web || data?.data || [];
+    const products: ScrapedProduct[] = [];
+    for (const r of results.slice(0, limit)) {
+      const url = r.url || r.link;
+      const title = (r.title || "").slice(0, 150);
+      if (!url || !title || !isFashionProduct(title)) continue;
+      // No image from search → skip (we still need a visual). Real ingestion
+      // will happen on next platform scrape; this fallback is best-effort only.
+      const img = r.image || r.thumbnail || r.metadata?.ogImage;
+      if (!isImageUrlSafe(img)) continue;
+      products.push({
+        external_id: `web-${hashString(url)}`,
+        name: title,
+        brand: r.metadata?.siteName || "",
+        price: "—",
+        category: mapCategory(title),
+        subcategory: "",
+        style_tags: inferStyleFromTitle(title),
+        color_tags: inferColorFromTitle(title),
+        fit: "regular",
+        image_url: img,
+        source_url: url,
+        store_name: r.metadata?.siteName || "Web",
+        reason: "Web search result",
+        platform: "web",
+        image_valid: true,
+        is_active: true,
+        source_type: "web_search",
+        source_trust_level: "low",
+      });
+    }
+    const elapsed = Date.now() - startedAt;
+    console.log(`[firecrawl-search] DONE in ${elapsed}ms — results=${results.length}, validated=${products.length}`);
+    return products;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[firecrawl-search] failed: ${msg}`);
     return [];
   }
 }
@@ -498,24 +566,43 @@ serve(async (req) => {
     const sanitizedQuery = query.replace(/[<>"'`;]/g, "").trim().slice(0, 100);
 
     const requestedPlatforms: string[] = platforms || Object.keys(PLATFORMS);
-    const enabledPlatforms = requestedPlatforms.filter(
-      (p) => PLATFORMS[p]?.enabled && canCallPlatform(p)
-    );
+    const enabledPlatforms = requestedPlatforms
+      .filter((p) => PLATFORMS[p]?.enabled && canCallPlatform(p))
+      .sort((a, b) => (PLATFORMS[a].priority || 99) - (PLATFORMS[b].priority || 99));
 
     console.log(
       `commerce-scraper: query="${sanitizedQuery}", platforms=[${enabledPlatforms.join(",")}]`
     );
 
-    // Scrape platforms in parallel (max 2 concurrent to stay within rate limits)
-    const batchSize = 2;
+    // Run ALL enabled platforms in parallel — each capped at 15s, so wall-clock
+    // is ~15s regardless of platform count. Partial failure is expected and OK:
+    // we collect whatever returns. allSettled means one bad source can't poison
+    // the batch.
+    const perPlatformStats: Record<string, number> = {};
+    const settled = await Promise.allSettled(
+      enabledPlatforms.map((p) => scrapePlatform(p, sanitizedQuery, apiKey))
+    );
     let allProducts: ScrapedProduct[] = [];
+    settled.forEach((res, i) => {
+      const platformId = enabledPlatforms[i];
+      if (res.status === "fulfilled") {
+        perPlatformStats[platformId] = res.value.length;
+        allProducts.push(...res.value);
+      } else {
+        perPlatformStats[platformId] = 0;
+        console.error(`[${platformId}] rejected:`, res.reason);
+      }
+    });
+    console.log(`commerce-scraper per-platform: ${JSON.stringify(perPlatformStats)}`);
 
-    for (let i = 0; i < enabledPlatforms.length; i += batchSize) {
-      const batch = enabledPlatforms.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map((p) => scrapePlatform(p, sanitizedQuery, apiKey))
-      );
-      allProducts.push(...results.flat());
+    // FALLBACK: if scraping returned too few items, supplement with web search.
+    if (allProducts.length < 6) {
+      try {
+        const webResults = await firecrawlSearchFallback(sanitizedQuery, apiKey, 12);
+        allProducts.push(...webResults);
+      } catch (e) {
+        console.error("firecrawl-search fallback failed:", e);
+      }
     }
 
     // Track rejected products for admin monitoring
@@ -564,6 +651,7 @@ serve(async (req) => {
     if (rejectedCount > 0) {
       console.log(`Rejected ${rejectedCount} products (duplicates/diversity limits)`);
     }
+    console.log(`commerce-scraper RESULT: ${allProducts.length} products from ${enabledPlatforms.length} platforms`);
 
     // Cache to DB in background
     cacheToDB(supabase, allProducts)
