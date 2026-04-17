@@ -1312,9 +1312,9 @@ const DiscoverPage = () => {
   // ── "How about this?" loader: instant DB recommendations based on user taste + (loosely) the query ──
   const loadDbRecommendations = useCallback(async (query: string) => {
     try {
-      const stylesFromUser = userStyleProfile?.preferred_styles || quizAnswers?.styles || [];
+      const stylesFromUser: string[] = userStyleProfile?.preferred_styles || quizAnswers?.preferredStyles || [];
       const dislikedStyles: string[] = userStyleProfile?.disliked_styles || [];
-      const fitFromUser = userStyleProfile?.preferred_fit || quizAnswers?.fit || undefined;
+      const fitFromUser: string | undefined = userStyleProfile?.preferred_fit || quizAnswers?.fitPreference || undefined;
 
       // Pull a wide set then rank locally so it stays loosely related to the query
       // without competing with the strict bottom search-result section.
