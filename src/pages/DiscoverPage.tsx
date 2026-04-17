@@ -1636,20 +1636,24 @@ const DiscoverPage = () => {
       let searchIntentResult: SearchIntentResult;
       let softTimeoutTriggered = false;
 
-      if (cached && Date.now() - cached.ts < INTENT_CACHE_TTL) {
+      if (cached && Date.now() - cached.ts < (cached.isFallback ? FALLBACK_INTENT_CACHE_TTL : INTENT_CACHE_TTL)) {
         searchIntentResult = {
           queries: cached.queries,
           category: cached.category,
           style_tags: cached.style_tags || [],
           type: cached.type,
-          source: "cache",
-          cacheable: true,
-          searchPathStatus: "PERPLEXITY_CACHED",
+          source: cached.isFallback ? "fallback" : "cache",
+          cacheable: !cached.isFallback,
+          searchPathStatus: cached.isFallback ? "FALLBACK_ONLY" : "PERPLEXITY_CACHED",
         };
-        console.info("[search] using cached Perplexity queries", { query: q, queries: cached.queries.length });
+        console.info("[search] using cached queries", { query: q, queries: cached.queries.length, isFallback: !!cached.isFallback });
       } else {
         const aiPromise = aiExpandQuery(q);
 
+        // Late-response handler: when Perplexity arrives AFTER the soft timeout,
+        // (a) cache the better queries for future searches AND
+        // (b) fire a background ingestion using those queries that merges into the visible UI.
+        // This is what makes Perplexity actually contribute to the *current* search experience.
         void aiPromise.then((lateResult) => {
           if (!softTimeoutTriggered) return;
           const lateWasPerplexity = lateResult.source === "perplexity";
@@ -1660,6 +1664,46 @@ const DiscoverPage = () => {
             successfulQueriesCached: lateWasPerplexity && lateResult.cacheable,
             requestId: lateResult.debug?.request_id,
           });
+
+          // Only enrich the active search if Perplexity actually returned good queries
+          // AND the user is still looking at this query (not typed something new).
+          if (!lateWasPerplexity || !lateResult.cacheable) return;
+          if (lastPromptRef.current !== q) return;
+
+          // Background ingestion: hit external scraper for the top 4 Perplexity queries
+          // and merge any new validated products into the visible results.
+          const lateQueries = lateResult.queries.slice(0, 4);
+          console.info("[search] LATE_BACKGROUND_INGESTION_START", { query: q, lateQueries });
+          Promise.all(
+            lateQueries.map(lq =>
+              hybridProductSearch({
+                query: lq,
+                limit: 10,
+                excludeIds: Array.from(sessionSeenIds),
+                freshSearch: true,
+                expandExternal: true,
+                randomize: false,
+              }).catch(() => ({ products: [] as AIRecommendation[], expanded: false, dbCount: 0 }))
+            )
+          ).then(results => {
+            if (lastPromptRef.current !== q) return; // user moved on
+            const lateProducts = results.flatMap(r => r.products);
+            if (!lateProducts.length) return;
+            const lateIntent = parseQueryIntent(q);
+            const lateRelevant = filterByRelevance(lateProducts, lateIntent);
+            const lateDiverse = enforceClientDiversity(lateRelevant, new Set(Array.from(sessionSeenIds)));
+            if (!lateDiverse.length) return;
+            lateDiverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => {
+              const merged = enforceClientDiversity([...prev, ...lateDiverse], new Set()).slice(0, 30);
+              console.info("[search] LATE_INGESTION_MERGED", {
+                query: q,
+                newProducts: lateDiverse.length,
+                totalAfterMerge: merged.length,
+              });
+              return merged;
+            });
+          });
         }).catch(() => {});
 
         searchIntentResult = await Promise.race([
@@ -1667,8 +1711,14 @@ const DiscoverPage = () => {
           new Promise<SearchIntentResult>((resolve) =>
             setTimeout(() => {
               softTimeoutTriggered = true;
-              console.info("[search] AI soft timeout (1500ms) — using local fallback. AI continues in background.", {
+              console.info(`[search] AI soft timeout (${SEARCH_INTENT_SOFT_TIMEOUT_MS}ms) — using local fallback. AI continues in background.`, {
                 query: q,
+              });
+              // Cache fallback briefly so a quick retype doesn't re-race Perplexity needlessly.
+              intentCache.set(cacheKey, {
+                queries: localExpanded,
+                ts: Date.now(),
+                isFallback: true,
               });
               resolve({
                 queries: localExpanded,
