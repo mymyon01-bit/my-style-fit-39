@@ -181,44 +181,44 @@ export default function OOTDPostDetail({
   const getReplies = (parentId: string) => comments.filter(c => c.parent_id === parentId);
 
   const renderComment = (c: Comment, isReply = false) => (
-    <div key={c.id} className={`flex gap-2 group ${isReply ? "ml-6 mt-1.5" : ""}`}>
+    <div key={c.id} className={`flex gap-2 group ${isReply ? "ml-6 mt-2" : ""}`}>
       <button
         onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }}
-        className="h-5 w-5 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0 mt-0.5"
+        className="h-7 w-7 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0 mt-0.5"
       >
         {profileMap[c.user_id]?.avatar_url ? (
           <img src={profileMap[c.user_id].avatar_url!} className="h-full w-full object-cover" />
         ) : (
-          <div className="h-full w-full flex items-center justify-center text-[7px] font-bold text-foreground/30">
+          <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/40">
             {getCommentName(c.user_id)[0].toUpperCase()}
           </div>
         )}
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5">
-          <button onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }} className="text-[10px] font-semibold text-foreground/60 hover:text-foreground/80">
+          <button onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }} className="text-[12px] font-semibold text-foreground/80 hover:text-foreground">
             {getCommentName(c.user_id)}
           </button>
-          <span className="text-[8px] text-foreground/20">{timeAgo(c.created_at)}</span>
+          <span className="text-[10px] text-foreground/35">{timeAgo(c.created_at)}</span>
         </div>
-        <p className="text-[10px] text-foreground/50 leading-relaxed">{c.content}</p>
-        <div className="flex items-center gap-3 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => toggleCommentLike(c.id)} className={`flex items-center gap-0.5 text-[8px] ${commentLikes.has(c.id) ? "text-rose-400" : "text-foreground/30 hover:text-foreground/50"}`}>
-            <Heart className={`h-2.5 w-2.5 ${commentLikes.has(c.id) ? "fill-current" : ""}`} />
+        <p className="text-[13px] text-foreground/80 leading-relaxed">{c.content}</p>
+        <div className="flex items-center gap-3 mt-1 opacity-60 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => toggleCommentLike(c.id)} className={`flex items-center gap-0.5 text-[10px] ${commentLikes.has(c.id) ? "text-rose-400" : "text-foreground/40 hover:text-foreground/60"}`}>
+            <Heart className={`h-3 w-3 ${commentLikes.has(c.id) ? "fill-current" : ""}`} />
             {(commentLikeCounts[c.id] || 0) > 0 && <span>{commentLikeCounts[c.id]}</span>}
           </button>
           {!isReply && (
-            <button onClick={() => setReplyTo({ id: c.id, name: getCommentName(c.user_id) })} className="text-[8px] text-foreground/30 hover:text-foreground/50">
+            <button onClick={() => setReplyTo({ id: c.id, name: getCommentName(c.user_id) })} className="text-[10px] text-foreground/40 hover:text-foreground/60">
               Reply
             </button>
           )}
           {canDeleteComment(c) && (
-            <button onClick={() => deleteComment(c.id)} className="text-[8px] text-foreground/20 hover:text-destructive/60">
-              <Trash2 className="h-2.5 w-2.5" />
+            <button onClick={() => deleteComment(c.id)} className="text-[10px] text-foreground/30 hover:text-destructive/70">
+              <Trash2 className="h-3 w-3" />
             </button>
           )}
-          <button onClick={() => reportComment(c.id)} className="text-[8px] text-foreground/20 hover:text-foreground/40">
-            <Flag className="h-2.5 w-2.5" />
+          <button onClick={() => reportComment(c.id)} className="text-[10px] text-foreground/30 hover:text-foreground/50">
+            <Flag className="h-3 w-3" />
           </button>
         </div>
       </div>
