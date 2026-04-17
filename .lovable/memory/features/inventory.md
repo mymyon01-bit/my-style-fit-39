@@ -1,48 +1,40 @@
 ---
 name: Multi-source inventory system
-description: product_cache with Firecrawl commerce scraper (Naver, SSENSE, Farfetch, ASOS, SSG), trend scoring, DB-first Discover, platform badges, weekly Sunday refresh cron
+description: product_cache with Firecrawl scraper (5 platforms parallel + web-search fallback), partial-failure tolerance, relaxed validation, never-empty result guarantee
 type: feature
 ---
 ## Inventory System
 
-### Data Sources
-1. **Firecrawl Commerce Scraper (no-key mode):** Scrapes public search pages from Naver Shopping, SSENSE, Farfetch, ASOS, SSG using Firecrawl JSON extraction
-2. **No mock/dummy APIs:** DummyJSON and FakeStoreAPI removed — all results must be real products
-3. **Future (key-based):** Naver Shopping API, Amazon PA API, Coupang Partners API — architecture ready but inactive
+### Data Sources (all enabled)
+1. **ASOS, SSENSE, Farfetch, Naver, SSG** scraped in parallel via Firecrawl `/scrape` (15s/platform timeout, single attempt, allSettled — partial failure OK).
+2. **Firecrawl `/search` fallback** triggers when scraper returns < 6 items. Pulls real product URLs from Google-style web search.
+3. Sources are NEVER permanently disabled — failures are skipped per-request only.
 
 ### product_cache table
-Extended columns: `trend_score`, `is_active`, `last_validated`, `platform` (naver|ssense|farfetch|asos|ssg|ai_search)
+Extended columns: `trend_score`, `is_active`, `last_validated`, `platform` (asos|ssense|farfetch|naver|ssg|web|ai_search)
 Unique constraint: `(platform, external_id)` for dedup
 
-### Data flow
-1. Discover loads from product_cache first (DB-first)
-2. If cache insufficient → fetch via `product-search` → `commerce-scraper`
-3. Search queries also trigger `commerce-scraper` directly for real-time scraping
-4. Last resort → AI generation via `wardrobe-ai`
-5. All valid products cached to product_cache automatically
+### Data flow (fresh search)
+1. External scraper (parallel, 5 platforms, ~15s wall-clock) + DB query run together
+2. Results merged, external first
+3. **Guarantee**: if total < 6, broaden by dropping text query, then pull trending — UI never sees empty state
+4. Cached to product_cache async
 
-### Edge functions
-- `product-search`: Routes to commerce-scraper only (no mock APIs), normalizes, caches, returns
-- `commerce-scraper`: Firecrawl-powered scraper for Naver/SSENSE/Farfetch/ASOS/SSG public search pages
-- `wardrobe-ai`: AI recommendations with DB-first cache check
-- `inventory-maintenance`: Weekly cron (Sunday 3AM UTC) for image validation + trend scoring
+### Validation rules (RELAXED)
+- Accept if: title + price + safe https image URL + product link
+- HEAD probe failure → ACCEPT (probe is best-effort only)
+- Trusted CDNs (ssensemedia, asos-media, ssgcdn, farfetch-contents, scene7) skip probe entirely
+- Reject only: broken/missing image, no link, non-fashion title
 
-### Platform badges
-RecommendationCard shows colored platform badges (top-left): Naver=green, SSENSE=zinc, Farfetch=stone, ASOS=blue, SSG=rose, AI=purple
+### Diversity / dedup
+- Max 3 per brand, max 5 per platform, max 3 per identical style combo
+- Dedup by title-key, image URL (no query), source URL
 
-### Validation rules
-Products only valid with: working image + title + outbound link + price
-Broken images → discard, never render text-only cards
+### Per-source logging
+Every search logs: `commerce-scraper per-platform: {asos: N, ssense: N, ...}` and per-platform `[platformId] DONE in Xms — extracted, candidates, validated`.
 
-### Diversity constraints
-- Max 3 per brand in top results
-- Max 5 per platform in top results
-
-### Weekly refresh
-pg_cron job `weekly-inventory-maintenance` runs every Sunday at 3AM UTC
-- Validates images on products not checked in 7+ days
-- Recalculates trend scores based on views, likes, saves
-- Deactivates products with broken images
+### UX rule
+Empty state is forbidden. Discover shows "Looking for fresh picks…" + reset button instead of "No verified products found".
 
 ### Future switch
-When API keys are issued, swap source connector layer only — schema + ranking engine stay unchanged
+When real APIs are issued (Naver Shopping API, etc.), swap source connector layer only — schema + ranking engine stay unchanged
