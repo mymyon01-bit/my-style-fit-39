@@ -361,16 +361,19 @@ const OOTDPage = () => {
           </div>
         </div>
 
-        {/* Stories row — Instagram-style */}
-        <StoriesRow
-          refreshKey={storiesRefreshKey}
-          onUploadClick={() => {
-            if (!user) { navigate("/auth"); return; }
-            setStoryUploadOpen(true);
-          }}
-          onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
-        />
-
+        {/* Stories row — Community shows everyone, My Page shows your circle */}
+        {activeTab !== "crowned" && (
+          <StoriesRow
+            key={activeTab}
+            refreshKey={storiesRefreshKey}
+            circlesOnly={activeTab === "mypage"}
+            onUploadClick={() => {
+              if (!user) { navigate("/auth"); return; }
+              setStoryUploadOpen(true);
+            }}
+            onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
+          />
+        )}
         {/* Tabs */}
         <div className="flex">
           {(["crowned", "mypage", "community"] as const).map(tab => (
@@ -477,25 +480,43 @@ const OOTDPage = () => {
                       <div>
                         <span className="text-[9px] font-medium tracking-[0.2em] text-foreground/40 mb-1.5 block">FEATURED</span>
                         <div className="grid grid-cols-3 gap-1.5">
-                          {featured.map((post, i) => (
-                            <motion.div
-                              key={post.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: i * 0.05 }}
-                              className="cursor-pointer group relative aspect-[3/4] overflow-hidden rounded-lg ring-1 ring-accent/10"
-                              onClick={() => setSelectedPost(post)}
-                            >
-                              <img src={post.image_url} alt={post.caption || ""} className="w-full h-full object-cover" />
-                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 pt-5">
-                                <p className="text-[8px] font-medium text-white/80 truncate">{getProfile(post.user_id)?.display_name || "Anonymous"}</p>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <Heart className="h-2 w-2 text-white/60" />
-                                  <span className="text-[7px] text-white/60">{post.like_count || 0}</span>
+                          {featured.map((post, i) => {
+                            const fProfile = getProfile(post.user_id);
+                            const fInitial = (fProfile?.display_name?.[0] || "?").toUpperCase();
+                            return (
+                              <motion.div
+                                key={post.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: i * 0.05 }}
+                                className="cursor-pointer group relative aspect-[3/4] overflow-hidden rounded-lg ring-1 ring-accent/10"
+                                onClick={() => setSelectedPost(post)}
+                              >
+                                <img src={post.image_url} alt={post.caption || ""} className="w-full h-full object-cover" />
+                                {/* Profile circle on top */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/u/${post.user_id}`); }}
+                                  className="absolute top-2 left-2 z-10 h-9 w-9 rounded-full overflow-hidden ring-2 ring-white/90 shadow-md bg-foreground/20 backdrop-blur-sm"
+                                  aria-label={fProfile?.display_name || "View profile"}
+                                >
+                                  {fProfile?.avatar_url ? (
+                                    <img src={fProfile.avatar_url} alt={fProfile.display_name || ""} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-[11px] font-semibold text-white">
+                                      {fInitial}
+                                    </div>
+                                  )}
+                                </button>
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 pt-5">
+                                  <p className="text-[8px] font-medium text-white/80 truncate">{fProfile?.display_name || "Anonymous"}</p>
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <Heart className="h-2 w-2 text-white/60" />
+                                    <span className="text-[7px] text-white/60">{post.like_count || 0}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            </motion.div>
-                          ))}
+                              </motion.div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
