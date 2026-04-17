@@ -462,7 +462,12 @@ function filterByRelevanceStrict(items: AIRecommendation[], intent: QueryIntent,
 // Never reorders or removes already-rendered items → no flicker.
 function appendUnique(prev: AIRecommendation[], incoming: AIRecommendation[], cap = 40): AIRecommendation[] {
   const seen = new Set(prev.map(p => p.id));
-  const additions = incoming.filter(p => !seen.has(p.id));
+  const additions: AIRecommendation[] = [];
+  for (const p of incoming) {
+    if (!p?.id || seen.has(p.id)) continue;
+    seen.add(p.id); // also de-dupe within the incoming batch itself
+    additions.push(p);
+  }
   if (additions.length === 0) return prev;
   return [...prev, ...additions].slice(0, cap);
 }
