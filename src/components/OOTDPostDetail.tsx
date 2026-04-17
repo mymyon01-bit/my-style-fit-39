@@ -295,18 +295,18 @@ export default function OOTDPostDetail({
               )}
             </div>
             <div>
-              <p className="text-[12px] font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
+              <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
                 {profile?.display_name || "Anonymous"}
               </p>
-              <p className="text-[9px] text-foreground/35">{timeAgo(post.created_at)} ago</p>
+              <p className="text-[10px] text-foreground/40">{timeAgo(post.created_at)} ago</p>
             </div>
           </button>
 
           {/* Title + Message */}
           {post.caption && (
             <div>
-              {title && <p className="text-[11px] font-semibold text-foreground/60 mb-0.5">{title}</p>}
-              <p className="text-[12px] text-foreground/50 leading-relaxed">{post.caption}</p>
+              {title && <p className="text-[13px] font-semibold text-foreground/80 mb-1">{title}</p>}
+              <p className="text-[13px] text-foreground/75 leading-relaxed">{post.caption}</p>
             </div>
           )}
 
@@ -314,7 +314,7 @@ export default function OOTDPostDetail({
           {post.topics && post.topics.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {post.topics.map(tp => (
-                <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[10px] font-medium text-accent/60 hover:text-accent transition-colors">
+                <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[12px] font-medium text-accent/80 hover:text-accent transition-colors">
                   #{tp}
                 </button>
               ))}
@@ -325,7 +325,7 @@ export default function OOTDPostDetail({
           {post.style_tags && post.style_tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {post.style_tags.map(tag => (
-                <span key={tag} className="rounded-full bg-foreground/[0.04] px-2.5 py-1 text-[9px] text-foreground/45">{tag}</span>
+                <span key={tag} className="rounded-full bg-foreground/[0.05] px-2.5 py-1 text-[11px] text-foreground/60">{tag}</span>
               ))}
             </div>
           )}
