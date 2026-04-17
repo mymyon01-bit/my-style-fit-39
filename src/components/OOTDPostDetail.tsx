@@ -238,11 +238,11 @@ export default function OOTDPostDetail({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col"
+        className="w-full max-w-md md:max-w-5xl max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col md:flex-row"
       >
         {/* Image */}
-        <div className="relative flex-shrink-0">
-          <img src={post.image_url} alt="" className="w-full aspect-[3/4] object-cover" />
+        <div className="relative flex-shrink-0 md:w-[55%] md:h-[85vh] md:bg-black/40">
+          <img src={post.image_url} alt="" className="w-full aspect-[3/4] md:aspect-auto md:h-full object-cover md:object-contain" />
           <button onClick={onClose} className="absolute top-3 right-3 rounded-full bg-black/40 p-1.5 text-white/70 hover:text-white backdrop-blur-sm">
             <X className="h-4 w-4" />
           </button>
