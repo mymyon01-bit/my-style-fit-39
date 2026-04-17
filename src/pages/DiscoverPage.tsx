@@ -1049,8 +1049,37 @@ function enforceClientDiversity(items: AIRecommendation[], seenIds: Set<string>)
   return result;
 }
 
-// Session-level seen products tracking
-const sessionSeenIds = new Set<string>();
+// Session-level seen products tracking — persisted across reloads to reduce
+// repeat-exposure across recent history (capped to last 500 IDs).
+const SEEN_STORAGE_KEY = "wardrobe.seenProductIds";
+const SEEN_CAP = 500;
+const sessionSeenIds = new Set<string>(
+  (() => {
+    try {
+      const raw = localStorage.getItem(SEEN_STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.slice(-SEEN_CAP) : [];
+    } catch { return []; }
+  })()
+);
+let _seenPersistTimer: ReturnType<typeof setTimeout> | null = null;
+function persistSeenIds() {
+  if (_seenPersistTimer) clearTimeout(_seenPersistTimer);
+  _seenPersistTimer = setTimeout(() => {
+    try {
+      const arr = Array.from(sessionSeenIds).slice(-SEEN_CAP);
+      localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(arr));
+    } catch { /* quota — ignore */ }
+  }, 800);
+}
+// Wrap Set.add so all existing callers persist automatically
+const _origAdd = sessionSeenIds.add.bind(sessionSeenIds);
+sessionSeenIds.add = (v: string) => {
+  const r = _origAdd(v);
+  persistSeenIds();
+  return r;
+};
 
 const DiscoverPage = () => {
   const { user } = useAuth();
