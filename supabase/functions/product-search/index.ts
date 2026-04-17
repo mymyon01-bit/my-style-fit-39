@@ -111,16 +111,14 @@ async function loadFromDB(supabase: any, opts: {
         return { ...p, _relevance: relevance };
       });
 
-      // STRICT: only keep items with relevance > 0.15 (at least some term match)
-      const relevant = results.filter((r: any) => r._relevance > 0.15);
-      // Sort by relevance
+      // RELAXED: keep items with any term overlap (relevance > 0). If still
+      // not enough, fall back to all results sorted by relevance — never starve.
+      const relevant = results.filter((r: any) => (r._relevance || 0) > 0);
       relevant.sort((a: any, b: any) => b._relevance - a._relevance);
 
-      // If we have enough relevant results, use only those
       if (relevant.length >= 3) {
         results = relevant;
       } else {
-        // Not enough relevant results — return what we have but mark as low relevance
         results.sort((a: any, b: any) => (b._relevance || 0) - (a._relevance || 0));
       }
     }
