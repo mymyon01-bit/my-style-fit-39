@@ -22,6 +22,54 @@ function isFashionProduct(name: string): boolean {
   return FASHION_TITLE_RE.test(name);
 }
 
+// ─── Category inference (used to enforce search intent) ───
+// Maps a raw text blob → canonical category bucket
+const CATEGORY_PATTERNS: { category: string; re: RegExp }[] = [
+  { category: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag)\b/i },
+  { category: "shoes", re: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|derby|brogues?|espadrilles?|slippers?)\b/i },
+  { category: "outerwear", re: /\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan)\b/i },
+  { category: "tops", re: /\b(shirt|tee|t-shirt|hoodie|sweater|polo|blouse|tank|knit|sweatshirt|pullover|henley|tunic|camisole|top)\b/i },
+  { category: "bottoms", re: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes)\b/i },
+  { category: "dresses", re: /\b(dress|jumpsuit|romper|gown)\b/i },
+  { category: "accessories", re: /\b(hat|cap|beanie|scarf|belt|watch|sunglasses|gloves?|tie|necklace|bracelet|earring|ring|wallet|fedora|beret|headband|bandana)\b/i },
+];
+
+function inferCategoryFromText(text: string): string | null {
+  if (!text) return null;
+  for (const { category, re } of CATEGORY_PATTERNS) {
+    if (re.test(text)) return category;
+  }
+  return null;
+}
+
+// Server-side category alias map (db has both "shoes"+"footwear", "bags", etc.)
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  bags: ["bags", "bag", "accessories"], // some bags get tagged "accessories"
+  shoes: ["shoes", "footwear"],
+  outerwear: ["outerwear", "clothing"],
+  tops: ["tops", "clothing"],
+  bottoms: ["bottoms", "clothing"],
+  dresses: ["dresses", "clothing"],
+  accessories: ["accessories"],
+};
+
+function categoryMatches(intentCategory: string, productCategory: string | null | undefined, productName: string | null | undefined): boolean {
+  if (!intentCategory) return true;
+  const allowed = CATEGORY_ALIASES[intentCategory] || [intentCategory];
+  const pc = (productCategory || "").toLowerCase();
+  if (pc && allowed.includes(pc)) {
+    // For "bags" intent, "accessories" only counts if the name actually mentions a bag
+    if (intentCategory === "bags" && pc === "accessories") {
+      return /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|handbag|shoulder)\b/i.test(productName || "");
+    }
+    return true;
+  }
+  // Fallback: name matches the intent category pattern AND does not strongly belong to a different category
+  const nameInferred = inferCategoryFromText(productName || "");
+  if (nameInferred === intentCategory) return true;
+  return false;
+}
+
 function isImageUrlSafe(url: unknown): boolean {
   if (!url || typeof url !== "string") return false;
   const trimmed = url.trim();
@@ -185,6 +233,13 @@ function autoTagProduct(p: any): any {
     else if (/slim|skinny|fitted|타이트/.test(name)) p.fit = "slim";
     else if (/relaxed|loose|wide|와이드/.test(name)) p.fit = "relaxed";
     else p.fit = "regular";
+  }
+
+  // Re-classify category from product name when missing or generic
+  const generic = !p.category || ["other", "clothing", "general", "fashion", "miscellaneous"].includes(String(p.category).toLowerCase());
+  if (generic) {
+    const inferred = inferCategoryFromText(p.name || "");
+    if (inferred) p.category = inferred;
   }
 
   return p;
@@ -583,6 +638,19 @@ serve(async (req) => {
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
 
+      // ─── Category intent enforcement ───
+      const intentCategory = category || inferCategoryFromText(normalizedQuery);
+      if (intentCategory) {
+        const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory, p.category, p.name));
+        // Only apply if filter doesn't nuke everything
+        if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] category="${intentCategory}" filtered ${allProducts.length} → ${filtered.length}`);
+          allProducts = filtered;
+        } else {
+          console.log(`[SEARCH_INTENT] category="${intentCategory}" filter would leave only ${filtered.length}, keeping unfiltered`);
+        }
+      }
+
       allProducts = allProducts.slice(0, clampedLimit);
 
       const externalKeys = new Set(externalProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
@@ -689,6 +757,17 @@ serve(async (req) => {
       }
 
       allProducts = enforceDiversity(allProducts);
+
+      // ─── Category intent enforcement ───
+      const intentCategory2 = category || inferCategoryFromText(query || "");
+      if (intentCategory2) {
+        const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
+        if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] (db-first) category="${intentCategory2}" filtered ${allProducts.length} → ${filtered.length}`);
+          allProducts = filtered;
+        }
+      }
+
       allProducts = allProducts.slice(0, clampedLimit);
 
       const externalKeys = new Set(externalProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
