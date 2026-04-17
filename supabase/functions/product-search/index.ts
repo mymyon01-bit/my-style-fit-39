@@ -750,6 +750,17 @@ serve(async (req) => {
       }
 
       allProducts = enforceDiversity(allProducts);
+
+      // ─── Category intent enforcement ───
+      const intentCategory2 = category || inferCategoryFromText(query || "");
+      if (intentCategory2) {
+        const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
+        if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] (db-first) category="${intentCategory2}" filtered ${allProducts.length} → ${filtered.length}`);
+          allProducts = filtered;
+        }
+      }
+
       allProducts = allProducts.slice(0, clampedLimit);
 
       const externalKeys = new Set(externalProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
