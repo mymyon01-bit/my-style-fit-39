@@ -321,83 +321,98 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent, signals?: U
   // HARD BLOCK: Disliked feedback rules item out completely
   if (signals?.feedbackMap?.[item.id] === "dislike") return 0;
 
+  // ── SEARCH-FIRST RANKING ──
+  // The user's actual query (brand + category + color + keywords) dominates the
+  // score. Personal preferences are a small tiebreaker only — they must NOT
+  // outrank a true match for what the user typed.
+
   let score = 0;
 
-  // 0.40 — Category / scenario relevance
-  if (intent.categoryLock) {
-    if (itemCategory === intent.categoryLock) {
-      score += 40;
-    } else {
-      // Give partial credit if it's a related fashion item (not zero)
-      score += 8;
-    }
+  // 0.35 — BRAND match (highest weight when user types a brand like "Gucci")
+  if (intent.brandIntent.length > 0) {
+    const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b) || itemName.includes(b));
+    score += brandMatch ? 35 : 0; // brand search → non-brand items get nothing here
   } else {
-    score += 20;
+    score += 12; // neutral baseline when no brand specified
   }
 
-  // 0.25 — Style match
+  // 0.25 — CATEGORY / scenario relevance (e.g. "jacket", "sneakers")
+  if (intent.categoryLock) {
+    if (itemCategory === intent.categoryLock) score += 25;
+    else score += 4;
+  } else {
+    score += 12;
+  }
+
+  // 0.15 — KEYWORD / name match (literal terms from the query)
+  if (intent.keywords.length > 0) {
+    let kwHits = 0;
+    let nameHits = 0;
+    for (const k of intent.keywords) {
+      if (itemNameContains(itemName, k)) { kwHits++; nameHits++; }
+      else if (itemText.includes(k)) kwHits++;
+    }
+    const ratio = kwHits / intent.keywords.length;
+    // Name match is worth more than tag match
+    score += Math.min(15, ratio * 12 + Math.min(3, nameHits));
+  } else {
+    score += 7;
+  }
+
+  // 0.12 — COLOR match (when user explicitly asked for a color)
+  if (intent.colorIntent.length > 0) {
+    const colorMatch = intent.colorIntent.some(c =>
+      itemName.includes(c) || (item.color || "").toLowerCase().includes(c) || itemText.includes(c)
+    );
+    score += colorMatch ? 12 : 0;
+  } else {
+    score += 6;
+  }
+
+  // 0.08 — STYLE intent (e.g. "minimal", "street")
   if (intent.styleIntent.length > 0) {
     const itemStyles = item.style_tags || [];
     const matched = intent.styleIntent.filter(s => itemStyles.includes(s)).length;
     const styleKeywordMatch = intent.styleIntent.some(s =>
       STYLE_KEYWORD_MAP[s]?.some(k => itemName.includes(k))
     );
-    if (matched > 0) score += Math.min(25, 12 + matched * 8);
-    else if (styleKeywordMatch) score += 15;
-    else score += 3;
+    if (matched > 0) score += Math.min(8, 4 + matched * 2);
+    else if (styleKeywordMatch) score += 5;
+    else score += 1;
   } else {
-    score += 12;
+    score += 4;
   }
 
-  // 0.20 — Color / fit alignment (with user fit pref folded in when no explicit color asked)
-  if (intent.colorIntent.length > 0) {
-    const colorMatch = intent.colorIntent.some(c =>
-      itemName.includes(c) || (item.color || "").toLowerCase().includes(c) || itemText.includes(c)
-    );
-    score += colorMatch ? 20 : 2;
-  } else {
-    let fitColorScore = 10;
-    const preferredFit = signals?.styleProfile?.preferred_fit;
-    if (preferredFit && item.fit && item.fit.toLowerCase() === String(preferredFit).toLowerCase()) {
-      fitColorScore += 6;
-    }
-    score += Math.min(20, fitColorScore);
-  }
-
-  // 0.10 — User preference match (likes / saves / preferred styles / favorite brands)
+  // 0.05 — USER PREFERENCE tiebreaker (small — must not overpower the query)
   let prefScore = 0;
   if (signals) {
     const styles = signals.styleProfile?.preferred_styles || [];
     const disliked = signals.styleProfile?.disliked_styles || [];
     const favBrands: string[] = (signals.styleProfile?.favorite_brands || []).map((b: string) => b.toLowerCase());
     const itemStyleTags: string[] = item.style_tags || [];
+    const preferredFit = signals.styleProfile?.preferred_fit;
 
-    if (styles.length && itemStyleTags.some((t: string) => styles.includes(t))) prefScore += 4;
-    if (disliked.length && itemStyleTags.some((t: string) => disliked.includes(t))) prefScore -= 6;
-    if (favBrands.length && favBrands.some(b => itemBrand.includes(b))) prefScore += 3;
-    if (signals.savedIds?.has(item.id)) prefScore += 2;
-    if (signals.feedbackMap?.[item.id] === "like") prefScore += 4;
-
-    // Brand intent in query overrides preference brand bonus
-    if (intent.brandIntent.length > 0) {
-      const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
-      prefScore += brandMatch ? 6 : 0;
-    }
-  } else if (intent.brandIntent.length > 0) {
-    const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
-    prefScore += brandMatch ? 10 : 0;
-  } else {
-    prefScore += 5;
+    if (styles.length && itemStyleTags.some((t: string) => styles.includes(t))) prefScore += 2;
+    if (disliked.length && itemStyleTags.some((t: string) => disliked.includes(t))) prefScore -= 4;
+    // Only bonus favorite brand if the user did NOT explicitly search a brand
+    if (intent.brandIntent.length === 0 && favBrands.length && favBrands.some(b => itemBrand.includes(b))) prefScore += 2;
+    if (preferredFit && item.fit && item.fit.toLowerCase() === String(preferredFit).toLowerCase()) prefScore += 1;
+    if (signals.savedIds?.has(item.id)) prefScore += 1;
+    if (signals.feedbackMap?.[item.id] === "like") prefScore += 2;
   }
-  score += Math.max(0, Math.min(10, prefScore));
-
-  // 0.05 — Diversity / keyword micro-match (kept as keyword signal for relevance)
-  if (intent.keywords.length > 0) {
-    const keywordHits = intent.keywords.filter(k => itemText.includes(k)).length;
-    score += Math.min(5, (keywordHits / intent.keywords.length) * 5);
-  }
+  score += Math.max(-4, Math.min(5, prefScore));
 
   return Math.round(score);
+}
+
+// Helper: stricter "name contains" (word-ish boundary so "tee" doesn't match "teen")
+function itemNameContains(name: string, term: string): boolean {
+  if (!term) return false;
+  if (term.length <= 3) {
+    const re = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    return re.test(name);
+  }
+  return name.includes(term);
 }
 
 // ── Scenario-specific filter: ensures category balance for lifestyle queries ──
@@ -2030,7 +2045,7 @@ const DiscoverPage = () => {
           if (strict.length > 0) {
             strict.forEach(p => sessionSeenIds.add(p.id));
             // Append-only — never reorder or drop existing items
-            setRecommendations(prev => appendUnique(prev, strict, 40));
+            setRecommendations(prev => appendUnique(prev, strict, 80));
           }
         }).catch(err => {
           console.error("Scenario external search error:", err);
@@ -2118,7 +2133,7 @@ const DiscoverPage = () => {
             if (!filtered.length) return;
             filtered.forEach(p => sessionSeenIds.add(p.id));
             // Append-only — never reorder existing results
-            setRecommendations(prev => appendUnique(prev, filtered, 40));
+            setRecommendations(prev => appendUnique(prev, filtered, 80));
             console.info("[search] DISCOVERY_MERGED", { added: filtered.length });
           } catch (e) {
             console.warn("[search] DISCOVERY_REFETCH_FAIL", e);
@@ -2151,7 +2166,7 @@ const DiscoverPage = () => {
           if (externalStrict.length > 0) {
             externalStrict.forEach(p => sessionSeenIds.add(p.id));
             // Append-only — keeps initial results stable, just adds new ones
-            setRecommendations(prev => appendUnique(prev, externalStrict, 40));
+            setRecommendations(prev => appendUnique(prev, externalStrict, 80));
           }
         }).catch(err => {
           console.error("External search error:", err);
