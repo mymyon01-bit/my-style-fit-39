@@ -100,15 +100,23 @@ function fallbackExpand(query: string): string[] {
   for (const [k, v] of Object.entries(SCENARIO_FALLBACK)) {
     if (q.includes(k)) return v;
   }
-  // Generic: just append common fashion modifiers
-  return [
+  // Generic: build a deeper "query family" with gender/color/fit/style variants
+  const colors = ["black", "white", "beige"];
+  const fits = ["oversized", "relaxed", "slim"];
+  const family = [
+    q,
     `${q} men`,
     `${q} women`,
     `${q} outfit`,
-    `buy ${q} online`,
     `${q} new collection`,
-    `${q} shop`,
+    `${q} streetwear`,
+    `${q} minimal`,
+    `${q} premium`,
+    `buy ${q} online`,
+    ...colors.map((c) => `${c} ${q}`),
+    ...fits.map((f) => `${f} ${q}`),
   ];
+  return [...new Set(family)].slice(0, 15);
 }
 
 async function perplexityExpand(query: string): Promise<{ queries: string[]; usedPerplexity: boolean }> {
