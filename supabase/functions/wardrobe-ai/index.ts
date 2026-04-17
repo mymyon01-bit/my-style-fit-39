@@ -794,7 +794,10 @@ Rules:
             maxTokens: 220,
             temperature: 0.1,
             model,
-            timeoutMs: 3000,
+            // Hard timeout 3.5s — gives Perplexity (avg 1.7–2.4s) genuine room to win.
+            // Frontend soft timeout (2.5s) still protects UI; backend just needs to not
+            // pre-emptively kill responses that would arrive in time to be cached.
+            timeoutMs: 3500,
             responseFormat,
             debug,
           });
