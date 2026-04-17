@@ -426,11 +426,115 @@ function hostToBrand(host: string): string {
   return part.charAt(0).toUpperCase() + part.slice(1);
 }
 
-async function extractCandidate(c: DiscoveredCandidate): Promise<ExtractedProduct | null> {
-  // Firecrawl primary, simple fetch fallback
+// ─────────────────── Domain-aware extraction strategy ───────────────────
+// "Firecrawl only for new domains" — first time we see a host, use Firecrawl
+// to learn the page shape and cache the working strategy. For known hosts
+// where simple og: fetching has worked before, prefer the cheap path and
+// only escalate to Firecrawl if og parsing fails.
+
+interface DomainStrategyRow {
+  host: string;
+  last_strategy: "firecrawl" | "fetch";
+  success_count: number;
+  failure_count?: number;
+}
+
+async function getDomainStrategy(supabase: any, host: string): Promise<DomainStrategyRow | null> {
+  try {
+    const { data, error } = await supabase
+      .from("extraction_domain_cache")
+      .select("host, last_strategy, success_count, failure_count")
+      .eq("host", host)
+      .maybeSingle();
+    if (error) return null;
+    return (data as DomainStrategyRow) || null;
+  } catch {
+    return null;
+  }
+}
+
+async function recordDomainResult(
+  supabase: any,
+  host: string,
+  strategy: "firecrawl" | "fetch",
+  success: boolean,
+): Promise<void> {
+  try {
+    const existing = await getDomainStrategy(supabase, host);
+    if (!existing) {
+      if (!success) return; // don't pollute cache with first-time failures
+      await supabase.from("extraction_domain_cache").insert({
+        host,
+        last_strategy: strategy,
+        success_count: 1,
+        failure_count: 0,
+        last_success_at: new Date().toISOString(),
+      });
+      return;
+    }
+    if (success) {
+      await supabase
+        .from("extraction_domain_cache")
+        .update({
+          last_strategy: strategy,
+          success_count: existing.success_count + 1,
+          last_success_at: new Date().toISOString(),
+        })
+        .eq("host", host);
+    } else {
+      await supabase
+        .from("extraction_domain_cache")
+        .update({ failure_count: (existing.failure_count || 0) + 1 })
+        .eq("host", host);
+    }
+  } catch {
+    // best-effort; do not block extraction on cache errors
+  }
+}
+
+async function extractCandidate(
+  c: DiscoveredCandidate,
+  supabase: any,
+): Promise<ExtractedProduct | null> {
+  let host = "";
+  try {
+    host = new URL(c.url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+
+  const cached = await getDomainStrategy(supabase, host);
+
+  // Known host that has worked via plain fetch → try fetch first.
+  if (cached && cached.last_strategy === "fetch") {
+    const cheap = await extractWithSimpleFetch(c.url);
+    if (cheap) {
+      await recordDomainResult(supabase, host, "fetch", true);
+      return cheap;
+    }
+    const fc = await extractWithFirecrawl(c.url);
+    if (fc) {
+      await recordDomainResult(supabase, host, "firecrawl", true);
+      return fc;
+    }
+    await recordDomainResult(supabase, host, "fetch", false);
+    return null;
+  }
+
+  // Unknown host OR previously needed Firecrawl → use Firecrawl first.
   const fc = await extractWithFirecrawl(c.url);
-  if (fc) return fc;
-  return await extractWithSimpleFetch(c.url);
+  if (fc) {
+    await recordDomainResult(supabase, host, "firecrawl", true);
+    return fc;
+  }
+  // Firecrawl failed — try plain fetch as a last resort. If it works, even better.
+  const cheap = await extractWithSimpleFetch(c.url);
+  if (cheap) {
+    await recordDomainResult(supabase, host, "fetch", true);
+    return cheap;
+  }
+  await recordDomainResult(supabase, host, "firecrawl", false);
+  return null;
 }
 
 // ─────────────────── 4. Categorization ───────────────────
@@ -635,9 +739,9 @@ serve(async (req) => {
       );
     }
 
-    // 3. Extract (parallel, capped)
+    // 3. Extract (parallel, capped) — domain-aware Firecrawl gating
     const extractTasks = candidates.map((c) =>
-      extractCandidate(c).catch(() => null)
+      extractCandidate(c, supabase).catch(() => null)
     );
     const settled = await Promise.allSettled(extractTasks);
     const extracted: ExtractedProduct[] = [];
