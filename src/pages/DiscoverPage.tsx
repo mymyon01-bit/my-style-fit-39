@@ -1489,25 +1489,27 @@ const DiscoverPage = () => {
   }
 
   // ── Perplexity-powered query expansion via wardrobe-ai search-intent (cached, non-blocking) ──
-  // Soft timeout = 1.5s. If Perplexity doesn't respond by then, we proceed with local fallback.
-  // Late successful Perplexity responses still resolve and populate cache for the NEXT search.
+  // Soft timeout (race) lives in handleTextSubmit; this function always awaits the full response
+  // so late Perplexity wins can populate the cache and trigger background ingestion.
   async function aiExpandQuery(q: string): Promise<SearchIntentResult> {
     const cacheKey = q.toLowerCase().trim();
     const cached = intentCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < INTENT_CACHE_TTL) {
+    const cachedTtl = cached?.isFallback ? FALLBACK_INTENT_CACHE_TTL : INTENT_CACHE_TTL;
+    if (cached && Date.now() - cached.ts < cachedTtl) {
       console.info("[search-intent] PERPLEXITY_CACHED", {
         query: cacheKey,
         cachedAt: new Date(cached.ts).toISOString(),
         queries: cached.queries.length,
+        isFallback: !!cached.isFallback,
       });
       return {
         queries: cached.queries,
         category: cached.category,
         style_tags: cached.style_tags,
         type: cached.type,
-        source: "cache",
-        cacheable: true,
-        searchPathStatus: "PERPLEXITY_CACHED",
+        source: cached.isFallback ? "fallback" : "cache",
+        cacheable: !cached.isFallback,
+        searchPathStatus: cached.isFallback ? "FALLBACK_ONLY" : "PERPLEXITY_CACHED",
       };
     }
 
@@ -1570,6 +1572,7 @@ const DiscoverPage = () => {
             style_tags: result.style_tags,
             type: result.type,
             ts: Date.now(),
+            isFallback: false,
           });
           console.info("[search-intent] CACHE_SAVE", {
             query: cacheKey,
