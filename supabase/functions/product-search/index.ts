@@ -763,12 +763,17 @@ serve(async (req) => {
 
       allProducts = enforceDiversity(allProducts);
 
-      // ─── Category intent enforcement ───
+      // ─── Category intent enforcement (HARD when query is product-typed) ───
       const intentCategory2 = category || inferCategoryFromText(query || "");
+      const queryHasExplicitCategory2 = !!inferCategoryFromText(query || "");
       if (intentCategory2) {
+        const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
-        if (filtered.length >= Math.min(6, minTarget / 2)) {
-          console.log(`[SEARCH_INTENT] (db-first) category="${intentCategory2}" filtered ${allProducts.length} → ${filtered.length}`);
+        if (queryHasExplicitCategory2) {
+          console.log(`[SEARCH_INTENT] (db-first) HARD LOCK category="${intentCategory2}" filtered ${before} → ${filtered.length} (query="${query}")`);
+          allProducts = filtered;
+        } else if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] (db-first) soft category="${intentCategory2}" filtered ${before} → ${filtered.length}`);
           allProducts = filtered;
         }
       }
