@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import CrownedBoard from "@/components/CrownedBoard";
+import StoriesRow, { type UserStories } from "@/components/StoriesRow";
+import StoryUploadSheet from "@/components/StoryUploadSheet";
+import StoryViewer from "@/components/StoryViewer";
 import { toast } from "sonner";
 
 interface OOTDPost {
