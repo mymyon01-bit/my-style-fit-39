@@ -631,6 +631,19 @@ serve(async (req) => {
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
 
+      // ─── Category intent enforcement ───
+      const intentCategory = category || inferCategoryFromText(normalizedQuery);
+      if (intentCategory) {
+        const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory, p.category, p.name));
+        // Only apply if filter doesn't nuke everything
+        if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] category="${intentCategory}" filtered ${allProducts.length} → ${filtered.length}`);
+          allProducts = filtered;
+        } else {
+          console.log(`[SEARCH_INTENT] category="${intentCategory}" filter would leave only ${filtered.length}, keeping unfiltered`);
+        }
+      }
+
       allProducts = allProducts.slice(0, clampedLimit);
 
       const externalKeys = new Set(externalProducts.map((p: any) => [normalizeIdentityKey(p.source_url), normalizeIdentityKey(p.image_url), normalizeTitleKey(p.name)].filter(Boolean).join("|")));
