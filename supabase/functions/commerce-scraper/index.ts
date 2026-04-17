@@ -39,16 +39,22 @@ function isImageUrlSafe(url: unknown): boolean {
 }
 
 // ─── Platform configs: public search URLs only ───
+// Platform reliability is graded from logs:
+//   ASOS    → fast, reliable, lightweight HTML  (KEEP ENABLED)
+//   SSENSE  → frequent 502 Bad Gateway from Firecrawl, but works ~50% (RETRY ENABLED)
+//   Naver   → heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
+//   Farfetch→ heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
+//   SSG     → heavy JS + bot blocking, almost always times out      (DISABLED BY DEFAULT)
 const PLATFORMS: Record<string, {
   searchUrl: (q: string) => string;
   name: string;
   enabled: boolean;
   trustLevel: "high" | "medium" | "low";
 }> = {
-  naver: {
+  asos: {
     searchUrl: (q: string) =>
-      `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
-    name: "Naver Shopping",
+      `https://www.asos.com/search/?q=${encodeURIComponent(q)}`,
+    name: "ASOS",
     enabled: true,
     trustLevel: "medium",
   },
@@ -59,25 +65,27 @@ const PLATFORMS: Record<string, {
     enabled: true,
     trustLevel: "high",
   },
+  // Disabled by default — these sources time out >90% of the time and burn the
+  // 30s budget that working platforms need. Re-enable individually when needed.
+  naver: {
+    searchUrl: (q: string) =>
+      `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
+    name: "Naver Shopping",
+    enabled: false,
+    trustLevel: "medium",
+  },
   farfetch: {
     searchUrl: (q: string) =>
       `https://www.farfetch.com/shopping/men/search/items.aspx?q=${encodeURIComponent(q)}`,
     name: "Farfetch",
-    enabled: true,
+    enabled: false,
     trustLevel: "high",
-  },
-  asos: {
-    searchUrl: (q: string) =>
-      `https://www.asos.com/search/?q=${encodeURIComponent(q)}`,
-    name: "ASOS",
-    enabled: true,
-    trustLevel: "medium",
   },
   ssg: {
     searchUrl: (q: string) =>
       `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(q)}`,
     name: "SSG",
-    enabled: true,
+    enabled: false,
     trustLevel: "medium",
   },
 };
@@ -145,62 +153,100 @@ async function scrapePlatform(
   platformLastCall[platformId] = Date.now();
 
   const searchUrl = platform.searchUrl(query);
-  console.log(`[${platformId}] Scraping: ${searchUrl}`);
+  const startedAt = Date.now();
+  console.log(`[${platformId}] START scrape: ${searchUrl}`);
 
-  try {
-    // Firecrawl typically needs 15–25s per page. 30s is the realistic ceiling.
+  // Retry once on transient failure (502/504/timeout). After 2 attempts, give up.
+  const MAX_ATTEMPTS = 2;
+  const PER_ATTEMPT_TIMEOUT_MS = 25000; // 25s per attempt × 2 = 50s budget per platform
+  let lastError: string | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), PER_ATTEMPT_TIMEOUT_MS);
 
-    const response = await fetch(`${FIRECRAWL_V2}/scrape`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: searchUrl,
-        formats: [
-          {
-            type: "json",
-            schema: {
-              type: "object",
-              properties: {
-                products: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      brand: { type: "string" },
-                      price: { type: "string" },
-                      image_url: { type: "string" },
-                      product_url: { type: "string" },
-                      category: { type: "string" },
+    try {
+      const response = await fetch(`${FIRECRAWL_V2}/scrape`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: searchUrl,
+          formats: [
+            {
+              type: "json",
+              schema: {
+                type: "object",
+                properties: {
+                  products: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        brand: { type: "string" },
+                        price: { type: "string" },
+                        image_url: { type: "string" },
+                        product_url: { type: "string" },
+                        category: { type: "string" },
+                      },
+                      required: ["title", "price"],
                     },
-                    required: ["title", "price"],
                   },
                 },
               },
+              prompt: `Extract ONLY fashion product listings (clothing, shoes, bags, accessories) from this ${platform.name} search results page. IGNORE: editorial images, people photos, lifestyle images, banners, ads. For each PRODUCT, get: title (must be a product name like "Oversized Cotton Hoodie"), brand, price (with currency symbol), image_url (full https URL of the product image, NOT editorial/lifestyle photos), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
             },
-            prompt: `Extract ONLY fashion product listings (clothing, shoes, bags, accessories) from this ${platform.name} search results page. IGNORE: editorial images, people photos, lifestyle images, banners, ads. For each PRODUCT, get: title (must be a product name like "Oversized Cotton Hoodie"), brand, price (with currency symbol), image_url (full https URL of the product image, NOT editorial/lifestyle photos), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
-          },
-        ],
-        waitFor: 1500,
-        onlyMainContent: true,
-      }),
-      signal: controller.signal,
-    });
+          ],
+          waitFor: 1500,
+          onlyMainContent: true,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-    clearTimeout(timeout);
+      if (!response.ok) {
+        const errText = await response.text();
+        lastError = `${response.status}: ${errText.slice(0, 120)}`;
+        console.error(`[${platformId}] attempt ${attempt}/${MAX_ATTEMPTS} Firecrawl error ${lastError}`);
+        // Retry on 5xx (transient). Don't retry on 4xx (client error).
+        if (response.status >= 500 && attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 700));
+          continue;
+        }
+        return [];
+      }
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`[${platformId}] Firecrawl error ${response.status}: ${errText}`);
+      const result = await response.json();
+      // success — fall through to extraction below
+      return await extractProducts(result, platform, platformId, startedAt);
+    } catch (e) {
+      clearTimeout(timeout);
+      const msg = e instanceof Error ? e.message : String(e);
+      lastError = msg;
+      const elapsed = Date.now() - startedAt;
+      console.error(`[${platformId}] attempt ${attempt}/${MAX_ATTEMPTS} failed after ${elapsed}ms: ${msg}`);
+      if (attempt < MAX_ATTEMPTS && msg.includes("abort")) {
+        await new Promise((r) => setTimeout(r, 500));
+        continue;
+      }
       return [];
     }
+  }
+  console.error(`[${platformId}] gave up after ${MAX_ATTEMPTS} attempts: ${lastError}`);
+  return [];
+}
 
-    const result = await response.json();
+// Extracted so retry loop above stays readable.
+async function extractProducts(
+  result: any,
+  platform: { name: string; trustLevel: string },
+  platformId: string,
+  startedAt: number
+): Promise<ScrapedProduct[]> {
+  try {
     const extracted = result?.json?.products || result?.data?.json?.products || [];
 
     // Pre-filter: must have title, price, safe image, valid product URL, and fashion-relevant title
