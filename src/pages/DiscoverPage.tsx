@@ -88,7 +88,7 @@ async function triggerSearchDiscovery(rawQuery: string): Promise<{ inserted: num
   _discoveryFired.set(key, Date.now());
   try {
     const { data, error } = await supabase.functions.invoke("search-discovery", {
-      body: { query: rawQuery, maxQueries: 6, maxCandidates: 18 },
+      body: { query: rawQuery, maxQueries: 12, maxCandidates: 40 },
     });
     if (error) throw error;
     return data as any;
