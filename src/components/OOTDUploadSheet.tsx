@@ -4,6 +4,8 @@ import { X, Camera, Loader2, MapPin, Tag, Hash, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
+import { prepareImage, validateMedia } from "@/lib/imageUpload";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -81,12 +83,24 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setHashtags(prev => prev.filter(t => t !== tag));
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-    setStep(2);
+    try {
+      validateMedia(f, { allowVideo: false, maxBytes: 50 * 1024 * 1024 });
+      setError(null);
+      // Robust prep: HEIC tolerance + compression
+      const prepared = await prepareImage(f);
+      setFile(prepared);
+      setPreview(URL.createObjectURL(prepared));
+      setStep(2);
+    } catch (err: any) {
+      const msg = err?.message || "Couldn't read that photo";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const handlePost = async () => {
@@ -95,19 +109,18 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setError(null);
 
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${user.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("ootd-photos")
-        .upload(path, file, { contentType: file.type });
+        .upload(path, file, { contentType: file.type, upsert: false });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from("ootd-photos")
         .getPublicUrl(path);
 
-      // Merge hashtags into topics for storage
       const allTopics = [...new Set([...selectedTopics, ...hashtags])];
 
       const { error: insertError } = await supabase.from("ootd_posts").insert({
@@ -129,11 +142,15 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
         metadata: { style_tags: styleTags, occasion_tags: occasionTags, topics: allTopics, hashtags },
       });
 
+      toast.success("Posted to OOTD");
       onPosted();
       resetForm();
       onClose();
     } catch (e: any) {
-      setError(e.message || "Upload failed");
+      const msg = e?.message || "Upload failed. Please try again.";
+      console.error("[ootd-upload]", e);
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }

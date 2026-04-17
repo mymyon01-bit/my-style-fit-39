@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import CrownedBoard from "@/components/CrownedBoard";
+import StoriesRow, { type UserStories } from "@/components/StoriesRow";
+import StoryUploadSheet from "@/components/StoryUploadSheet";
+import StoryViewer from "@/components/StoryViewer";
 import { toast } from "sonner";
 
 interface OOTDPost {
@@ -66,6 +69,14 @@ const OOTDPage = () => {
   const [savingEdit, setSavingEdit] = useState(false);
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  // Stories
+  const [storyUploadOpen, setStoryUploadOpen] = useState(false);
+  const [storiesRefreshKey, setStoriesRefreshKey] = useState(0);
+  const [viewerState, setViewerState] = useState<{ open: boolean; index: number; users: UserStories[] }>({
+    open: false,
+    index: 0,
+    users: [],
+  });
 
   useEffect(() => {
     loadPosts();
@@ -331,6 +342,16 @@ const OOTDPage = () => {
           </div>
         </div>
 
+        {/* Stories row — Instagram-style */}
+        <StoriesRow
+          refreshKey={storiesRefreshKey}
+          onUploadClick={() => {
+            if (!user) { navigate("/auth"); return; }
+            setStoryUploadOpen(true);
+          }}
+          onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
+        />
+
         {/* Tabs */}
         <div className="flex">
           {(["crowned", "mypage", "community"] as const).map(tab => (
@@ -577,6 +598,20 @@ const OOTDPage = () => {
       </AnimatePresence>
 
       <OOTDUploadSheet open={uploadOpen} onClose={() => setUploadOpen(false)} onPosted={handlePosted} />
+
+      <StoryUploadSheet
+        open={storyUploadOpen}
+        onClose={() => setStoryUploadOpen(false)}
+        onPosted={() => setStoriesRefreshKey(k => k + 1)}
+      />
+
+      <StoryViewer
+        open={viewerState.open}
+        startUserIndex={viewerState.index}
+        userStories={viewerState.users}
+        onClose={() => setViewerState(s => ({ ...s, open: false }))}
+        onDeleted={() => setStoriesRefreshKey(k => k + 1)}
+      />
     </div>
   );
 };
