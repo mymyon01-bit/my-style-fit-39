@@ -220,7 +220,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
                   onClick={() => handleSelect(option)}
                   className={`rounded-full px-6 py-3.5 text-[13px] font-light transition-all duration-300 md:text-[14px] ${
                     isSelected(option)
-                      ? "bg-accent/15 text-accent/90 ring-1 ring-accent/30"
+                      ? "bg-accent text-accent-foreground ring-1 ring-accent shadow-[0_0_0_3px_hsl(var(--accent)/0.18)]"
                       : "text-foreground/75 hover:text-foreground ring-1 ring-foreground/[0.08] hover:ring-foreground/[0.15]"
                   }`}
                 >
