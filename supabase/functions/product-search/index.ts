@@ -773,8 +773,11 @@ serve(async (req) => {
       allProducts = enforceDiversity(allProducts);
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
-      const intentCategory2 = category || inferCategoryFromText(query || "");
-      const queryHasExplicitCategory2 = !!inferCategoryFromText(query || "");
+      const inferredFromQuery2 = inferCategoryFromText(query || "");
+      const GENERIC_CATS2 = new Set(["", "clothing", "other", "general", "fashion"]);
+      const categoryArgIsSpecific2 = category && !GENERIC_CATS2.has(String(category).toLowerCase());
+      const intentCategory2 = inferredFromQuery2 || (categoryArgIsSpecific2 ? category : null);
+      const queryHasExplicitCategory2 = !!inferredFromQuery2;
       if (intentCategory2) {
         const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
