@@ -1011,6 +1011,8 @@ const DiscoverPage = () => {
   const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
   const [dbOffset, setDbOffset] = useState(0);
   const [hasMoreInDB, setHasMoreInDB] = useState(true);
+  // ── "How about this?" — instant DB recommendations shown ABOVE the live search results ──
+  const [dbRecommendations, setDbRecommendations] = useState<AIRecommendation[]>([]);
   const lastPromptRef = useRef("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
