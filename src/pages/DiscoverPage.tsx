@@ -272,7 +272,14 @@ function parseQueryIntent(query: string): QueryIntent {
 const RELEVANCE_THRESHOLD = 15; // Base threshold — progressive fallback will lower further if needed
 const MIN_RESULT_TARGET = 12; // Minimum products to show before considering search "successful"
 
-function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
+// User taste signals blended into ranking (Step 3, factor #4 in the formula)
+interface UserSignals {
+  styleProfile?: any | null;
+  feedbackMap?: Record<string, "like" | "dislike">;
+  savedIds?: Set<string>;
+}
+
+function scoreRelevance(item: AIRecommendation, intent: QueryIntent, signals?: UserSignals): number {
   const itemName = (item.name || "").toLowerCase();
   const itemBrand = (item.brand || "").toLowerCase();
   const itemText = `${itemName} ${itemBrand} ${item.category || ""} ${(item.style_tags || []).join(" ")} ${item.color || ""} ${item.fit || ""}`.toLowerCase();
@@ -285,9 +292,12 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     }
   }
 
+  // HARD BLOCK: Disliked feedback rules item out completely
+  if (signals?.feedbackMap?.[item.id] === "dislike") return 0;
+
   let score = 0;
 
-  // 0.40 — Category match (softer penalty when no lock — allow related categories)
+  // 0.40 — Category / scenario relevance
   if (intent.categoryLock) {
     if (itemCategory === intent.categoryLock) {
       score += 40;
@@ -313,25 +323,49 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     score += 12;
   }
 
-  // 0.20 — Color match
+  // 0.20 — Color / fit alignment (with user fit pref folded in when no explicit color asked)
   if (intent.colorIntent.length > 0) {
-    const colorMatch = intent.colorIntent.some(c => 
+    const colorMatch = intent.colorIntent.some(c =>
       itemName.includes(c) || (item.color || "").toLowerCase().includes(c) || itemText.includes(c)
     );
     score += colorMatch ? 20 : 2;
   } else {
-    score += 10;
+    let fitColorScore = 10;
+    const preferredFit = signals?.styleProfile?.preferred_fit;
+    if (preferredFit && item.fit && item.fit.toLowerCase() === String(preferredFit).toLowerCase()) {
+      fitColorScore += 6;
+    }
+    score += Math.min(20, fitColorScore);
   }
 
-  // 0.10 — Brand match
-  if (intent.brandIntent.length > 0) {
+  // 0.10 — User preference match (likes / saves / preferred styles / favorite brands)
+  let prefScore = 0;
+  if (signals) {
+    const styles = signals.styleProfile?.preferred_styles || [];
+    const disliked = signals.styleProfile?.disliked_styles || [];
+    const favBrands: string[] = (signals.styleProfile?.favorite_brands || []).map((b: string) => b.toLowerCase());
+    const itemStyleTags: string[] = item.style_tags || [];
+
+    if (styles.length && itemStyleTags.some((t: string) => styles.includes(t))) prefScore += 4;
+    if (disliked.length && itemStyleTags.some((t: string) => disliked.includes(t))) prefScore -= 6;
+    if (favBrands.length && favBrands.some(b => itemBrand.includes(b))) prefScore += 3;
+    if (signals.savedIds?.has(item.id)) prefScore += 2;
+    if (signals.feedbackMap?.[item.id] === "like") prefScore += 4;
+
+    // Brand intent in query overrides preference brand bonus
+    if (intent.brandIntent.length > 0) {
+      const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
+      prefScore += brandMatch ? 6 : 0;
+    }
+  } else if (intent.brandIntent.length > 0) {
     const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
-    score += brandMatch ? 10 : 0;
+    prefScore += brandMatch ? 10 : 0;
   } else {
-    score += 5;
+    prefScore += 5;
   }
+  score += Math.max(0, Math.min(10, prefScore));
 
-  // 0.05 — Keyword match
+  // 0.05 — Diversity / keyword micro-match (kept as keyword signal for relevance)
   if (intent.keywords.length > 0) {
     const keywordHits = intent.keywords.filter(k => itemText.includes(k)).length;
     score += Math.min(5, (keywordHits / intent.keywords.length) * 5);
