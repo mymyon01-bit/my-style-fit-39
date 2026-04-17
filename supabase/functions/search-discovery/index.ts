@@ -157,11 +157,15 @@ function fallbackExpand(query: string): string[] {
   return [...new Set(family)].slice(0, 15);
 }
 
-async function perplexityExpand(query: string): Promise<{ queries: string[]; usedPerplexity: boolean }> {
+async function perplexityExpand(query: string, primaryCategory: string | null): Promise<{ queries: string[]; usedPerplexity: boolean }> {
+  const fb = fallbackExpand(query);
   if (!PERPLEXITY_KEY) {
     log("perplexity_skip", { reason: "no_key" });
-    return { queries: fallbackExpand(query), usedPerplexity: false };
+    return { queries: fb, usedPerplexity: false };
   }
+  const categoryDirective = primaryCategory
+    ? ` CRITICAL CATEGORY LOCK: every query MUST be a "${primaryCategory}" product. Do NOT include any other clothing category. Style words like "street", "minimal", "oversized" are MODIFIERS only, never the product type.`
+    : "";
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS.perplexity);
@@ -178,40 +182,51 @@ async function perplexityExpand(query: string): Promise<{ queries: string[]; use
           {
             role: "system",
             content:
-              "You are a shopping query generator. Return ONLY a JSON array of 12-15 DIVERSE shopping queries (each 3-7 words) covering exact match, gendered variants, color variants, fit variants, style variants, and adjacent category items. The queries should form a 'query family' that broadens supply for a fashion store search. No prose, no numbering, just the JSON array.",
+              "You are a shopping query generator. Return ONLY a JSON array of 12-15 DIVERSE shopping queries (each 3-7 words) covering exact match, gendered variants, color variants, fit variants, style variants. No prose, no numbering, just the JSON array." +
+              categoryDirective,
           },
           { role: "user", content: query },
         ],
         max_tokens: 700,
-        temperature: 0.5,
+        temperature: 0.4,
       }),
     });
     clearTimeout(timer);
     if (!res.ok) {
       log("perplexity_fail", { status: res.status });
-      return { queries: fallbackExpand(query), usedPerplexity: false };
+      return { queries: fb, usedPerplexity: false };
     }
     const data = await res.json();
     const text: string = data?.choices?.[0]?.message?.content || "";
     const match = text.match(/\[[\s\S]*\]/);
-    if (!match) return { queries: fallbackExpand(query), usedPerplexity: false };
+    if (!match) return { queries: fb, usedPerplexity: false };
     const parsed = JSON.parse(match[0]);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return { queries: fallbackExpand(query), usedPerplexity: false };
+      return { queries: fb, usedPerplexity: false };
     }
     const cleaned = parsed
       .map((s) => String(s).trim())
       .filter((s) => s.length > 2 && s.length < 80)
       .slice(0, 15);
-    if (cleaned.length < 3) return { queries: fallbackExpand(query), usedPerplexity: false };
-    // Merge perplexity output with deterministic fallback for extra coverage
-    const fb = fallbackExpand(query);
+    if (cleaned.length < 3) return { queries: fb, usedPerplexity: false };
     const merged = [...new Set([...cleaned, ...fb])].slice(0, 15);
     return { queries: merged, usedPerplexity: true };
   } catch (e) {
     log("perplexity_error", { msg: (e as Error).message });
-    return { queries: fallbackExpand(query), usedPerplexity: false };
+    return { queries: fb, usedPerplexity: false };
   }
+}
+
+// Hard guardrail: drop expanded queries that drift to a different category
+function categoryGuard(queries: string[], primaryCategory: string | null): { kept: string[]; rejected: string[] } {
+  if (!primaryCategory) return { kept: queries, rejected: [] };
+  const kept: string[] = [];
+  const rejected: string[] = [];
+  for (const q of queries) {
+    if (queryMatchesCategory(q, primaryCategory)) kept.push(q);
+    else rejected.push(q);
+  }
+  return { kept: kept.length ? kept : queries.slice(0, 3), rejected };
 }
 
 // ─────────────────── 2. URL discovery via Perplexity Search ───────────────────
