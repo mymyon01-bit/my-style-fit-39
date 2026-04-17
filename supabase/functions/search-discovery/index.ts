@@ -597,11 +597,20 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
     const t0 = Date.now();
+    const expandOnly: boolean = body.expandOnly === true;
 
     // 1. Expand
     const { queries, usedPerplexity } = await perplexityExpand(rawQuery);
     const shoppingQueries = queries.slice(0, maxQueries);
     log("expand_done", { rawQuery, count: shoppingQueries.length, usedPerplexity, queries: shoppingQueries });
+
+    // Lightweight mode: caller just wants the query family, no scraping cost.
+    if (expandOnly) {
+      return new Response(
+        JSON.stringify({ ok: true, rawQuery, queries: shoppingQueries, usedPerplexity, ms: Date.now() - t0 }),
+        { headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
 
     // 2. Discover URLs
     const candidates = (await discoverUrls(shoppingQueries)).slice(0, maxCandidates);
