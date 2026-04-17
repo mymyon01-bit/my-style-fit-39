@@ -423,10 +423,10 @@ function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRe
 }
 
 // ── Apply relevance filter with progressive fallback ──
-function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTarget = MIN_RESULT_TARGET): AIRecommendation[] {
+function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTarget = MIN_RESULT_TARGET, signals?: UserSignals): AIRecommendation[] {
   const scored = items.map(item => ({
     item,
-    relevance: scoreRelevance(item, intent),
+    relevance: scoreRelevance(item, intent, signals),
   }));
 
   // Sort by relevance descending
@@ -444,6 +444,42 @@ function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTa
 
   // If nothing passes even threshold 5, return top items by score (never fully empty)
   return scored.filter(s => s.relevance > 0).map(s => s.item);
+}
+
+// ── Human-readable search-intent label (Step 3, item #6) ──
+function buildSearchExplanation(intent: QueryIntent, signals?: UserSignals): string | null {
+  const parts: string[] = [];
+
+  if (intent.queryType === "scenario" && intent.scenarioLabel) {
+    parts.push(`Outfit ideas for ${intent.scenarioLabel.toLowerCase()}`);
+  } else if (intent.styleIntent.length > 0 && !intent.categoryLock) {
+    const styleWord = intent.styleIntent[0];
+    const expansion: Record<string, string> = {
+      minimal: "clean, structured pieces",
+      modern: "sleek, contemporary essentials",
+      classic: "timeless, tailored staples",
+      street: "oversized, urban looks",
+      edgy: "bold, dark-leaning pieces",
+      casual: "easy, everyday basics",
+      formal: "polished, refined wear",
+      chic: "elegant, modern pieces",
+      vintage: "retro-inspired finds",
+      sporty: "athletic, active styles",
+      bohemian: "relaxed, free-spirited looks",
+    };
+    parts.push(`Expanded "${styleWord}" into ${expansion[styleWord] || "matching styles"}`);
+  } else if (intent.categoryLock) {
+    const colorBit = intent.colorIntent[0] ? `${intent.colorIntent[0]} ` : "";
+    parts.push(`Showing ${colorBit}${intent.categoryLock.toLowerCase()}`);
+  } else {
+    return null;
+  }
+
+  if (signals?.styleProfile?.preferred_styles?.length) {
+    parts.push(`tuned to your taste`);
+  }
+
+  return parts.join(" · ");
 }
 
 // Emotion / Intent mapping for feed scoring (non-search contexts)
