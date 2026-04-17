@@ -448,6 +448,25 @@ function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRe
   return balanced;
 }
 
+// ── STRICT relevance filter (no progressive fallback) — used for LATE merges
+// so weak items can't replace good initial DB results.
+function filterByRelevanceStrict(items: AIRecommendation[], intent: QueryIntent, signals?: UserSignals): AIRecommendation[] {
+  const scored = items
+    .map(item => ({ item, relevance: scoreRelevance(item, intent, signals) }))
+    .filter(s => s.relevance >= RELEVANCE_THRESHOLD)
+    .sort((a, b) => b.relevance - a.relevance);
+  return scored.map(s => s.item);
+}
+
+// ── Stable append-only merge: keeps existing order, appends new items only.
+// Never reorders or removes already-rendered items → no flicker.
+function appendUnique(prev: AIRecommendation[], incoming: AIRecommendation[], cap = 40): AIRecommendation[] {
+  const seen = new Set(prev.map(p => p.id));
+  const additions = incoming.filter(p => !seen.has(p.id));
+  if (additions.length === 0) return prev;
+  return [...prev, ...additions].slice(0, cap);
+}
+
 // ── Apply relevance filter with progressive fallback ──
 function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTarget = MIN_RESULT_TARGET, signals?: UserSignals): AIRecommendation[] {
   const scored = items.map(item => ({
@@ -1910,9 +1929,9 @@ const DiscoverPage = () => {
           }
         }
 
-        // STAGE 2: Full external search in background
+        // STAGE 2: Full external search in background (cap concurrency to 3)
         Promise.all(
-          searchQueries.slice(0, 6).map(eq =>
+          searchQueries.slice(0, 3).map(eq =>
             hybridProductSearch({
               query: eq,
               limit: 10,
@@ -1923,16 +1942,15 @@ const DiscoverPage = () => {
             })
           )
         ).then(results => {
+          if (lastPromptRef.current !== q) return;
           const allProducts = results.flatMap(r => r.products);
           const scenarioFiltered = filterForScenario(allProducts, intent);
-          const diverse = enforceClientDiversity(scenarioFiltered, new Set([...quickDiverse.map(p => p.id)]));
-
-          if (diverse.length > 0) {
-            diverse.forEach(p => sessionSeenIds.add(p.id));
-            setRecommendations(prev => {
-              const merged = enforceClientDiversity([...prev, ...diverse], new Set()).slice(0, 30);
-              return merged;
-            });
+          // STRICT relevance for late merges — only high-quality additions
+          const strict = filterByRelevanceStrict(scenarioFiltered, intent, userSignals);
+          if (strict.length > 0) {
+            strict.forEach(p => sessionSeenIds.add(p.id));
+            // Append-only — never reorder or drop existing items
+            setRecommendations(prev => appendUnique(prev, strict, 40));
           }
         }).catch(err => {
           console.error("Scenario external search error:", err);
@@ -2015,19 +2033,20 @@ const DiscoverPage = () => {
             }));
             const newOnes = mapped.filter(p => !sessionSeenIds.has(p.id));
             if (!newOnes.length) return;
-            const filtered = filterByRelevance(newOnes, intent, MIN_RESULT_TARGET, userSignals);
-            const diverse = enforceClientDiversity(filtered, new Set(Array.from(sessionSeenIds)));
-            if (!diverse.length) return;
-            diverse.forEach(p => sessionSeenIds.add(p.id));
-            setRecommendations(prev => enforceClientDiversity([...prev, ...diverse], new Set()).slice(0, 40));
-            console.info("[search] DISCOVERY_MERGED", { added: diverse.length });
+            // STRICT relevance for late merges — high-quality additions only
+            const filtered = filterByRelevanceStrict(newOnes, intent, userSignals);
+            if (!filtered.length) return;
+            filtered.forEach(p => sessionSeenIds.add(p.id));
+            // Append-only — never reorder existing results
+            setRecommendations(prev => appendUnique(prev, filtered, 40));
+            console.info("[search] DISCOVERY_MERGED", { added: filtered.length });
           } catch (e) {
             console.warn("[search] DISCOVERY_REFETCH_FAIL", e);
           }
         }).catch(e => console.warn("[search] DISCOVERY_FAIL", e));
 
-        // ── STAGE 2: External fresh search using AI-expanded queries ──
-        const externalSearchQueries = [...new Set([q, ...searchQueries])].slice(0, 5);
+        // ── STAGE 2: External fresh search using AI-expanded queries (cap to 3) ──
+        const externalSearchQueries = [...new Set([q, ...searchQueries])].slice(0, 3);
         const externalPromise = Promise.all(
           externalSearchQueries.map(sq =>
             hybridProductSearch({
@@ -2043,17 +2062,16 @@ const DiscoverPage = () => {
         );
 
         externalPromise.then(results => {
+          if (lastPromptRef.current !== q) return;
           const externalProducts = results.flatMap(r => r.products);
-          const externalRelevant = filterByRelevance(externalProducts, intent, MIN_RESULT_TARGET, userSignals);
-          const externalDiverse = enforceClientDiversity(externalRelevant, new Set([...collected.map(c => c.id)]));
-          console.log(`Stage 2 (external fresh): ${externalDiverse.length} new results`);
+          // STRICT relevance — don't let weak items push out good ones
+          const externalStrict = filterByRelevanceStrict(externalProducts, intent, userSignals);
+          console.log(`Stage 2 (external fresh strict): ${externalStrict.length} new results`);
 
-          if (externalDiverse.length > 0) {
-            externalDiverse.forEach(p => sessionSeenIds.add(p.id));
-            setRecommendations(prev => {
-              const merged = enforceClientDiversity([...externalDiverse, ...prev], new Set()).slice(0, 30);
-              return merged;
-            });
+          if (externalStrict.length > 0) {
+            externalStrict.forEach(p => sessionSeenIds.add(p.id));
+            // Append-only — keeps initial results stable, just adds new ones
+            setRecommendations(prev => appendUnique(prev, externalStrict, 40));
           }
         }).catch(err => {
           console.error("External search error:", err);
