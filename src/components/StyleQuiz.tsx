@@ -276,22 +276,28 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
           {step > 0 ? "BACK" : "EXIT"}
         </button>
 
-        {canProceed ? (
+        <div className="flex items-center gap-5">
+          {!canProceed && !isLast && (
+            <button
+              onClick={handleSkip}
+              className="text-[11px] tracking-[0.15em] text-foreground/50 transition-colors hover:text-foreground/80"
+            >
+              SKIP
+            </button>
+          )}
           <button
-            onClick={handleNext}
-            className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] text-foreground/80 hover:text-foreground transition-colors"
+            onClick={canProceed ? handleNext : handleSkip}
+            disabled={isLast && !canProceed}
+            className={`flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[11px] font-medium tracking-[0.15em] transition-all ${
+              canProceed
+                ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                : "text-foreground/60 ring-1 ring-foreground/[0.12] hover:text-foreground hover:ring-foreground/[0.2]"
+            } disabled:opacity-30 disabled:cursor-not-allowed`}
           >
             {isLast ? "SEE MY PICKS" : "NEXT"}
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
-        ) : (
-          <button
-            onClick={handleSkip}
-            className="text-[11px] text-foreground/60 transition-colors hover:text-foreground/80"
-          >
-            SKIP
-          </button>
-        )}
+        </div>
       </div>
     </motion.div>
   );
