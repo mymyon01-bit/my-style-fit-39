@@ -272,6 +272,39 @@ export type Database = {
           },
         ]
       }
+      extraction_domain_cache: {
+        Row: {
+          created_at: string
+          failure_count: number
+          host: string
+          id: string
+          last_strategy: string
+          last_success_at: string | null
+          success_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          failure_count?: number
+          host: string
+          id?: string
+          last_strategy: string
+          last_success_at?: string | null
+          success_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          failure_count?: number
+          host?: string
+          id?: string
+          last_strategy?: string
+          last_success_at?: string | null
+          success_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       image_failures: {
         Row: {
           brand: string | null
@@ -329,6 +362,36 @@ export type Database = {
           target_id?: string
           target_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      inventory_seed_cursor: {
+        Row: {
+          created_at: string
+          cursor_index: number
+          id: string
+          last_inserted: number
+          last_run_at: string | null
+          last_seed: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cursor_index?: number
+          id?: string
+          last_inserted?: number
+          last_run_at?: string | null
+          last_seed?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cursor_index?: number
+          id?: string
+          last_inserted?: number
+          last_run_at?: string | null
+          last_seed?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
