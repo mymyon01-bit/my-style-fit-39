@@ -879,6 +879,7 @@ serve(async (req) => {
       JSON.stringify({
         ok: true,
         rawQuery,
+        primaryCategory,
         shoppingQueries,
         usedPerplexity,
         candidatesFound: candidates.length,
