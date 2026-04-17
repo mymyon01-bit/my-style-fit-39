@@ -2045,7 +2045,7 @@ const DiscoverPage = () => {
           if (strict.length > 0) {
             strict.forEach(p => sessionSeenIds.add(p.id));
             // Append-only — never reorder or drop existing items
-            setRecommendations(prev => appendUnique(prev, strict, 40));
+            setRecommendations(prev => appendUnique(prev, strict, 80));
           }
         }).catch(err => {
           console.error("Scenario external search error:", err);
@@ -2133,7 +2133,7 @@ const DiscoverPage = () => {
             if (!filtered.length) return;
             filtered.forEach(p => sessionSeenIds.add(p.id));
             // Append-only — never reorder existing results
-            setRecommendations(prev => appendUnique(prev, filtered, 40));
+            setRecommendations(prev => appendUnique(prev, filtered, 80));
             console.info("[search] DISCOVERY_MERGED", { added: filtered.length });
           } catch (e) {
             console.warn("[search] DISCOVERY_REFETCH_FAIL", e);
@@ -2166,7 +2166,7 @@ const DiscoverPage = () => {
           if (externalStrict.length > 0) {
             externalStrict.forEach(p => sessionSeenIds.add(p.id));
             // Append-only — keeps initial results stable, just adds new ones
-            setRecommendations(prev => appendUnique(prev, externalStrict, 40));
+            setRecommendations(prev => appendUnique(prev, externalStrict, 80));
           }
         }).catch(err => {
           console.error("External search error:", err);
