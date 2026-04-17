@@ -468,21 +468,58 @@ function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRe
 function filterByRelevanceStrict(items: AIRecommendation[], intent: QueryIntent, signals?: UserSignals): AIRecommendation[] {
   const scored = items
     .map(item => ({ item, relevance: scoreRelevance(item, intent, signals) }))
-    .filter(s => s.relevance >= RELEVANCE_THRESHOLD)
     .sort((a, b) => b.relevance - a.relevance);
-  return scored.map(s => s.item);
+
+  const thresholds = [RELEVANCE_THRESHOLD, 10, 5];
+  for (const threshold of thresholds) {
+    const passing = scored.filter(s => s.relevance >= threshold);
+    if (passing.length >= Math.min(6, items.length)) {
+      return passing.map(s => s.item);
+    }
+  }
+
+  const usable = scored.filter(s => s.relevance > 0).slice(0, Math.min(12, scored.length));
+  if (usable.length > 0) {
+    return usable.map(s => s.item);
+  }
+
+  return scored.slice(0, Math.min(8, scored.length)).map(s => s.item);
+}
+
+function normalizeProductMergeKey(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.split("?")[0].toLowerCase();
 }
 
 // ── Stable append-only merge: keeps existing order, appends new items only.
 // Never reorders or removes already-rendered items → no flicker.
-function appendUnique(prev: AIRecommendation[], incoming: AIRecommendation[], cap = 40): AIRecommendation[] {
-  const seen = new Set(prev.map(p => p.id));
+function appendUnique(prev: AIRecommendation[], incoming: AIRecommendation[], cap = 80): AIRecommendation[] {
+  const seenIds = new Set(prev.map(p => p.id).filter(Boolean));
+  const seenUrls = new Set(prev.map(p => normalizeProductMergeKey(p.source_url)).filter(Boolean) as string[]);
+  const seenImages = new Set(prev.map(p => normalizeProductMergeKey(p.image_url)).filter(Boolean) as string[]);
+  const seenTitles = new Set(prev.map(p => normalizeTitle(p.name)).filter(Boolean));
   const additions: AIRecommendation[] = [];
+
   for (const p of incoming) {
-    if (!p?.id || seen.has(p.id)) continue;
-    seen.add(p.id); // also de-dupe within the incoming batch itself
+    if (!p?.id) continue;
+    const urlKey = normalizeProductMergeKey(p.source_url);
+    const imageKey = normalizeProductMergeKey(p.image_url);
+    const titleKey = normalizeTitle(p.name || "");
+
+    if (seenIds.has(p.id)) continue;
+    if (urlKey && seenUrls.has(urlKey)) continue;
+    if (imageKey && seenImages.has(imageKey)) continue;
+    if (titleKey && seenTitles.has(titleKey)) continue;
+
+    seenIds.add(p.id);
+    if (urlKey) seenUrls.add(urlKey);
+    if (imageKey) seenImages.add(imageKey);
+    if (titleKey) seenTitles.add(titleKey);
     additions.push(p);
   }
+
   if (additions.length === 0) return prev;
   return [...prev, ...additions].slice(0, cap);
 }
@@ -738,9 +775,21 @@ async function hybridProductSearch(opts: {
   randomize?: boolean;
   freshSearch?: boolean;
 }): Promise<{ products: AIRecommendation[]; expanded: boolean; dbCount: number }> {
-  const dedupKey = `product-search:${opts.query}:${opts.category}:${opts.expandExternal}:${opts.freshSearch}`;
+  const excludeKey = (opts.excludeIds || []).slice(0, 20).sort().join("|");
+  const dedupKey = [
+    "product-search",
+    opts.query || "",
+    opts.category || "",
+    (opts.styles || []).join(","),
+    opts.fit || "",
+    String(opts.limit || 16),
+    String(opts.expandExternal ?? false),
+    String(opts.randomize ?? true),
+    String(opts.freshSearch ?? false),
+    excludeKey,
+  ].join(":");
 
-  return deduplicatedSearch(dedupKey, async () => {
+  const runSearch = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("product-search", {
         body: {
@@ -784,7 +833,13 @@ async function hybridProductSearch(opts: {
       console.error("Hybrid search error:", e);
       return { products: [], expanded: false, dbCount: 0 };
     }
-  });
+  };
+
+  if (opts.freshSearch) {
+    return runSearch();
+  }
+
+  return deduplicatedSearch(dedupKey, runSearch);
 }
 
 // ─── Tag-based fallback: direct DB query when network is slow ───
@@ -2075,20 +2130,19 @@ const DiscoverPage = () => {
         }).catch(err => {
           console.error("External search error:", err);
         }).finally(() => {
-          // CYCLE 3 fallback expansion if still under min target
+          // CYCLE 3 fallback expansion if still under the minimum visible target
           if (!isCurrent()) return;
-          if (session.totalAdded >= 8) {
-            stopSession("external-fresh complete");
+          if (session.totalAdded >= MIN_RESULT_TARGET) {
+            stopSession(`minimum target ${MIN_RESULT_TARGET} reached`);
             return;
           }
-          // Widen: drop category/styles, broader query
           hybridProductSearch({
-            query: q, limit: 20,
+            query: q, limit: 24,
             excludeIds: Array.from(sessionSeenIds),
             freshSearch: true, expandExternal: true, randomize: true,
           }).then(({ products: wide }) => {
             if (!isCurrent()) return;
-            const wideRelevant = filterByRelevance(wide, intent, 4, userSignals);
+            const wideRelevant = filterByRelevance(wide, intent, MIN_RESULT_TARGET, userSignals);
             appendCycle("fallback-broaden", wideRelevant);
             stopSession("fallback-broaden complete");
           }).catch(() => stopSession("fallback-broaden failed"));

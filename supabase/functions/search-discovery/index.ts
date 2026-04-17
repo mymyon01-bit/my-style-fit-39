@@ -544,14 +544,14 @@ async function insertProducts(
   });
   const { data, error } = await supabase
     .from("product_cache")
-    .upsert(records, { onConflict: "platform,external_id", ignoreDuplicates: true })
+    .upsert(records, { onConflict: "platform,external_id" })
     .select("id");
   if (error) {
     log("insert_error", { msg: error.message });
     return { inserted: 0, duplicates: 0 };
   }
   const inserted = (data || []).length;
-  return { inserted, duplicates: records.length - inserted };
+  return { inserted, duplicates: Math.max(records.length - inserted, 0) };
 }
 
 function hashUrl(u: string): string {
