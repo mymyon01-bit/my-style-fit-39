@@ -2630,10 +2630,46 @@ const DiscoverPage = () => {
                   </p>
                 )}
 
+                {/* ── TOP: "How about this?" — instant DB recommendations from user taste ── */}
+                {dbRecommendations.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-baseline justify-between">
+                      <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/70">
+                        HOW ABOUT THIS?
+                      </p>
+                      <span className="text-[9px] tracking-[0.1em] text-foreground/45">
+                        From your taste
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                      {dbRecommendations.map((item, i) => (
+                        <RecommendationCard
+                          key={`db-rec-${item.id}`}
+                          item={item}
+                          index={i}
+                          feedbackMap={feedbackMap}
+                          savedIds={savedIds}
+                          onFeedback={handleFeedback}
+                          onSave={handleSave}
+                          onOpenDetail={setDetailProduct}
+                        />
+                      ))}
+                    </div>
+                    <div className="h-px bg-border/30" />
+                  </div>
+                )}
+
+                {/* ── BOTTOM: real query-based search results ── */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
-                      {activeScenario ? activeScenario.label.toUpperCase() : activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
+                    <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/75">
+                      {activeScenario
+                        ? activeScenario.label.toUpperCase()
+                        : lastPromptRef.current
+                          ? `RESULTS FOR "${lastPromptRef.current.toUpperCase()}"`
+                          : activeTab === "for-you"
+                            ? t("curatedForYou").toUpperCase()
+                            : activeTab.toUpperCase()}
                     </p>
                     {interactionCount > 2 && !activeScenario && (
                       <p className="text-[10px] text-foreground/75 mt-1">{t("adaptingTaste")}</p>
