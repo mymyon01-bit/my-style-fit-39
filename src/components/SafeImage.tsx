@@ -4,6 +4,7 @@ import { ImageOff } from "lucide-react";
 interface SafeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   fallbackClassName?: string;
   fallbackSrcs?: string[];
+  eager?: boolean; // mark above-the-fold images for eager loading
 }
 
 /** Validates a URL is a proper https image link */
@@ -35,7 +36,7 @@ export function resolveImageUrl(
   return null;
 }
 
-const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, ...props }: SafeImageProps) => {
+const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager, ...props }: SafeImageProps) => {
   const allSrcs = [src, ...(fallbackSrcs || [])].filter(isValidImageUrl);
   const [srcIndex, setSrcIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -70,7 +71,10 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, ...pr
         src={currentSrc}
         alt={alt || ""}
         className={`${className || ""} ${loaded ? "" : "hidden"}`}
-        loading="lazy"
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+        // @ts-expect-error fetchpriority is a valid HTML attr but not yet typed
+        fetchpriority={eager ? "high" : "low"}
         onLoad={() => setLoaded(true)}
         onError={handleError}
         {...props}
