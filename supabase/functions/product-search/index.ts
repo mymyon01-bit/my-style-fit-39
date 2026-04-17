@@ -487,6 +487,39 @@ serve(async (req) => {
       // External products come first, then DB supplements
       let allProducts = [...externalProducts, ...uniqueDbProducts];
       allProducts = enforceDiversity(allProducts);
+
+      // GUARANTEE: never return fewer than 6 items. If we're short, broaden the
+      // search by dropping the text query (use category/styles only) — and as a
+      // last resort, pull top trending fashion items from cache.
+      if (allProducts.length < 6) {
+        const seenIds = new Set(allProducts.map((p: any) => p.external_id || p.id));
+        const broaden = await loadFromDB(supabase, {
+          category,
+          styles,
+          fit,
+          limit: 20,
+          excludeIds: [...seenIds],
+          randomize: true,
+        });
+        for (const p of broaden) {
+          if (allProducts.length >= 12) break;
+          allProducts.push(p);
+        }
+        // Last resort: any trending fashion item
+        if (allProducts.length < 6) {
+          const trending = await loadFromDB(supabase, {
+            limit: 20,
+            excludeIds: [...new Set(allProducts.map((p: any) => p.external_id || p.id))],
+            randomize: true,
+          });
+          for (const p of trending) {
+            if (allProducts.length >= 12) break;
+            allProducts.push(p);
+          }
+        }
+        console.log(`[SEARCH_DEBUG] broadened fallback engaged → total=${allProducts.length}`);
+      }
+
       allProducts = allProducts.slice(0, clampedLimit);
 
       const normalized = allProducts.map(p => ({
