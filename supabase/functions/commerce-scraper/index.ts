@@ -566,24 +566,43 @@ serve(async (req) => {
     const sanitizedQuery = query.replace(/[<>"'`;]/g, "").trim().slice(0, 100);
 
     const requestedPlatforms: string[] = platforms || Object.keys(PLATFORMS);
-    const enabledPlatforms = requestedPlatforms.filter(
-      (p) => PLATFORMS[p]?.enabled && canCallPlatform(p)
-    );
+    const enabledPlatforms = requestedPlatforms
+      .filter((p) => PLATFORMS[p]?.enabled && canCallPlatform(p))
+      .sort((a, b) => (PLATFORMS[a].priority || 99) - (PLATFORMS[b].priority || 99));
 
     console.log(
       `commerce-scraper: query="${sanitizedQuery}", platforms=[${enabledPlatforms.join(",")}]`
     );
 
-    // Scrape platforms in parallel (max 2 concurrent to stay within rate limits)
-    const batchSize = 2;
+    // Run ALL enabled platforms in parallel — each capped at 15s, so wall-clock
+    // is ~15s regardless of platform count. Partial failure is expected and OK:
+    // we collect whatever returns. allSettled means one bad source can't poison
+    // the batch.
+    const perPlatformStats: Record<string, number> = {};
+    const settled = await Promise.allSettled(
+      enabledPlatforms.map((p) => scrapePlatform(p, sanitizedQuery, apiKey))
+    );
     let allProducts: ScrapedProduct[] = [];
+    settled.forEach((res, i) => {
+      const platformId = enabledPlatforms[i];
+      if (res.status === "fulfilled") {
+        perPlatformStats[platformId] = res.value.length;
+        allProducts.push(...res.value);
+      } else {
+        perPlatformStats[platformId] = 0;
+        console.error(`[${platformId}] rejected:`, res.reason);
+      }
+    });
+    console.log(`commerce-scraper per-platform: ${JSON.stringify(perPlatformStats)}`);
 
-    for (let i = 0; i < enabledPlatforms.length; i += batchSize) {
-      const batch = enabledPlatforms.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map((p) => scrapePlatform(p, sanitizedQuery, apiKey))
-      );
-      allProducts.push(...results.flat());
+    // FALLBACK: if scraping returned too few items, supplement with web search.
+    if (allProducts.length < 6) {
+      try {
+        const webResults = await firecrawlSearchFallback(sanitizedQuery, apiKey, 12);
+        allProducts.push(...webResults);
+      } catch (e) {
+        console.error("firecrawl-search fallback failed:", e);
+      }
     }
 
     // Track rejected products for admin monitoring
@@ -632,6 +651,7 @@ serve(async (req) => {
     if (rejectedCount > 0) {
       console.log(`Rejected ${rejectedCount} products (duplicates/diversity limits)`);
     }
+    console.log(`commerce-scraper RESULT: ${allProducts.length} products from ${enabledPlatforms.length} platforms`);
 
     // Cache to DB in background
     cacheToDB(supabase, allProducts)
