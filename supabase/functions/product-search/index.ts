@@ -22,6 +22,54 @@ function isFashionProduct(name: string): boolean {
   return FASHION_TITLE_RE.test(name);
 }
 
+// ─── Category inference (used to enforce search intent) ───
+// Maps a raw text blob → canonical category bucket
+const CATEGORY_PATTERNS: { category: string; re: RegExp }[] = [
+  { category: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag)\b/i },
+  { category: "shoes", re: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|derby|brogues?|espadrilles?|slippers?)\b/i },
+  { category: "outerwear", re: /\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan)\b/i },
+  { category: "tops", re: /\b(shirt|tee|t-shirt|hoodie|sweater|polo|blouse|tank|knit|sweatshirt|pullover|henley|tunic|camisole|top)\b/i },
+  { category: "bottoms", re: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes)\b/i },
+  { category: "dresses", re: /\b(dress|jumpsuit|romper|gown)\b/i },
+  { category: "accessories", re: /\b(hat|cap|beanie|scarf|belt|watch|sunglasses|gloves?|tie|necklace|bracelet|earring|ring|wallet|fedora|beret|headband|bandana)\b/i },
+];
+
+function inferCategoryFromText(text: string): string | null {
+  if (!text) return null;
+  for (const { category, re } of CATEGORY_PATTERNS) {
+    if (re.test(text)) return category;
+  }
+  return null;
+}
+
+// Server-side category alias map (db has both "shoes"+"footwear", "bags", etc.)
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  bags: ["bags", "bag", "accessories"], // some bags get tagged "accessories"
+  shoes: ["shoes", "footwear"],
+  outerwear: ["outerwear", "clothing"],
+  tops: ["tops", "clothing"],
+  bottoms: ["bottoms", "clothing"],
+  dresses: ["dresses", "clothing"],
+  accessories: ["accessories"],
+};
+
+function categoryMatches(intentCategory: string, productCategory: string | null | undefined, productName: string | null | undefined): boolean {
+  if (!intentCategory) return true;
+  const allowed = CATEGORY_ALIASES[intentCategory] || [intentCategory];
+  const pc = (productCategory || "").toLowerCase();
+  if (pc && allowed.includes(pc)) {
+    // For "bags" intent, "accessories" only counts if the name actually mentions a bag
+    if (intentCategory === "bags" && pc === "accessories") {
+      return /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|handbag|shoulder)\b/i.test(productName || "");
+    }
+    return true;
+  }
+  // Fallback: name matches the intent category pattern AND does not strongly belong to a different category
+  const nameInferred = inferCategoryFromText(productName || "");
+  if (nameInferred === intentCategory) return true;
+  return false;
+}
+
 function isImageUrlSafe(url: unknown): boolean {
   if (!url || typeof url !== "string") return false;
   const trimmed = url.trim();
