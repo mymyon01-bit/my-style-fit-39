@@ -192,31 +192,42 @@ function autoTagProduct(p: any): any {
   return p;
 }
 
-// ─── External expansion via commerce scraper (rate-limited) ───
-const lastScraperCall = { ts: 0 };
-// Lowered from 1500 → 300ms so a single search with 5+ expanded queries can ingest
-// products in parallel and continuously grow product_cache instead of recycling.
-const SCRAPER_COOLDOWN_MS = 300;
+// ─── External expansion via commerce scraper ───
+// PER-QUERY DEDUP (not global cooldown). The previous global SCRAPER_COOLDOWN_MS
+// blocked 4 of every 5 parallel expanded queries from ever reaching the scraper,
+// which is the root cause of "0 external" results in the logs. We now allow
+// every distinct query to fire, but suppress the SAME query within a 30s window.
+const recentQueryCalls = new Map<string, number>();
+const QUERY_DEDUP_WINDOW_MS = 30_000;
 
 async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[]> {
-  // Rate limiting: prevent burst requests
+  const sanitizedQuery = query.replace(/[<>"'`;]/g, "").slice(0, 100).trim();
+  if (!sanitizedQuery) return [];
+
+  // Per-query dedup (not a global lock)
   const now = Date.now();
-  if (now - lastScraperCall.ts < SCRAPER_COOLDOWN_MS) {
-    console.log("Scraper cooldown active, skipping external expansion");
+  const lastCall = recentQueryCalls.get(sanitizedQuery) || 0;
+  if (now - lastCall < QUERY_DEDUP_WINDOW_MS) {
+    console.log(`[SEARCH_DEBUG] scraper dedup skip for "${sanitizedQuery}" (called ${now - lastCall}ms ago)`);
     return [];
   }
-  lastScraperCall.ts = now;
+  recentQueryCalls.set(sanitizedQuery, now);
+  // Clean old entries to avoid memory growth
+  if (recentQueryCalls.size > 200) {
+    for (const [k, v] of recentQueryCalls) {
+      if (now - v > QUERY_DEDUP_WINDOW_MS) recentQueryCalls.delete(k);
+    }
+  }
 
   try {
     const baseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!baseUrl || !serviceKey) return [];
 
-    // Sanitize query: limit length, strip dangerous chars
-    const sanitizedQuery = query.replace(/[<>"'`;]/g, "").slice(0, 100);
-
+    // Tightened: 18s (was 45s). The parent edge function only has ~25s wall clock,
+    // and scraper itself caps at 14s per platform. Anything longer is dead.
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000); // 45s — scraping takes time
+    const timeout = setTimeout(() => controller.abort(), 18000);
 
     const res = await fetch(`${baseUrl}/functions/v1/commerce-scraper`, {
       method: "POST",
@@ -440,14 +451,28 @@ serve(async (req) => {
       externalProducts = externalResult;
       dbProducts = dbResult;
 
-      console.log(`Fresh search: ${externalProducts.length} external, ${dbProducts.length} DB for "${query}"`);
-
-      // Cache valid external products to DB in background
+      // Cache valid external products to DB and AWAIT count for logging
+      let insertedCount = 0;
+      let duplicateRejections = 0;
       if (externalProducts.length > 0) {
-        cacheToDB(supabase, externalProducts).then(n => {
-          if (n > 0) console.log(`Cached ${n} new products from fresh search`);
-        }).catch(e => console.error("Cache error:", e));
+        try {
+          insertedCount = await cacheToDB(supabase, externalProducts);
+          duplicateRejections = externalProducts.length - insertedCount;
+        } catch (e) {
+          console.error("Cache error:", e);
+        }
       }
+
+      console.log(`[SEARCH_DEBUG] ${JSON.stringify({
+        stage: "FRESH_SEARCH_COMPLETE",
+        raw_query: query,
+        external_fetched: externalProducts.length,
+        db_supplement: dbProducts.length,
+        valid_count: externalProducts.length,
+        inserted_count: insertedCount,
+        duplicate_rejections: duplicateRejections,
+        path: externalProducts.length > 0 ? "DB_PLUS_EXTERNAL" : "DB_ONLY",
+      })}`);
 
       // Merge — external results FIRST (higher priority), DB fills gaps
       const externalIds = new Set(externalProducts.map((p: any) => p.external_id));
