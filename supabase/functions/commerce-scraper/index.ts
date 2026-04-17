@@ -304,9 +304,33 @@ async function extractProducts(
   }
 }
 
-/** Validate that a URL returns a real image via HEAD request */
+// Trusted image CDNs that frequently block HEAD requests but always serve real images.
+// We accept these on URL pattern alone instead of probing them — probing was rejecting
+// 100% of SSENSE results (img.ssensemedia.com returns 4xx on HEAD).
+const TRUSTED_IMAGE_HOSTS = [
+  "ssensemedia.com",
+  "asos-media.com",
+  "ssgcdn.com",
+  "farfetch-contents.com",
+  "scene7.com",
+  "shopifycdn.com",
+  "cdninstagram.com",
+  "akamaized.net",
+];
+
+function isTrustedImageHost(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return TRUSTED_IMAGE_HOSTS.some((h) => u.hostname.endsWith(h));
+  } catch {
+    return false;
+  }
+}
+
+/** Validate that a URL returns a real image. Trusted CDNs skip the HEAD probe. */
 async function validateImageHead(url: string): Promise<boolean> {
   if (!isImageUrlSafe(url)) return false;
+  if (isTrustedImageHost(url)) return true; // skip probe — known reliable
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
@@ -320,7 +344,9 @@ async function validateImageHead(url: string): Promise<boolean> {
     const ct = res.headers.get("content-type") || "";
     return ct.startsWith("image/");
   } catch {
-    return false;
+    // Network/timeout: accept rather than reject. Better to show a maybe-broken
+    // image (caught by client onError) than to throw away every external result.
+    return true;
   }
 }
 
