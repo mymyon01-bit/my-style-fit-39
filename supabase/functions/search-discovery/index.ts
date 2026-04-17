@@ -67,6 +67,44 @@ function isImageSafe(u: unknown): boolean {
 
 // ─────────────────── 1. Query intent + expansion ───────────────────
 
+// ── Category lock: deterministic primary-category detection ──
+// Mirrors product-search/category-keyword-map. Single source of truth here.
+const PRIMARY_CATEGORY_PATTERNS: Array<{ cat: string; re: RegExp }> = [
+  { cat: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag)\b/i },
+  { cat: "shoes", re: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|derby|brogues?|espadrilles?|slippers?)\b/i },
+  { cat: "outerwear", re: /\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan)\b/i },
+  { cat: "tops", re: /\b(shirt|tee|t-shirts?|hoodie|sweater|polo|blouse|tank|knit|sweatshirt|pullover|henley|tunic|camisole)\b/i },
+  { cat: "bottoms", re: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes)\b/i },
+  { cat: "dresses", re: /\b(dress|jumpsuit|romper|gown)\b/i },
+];
+
+// Scenario / weather queries — these are intentionally mixed-category
+const SCENARIO_RE = /\b(summer\s*vacation|date\s*night|wedding|office|gym|travel|beach|party|festival|interview|brunch|rainy\s*day|snowy|winter\s*outfit|summer\s*outfit|weekend|holiday)\b/i;
+
+function detectPrimaryCategory(query: string): string | null {
+  if (!query) return null;
+  if (SCENARIO_RE.test(query)) return null; // scenario → mixed allowed
+  for (const { cat, re } of PRIMARY_CATEGORY_PATTERNS) {
+    if (re.test(query)) return cat;
+  }
+  return null;
+}
+
+// Used to filter expanded queries + discovered URL titles so they stay in the
+// locked category family.
+function queryMatchesCategory(query: string, primaryCategory: string | null): boolean {
+  if (!primaryCategory) return true;
+  const pat = PRIMARY_CATEGORY_PATTERNS.find((p) => p.cat === primaryCategory);
+  if (!pat) return true;
+  if (pat.re.test(query)) return true;
+  // Reject anything that strongly suggests a different category
+  for (const { cat, re } of PRIMARY_CATEGORY_PATTERNS) {
+    if (cat !== primaryCategory && re.test(query)) return false;
+  }
+  // Neutral query (no category words) → allow
+  return true;
+}
+
 const SCENARIO_FALLBACK: Record<string, string[]> = {
   "summer vacation": [
     "men linen shirt", "men relaxed shorts", "men resort sandals",
