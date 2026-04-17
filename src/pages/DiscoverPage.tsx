@@ -272,7 +272,14 @@ function parseQueryIntent(query: string): QueryIntent {
 const RELEVANCE_THRESHOLD = 15; // Base threshold — progressive fallback will lower further if needed
 const MIN_RESULT_TARGET = 12; // Minimum products to show before considering search "successful"
 
-function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
+// User taste signals blended into ranking (Step 3, factor #4 in the formula)
+interface UserSignals {
+  styleProfile?: any | null;
+  feedbackMap?: Record<string, "like" | "dislike">;
+  savedIds?: Set<string>;
+}
+
+function scoreRelevance(item: AIRecommendation, intent: QueryIntent, signals?: UserSignals): number {
   const itemName = (item.name || "").toLowerCase();
   const itemBrand = (item.brand || "").toLowerCase();
   const itemText = `${itemName} ${itemBrand} ${item.category || ""} ${(item.style_tags || []).join(" ")} ${item.color || ""} ${item.fit || ""}`.toLowerCase();
@@ -285,9 +292,12 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     }
   }
 
+  // HARD BLOCK: Disliked feedback rules item out completely
+  if (signals?.feedbackMap?.[item.id] === "dislike") return 0;
+
   let score = 0;
 
-  // 0.40 — Category match (softer penalty when no lock — allow related categories)
+  // 0.40 — Category / scenario relevance
   if (intent.categoryLock) {
     if (itemCategory === intent.categoryLock) {
       score += 40;
@@ -313,25 +323,49 @@ function scoreRelevance(item: AIRecommendation, intent: QueryIntent): number {
     score += 12;
   }
 
-  // 0.20 — Color match
+  // 0.20 — Color / fit alignment (with user fit pref folded in when no explicit color asked)
   if (intent.colorIntent.length > 0) {
-    const colorMatch = intent.colorIntent.some(c => 
+    const colorMatch = intent.colorIntent.some(c =>
       itemName.includes(c) || (item.color || "").toLowerCase().includes(c) || itemText.includes(c)
     );
     score += colorMatch ? 20 : 2;
   } else {
-    score += 10;
+    let fitColorScore = 10;
+    const preferredFit = signals?.styleProfile?.preferred_fit;
+    if (preferredFit && item.fit && item.fit.toLowerCase() === String(preferredFit).toLowerCase()) {
+      fitColorScore += 6;
+    }
+    score += Math.min(20, fitColorScore);
   }
 
-  // 0.10 — Brand match
-  if (intent.brandIntent.length > 0) {
+  // 0.10 — User preference match (likes / saves / preferred styles / favorite brands)
+  let prefScore = 0;
+  if (signals) {
+    const styles = signals.styleProfile?.preferred_styles || [];
+    const disliked = signals.styleProfile?.disliked_styles || [];
+    const favBrands: string[] = (signals.styleProfile?.favorite_brands || []).map((b: string) => b.toLowerCase());
+    const itemStyleTags: string[] = item.style_tags || [];
+
+    if (styles.length && itemStyleTags.some((t: string) => styles.includes(t))) prefScore += 4;
+    if (disliked.length && itemStyleTags.some((t: string) => disliked.includes(t))) prefScore -= 6;
+    if (favBrands.length && favBrands.some(b => itemBrand.includes(b))) prefScore += 3;
+    if (signals.savedIds?.has(item.id)) prefScore += 2;
+    if (signals.feedbackMap?.[item.id] === "like") prefScore += 4;
+
+    // Brand intent in query overrides preference brand bonus
+    if (intent.brandIntent.length > 0) {
+      const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
+      prefScore += brandMatch ? 6 : 0;
+    }
+  } else if (intent.brandIntent.length > 0) {
     const brandMatch = intent.brandIntent.some(b => itemBrand.includes(b));
-    score += brandMatch ? 10 : 0;
+    prefScore += brandMatch ? 10 : 0;
   } else {
-    score += 5;
+    prefScore += 5;
   }
+  score += Math.max(0, Math.min(10, prefScore));
 
-  // 0.05 — Keyword match
+  // 0.05 — Diversity / keyword micro-match (kept as keyword signal for relevance)
   if (intent.keywords.length > 0) {
     const keywordHits = intent.keywords.filter(k => itemText.includes(k)).length;
     score += Math.min(5, (keywordHits / intent.keywords.length) * 5);
@@ -389,10 +423,10 @@ function filterForScenario(items: AIRecommendation[], intent: QueryIntent): AIRe
 }
 
 // ── Apply relevance filter with progressive fallback ──
-function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTarget = MIN_RESULT_TARGET): AIRecommendation[] {
+function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTarget = MIN_RESULT_TARGET, signals?: UserSignals): AIRecommendation[] {
   const scored = items.map(item => ({
     item,
-    relevance: scoreRelevance(item, intent),
+    relevance: scoreRelevance(item, intent, signals),
   }));
 
   // Sort by relevance descending
@@ -410,6 +444,42 @@ function filterByRelevance(items: AIRecommendation[], intent: QueryIntent, minTa
 
   // If nothing passes even threshold 5, return top items by score (never fully empty)
   return scored.filter(s => s.relevance > 0).map(s => s.item);
+}
+
+// ── Human-readable search-intent label (Step 3, item #6) ──
+function buildSearchExplanation(intent: QueryIntent, signals?: UserSignals): string | null {
+  const parts: string[] = [];
+
+  if (intent.queryType === "scenario" && intent.scenarioLabel) {
+    parts.push(`Outfit ideas for ${intent.scenarioLabel.toLowerCase()}`);
+  } else if (intent.styleIntent.length > 0 && !intent.categoryLock) {
+    const styleWord = intent.styleIntent[0];
+    const expansion: Record<string, string> = {
+      minimal: "clean, structured pieces",
+      modern: "sleek, contemporary essentials",
+      classic: "timeless, tailored staples",
+      street: "oversized, urban looks",
+      edgy: "bold, dark-leaning pieces",
+      casual: "easy, everyday basics",
+      formal: "polished, refined wear",
+      chic: "elegant, modern pieces",
+      vintage: "retro-inspired finds",
+      sporty: "athletic, active styles",
+      bohemian: "relaxed, free-spirited looks",
+    };
+    parts.push(`Expanded "${styleWord}" into ${expansion[styleWord] || "matching styles"}`);
+  } else if (intent.categoryLock) {
+    const colorBit = intent.colorIntent[0] ? `${intent.colorIntent[0]} ` : "";
+    parts.push(`Showing ${colorBit}${intent.categoryLock.toLowerCase()}`);
+  } else {
+    return null;
+  }
+
+  if (signals?.styleProfile?.preferred_styles?.length) {
+    parts.push(`tuned to your taste`);
+  }
+
+  return parts.join(" · ");
 }
 
 // Emotion / Intent mapping for feed scoring (non-search contexts)
@@ -901,6 +971,8 @@ const DiscoverPage = () => {
   const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
   // Scenario context for display
   const [activeScenario, setActiveScenario] = useState<{ label: string; items: string[] } | null>(null);
+  // Step 3: human-readable explanation of what the search interpreted
+  const [searchExplanation, setSearchExplanation] = useState<string | null>(null);
   
   // Whether user needs to complete preferences
   const needsPreferences = !userStyleProfile && !quizAnswers;
@@ -1622,11 +1694,21 @@ const DiscoverPage = () => {
       setHasGenerated(true);
       // Don't clear recommendations — keep previous results visible while loading
       setActiveScenario(null);
+      setSearchExplanation(null);
       lastPromptRef.current = q;
 
       // Step 1: Parse query into structured intent
       const intent = parseQueryIntent(q);
       const isScenarioQuery = intent.queryType === "scenario";
+
+      // Build user taste signals (Step 3 — blends likes / saves / preferred styles into ranking)
+      const userSignals: UserSignals = {
+        styleProfile: userStyleProfile,
+        feedbackMap,
+        savedIds,
+      };
+      // Show contextual explanation label
+      setSearchExplanation(buildSearchExplanation(intent, userSignals));
 
       // Step 2: AI-powered query expansion (Perplexity) with STRICT 1.5s soft timeout.
       // Local fallback always available — never block search on AI.
@@ -1690,7 +1772,7 @@ const DiscoverPage = () => {
             const lateProducts = results.flatMap(r => r.products);
             if (!lateProducts.length) return;
             const lateIntent = parseQueryIntent(q);
-            const lateRelevant = filterByRelevance(lateProducts, lateIntent);
+            const lateRelevant = filterByRelevance(lateProducts, lateIntent, MIN_RESULT_TARGET, userSignals);
             const lateDiverse = enforceClientDiversity(lateRelevant, new Set(Array.from(sessionSeenIds)));
             if (!lateDiverse.length) return;
             lateDiverse.forEach(p => sessionSeenIds.add(p.id));
@@ -1854,7 +1936,7 @@ const DiscoverPage = () => {
           randomize: false,
         });
 
-        const dbRelevant = filterByRelevance(dbQuickProducts, intent);
+        const dbRelevant = filterByRelevance(dbQuickProducts, intent, MIN_RESULT_TARGET, userSignals);
         collected = enforceClientDiversity(dbRelevant, new Set());
         console.log(`Stage 1 (DB quick): ${collected.length} results`);
 
@@ -1900,7 +1982,7 @@ const DiscoverPage = () => {
 
         externalPromise.then(results => {
           const externalProducts = results.flatMap(r => r.products);
-          const externalRelevant = filterByRelevance(externalProducts, intent);
+          const externalRelevant = filterByRelevance(externalProducts, intent, MIN_RESULT_TARGET, userSignals);
           const externalDiverse = enforceClientDiversity(externalRelevant, new Set([...collected.map(c => c.id)]));
           console.log(`Stage 2 (external fresh): ${externalDiverse.length} new results`);
 
@@ -1927,7 +2009,7 @@ const DiscoverPage = () => {
           try {
             const externalResults = await externalPromise;
             const allExternal = externalResults.flatMap(r => r.products);
-            const extRelevant = filterByRelevance(allExternal, intent);
+            const extRelevant = filterByRelevance(allExternal, intent, MIN_RESULT_TARGET, userSignals);
             const extDiverse = enforceClientDiversity(extRelevant, new Set());
 
             if (extDiverse.length > 0) {
@@ -2379,6 +2461,13 @@ const DiscoverPage = () => {
                       ))}
                     </div>
                   </div>
+                )}
+
+                {/* Search interpretation label (Step 3) — shown for non-scenario searches */}
+                {!activeScenario && searchExplanation && (
+                  <p className="text-[11px] tracking-[0.05em] text-foreground/55 italic">
+                    {searchExplanation}
+                  </p>
                 )}
 
                 <div className="flex items-center justify-between">
