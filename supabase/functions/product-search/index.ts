@@ -244,6 +244,9 @@ function autoTagProduct(p: any): any {
 
   return p;
 }
+
+// ─── External expansion + inventory growth ───
+function sanitizeSearchQuery(query: string): string {
   const cleaned = query.replace(/[<>"'`;]/g, "").trim();
   if (!cleaned) return "";
   const tokens = cleaned.split(/\s+/);
