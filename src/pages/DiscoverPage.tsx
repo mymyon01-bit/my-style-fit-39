@@ -1011,6 +1011,8 @@ const DiscoverPage = () => {
   const [userStyleProfile, setUserStyleProfile] = useState<any>(null);
   const [dbOffset, setDbOffset] = useState(0);
   const [hasMoreInDB, setHasMoreInDB] = useState(true);
+  // ── "How about this?" — instant DB recommendations shown ABOVE the live search results ──
+  const [dbRecommendations, setDbRecommendations] = useState<AIRecommendation[]>([]);
   const lastPromptRef = useRef("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1307,6 +1309,76 @@ const DiscoverPage = () => {
     return parts.join(". ");
   };
 
+  // ── "How about this?" loader: instant DB recommendations based on user taste + (loosely) the query ──
+  const loadDbRecommendations = useCallback(async (query: string) => {
+    try {
+      const stylesFromUser: string[] = userStyleProfile?.preferred_styles || quizAnswers?.preferredStyles || [];
+      const dislikedStyles: string[] = userStyleProfile?.disliked_styles || [];
+      const fitFromUser: string | undefined = userStyleProfile?.preferred_fit || quizAnswers?.fitPreference || undefined;
+
+      // Pull a wide set then rank locally so it stays loosely related to the query
+      // without competing with the strict bottom search-result section.
+      let q = supabase
+        .from("product_cache")
+        .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform, reason")
+        .eq("is_active", true)
+        .not("image_url", "is", null)
+        .order("trend_score", { ascending: false })
+        .limit(40);
+      if (stylesFromUser.length) q = q.overlaps("style_tags", stylesFromUser);
+      if (fitFromUser) q = q.eq("fit", fitFromUser);
+
+      const { data } = await q;
+      let pool = (data || []).filter((p: any) => p.image_url?.startsWith("https"));
+
+      // Soft-filter disliked styles
+      if (dislikedStyles.length) {
+        pool = pool.filter((p: any) => !(p.style_tags || []).some((t: string) => dislikedStyles.includes(t)));
+      }
+
+      // Light query affinity (don't drop items, just bias ordering)
+      const qLower = (query || "").toLowerCase().trim();
+      const tokens = qLower.split(/\s+/).filter(t => t.length > 2);
+      if (tokens.length) {
+        pool = pool
+          .map((p: any) => {
+            const hay = `${p.name || ""} ${p.brand || ""} ${(p.style_tags || []).join(" ")} ${(p.color_tags || []).join(" ")} ${p.category || ""}`.toLowerCase();
+            const score = tokens.reduce((s, t) => s + (hay.includes(t) ? 1 : 0), 0);
+            return { p, score };
+          })
+          .sort((a, b) => b.score - a.score)
+          .map(x => x.p);
+      }
+
+      // Exclude items already showing in the live results so the two sections stay distinct
+      const liveIds = new Set(recommendations.map(r => r.id));
+      const out: AIRecommendation[] = [];
+      for (const p of pool) {
+        if (liveIds.has(p.id)) continue;
+        out.push({
+          id: p.id,
+          name: p.name,
+          brand: p.brand || "",
+          price: p.price || "",
+          category: p.category || "",
+          reason: p.reason || "From your taste",
+          style_tags: p.style_tags || [],
+          color: (p.color_tags || [])[0] || "",
+          fit: p.fit || "regular",
+          image_url: p.image_url,
+          source_url: p.source_url,
+          store_name: p.store_name,
+          platform: p.platform || null,
+        });
+        if (out.length >= 8) break;
+      }
+      setDbRecommendations(out);
+    } catch (e) {
+      console.warn("[how-about-this] load failed", e);
+      setDbRecommendations([]);
+    }
+  }, [userStyleProfile, quizAnswers, recommendations]);
+
   const generateRecommendations = async (prompt: string, quiz?: StyleQuizAnswers, categoryFilter?: string) => {
     const cacheKey = getCacheKey("recommend", { prompt, category: categoryFilter, styles: selectedStyles, fit: selectedFit, color: selectedColor });
     const cached = getCachedResult(cacheKey);
@@ -1325,6 +1397,9 @@ const DiscoverPage = () => {
     setDbOffset(0);
     setShowSuggestions(false);
     lastPromptRef.current = prompt;
+
+    // Kick off "How about this?" DB recommendations in parallel — instant render
+    loadDbRecommendations(prompt);
 
     try {
       const filterContext = [];
@@ -2555,10 +2630,46 @@ const DiscoverPage = () => {
                   </p>
                 )}
 
+                {/* ── TOP: "How about this?" — instant DB recommendations from user taste ── */}
+                {dbRecommendations.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-baseline justify-between">
+                      <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/70">
+                        HOW ABOUT THIS?
+                      </p>
+                      <span className="text-[9px] tracking-[0.1em] text-foreground/45">
+                        From your taste
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                      {dbRecommendations.map((item, i) => (
+                        <RecommendationCard
+                          key={`db-rec-${item.id}`}
+                          item={item}
+                          index={i}
+                          feedbackMap={feedbackMap}
+                          savedIds={savedIds}
+                          onFeedback={handleFeedback}
+                          onSave={handleSave}
+                          onOpenDetail={setDetailProduct}
+                        />
+                      ))}
+                    </div>
+                    <div className="h-px bg-border/30" />
+                  </div>
+                )}
+
+                {/* ── BOTTOM: real query-based search results ── */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/60">
-                      {activeScenario ? activeScenario.label.toUpperCase() : activeTab === "for-you" ? t("curatedForYou").toUpperCase() : activeTab.toUpperCase()}
+                    <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/75">
+                      {activeScenario
+                        ? activeScenario.label.toUpperCase()
+                        : lastPromptRef.current
+                          ? `RESULTS FOR "${lastPromptRef.current.toUpperCase()}"`
+                          : activeTab === "for-you"
+                            ? t("curatedForYou").toUpperCase()
+                            : activeTab.toUpperCase()}
                     </p>
                     {interactionCount > 2 && !activeScenario && (
                       <p className="text-[10px] text-foreground/75 mt-1">{t("adaptingTaste")}</p>
