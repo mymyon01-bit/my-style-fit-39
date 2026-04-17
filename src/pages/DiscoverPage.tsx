@@ -2350,7 +2350,7 @@ const DiscoverPage = () => {
           <div className="mt-8">
             {isGenerating && recommendations.length === 0 ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="animate-pulse">
                       <div className="aspect-[3/4] rounded-xl bg-foreground/[0.04]" />
@@ -2418,7 +2418,7 @@ const DiscoverPage = () => {
                       <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/65 uppercase">
                         {category}
                       </p>
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
                         {items.map((item, i) => (
                           <RecommendationCard
                             key={item.id}
@@ -2435,7 +2435,7 @@ const DiscoverPage = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
                     {recommendations.map((item, i) => (
                       <RecommendationCard
                         key={item.id}
@@ -2484,7 +2484,7 @@ const DiscoverPage = () => {
                     </div>
 
                     {newStyleRecs.length > 0 && (
-                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 lg:gap-4">
+                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
                         {newStyleRecs.map((item, i) => (
                           <RecommendationCard
                             key={item.id}
