@@ -181,44 +181,44 @@ export default function OOTDPostDetail({
   const getReplies = (parentId: string) => comments.filter(c => c.parent_id === parentId);
 
   const renderComment = (c: Comment, isReply = false) => (
-    <div key={c.id} className={`flex gap-2 group ${isReply ? "ml-6 mt-1.5" : ""}`}>
+    <div key={c.id} className={`flex gap-2 group ${isReply ? "ml-6 mt-2" : ""}`}>
       <button
         onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }}
-        className="h-5 w-5 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0 mt-0.5"
+        className="h-7 w-7 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0 mt-0.5"
       >
         {profileMap[c.user_id]?.avatar_url ? (
           <img src={profileMap[c.user_id].avatar_url!} className="h-full w-full object-cover" />
         ) : (
-          <div className="h-full w-full flex items-center justify-center text-[7px] font-bold text-foreground/30">
+          <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/40">
             {getCommentName(c.user_id)[0].toUpperCase()}
           </div>
         )}
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5">
-          <button onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }} className="text-[10px] font-semibold text-foreground/60 hover:text-foreground/80">
+          <button onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }} className="text-[12px] font-semibold text-foreground/80 hover:text-foreground">
             {getCommentName(c.user_id)}
           </button>
-          <span className="text-[8px] text-foreground/20">{timeAgo(c.created_at)}</span>
+          <span className="text-[10px] text-foreground/35">{timeAgo(c.created_at)}</span>
         </div>
-        <p className="text-[10px] text-foreground/50 leading-relaxed">{c.content}</p>
-        <div className="flex items-center gap-3 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => toggleCommentLike(c.id)} className={`flex items-center gap-0.5 text-[8px] ${commentLikes.has(c.id) ? "text-rose-400" : "text-foreground/30 hover:text-foreground/50"}`}>
-            <Heart className={`h-2.5 w-2.5 ${commentLikes.has(c.id) ? "fill-current" : ""}`} />
+        <p className="text-[13px] text-foreground/80 leading-relaxed">{c.content}</p>
+        <div className="flex items-center gap-3 mt-1 opacity-60 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => toggleCommentLike(c.id)} className={`flex items-center gap-0.5 text-[10px] ${commentLikes.has(c.id) ? "text-rose-400" : "text-foreground/40 hover:text-foreground/60"}`}>
+            <Heart className={`h-3 w-3 ${commentLikes.has(c.id) ? "fill-current" : ""}`} />
             {(commentLikeCounts[c.id] || 0) > 0 && <span>{commentLikeCounts[c.id]}</span>}
           </button>
           {!isReply && (
-            <button onClick={() => setReplyTo({ id: c.id, name: getCommentName(c.user_id) })} className="text-[8px] text-foreground/30 hover:text-foreground/50">
+            <button onClick={() => setReplyTo({ id: c.id, name: getCommentName(c.user_id) })} className="text-[10px] text-foreground/40 hover:text-foreground/60">
               Reply
             </button>
           )}
           {canDeleteComment(c) && (
-            <button onClick={() => deleteComment(c.id)} className="text-[8px] text-foreground/20 hover:text-destructive/60">
-              <Trash2 className="h-2.5 w-2.5" />
+            <button onClick={() => deleteComment(c.id)} className="text-[10px] text-foreground/30 hover:text-destructive/70">
+              <Trash2 className="h-3 w-3" />
             </button>
           )}
-          <button onClick={() => reportComment(c.id)} className="text-[8px] text-foreground/20 hover:text-foreground/40">
-            <Flag className="h-2.5 w-2.5" />
+          <button onClick={() => reportComment(c.id)} className="text-[10px] text-foreground/30 hover:text-foreground/50">
+            <Flag className="h-3 w-3" />
           </button>
         </div>
       </div>
@@ -238,11 +238,11 @@ export default function OOTDPostDetail({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col"
+        className="w-full max-w-md md:max-w-5xl max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col md:flex-row"
       >
         {/* Image */}
-        <div className="relative flex-shrink-0">
-          <img src={post.image_url} alt="" className="w-full aspect-[3/4] object-cover" />
+        <div className="relative flex-shrink-0 md:w-[55%] md:h-[85vh] md:bg-black/40">
+          <img src={post.image_url} alt="" className="w-full aspect-[3/4] md:aspect-auto md:h-full object-cover md:object-contain" />
           <button onClick={onClose} className="absolute top-3 right-3 rounded-full bg-black/40 p-1.5 text-white/70 hover:text-white backdrop-blur-sm">
             <X className="h-4 w-4" />
           </button>
@@ -276,8 +276,10 @@ export default function OOTDPostDetail({
           )}
         </div>
 
+        {/* Right column: details + comments + input */}
+        <div className="flex flex-col flex-1 md:h-[85vh] min-h-0">
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
           {/* Author */}
           <button
             onClick={() => { onClose(); navigate(`/user/${post.user_id}`); }}
@@ -293,18 +295,18 @@ export default function OOTDPostDetail({
               )}
             </div>
             <div>
-              <p className="text-[12px] font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
+              <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
                 {profile?.display_name || "Anonymous"}
               </p>
-              <p className="text-[9px] text-foreground/35">{timeAgo(post.created_at)} ago</p>
+              <p className="text-[10px] text-foreground/40">{timeAgo(post.created_at)} ago</p>
             </div>
           </button>
 
           {/* Title + Message */}
           {post.caption && (
             <div>
-              {title && <p className="text-[11px] font-semibold text-foreground/60 mb-0.5">{title}</p>}
-              <p className="text-[12px] text-foreground/50 leading-relaxed">{post.caption}</p>
+              {title && <p className="text-[13px] font-semibold text-foreground/80 mb-1">{title}</p>}
+              <p className="text-[13px] text-foreground/75 leading-relaxed">{post.caption}</p>
             </div>
           )}
 
@@ -312,7 +314,7 @@ export default function OOTDPostDetail({
           {post.topics && post.topics.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {post.topics.map(tp => (
-                <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[10px] font-medium text-accent/60 hover:text-accent transition-colors">
+                <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[12px] font-medium text-accent/80 hover:text-accent transition-colors">
                   #{tp}
                 </button>
               ))}
@@ -323,36 +325,36 @@ export default function OOTDPostDetail({
           {post.style_tags && post.style_tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {post.style_tags.map(tag => (
-                <span key={tag} className="rounded-full bg-foreground/[0.04] px-2.5 py-1 text-[9px] text-foreground/45">{tag}</span>
+                <span key={tag} className="rounded-full bg-foreground/[0.05] px-2.5 py-1 text-[11px] text-foreground/60">{tag}</span>
               ))}
             </div>
           )}
 
           {/* Interactions */}
-          <div className="flex items-center gap-4 py-1 border-y border-border/15">
+          <div className="flex items-center gap-4 py-2 border-y border-border/15">
             <AuthGate action="react">
-              <button onClick={() => onReaction(post.id, "like")} className={`flex items-center gap-1 transition-colors ${reaction === "like" ? "text-rose-400" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onReaction(post.id, "like")} className={`flex items-center gap-1 transition-colors ${reaction === "like" ? "text-rose-400" : "text-foreground/50 hover:text-foreground/80"}`}>
                 <Heart className={`h-4 w-4 ${reaction === "like" ? "fill-current" : ""}`} />
-                <span className="text-[10px]">{post.like_count || 0}</span>
+                <span className="text-[11px]">{post.like_count || 0}</span>
               </button>
             </AuthGate>
             <AuthGate action="react">
-              <button onClick={() => onReaction(post.id, "dislike")} className={`flex items-center gap-1 transition-colors ${reaction === "dislike" ? "text-blue-400" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onReaction(post.id, "dislike")} className={`flex items-center gap-1 transition-colors ${reaction === "dislike" ? "text-blue-400" : "text-foreground/50 hover:text-foreground/80"}`}>
                 <HeartOff className={`h-4 w-4 ${reaction === "dislike" ? "fill-current" : ""}`} />
-                <span className="text-[10px]">{post.dislike_count || 0}</span>
+                <span className="text-[11px]">{post.dislike_count || 0}</span>
               </button>
             </AuthGate>
-            <div className="flex items-center gap-1 text-foreground/40">
+            <div className="flex items-center gap-1 text-foreground/50">
               <MessageCircle className="h-4 w-4" />
-              <span className="text-[10px]">{comments.length}</span>
+              <span className="text-[11px]">{comments.length}</span>
             </div>
             <AuthGate action="save">
-              <button onClick={() => onSave(post.id)} className={`transition-colors ${isSaved ? "text-accent/70" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onSave(post.id)} className={`transition-colors ${isSaved ? "text-accent/80" : "text-foreground/50 hover:text-foreground/80"}`}>
                 {isSaved ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
               </button>
             </AuthGate>
             <AuthGate action="give stars">
-              <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/40 hover:text-foreground/60"}`}>
+              <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/50 hover:text-foreground/80"}`}>
                 <Star className={`h-4 w-4 ${isStarred ? "fill-current" : ""}`} />
               </button>
             </AuthGate>
@@ -360,11 +362,11 @@ export default function OOTDPostDetail({
 
           {/* Threaded Comments */}
           <div className="space-y-3">
-            <p className="text-[9px] font-semibold tracking-[0.15em] text-foreground/40 uppercase">Comments</p>
+            <p className="text-[11px] font-semibold tracking-[0.15em] text-foreground/55 uppercase">Comments</p>
             {loadingComments ? (
               <Loader2 className="h-3 w-3 animate-spin text-foreground/25 mx-auto" />
             ) : parentComments.length === 0 ? (
-              <p className="text-[10px] text-foreground/25 text-center py-3">No comments yet</p>
+              <p className="text-[12px] text-foreground/35 text-center py-3">No comments yet</p>
             ) : (
               parentComments.map(c => {
                 const replies = getReplies(c.id);
@@ -400,7 +402,7 @@ export default function OOTDPostDetail({
           <div className="border-t border-border/15 flex-shrink-0">
             {replyTo && (
               <div className="flex items-center justify-between px-4 py-1.5 bg-foreground/[0.02]">
-                <span className="text-[9px] text-foreground/40">Replying to <span className="font-semibold">{replyTo.name}</span></span>
+                <span className="text-[10px] md:text-[11px] text-foreground/40">Replying to <span className="font-semibold">{replyTo.name}</span></span>
                 <button onClick={() => setReplyTo(null)} className="text-foreground/30 hover:text-foreground/50">
                   <X className="h-3 w-3" />
                 </button>
@@ -413,7 +415,7 @@ export default function OOTDPostDetail({
                 onChange={e => setCommentText(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitComment()}
                 placeholder={replyTo ? `Reply to ${replyTo.name}…` : "Add a comment…"}
-                className="flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[11px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
+                className="flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[12px] md:text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
               />
               <button onClick={submitComment} disabled={!commentText.trim()} className="text-accent/60 hover:text-accent disabled:opacity-30">
                 <Send className="h-4 w-4" />
@@ -421,6 +423,7 @@ export default function OOTDPostDetail({
             </div>
           </div>
         )}
+        </div>
       </motion.div>
     </motion.div>
   );
