@@ -644,13 +644,17 @@ serve(async (req) => {
       }
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
-      const intentCategory = category || inferCategoryFromText(normalizedQuery);
-      const queryHasExplicitCategory = !!inferCategoryFromText(normalizedQuery);
+      // Inference from the query text takes priority over the (often generic
+      // "clothing") category arg passed by the client.
+      const inferredFromQuery = inferCategoryFromText(normalizedQuery);
+      const GENERIC_CATS = new Set(["", "clothing", "other", "general", "fashion"]);
+      const categoryArgIsSpecific = category && !GENERIC_CATS.has(String(category).toLowerCase());
+      const intentCategory = inferredFromQuery || (categoryArgIsSpecific ? category : null);
+      const queryHasExplicitCategory = !!inferredFromQuery;
       if (intentCategory) {
         const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory, p.category, p.name));
         if (queryHasExplicitCategory) {
-          // HARD lock — query explicitly named a category. Never show wrong type.
           console.log(`[SEARCH_INTENT] HARD LOCK category="${intentCategory}" filtered ${before} → ${filtered.length} (query="${normalizedQuery}")`);
           allProducts = filtered;
         } else if (filtered.length >= Math.min(6, minTarget / 2)) {
@@ -769,8 +773,11 @@ serve(async (req) => {
       allProducts = enforceDiversity(allProducts);
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
-      const intentCategory2 = category || inferCategoryFromText(query || "");
-      const queryHasExplicitCategory2 = !!inferCategoryFromText(query || "");
+      const inferredFromQuery2 = inferCategoryFromText(query || "");
+      const GENERIC_CATS2 = new Set(["", "clothing", "other", "general", "fashion"]);
+      const categoryArgIsSpecific2 = category && !GENERIC_CATS2.has(String(category).toLowerCase());
+      const intentCategory2 = inferredFromQuery2 || (categoryArgIsSpecific2 ? category : null);
+      const queryHasExplicitCategory2 = !!inferredFromQuery2;
       if (intentCategory2) {
         const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
