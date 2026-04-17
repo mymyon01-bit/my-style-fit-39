@@ -104,8 +104,11 @@ interface ScrapedProduct {
 }
 
 // ─── Rate limiting ───
+// Lowered from 5000ms → 800ms. The 5s value blocked all parallel expanded queries
+// (5 queries × 5 platforms within ~3s of each other = nearly all platforms locked out),
+// which is why the logs show "0 external" for every search.
 const platformLastCall: Record<string, number> = {};
-const PLATFORM_COOLDOWN_MS = 5_000; // 5s per platform (reduced for responsive search)
+const PLATFORM_COOLDOWN_MS = 800;
 
 function canCallPlatform(platformId: string): boolean {
   const last = platformLastCall[platformId] || 0;
@@ -145,8 +148,9 @@ async function scrapePlatform(
   console.log(`[${platformId}] Scraping: ${searchUrl}`);
 
   try {
+    // Firecrawl typically needs 15–25s per page. 30s is the realistic ceiling.
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000); // 20s max per platform
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     const response = await fetch(`${FIRECRAWL_V2}/scrape`, {
       method: "POST",
@@ -182,7 +186,7 @@ async function scrapePlatform(
             prompt: `Extract ONLY fashion product listings (clothing, shoes, bags, accessories) from this ${platform.name} search results page. IGNORE: editorial images, people photos, lifestyle images, banners, ads. For each PRODUCT, get: title (must be a product name like "Oversized Cotton Hoodie"), brand, price (with currency symbol), image_url (full https URL of the product image, NOT editorial/lifestyle photos), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
           },
         ],
-        waitFor: 3000,
+        waitFor: 1500,
         onlyMainContent: true,
       }),
       signal: controller.signal,

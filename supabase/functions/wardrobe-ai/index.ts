@@ -163,16 +163,79 @@ function logSearchIntentDebug(stage: string, debug: SearchIntentDebug, extra: Re
   })}`);
 }
 
+// ─── Local fallback query generator ───
+// Always returns 5–8 realistic shopping queries even when Perplexity fails.
+// Classifies the prompt as product / style / scenario, then expands deterministically.
+function classifyAndExpandLocally(rawPrompt: string): { type: SearchIntentKind; queries: string[] } {
+  const p = (rawPrompt || "").toLowerCase().trim();
+  if (!p) return { type: "style", queries: [] };
+
+  // Product keywords (specific item types)
+  const productHits = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|hat|cap|beanie|watch|belt|scarf|sunglasses|tie|necklace|earring|ring)\b/i.test(rawPrompt);
+
+  // Scenario keywords (occasion / event / setting)
+  const scenarioHits = /\b(wedding|date|interview|office|work|gym|workout|vacation|beach|summer|winter|fall|autumn|spring|holiday|party|club|brunch|dinner|travel|airport|festival|rainy|snow|hot|cold|formal|casual\s+friday)\b/i.test(rawPrompt);
+
+  let type: SearchIntentKind;
+  if (productHits) type = "product";
+  else if (scenarioHits) type = "scenario";
+  else type = "style";
+
+  const base = rawPrompt.trim();
+  let queries: string[] = [];
+
+  if (type === "product") {
+    queries = [
+      base,
+      `${base} men`,
+      `${base} women`,
+      `minimal ${base}`,
+      `oversized ${base}`,
+      `tailored ${base}`,
+      `vintage ${base}`,
+    ];
+  } else if (type === "scenario") {
+    queries = [
+      `${base} outfit`,
+      `${base} look men`,
+      `${base} look women`,
+      `${base} jacket`,
+      `${base} pants`,
+      `${base} shoes`,
+      `${base} accessories`,
+    ];
+  } else {
+    // style
+    queries = [
+      `${base} jacket`,
+      `${base} trousers`,
+      `${base} shirt`,
+      `${base} sneakers`,
+      `${base} coat`,
+      `${base} bag`,
+      `${base} outfit`,
+    ];
+  }
+
+  // Dedupe + cap
+  return { type, queries: Array.from(new Set(queries.map(q => q.trim()).filter(Boolean))).slice(0, 8) };
+}
+
 function buildSearchIntentFallbackResponse(prompt: string, debug: SearchIntentDebug, reason: string) {
-  const fallbackQueries = [prompt].filter(Boolean);
+  const expanded = classifyAndExpandLocally(prompt);
   debug.provider_selected = "fallback";
   debug.fallback_triggered = true;
   if (!debug.validation_error) debug.validation_error = reason;
-  logSearchIntentDebug("FALLBACK_TRIGGERED", debug, { reason, search_path_status: "FALLBACK_ONLY" });
+  logSearchIntentDebug("FALLBACK_TRIGGERED", debug, {
+    reason,
+    search_path_status: "FALLBACK_ONLY",
+    fallback_query_count: expanded.queries.length,
+    fallback_type: expanded.type,
+  });
 
   return new Response(JSON.stringify({
-    type: "style",
-    queries: fallbackQueries,
+    type: expanded.type,
+    queries: expanded.queries,
     category: null,
     style_tags: [],
     interpreted_intent: prompt,
