@@ -31,6 +31,29 @@ const rand = (seed: number) => {
   return x - Math.floor(x);
 };
 
+// Generate a jagged lightning bolt path
+const generateBoltPath = (seed: number, height = 280) => {
+  const segments = 8 + Math.floor(rand(seed) * 4);
+  let x = 45 + rand(seed + 1) * 10;
+  let y = 0;
+  let path = `M${x} ${y}`;
+  const branches: string[] = [];
+  for (let i = 1; i <= segments; i++) {
+    const dx = (rand(seed + i * 3) - 0.5) * 28;
+    const dy = height / segments;
+    x += dx;
+    y += dy;
+    path += ` L${x} ${y}`;
+    // Occasional branch
+    if (i > 2 && i < segments - 1 && rand(seed + i * 7) > 0.65) {
+      const bx = x + (rand(seed + i * 11) - 0.5) * 40;
+      const by = y + 30 + rand(seed + i * 13) * 40;
+      branches.push(`M${x} ${y} L${bx} ${by}`);
+    }
+  }
+  return { main: path, branches };
+};
+
 const WeatherAmbience = ({ condition }: { condition: string }) => {
   const bgImage = weatherMap[condition] || cloudyBg;
   const isRain = condition === "rain" || condition === "light-rain" || condition === "drizzle";
@@ -44,7 +67,7 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
   // Pre-compute particle arrays (stable across rerenders for perceived realism)
   const rainDrops = useMemo(
     () =>
-      Array.from({ length: 60 }).map((_, i) => ({
+      Array.from({ length: 80 }).map((_, i) => ({
         left: rand(i + 1) * 100,
         top: -rand(i + 7) * 20,
         height: 2.5 + rand(i + 13) * 5,
@@ -52,6 +75,20 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
         duration: 0.7 + rand(i + 37) * 0.6,
         opacity: 0.25 + rand(i + 51) * 0.35,
         tilt: -8 - rand(i + 61) * 4,
+      })),
+    [],
+  );
+
+  // Raindrops sliding/streaking down the "glass" of the screen (foreground)
+  const screenDrops = useMemo(
+    () =>
+      Array.from({ length: 22 }).map((_, i) => ({
+        left: rand(i + 301) * 100,
+        startTop: rand(i + 311) * 100,
+        size: 4 + rand(i + 321) * 8,
+        trail: 30 + rand(i + 331) * 60,
+        delay: rand(i + 341) * 6,
+        duration: 3 + rand(i + 351) * 4,
       })),
     [],
   );
@@ -90,8 +127,19 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
     [],
   );
 
+  // Pre-generated lightning bolts (multiple variants for variety)
+  const bolts = useMemo(
+    () => [
+      { ...generateBoltPath(11), top: "2%", left: "22%", scale: 1 },
+      { ...generateBoltPath(29), top: "4%", left: "58%", scale: 0.85 },
+      { ...generateBoltPath(47), top: "1%", left: "78%", scale: 1.1 },
+    ],
+    [],
+  );
+
   return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden">
+    // z-0 keeps ambience strictly behind page content (text uses z-10+)
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
       {/* Base photographic layer */}
       <motion.div
         key={bgImage}
@@ -125,7 +173,6 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
       {/* ======================== SUNNY ======================== */}
       {isSunny && (
         <>
-          {/* Warm sky gradient wash */}
           <div
             className="absolute inset-0"
             style={{
@@ -133,7 +180,6 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
                 "radial-gradient(ellipse at 70% 18%, hsl(38 95% 62% / 0.32), transparent 55%), linear-gradient(180deg, hsl(35 90% 70% / 0.18) 0%, hsl(200 70% 65% / 0.10) 55%, transparent 100%)",
             }}
           />
-          {/* Pulsing sun core */}
           <motion.div
             className="absolute"
             style={{
@@ -149,7 +195,6 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
             animate={{ scale: [1, 1.08, 1], opacity: [0.85, 1, 0.85] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           />
-          {/* Rotating sun rays */}
           <motion.div
             className="absolute"
             style={{ top: "10%", right: "12%", width: 220, height: 220 }}
@@ -179,7 +224,6 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
               />
             ))}
           </motion.div>
-          {/* Lens-flare bokeh dots */}
           {Array.from({ length: 5 }).map((_, i) => (
             <motion.div
               key={`flare-${i}`}
@@ -286,7 +330,7 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
                 "linear-gradient(180deg, hsl(215 45% 35% / 0.28) 0%, hsl(210 50% 25% / 0.18) 60%, hsl(220 55% 20% / 0.22) 100%)",
             }}
           />
-          {/* Rain streaks - tilted, colored, varying opacity */}
+          {/* Falling rain streaks */}
           {rainDrops.map((d, i) => (
             <motion.div
               key={`rain-${i}`}
@@ -306,6 +350,36 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
                 repeat: Infinity,
                 delay: d.delay,
                 ease: "linear",
+              }}
+            />
+          ))}
+          {/* Raindrops on the "glass" — beads sliding down with trails */}
+          {screenDrops.map((d, i) => (
+            <motion.div
+              key={`screen-drop-${i}`}
+              className="absolute"
+              style={{
+                left: `${d.left}%`,
+                top: `${d.startTop}%`,
+                width: d.size,
+                height: d.size * 1.3,
+                borderRadius: "50% 50% 55% 55% / 60% 60% 45% 45%",
+                background:
+                  "radial-gradient(ellipse at 35% 30%, hsl(200 90% 95% / 0.85) 0%, hsl(205 70% 80% / 0.55) 45%, hsl(210 60% 70% / 0.35) 100%)",
+                boxShadow:
+                  "inset -1px -1px 2px hsl(210 60% 60% / 0.4), 0 1px 2px hsl(220 80% 20% / 0.4)",
+                backdropFilter: "blur(1px)",
+              }}
+              animate={{
+                y: [0, d.trail * 4],
+                opacity: [0, 0.95, 0.95, 0],
+              }}
+              transition={{
+                duration: d.duration,
+                repeat: Infinity,
+                delay: d.delay,
+                ease: "easeIn",
+                times: [0, 0.1, 0.85, 1],
               }}
             />
           ))}
@@ -337,7 +411,6 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
       {/* ======================== SNOW ======================== */}
       {isSnow && (
         <>
-          {/* Cool icy wash */}
           <div
             className="absolute inset-0"
             style={{
@@ -383,8 +456,8 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
                 "linear-gradient(180deg, hsl(240 35% 12% / 0.45) 0%, hsl(230 40% 18% / 0.35) 50%, hsl(245 45% 10% / 0.50) 100%)",
             }}
           />
-          {/* Rain (denser, faster) */}
-          {Array.from({ length: 90 }).map((_, i) => {
+          {/* Heavy slanted rain */}
+          {Array.from({ length: 110 }).map((_, i) => {
             const left = rand(i + 100) * 100;
             const top = -rand(i + 200) * 25;
             const height = 3 + rand(i + 300) * 6;
@@ -397,14 +470,14 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
                   top: `${top}%`,
                   width: 1.5,
                   height: `${height}rem`,
-                  transform: "rotate(-12deg)",
+                  transform: "rotate(-14deg)",
                   background:
-                    "linear-gradient(to bottom, transparent 0%, hsl(220 60% 75% / 0.5) 60%, hsl(230 80% 85% / 0.6) 100%)",
+                    "linear-gradient(to bottom, transparent 0%, hsl(220 60% 75% / 0.5) 60%, hsl(230 80% 85% / 0.65) 100%)",
                   borderRadius: 999,
                 }}
                 animate={{ y: ["0vh", "120vh"] }}
                 transition={{
-                  duration: 0.5 + rand(i + 400) * 0.4,
+                  duration: 0.45 + rand(i + 400) * 0.35,
                   repeat: Infinity,
                   delay: rand(i + 500) * 1.5,
                   ease: "linear",
@@ -412,32 +485,110 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
               />
             );
           })}
-          {/* Lightning flash */}
+          {/* Raindrops on screen during storm */}
+          {screenDrops.map((d, i) => (
+            <motion.div
+              key={`storm-screen-drop-${i}`}
+              className="absolute"
+              style={{
+                left: `${d.left}%`,
+                top: `${d.startTop}%`,
+                width: d.size,
+                height: d.size * 1.3,
+                borderRadius: "50% 50% 55% 55% / 60% 60% 45% 45%",
+                background:
+                  "radial-gradient(ellipse at 35% 30%, hsl(210 90% 92% / 0.9) 0%, hsl(215 70% 75% / 0.6) 45%, hsl(220 60% 65% / 0.4) 100%)",
+                boxShadow:
+                  "inset -1px -1px 2px hsl(220 60% 50% / 0.5), 0 1px 3px hsl(230 80% 15% / 0.6)",
+              }}
+              animate={{
+                y: [0, d.trail * 5],
+                opacity: [0, 1, 1, 0],
+              }}
+              transition={{
+                duration: d.duration * 0.8,
+                repeat: Infinity,
+                delay: d.delay,
+                ease: "easeIn",
+                times: [0, 0.08, 0.85, 1],
+              }}
+            />
+          ))}
+
+          {/* Sky-wide lightning flash (white/blue burst) */}
           <motion.div
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse at 35% 25%, hsl(220 100% 90% / 0.8) 0%, hsl(240 80% 70% / 0.3) 30%, transparent 60%)",
+                "radial-gradient(ellipse at 35% 20%, hsl(220 100% 96% / 0.95) 0%, hsl(230 90% 80% / 0.5) 25%, hsl(240 70% 50% / 0.15) 55%, transparent 75%)",
             }}
-            animate={{ opacity: [0, 0, 0, 0.9, 0, 0.4, 0, 0, 0, 0, 0.7, 0] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
+            // Realistic flicker pattern: main strike, sub-flash, gap, distant flash
+            animate={{
+              opacity: [
+                0, 0, 0, 0, 0,
+                0.95, 0.2, 0.85, 0,
+                0, 0, 0, 0,
+                0.6, 0.15, 0.4, 0,
+                0, 0, 0, 0, 0, 0,
+              ],
+            }}
+            transition={{ duration: 9, repeat: Infinity, ease: "linear" }}
           />
-          {/* Lightning bolt */}
-          <motion.svg
-            className="absolute"
-            style={{ top: "5%", left: "30%", width: 90, height: 280 }}
-            viewBox="0 0 90 280"
-            animate={{ opacity: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0.6, 0] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
-          >
-            <path
-              d="M50 0 L25 130 L52 130 L20 280 L70 110 L42 110 L62 0 Z"
-              fill="hsl(50 100% 75%)"
-              stroke="hsl(220 100% 95%)"
-              strokeWidth="1.5"
-              style={{ filter: "drop-shadow(0 0 12px hsl(50 100% 70% / 0.9))" }}
-            />
-          </motion.svg>
+
+          {/* Lightning bolts — multiple branched, randomly flashing */}
+          {bolts.map((b, idx) => (
+            <motion.svg
+              key={`bolt-${idx}`}
+              className="absolute"
+              style={{
+                top: b.top,
+                left: b.left,
+                width: 110 * b.scale,
+                height: 300 * b.scale,
+                filter:
+                  "drop-shadow(0 0 8px hsl(220 100% 90% / 0.95)) drop-shadow(0 0 24px hsl(230 90% 70% / 0.7))",
+              }}
+              viewBox="0 0 100 300"
+              animate={{
+                opacity:
+                  idx === 0
+                    ? [0, 0, 0, 0, 0, 1, 0, 0.85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    : idx === 1
+                    ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.9, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0]
+                    : [0, 0, 0, 0, 0, 0.4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.7, 0, 0.3, 0, 0],
+              }}
+              transition={{ duration: 9, repeat: Infinity, ease: "linear" }}
+            >
+              <path
+                d={b.main}
+                fill="none"
+                stroke="hsl(0 0% 100%)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d={b.main}
+                fill="none"
+                stroke="hsl(220 100% 92%)"
+                strokeWidth="1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {b.branches.map((br, j) => (
+                <path
+                  key={`branch-${idx}-${j}`}
+                  d={br}
+                  fill="none"
+                  stroke="hsl(220 100% 95%)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={0.85}
+                />
+              ))}
+            </motion.svg>
+          ))}
         </>
       )}
     </div>
