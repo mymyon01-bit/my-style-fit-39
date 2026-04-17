@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useCallback } from "react";
+import { lazy, Suspense, useState, useCallback, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,30 +13,52 @@ import DesktopNav from "@/components/DesktopNav";
 import SplashScreen from "@/components/SplashScreen";
 import { Loader2 } from "lucide-react";
 
-// Lazy load all pages for code splitting
-const AuthPage = lazy(() => import("@/pages/AuthPage"));
-const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
-const HomePage = lazy(() => import("@/pages/HomePage"));
-const DiscoverPage = lazy(() => import("@/pages/DiscoverPage"));
-const FitPage = lazy(() => import("@/pages/FitPage"));
-const OOTDPage = lazy(() => import("@/pages/OOTDPage"));
-const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
-const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
-const AboutPage = lazy(() => import("@/pages/AboutPage"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
-const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
-const InstallPage = lazy(() => import("@/pages/InstallPage"));
-const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
-const UserProfilePage = lazy(() => import("@/pages/UserProfilePage"));
-const AdminLayout = lazy(() => import("@/pages/admin/AdminLayout"));
-const AdminOverview = lazy(() => import("@/pages/admin/AdminOverview"));
-const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
-const AdminProducts = lazy(() => import("@/pages/admin/AdminProducts"));
-const AdminCategories = lazy(() => import("@/pages/admin/AdminCategories"));
-const AdminOOTD = lazy(() => import("@/pages/admin/AdminOOTD"));
-const AdminContent = lazy(() => import("@/pages/admin/AdminContent"));
-const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
+const lazyWithRetry = <T extends ComponentType<any>>(
+  importer: () => Promise<{ default: T }>,
+  key: string,
+) =>
+  lazy(async () => {
+    const retryKey = `wardrobe:lazy-retry:${key}`;
 
+    try {
+      const module = await importer();
+      sessionStorage.removeItem(retryKey);
+      return module;
+    } catch (error) {
+      if (!sessionStorage.getItem(retryKey)) {
+        sessionStorage.setItem(retryKey, "1");
+        window.location.reload();
+        return new Promise<never>(() => undefined);
+      }
+
+      sessionStorage.removeItem(retryKey);
+      throw error;
+    }
+  });
+
+// Lazy load all pages for code splitting
+const AuthPage = lazyWithRetry(() => import("@/pages/AuthPage"), "AuthPage");
+const OnboardingPage = lazyWithRetry(() => import("@/pages/OnboardingPage"), "OnboardingPage");
+const HomePage = lazyWithRetry(() => import("@/pages/HomePage"), "HomePage");
+const DiscoverPage = lazyWithRetry(() => import("@/pages/DiscoverPage"), "DiscoverPage");
+const FitPage = lazyWithRetry(() => import("@/pages/FitPage"), "FitPage");
+const OOTDPage = lazyWithRetry(() => import("@/pages/OOTDPage"), "OOTDPage");
+const ProfilePage = lazyWithRetry(() => import("@/pages/ProfilePage"), "ProfilePage");
+const SettingsPage = lazyWithRetry(() => import("@/pages/SettingsPage"), "SettingsPage");
+const AboutPage = lazyWithRetry(() => import("@/pages/AboutPage"), "AboutPage");
+const NotFound = lazyWithRetry(() => import("@/pages/NotFound"), "NotFound");
+const ResetPasswordPage = lazyWithRetry(() => import("@/pages/ResetPasswordPage"), "ResetPasswordPage");
+const InstallPage = lazyWithRetry(() => import("@/pages/InstallPage"), "InstallPage");
+const SubscriptionPage = lazyWithRetry(() => import("@/pages/SubscriptionPage"), "SubscriptionPage");
+const UserProfilePage = lazyWithRetry(() => import("@/pages/UserProfilePage"), "UserProfilePage");
+const AdminLayout = lazyWithRetry(() => import("@/pages/admin/AdminLayout"), "AdminLayout");
+const AdminOverview = lazyWithRetry(() => import("@/pages/admin/AdminOverview"), "AdminOverview");
+const AdminUsers = lazyWithRetry(() => import("@/pages/admin/AdminUsers"), "AdminUsers");
+const AdminProducts = lazyWithRetry(() => import("@/pages/admin/AdminProducts"), "AdminProducts");
+const AdminCategories = lazyWithRetry(() => import("@/pages/admin/AdminCategories"), "AdminCategories");
+const AdminOOTD = lazyWithRetry(() => import("@/pages/admin/AdminOOTD"), "AdminOOTD");
+const AdminContent = lazyWithRetry(() => import("@/pages/admin/AdminContent"), "AdminContent");
+const AdminSettings = lazyWithRetry(() => import("@/pages/admin/AdminSettings"), "AdminSettings");
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
