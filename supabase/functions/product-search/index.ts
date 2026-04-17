@@ -42,14 +42,15 @@ function inferCategoryFromText(text: string): string | null {
   return null;
 }
 
-// Server-side category alias map (db has both "shoes"+"footwear", "bags", etc.)
+// Server-side category alias map. "clothing" is intentionally NOT a generic
+// alias — it only matches the intent if the product name confirms the category.
 const CATEGORY_ALIASES: Record<string, string[]> = {
-  bags: ["bags", "bag", "accessories"], // some bags get tagged "accessories"
+  bags: ["bags", "bag"],
   shoes: ["shoes", "footwear"],
-  outerwear: ["outerwear", "clothing"],
-  tops: ["tops", "clothing"],
-  bottoms: ["bottoms", "clothing"],
-  dresses: ["dresses", "clothing"],
+  outerwear: ["outerwear"],
+  tops: ["tops"],
+  bottoms: ["bottoms"],
+  dresses: ["dresses"],
   accessories: ["accessories"],
 };
 
@@ -57,15 +58,19 @@ function categoryMatches(intentCategory: string, productCategory: string | null 
   if (!intentCategory) return true;
   const allowed = CATEGORY_ALIASES[intentCategory] || [intentCategory];
   const pc = (productCategory || "").toLowerCase();
-  if (pc && allowed.includes(pc)) {
-    // For "bags" intent, "accessories" only counts if the name actually mentions a bag
-    if (intentCategory === "bags" && pc === "accessories") {
-      return /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|handbag|shoulder)\b/i.test(productName || "");
-    }
-    return true;
-  }
-  // Fallback: name matches the intent category pattern AND does not strongly belong to a different category
   const nameInferred = inferCategoryFromText(productName || "");
+  // Strong match: DB category is in the allowed list
+  if (pc && allowed.includes(pc)) return true;
+  // Special case: "accessories" can be bags if title says so
+  if (intentCategory === "bags" && pc === "accessories") {
+    return /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|handbag|shoulder)\b/i.test(productName || "");
+  }
+  // Generic "clothing" / "other" / missing → only accept if NAME confirms intent
+  if (!pc || pc === "clothing" || pc === "other") {
+    return nameInferred === intentCategory;
+  }
+  // DB category is something else — only accept if name strongly matches intent
+  // AND doesn't strongly match a different category
   if (nameInferred === intentCategory) return true;
   return false;
 }
@@ -638,16 +643,21 @@ serve(async (req) => {
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
 
-      // ─── Category intent enforcement ───
+      // ─── Category intent enforcement (HARD when query is product-typed) ───
       const intentCategory = category || inferCategoryFromText(normalizedQuery);
+      const queryHasExplicitCategory = !!inferCategoryFromText(normalizedQuery);
       if (intentCategory) {
+        const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory, p.category, p.name));
-        // Only apply if filter doesn't nuke everything
-        if (filtered.length >= Math.min(6, minTarget / 2)) {
-          console.log(`[SEARCH_INTENT] category="${intentCategory}" filtered ${allProducts.length} → ${filtered.length}`);
+        if (queryHasExplicitCategory) {
+          // HARD lock — query explicitly named a category. Never show wrong type.
+          console.log(`[SEARCH_INTENT] HARD LOCK category="${intentCategory}" filtered ${before} → ${filtered.length} (query="${normalizedQuery}")`);
+          allProducts = filtered;
+        } else if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] soft category="${intentCategory}" filtered ${before} → ${filtered.length}`);
           allProducts = filtered;
         } else {
-          console.log(`[SEARCH_INTENT] category="${intentCategory}" filter would leave only ${filtered.length}, keeping unfiltered`);
+          console.log(`[SEARCH_INTENT] soft category="${intentCategory}" would leave only ${filtered.length}, keeping unfiltered`);
         }
       }
 
@@ -758,12 +768,17 @@ serve(async (req) => {
 
       allProducts = enforceDiversity(allProducts);
 
-      // ─── Category intent enforcement ───
+      // ─── Category intent enforcement (HARD when query is product-typed) ───
       const intentCategory2 = category || inferCategoryFromText(query || "");
+      const queryHasExplicitCategory2 = !!inferCategoryFromText(query || "");
       if (intentCategory2) {
+        const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
-        if (filtered.length >= Math.min(6, minTarget / 2)) {
-          console.log(`[SEARCH_INTENT] (db-first) category="${intentCategory2}" filtered ${allProducts.length} → ${filtered.length}`);
+        if (queryHasExplicitCategory2) {
+          console.log(`[SEARCH_INTENT] (db-first) HARD LOCK category="${intentCategory2}" filtered ${before} → ${filtered.length} (query="${query}")`);
+          allProducts = filtered;
+        } else if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] (db-first) soft category="${intentCategory2}" filtered ${before} → ${filtered.length}`);
           allProducts = filtered;
         }
       }

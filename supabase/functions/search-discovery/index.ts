@@ -67,6 +67,44 @@ function isImageSafe(u: unknown): boolean {
 
 // ─────────────────── 1. Query intent + expansion ───────────────────
 
+// ── Category lock: deterministic primary-category detection ──
+// Mirrors product-search/category-keyword-map. Single source of truth here.
+const PRIMARY_CATEGORY_PATTERNS: Array<{ cat: string; re: RegExp }> = [
+  { cat: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag)\b/i },
+  { cat: "shoes", re: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|derby|brogues?|espadrilles?|slippers?)\b/i },
+  { cat: "outerwear", re: /\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan)\b/i },
+  { cat: "tops", re: /\b(shirt|tee|t-shirts?|hoodie|sweater|polo|blouse|tank|knit|sweatshirt|pullover|henley|tunic|camisole)\b/i },
+  { cat: "bottoms", re: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes)\b/i },
+  { cat: "dresses", re: /\b(dress|jumpsuit|romper|gown)\b/i },
+];
+
+// Scenario / weather queries — these are intentionally mixed-category
+const SCENARIO_RE = /\b(summer\s*vacation|date\s*night|wedding|office|gym|travel|beach|party|festival|interview|brunch|rainy\s*day|snowy|winter\s*outfit|summer\s*outfit|weekend|holiday)\b/i;
+
+function detectPrimaryCategory(query: string): string | null {
+  if (!query) return null;
+  if (SCENARIO_RE.test(query)) return null; // scenario → mixed allowed
+  for (const { cat, re } of PRIMARY_CATEGORY_PATTERNS) {
+    if (re.test(query)) return cat;
+  }
+  return null;
+}
+
+// Used to filter expanded queries + discovered URL titles so they stay in the
+// locked category family.
+function queryMatchesCategory(query: string, primaryCategory: string | null): boolean {
+  if (!primaryCategory) return true;
+  const pat = PRIMARY_CATEGORY_PATTERNS.find((p) => p.cat === primaryCategory);
+  if (!pat) return true;
+  if (pat.re.test(query)) return true;
+  // Reject anything that strongly suggests a different category
+  for (const { cat, re } of PRIMARY_CATEGORY_PATTERNS) {
+    if (cat !== primaryCategory && re.test(query)) return false;
+  }
+  // Neutral query (no category words) → allow
+  return true;
+}
+
 const SCENARIO_FALLBACK: Record<string, string[]> = {
   "summer vacation": [
     "men linen shirt", "men relaxed shorts", "men resort sandals",
@@ -119,11 +157,15 @@ function fallbackExpand(query: string): string[] {
   return [...new Set(family)].slice(0, 15);
 }
 
-async function perplexityExpand(query: string): Promise<{ queries: string[]; usedPerplexity: boolean }> {
+async function perplexityExpand(query: string, primaryCategory: string | null): Promise<{ queries: string[]; usedPerplexity: boolean }> {
+  const fb = fallbackExpand(query);
   if (!PERPLEXITY_KEY) {
     log("perplexity_skip", { reason: "no_key" });
-    return { queries: fallbackExpand(query), usedPerplexity: false };
+    return { queries: fb, usedPerplexity: false };
   }
+  const categoryDirective = primaryCategory
+    ? ` CRITICAL CATEGORY LOCK: every query MUST be a "${primaryCategory}" product. Do NOT include any other clothing category. Style words like "street", "minimal", "oversized" are MODIFIERS only, never the product type.`
+    : "";
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS.perplexity);
@@ -140,40 +182,51 @@ async function perplexityExpand(query: string): Promise<{ queries: string[]; use
           {
             role: "system",
             content:
-              "You are a shopping query generator. Return ONLY a JSON array of 12-15 DIVERSE shopping queries (each 3-7 words) covering exact match, gendered variants, color variants, fit variants, style variants, and adjacent category items. The queries should form a 'query family' that broadens supply for a fashion store search. No prose, no numbering, just the JSON array.",
+              "You are a shopping query generator. Return ONLY a JSON array of 12-15 DIVERSE shopping queries (each 3-7 words) covering exact match, gendered variants, color variants, fit variants, style variants. No prose, no numbering, just the JSON array." +
+              categoryDirective,
           },
           { role: "user", content: query },
         ],
         max_tokens: 700,
-        temperature: 0.5,
+        temperature: 0.4,
       }),
     });
     clearTimeout(timer);
     if (!res.ok) {
       log("perplexity_fail", { status: res.status });
-      return { queries: fallbackExpand(query), usedPerplexity: false };
+      return { queries: fb, usedPerplexity: false };
     }
     const data = await res.json();
     const text: string = data?.choices?.[0]?.message?.content || "";
     const match = text.match(/\[[\s\S]*\]/);
-    if (!match) return { queries: fallbackExpand(query), usedPerplexity: false };
+    if (!match) return { queries: fb, usedPerplexity: false };
     const parsed = JSON.parse(match[0]);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return { queries: fallbackExpand(query), usedPerplexity: false };
+      return { queries: fb, usedPerplexity: false };
     }
     const cleaned = parsed
       .map((s) => String(s).trim())
       .filter((s) => s.length > 2 && s.length < 80)
       .slice(0, 15);
-    if (cleaned.length < 3) return { queries: fallbackExpand(query), usedPerplexity: false };
-    // Merge perplexity output with deterministic fallback for extra coverage
-    const fb = fallbackExpand(query);
+    if (cleaned.length < 3) return { queries: fb, usedPerplexity: false };
     const merged = [...new Set([...cleaned, ...fb])].slice(0, 15);
     return { queries: merged, usedPerplexity: true };
   } catch (e) {
     log("perplexity_error", { msg: (e as Error).message });
-    return { queries: fallbackExpand(query), usedPerplexity: false };
+    return { queries: fb, usedPerplexity: false };
   }
+}
+
+// Hard guardrail: drop expanded queries that drift to a different category
+function categoryGuard(queries: string[], primaryCategory: string | null): { kept: string[]; rejected: string[] } {
+  if (!primaryCategory) return { kept: queries, rejected: [] };
+  const kept: string[] = [];
+  const rejected: string[] = [];
+  for (const q of queries) {
+    if (queryMatchesCategory(q, primaryCategory)) kept.push(q);
+    else rejected.push(q);
+  }
+  return { kept: kept.length ? kept : queries.slice(0, 3), rejected };
 }
 
 // ─────────────────── 2. URL discovery via Perplexity Search ───────────────────
@@ -703,21 +756,45 @@ serve(async (req) => {
     const t0 = Date.now();
     const expandOnly: boolean = body.expandOnly === true;
 
-    // 1. Expand
-    const { queries, usedPerplexity } = await perplexityExpand(rawQuery);
-    const shoppingQueries = queries.slice(0, maxQueries);
-    log("expand_done", { rawQuery, count: shoppingQueries.length, usedPerplexity, queries: shoppingQueries });
+    // 0. Detect primary category lock (deterministic)
+    const primaryCategory = detectPrimaryCategory(rawQuery);
+    log("intent_detected", { rawQuery, primaryCategory });
+
+    // 1. Expand (category-aware)
+    const { queries, usedPerplexity } = await perplexityExpand(rawQuery, primaryCategory);
+
+    // 1b. Guardrail: drop expansions that drift to wrong category
+    const { kept, rejected: guardRejects } = categoryGuard(queries, primaryCategory);
+    const shoppingQueries = kept.slice(0, maxQueries);
+    log("expand_done", {
+      rawQuery,
+      primaryCategory,
+      count: shoppingQueries.length,
+      usedPerplexity,
+      guardRejects: guardRejects.length,
+      queries: shoppingQueries,
+    });
 
     // Lightweight mode: caller just wants the query family, no scraping cost.
     if (expandOnly) {
       return new Response(
-        JSON.stringify({ ok: true, rawQuery, queries: shoppingQueries, usedPerplexity, ms: Date.now() - t0 }),
+        JSON.stringify({ ok: true, rawQuery, primaryCategory, queries: shoppingQueries, usedPerplexity, ms: Date.now() - t0 }),
         { headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
 
     // 2. Discover URLs
-    const candidates = (await discoverUrls(shoppingQueries)).slice(0, maxCandidates);
+    let candidates = (await discoverUrls(shoppingQueries)).slice(0, maxCandidates);
+
+    // 2b. Pre-extraction URL/title category filter
+    if (primaryCategory) {
+      const before = candidates.length;
+      candidates = candidates.filter((c) => {
+        const text = `${c.title || ""} ${c.url || ""}`;
+        return queryMatchesCategory(text, primaryCategory);
+      });
+      log("url_category_filter", { primaryCategory, before, after: candidates.length });
+    }
     log("discover_done", { totalCandidates: candidates.length });
 
     if (candidates.length === 0) {
@@ -725,6 +802,7 @@ serve(async (req) => {
         JSON.stringify({
           ok: true,
           rawQuery,
+          primaryCategory,
           shoppingQueries,
           usedPerplexity,
           candidatesFound: 0,
@@ -733,7 +811,7 @@ serve(async (req) => {
           extracted: 0,
           rejected: 0,
           ms: Date.now() - t0,
-          note: "No product URLs discovered. Discovery layer may be down.",
+          note: "No product URLs discovered after category filter.",
         }),
         { headers: { ...cors, "Content-Type": "application/json" } }
       );
@@ -744,12 +822,28 @@ serve(async (req) => {
       extractCandidate(c, supabase).catch(() => null)
     );
     const settled = await Promise.allSettled(extractTasks);
-    const extracted: ExtractedProduct[] = [];
+    let extracted: ExtractedProduct[] = [];
     let rejected = 0;
     for (const s of settled) {
       if (s.status === "fulfilled" && s.value) extracted.push(s.value);
       else rejected++;
     }
+
+    // 3b. Post-extraction category filter — title must match the lock
+    if (primaryCategory) {
+      const before = extracted.length;
+      extracted = extracted.filter((p) => {
+        const cat = categorize(p.title).category;
+        if (cat === primaryCategory) return true;
+        // tolerate "accessories" only if title literally mentions a bag for bags-lock
+        if (primaryCategory === "bags" && cat === "accessories") {
+          return /\b(bag|tote|backpack|crossbody|clutch|purse|satchel|messenger|handbag)\b/i.test(p.title);
+        }
+        return false;
+      });
+      log("extract_category_filter", { primaryCategory, before, after: extracted.length });
+    }
+
     log("extract_done", { extracted: extracted.length, rejected });
 
     // 4. Validate images in parallel (best effort)
@@ -785,6 +879,7 @@ serve(async (req) => {
       JSON.stringify({
         ok: true,
         rawQuery,
+        primaryCategory,
         shoppingQueries,
         usedPerplexity,
         candidatesFound: candidates.length,
