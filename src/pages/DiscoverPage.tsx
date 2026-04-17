@@ -1964,6 +1964,42 @@ const DiscoverPage = () => {
           setHasMoreInDB(dbCount >= 30);
         }
 
+        // ── STAGE 1.5: Fire-and-forget search-discovery (grows DB long-term) ──
+        // New purpose-built ingestion: Perplexity expands → discovers product URLs →
+        // Firecrawl extracts → DB insert. After it completes, re-query DB to surface.
+        triggerSearchDiscovery(q).then(async (result) => {
+          if (lastPromptRef.current !== q) return;
+          if (!result || result.inserted === 0) return;
+          console.info("[search] DISCOVERY_INSERTED", result);
+          try {
+            const { data: fresh } = await supabase
+              .from("product_cache")
+              .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform, reason")
+              .eq("search_query", q)
+              .eq("is_active", true)
+              .order("created_at", { ascending: false })
+              .limit(20);
+            if (!fresh?.length) return;
+            const mapped: AIRecommendation[] = fresh.map((p: any) => ({
+              id: p.id, name: p.name, brand: p.brand || "", price: p.price || "",
+              category: p.category || "", reason: p.reason || "Just discovered",
+              style_tags: p.style_tags || [], color: (p.color_tags || [])[0] || "",
+              fit: p.fit || "regular", image_url: p.image_url, source_url: p.source_url,
+              store_name: p.store_name, platform: p.platform || "web_search",
+            }));
+            const newOnes = mapped.filter(p => !sessionSeenIds.has(p.id));
+            if (!newOnes.length) return;
+            const filtered = filterByRelevance(newOnes, intent, MIN_RESULT_TARGET, userSignals);
+            const diverse = enforceClientDiversity(filtered, new Set(Array.from(sessionSeenIds)));
+            if (!diverse.length) return;
+            diverse.forEach(p => sessionSeenIds.add(p.id));
+            setRecommendations(prev => enforceClientDiversity([...prev, ...diverse], new Set()).slice(0, 40));
+            console.info("[search] DISCOVERY_MERGED", { added: diverse.length });
+          } catch (e) {
+            console.warn("[search] DISCOVERY_REFETCH_FAIL", e);
+          }
+        }).catch(e => console.warn("[search] DISCOVERY_FAIL", e));
+
         // ── STAGE 2: External fresh search using AI-expanded queries ──
         const externalSearchQueries = [...new Set([q, ...searchQueries])].slice(0, 5);
         const externalPromise = Promise.all(
