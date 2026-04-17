@@ -37,9 +37,75 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
   const startTimeRef = useRef<number>(0);
   const elapsedRef = useRef<number>(0);
 
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [likeBusy, setLikeBusy] = useState(false);
+
   const currentUser = userStories[userIdx];
   const currentStory = currentUser?.stories[storyIdx];
   const isVideo = currentStory?.media_type === "video";
+  const isOwnCurrent = user?.id === currentUser?.user_id;
+
+  // Load like state + count for the current story
+  useEffect(() => {
+    if (!open || !currentStory) return;
+    let cancelled = false;
+    (async () => {
+      const countPromise = supabase
+        .from("story_likes")
+        .select("id", { count: "exact", head: true })
+        .eq("story_id", currentStory.id);
+      const minePromise = user
+        ? supabase
+            .from("story_likes")
+            .select("id")
+            .eq("story_id", currentStory.id)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null } as any);
+      const [{ count }, mine] = await Promise.all([countPromise, minePromise]);
+      if (cancelled) return;
+      setLikeCount(count || 0);
+      setLiked(!!(mine as any)?.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, currentStory, user]);
+
+  const toggleLike = async () => {
+    if (!user) {
+      toast.error("Sign in to like stories");
+      return;
+    }
+    if (!currentStory || isOwnCurrent || likeBusy) return;
+    setLikeBusy(true);
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => Math.max(0, c + (wasLiked ? -1 : 1)));
+    if (wasLiked) {
+      const { error } = await supabase
+        .from("story_likes")
+        .delete()
+        .eq("story_id", currentStory.id)
+        .eq("user_id", user.id);
+      if (error) {
+        setLiked(true);
+        setLikeCount((c) => c + 1);
+        toast.error("Couldn't unlike");
+      }
+    } else {
+      const { error } = await supabase
+        .from("story_likes")
+        .insert({ story_id: currentStory.id, user_id: user.id });
+      if (error) {
+        setLiked(false);
+        setLikeCount((c) => Math.max(0, c - 1));
+        toast.error("Couldn't like");
+      }
+    }
+    setLikeBusy(false);
+  };
 
   useEffect(() => {
     if (open) {
