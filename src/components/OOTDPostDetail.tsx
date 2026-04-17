@@ -402,7 +402,7 @@ export default function OOTDPostDetail({
           <div className="border-t border-border/15 flex-shrink-0">
             {replyTo && (
               <div className="flex items-center justify-between px-4 py-1.5 bg-foreground/[0.02]">
-                <span className="text-[9px] text-foreground/40">Replying to <span className="font-semibold">{replyTo.name}</span></span>
+                <span className="text-[10px] md:text-[11px] text-foreground/40">Replying to <span className="font-semibold">{replyTo.name}</span></span>
                 <button onClick={() => setReplyTo(null)} className="text-foreground/30 hover:text-foreground/50">
                   <X className="h-3 w-3" />
                 </button>
@@ -415,7 +415,7 @@ export default function OOTDPostDetail({
                 onChange={e => setCommentText(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitComment()}
                 placeholder={replyTo ? `Reply to ${replyTo.name}…` : "Add a comment…"}
-                className="flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[11px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
+                className="flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[12px] md:text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
               />
               <button onClick={submitComment} disabled={!commentText.trim()} className="text-accent/60 hover:text-accent disabled:opacity-30">
                 <Send className="h-4 w-4" />
@@ -423,6 +423,7 @@ export default function OOTDPostDetail({
             </div>
           </div>
         )}
+        </div>
       </motion.div>
     </motion.div>
   );
