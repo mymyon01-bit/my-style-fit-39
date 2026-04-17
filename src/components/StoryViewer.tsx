@@ -188,7 +188,7 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
 
   if (!open || !currentUser || !currentStory) return null;
 
-  const isOwn = user?.id === currentUser.user_id;
+  const isOwn = isOwnCurrent;
 
   return (
     <AnimatePresence>
@@ -277,7 +277,30 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
           )}
         </div>
 
-        {/* Tap zones */}
+        {/* Like button — only for stories from others */}
+        {!isOwn && (
+          <div className="absolute bottom-5 right-4 z-30 flex flex-col items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleLike();
+              }}
+              disabled={likeBusy}
+              aria-label={liked ? "Unlike story" : "Like story"}
+              className="h-11 w-11 rounded-full bg-black/45 backdrop-blur-md border border-white/10 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-60"
+            >
+              <Heart
+                className={`h-5 w-5 transition-colors ${liked ? "fill-rose-500 text-rose-500" : "text-white"}`}
+                strokeWidth={2}
+              />
+            </button>
+            {likeCount > 0 && (
+              <span className="text-[10px] font-semibold text-white/85 tabular-nums">
+                {likeCount}
+              </span>
+            )}
+          </div>
+        )}
         <button
           onClick={prev}
           onPointerDown={() => setPaused(true)}
