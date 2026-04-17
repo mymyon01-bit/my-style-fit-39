@@ -531,9 +531,14 @@ type SearchIntentResult = {
 };
 
 // AI intent cache — avoid re-calling Perplexity for same/similar queries
-const intentCache = new Map<string, { queries: string[]; category?: string; style_tags?: string[]; type?: QueryType; ts: number }>();
-const INTENT_CACHE_TTL = 10 * 60 * 1000;
-const SEARCH_INTENT_SOFT_TIMEOUT_MS = 1500;
+const intentCache = new Map<string, { queries: string[]; category?: string; style_tags?: string[]; type?: QueryType; ts: number; isFallback?: boolean }>();
+const INTENT_CACHE_TTL = 10 * 60 * 1000; // 10 min for Perplexity-quality queries
+const FALLBACK_INTENT_CACHE_TTL = 2 * 60 * 1000; // 2 min for fallback queries (so retypes don't re-race)
+// Raised from 1500 → 2500ms. Perplexity averages 1.7–2.4s server-side; 1.5s was losing
+// almost every race → fallback always won → cacheable never set → repeats also fell back.
+// 2.5s gives Perplexity a real chance to win while still feeling instant (DB results
+// already render in <300ms before this race even matters).
+const SEARCH_INTENT_SOFT_TIMEOUT_MS = 2500;
 
 function logSearchPathStatus(query: string, status: SearchPathStatus, extra: Record<string, unknown> = {}) {
   console.info(`[search] SEARCH_PATH_STATUS=${status}`, { query, ...extra });
