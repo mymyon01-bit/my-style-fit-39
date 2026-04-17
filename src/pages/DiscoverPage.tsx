@@ -2057,7 +2057,7 @@ const DiscoverPage = () => {
       console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, searchQueries });
 
       const categoryMap: Record<string, string> = {
-        TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
+        OUTERWEAR: "outerwear", TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
       };
       const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
 
