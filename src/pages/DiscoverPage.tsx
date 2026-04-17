@@ -2257,7 +2257,7 @@ const DiscoverPage = () => {
   // Group and order recommendations by fashion category
   const categorizedRecs = useMemo(() => {
     const groups: Record<FashionCategory, AIRecommendation[]> = {
-      TOPS: [], BOTTOMS: [], SHOES: [], BAGS: [], ACCESSORIES: [],
+      OUTERWEAR: [], TOPS: [], BOTTOMS: [], SHOES: [], BAGS: [], ACCESSORIES: [],
     };
 
     for (const item of recommendations) {
@@ -2274,7 +2274,7 @@ const DiscoverPage = () => {
   // Generate outfit combinations from categorized products
   const outfitCombinations = useMemo(() => {
     const groups: Record<FashionCategory, AIRecommendation[]> = {
-      TOPS: [], BOTTOMS: [], SHOES: [], BAGS: [], ACCESSORIES: [],
+      OUTERWEAR: [], TOPS: [], BOTTOMS: [], SHOES: [], BAGS: [], ACCESSORIES: [],
     };
     for (const item of recommendations) {
       const cat = classifyProduct(item);
