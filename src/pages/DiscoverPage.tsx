@@ -1034,6 +1034,21 @@ const DiscoverPage = () => {
   const inflightRef = useRef<string | null>(null);
   const initialLoadDone = useRef(false);
 
+  // ── Search session: a controlled lifecycle, NOT a repeating event.
+  // Every new submit creates a fresh session. All async stages check
+  // `session.id === searchSessionRef.current.id` before mutating UI, so
+  // late callbacks from a previous session can never reset the current view.
+  const searchSessionRef = useRef<{
+    id: number;
+    query: string;
+    cycle: number;
+    totalAdded: number;
+    emptyCycles: number;
+    stopped: boolean;
+  }>({ id: 0, query: "", cycle: 0, totalAdded: 0, emptyCycles: 0, stopped: true });
+  const SESSION_TARGET = 20;
+  const SESSION_MAX_EMPTY_CYCLES = 2;
+
   // Product detail sheet
   const [detailProduct, setDetailProduct] = useState<AIRecommendation | null>(null);
   // Scenario context for display
