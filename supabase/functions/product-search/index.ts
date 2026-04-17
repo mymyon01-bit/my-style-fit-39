@@ -638,16 +638,21 @@ serve(async (req) => {
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
 
-      // ─── Category intent enforcement ───
+      // ─── Category intent enforcement (HARD when query is product-typed) ───
       const intentCategory = category || inferCategoryFromText(normalizedQuery);
+      const queryHasExplicitCategory = !!inferCategoryFromText(normalizedQuery);
       if (intentCategory) {
+        const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory, p.category, p.name));
-        // Only apply if filter doesn't nuke everything
-        if (filtered.length >= Math.min(6, minTarget / 2)) {
-          console.log(`[SEARCH_INTENT] category="${intentCategory}" filtered ${allProducts.length} → ${filtered.length}`);
+        if (queryHasExplicitCategory) {
+          // HARD lock — query explicitly named a category. Never show wrong type.
+          console.log(`[SEARCH_INTENT] HARD LOCK category="${intentCategory}" filtered ${before} → ${filtered.length} (query="${normalizedQuery}")`);
+          allProducts = filtered;
+        } else if (filtered.length >= Math.min(6, minTarget / 2)) {
+          console.log(`[SEARCH_INTENT] soft category="${intentCategory}" filtered ${before} → ${filtered.length}`);
           allProducts = filtered;
         } else {
-          console.log(`[SEARCH_INTENT] category="${intentCategory}" filter would leave only ${filtered.length}, keeping unfiltered`);
+          console.log(`[SEARCH_INTENT] soft category="${intentCategory}" would leave only ${filtered.length}, keeping unfiltered`);
         }
       }
 
