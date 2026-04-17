@@ -342,6 +342,16 @@ const OOTDPage = () => {
           </div>
         </div>
 
+        {/* Stories row — Instagram-style */}
+        <StoriesRow
+          refreshKey={storiesRefreshKey}
+          onUploadClick={() => {
+            if (!user) { navigate("/auth"); return; }
+            setStoryUploadOpen(true);
+          }}
+          onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
+        />
+
         {/* Tabs */}
         <div className="flex">
           {(["crowned", "mypage", "community"] as const).map(tab => (
@@ -588,6 +598,20 @@ const OOTDPage = () => {
       </AnimatePresence>
 
       <OOTDUploadSheet open={uploadOpen} onClose={() => setUploadOpen(false)} onPosted={handlePosted} />
+
+      <StoryUploadSheet
+        open={storyUploadOpen}
+        onClose={() => setStoryUploadOpen(false)}
+        onPosted={() => setStoriesRefreshKey(k => k + 1)}
+      />
+
+      <StoryViewer
+        open={viewerState.open}
+        startUserIndex={viewerState.index}
+        userStories={viewerState.users}
+        onClose={() => setViewerState(s => ({ ...s, open: false }))}
+        onDeleted={() => setStoriesRefreshKey(k => k + 1)}
+      />
     </div>
   );
 };
