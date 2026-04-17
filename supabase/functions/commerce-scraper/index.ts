@@ -158,9 +158,10 @@ async function scrapePlatform(
   const startedAt = Date.now();
   console.log(`[${platformId}] START scrape: ${searchUrl}`);
 
-  // Retry once on transient failure (502/504/timeout). After 2 attempts, give up.
-  const MAX_ATTEMPTS = 2;
-  const PER_ATTEMPT_TIMEOUT_MS = 25000; // 25s per attempt × 2 = 50s budget per platform
+  // Tighter per-attempt timeout (15s) so one slow platform can't starve others.
+  // Single attempt only — retry is wasteful when 5 platforms run in parallel.
+  const MAX_ATTEMPTS = 1;
+  const PER_ATTEMPT_TIMEOUT_MS = 15000;
   let lastError: string | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -202,7 +203,7 @@ async function scrapePlatform(
               prompt: `Extract ONLY fashion product listings (clothing, shoes, bags, accessories) from this ${platform.name} search results page. IGNORE: editorial images, people photos, lifestyle images, banners, ads. For each PRODUCT, get: title (must be a product name like "Oversized Cotton Hoodie"), brand, price (with currency symbol), image_url (full https URL of the product image, NOT editorial/lifestyle photos), product_url (full https URL to the product detail page), and category (clothing/shoes/bags/accessories). Return up to 12 products.`,
             },
           ],
-          waitFor: 1500,
+          waitFor: 1000,
           onlyMainContent: true,
         }),
         signal: controller.signal,
@@ -212,32 +213,22 @@ async function scrapePlatform(
       if (!response.ok) {
         const errText = await response.text();
         lastError = `${response.status}: ${errText.slice(0, 120)}`;
-        console.error(`[${platformId}] attempt ${attempt}/${MAX_ATTEMPTS} Firecrawl error ${lastError}`);
-        // Retry on 5xx (transient). Don't retry on 4xx (client error).
-        if (response.status >= 500 && attempt < MAX_ATTEMPTS) {
-          await new Promise((r) => setTimeout(r, 700));
-          continue;
-        }
+        console.error(`[${platformId}] Firecrawl error ${lastError}`);
         return [];
       }
 
       const result = await response.json();
-      // success — fall through to extraction below
       return await extractProducts(result, platform, platformId, startedAt);
     } catch (e) {
       clearTimeout(timeout);
       const msg = e instanceof Error ? e.message : String(e);
       lastError = msg;
       const elapsed = Date.now() - startedAt;
-      console.error(`[${platformId}] attempt ${attempt}/${MAX_ATTEMPTS} failed after ${elapsed}ms: ${msg}`);
-      if (attempt < MAX_ATTEMPTS && msg.includes("abort")) {
-        await new Promise((r) => setTimeout(r, 500));
-        continue;
-      }
+      console.error(`[${platformId}] failed after ${elapsed}ms: ${msg}`);
       return [];
     }
   }
-  console.error(`[${platformId}] gave up after ${MAX_ATTEMPTS} attempts: ${lastError}`);
+  console.error(`[${platformId}] gave up: ${lastError}`);
   return [];
 }
 
