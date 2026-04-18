@@ -2933,6 +2933,26 @@ const DiscoverPage = () => {
                   )}
                 </div>
 
+                {/* Fresh-arrivals flash banner — appears for ~4s when new
+                    items are appended to the grid. Builds the "live and
+                    constantly updating" feeling per spec. */}
+                <AnimatePresence>
+                  {freshFlash && (
+                    <motion.div
+                      key={freshFlash.label + freshFlash.count}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25 }}
+                      className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/[0.08] px-3 py-2 text-[10px] font-semibold tracking-[0.18em] text-accent"
+                      aria-live="polite"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>+{freshFlash.count} {freshFlash.label}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {categorizedRecs.length > 0 ? (
                   categorizedRecs.map(({ category, items }) => (
                     <div key={category} className="space-y-4">
@@ -2947,6 +2967,7 @@ const DiscoverPage = () => {
                             index={i}
                             feedback={feedbackMap[item.id]}
                             isSaved={savedIds.has(item.id)}
+                            isFresh={freshIds.has(item.id)}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
                             onOpenDetail={setDetailProduct}
@@ -2964,6 +2985,7 @@ const DiscoverPage = () => {
                         index={i}
                         feedback={feedbackMap[item.id]}
                         isSaved={savedIds.has(item.id)}
+                        isFresh={freshIds.has(item.id)}
                         onFeedback={handleFeedback}
                         onSave={handleSave}
                         onOpenDetail={setDetailProduct}
