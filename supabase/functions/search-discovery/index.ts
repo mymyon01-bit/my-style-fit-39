@@ -445,6 +445,8 @@ async function fetchFromNaverApi(query: string, display = 30): Promise<Extracted
     return [];
   }
 }
+
+async function discoverForQuery(q: string): Promise<DiscoveredCandidate[]> {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS.perplexitySearch);
