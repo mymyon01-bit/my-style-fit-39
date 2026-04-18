@@ -273,21 +273,22 @@ async function kickoffApifyRun(
   }
 
   // 2. Build the webhook spec Apify will invoke on ACTOR.RUN.SUCCEEDED / FAILED / TIMED_OUT.
-  // We pass our internal sourceRunRowId + query + domain as userData so the receiver
-  // doesn't need a DB lookup by Apify runId.
-  const webhookPayload = {
-    sourceRunRowId, query, domain,
-  };
+  // IMPORTANT: Apify's payloadTemplate uses {{var}} syntax that injects raw JSON values
+  // (not strings). So placeholders MUST NOT be wrapped in quotes — Apify adds them
+  // automatically for string-typed resources. Static fields stay as normal JSON.
+  const userDataLiteral = JSON.stringify({ sourceRunRowId, query, domain });
+  const payloadTemplate =
+    `{` +
+      `"runId":{{resource.id}},` +
+      `"datasetId":{{resource.defaultDatasetId}},` +
+      `"status":{{resource.status}},` +
+      `"eventType":{{eventType}},` +
+      `"userData":${userDataLiteral}` +
+    `}`;
   const webhooks = [{
     eventTypes: ["ACTOR.RUN.SUCCEEDED", "ACTOR.RUN.FAILED", "ACTOR.RUN.TIMED_OUT", "ACTOR.RUN.ABORTED"],
     requestUrl: WEBHOOK_URL,
-    payloadTemplate: JSON.stringify({
-      runId: "{{resource.id}}",
-      datasetId: "{{resource.defaultDatasetId}}",
-      status: "{{resource.status}}",
-      eventType: "{{eventType}}",
-      userData: webhookPayload,
-    }),
+    payloadTemplate,
   }];
   // btoa() can't handle non-Latin1 (e.g. Korean in query). Encode UTF-8 → base64 safely.
   const webhooksJson = JSON.stringify(webhooks);
