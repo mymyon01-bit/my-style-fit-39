@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, Video, Globe2, Users, UserCheck } from "lucide-react";
+import { X, Camera, Loader2, Video, Globe2, Users, UserCheck, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
+import StoryEditor from "@/components/StoryEditor";
 import { toast } from "sonner";
 
 interface Props {
@@ -24,6 +25,7 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
   const [audience, setAudience] = useState<"all" | "circles" | "friends">("all");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string>("");
+  const [editorOpen, setEditorOpen] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -235,6 +237,16 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
           </motion.div>
         </motion.div>
       )}
+      <StoryEditor
+        open={editorOpen}
+        imageFile={file && mediaType === "image" ? file : null}
+        onClose={() => setEditorOpen(false)}
+        onPublished={() => {
+          setEditorOpen(false);
+          onPosted();
+          onClose();
+        }}
+      />
     </AnimatePresence>
   );
 };
