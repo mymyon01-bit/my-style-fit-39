@@ -119,7 +119,7 @@ function normalizeImage(url: string | undefined | null): string {
 
 function productFingerprints(p: Product): string[] {
   const fps: string[] = [];
-  const title = normalizeTitle(p.name);
+  const title = normalizeTitle(p.title);
   const brand = (p.brand || "").toLowerCase().trim();
   if (title) fps.push(`t:${brand}|${title}`);
   const img = normalizeImage(p.imageUrl);
