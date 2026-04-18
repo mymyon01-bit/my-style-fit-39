@@ -402,18 +402,19 @@ async function kickoffApifyRun(
   const webhooksB64 = btoa(bin);
 
   // 3. Kick the run — non-blocking POST (no run-sync).
+  // Apify free tier: 8GB total memory budget. Puppeteer defaults to 4GB/run,
+  // so we explicitly pin to 1024MB and limit start URLs for SPA domains.
   const useSpa = SPA_DOMAINS.has(domain);
   const actor = actorForDomain(domain);
-  const url = `https://api.apify.com/v2/acts/${actor}/runs?token=${APIFY_TOKEN}&webhooks=${encodeURIComponent(webhooksB64)}`;
-  // puppeteer-scraper uses a different input shape than web-scraper:
-  //  - no `injectJQuery` (use `page` API instead)
-  //  - supports `launchContext.useChrome`, residential proxy
+  const memoryMb = useSpa ? 1024 : 512;
+  const url = `https://api.apify.com/v2/acts/${actor}/runs?token=${APIFY_TOKEN}&memory=${memoryMb}&webhooks=${encodeURIComponent(webhooksB64)}`;
+  const spaStartUrls = startUrls.slice(0, 1); // one variant per KR domain — keep memory low
   const body = useSpa
     ? {
-        startUrls,
+        startUrls: spaStartUrls,
         pageFunction: puppeteerPageFunctionForDomain(domain, limit),
-        maxRequestsPerCrawl: startUrls.length, // no detail enqueue — tiles only
-        maxConcurrency: 4,
+        maxRequestsPerCrawl: spaStartUrls.length,
+        maxConcurrency: 1,
         proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"], apifyProxyCountry: "KR" },
         launchContext: { useChrome: true, stealth: true },
         ignoreSslErrors: true,
