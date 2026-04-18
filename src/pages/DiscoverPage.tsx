@@ -1296,6 +1296,37 @@ const DiscoverPage = () => {
   ];
   const [progressIdx, setProgressIdx] = useState(0);
 
+  // ── Perceived freshness: track which products were appended in the last
+  // grid update so we can flash a "+N new items" banner and badge them
+  // individually with ✨ NEW. The banner auto-clears after ~4s; the badges
+  // fade after ~12s so users notice without permanent visual noise.
+  const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+  const [freshFlash, setFreshFlash] = useState<{ count: number; label: string } | null>(null);
+  const FRESH_LABELS = ["NEW ARRIVALS JUST ADDED", "FRESH PICKS", "TRENDING NOW", "HOT OFF THE STORES"];
+  const freshLabelIdx = useRef(0);
+  // Helper used by every append site to mark items as fresh + show the flash.
+  const markFresh = useCallback((newItems: AIRecommendation[]) => {
+    if (!newItems.length) return;
+    const ids = new Set(newItems.map(p => p.id));
+    setFreshIds(prev => {
+      const merged = new Set(prev);
+      ids.forEach(id => merged.add(id));
+      return merged;
+    });
+    const label = FRESH_LABELS[freshLabelIdx.current % FRESH_LABELS.length];
+    freshLabelIdx.current += 1;
+    setFreshFlash({ count: newItems.length, label });
+    // Clear the flash banner after 4s; clear individual badges after 12s.
+    window.setTimeout(() => setFreshFlash(null), 4000);
+    window.setTimeout(() => {
+      setFreshIds(prev => {
+        const next = new Set(prev);
+        ids.forEach(id => next.delete(id));
+        return next;
+      });
+    }, 12000);
+  }, []);
+
   // Rotate progress messages every 1.8s while a search is active so the
   // status line never feels frozen between cycles.
   useEffect(() => {
@@ -1426,7 +1457,13 @@ const DiscoverPage = () => {
             if (freshProducts.length > 0) {
               const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
               freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-              setRecommendations(prev => enforceClientDiversity([...prev, ...freshDiverse], new Set()));
+              setRecommendations(prev => {
+                const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set());
+                // Mark the items that are actually in the merged grid as fresh.
+                const prevIds = new Set(prev.map(p => p.id));
+                markFresh(merged.filter(p => !prevIds.has(p.id)));
+                return merged;
+              });
             }
           }).catch(() => {});
         }, 100);
@@ -1792,6 +1829,7 @@ const DiscoverPage = () => {
       if (newProducts.length > 0) {
         newProducts.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(prev => [...prev, ...newProducts]);
+        markFresh(newProducts);
         setDbOffset(prev => prev + newProducts.length);
         setHasMoreInDB(dbCount >= 20);
       } else {
@@ -1812,6 +1850,7 @@ const DiscoverPage = () => {
         if (freshNew.length > 0) {
           freshNew.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(prev => [...prev, ...freshNew]);
+          markFresh(freshNew);
         } else {
           toast("No more items to show right now");
         }
