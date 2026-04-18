@@ -1,7 +1,7 @@
 /**
- * Multi-query expansion — turns ONE user query into ~10 search variants.
- * Used by the discover-search-engine pipeline so we behave like a real
- * search engine (collect 50–200 URLs per concept) instead of a single crawler.
+ * Multi-query expansion — turns ONE user query into Korean + EN search variants.
+ * Used by the Apify-first discovery pipeline. Category-locked variants only;
+ * style words are appended, never substituted.
  */
 export function expandQuery(q: string): string[] {
   const base = q.trim();
@@ -10,15 +10,15 @@ export function expandQuery(q: string): string[] {
   const out: string[] = [];
   for (const v of [
     base,
-    `${base} outfit`,
-    `${base} fashion`,
-    `${base} style`,
     `${base} 코디`,
     `${base} 추천`,
+    `${base} 스타일`,
     `${base} 브랜드`,
+    `${base} outfit`,
+    `${base} fashion`,
+    `${base} look`,
     `${base} streetwear`,
-    `${base} outfit men`,
-    `${base} outfit women`,
+    `${base} minimal`,
   ]) {
     const k = v.toLowerCase();
     if (!seen.has(k)) {
