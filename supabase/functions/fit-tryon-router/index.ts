@@ -80,7 +80,10 @@ async function tryReplicate(token: string, body: CreateBody): Promise<{
   resultImageUrl?: string;
   error?: string;
 }> {
-  const model = Deno.env.get("REPLICATE_TRYON_MODEL") || "cuuupid/idm-vton";
+  // Community models MUST be pinned with a version hash; the official-models endpoint returns 404 otherwise.
+  const model =
+    Deno.env.get("REPLICATE_TRYON_MODEL") ||
+    "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985";
   const garmentCategory = (() => {
     const c = (body.productCategory || "").toLowerCase();
     if (c.includes("pant") || c.includes("jean") || c.includes("trouser") || c.includes("skirt") || c.includes("short")) return "lower_body";
