@@ -199,47 +199,105 @@ export function enforceSourceQuota<T extends Product>(
 }
 
 /**
- * Korean-market mixer: when the query is Korean, target a 50/50 split of
- * KR vs non-KR items in the first `windowSize` slots by interleaving the
- * two streams. If KR supply is short, falls back to whatever is available
- * (never inserts placeholders).
+ * Korean-market tier mixer (KR launch priority).
+ *
+ * Layout for the first `windowSize` slots:
+ *   - Top row (slots 0-3):  Tier 1 only (Musinsa style + Naver inventory)
+ *   - Mid rows  (slots 4-N): Tier 1 + Tier 2 (Coupang conversion + other KR)
+ *   - Lower rows: Western (Tier 3) fallback
+ *
+ * Hard caps:
+ *   - Interpark ≤ ~12% of the window (supplementary only)
+ *   - No single source > 35% of the window
+ *
+ * Falls back gracefully when supply for a tier is short — never inserts
+ * placeholders, always preserves relative relevance order within a tier.
  */
 export function enforceKoreanMix<T extends Product>(
   items: T[],
-  opts: { windowSize?: number; krRatio?: number } = {},
+  opts: { windowSize?: number; topRowSize?: number; interparkCap?: number } = {},
 ): T[] {
-  const windowSize = Math.min(opts.windowSize ?? 12, items.length);
-  const krRatio = opts.krRatio ?? 0.5;
+  const windowSize = Math.min(opts.windowSize ?? 24, items.length);
+  const topRowSize = opts.topRowSize ?? 4;
+  const interparkCap = Math.max(1, Math.floor(windowSize * (opts.interparkCap ?? 0.12)));
   if (windowSize < 4) return items;
 
-  const window = items.slice(0, Math.min(windowSize * 3, items.length));
-  const tail = items.slice(window.length);
+  // Pull a wider candidate window so we have enough supply per tier.
+  const pool = items.slice(0, Math.min(windowSize * 3, items.length));
+  const tail = items.slice(pool.length);
 
-  const kr: T[] = [];
-  const other: T[] = [];
-  for (const p of window) {
-    if (isKoreanSource(sourceOf(p))) kr.push(p);
-    else other.push(p);
+  const t1: T[] = []; // Musinsa + Naver
+  const t2Coupang: T[] = [];
+  const t2Interpark: T[] = [];
+  const t2Other: T[] = []; // kream, ssg, 29cm, wconcept, gmarket, ably, zigzag
+  const t3: T[] = []; // western + other
+  for (const p of pool) {
+    const s = sourceOf(p);
+    if (KR_TIER_1.has(s)) t1.push(p);
+    else if (s === "coupang") t2Coupang.push(p);
+    else if (s === "interpark") t2Interpark.push(p);
+    else if (KOREAN_SOURCES.has(s)) t2Other.push(p);
+    else t3.push(p);
   }
-
-  // Target counts in the first windowSize slots
-  const targetKr = Math.round(windowSize * krRatio);
-  const targetOther = windowSize - targetKr;
 
   const front: T[] = [];
-  let ki = 0;
-  let oi = 0;
-  // Interleave KR-first to make Korean supply visible immediately
-  while (front.length < windowSize && (ki < kr.length || oi < other.length)) {
-    if (ki < kr.length && (front.filter((p) => isKoreanSource(sourceOf(p))).length < targetKr || oi >= other.length)) {
-      front.push(kr[ki++]);
-    } else if (oi < other.length) {
-      front.push(other[oi++]);
-    }
+  const sourceCounts = new Map<SourceKey, number>();
+  const maxPerSource = Math.max(2, Math.floor(windowSize * 0.35));
+
+  const tryPush = (p: T | undefined): boolean => {
+    if (!p || front.includes(p)) return false;
+    const s = sourceOf(p);
+    if (s === "interpark" && (sourceCounts.get("interpark") || 0) >= interparkCap) return false;
+    if ((sourceCounts.get(s) || 0) >= maxPerSource) return false;
+    front.push(p);
+    sourceCounts.set(s, (sourceCounts.get(s) || 0) + 1);
+    return true;
+  };
+
+  // ── Top row: Tier 1 only (Musinsa+Naver). Alternate to keep both visible.
+  let mi = 0, ni = 0;
+  const musinsa = t1.filter((p) => sourceOf(p) === "musinsa");
+  const naver = t1.filter((p) => sourceOf(p) === "naver");
+  while (front.length < Math.min(topRowSize, windowSize) && (mi < musinsa.length || ni < naver.length)) {
+    // alternate: musinsa first (style anchor), then naver (inventory)
+    if (mi < musinsa.length && tryPush(musinsa[mi])) mi++;
+    if (front.length >= topRowSize) break;
+    if (ni < naver.length && tryPush(naver[ni])) ni++;
+  }
+  // If T1 didn't fill the top row, pad from any KR source before falling to western.
+  let ci = 0, ii = 0, oi = 0;
+  while (front.length < Math.min(topRowSize, windowSize)) {
+    if (ci < t2Coupang.length && tryPush(t2Coupang[ci])) { ci++; continue; }
+    if (oi < t2Other.length && tryPush(t2Other[oi])) { oi++; continue; }
+    if (ii < t2Interpark.length && tryPush(t2Interpark[ii])) { ii++; continue; }
+    break;
   }
 
-  // Whatever wasn't placed in front gets appended after, KR first to keep
-  // load-more biased Korean too.
-  const rest = [...kr.slice(ki), ...other.slice(oi), ...tail];
-  return [...front, ...rest];
+  // ── Mid rows: T1 + T2 (Coupang main, Interpark sprinkled, other KR).
+  // Ratio: 50% T1, 35% Coupang+other-KR, 15% (cap) Interpark.
+  while (front.length < windowSize) {
+    let added = false;
+    // T1 first to keep style/inventory dominant
+    if (mi < musinsa.length && tryPush(musinsa[mi])) { mi++; added = true; }
+    if (front.length >= windowSize) break;
+    if (ni < naver.length && tryPush(naver[ni])) { ni++; added = true; }
+    if (front.length >= windowSize) break;
+    // Coupang for conversion
+    if (ci < t2Coupang.length && tryPush(t2Coupang[ci])) { ci++; added = true; }
+    if (front.length >= windowSize) break;
+    // Other KR (kream/ssg/...)
+    if (oi < t2Other.length && tryPush(t2Other[oi])) { oi++; added = true; }
+    if (front.length >= windowSize) break;
+    // Interpark — capped, supplementary
+    if (ii < t2Interpark.length && tryPush(t2Interpark[ii])) { ii++; added = true; }
+    if (!added) break;
+  }
+
+  // Lower rows / append: remaining KR first, then western/T3, then the
+  // original tail. Western only enters here unless KR supply was exhausted.
+  const remainingKr = [
+    ...musinsa.slice(mi), ...naver.slice(ni),
+    ...t2Coupang.slice(ci), ...t2Other.slice(oi), ...t2Interpark.slice(ii),
+  ].filter((p) => !front.includes(p));
+  return [...front, ...remainingKr, ...t3, ...tail];
 }
