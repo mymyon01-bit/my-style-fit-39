@@ -11,8 +11,11 @@ const corsHeaders = {
 };
 
 // Default model: cuuupid/idm-vton — robust virtual try-on
-// Configurable via REPLICATE_TRYON_MODEL env var (format: "owner/name" or pinned version hash).
-const DEFAULT_MODEL = "cuuupid/idm-vton";
+// Community models MUST be pinned with a version hash; the /v1/models/{owner}/{name}/predictions
+// endpoint is reserved for official models only and returns 404 otherwise.
+// Override via REPLICATE_TRYON_MODEL env var (format: "owner/name:versionHash").
+const DEFAULT_MODEL =
+  "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985";
 
 interface CreateBody {
   userImageUrl?: string;
