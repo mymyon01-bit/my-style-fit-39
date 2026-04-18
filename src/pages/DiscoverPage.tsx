@@ -2326,6 +2326,8 @@ const DiscoverPage = () => {
         if (isScenarioQuery) {
           setActiveScenario({ label: intent.scenarioLabel!, items: searchQueries });
         }
+
+        await stopSession("db-first temporary mode ready");
       } catch (error) {
         console.error("[search-pipeline] THROWN_ERROR", { rawQuery: q, stage: "search-session", error });
         await stopSession("search-session crashed");
