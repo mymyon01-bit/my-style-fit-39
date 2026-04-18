@@ -978,7 +978,7 @@ serve(async (req) => {
     }
     log("discover_done", { totalCandidates: candidates.length, scoped: scoped.length, openWeb: openWeb.length });
 
-    if (candidates.length === 0) {
+    if (candidates.length === 0 && naverDirect.length === 0) {
       return new Response(
         JSON.stringify({
           ok: true,
