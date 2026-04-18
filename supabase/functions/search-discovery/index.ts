@@ -16,8 +16,17 @@ const cors = {
 
 const PERPLEXITY_KEY = Deno.env.get("PERPLEXITY_API_KEY");
 const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+const NAVER_CLIENT_ID = Deno.env.get("NAVER_CLIENT_ID");
+const NAVER_CLIENT_SECRET = Deno.env.get("NAVER_CLIENT_SECRET");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Korean-market detection (mirrors src/lib/search/sources.ts)
+const HANGUL_RE = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/;
+const KR_HINTS_RE = /\b(korea|korean|seoul|musinsa|kream|naver|coupang|ssg|gmarket|29cm|wconcept|k-fashion|kfashion)\b/i;
+function isKoreanMarketQuery(q: string): boolean {
+  return HANGUL_RE.test(q) || KR_HINTS_RE.test(q);
+}
 
 // ─────────────────────────── helpers ───────────────────────────
 
@@ -233,6 +242,11 @@ function categoryGuard(queries: string[], primaryCategory: string | null): { kep
 // ─────────────────── 2. URL discovery via Perplexity Search ───────────────────
 
 const TRUSTED_STORES = [
+  // Korean (priority for KR launch)
+  "shopping.naver.com", "smartstore.naver.com", "brand.naver.com",
+  "coupang.com", "musinsa.com", "kream.co.kr", "ssg.com",
+  "gmarket.co.kr", "29cm.co.kr", "wconcept.co.kr",
+  // Western
   "asos.com", "ssense.com", "farfetch.com", "yoox.com", "zalando.com",
   "zalando.co.uk", "zalando.de", "net-a-porter.com", "mrporter.com",
   "endclothing.com", "matchesfashion.com", "mytheresa.com", "nordstrom.com",
