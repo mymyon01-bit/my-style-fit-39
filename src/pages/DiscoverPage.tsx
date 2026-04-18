@@ -190,11 +190,20 @@ export default function DiscoverPage() {
       setAllLiveResults(composed);
       const summary = buildDiscoverGridDiagnostics(session, renderables, composed.slice(0, PAGE_SIZE));
       setDiagnostics({ query: session.query, ...summary });
-      setLiveStatus(
-        session.status === "complete"
-          ? `Updated with ${summary.totalRenderedFresh} fresh / unseen products`
-          : `Adding fresh items from more stores… ${summary.totalFreshFetched} live candidates so far`,
-      );
+      // Status messaging vocabulary — exact phrases per UX spec.
+      let nextStatus: string;
+      if (session.status === "complete") {
+        nextStatus = summary.totalRenderedFresh > 0
+          ? `Updated with new products (+${summary.totalRenderedFresh})`
+          : "Updated with new products";
+      } else if (composed.length === 0) {
+        nextStatus = "Loading more products…";
+      } else if (summary.totalFreshFetched > 0) {
+        nextStatus = `Adding fresh items… (+${summary.totalFreshFetched} so far)`;
+      } else {
+        nextStatus = "Searching across more stores…";
+      }
+      setLiveStatus(nextStatus);
       setIsSearching(session.status !== "complete");
     },
     [],
