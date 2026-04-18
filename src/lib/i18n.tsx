@@ -508,7 +508,7 @@ const translations = {
     about: "소개",
     logIn: "로그인",
     signUp: "회원가입",
-    enter: "입력",
+    enter: "확인",
     viewOn: "에서 보기",
     saveStylePrompt: "스타일을 저장하고 맞춤 추천을 받으세요.",
     createAccount: "계정 만들기",
