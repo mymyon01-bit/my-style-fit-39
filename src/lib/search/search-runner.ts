@@ -7,6 +7,7 @@ import { appendToSession, markProductsAsSeen, mixUnseenFirst, type SearchSession
 import { findCluster, upsertCluster } from "./query-cluster-service";
 import { categoryFirstSort } from "./category-lock";
 import { isCohortStale, rankByFreshness, rotateNewIntoWindow } from "./freshness";
+import { ensureTopRowDiversity, rotateStyleClusters, shuffleMidBand } from "./diversity";
 import { recordEvent } from "@/lib/diagnostics";
 
 export interface RunSearchOptions {
@@ -190,6 +191,21 @@ export async function runSearch(
   session.results = mixUnseenFirst(session.results, {
     unseenRatio: 0.7,
     firstWindow: 24,
+  });
+  // Style round-robin: interleave style buckets so no single cluster dominates.
+  session.results = rotateStyleClusters(session.results, 24);
+  // Mid-band jitter (per-call seed): same query feels fresh each run, top
+  // relevance stays locked.
+  session.results = shuffleMidBand(session.results, {
+    headLock: 4,
+    midSize: 20,
+    seed: Date.now(),
+  });
+  // Hard guarantee on the visible top row: ≥3 brands, ≥2 style variations.
+  session.results = ensureTopRowDiversity(session.results, {
+    rowSize: 4,
+    minBrands: 3,
+    minStyles: 2,
   });
   // Persist the seen set for future searches so the user keeps seeing fresh.
   markProductsAsSeen(session.results.slice(0, 60));
