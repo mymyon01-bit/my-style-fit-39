@@ -64,6 +64,10 @@ export async function runSearch(
     categoryLock: session.categoryLock,
   });
 
+  // Load DB-backed 24h seen set (logged-in users only). Used to filter the
+  // result set so the same items don't reappear across devices/sessions.
+  const dbSeen = await loadDbSeenKeys();
+
   // ── STAGE 1 — DB FIRST (instant paint) ──────────────────────────────────
   // Cluster lookup + raw product_cache fallback. Never blocks on external.
   try {
