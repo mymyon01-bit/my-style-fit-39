@@ -2682,8 +2682,8 @@ const DiscoverPage = () => {
                           key={`db-rec-${item.id}`}
                           item={item}
                           index={i}
-                          feedbackMap={feedbackMap}
-                          savedIds={savedIds}
+                          feedback={feedbackMap[item.id]}
+                          isSaved={savedIds.has(item.id)}
                           onFeedback={handleFeedback}
                           onSave={handleSave}
                           onOpenDetail={setDetailProduct}
@@ -2785,8 +2785,8 @@ const DiscoverPage = () => {
                             key={item.id}
                             item={item}
                             index={i}
-                            feedbackMap={feedbackMap}
-                            savedIds={savedIds}
+                            feedback={feedbackMap[item.id]}
+                            isSaved={savedIds.has(item.id)}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
                             onOpenDetail={setDetailProduct}
@@ -2802,8 +2802,8 @@ const DiscoverPage = () => {
                         key={item.id}
                         item={item}
                         index={i}
-                        feedbackMap={feedbackMap}
-                        savedIds={savedIds}
+                        feedback={feedbackMap[item.id]}
+                        isSaved={savedIds.has(item.id)}
                         onFeedback={handleFeedback}
                         onSave={handleSave}
                         onOpenDetail={setDetailProduct}
@@ -2851,8 +2851,8 @@ const DiscoverPage = () => {
                             key={item.id}
                             item={item}
                             index={i}
-                            feedbackMap={feedbackMap}
-                            savedIds={savedIds}
+                            feedback={feedbackMap[item.id]}
+                            isSaved={savedIds.has(item.id)}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
                             onOpenDetail={setDetailProduct}
