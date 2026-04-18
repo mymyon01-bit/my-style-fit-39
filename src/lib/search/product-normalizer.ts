@@ -1,4 +1,5 @@
 import type { Product } from "./types";
+import { sourceFromUrl } from "./sources";
 
 export function inferCategory(title: string): string {
   const t = (title || "").toLowerCase();
@@ -36,5 +37,6 @@ export function normalizeFromCache(raw: unknown): Product | null {
     createdAt: (r.created_at as string) || (r.createdAt as string) || null,
     lastValidated: (r.last_validated as string) || (r.lastValidated as string) || null,
     trendScore: typeof r.trend_score === "number" ? (r.trend_score as number) : undefined,
+    source: sourceFromUrl(externalUrl),
   };
 }

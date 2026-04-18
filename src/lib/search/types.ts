@@ -23,4 +23,6 @@ export interface Product {
   lastValidated?: string | null;
   /** Source signal carried through from the cache for ranking. */
   trendScore?: number;
+  /** Normalized source key derived from externalUrl host (asos, farfetch, …). */
+  source?: string;
 }
