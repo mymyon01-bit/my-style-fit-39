@@ -237,6 +237,16 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
           </motion.div>
         </motion.div>
       )}
+      <StoryEditor
+        open={editorOpen}
+        imageFile={file && mediaType === "image" ? file : null}
+        onClose={() => setEditorOpen(false)}
+        onPublished={() => {
+          setEditorOpen(false);
+          onPosted();
+          onClose();
+        }}
+      />
     </AnimatePresence>
   );
 };
