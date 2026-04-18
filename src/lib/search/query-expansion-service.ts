@@ -1,5 +1,36 @@
 import type { QueryType } from "./query-intent-service";
 import { supabase } from "@/integrations/supabase/client";
+import { isKoreanMarketQuery } from "./sources";
+
+/** Korean + shopping-intent variants merged in when the query feels KR. */
+const KR_INTENT_SUFFIXES = ["추천", "코디", "스타일", "쇼핑", "신상", "베스트", "데일리룩"];
+const KR_SEASONAL = ["봄 코디", "여름 코디", "가을 코디", "겨울 코디"];
+const SHOPPING_INTENT = ["buy", "shop", "best", "trending", "new arrivals", "where to buy"];
+
+function injectKoreanVariants(base: string[], rawQuery: string): string[] {
+  if (!isKoreanMarketQuery(rawQuery)) return base;
+  const q = rawQuery.trim();
+  const kr = [
+    ...KR_INTENT_SUFFIXES.map((s) => `${q} ${s}`),
+    ...KR_SEASONAL.map((s) => `${q} ${s}`),
+    ...SHOPPING_INTENT.slice(0, 3).map((s) => `${s} ${q}`),
+    `무신사 ${q}`,
+    `네이버쇼핑 ${q}`,
+  ];
+  // Interleave: KR variant, base variant, KR variant… so KR sources hit early in the cycle plan.
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const max = Math.max(base.length, kr.length);
+  for (let i = 0; i < max; i++) {
+    for (const v of [kr[i], base[i]]) {
+      const k = (v || "").trim().toLowerCase();
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      out.push(v);
+    }
+  }
+  return out.slice(0, 24);
+}
 
 /**
  * Expand the user's raw query into a "query family" of up to 24 variants
@@ -24,14 +55,14 @@ export async function expandQueries(query: string, type: QueryType): Promise<str
         if (!key || seen.has(key)) continue;
         seen.add(key);
         merged.push(q);
-        if (merged.length >= 24) break;
+      if (merged.length >= 24) break;
       }
-      return merged;
+      return injectKoreanVariants(merged, query);
     }
   } catch {
     // fall through
   }
-  return fallbackQueries(query, type);
+  return injectKoreanVariants(fallbackQueries(query, type), query);
 }
 
 /** Tiny seeded shuffle so rotation is deterministic per call but varies over time. */
