@@ -1,17 +1,16 @@
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Loader2, Sparkles, Heart, HeartOff, Bookmark, SlidersHorizontal, X } from "lucide-react";
+import { Search, Sparkles, SlidersHorizontal, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import ProductDetailSheet from "@/components/ProductDetailSheet";
 import PreferenceBanner from "@/components/PreferenceBanner";
-import FreshnessPill from "@/components/FreshnessPill";
 import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
 import { AuthGate } from "@/components/AuthGate";
-import { toast } from "sonner";
 import { useCategories } from "@/hooks/useCategories";
+import { useDbTopGrid } from "@/hooks/useDbTopGrid";
 import { generateSuggestions, TRENDING_SEARCHES } from "@/lib/searchSuggestions";
 import { recordEvent } from "@/lib/diagnostics";
 import { loadDbSeenKeys } from "@/lib/search/discovery-cache";
@@ -23,6 +22,10 @@ import {
 } from "@/lib/search/discover-feed";
 import { runSearch } from "@/lib/search/search-runner";
 import { createSearchSession, type SearchSession } from "@/lib/search/search-session";
+import type { Product } from "@/lib/search/types";
+import DbTopGrid from "@/components/discover/DbTopGrid";
+import StyledLooksRow from "@/components/discover/StyledLooksRow";
+import LiveResultsSection from "@/components/discover/LiveResultsSection";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
@@ -46,7 +49,7 @@ type DetailItem = {
   platform?: string | null;
 };
 
-function toDetailItem(item: DiscoverRenderableProduct | null): DetailItem | null {
+function toDetailFromProduct(item: Product | DiscoverRenderableProduct | null): DetailItem | null {
   if (!item) return null;
   return {
     id: item.id,
@@ -87,6 +90,15 @@ function toCardMeta(item: DiscoverRenderableProduct) {
   };
 }
 
+/**
+ * NEW Discover architecture:
+ *   Layer 1 — Top DB grid (instant, hardcoded shell, useDbTopGrid)
+ *   Layer 2 — Styled Looks (hardcoded shell, composes existing inventory)
+ *   Layer 3 — Live results (append-only, runSearch streams onProgress)
+ *
+ * Sourcing logic (search-runner / discover-feed) is fully decoupled from
+ * rendering logic (the three layer components below).
+ */
 export default function DiscoverPage() {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -94,6 +106,7 @@ export default function DiscoverPage() {
   const moodParam = searchParams.get("mood");
   const { tree: categoryTree } = useCategories();
 
+  // ── UI state ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("for-you");
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [textInput, setTextInput] = useState(moodParam || "");
@@ -106,11 +119,13 @@ export default function DiscoverPage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [feedbackMap, setFeedbackMap] = useState<Record<string, "like" | "dislike">>({});
   const [showAuthHint, setShowAuthHint] = useState(false);
-  const [detailProduct, setDetailProduct] = useState<DiscoverRenderableProduct | null>(null);
-  const [allResults, setAllResults] = useState<DiscoverRenderableProduct[]>([]);
-  const [visibleResults, setVisibleResults] = useState<DiscoverRenderableProduct[]>([]);
+  const [detailProduct, setDetailProduct] = useState<Product | DiscoverRenderableProduct | null>(null);
+
+  // ── Live (Layer 3) state ──────────────────────────────────────────────
+  const [committedQuery, setCommittedQuery] = useState(moodParam || "new arrivals");
+  const [allLiveResults, setAllLiveResults] = useState<DiscoverRenderableProduct[]>([]);
+  const [visibleLiveResults, setVisibleLiveResults] = useState<DiscoverRenderableProduct[]>([]);
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
-  const [hasGenerated, setHasGenerated] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [liveStatus, setLiveStatus] = useState("Loading fresh inventory…");
   const [freshFlash, setFreshFlash] = useState<{ count: number; label: string } | null>(null);
@@ -120,6 +135,16 @@ export default function DiscoverPage() {
   const sessionRef = useRef<SearchSession | null>(null);
   const searchRunRef = useRef(0);
   const gridSignatureRef = useRef("");
+
+  // ── Layer 1 — instant DB grid (independent fetch, no live coupling) ───
+  const { products: dbTopProducts, loading: dbTopLoading } = useDbTopGrid(committedQuery, 8);
+
+  // ── Layer 2 — styled looks pool (composed from already-loaded layers) ─
+  const styledLooksPool = useMemo<Product[]>(() => {
+    if (allLiveResults.length >= 12) return allLiveResults.slice(0, 12);
+    if (dbTopProducts.length >= 4) return dbTopProducts;
+    return [];
+  }, [allLiveResults, dbTopProducts]);
 
   const browseTabs = useMemo<CategoryTab[]>(() => {
     const base: CategoryTab[] = [{ slug: "for-you", label: t("forYou") || "For You" }];
@@ -143,6 +168,7 @@ export default function DiscoverPage() {
   const needsPreferences = !quizAnswers;
   const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null;
 
+  // ── Saved items ───────────────────────────────────────────────────────
   const loadSavedIds = useCallback(async () => {
     if (!user) {
       setSavedIds(new Set());
@@ -156,24 +182,19 @@ export default function DiscoverPage() {
     void loadSavedIds();
   }, [loadSavedIds]);
 
-  const applySessionToGrid = useCallback(
-    (session: SearchSession, dbSeenSet: Set<string>, requestedDisplayCount: number) => {
+  // ── Layer 3 — live discovery pipeline ─────────────────────────────────
+  const applySessionToLiveLayer = useCallback(
+    (session: SearchSession, dbSeenSet: Set<string>) => {
       const renderables = buildDiscoverRenderables(session, dbSeenSet);
       const composed = composeDiscoverGrid(renderables, { windowSize: PAGE_SIZE, minFreshRatio: 0.4 });
-      const nextVisible = composed.slice(0, requestedDisplayCount);
-      setAllResults(composed);
-      setVisibleResults(nextVisible);
-      const summary = buildDiscoverGridDiagnostics(session, renderables, nextVisible);
-      setDiagnostics({
-        query: session.query,
-        ...summary,
-      });
+      setAllLiveResults(composed);
+      const summary = buildDiscoverGridDiagnostics(session, renderables, composed.slice(0, PAGE_SIZE));
+      setDiagnostics({ query: session.query, ...summary });
       setLiveStatus(
         session.status === "complete"
           ? `Updated with ${summary.totalRenderedFresh} fresh / unseen products`
           : `Adding fresh items from more stores… ${summary.totalFreshFetched} live candidates so far`,
       );
-      setHasGenerated(true);
       setIsSearching(session.status !== "complete");
     },
     [],
@@ -191,18 +212,19 @@ export default function DiscoverPage() {
 
       const runId = Date.now();
       searchRunRef.current = runId;
+      setCommittedQuery(query);
       setDisplayCount(PAGE_SIZE);
-      setHasGenerated(true);
       setIsSearching(true);
       setLiveStatus("Loading fresh inventory…");
       setFreshFlash(null);
+      setAllLiveResults([]);
       const session = createSearchSession(query);
       sessionRef.current = session;
 
       void loadDbSeenKeys().then((keys) => {
         if (searchRunRef.current !== runId) return;
         setDbSeen(keys);
-        if (sessionRef.current) applySessionToGrid(sessionRef.current, keys, PAGE_SIZE);
+        if (sessionRef.current) applySessionToLiveLayer(sessionRef.current, keys);
       });
 
       try {
@@ -212,63 +234,68 @@ export default function DiscoverPage() {
           onProgress: (nextSession) => {
             if (searchRunRef.current !== runId) return;
             sessionRef.current = nextSession;
-            applySessionToGrid(nextSession, dbSeen, PAGE_SIZE);
+            applySessionToLiveLayer(nextSession, dbSeen);
           },
         });
         if (searchRunRef.current !== runId) return;
         sessionRef.current = session;
-        applySessionToGrid(session, dbSeen, PAGE_SIZE);
+        applySessionToLiveLayer(session, dbSeen);
       } catch (error) {
         if (searchRunRef.current !== runId) return;
-        console.error("[discover] search failed", error);
+        console.error("[discover] live search failed", error);
         setIsSearching(false);
-        setLiveStatus("Fresh discovery failed — showing the best cached matches available.");
+        setLiveStatus("Live discovery failed — top picks above are still available.");
       }
     },
-    [activeSubcategory, applySessionToGrid, dbSeen, quizAnswers, selectedFit, selectedStyles],
+    [activeSubcategory, applySessionToLiveLayer, dbSeen, quizAnswers, selectedFit, selectedStyles],
   );
 
+  // initial load + tab change
   useEffect(() => {
     if (moodParam) {
       void runDiscover(moodParam);
       return;
     }
     void runDiscover(activeTab === "for-you" ? "new arrivals" : activeTabData?.label || "new arrivals");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!hasGenerated) return;
+    if (activeTab === "for-you" && !committedQuery) return;
     if (activeTab === "for-you") return;
     void runDiscover(activeSubcategory || activeTabData?.label || activeTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSubcategory, activeTab]);
 
   useEffect(() => {
-    const nextVisible = allResults.slice(0, displayCount);
-    setVisibleResults(nextVisible);
-  }, [allResults, displayCount]);
+    setVisibleLiveResults(allLiveResults.slice(0, displayCount));
+  }, [allLiveResults, displayCount]);
 
+  // diagnostics + freshness flash
   useEffect(() => {
-    if (visibleResults.length === 0 || !sessionRef.current) return;
-    const signature = `${sessionRef.current.query}:${visibleResults.slice(0, PAGE_SIZE).map((item) => item.id).join(",")}`;
+    if (visibleLiveResults.length === 0 || !sessionRef.current) return;
+    const signature = `${sessionRef.current.query}:${visibleLiveResults.slice(0, PAGE_SIZE).map((item) => item.id).join(",")}`;
     if (gridSignatureRef.current === signature) return;
+    const previousSig = gridSignatureRef.current;
     gridSignatureRef.current = signature;
 
-    const previousIds = new Set(allResults.slice(0, displayCount).map((item) => item.id));
-    const newlyVisible = visibleResults.filter((item) => item.isUnseen && item.isFresh && !previousIds.has(item.id));
-    if (newlyVisible.length > 0) {
+    const previousIds = new Set(previousSig.split(":")[1]?.split(",") ?? []);
+    const newlyVisible = visibleLiveResults.filter((item) => item.isUnseen && item.isFresh && !previousIds.has(item.id));
+    if (newlyVisible.length > 0 && previousSig) {
       setFreshFlash({ count: newlyVisible.length, label: "New arrivals just added" });
       window.setTimeout(() => setFreshFlash(null), 3000);
     }
 
-    const firstGrid = visibleResults.slice(0, PAGE_SIZE).map(toCardMeta);
+    const firstGrid = visibleLiveResults.slice(0, PAGE_SIZE).map(toCardMeta);
     console.table(firstGrid);
 
     const summary = diagnostics || {};
     recordEvent({
       event_name: "discover_grid_render",
-      status: visibleResults.length > 0 ? "success" : "partial",
+      status: visibleLiveResults.length > 0 ? "success" : "partial",
       metadata: {
         query: sessionRef.current.query,
+        layer: "live",
         total_new_products_fetched_session: summary.totalFreshFetched,
         total_inserted_into_db: summary.totalInsertedToDb,
         total_eligible_for_current_query: summary.totalEligible,
@@ -277,11 +304,11 @@ export default function DiscoverPage() {
         total_rejected_by_db_seen_filter: summary.totalRejectedByDbSeen,
         total_rejected_by_category_filter: summary.totalRejectedByCategory,
         first_row_changed_count: summary.firstRowChangedCount,
-        final_rendered_product_ids: visibleResults.slice(0, PAGE_SIZE).map((item) => item.id),
-        fresh_rendered_count: visibleResults.filter((item) => item.isUnseen && item.isFresh).length,
+        final_rendered_product_ids: visibleLiveResults.slice(0, PAGE_SIZE).map((item) => item.id),
+        fresh_rendered_count: visibleLiveResults.filter((item) => item.isUnseen && item.isFresh).length,
       },
     });
-  }, [allResults, diagnostics, displayCount, visibleResults]);
+  }, [diagnostics, visibleLiveResults]);
 
   const handleSubmit = useCallback((query?: string) => {
     const next = (query || textInput).trim();
@@ -294,8 +321,8 @@ export default function DiscoverPage() {
   }, [runDiscover, textInput]);
 
   const handleLoadMore = useCallback(() => {
-    setDisplayCount((count) => Math.min(count + PAGE_SIZE, allResults.length));
-  }, [allResults.length]);
+    setDisplayCount((count) => Math.min(count + PAGE_SIZE, allLiveResults.length));
+  }, [allLiveResults.length]);
 
   const handleSave = useCallback(async (itemId: string) => {
     if (!user) {
@@ -367,6 +394,7 @@ export default function DiscoverPage() {
             </div>
           )}
 
+          {/* search input */}
           <div className="relative">
             <div className="flex items-center gap-3 pb-4">
               <Search className="h-4 w-4 shrink-0 text-foreground/75" />
@@ -424,6 +452,7 @@ export default function DiscoverPage() {
           {showSuggestions && <div className="fixed inset-0 z-20" onClick={() => setShowSuggestions(false)} />}
           <div className="h-px bg-border/30" />
 
+          {/* tabs */}
           <div className="mt-4 flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide">
             {browseTabs.map((tab) => (
               <button
@@ -469,6 +498,7 @@ export default function DiscoverPage() {
             )}
           </AnimatePresence>
 
+          {/* filters bar */}
           <div className="mt-4 flex items-center gap-3">
             <button onClick={() => setShowQuiz(true)} className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/65">
               <Sparkles className="h-3.5 w-3.5 text-accent/70" />
@@ -534,72 +564,30 @@ export default function DiscoverPage() {
             )}
           </AnimatePresence>
 
-          <div className="mt-8 space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/75">
-                  {textInput.trim() ? `RESULTS FOR "${textInput.toUpperCase()}"` : (activeSubcategory || activeTabData?.label || "DISCOVER").toUpperCase()}
-                </p>
-                <p className="mt-1 text-[10px] text-foreground/55">Freshness-first ranking, live discovery injection, and seen suppression.</p>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-foreground/60">
-                <span>{visibleResults.length} {t("items")}</span>
-                {isSearching && <Loader2 className="h-3 w-3 animate-spin text-accent/60" />}
-              </div>
-            </div>
+          {/* ─── HARDCODED LAYERS ─────────────────────────────────────── */}
+          <div className="mt-8 space-y-12">
+            {/* Layer 1 — Top DB recommendation grid (instant) */}
+            <DbTopGrid products={dbTopProducts} loading={dbTopLoading} onSelect={setDetailProduct} />
 
-            <FreshnessPill active={isSearching} />
+            {/* Layer 2 — Styled Looks shell */}
+            <StyledLooksRow products={styledLooksPool} />
 
-            <div className="flex items-center gap-2 rounded-lg border border-accent/10 bg-accent/[0.03] px-3 py-2 text-[10px] tracking-[0.12em] text-accent/70" aria-live="polite">
-              {isSearching ? <Loader2 className="h-3 w-3 animate-spin" /> : <span className="h-1.5 w-1.5 rounded-full bg-accent/50" />}
-              <span>{liveStatus.toUpperCase()}</span>
-            </div>
-
-            <AnimatePresence>
-              {freshFlash && (
-                <motion.div
-                  key={`${freshFlash.label}-${freshFlash.count}`}
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/[0.08] px-3 py-2 text-[10px] font-semibold tracking-[0.18em] text-accent"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  <span>+{freshFlash.count} {freshFlash.label.toUpperCase()}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {hasGenerated && visibleResults.length === 0 && !isSearching ? (
-              <div className="rounded-xl border border-border/20 bg-card/30 px-5 py-10 text-center">
-                <p className="text-[12px] text-foreground/70">No fresh matches surfaced for that search yet.</p>
-                <p className="mt-1 text-[10px] text-foreground/50">Try a broader query or another category while inventory expands.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-                {visibleResults.map((item, index) => (
-                  <RecommendationCard
-                    key={item.id}
-                    item={item}
-                    index={index}
-                    isSaved={savedIds.has(item.id)}
-                    feedback={feedbackMap[item.id]}
-                    onFeedback={handleFeedback}
-                    onOpenDetail={setDetailProduct}
-                    onSave={handleSave}
-                  />
-                ))}
-              </div>
-            )}
-
-            {displayCount < allResults.length && (
-              <div className="flex justify-center pt-2">
-                <button onClick={handleLoadMore} className="rounded-full border border-border/30 px-4 py-2 text-[10px] font-semibold tracking-[0.15em] text-foreground/70">
-                  LOAD MORE
-                </button>
-              </div>
-            )}
+            {/* Layer 3 — Live search result section (append-only) */}
+            <LiveResultsSection
+              query={committedQuery}
+              visible={visibleLiveResults}
+              totalAvailable={allLiveResults.length}
+              isSearching={isSearching}
+              liveStatus={liveStatus}
+              freshFlash={freshFlash}
+              savedIds={savedIds}
+              feedbackMap={feedbackMap}
+              onLoadMore={handleLoadMore}
+              onSelect={setDetailProduct}
+              onSave={handleSave}
+              onFeedback={handleFeedback}
+              hasMore={displayCount < allLiveResults.length}
+            />
           </div>
         </div>
       </div>
@@ -611,111 +599,12 @@ export default function DiscoverPage() {
       )}
 
       <ProductDetailSheet
-        product={toDetailItem(detailProduct)}
+        product={toDetailFromProduct(detailProduct)}
         open={!!detailProduct}
         onClose={() => setDetailProduct(null)}
         isSaved={detailProduct ? savedIds.has(detailProduct.id) : false}
         onSave={handleSave}
       />
     </>
-  );
-}
-
-type RecommendationCardProps = {
-  item: DiscoverRenderableProduct;
-  index: number;
-  isSaved: boolean;
-  feedback: "like" | "dislike" | undefined;
-  onFeedback: (id: string, type: "like" | "dislike") => void;
-  onSave: (id: string) => void;
-  onOpenDetail: (item: DiscoverRenderableProduct) => void;
-};
-
-function RecommendationCard({ item, index, isSaved, feedback, onFeedback, onSave, onOpenDetail }: RecommendationCardProps) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  if (!item.imageUrl || !item.imageUrl.startsWith("http") || imgFailed) return null;
-
-  const isAboveFold = index < 4;
-
-  return (
-    <div className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.04]">
-        {!imgLoaded && <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-foreground/[0.05] to-foreground/[0.02]" aria-hidden />}
-        <img
-          src={item.imageUrl}
-          alt={item.title}
-          className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-105 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-          loading={isAboveFold ? "eager" : "lazy"}
-          decoding="async"
-          fetchPriority={isAboveFold ? "high" : "low"}
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          onLoad={() => setImgLoaded(true)}
-          onError={() => setImgFailed(true)}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-        <div className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5 text-[9px] font-semibold tracking-[0.12em] text-foreground/75 backdrop-blur-sm">
-          {item.sourceKey.toUpperCase()}
-        </div>
-        {item.isUnseen && item.isFresh && (
-          <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-accent/90 px-2 py-0.5 text-[9px] font-bold tracking-[0.12em] text-accent-foreground shadow-lg shadow-accent/30">
-            <Sparkles className="h-2.5 w-2.5" />
-            NEW
-          </div>
-        )}
-        <div className="absolute right-2 top-10 flex flex-col gap-1.5 opacity-0 transition-all group-hover:opacity-100">
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onFeedback(item.id, "like");
-            }}
-            className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
-              feedback === "like" ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
-            }`}
-          >
-            <Heart className="h-3 w-3" fill={feedback === "like" ? "currentColor" : "none"} />
-          </button>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onFeedback(item.id, "dislike");
-            }}
-            className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
-              feedback === "dislike" ? "bg-destructive/30 text-destructive" : "bg-black/30 text-white/70 hover:text-white"
-            }`}
-          >
-            <HeartOff className="h-3 w-3" />
-          </button>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onSave(item.id);
-            }}
-            className={`flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
-              isSaved ? "bg-accent/30 text-accent" : "bg-black/30 text-white/70 hover:text-white"
-            }`}
-          >
-            <Bookmark className="h-3 w-3" fill={isSaved ? "currentColor" : "none"} />
-          </button>
-        </div>
-        {item.externalUrl && (
-          <div
-            onClick={(event) => {
-              event.stopPropagation();
-              window.open(item.externalUrl!, "_blank", "noopener,noreferrer");
-            }}
-            className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            SHOP →
-          </div>
-        )}
-      </div>
-      <div className="mt-2.5 space-y-0.5 px-0.5">
-        <p className="text-[11px] font-medium tracking-[0.1em] text-foreground">{item.brand}</p>
-        <p className="line-clamp-2 text-[12px] font-medium leading-tight text-foreground/90">{item.title}</p>
-        <p className="text-[11px] font-semibold text-foreground">{item.price}</p>
-        <p className="text-[10px] text-foreground/60">{item.storeName || item.sourceDomain}</p>
-      </div>
-    </div>
   );
 }
