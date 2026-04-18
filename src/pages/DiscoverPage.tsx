@@ -2810,7 +2810,14 @@ const DiscoverPage = () => {
                   {isGenerating || isLoadingMore ? (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>{(liveStatus || "Loading more products…").toUpperCase()}</span>
+                      <span className="transition-opacity duration-300">
+                        {(liveStatus || PROGRESS_MESSAGES[progressIdx]).toUpperCase()}
+                      </span>
+                      {recommendations.length > 0 && (
+                        <span className="ml-auto text-accent/50">
+                          {recommendations.length} so far
+                        </span>
+                      )}
                     </>
                   ) : recommendations.length > 0 ? (
                     <>
@@ -2820,7 +2827,7 @@ const DiscoverPage = () => {
                   ) : (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>LOADING MORE PRODUCTS…</span>
+                      <span>{PROGRESS_MESSAGES[progressIdx].toUpperCase()}</span>
                     </>
                   )}
                 </div>
