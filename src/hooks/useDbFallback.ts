@@ -50,12 +50,10 @@ async function fetchFallback(
 
   const promise = (async () => {
     try {
-      // Log the cluster usage for analytics
-      if (query.length > 2) {
-        supabase.from("query_clusters").insert({ query: query.toLowerCase().trim() }).then();
-      }
-
-      let q = supabase
+      // Cast to `any` for chained filter assignment — generated Supabase
+      // builder generics shift on each filter call which makes `let q = ...`
+      // reassignment fight the type system. Behaviour is identical at runtime.
+      let q: any = supabase
         .from("product_cache")
         .select(
           "id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform, reason"
@@ -67,13 +65,16 @@ async function fetchFallback(
 
       if (category) q = q.ilike("category", `%${category}%`);
 
-      // Loose name/tag match on the raw query (best-effort, no error if empty)
       const trimmed = query.trim();
       if (trimmed.length > 1) {
-        q = q.or(
-          `name.ilike.%${trimmed}%,brand.ilike.%${trimmed}%,search_query.ilike.%${trimmed}%`
-        );
+        const safe = trimmed.replace(/[(),]/g, " ").trim();
+        if (safe) {
+          q = q.or(
+            `name.ilike.%${safe}%,brand.ilike.%${safe}%,search_query.ilike.%${safe}%`
+          );
+        }
       }
+
 
       const { data, error } = await q;
       if (error || !data) return [];
