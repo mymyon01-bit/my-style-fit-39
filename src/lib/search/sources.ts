@@ -21,6 +21,7 @@ export type SourceKey =
   | "wconcept"
   | "ably"
   | "zigzag"
+  | "interpark"
   // Western sources
   | "asos"
   | "farfetch"
@@ -50,8 +51,23 @@ export type SourceKey =
 
 const KOREAN_SOURCES: ReadonlySet<SourceKey> = new Set<SourceKey>([
   "naver", "coupang", "musinsa", "kream", "ssg",
-  "gmarket", "29cm", "wconcept", "ably", "zigzag",
+  "gmarket", "29cm", "wconcept", "ably", "zigzag", "interpark",
 ]);
+
+/**
+ * Korean source tiers — drives per-tier ranking weight in `enforceKoreanMix`.
+ *  T1 = style core + primary inventory (Musinsa + Naver) → top rows
+ *  T2 = conversion / price (Coupang + Interpark) → mid rows (Interpark capped)
+ *  T3 = western fallback → lower rows
+ */
+export const KR_TIER_1: ReadonlySet<SourceKey> = new Set<SourceKey>(["musinsa", "naver"]);
+export const KR_TIER_2: ReadonlySet<SourceKey> = new Set<SourceKey>(["coupang", "interpark"]);
+export function krTier(s: SourceKey): 1 | 2 | 3 | 0 {
+  if (KR_TIER_1.has(s)) return 1;
+  if (KR_TIER_2.has(s)) return 2;
+  if (KOREAN_SOURCES.has(s)) return 2; // other KR (kream, ssg, 29cm, wconcept, gmarket, ably, zigzag) act as T2
+  return 3;
+}
 
 const HOST_RULES: Array<{ re: RegExp; source: SourceKey }> = [
   // Korean hosts FIRST so naver.com matches before generic rules
@@ -65,6 +81,7 @@ const HOST_RULES: Array<{ re: RegExp; source: SourceKey }> = [
   { re: /wconcept\.co\.kr/i, source: "wconcept" },
   { re: /(^|\.)a-bly\.com|(^|\.)ably\.kr/i, source: "ably" },
   { re: /zigzag\.kr/i, source: "zigzag" },
+  { re: /(^|\.)interpark\.com|(^|\.)interpark\.co\.kr/i, source: "interpark" },
   // Western
   { re: /(^|\.)asos\./i, source: "asos" },
   { re: /(^|\.)farfetch\./i, source: "farfetch" },
