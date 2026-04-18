@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
+import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 
 const DesktopNav = () => {
   const location = useLocation();
