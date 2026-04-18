@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import Footer from "@/components/Footer";
 import { useI18n, type Language } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useTransition, type TransitionStyle } from "@/lib/transition";
@@ -306,6 +307,8 @@ const SettingsPage = () => {
           </button>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 };

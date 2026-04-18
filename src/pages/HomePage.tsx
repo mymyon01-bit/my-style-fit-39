@@ -1,16 +1,29 @@
+/**
+ * HomePage — desktop & mobile entry.
+ *
+ * Layout (top to bottom):
+ *   [1] Hero transformation block (snap section on lg+)
+ *   [2] Mood/search section — original centered input + weather
+ *   [3] PND INC footer
+ *
+ * Performance:
+ *  - Hero is its own snap section so the original mood entry stays
+ *    one-tap-reachable on desktop via scroll-snap.
+ *  - Search input + weather render immediately (no media dependency).
+ */
 import { useState, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/lib/auth";
 import { ArrowRight, Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
+import HeroTransformation from "@/components/HeroTransformation";
+import Footer from "@/components/Footer";
 
 const HomePage = () => {
   const { t } = useI18n();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -21,7 +34,7 @@ const HomePage = () => {
   const handleSubmit = useCallback(async () => {
     if (!query.trim()) return;
     setIsLoading(true);
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 600));
     setIsLoading(false);
     navigate(`/discover?mood=${encodeURIComponent(query.trim())}&source=homepage`);
   }, [query, navigate]);
@@ -30,11 +43,17 @@ const HomePage = () => {
     if (e.key === "Enter") handleSubmit();
   };
 
-  const weatherLabel = weather.condition.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const weatherLabel = weather.condition
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="min-h-screen bg-background">
-      <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
+    <div className="snap-scroll-container min-h-screen bg-background">
+      {/* [1] Premium hero transformation — first viewport */}
+      <HeroTransformation />
+
+      {/* [2] Mood entry — original search experience preserved */}
+      <section className="snap-section relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 
         <motion.div
@@ -59,7 +78,7 @@ const HomePage = () => {
               ref={inputRef}
               type="text"
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={(e) => setQuery(e.target.value)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
@@ -68,11 +87,12 @@ const HomePage = () => {
                 isFocused ? "placeholder:text-foreground" : ""
               }`}
             />
-            <div className={`mx-auto h-px transition-all duration-700 ${
-              isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/20"
-            }`} />
+            <div
+              className={`mx-auto h-px transition-all duration-700 ${
+                isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/20"
+              }`}
+            />
 
-            {/* Weather info below the line */}
             {!weather.loading && (
               <motion.p
                 initial={{ opacity: 0 }}
@@ -80,7 +100,8 @@ const HomePage = () => {
                 transition={{ delay: 0.6, duration: 1 }}
                 className="mt-5 text-center text-[11px] font-medium tracking-[0.12em] text-foreground/90 md:text-[12px]"
               >
-                {t("todaysTemp")} {weather.temp}° {t("weatherIs")} {weatherLabel.toLowerCase()}
+                {t("todaysTemp")} {weather.temp}° {t("weatherIs")}{" "}
+                {weatherLabel.toLowerCase()}
                 {weather.location && !weather.error ? ` · ${weather.location}` : ""}
               </motion.p>
             )}
@@ -128,8 +149,10 @@ const HomePage = () => {
             {t("about").toUpperCase()}
           </button>
         </motion.div>
-
       </section>
+
+      {/* [3] Footer — minimal PND INC mark */}
+      <Footer />
     </div>
   );
 };
