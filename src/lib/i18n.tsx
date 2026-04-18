@@ -855,6 +855,13 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (saved as Language) || "en";
   });
 
+  // Keep <html lang> in sync so :lang(ko) CSS + Korean font rules apply globally.
+  React.useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
+
   const setLang = useCallback((l: Language) => {
     setLangState(l);
     localStorage.setItem("wardrobe-lang", l);
