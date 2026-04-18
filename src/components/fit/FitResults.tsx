@@ -247,6 +247,7 @@ export default function FitResults({
         confidence: conf.text,
         fitDescriptor: tryOnFitDescriptor,
         productKey,
+        regions: activeSizeResult?.regions ?? [],
       }
     : null;
 
