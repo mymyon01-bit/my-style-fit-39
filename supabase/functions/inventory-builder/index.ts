@@ -16,16 +16,39 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Fixed taxonomy seeds — broad shopping queries that should always grow supply.
+// Covers all major requested families: bags, streetwear, minimal, oversized,
+// jackets, sneakers, formal, accessories, wallets, jewelry — plus color/price
+// variations for diversity.
 const SEEDS: string[] = [
-  "black outfit",
-  "minimal style",
-  "oversized fit",
-  "summer outfit",
-  "jackets",
-  "sneakers",
-  "bags",
-  "streetwear",
+  // bags
+  "bags", "crossbody bag", "tote bag", "shoulder bag", "backpack", "designer bag", "mini bag",
+  // streetwear
+  "streetwear", "urban outfit", "street style", "graphic tee", "cargo pants", "hoodie streetwear",
+  // minimal
+  "minimal style", "minimalist outfit", "neutral tones", "clean look", "monochrome outfit",
+  // oversized
+  "oversized fit", "oversized hoodie", "oversized blazer", "baggy jeans",
+  // jackets / outerwear
+  "jackets", "leather jacket", "denim jacket", "bomber jacket", "trench coat", "puffer jacket", "wool coat",
+  // sneakers / shoes
+  "sneakers", "white sneakers", "running shoes", "chunky sneakers", "loafers", "boots",
+  // formal
+  "formal look", "suit", "blazer", "dress shirt", "office wear",
+  // accessories
+  "accessories", "sunglasses", "belts", "hats", "scarves",
+  // wallets
+  "wallets", "card holder", "leather wallet",
+  // jewelry
+  "jewelry", "silver necklace", "gold ring", "minimal earrings", "chain necklace",
+  // color variations
+  "black outfit", "white outfit", "beige outfit",
+  // seasonal
+  "summer outfit", "winter outfit",
 ];
+
+// Per-tick fan-out: process N seeds in parallel each invocation so the DB
+// grows ~3x faster without raising cron frequency.
+const SEEDS_PER_TICK = 3;
 
 function log(stage: string, payload: Record<string, unknown>) {
   console.log(`[INVENTORY] ${stage} ${JSON.stringify(payload)}`);
