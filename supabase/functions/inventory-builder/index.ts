@@ -16,16 +16,39 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Fixed taxonomy seeds — broad shopping queries that should always grow supply.
+// Covers all major requested families: bags, streetwear, minimal, oversized,
+// jackets, sneakers, formal, accessories, wallets, jewelry — plus color/price
+// variations for diversity.
 const SEEDS: string[] = [
-  "black outfit",
-  "minimal style",
-  "oversized fit",
-  "summer outfit",
-  "jackets",
-  "sneakers",
-  "bags",
-  "streetwear",
+  // bags
+  "bags", "crossbody bag", "tote bag", "shoulder bag", "backpack", "designer bag", "mini bag",
+  // streetwear
+  "streetwear", "urban outfit", "street style", "graphic tee", "cargo pants", "hoodie streetwear",
+  // minimal
+  "minimal style", "minimalist outfit", "neutral tones", "clean look", "monochrome outfit",
+  // oversized
+  "oversized fit", "oversized hoodie", "oversized blazer", "baggy jeans",
+  // jackets / outerwear
+  "jackets", "leather jacket", "denim jacket", "bomber jacket", "trench coat", "puffer jacket", "wool coat",
+  // sneakers / shoes
+  "sneakers", "white sneakers", "running shoes", "chunky sneakers", "loafers", "boots",
+  // formal
+  "formal look", "suit", "blazer", "dress shirt", "office wear",
+  // accessories
+  "accessories", "sunglasses", "belts", "hats", "scarves",
+  // wallets
+  "wallets", "card holder", "leather wallet",
+  // jewelry
+  "jewelry", "silver necklace", "gold ring", "minimal earrings", "chain necklace",
+  // color variations
+  "black outfit", "white outfit", "beige outfit",
+  // seasonal
+  "summer outfit", "winter outfit",
 ];
+
+// Per-tick fan-out: process N seeds in parallel each invocation so the DB
+// grows ~3x faster without raising cron frequency.
+const SEEDS_PER_TICK = 3;
 
 function log(stage: string, payload: Record<string, unknown>) {
   console.log(`[INVENTORY] ${stage} ${JSON.stringify(payload)}`);
@@ -73,7 +96,7 @@ async function callDiscovery(seed: string): Promise<{ inserted: number; candidat
         "Content-Type": "application/json",
         Authorization: `Bearer ${SERVICE_KEY}`,
       },
-      body: JSON.stringify({ query: seed, maxQueries: 10, maxCandidates: 30 }),
+      body: JSON.stringify({ query: seed, maxQueries: 14, maxCandidates: 60 }),
     });
     const json = await res.json().catch(() => ({}));
     return {
@@ -126,24 +149,34 @@ serve(async (req) => {
       );
     }
 
-    const idx = ((cursor.cursor_index % SEEDS.length) + SEEDS.length) % SEEDS.length;
-    const seed = SEEDS[idx];
-    const nextIndex = (idx + 1) % SEEDS.length;
+    // Fan out across SEEDS_PER_TICK seeds in parallel — DB grows ~3× per tick.
+    const startIdx = ((cursor.cursor_index % SEEDS.length) + SEEDS.length) % SEEDS.length;
+    const seedsThisTick: string[] = [];
+    for (let i = 0; i < SEEDS_PER_TICK; i++) {
+      seedsThisTick.push(SEEDS[(startIdx + i) % SEEDS.length]);
+    }
+    const nextIndex = (startIdx + SEEDS_PER_TICK) % SEEDS.length;
 
-    log("tick_start", { idx, seed, nextIndex });
-    const result = await callDiscovery(seed);
-    log("tick_done", { seed, ...result, ms: Date.now() - t0 });
+    log("tick_start", { startIdx, seeds: seedsThisTick, nextIndex });
+    const settled = await Promise.allSettled(seedsThisTick.map(callDiscovery));
+    const perSeed = settled.map((s, i) => ({
+      seed: seedsThisTick[i],
+      ...(s.status === "fulfilled" ? s.value : { ok: false, inserted: 0, candidatesFound: 0 }),
+    }));
+    const totalInserted = perSeed.reduce((n, r) => n + r.inserted, 0);
+    log("tick_done", { perSeed, totalInserted, ms: Date.now() - t0 });
 
-    await advanceCursor(supabase, cursor.id, nextIndex, seed, result.inserted);
+    await advanceCursor(supabase, cursor.id, nextIndex, seedsThisTick.join(","), totalInserted);
 
     return new Response(
       JSON.stringify({
         ok: true,
         mode: "cron",
-        seed,
-        cursorIndex: idx,
+        seeds: seedsThisTick,
+        cursorIndex: startIdx,
         nextIndex,
-        ...result,
+        perSeed,
+        totalInserted,
         ms: Date.now() - t0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
