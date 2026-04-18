@@ -26,6 +26,11 @@ import type { Product } from "@/lib/search/types";
 import DbTopGrid from "@/components/discover/DbTopGrid";
 import StyledLooksRow from "@/components/discover/StyledLooksRow";
 import LiveResultsSection from "@/components/discover/LiveResultsSection";
+import InterpretationBanner from "@/components/discover/InterpretationBanner";
+import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/discover-intent-parser";
+import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
+import { runSearchLadder } from "@/lib/discover/discover-search-ladder";
+import { normalizeFromCache } from "@/lib/search/product-normalizer";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
