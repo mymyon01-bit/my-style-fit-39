@@ -743,8 +743,9 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const rawQuery: string = (body.query || "").toString().trim().slice(0, 200);
-    const maxQueries = Math.min(Number(body.maxQueries) || 12, 15);
-    const maxCandidates = Math.min(Number(body.maxCandidates) || 40, 50);
+    // Supply expansion pass: bump expansion (12→16) and candidate pool (40→70).
+    const maxQueries = Math.min(Number(body.maxQueries) || 16, 20);
+    const maxCandidates = Math.min(Number(body.maxCandidates) || 70, 90);
 
     if (!rawQuery) {
       return new Response(JSON.stringify({ error: "query is required" }), {

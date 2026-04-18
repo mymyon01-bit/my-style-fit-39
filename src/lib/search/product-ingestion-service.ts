@@ -12,8 +12,9 @@ import type { Product } from "./types";
 
 export async function ingestQuery(query: string): Promise<{ inserted: number }> {
   try {
+    // Supply expansion pass: 12→16 queries, 40→70 candidate URLs per ingest cycle.
     const { data } = await supabase.functions.invoke("search-discovery", {
-      body: { query, maxQueries: 12, maxCandidates: 40 },
+      body: { query, maxQueries: 16, maxCandidates: 70 },
     });
     return { inserted: Number(data?.inserted) || 0 };
   } catch {
