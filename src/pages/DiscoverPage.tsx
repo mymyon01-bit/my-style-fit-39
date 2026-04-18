@@ -224,7 +224,7 @@ export default function DiscoverPage() {
       setCommittedQuery(query);
       setDisplayCount(PAGE_SIZE);
       setIsSearching(true);
-      setLiveStatus("Loading fresh inventory…");
+      setLiveStatus("Loading more products…");
       setFreshFlash(null);
       setAllLiveResults([]);
       const session = createSearchSession(query);
@@ -253,7 +253,7 @@ export default function DiscoverPage() {
         if (searchRunRef.current !== runId) return;
         console.error("[discover] live search failed", error);
         setIsSearching(false);
-        setLiveStatus("Live discovery failed — top picks above are still available.");
+        setLiveStatus("Searching across more stores…");
       }
     },
     [activeSubcategory, applySessionToLiveLayer, dbSeen, quizAnswers, selectedFit, selectedStyles],
