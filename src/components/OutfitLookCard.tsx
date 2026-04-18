@@ -59,7 +59,10 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
   return (
     // Plain div — no enter animation. The frame must stay stable; cards must
     // never re-animate when results stream in or memoization invalidates.
-    <div className="overflow-hidden rounded-2xl border border-border/20 bg-card/60 backdrop-blur-sm animate-fade-in">
+    // Subtle lift on hover/tap is the only motion (premium, not gimmicky).
+    <div
+      className="overflow-hidden rounded-2xl border border-border/20 bg-card/60 shadow-sm backdrop-blur-sm transition-[transform,box-shadow] duration-200 ease-out animate-fade-in hover:-translate-y-1 hover:shadow-lg active:translate-y-0"
+    >
 
       {/* Header — hardcoded structure */}
       <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
@@ -67,7 +70,8 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
           <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/70">
             {STYLE_LABELS[outfit.styleLabel] || outfit.styleLabel} look
           </span>
-          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[9px] font-medium text-accent/80">
+          {/* Match badge — single-shot pulse on first paint, then static */}
+          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[9px] font-medium text-accent/80 animate-badge-pulse-once">
             {outfit.score}% match
           </span>
         </div>

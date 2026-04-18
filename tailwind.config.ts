@@ -74,6 +74,10 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(6px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
         "fade-up": {
           from: { opacity: "0", transform: "translateY(12px)" },
           to: { opacity: "1", transform: "translateY(0)" },
@@ -86,12 +90,31 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        // Premium micro-motion — subtle, never gimmicky
+        "blur-up": {
+          from: { opacity: "0", filter: "blur(12px)", transform: "scale(1.02)" },
+          to: { opacity: "1", filter: "blur(0)", transform: "scale(1)" },
+        },
+        "like-pop": {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(1.18)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "badge-pulse-once": {
+          "0%": { transform: "scale(1)", opacity: "0.85" },
+          "50%": { transform: "scale(1.06)", opacity: "1" },
+          "100%": { transform: "scale(1)", opacity: "0.85" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.24s ease-out",
         "fade-up": "fade-up 0.4s ease-out",
         "slide-in": "slide-in 0.3s ease-out",
+        "blur-up": "blur-up 0.5s ease-out forwards",
+        "like-pop": "like-pop 0.32s ease-out",
+        "badge-pulse-once": "badge-pulse-once 1.4s ease-out 1",
       },
     },
   },

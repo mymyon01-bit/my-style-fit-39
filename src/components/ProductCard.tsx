@@ -22,7 +22,7 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
 
   return (
     <div
-      className="group cursor-pointer animate-fade-up"
+      className="group cursor-pointer animate-fade-in transition-transform duration-200 ease-out active:scale-[0.99]"
       onClick={() => {
         // If product has a real external URL, open in new tab
         if (product.source_url && product.source_url.startsWith("http")) {
@@ -32,7 +32,7 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
         }
       }}
     >
-      <div className="relative overflow-hidden rounded-xl bg-card shadow-soft">
+      <div className="relative overflow-hidden rounded-xl bg-card shadow-soft transition-shadow duration-200 ease-out group-hover:shadow-md">
         <SafeImage
           src={product.image}
           alt={product.name}
@@ -47,10 +47,12 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
                 e.stopPropagation();
                 setLiked(!liked);
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all duration-200 ease-out hover:bg-background/90 active:scale-95"
+              aria-label={liked ? "Unlike" : "Like"}
             >
               <Heart
-                className={`h-4 w-4 transition-colors ${liked ? "fill-accent text-accent" : "text-foreground/75"}`}
+                key={`heart-${liked}`}
+                className={`h-4 w-4 transition-colors ${liked ? "fill-accent text-accent animate-like-pop" : "text-foreground/75"}`}
               />
             </button>
           </AuthGate>
