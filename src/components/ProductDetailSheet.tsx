@@ -61,11 +61,11 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
           </button>
 
           {/* Product Image */}
-          <div className="relative w-full">
+          <div className="relative w-full bg-muted/30 flex items-center justify-center" style={{ maxHeight: "70vh" }}>
             <SafeImage
               src={product.image_url || ""}
               alt={product.name}
-              className="aspect-[3/4] w-full object-cover"
+              className="max-h-[70vh] w-auto max-w-full object-contain"
               fallbackClassName="aspect-[3/4] w-full"
             />
             {product.platform && PLATFORM_COLORS[product.platform] && (

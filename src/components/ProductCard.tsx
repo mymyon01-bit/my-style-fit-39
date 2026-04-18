@@ -32,14 +32,16 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
         }
       }}
     >
-      <div className="relative overflow-hidden rounded-xl bg-card shadow-soft transition-shadow duration-200 ease-out group-hover:shadow-md">
-        <SafeImage
-          src={product.image}
-          alt={product.name}
-          className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-          fallbackClassName="aspect-[3/4] w-full"
-          loading="lazy"
-        />
+      <div className="relative overflow-hidden rounded-xl bg-muted/40 shadow-soft transition-shadow duration-200 ease-out group-hover:shadow-md">
+        <div className="aspect-[3/4] w-full flex items-center justify-center p-2">
+          <SafeImage
+            src={product.image}
+            alt={product.name}
+            className="max-h-full max-w-full w-auto h-auto object-contain transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+            fallbackClassName="h-full w-full"
+            loading="lazy"
+          />
+        </div>
         <div className="absolute right-2.5 top-2.5 flex flex-col gap-1.5">
           <AuthGate action="save items">
             <button
