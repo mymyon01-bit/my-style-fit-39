@@ -26,13 +26,23 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN");
 const APIFY_WEB_SCRAPER =
   Deno.env.get("APIFY_WEB_SCRAPER_ACTOR") || "apify~web-scraper";
+// Puppeteer scraper renders JS — required for SPA-heavy Korean commerce
+// (musinsa, 29cm, wconcept, ssg). Falls back to web-scraper for static sites.
+const APIFY_PUPPETEER_SCRAPER =
+  Deno.env.get("APIFY_PUPPETEER_SCRAPER_ACTOR") || "apify~puppeteer-scraper";
 
-const VARIANTS_PER_RUN = 10;
+const VARIANTS_PER_RUN = 6;
 const DEFAULT_LIMIT_PER_DOMAIN = 30;
 
 const KR_PRIMARY = ["musinsa.com", "29cm.co.kr", "wconcept.co.kr", "ssg.com"];
 const GLOBAL_SECONDARY = ["yoox.com", "asos.com", "oakandfort.com"];
 const DEFAULT_DOMAINS = [...KR_PRIMARY, ...GLOBAL_SECONDARY];
+
+// Domains that need real Chromium rendering (SPA hydration + anti-bot).
+const SPA_DOMAINS = new Set(["musinsa.com", "29cm.co.kr", "wconcept.co.kr", "ssg.com"]);
+function actorForDomain(domain: string): string {
+  return SPA_DOMAINS.has(domain) ? APIFY_PUPPETEER_SCRAPER : APIFY_WEB_SCRAPER;
+}
 
 // Webhook URL Apify will call when each run finishes.
 const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/apify-webhook`;
@@ -200,6 +210,119 @@ async function pageFunction(context) {
 `;
 }
 
+// ── Puppeteer page function (for SPA-heavy KR domains) ─────────────────────
+// Renders JS, then walks every product-URL anchor up to its enclosing tile.
+// More robust than CSS selectors — KR sites use hashed Next.js class names.
+function puppeteerPageFunctionForDomain(domain: string, limit: number): string {
+  const linkPatterns: Record<string, string> = {
+    "musinsa.com": "/products/\\\\d+|/goods/\\\\d+",
+    "29cm.co.kr": "/product/\\\\d+",
+    "wconcept.co.kr": "/Product/",
+    "ssg.com": "/item/itemView.ssg",
+  };
+  const linkRe = linkPatterns[domain] || "/product|/item|/goods";
+  return `
+async function pageFunction(context) {
+  const { page, request, log } = context;
+  const linkReSrc = ${JSON.stringify(linkRe)};
+
+  // 1. Wait for at least one product anchor to materialize.
+  try {
+    await page.waitForFunction(
+      (src) => {
+        const re = new RegExp(src);
+        return Array.from(document.querySelectorAll('a[href]'))
+          .some((a) => re.test(a.getAttribute('href') || ''));
+      },
+      { timeout: 18000 },
+      linkReSrc,
+    );
+  } catch (e) { log.info('waitForFunction timed out — extracting anyway'); }
+
+  // 2. Trigger lazy-load.
+  try {
+    await page.evaluate(async () => {
+      await new Promise((resolve) => {
+        let total = 0;
+        const step = 800;
+        const timer = setInterval(() => {
+          window.scrollBy(0, step);
+          total += step;
+          if (total >= 6000) { clearInterval(timer); resolve(); }
+        }, 250);
+      });
+    });
+    await new Promise((r) => setTimeout(r, 1200));
+  } catch (e) {}
+
+  // 3. Walk every matching anchor up to its tile.
+  const items = await page.evaluate((linkReSrc, domain, limit) => {
+    const re = new RegExp(linkReSrc);
+    const out = [];
+    const seen = new Set();
+    const anchors = Array.from(document.querySelectorAll('a[href]'));
+    for (const a of anchors) {
+      if (out.length >= limit) break;
+      const href = a.getAttribute('href'); if (!href) continue;
+      let abs;
+      try { abs = new URL(href, location.href).toString(); } catch { continue; }
+      let pathname;
+      try { pathname = new URL(abs).pathname; } catch { continue; }
+      if (!re.test(pathname)) continue;
+      const key = abs.split('?')[0].split('#')[0];
+      if (seen.has(key)) continue; seen.add(key);
+
+      // Walk up looking for an ancestor that contains an <img>.
+      let tile = a;
+      for (let i = 0; i < 6; i++) {
+        if (tile.querySelector && tile.querySelector('img')) break;
+        tile = tile.parentElement || tile;
+      }
+      if (!tile || !tile.querySelector) continue;
+      const img = tile.querySelector('img');
+      let image = null;
+      if (img) {
+        image = img.getAttribute('src') || img.getAttribute('data-src') ||
+                img.getAttribute('data-original') || img.getAttribute('data-lazy-src') ||
+                img.getAttribute('srcset');
+        if (image && image.indexOf(' ') > 0) image = image.split(' ')[0];
+        if (image && image.startsWith('//')) image = 'https:' + image;
+      }
+      if (!image) continue;
+
+      let name = (img && img.getAttribute('alt')) || a.textContent || '';
+      name = (name || '').trim();
+      if (!name) {
+        const t = tile.textContent || '';
+        name = t.trim().split('\\n').map(s => s.trim()).filter(Boolean)[0] || '';
+      }
+      if (name.length > 140) name = name.slice(0, 140);
+
+      let brand = null;
+      const brandEl = tile.querySelector('[class*="brand" i],[class*="Brand"]');
+      if (brandEl) brand = (brandEl.textContent || '').trim().slice(0, 60) || null;
+
+      let price = null;
+      const tileText = tile.textContent || '';
+      const m = tileText.match(/[0-9]{1,3}(,[0-9]{3})+\\s*원|[0-9]{4,}\\s*원/);
+      if (m) price = m[0].replace(/[^0-9]/g, '');
+
+      out.push({
+        url: key,
+        host: location.host.replace(/^www\\./, ''),
+        sourceDomain: domain,
+        name, brand, image, price, currency: 'KRW',
+        site: domain, source: 'tile',
+      });
+    }
+    return out;
+  }, linkReSrc, ${JSON.stringify(domain)}, ${limit});
+
+  return items;
+}
+`;
+}
+
 // ── Diagnostics ─────────────────────────────────────────────────────────────
 async function logDiagnostic(
   event: string,
@@ -241,7 +364,7 @@ async function kickoffApifyRun(
     .from("source_ingestion_runs")
     .insert({
       source: "apify",
-      source_actor: APIFY_WEB_SCRAPER,
+      source_actor: actorForDomain(domain),
       seed_query: query,
       query_family: domain,
       trigger: "live",
@@ -298,12 +421,25 @@ async function kickoffApifyRun(
   const webhooksB64 = btoa(bin);
 
   // 3. Kick the run — non-blocking POST (no run-sync).
-  const url = `https://api.apify.com/v2/acts/${APIFY_WEB_SCRAPER}/runs?token=${APIFY_TOKEN}&webhooks=${encodeURIComponent(webhooksB64)}`;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  // Apify free tier: 8GB total memory budget. Puppeteer defaults to 4GB/run,
+  // so we explicitly pin to 1024MB and limit start URLs for SPA domains.
+  const useSpa = SPA_DOMAINS.has(domain);
+  const actor = actorForDomain(domain);
+  const memoryMb = useSpa ? 1024 : 512;
+  const url = `https://api.apify.com/v2/acts/${actor}/runs?token=${APIFY_TOKEN}&memory=${memoryMb}&webhooks=${encodeURIComponent(webhooksB64)}`;
+  const spaStartUrls = startUrls.slice(0, 1); // one variant per KR domain — keep memory low
+  const body = useSpa
+    ? {
+        startUrls: spaStartUrls,
+        pageFunction: puppeteerPageFunctionForDomain(domain, limit),
+        maxRequestsPerCrawl: spaStartUrls.length,
+        maxConcurrency: 1,
+        proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"], apifyProxyCountry: "KR" },
+        launchContext: { useChrome: true, stealth: true },
+        ignoreSslErrors: true,
+        pageLoadTimeoutSecs: 45,
+      }
+    : {
         startUrls,
         pageFunction: pageFunctionForDomain(domain, limit),
         maxRequestsPerCrawl: limit + startUrls.length,
@@ -311,7 +447,12 @@ async function kickoffApifyRun(
         proxyConfiguration: { useApifyProxy: true },
         injectJQuery: true,
         ignoreSslErrors: true,
-      }),
+      };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
