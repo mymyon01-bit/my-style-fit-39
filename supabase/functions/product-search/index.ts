@@ -790,8 +790,23 @@ serve(async (req) => {
         const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
         if (queryHasExplicitCategory2) {
-          console.log(`[SEARCH_INTENT] (db-first) HARD LOCK category="${intentCategory2}" filtered ${before} → ${filtered.length} (query="${query}")`);
-          allProducts = filtered;
+          // HARD LOCK — but if it would empty the result, broaden once with a
+          // category-only DB query so the UI never shows "0 items" for a
+          // valid product type. This is the "red shoes returns 2 actual
+          // red shoes" guarantee.
+          if (filtered.length === 0) {
+            console.log(`[SEARCH_INTENT] (db-first) HARD LOCK would empty results, broadening by category="${intentCategory2}"`);
+            const categoryFallback = await loadFromDB(supabase, {
+              category: intentCategory2,
+              limit: minTarget * 2,
+              excludeIds,
+              randomize: true,
+            });
+            allProducts = categoryFallback.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
+          } else {
+            console.log(`[SEARCH_INTENT] (db-first) HARD LOCK category="${intentCategory2}" filtered ${before} → ${filtered.length} (query="${query}")`);
+            allProducts = filtered;
+          }
         } else if (filtered.length >= Math.min(6, minTarget / 2)) {
           console.log(`[SEARCH_INTENT] (db-first) soft category="${intentCategory2}" filtered ${before} → ${filtered.length}`);
           allProducts = filtered;
