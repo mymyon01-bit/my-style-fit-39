@@ -1147,6 +1147,26 @@ const DiscoverPage = () => {
   // Cycle-aware status for the live search section. Updated by appendCycle so
   // the user sees the system progress through stages instead of a vague spinner.
   const [liveStatus, setLiveStatus] = useState<string>("");
+  // Rotating "we're still working" messages — cycle every 1.8s while a search
+  // is active so the status line never feels frozen, even between cycles.
+  const PROGRESS_MESSAGES = [
+    "Searching more stores…",
+    "Adding new items…",
+    "Expanding results…",
+    "Pulling fresh picks…",
+    "Checking new arrivals…",
+  ];
+  const [progressIdx, setProgressIdx] = useState(0);
+
+  // Rotate progress messages every 1.8s while a search is active so the
+  // status line never feels frozen between cycles.
+  useEffect(() => {
+    if (!isGenerating && !isLoadingMore) return;
+    const id = setInterval(() => {
+      setProgressIdx((i) => (i + 1) % PROGRESS_MESSAGES.length);
+    }, 1800);
+    return () => clearInterval(id);
+  }, [isGenerating, isLoadingMore]);
   // Same-query dedupe for explicit submits (prevents Enter-spam re-runs).
   const lastSubmitRef = useRef<{ q: string; ts: number }>({ q: "", ts: 0 });
   
@@ -2790,7 +2810,14 @@ const DiscoverPage = () => {
                   {isGenerating || isLoadingMore ? (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>{(liveStatus || "Loading more products…").toUpperCase()}</span>
+                      <span className="transition-opacity duration-300">
+                        {(liveStatus || PROGRESS_MESSAGES[progressIdx]).toUpperCase()}
+                      </span>
+                      {recommendations.length > 0 && (
+                        <span className="ml-auto text-accent/50">
+                          {recommendations.length} so far
+                        </span>
+                      )}
                     </>
                   ) : recommendations.length > 0 ? (
                     <>
@@ -2800,7 +2827,7 @@ const DiscoverPage = () => {
                   ) : (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>LOADING MORE PRODUCTS…</span>
+                      <span>{PROGRESS_MESSAGES[progressIdx].toUpperCase()}</span>
                     </>
                   )}
                 </div>
