@@ -6,7 +6,7 @@
  */
 const Footer = () => {
   return (
-    <footer className="border-t border-border/30 bg-background">
+    <footer className="hidden md:block border-t border-border/30 bg-background">
       <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-1 px-6 py-3 text-[10px] text-foreground/55 md:flex-row md:gap-4">
         <p className="font-display font-semibold tracking-[0.3em] text-foreground/75">
           WARDROBE
