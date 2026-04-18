@@ -50,6 +50,7 @@ export async function runSearch(
         if (appendToSession(session, p)) seeded++;
       }
       if (seeded > 0) {
+        clusterHit = true;
         session.status = "partial";
         opts.onProgress?.(session);
         console.info("[search-runner] cluster seed", {
@@ -101,7 +102,9 @@ export async function runSearch(
     let addedThisCycle = 0;
     for (const batch of batches) {
       for (const product of batch) {
+        totalCandidates++;
         if (!validateProduct(product)) continue;
+        totalValidated++;
         if (appendToSession(session, product)) addedThisCycle++;
       }
     }
@@ -135,6 +138,23 @@ export async function runSearch(
     category: type,
     tags: family.slice(0, 8),
     products: session.results,
+  });
+
+  // Telemetry: one event per completed search session. Admin-only read.
+  recordEvent({
+    event_name: "search_session",
+    status: session.results.length === 0 ? "error" : session.results.length < 8 ? "partial" : "success",
+    duration_ms: performance.now() - sessionStart,
+    metadata: {
+      query_type: type,
+      query_len: session.query.length,
+      family_size: family.length,
+      cycles: session.cycle,
+      candidates: totalCandidates,
+      validated: totalValidated,
+      results: session.results.length,
+      cluster_hit: clusterHit,
+    },
   });
 
   return session;
