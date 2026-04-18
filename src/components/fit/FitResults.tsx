@@ -239,7 +239,7 @@ export default function FitResults({
         productBrand: product.brand,
         productUrl: product.url,
         category: product.category,
-        recommendedSize: result.recommendedSize,
+        recommendedSize: activeSize,
         confidence: conf.text,
       }
     : null;
