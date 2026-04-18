@@ -289,7 +289,12 @@ async function kickoffApifyRun(
       userData: webhookPayload,
     }),
   }];
-  const webhooksB64 = btoa(JSON.stringify(webhooks));
+  // btoa() can't handle non-Latin1 (e.g. Korean in query). Encode UTF-8 → base64 safely.
+  const webhooksJson = JSON.stringify(webhooks);
+  const webhooksBytes = new TextEncoder().encode(webhooksJson);
+  let bin = "";
+  for (let i = 0; i < webhooksBytes.length; i++) bin += String.fromCharCode(webhooksBytes[i]);
+  const webhooksB64 = btoa(bin);
 
   // 3. Kick the run — non-blocking POST (no run-sync).
   const url = `https://api.apify.com/v2/acts/${APIFY_WEB_SCRAPER}/runs?token=${APIFY_TOKEN}&webhooks=${encodeURIComponent(webhooksB64)}`;
