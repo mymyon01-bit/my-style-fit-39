@@ -236,6 +236,63 @@ export default function DiscoverPage() {
       setLiveStatus("Loading more products…");
       setFreshFlash(null);
       setAllLiveResults([]);
+
+      // ── INTENT PARSE (deterministic, instant) ───────────────────────
+      let parsedIntent = parseIntent(query);
+      const usedAlias = parsedIntent.enAliases.length > 0;
+      setIntent(parsedIntent);
+      setIntentChips(summarizeIntent(parsedIntent));
+      setIntentFallback(usedAlias ? "alias" : null);
+
+      // ── AI FALLBACK for vague/emotional unknowns (non-blocking) ─────
+      if (shouldUseAiFallback(parsedIntent)) {
+        void expandIntentWithAi(query).then((ai) => {
+          if (!ai || searchRunRef.current !== runId) return;
+          parsedIntent = mergeAiIntoIntent(parsedIntent, ai);
+          setIntent(parsedIntent);
+          setIntentChips(summarizeIntent(parsedIntent));
+          setIntentFallback("ai");
+        });
+      }
+
+      // ── SEARCH LADDER (DB-first seed, never empty) ──────────────────
+      void runSearchLadder(parsedIntent).then((ladder) => {
+        if (searchRunRef.current !== runId) return;
+        setLadderStage(ladder.stageReached);
+        if (ladder.products.length > 0 && allLiveResults.length === 0) {
+          // Seed Live Results immediately with cached ladder hits so users
+          // never see an empty Live section while runSearch warms up.
+          const renderable = ladder.products.slice(0, PAGE_SIZE).map((p) => {
+            const fromCache = normalizeFromCache({
+              id: p.id, name: p.title, brand: p.brand, price: p.price,
+              category: p.category, image_url: p.imageUrl, source_url: p.externalUrl,
+              store_name: p.storeName, platform: p.platform,
+              created_at: (p as any).createdAt || null,
+              style_tags: p.styleTags || [],
+              color_tags: [], reason: p.reason || null, search_query: query,
+              source_trust_level: "medium", source_type: "scraper",
+              trend_score: (p as any).trendScore ?? 0, is_active: true,
+              currency: "USD", external_id: null, fit: p.fit || null,
+              image_valid: true, last_validated: null, like_count: 0,
+              view_count: 0, subcategory: null, updated_at: null,
+            } as any);
+            return fromCache;
+          }).filter(Boolean) as Product[];
+          // Wrap as DiscoverRenderableProduct minimal shape
+          const seeded = renderable.map((r) => ({
+            ...(r as any),
+            sourceKey: r.source || "ladder",
+            sourceDomain: "",
+            freshnessScore: 0.5,
+            isFresh: false,
+            isUnseen: true,
+            queryFamily: parsedIntent.primaryCategory || "general",
+            origin: "ladder-seed",
+          })) as DiscoverRenderableProduct[];
+          setAllLiveResults(seeded);
+        }
+      }).catch((e) => console.warn("[discover] ladder failed", e));
+
       const session = createSearchSession(query);
       sessionRef.current = session;
 
