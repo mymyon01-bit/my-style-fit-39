@@ -1,36 +1,29 @@
 ---
-name: Multi-source product pipeline
-description: Firecrawl + Apify (ASOS/Zalando) + Crawlbase (Farfetch) parallel fetch, 10-min TTL cache, 70/30 fresh mix, hybrid seen filter (session + 24h DB)
+name: Korean-first multi-source pipeline
+description: Discovery-only KR (Naver/Musinsa/Coupang/Interpark via Firecrawl), KR query expansion, 4-cycle multi-pass with 18-new-candidate quota, 6h pg_cron enrichment, freshness pill + new-arrivals toast
 type: feature
 ---
-## Multi-source ingestion
+## Korean Pipeline (current state)
 
-### Sources (parallel, 15s budget each, allSettled)
-1. **Firecrawl** → existing `search-discovery` edge fn
-2. **Apify** → ASOS (`jupri~asos-scraper`), Zalando (`tugkan~zalando-scraper`) via `run-sync-get-dataset-items`
-3. **Crawlbase** → Farfetch via Crawling API + autoparse
+### Sources
+- **Tier 1**: Naver Shopping + Musinsa — discovery-only via search-discovery (Firecrawl). No official Naver API yet.
+- **Tier 2**: Coupang + Interpark — discovery + page parsing, capped (Interpark ≤12% of window).
+- **Tier 3**: Western (Farfetch, ASOS, Zalando, YOOX) via Apify/Crawlbase/Firecrawl.
 
-Edge fn: `supabase/functions/multi-source-scraper/index.ts`. Required secrets: `APIFY_TOKEN`, `CRAWLBASE_TOKEN` (Firecrawl already configured).
+### Multi-pass discovery (search-runner.ts)
+4-cycle plan, up to 20 query family variants. `MIN_NEW_CANDIDATES = 18` — runner won't short-circuit until at least 18 new (non-cluster-seed) products accumulate. Stops only on 2 consecutive empty cycles or 25s wall-clock.
 
-`ingestQuery()` fans out to BOTH `search-discovery` and `multi-source-scraper` in parallel.
+### Korean query expansion (query-expansion-service.ts)
+When `isKoreanMarketQuery(q)` is true, fallback variants are interleaved with KR suffixes (추천, 코디, 스타일, 쇼핑, 신상, 베스트, 데일리룩), seasonal codi, shopping-intent (buy/shop/best), and explicit `무신사 / 네이버쇼핑` prefixes.
 
-### Dedupe + shuffle
-- URL + image-fingerprint dedupe before upsert
-- Fisher–Yates shuffle so cache isn't seeded in source order
-- Upsert into `product_cache` on `(platform, external_id)`
+### Background enrichment
+`pg_cron` job `inventory-builder-6h` fires `inventory-builder` edge fn every 6h with rotating KR-aware seeds. Seeds processed 3 per tick.
 
-### Cache layer (`src/lib/search/discovery-cache.ts`)
-- 10-minute in-memory TTL keyed by normalized query
-- Cold/expired → full fresh fetch
-- Warm → 70% cached + 30% fresh interleaved, with parallel background refresh
-- `invalidateCache(query)` for pull-to-refresh
+### UI freshness
+- `<FreshnessPill>` above the live grid rotates: "Fetching new items…" / "Adding fresh picks…" / "Curating live inventory…".
+- Sonner toast `"N new arrivals just added"` fires on each batch append in load-more.
 
-### Seen filter (hybrid)
-- Session: existing localStorage seen-set (600 keys, rolling)
-- DB: `user_seen_products` table, 24h window, RLS per user
-- `loadDbSeenKeys()` → demote (not remove) repeats in `search-runner`
-- `recordDbSeen()` non-blocking write of top 30 results per session
-- `purge_old_seen_products()` SQL helper drops rows >24h
-
-### Guarantee
-User never sees the same products twice within 24h on the same account, and cached batches never persist beyond 10 minutes.
+### Caching
+- `discovery-cache.ts` 10-min in-memory TTL, 70/30 cached/fresh on warm hit.
+- `query_clusters` DB-side persistence for instant Stage 1 seed.
+- 24h `user_seen_products` filter demotes (not removes) repeats per logged-in user.

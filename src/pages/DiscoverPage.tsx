@@ -17,6 +17,7 @@ import OutfitLookCard from "@/components/OutfitLookCard";
 import StyledLookSkeleton from "@/components/StyledLookSkeleton";
 import ProductDetailSheet from "@/components/ProductDetailSheet";
 import PreferenceBanner from "@/components/PreferenceBanner";
+import FreshnessPill from "@/components/FreshnessPill";
 
 // ── Direct DB query for instant initial load (no edge function overhead) ──
 async function directDbLoad(opts: {
@@ -1830,6 +1831,7 @@ const DiscoverPage = () => {
         newProducts.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(prev => [...prev, ...newProducts]);
         markFresh(newProducts);
+        toast(`${newProducts.length} new arrivals just added`, { duration: 1800 });
         setDbOffset(prev => prev + newProducts.length);
         setHasMoreInDB(dbCount >= 20);
       } else {
@@ -1851,6 +1853,7 @@ const DiscoverPage = () => {
           freshNew.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(prev => [...prev, ...freshNew]);
           markFresh(freshNew);
+          toast(`${freshNew.length} new arrivals just added`, { duration: 1800 });
         } else {
           toast("No more items to show right now");
         }
@@ -2800,6 +2803,9 @@ const DiscoverPage = () => {
                     {searchExplanation}
                   </p>
                 )}
+
+                {/* Live freshness pill — surfaces continuous discovery activity */}
+                <FreshnessPill active={isGenerating || isLoadingMore} />
 
                 {/* ═══════════════════════════════════════════════════════════
                     DISCOVER PAGE — 3 FIXED LAYERS (HARDCODED ORDER)
