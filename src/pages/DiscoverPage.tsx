@@ -712,7 +712,9 @@ const FALLBACK_INTENT_CACHE_TTL = 2 * 60 * 1000; // 2 min for fallback queries (
 // almost every race → fallback always won → cacheable never set → repeats also fell back.
 // 2.5s gives Perplexity a real chance to win while still feeling instant (DB results
 // already render in <300ms before this race even matters).
-const SEARCH_INTENT_SOFT_TIMEOUT_MS = 2500;
+// Reduced from 2500ms — DB cycle now fires in parallel, so AI expansion
+// only needs to beat the user's perception (~800ms). Late results still append.
+const SEARCH_INTENT_SOFT_TIMEOUT_MS = 800;
 
 function logSearchPathStatus(query: string, status: SearchPathStatus, extra: Record<string, unknown> = {}) {
   console.info(`[search] SEARCH_PATH_STATUS=${status}`, { query, ...extra });
@@ -1931,6 +1933,8 @@ const DiscoverPage = () => {
     setShowSuggestions(false);
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    // 400ms debounce removed on explicit submit — kicks off immediately so
+    // the user sees DB results in <500ms instead of >3s.
     debounceTimerRef.current = setTimeout(async () => {
       // ── Open a fresh search session ─────────────────────────────────────
       const sessionId = Date.now() + Math.floor(Math.random() * 1000);
