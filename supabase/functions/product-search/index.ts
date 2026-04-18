@@ -511,9 +511,13 @@ async function cacheToDB(supabase: any, products: any[], sourceQuery?: string): 
 }
 
 // ─── Diversity enforcement (upgraded) ───
-function enforceDiversity(products: any[], opts: { maxPerBrand?: number; maxPerPlatform?: number } = {}): any[] {
+// maxPerDomainPct lets callers say "no single platform may exceed 30% of
+// the result set". This is the investor-demo guarantee against any single
+// upstream (e.g. ASOS) flooding the grid.
+function enforceDiversity(products: any[], opts: { maxPerBrand?: number; maxPerPlatform?: number; maxPerDomainPct?: number } = {}): any[] {
   const maxBrand = opts.maxPerBrand || 3;
   const maxPlat = opts.maxPerPlatform || 6;
+  const maxPerDomainPct = opts.maxPerDomainPct ?? 0.3;
 
   const seenTitles = new Set<string>();
   let result = products.filter(p => {
@@ -564,7 +568,80 @@ function enforceDiversity(products: any[], opts: { maxPerBrand?: number; maxPerP
     return styleComboCount[combo] <= 4;
   });
 
+  // 30%-per-domain cap. Applied LAST so the percentage is meaningful relative
+  // to the post-dedup pool. Domain is derived from source_url host (falls back
+  // to platform if URL parse fails).
+  if (maxPerDomainPct > 0 && result.length > 4) {
+    const total = result.length;
+    const cap = Math.max(2, Math.ceil(total * maxPerDomainPct));
+    const domainCount: Record<string, number> = {};
+    result = result.filter(p => {
+      let host = (p.platform || "unknown").toLowerCase();
+      try { host = new URL(p.source_url).host.replace(/^www\./, "").toLowerCase(); } catch { /* keep platform */ }
+      domainCount[host] = (domainCount[host] || 0) + 1;
+      return domainCount[host] <= cap;
+    });
+  }
+
   return result;
+}
+
+// ─── Multi-source (Apify) parallel fetch ───
+// Always called in parallel with DB load. 9s ceiling — if Apify is slow we
+// just return the DB pool and let background ingestion catch up.
+async function fetchFromMultiSource(query: string, timeoutMs = 9_000): Promise<any[]> {
+  const sanitized = sanitizeSearchQuery(query);
+  if (!sanitized) return [];
+  try {
+    const baseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!baseUrl || !serviceKey) return [];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl}/functions/v1/multi-source-scraper`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+      body: JSON.stringify({ query: sanitized }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    const products = Array.isArray(data?.products) ? data.products : [];
+    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({
+      stage: "MULTI_SOURCE_PARALLEL",
+      query: sanitized,
+      cached: !!data?.cached,
+      sources: data?.sources || {},
+      returned: products.length,
+    })}`);
+    // Map raw scraper output → product_cache row shape so the db-first branch
+    // can merge directly without a separate normalizer.
+    return products
+      .filter((p: any) => isImageUrlSafe(p.image_url) && p.name && isFashionProduct(p.name))
+      .map((p: any) => autoTagProduct({
+        external_id: p.external_id,
+        name: (p.name || "").slice(0, 200),
+        brand: p.brand,
+        price: p.price,
+        currency: p.currency,
+        category: p.category,
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform,
+        source_type: p.source_type || "scraper",
+        source_trust_level: p.source_trust_level || "medium",
+        image_valid: true,
+        is_active: true,
+        // Synthetic created_at so fresh-first sort works in-memory
+        // even before DB roundtrip lands.
+        created_at: new Date().toISOString(),
+        _is_fresh: true,
+      }));
+  } catch (e) {
+    console.warn("[multi-source] fetch skipped:", (e as Error).message);
+    return [];
+  }
 }
 
 // ─── Input validation ───
