@@ -26,6 +26,7 @@ const FAMILY_HEAD_NOUN: Record<PrimaryCategory, string> = {
   bottoms: "pants",
   dresses: "dress",
   accessories: "accessory",
+  swimwear: "swimwear",
 };
 
 /** Returns true when `text` is safe under the lock:
