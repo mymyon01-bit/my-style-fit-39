@@ -2,6 +2,7 @@ import type { Product } from "./types";
 import { detectPrimaryCategory, productMatchesCategory, type PrimaryCategory } from "./category-lock";
 
 export type SearchStatus = "searching" | "partial" | "complete";
+export type ResultOrigin = "product_cache" | "query_cluster" | "live_ingestion_batch";
 
 export interface SearchSession {
   id: string;
@@ -24,6 +25,12 @@ export interface SearchSession {
   rejectedByDedupe: number;
   /** True when the user explicitly searched for a brand (cap is then disabled). */
   isBrandQuery: boolean;
+  /** Where an accepted result first came from in this session. */
+  resultOrigins: Map<string, ResultOrigin>;
+  /** Query-family / expansion string that surfaced this result. */
+  resultQueryFamilies: Map<string, string>;
+  /** Best-effort count of products inserted into product_cache during this search. */
+  ingestedCount: number;
 }
 
 /**
@@ -85,6 +92,9 @@ export function createSearchSession(query: string): SearchSession {
     rejectedByBrandCap: 0,
     rejectedByDedupe: 0,
     isBrandQuery: isBrandQueryHeuristic(trimmed),
+    resultOrigins: new Map<string, ResultOrigin>(),
+    resultQueryFamilies: new Map<string, string>(),
+    ingestedCount: 0,
   };
 }
 
@@ -135,7 +145,11 @@ function productKey(p: Product): string {
  * Append-only merge with HARD category lock, brand-cap diversity, and
  * multi-signal dedupe (URL + title + image). Returns true if newly added.
  */
-export function appendToSession(session: SearchSession, p: Product): boolean {
+export function appendToSession(
+  session: SearchSession,
+  p: Product,
+  meta: { origin?: ResultOrigin; queryFamily?: string } = {},
+): boolean {
   const key = productKey(p);
   if (!key) return false;
   if (session.seenIds.has(key)) return false;
@@ -173,6 +187,8 @@ export function appendToSession(session: SearchSession, p: Product): boolean {
   session.seenIds.add(key);
   for (const fp of fps) session.fingerprintIndex.add(fp);
   session.results.push(p);
+  if (p.id && meta.origin) session.resultOrigins.set(p.id, meta.origin);
+  if (p.id && meta.queryFamily) session.resultQueryFamilies.set(p.id, meta.queryFamily);
   return true;
 }
 

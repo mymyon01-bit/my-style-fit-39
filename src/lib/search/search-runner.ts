@@ -67,6 +67,26 @@ export async function runSearch(
   // Load DB-backed 24h seen set (logged-in users only). Used to filter the
   // result set so the same items don't reappear across devices/sessions.
   const dbSeen = await loadDbSeenKeys();
+  let dbSeenDemoted = 0;
+
+  const triggerIngestion = (reason: string) => {
+    void ingestQuery(session.query)
+      .then((result) => {
+        if (result.inserted > 0) {
+          session.ingestedCount += result.inserted;
+          opts.onProgress?.(session);
+        }
+        console.info("[search-runner] ingestion tick", {
+          query: session.query,
+          reason,
+          inserted: result.inserted,
+          totalInserted: session.ingestedCount,
+        });
+      })
+      .catch((error) => {
+        console.warn("[search-runner] ingestion tick failed", { query: session.query, reason, error });
+      });
+  };
 
   // ── STAGE 1 — DB FIRST (instant paint) ──────────────────────────────────
   // Cluster lookup + raw product_cache fallback. Never blocks on external.
@@ -76,7 +96,7 @@ export async function runSearch(
       let seeded = 0;
       for (const p of cluster.products) {
         if (!validateProduct(p)) continue;
-        if (appendToSession(session, p)) {
+        if (appendToSession(session, p, { origin: "query_cluster", queryFamily: session.query })) {
           seeded++;
           oldIds.add(p.id);
         }
@@ -89,7 +109,7 @@ export async function runSearch(
         // refresh so future cycles inject fresh products.
         cohortWasStale = isCohortStale(session.results, 0.6);
         if (cohortWasStale) {
-          void ingestQuery(session.query);
+          triggerIngestion("cohort_stale");
           console.info("[search-runner] cohort stale, refresh triggered", {
             query: session.query,
           });
@@ -140,7 +160,7 @@ export async function runSearch(
 
     // Stage 3+: trigger background ingestion of new URLs (non-blocking)
     if (fresh) {
-      void ingestQuery(session.query);
+      triggerIngestion(`cycle_${session.cycle}`);
     }
 
     // STAGE 3 — AGGRESSIVE FETCHING. Larger per-call limit → bigger pool.
@@ -162,7 +182,10 @@ export async function runSearch(
         if (!validateProduct(product)) continue;
         totalValidated++;
         // STAGE 5/6 — appendToSession dedupes + appends (never replaces).
-        if (appendToSession(session, product)) addedThisCycle++;
+        if (appendToSession(session, product, {
+          origin: fresh ? "live_ingestion_batch" : "product_cache",
+          queryFamily: q,
+        })) addedThisCycle++;
       }
     }
 
@@ -262,8 +285,12 @@ export async function runSearch(
     const repeat: typeof session.results = [];
     for (const p of session.results) {
       const k = (p.externalUrl || p.id || "").toLowerCase();
-      if (k && dbSeen.has(k)) repeat.push(p);
-      else fresh.push(p);
+      if (k && dbSeen.has(k)) {
+        repeat.push(p);
+        dbSeenDemoted++;
+      } else {
+        fresh.push(p);
+      }
     }
     session.results = [...fresh, ...repeat];
   }

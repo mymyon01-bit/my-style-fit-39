@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeFromCache } from "./product-normalizer";
 import type { Product } from "./types";
 import { detectPrimaryCategory } from "./category-lock";
+import { isStale } from "./freshness";
 
 /* ─────────── Normalization ─────────── */
 
@@ -157,7 +158,17 @@ export async function findCluster(
   }
 
   if (ordered.length === 0) return null;
-  return { cluster: row, products: ordered };
+
+  const rankedByRecency = [...ordered].sort((a, b) => {
+    const at = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const bt = b.createdAt ? Date.parse(b.createdAt) : 0;
+    return bt - at;
+  });
+  const nonStale = rankedByRecency.filter((product) => !isStale(product));
+  const clusterOverused = row.usage_count >= 4;
+  const evolved = (clusterOverused ? nonStale : nonStale.length >= 4 ? nonStale : rankedByRecency);
+
+  return { cluster: row, products: (evolved.length >= 4 ? evolved : rankedByRecency).slice(0, 60) };
 }
 
 /* ─────────── Upsert ─────────── */
