@@ -1,10 +1,11 @@
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Users, Package, FolderTree, Camera, Star, BarChart3, Settings, Home } from "lucide-react";
+import { Loader2, Users, Package, FolderTree, Camera, Star, BarChart3, Settings, Home, Activity } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/admin", icon: BarChart3, label: "Overview", exact: true },
+  { path: "/admin/diagnostics", icon: Activity, label: "Diagnostics" },
   { path: "/admin/users", icon: Users, label: "Users" },
   { path: "/admin/products", icon: Package, label: "Products" },
   { path: "/admin/categories", icon: FolderTree, label: "Categories" },

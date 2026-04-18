@@ -59,6 +59,7 @@ const AdminCategories = lazyWithRetry(() => import("@/pages/admin/AdminCategorie
 const AdminOOTD = lazyWithRetry(() => import("@/pages/admin/AdminOOTD"), "AdminOOTD");
 const AdminContent = lazyWithRetry(() => import("@/pages/admin/AdminContent"), "AdminContent");
 const AdminSettings = lazyWithRetry(() => import("@/pages/admin/AdminSettings"), "AdminSettings");
+const AdminDiagnostics = lazyWithRetry(() => import("@/pages/admin/AdminDiagnostics"), "AdminDiagnostics");
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
@@ -104,6 +105,7 @@ const AppRoutes = () => {
           {/* Admin */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
+            <Route path="diagnostics" element={<AdminDiagnostics />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="categories" element={<AdminCategories />} />
