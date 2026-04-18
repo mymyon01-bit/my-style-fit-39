@@ -31,6 +31,11 @@ function isKoreanMarketQuery(q: string): boolean {
 // ─────────────────────────── helpers ───────────────────────────
 
 const FASHION_RE = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|hat|cap|beanie|belt|scarf|bomber|parka|pullover|sweatshirt|chinos?|joggers?|blouse|knit|denim|leather|jumpsuit|trench|gilet|leggings?|culottes|windbreaker|tank|fedora|mules?|oxfords?|brogues?|espadrilles?|pumps?|heels?|flats?|clutch|crossbody|outfit|outerwear|footwear)\b/i;
+// Korean fashion vocabulary — Naver titles are Hangul, FASHION_RE wouldn't match.
+const FASHION_KR_RE = /(자켓|재킷|코트|블레이저|셔츠|후디|후드|스웨터|니트|가디건|티셔츠|티|폴로|바지|팬츠|청바지|진|반바지|스커트|치마|드레스|원피스|운동화|스니커즈|신발|슈즈|부츠|로퍼|샌들|가방|백|토트|백팩|크로스백|클러치|모자|캡|비니|벨트|스카프|봄버|파카|풀오버|맨투맨|블라우스|점퍼|패딩|아우터|악세서리|악세사리|선글라스|시계|목걸이|팔찌|귀걸이|반지)/;
+function isFashionTitle(title: string): boolean {
+  return FASHION_RE.test(title) || FASHION_KR_RE.test(title);
+}
 
 const TIMEOUT_MS = {
   perplexity: 12_000,
