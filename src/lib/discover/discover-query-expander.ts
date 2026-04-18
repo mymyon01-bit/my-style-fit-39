@@ -1,17 +1,43 @@
 /**
  * Discover query expander
  * -----------------------
- * Deterministic expansions only in this phase. AI refinement is a stub that
- * the source orchestrator can call later — left intentionally optional so
- * the base flow always works without a network round-trip.
+ * Deterministic expansions only. AI refinement is intentionally NOT used here
+ * so the base flow is fast, predictable, and never network-dependent.
  *
  * Rules:
  *   1. Always include the raw normalized query first.
- *   2. Append style + color + scenario modifiers as compound variants.
- *   3. Never expand outside the category lock (we don't introduce new
- *      category nouns — we only refine adjectives/scenarios).
+ *   2. Append style + color + scenario + brand modifiers as compound variants.
+ *   3. **CATEGORY LOCK IS LAW.** When the parsed query has a primaryCategory,
+ *      every emitted variant must contain a noun from that category family.
+ *      Variants that mention a noun from a DIFFERENT family are discarded
+ *      immediately — style words can never override the category.
+ *   4. Seasonal/freshness fillers also respect the lock (e.g. "trending bags",
+ *      never bare "trending" when bags is locked).
  */
+import { inferCategoryFromTitle, type PrimaryCategory } from "@/lib/search/category-lock";
 import type { ParsedDiscoverQuery } from "./discover-query-parser";
+
+/** Canonical noun per family — used to repair lock-less variants. */
+const FAMILY_HEAD_NOUN: Record<PrimaryCategory, string> = {
+  bags: "bag",
+  shoes: "shoes",
+  outerwear: "jacket",
+  tops: "top",
+  bottoms: "pants",
+  dresses: "dress",
+  accessories: "accessory",
+};
+
+/** Returns true when `text` is safe under the lock:
+ *   - no lock → always safe
+ *   - mentions the locked family → safe
+ *   - mentions a DIFFERENT family noun → unsafe (drop) */
+function passesCategoryGuard(text: string, lock: PrimaryCategory | null): boolean {
+  if (!lock) return true;
+  const inferred = inferCategoryFromTitle(text);
+  if (inferred === null) return true;        // no category noun — safe modifier-only phrase
+  return inferred === lock;                  // any other category noun = drift, drop it
+}
 
 const SEASONAL_HINTS = ["new arrivals", "trending", "this week"];
 
