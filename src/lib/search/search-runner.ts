@@ -174,8 +174,11 @@ export async function runSearch(
       consecutiveEmpty = 0;
     }
 
-    // Hit target? Still safe to stop — user has plenty.
-    if (session.results.length >= target) break;
+    // Continuous-discovery gate: even if we hit `target`, keep going until
+    // the NEW-candidate floor is met. Guarantees every search introduces
+    // fresh items beyond the cached cluster seed.
+    const newSoFar = session.results.filter((p) => !oldIds.has(p.id)).length;
+    if (session.results.length >= target && newSoFar >= MIN_NEW_CANDIDATES) break;
   }
 
   // ── STAGE 7 — FRESHNESS DECAY + ROTATION + REPEAT CONTROL ───────────────
@@ -213,15 +216,17 @@ export async function runSearch(
     minBrands: 3,
     minStyles: 2,
   });
-  // Multi-source quota: no single store > 30% of the first window. Asos /
-  // Farfetch / YOOX / Zalando / SSENSE / etc. are mixed automatically based
-  // on the source_url host (no DB migration required).
+  // Multi-source quota: no single store > 30% of the first window.
   session.results = enforceSourceQuota(session.results, {
     windowSize: 24,
     maxRatio: 0.3,
   });
-  // Persist the seen set for future searches so the user keeps seeing fresh.
+  // Domain rotation: prefer sources the user hasn't seen recently. Floats
+  // unseen domains (and least-recent ones) toward the top of the window.
+  session.results = prioritizeUnseenDomains(session.results, { windowSize: 24 });
+  // Persist seen set + domain history for future searches.
   markProductsAsSeen(session.results.slice(0, 60));
+  recordDomainsShown(session.results.slice(0, 24));
   session.status = "complete";
   opts.onProgress?.(session);
 
