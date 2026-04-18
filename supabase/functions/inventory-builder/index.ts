@@ -1,11 +1,15 @@
-// Inventory Builder
-// Round-robins through a fixed list of seed shopping queries and invokes the
-// existing search-discovery pipeline for ONE seed per tick. Designed to be
-// triggered by pg_cron every 6 hours so the DB grows continuously across the
-// full taxonomy without burning all credits at once.
+// Inventory Builder — scheduled supply expansion engine.
+//
+// Each tick processes SEEDS_PER_TICK seeds in parallel. For each seed it runs
+// BOTH search-discovery (Firecrawl/Perplexity, long-tail domains) AND
+// multi-source-scraper in cron-intensity mode (Apify bulk). Per-run telemetry
+// is written to source_ingestion_runs + diagnostics_events so AdminDiagnostics
+// can prove inventory is actually growing.
+//
+// Triggered by pg_cron every 4 hours.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,47 +19,100 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Fixed taxonomy seeds — broad shopping queries that should always grow supply.
-// Covers all major requested families: bags, streetwear, minimal, oversized,
-// jackets, sneakers, formal, accessories, wallets, jewelry — plus color/price
-// variations for diversity.
-const SEEDS: string[] = [
+// Expanded taxonomy — 70+ seeds covering bags, streetwear, minimal, oversized,
+// jackets, sneakers, formal, accessories, jewelry, color/season variants, plus
+// Korean queries. Round-robin guarantees full coverage across cron cycles.
+const SEEDS: { q: string; family: string }[] = [
   // bags
-  "bags", "crossbody bag", "tote bag", "shoulder bag", "backpack", "designer bag", "mini bag",
+  { q: "bags", family: "bags" },
+  { q: "crossbody bag", family: "bags" },
+  { q: "tote bag", family: "bags" },
+  { q: "shoulder bag", family: "bags" },
+  { q: "backpack", family: "bags" },
+  { q: "designer bag", family: "bags" },
+  { q: "mini bag", family: "bags" },
+  { q: "leather bag", family: "bags" },
   // streetwear
-  "streetwear", "urban outfit", "street style", "graphic tee", "cargo pants", "hoodie streetwear",
+  { q: "streetwear", family: "streetwear" },
+  { q: "urban outfit", family: "streetwear" },
+  { q: "graphic tee", family: "streetwear" },
+  { q: "cargo pants", family: "streetwear" },
+  { q: "hoodie streetwear", family: "streetwear" },
+  { q: "techwear", family: "streetwear" },
   // minimal
-  "minimal style", "minimalist outfit", "neutral tones", "clean look", "monochrome outfit",
+  { q: "minimal style", family: "minimal" },
+  { q: "minimalist outfit", family: "minimal" },
+  { q: "neutral tones", family: "minimal" },
+  { q: "monochrome outfit", family: "minimal" },
+  { q: "clean look", family: "minimal" },
   // oversized
-  "oversized fit", "oversized hoodie", "oversized blazer", "baggy jeans",
+  { q: "oversized fit", family: "oversized" },
+  { q: "oversized hoodie", family: "oversized" },
+  { q: "oversized blazer", family: "oversized" },
+  { q: "baggy jeans", family: "oversized" },
+  { q: "oversized tee", family: "oversized" },
   // jackets / outerwear
-  "jackets", "leather jacket", "denim jacket", "bomber jacket", "trench coat", "puffer jacket", "wool coat",
+  { q: "jackets", family: "jackets" },
+  { q: "leather jacket", family: "jackets" },
+  { q: "denim jacket", family: "jackets" },
+  { q: "bomber jacket", family: "jackets" },
+  { q: "trench coat", family: "jackets" },
+  { q: "puffer jacket", family: "jackets" },
+  { q: "wool coat", family: "jackets" },
+  { q: "rain jacket", family: "jackets" },
   // sneakers / shoes
-  "sneakers", "white sneakers", "running shoes", "chunky sneakers", "loafers", "boots",
+  { q: "sneakers", family: "sneakers" },
+  { q: "white sneakers", family: "sneakers" },
+  { q: "running shoes", family: "sneakers" },
+  { q: "chunky sneakers", family: "sneakers" },
+  { q: "loafers", family: "shoes" },
+  { q: "boots", family: "shoes" },
+  { q: "red shoes", family: "shoes" },
   // formal
-  "formal look", "suit", "blazer", "dress shirt", "office wear",
-  // accessories
-  "accessories", "sunglasses", "belts", "hats", "scarves",
-  // wallets
-  "wallets", "card holder", "leather wallet",
-  // jewelry
-  "jewelry", "silver necklace", "gold ring", "minimal earrings", "chain necklace",
+  { q: "formal look", family: "formal" },
+  { q: "suit", family: "formal" },
+  { q: "blazer", family: "formal" },
+  { q: "dress shirt", family: "formal" },
+  { q: "office wear", family: "formal" },
+  // accessories / jewelry
+  { q: "sunglasses", family: "accessories" },
+  { q: "belts", family: "accessories" },
+  { q: "hats", family: "accessories" },
+  { q: "scarves", family: "accessories" },
+  { q: "wallets", family: "accessories" },
+  { q: "card holder", family: "accessories" },
+  { q: "silver necklace", family: "jewelry" },
+  { q: "gold ring", family: "jewelry" },
+  { q: "minimal earrings", family: "jewelry" },
+  { q: "chain necklace", family: "jewelry" },
   // color variations
-  "black outfit", "white outfit", "beige outfit",
+  { q: "black outfit", family: "color" },
+  { q: "white outfit", family: "color" },
+  { q: "beige outfit", family: "color" },
+  { q: "olive outfit", family: "color" },
   // seasonal
-  "summer outfit", "winter outfit",
+  { q: "summer outfit", family: "seasonal" },
+  { q: "winter outfit", family: "seasonal" },
+  { q: "fall outfit", family: "seasonal" },
+  { q: "spring outfit", family: "seasonal" },
+  { q: "rainy outerwear", family: "seasonal" },
+  // korean
+  { q: "korean fashion bag", family: "korean" },
+  { q: "korean street style", family: "korean" },
+  { q: "korean sneakers", family: "korean" },
+  { q: "한국 가방", family: "korean" },
+  { q: "코트", family: "korean" },
+  { q: "스니커즈", family: "korean" },
 ];
 
-// Per-tick fan-out: process N seeds in parallel each invocation so the DB
-// grows ~3x faster without raising cron frequency.
-const SEEDS_PER_TICK = 3;
+const SEEDS_PER_TICK = 5;
 
 function log(stage: string, payload: Record<string, unknown>) {
   console.log(`[INVENTORY] ${stage} ${JSON.stringify(payload)}`);
 }
 
-async function getCursor(supabase: any): Promise<{ id: string; cursor_index: number } | null> {
-  const { data, error } = await supabase
+async function getCursor(sb: SupabaseClient): Promise<{ id: string; cursor_index: number } | null> {
+  const { data, error } = await sb
     .from("inventory_seed_cursor")
     .select("id, cursor_index")
     .order("created_at", { ascending: true })
@@ -69,14 +126,13 @@ async function getCursor(supabase: any): Promise<{ id: string; cursor_index: num
 }
 
 async function advanceCursor(
-  supabase: any,
+  sb: SupabaseClient,
   rowId: string,
   nextIndex: number,
   seed: string,
   inserted: number,
 ): Promise<void> {
-  await supabase
-    .from("inventory_seed_cursor")
+  await sb.from("inventory_seed_cursor")
     .update({
       cursor_index: nextIndex,
       last_seed: seed,
@@ -86,39 +142,167 @@ async function advanceCursor(
     .eq("id", rowId);
 }
 
-async function callDiscovery(seed: string): Promise<{ inserted: number; candidatesFound: number; ok: boolean }> {
-  // Invoke the existing search-discovery edge function over HTTP (it runs the
-  // full pipeline: Perplexity expand → URL discover → extract → validate → insert).
+// Open a telemetry run row and return its id. Failures here are non-fatal.
+async function startRun(
+  sb: SupabaseClient,
+  source: string,
+  source_actor: string,
+  seed: { q: string; family: string },
+  trigger: string,
+): Promise<string | null> {
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/search-discovery`, {
+    const { data, error } = await sb.from("source_ingestion_runs")
+      .insert({
+        source,
+        source_actor,
+        query_family: seed.family,
+        seed_query: seed.q,
+        trigger,
+        status: "running",
+      })
+      .select("id")
+      .single();
+    if (error || !data) return null;
+    return (data as { id: string }).id;
+  } catch {
+    return null;
+  }
+}
+
+async function finishRun(
+  sb: SupabaseClient,
+  runId: string | null,
+  patch: {
+    fetched_count?: number;
+    inserted_count?: number;
+    deduped_count?: number;
+    failed_count?: number;
+    status: "success" | "partial" | "failed";
+    duration_ms: number;
+    metadata?: Record<string, unknown>;
+  },
+): Promise<void> {
+  if (!runId) return;
+  try {
+    await sb.from("source_ingestion_runs")
+      .update({ ...patch, completed_at: new Date().toISOString() })
+      .eq("id", runId);
+  } catch {
+    // swallow
+  }
+}
+
+async function logError(
+  sb: SupabaseClient,
+  runId: string | null,
+  source: string,
+  seed: { q: string; family: string },
+  errorMessage: string,
+): Promise<void> {
+  try {
+    await sb.from("ingestion_errors").insert({
+      run_id: runId,
+      source,
+      query_family: seed.family,
+      seed_query: seed.q,
+      error_type: "edge_invocation",
+      error_message: errorMessage.slice(0, 500),
+    });
+  } catch {
+    // swallow
+  }
+}
+
+// Invoke an edge function and return the JSON body.
+async function invokeFunction(
+  fnName: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: boolean; data: Record<string, unknown> }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${fnName}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${SERVICE_KEY}`,
       },
-      body: JSON.stringify({ query: seed, maxQueries: 14, maxCandidates: 60 }),
+      body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
-    return {
-      ok: !!json?.ok,
-      inserted: Number(json?.inserted || 0),
-      candidatesFound: Number(json?.candidatesFound || 0),
-    };
+    return { ok: res.ok && !!json?.ok, data: json };
   } catch (e) {
-    log("discovery_call_error", { msg: (e as Error).message, seed });
-    return { ok: false, inserted: 0, candidatesFound: 0 };
+    return { ok: false, data: { error: (e as Error).message } };
   }
+}
+
+// Run BOTH discovery + Apify-bulk for one seed. Returns combined stats.
+async function processSeed(
+  sb: SupabaseClient,
+  seed: { q: string; family: string },
+  trigger: string,
+): Promise<{ seed: string; family: string; discovery: number; apify: number; total: number }> {
+  // Run both in parallel — they hit different sources.
+  const [discoveryRun, apifyRun] = await Promise.all([
+    (async () => {
+      const t0 = Date.now();
+      const runId = await startRun(sb, "discovery", "search-discovery", seed, trigger);
+      const r = await invokeFunction("search-discovery", {
+        query: seed.q,
+        maxQueries: 14,
+        maxCandidates: 60,
+      });
+      const duration_ms = Date.now() - t0;
+      const inserted = Number(r.data?.inserted) || 0;
+      const fetched = Number(r.data?.candidatesFound) || 0;
+      if (!r.ok) await logError(sb, runId, "discovery", seed, JSON.stringify(r.data).slice(0, 400));
+      await finishRun(sb, runId, {
+        fetched_count: fetched,
+        inserted_count: inserted,
+        status: r.ok ? "success" : "failed",
+        duration_ms,
+        metadata: { ok: r.ok },
+      });
+      return inserted;
+    })(),
+    (async () => {
+      const t0 = Date.now();
+      const runId = await startRun(sb, "apify", "multi-source-scraper", seed, trigger);
+      const r = await invokeFunction("multi-source-scraper", {
+        query: seed.q,
+        intensity: "cron",
+      });
+      const duration_ms = Date.now() - t0;
+      const inserted = Number(r.data?.inserted) || 0;
+      const fetched = Number(r.data?.merged) || 0;
+      const deduped = Math.max(0, fetched - Number(r.data?.deduped || 0));
+      if (!r.ok) await logError(sb, runId, "apify", seed, JSON.stringify(r.data).slice(0, 400));
+      await finishRun(sb, runId, {
+        fetched_count: fetched,
+        inserted_count: inserted,
+        deduped_count: deduped,
+        status: r.ok ? "success" : "failed",
+        duration_ms,
+        metadata: { sources: r.data?.sources ?? {} },
+      });
+      return inserted;
+    })(),
+  ]);
+
+  return {
+    seed: seed.q,
+    family: seed.family,
+    discovery: discoveryRun,
+    apify: apifyRun,
+    total: discoveryRun + apifyRun,
+  };
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+  const sb = createClient(SUPABASE_URL, SERVICE_KEY);
   const t0 = Date.now();
 
   try {
-    // Optional manual override: { "seed": "raincoat" } to ingest a specific seed
-    // without advancing the cursor. Useful for admin top-ups.
     let manualSeed: string | null = null;
     if (req.method === "POST") {
       try {
@@ -127,21 +311,21 @@ serve(async (req) => {
           manualSeed = body.seed.trim().slice(0, 80);
         }
       } catch {
-        // no body / not JSON — fine
+        // no body
       }
     }
 
     if (manualSeed) {
-      log("manual_run", { seed: manualSeed });
-      const result = await callDiscovery(manualSeed);
+      const seed = { q: manualSeed, family: "manual" };
+      const result = await processSeed(sb, seed, "manual");
       log("manual_done", { ...result, ms: Date.now() - t0 });
       return new Response(
-        JSON.stringify({ ok: true, mode: "manual", seed: manualSeed, ...result, ms: Date.now() - t0 }),
+        JSON.stringify({ ok: true, mode: "manual", ...result, ms: Date.now() - t0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const cursor = await getCursor(supabase);
+    const cursor = await getCursor(sb);
     if (!cursor) {
       return new Response(
         JSON.stringify({ ok: false, error: "Cursor row missing — run migration." }),
@@ -149,30 +333,57 @@ serve(async (req) => {
       );
     }
 
-    // Fan out across SEEDS_PER_TICK seeds in parallel — DB grows ~3× per tick.
     const startIdx = ((cursor.cursor_index % SEEDS.length) + SEEDS.length) % SEEDS.length;
-    const seedsThisTick: string[] = [];
+    const seedsThisTick: { q: string; family: string }[] = [];
     for (let i = 0; i < SEEDS_PER_TICK; i++) {
       seedsThisTick.push(SEEDS[(startIdx + i) % SEEDS.length]);
     }
     const nextIndex = (startIdx + SEEDS_PER_TICK) % SEEDS.length;
 
-    log("tick_start", { startIdx, seeds: seedsThisTick, nextIndex });
-    const settled = await Promise.allSettled(seedsThisTick.map(callDiscovery));
-    const perSeed = settled.map((s, i) => ({
-      seed: seedsThisTick[i],
-      ...(s.status === "fulfilled" ? s.value : { ok: false, inserted: 0, candidatesFound: 0 }),
-    }));
-    const totalInserted = perSeed.reduce((n, r) => n + r.inserted, 0);
+    log("tick_start", { startIdx, seeds: seedsThisTick.map((s) => s.q), nextIndex });
+
+    // Fan-out 5 seeds in parallel; each seed itself fans out to discovery + Apify.
+    const settled = await Promise.allSettled(
+      seedsThisTick.map((s) => processSeed(sb, s, "cron")),
+    );
+    const perSeed = settled.map((s, i) =>
+      s.status === "fulfilled"
+        ? s.value
+        : { seed: seedsThisTick[i].q, family: seedsThisTick[i].family, discovery: 0, apify: 0, total: 0 },
+    );
+    const totalInserted = perSeed.reduce((n, r) => n + r.total, 0);
+
     log("tick_done", { perSeed, totalInserted, ms: Date.now() - t0 });
 
-    await advanceCursor(supabase, cursor.id, nextIndex, seedsThisTick.join(","), totalInserted);
+    // Roll up to diagnostics_events for the existing admin panel.
+    try {
+      await sb.from("diagnostics_events").insert({
+        event_name: "inventory_tick",
+        status: totalInserted > 0 ? "success" : "partial",
+        duration_ms: Date.now() - t0,
+        metadata: {
+          seeds: seedsThisTick.map((s) => s.q),
+          per_seed: perSeed,
+          total_inserted: totalInserted,
+        },
+      });
+    } catch {
+      // swallow
+    }
+
+    await advanceCursor(
+      sb,
+      cursor.id,
+      nextIndex,
+      seedsThisTick.map((s) => s.q).join(","),
+      totalInserted,
+    );
 
     return new Response(
       JSON.stringify({
         ok: true,
         mode: "cron",
-        seeds: seedsThisTick,
+        seeds: seedsThisTick.map((s) => s.q),
         cursorIndex: startIdx,
         nextIndex,
         perSeed,

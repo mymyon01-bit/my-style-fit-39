@@ -10,7 +10,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Camera, Ruler, MessageCircle, RefreshCw } from "lucide-react";
+import { Loader2, Search, Camera, Ruler, MessageCircle, RefreshCw, Database } from "lucide-react";
 
 type EventRow = {
   id: string;
@@ -19,6 +19,22 @@ type EventRow = {
   duration_ms: number | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
+};
+
+type IngestionRunRow = {
+  id: string;
+  source: string;
+  source_actor: string | null;
+  query_family: string | null;
+  seed_query: string | null;
+  trigger: string;
+  fetched_count: number;
+  inserted_count: number;
+  deduped_count: number;
+  failed_count: number;
+  status: string;
+  duration_ms: number | null;
+  started_at: string;
 };
 
 const TRACKED_EVENTS = ["search_session", "post_create", "comment_create", "fit_generate"] as const;
@@ -66,6 +82,7 @@ function summarize(rows: EventRow[]) {
 
 export default function AdminDiagnostics() {
   const [rows, setRows] = useState<EventRow[]>([]);
+  const [ingestionRows, setIngestionRows] = useState<IngestionRunRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -76,27 +93,71 @@ export default function AdminDiagnostics() {
     setError(null);
 
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    supabase
-      .from("diagnostics_events")
-      .select("id, event_name, status, duration_ms, metadata, created_at")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(2000)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          setError(error.message);
-          setRows([]);
-        } else {
-          setRows((data || []) as unknown as EventRow[]);
-        }
-        setLoading(false);
-      });
+
+    Promise.all([
+      supabase
+        .from("diagnostics_events")
+        .select("id, event_name, status, duration_ms, metadata, created_at")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(2000),
+      supabase
+        .from("source_ingestion_runs")
+        .select(
+          "id, source, source_actor, query_family, seed_query, trigger, fetched_count, inserted_count, deduped_count, failed_count, status, duration_ms, started_at",
+        )
+        .gte("started_at", since)
+        .order("started_at", { ascending: false })
+        .limit(500),
+    ]).then(([eventsRes, ingestionRes]) => {
+      if (cancelled) return;
+      if (eventsRes.error) {
+        setError(eventsRes.error.message);
+        setRows([]);
+      } else {
+        setRows((eventsRes.data || []) as unknown as EventRow[]);
+      }
+      if (!ingestionRes.error) {
+        setIngestionRows((ingestionRes.data || []) as unknown as IngestionRunRow[]);
+      }
+      setLoading(false);
+    });
 
     return () => {
       cancelled = true;
     };
   }, [refreshKey]);
+
+  // Aggregate ingestion runs by source over last 24h
+  const ingestionStats = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const recent = ingestionRows.filter(
+      (r) => new Date(r.started_at).getTime() >= cutoff,
+    );
+    const bySource: Record<
+      string,
+      { runs: number; fetched: number; inserted: number; failed: number }
+    > = {};
+    for (const r of recent) {
+      const key = r.source;
+      if (!bySource[key])
+        bySource[key] = { runs: 0, fetched: 0, inserted: 0, failed: 0 };
+      bySource[key].runs += 1;
+      bySource[key].fetched += r.fetched_count || 0;
+      bySource[key].inserted += r.inserted_count || 0;
+      if (r.status === "failed") bySource[key].failed += 1;
+    }
+    const totalInserted = Object.values(bySource).reduce(
+      (n, s) => n + s.inserted,
+      0,
+    );
+    return {
+      bySource,
+      totalRuns: recent.length,
+      totalInserted,
+      lastTickAt: recent[0]?.started_at ?? null,
+    };
+  }, [ingestionRows]);
 
   const since24h = useMemo(() => Date.now() - 24 * 60 * 60 * 1000, []);
   const recent = useMemo(
@@ -262,6 +323,49 @@ export default function AdminDiagnostics() {
                 value={searchAggregates.avgResults.toString()}
               />
             </div>
+          </div>
+
+          {/* Inventory ingestion — last 24h per source */}
+          <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Database className="h-3.5 w-3.5 text-accent/70" />
+                Inventory ingestion — last 24h
+              </h2>
+              <span className="text-[10px] text-foreground/50">
+                {ingestionStats.totalRuns} runs · {ingestionStats.totalInserted} inserted
+                {ingestionStats.lastTickAt && (
+                  <> · last {new Date(ingestionStats.lastTickAt).toLocaleTimeString()}</>
+                )}
+              </span>
+            </div>
+            {Object.keys(ingestionStats.bySource).length === 0 ? (
+              <p className="text-[11px] text-foreground/50">
+                No ingestion runs in the last 24h. The cron job runs every 4h — check back, or trigger inventory-builder manually.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {Object.entries(ingestionStats.bySource).map(([source, s]) => (
+                  <div
+                    key={source}
+                    className="rounded-lg border border-border/20 bg-background/30 p-3"
+                  >
+                    <p className="text-[10px] uppercase tracking-wider text-foreground/50">
+                      {source}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-foreground">
+                      {s.inserted}
+                    </p>
+                    <p className="text-[10px] text-foreground/40">
+                      inserted · {s.runs} runs
+                      {s.failed > 0 && (
+                        <span className="ml-1 text-destructive">· {s.failed} failed</span>
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Recent events table */}

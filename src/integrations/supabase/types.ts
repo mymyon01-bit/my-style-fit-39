@@ -419,6 +419,53 @@ export type Database = {
         }
         Relationships: []
       }
+      ingestion_errors: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          error_type: string | null
+          http_status: number | null
+          id: string
+          query_family: string | null
+          run_id: string | null
+          seed_query: string | null
+          source: string
+          source_domain: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          http_status?: number | null
+          id?: string
+          query_family?: string | null
+          run_id?: string | null
+          seed_query?: string | null
+          source: string
+          source_domain?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          http_status?: number | null
+          id?: string
+          query_family?: string | null
+          run_id?: string | null
+          seed_query?: string | null
+          source?: string
+          source_domain?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_errors_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "source_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interactions: {
         Row: {
           created_at: string
@@ -1051,6 +1098,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      source_ingestion_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          deduped_count: number
+          duration_ms: number | null
+          failed_count: number
+          fetched_count: number
+          id: string
+          inserted_count: number
+          metadata: Json
+          query_family: string | null
+          seed_query: string | null
+          source: string
+          source_actor: string | null
+          started_at: string
+          status: string
+          trigger: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          deduped_count?: number
+          duration_ms?: number | null
+          failed_count?: number
+          fetched_count?: number
+          id?: string
+          inserted_count?: number
+          metadata?: Json
+          query_family?: string | null
+          seed_query?: string | null
+          source: string
+          source_actor?: string | null
+          started_at?: string
+          status?: string
+          trigger?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          deduped_count?: number
+          duration_ms?: number | null
+          failed_count?: number
+          fetched_count?: number
+          id?: string
+          inserted_count?: number
+          metadata?: Json
+          query_family?: string | null
+          seed_query?: string | null
+          source?: string
+          source_actor?: string | null
+          started_at?: string
+          status?: string
+          trigger?: string
+        }
+        Relationships: []
       }
       stories: {
         Row: {
