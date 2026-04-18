@@ -35,7 +35,22 @@ interface Props {
 
 /* ── helpers ── */
 
-const fitLabel = (fit: string) => fit.replace(/-/g, " ");
+// Friendlier label remap — never show "TOO LOOSE" for in-tolerance fits.
+const FRIENDLY_LABEL: Record<string, string> = {
+  "balanced": "PERFECT FIT",
+  "fitted": "FITTED",
+  "relaxed": "RELAXED FIT",
+  "oversized": "SLIGHTLY LOOSE",
+  "slightly-tight": "SNUG",
+  "too-tight": "TOO TIGHT",
+  "too-loose": "TOO LOOSE",
+  "good-length": "RIGHT LENGTH",
+  "slightly-short": "SLIGHTLY SHORT",
+  "too-short": "TOO SHORT",
+  "slightly-long": "SLIGHTLY LONG",
+  "too-long": "TOO LONG",
+};
+const fitLabel = (fit: string) => FRIENDLY_LABEL[fit] ?? fit.replace(/-/g, " ").toUpperCase();
 
 const fitColor = (fit: string) => {
   if (fit.includes("tight")) return "text-orange-500";
@@ -378,13 +393,17 @@ export default function FitResults({
         </div>
       </div>
 
-      {/* ══ VISUAL FIT — mannequin heatmap + legend + region summary ══ */}
+      {/* ══ VISUAL TRY-ON — silhouette + product overlay + S/M/L compare ══ */}
       {activeSizeResult && (
         <VisualFitPreviewCard
           regions={activeSizeResult.regions}
           category={product.category}
           activeSize={activeSize}
           fitScore={activeSizeResult.fitScore}
+          sizeResults={result.sizeResults}
+          productImageUrl={product.image}
+          productName={product.name}
+          onSizeChange={setActiveSize}
         />
       )}
 

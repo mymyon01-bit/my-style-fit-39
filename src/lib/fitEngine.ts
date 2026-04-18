@@ -94,35 +94,55 @@ const EASE: Record<string, Record<string, number>> = {
   oversized:{ chest: 20, waist: 16, hip: 12, shoulder: 4, thigh: 10 },
 };
 
-// ─── Classification helpers ──────────────────────────────────────────────────
+// ─── Tolerance Margins (absolute cm — within this = neutral/OK) ──────────────
+// Realistic human tolerances: small mismatches should NOT be penalized.
+const TOLERANCE: Record<string, number> = {
+  shoulder: 3,   // ±2-4cm — stricter, structurally important
+  chest: 7,      // ±5-8cm — quite forgiving
+  waist: 5,      // ±4-6cm — forgiving
+  hip: 6,
+  thigh: 5,
+  sleeve: 3,
+  length: 4,
+  inseam: 4,
+  rise: 3,
+};
 
-function classifyFit(delta: number, ease: number): FitClassification {
+// ─── Classification helpers (recalibrated, looser-friendly) ──────────────────
+
+function classifyFit(delta: number, ease: number, region: string = "chest"): FitClassification {
+  const tol = TOLERANCE[region] ?? 5;
+  // Within tolerance → balanced (this is the realistic "fits well" band)
+  if (Math.abs(delta) <= tol) return "balanced";
   const ratio = delta / Math.max(ease, 1);
-  if (ratio < -0.3) return "too-tight";
-  if (ratio < 0) return "slightly-tight";
-  if (ratio < 0.5) return "fitted";
-  if (ratio < 1.0) return "balanced";
-  if (ratio < 1.5) return "relaxed";
-  if (ratio < 2.0) return "oversized";
-  return "too-loose";
+  if (ratio < -1.2) return "too-tight";
+  if (ratio < -0.4) return "slightly-tight";
+  if (ratio < 0.6) return "fitted";
+  if (ratio < 1.4) return "relaxed";       // pushed up — relaxed is good
+  if (ratio < 2.4) return "oversized";     // pushed up — oversized still wearable
+  return "too-loose";                      // only truly excessive
 }
 
 function classifyLength(delta: number): LengthClassification {
-  if (delta < -4) return "too-short";
-  if (delta < -1) return "slightly-short";
-  if (delta <= 2) return "good-length";
-  if (delta <= 5) return "slightly-long";
+  if (delta < -6) return "too-short";
+  if (delta < -2) return "slightly-short";
+  if (delta <= 4) return "good-length";    // wider neutral band
+  if (delta <= 8) return "slightly-long";
   return "too-long";
 }
 
 function fitToScore(fit: FitClassification | LengthClassification): number {
+  // Tier targets: perfect 85-100, good 70-85, acceptable 60-70, bad <60
   const map: Record<string, number> = {
-    "too-tight": 20, "slightly-tight": 55, "fitted": 90, "balanced": 100,
-    "relaxed": 85, "oversized": 60, "too-loose": 25,
-    "too-short": 20, "slightly-short": 60, "good-length": 100,
-    "slightly-long": 65, "too-long": 20,
+    "balanced": 95, "fitted": 88,
+    "relaxed": 80, "slightly-tight": 72,
+    "oversized": 66, "slightly-short": 64,
+    "slightly-long": 70,
+    "too-tight": 40, "too-loose": 45,
+    "too-short": 38, "too-long": 42,
+    "good-length": 95,
   };
-  return map[fit] ?? 50;
+  return map[fit] ?? 60;
 }
 
 // ─── Tops Scoring ────────────────────────────────────────────────────────────
@@ -141,13 +161,14 @@ function scoreTopSize(
   const sleeveDelta = (garment.sleeveLength ?? body.sleeveCm) - body.sleeveCm;
   const lengthDelta = (garment.bodyLength ?? body.torsoLengthCm + 10) - (body.torsoLengthCm + 10);
 
-  regions.push({ region: "Shoulder", fit: classifyFit(shoulderDelta, ease.shoulder), delta: shoulderDelta });
-  regions.push({ region: "Chest", fit: classifyFit(chestDelta, ease.chest), delta: chestDelta });
-  regions.push({ region: "Waist", fit: classifyFit(waistDelta, ease.waist), delta: waistDelta });
+  regions.push({ region: "Shoulder", fit: classifyFit(shoulderDelta, ease.shoulder, "shoulder"), delta: shoulderDelta });
+  regions.push({ region: "Chest", fit: classifyFit(chestDelta, ease.chest, "chest"), delta: chestDelta });
+  regions.push({ region: "Waist", fit: classifyFit(waistDelta, ease.waist, "waist"), delta: waistDelta });
   regions.push({ region: "Sleeve", fit: classifyLength(sleeveDelta), delta: sleeveDelta });
   regions.push({ region: "Length", fit: classifyLength(lengthDelta), delta: lengthDelta });
 
-  const weights = { Shoulder: 0.30, Chest: 0.22, Waist: 0.14, Sleeve: 0.12, Length: 0.12 };
+  // Rebalanced weights per spec: shoulder 40, chest 30, waist 20, length 10 (sleeve folded into length pool)
+  const weights = { Shoulder: 0.40, Chest: 0.30, Waist: 0.20, Sleeve: 0.05, Length: 0.05 };
   let score = 0;
   for (const r of regions) {
     const w = weights[r.region as keyof typeof weights] ?? 0.10;
@@ -173,13 +194,14 @@ function scorePantsSize(
   const inseamDelta = (garment.inseam ?? body.inseamCm) - body.inseamCm;
   const riseDelta = (garment.rise ?? 26) - 26; // neutral rise
 
-  regions.push({ region: "Waist", fit: classifyFit(waistDelta, ease.waist), delta: waistDelta });
-  regions.push({ region: "Hip", fit: classifyFit(hipDelta, ease.hip), delta: hipDelta });
-  regions.push({ region: "Thigh", fit: classifyFit(thighDelta, ease.thigh), delta: thighDelta });
+  regions.push({ region: "Waist", fit: classifyFit(waistDelta, ease.waist, "waist"), delta: waistDelta });
+  regions.push({ region: "Hip", fit: classifyFit(hipDelta, ease.hip, "hip"), delta: hipDelta });
+  regions.push({ region: "Thigh", fit: classifyFit(thighDelta, ease.thigh, "thigh"), delta: thighDelta });
   regions.push({ region: "Inseam", fit: classifyLength(inseamDelta), delta: inseamDelta });
   regions.push({ region: "Rise", fit: classifyLength(riseDelta), delta: riseDelta });
 
-  const weights = { Waist: 0.24, Hip: 0.20, Thigh: 0.18, Inseam: 0.14, Rise: 0.12 };
+  // Bottoms: waist+hip dominate, length matters
+  const weights = { Waist: 0.35, Hip: 0.25, Thigh: 0.20, Inseam: 0.15, Rise: 0.05 };
   let score = 0;
   for (const r of regions) {
     const w = weights[r.region as keyof typeof weights] ?? 0.12;
@@ -202,7 +224,13 @@ export function computeFit(
   const sizeResults: SizeFitResult[] = sizeEntries.map(([size, garment]) => {
     const scorer = product.category === "bottoms" ? scorePantsSize : scoreTopSize;
     const { score, regions } = scorer(body, garment, product.fitType);
-    const adjusted = Math.round(score * confidenceModifier);
+    // Apply confidence modifier softly: blend toward raw score to avoid harsh penalties on low confidence
+    const blended = score * (0.55 + 0.45 * confidenceModifier);
+    let adjusted = Math.round(blended);
+    // Clamp: if no region is "too-tight" or "too-loose", floor at 65 (acceptable)
+    const hasCriticalIssue = regions.some(r => r.fit === "too-tight" || r.fit === "too-loose" || r.fit === "too-short" || r.fit === "too-long");
+    if (!hasCriticalIssue && adjusted < 65) adjusted = 65;
+    if (adjusted > 100) adjusted = 100;
     return { size, fitScore: adjusted, regions, recommended: false, alternate: false };
   });
 
@@ -213,12 +241,12 @@ export function computeFit(
   const rec = sizeResults[0];
   const alt = sizeResults[1];
 
-  const tightRegions = rec?.regions.filter(r => r.fit.includes("tight")).map(r => r.region) ?? [];
-  const looseRegions = rec?.regions.filter(r => r.fit.includes("loose") || r.fit === "oversized").map(r => r.region) ?? [];
+  const tightRegions = rec?.regions.filter(r => r.fit === "too-tight" || r.fit === "slightly-tight").map(r => r.region) ?? [];
+  const looseRegions = rec?.regions.filter(r => r.fit === "too-loose" || r.fit === "oversized").map(r => r.region) ?? [];
 
   let summary = `${rec?.size} is the best fit.`;
   if (tightRegions.length) summary += ` May feel snug at ${tightRegions.join(", ").toLowerCase()}.`;
-  if (looseRegions.length) summary += ` Extra room at ${looseRegions.join(", ").toLowerCase()}.`;
+  if (looseRegions.length) summary += ` Relaxed at ${looseRegions.join(", ").toLowerCase()}.`;
   if (alt) summary += ` ${alt.size} is a close alternative.`;
 
   return {
