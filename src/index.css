@@ -107,6 +107,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -114,8 +116,13 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: hsl(var(--foreground));
   }
+  h1 { font-weight: 600; }
+  h2, h3 { font-weight: 600; }
+  p { color: hsl(var(--foreground) / 0.78); }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
      with a slightly larger base + heavier weight for crisp legibility. */
@@ -157,6 +164,50 @@
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+  /* Depth tokens — use directly on cards & surfaces */
+  .shadow-d1 { box-shadow: var(--shadow-1); }
+  .shadow-d2 { box-shadow: var(--shadow-2); }
+  .shadow-d3 { box-shadow: var(--shadow-3); }
+
+  /* Premium card lift — Level 2 → Level 3 on hover/focus.
+     Subtle: -3px translate, deeper shadow, no scale. */
+  .lift-card {
+    box-shadow: var(--shadow-2);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  @media (hover: hover) {
+    .lift-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-3);
+    }
+  }
+  .lift-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-3);
+    outline: 2px solid hsl(var(--ring) / 0.5);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lift-card { transition: box-shadow 200ms ease-out; }
+    .lift-card:hover { transform: none; }
+  }
+
+  /* Editorial image overlay — bottom-up gradient for caption legibility
+     on StyledLook / OOTD media. Apply on the image wrapper as ::after. */
+  .image-overlay-editorial {
+    position: relative;
+  }
+  .image-overlay-editorial::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to top, hsl(0 0% 0% / 0.4), hsl(0 0% 0% / 0));
+    border-radius: inherit;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
