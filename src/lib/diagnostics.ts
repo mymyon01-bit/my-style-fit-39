@@ -28,8 +28,11 @@ interface QueuedEvent extends DiagnosticEvent {
 }
 
 const QUEUE: QueuedEvent[] = [];
-const FLUSH_AFTER_MS = 1500;
-const FLUSH_AFTER_COUNT = 8;
+// Tightened from 1500ms/8 → 600ms/3 so events from search/post/fit
+// reach the DB before the user navigates away. Flush is still async +
+// batched, so this does not add request overhead.
+const FLUSH_AFTER_MS = 600;
+const FLUSH_AFTER_COUNT = 3;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let cachedUserId: string | null | undefined; // undefined = not yet resolved
 

@@ -362,7 +362,12 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
   }
 }
 
-async function fetchFromDiscovery(supabase: any, query: string, limit = 12): Promise<any[]> {
+async function fetchFromDiscovery(
+  supabase: any,
+  query: string,
+  limit = 12,
+  timeoutMs = 25_000,
+): Promise<any[]> {
   const sanitizedQuery = sanitizeSearchQuery(query);
   if (!sanitizedQuery) return [];
 
@@ -372,7 +377,7 @@ async function fetchFromDiscovery(supabase: any, query: string, limit = 12): Pro
     if (!baseUrl || !serviceKey) return [];
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25_000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     const res = await fetch(`${baseUrl}/functions/v1/search-discovery`, {
       method: "POST",
@@ -740,8 +745,11 @@ serve(async (req) => {
         }
 
         let mergedForThreshold = mergeUniqueProducts(dbProducts, externalProducts);
+        // DB-first branch: cap discovery at 8s. If it doesn't return fast,
+        // we fall through to broadened DB / trending — UI never blocks for
+        // the slow Perplexity path on a non-explicit search.
         if (mergedForThreshold.length < minTarget) {
-          discoveryProducts = await fetchFromDiscovery(supabase, searchTerm, minTarget);
+          discoveryProducts = await fetchFromDiscovery(supabase, searchTerm, minTarget, 8_000);
           mergedForThreshold = mergeUniqueProducts(mergedForThreshold, discoveryProducts);
         }
 
@@ -782,8 +790,23 @@ serve(async (req) => {
         const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
         if (queryHasExplicitCategory2) {
-          console.log(`[SEARCH_INTENT] (db-first) HARD LOCK category="${intentCategory2}" filtered ${before} → ${filtered.length} (query="${query}")`);
-          allProducts = filtered;
+          // HARD LOCK — but if it would empty the result, broaden once with a
+          // category-only DB query so the UI never shows "0 items" for a
+          // valid product type. This is the "red shoes returns 2 actual
+          // red shoes" guarantee.
+          if (filtered.length === 0) {
+            console.log(`[SEARCH_INTENT] (db-first) HARD LOCK would empty results, broadening by category="${intentCategory2}"`);
+            const categoryFallback = await loadFromDB(supabase, {
+              category: intentCategory2,
+              limit: minTarget * 2,
+              excludeIds,
+              randomize: true,
+            });
+            allProducts = categoryFallback.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
+          } else {
+            console.log(`[SEARCH_INTENT] (db-first) HARD LOCK category="${intentCategory2}" filtered ${before} → ${filtered.length} (query="${query}")`);
+            allProducts = filtered;
+          }
         } else if (filtered.length >= Math.min(6, minTarget / 2)) {
           console.log(`[SEARCH_INTENT] (db-first) soft category="${intentCategory2}" filtered ${before} → ${filtered.length}`);
           allProducts = filtered;
