@@ -1,12 +1,15 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles, Upload } from "lucide-react";
+import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles, Upload, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import SafeImage from "@/components/SafeImage";
+import { RegionFit } from "@/lib/fitEngine";
+import { fitBucket, bucketColor } from "@/components/fit/BodySilhouette";
 
 /**
  * Async try-on modal — Replicate provider.
  * Layout never changes. Fit card stays mounted; this modal is async-only.
+ * Includes toggleable fit annotation overlay on the generated image.
  */
 
 export interface TryOnContext {
@@ -20,6 +23,7 @@ export interface TryOnContext {
   confidence: string;
   fitDescriptor?: string;
   productKey: string;
+  regions: RegionFit[];
 }
 
 interface Props {
@@ -30,6 +34,62 @@ interface Props {
 
 type Status = "idle" | "generating" | "ready" | "failed";
 
+// Anchor points (% of image) for region pills overlaid on the try-on image
+const REGION_ANCHORS: Record<string, { top: number; side: "left" | "right" }> = {
+  Shoulder: { top: 18, side: "right" },
+  Sleeve:   { top: 30, side: "left"  },
+  Chest:    { top: 32, side: "right" },
+  Waist:    { top: 48, side: "right" },
+  Hip:      { top: 58, side: "left"  },
+  Rise:     { top: 60, side: "right" },
+  Thigh:    { top: 70, side: "left"  },
+  Length:   { top: 82, side: "right" },
+  Inseam:   { top: 88, side: "left"  },
+};
+
+function FitOverlay({ regions }: { regions: RegionFit[] }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {regions.map((r) => {
+        const anchor = REGION_ANCHORS[r.region];
+        if (!anchor) return null;
+        const color = bucketColor(fitBucket(r.fit));
+        const isLeft = anchor.side === "left";
+        return (
+          <div
+            key={r.region}
+            className={`absolute flex items-center gap-1 ${isLeft ? "left-2" : "right-2"}`}
+            style={{ top: `${anchor.top}%` }}
+          >
+            {!isLeft && (
+              <span className="h-px w-3" style={{ backgroundColor: color, opacity: 0.85 }} />
+            )}
+            <div
+              className="flex items-center gap-1 rounded-full px-1.5 py-[3px] backdrop-blur-md"
+              style={{
+                backgroundColor: "hsla(0,0%,5%,0.55)",
+                border: `1px solid ${color}`,
+              }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-[8.5px] font-bold uppercase tracking-wider text-white">
+                {r.region}: {r.fit.replace(/-/g, " ")}
+              </span>
+            </div>
+            {isLeft && (
+              <span className="h-px w-3" style={{ backgroundColor: color, opacity: 0.85 }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
 const POLL_INTERVAL_MS = 2500;
 const POLL_MAX_ATTEMPTS = 48; // ~2 minutes
 
@@ -39,6 +99,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [overrideUserImage, setOverrideUserImage] = useState<string | null>(null);
   const [predictionId, setPredictionId] = useState<string | null>(null);
+  const [showOverlay, setShowOverlay] = useState<boolean>(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<number | null>(null);
 
@@ -206,12 +267,32 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                   </div>
                 )}
                 {status === "ready" && resultUrl && (
-                  <SafeImage
-                    src={resultUrl}
-                    alt="Virtual try-on"
-                    className="w-full h-full object-cover"
-                    fallbackClassName="w-full h-full bg-foreground/[0.04] flex items-center justify-center"
-                  />
+                  <>
+                    <SafeImage
+                      src={resultUrl}
+                      alt="Virtual try-on"
+                      className="w-full h-full object-cover"
+                      fallbackClassName="w-full h-full bg-foreground/[0.04] flex items-center justify-center"
+                    />
+                    {showOverlay && context.regions?.length > 0 && (
+                      <FitOverlay regions={context.regions} />
+                    )}
+                    {/* Toggle overlay */}
+                    <button
+                      onClick={() => setShowOverlay((v) => !v)}
+                      className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1.5 border border-white/15 text-white text-[9px] font-bold tracking-[0.15em] uppercase pointer-events-auto hover:bg-black/70 transition-colors"
+                      title={showOverlay ? "Hide fit annotations" : "Show fit annotations"}
+                    >
+                      {showOverlay ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      {showOverlay ? "FIT ON" : "FIT OFF"}
+                    </button>
+                    {/* Size badge bottom-left */}
+                    <div className="absolute bottom-2 left-2 rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1 border border-white/15">
+                      <span className="text-white text-[9px] font-bold tracking-[0.2em]">
+                        SIZE {context.recommendedSize}
+                      </span>
+                    </div>
+                  </>
                 )}
                 {status === "failed" && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
