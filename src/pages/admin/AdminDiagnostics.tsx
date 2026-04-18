@@ -325,6 +325,49 @@ export default function AdminDiagnostics() {
             </div>
           </div>
 
+          {/* Inventory ingestion — last 24h per source */}
+          <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Database className="h-3.5 w-3.5 text-accent/70" />
+                Inventory ingestion — last 24h
+              </h2>
+              <span className="text-[10px] text-foreground/50">
+                {ingestionStats.totalRuns} runs · {ingestionStats.totalInserted} inserted
+                {ingestionStats.lastTickAt && (
+                  <> · last {new Date(ingestionStats.lastTickAt).toLocaleTimeString()}</>
+                )}
+              </span>
+            </div>
+            {Object.keys(ingestionStats.bySource).length === 0 ? (
+              <p className="text-[11px] text-foreground/50">
+                No ingestion runs in the last 24h. The cron job runs every 4h — check back, or trigger inventory-builder manually.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {Object.entries(ingestionStats.bySource).map(([source, s]) => (
+                  <div
+                    key={source}
+                    className="rounded-lg border border-border/20 bg-background/30 p-3"
+                  >
+                    <p className="text-[10px] uppercase tracking-wider text-foreground/50">
+                      {source}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-foreground">
+                      {s.inserted}
+                    </p>
+                    <p className="text-[10px] text-foreground/40">
+                      inserted · {s.runs} runs
+                      {s.failed > 0 && (
+                        <span className="ml-1 text-destructive">· {s.failed} failed</span>
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Recent events table */}
           <div className="rounded-xl border border-border/30 bg-card/40">
             <div className="flex items-center justify-between border-b border-border/30 px-5 py-3">
