@@ -30,7 +30,7 @@ const DesktopNav = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 hidden lg:block">
       {/* Top bar */}
-      <div className="bg-background/95 backdrop-blur-xl">
+      <div className="relative z-10 bg-background/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-12 py-5">
           <button
             onClick={() => navigate("/")}
