@@ -3,7 +3,7 @@ import { expandQueries } from "./query-expansion-service";
 import { discoverProducts } from "./product-discovery-service";
 import { validateProduct } from "./product-validation-service";
 import { ingestQuery } from "./product-ingestion-service";
-import { appendToSession, wasRecentlyShown, type SearchSession } from "./search-session";
+import { appendToSession, markProductsAsSeen, mixUnseenFirst, type SearchSession } from "./search-session";
 import { findCluster, upsertCluster } from "./query-cluster-service";
 import { categoryFirstSort } from "./category-lock";
 import { recordEvent } from "@/lib/diagnostics";
@@ -158,14 +158,13 @@ export async function runSearch(
   if (session.categoryLock) {
     session.results = categoryFirstSort(session.results, session.categoryLock);
   }
-  const freshItems: typeof session.results = [];
-  const repeatItems: typeof session.results = [];
-  for (const p of session.results) {
-    const k = (p.externalUrl || p.id || p.imageUrl || "").toLowerCase();
-    if (wasRecentlyShown(k)) repeatItems.push(p);
-    else freshItems.push(p);
-  }
-  session.results = [...freshItems, ...repeatItems];
+  // 70/30 unseen→seen mix in the first window + anti-clustering by brand.
+  session.results = mixUnseenFirst(session.results, {
+    unseenRatio: 0.7,
+    firstWindow: 24,
+  });
+  // Persist the seen set for future searches so the user keeps seeing fresh.
+  markProductsAsSeen(session.results.slice(0, 60));
   session.status = "complete";
   opts.onProgress?.(session);
 
@@ -202,6 +201,7 @@ export async function runSearch(
       results: session.results.length,
       rejected_by_category: session.rejectedByCategory,
       rejected_by_brand_cap: session.rejectedByBrandCap,
+      rejected_by_dedupe: session.rejectedByDedupe,
       cluster_hit: clusterHit,
     },
   });
