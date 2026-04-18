@@ -10,6 +10,7 @@ import type { ParsedDiscoverQuery } from "./discover-query-parser";
 
 export type DiscoverEventName =
   | "discover_query_parsed"
+  | "discover_query_interpreted"
   | "discover_search_started"
   | "discover_search_progress"
   | "discover_search_complete"

@@ -26,6 +26,7 @@ import {
 } from "@/lib/search/search-session";
 import { parseDiscoverQuery, type ParsedDiscoverQuery } from "@/lib/discover/discover-query-parser";
 import { getCategoryLock } from "@/lib/discover/discover-category-guard";
+import { interpretQuery } from "@/lib/discover/discover-interpreter";
 import { expandDiscoverQuery, type ExpansionPlan } from "@/lib/discover/discover-query-expander";
 import { loadSeenContext, markRendered } from "@/lib/discover/discover-seen-filter";
 import {
@@ -119,6 +120,23 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
           variant_count: expansion.variants.length,
         },
       });
+
+      // Deterministic-first interpreter (KR/EN alias map). AI fallback only
+      // when the query is vague — runs async so it never blocks the search.
+      void interpretQuery(trimmed)
+        .then((interp) => {
+          logDiscoverEvent("discover_query_interpreted", {
+            query: trimmed,
+            metadata: {
+              category: interp.category,
+              language: interp.language,
+              ai_assisted: interp.aiAssisted,
+              style_tags: interp.style,
+              product_types: interp.productTypes,
+            },
+          });
+        })
+        .catch((err) => console.warn("[useDiscoverSearch] interpretQuery failed", err));
 
       setState({
         query: trimmed,
