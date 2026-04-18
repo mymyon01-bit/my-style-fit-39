@@ -253,3 +253,108 @@ export function mixUnseenFirst<T extends Product>(
   }
   return ordered;
 }
+
+/* ── Hard cap: at most N seen items in the top grid ─────────────────────── */
+
+/**
+ * Enforce a HARD ceiling on how many previously-seen items can appear in
+ * the first `windowSize` slots. Excess seen items are pushed past the
+ * window boundary; unseen items from the tail are pulled forward.
+ */
+export function capSeenInTopGrid<T extends Product>(
+  items: T[],
+  opts: { windowSize?: number; maxSeen?: number } = {},
+): T[] {
+  if (items.length <= 1) return items;
+  const windowSize = Math.min(opts.windowSize ?? 12, items.length);
+  const maxSeen = opts.maxSeen ?? 2;
+  const seenSet = new Set(loadSeen());
+
+  const top: T[] = [];
+  const overflow: T[] = [];
+  let seenCount = 0;
+  for (const p of items.slice(0, windowSize)) {
+    const k = productKey(p);
+    const isSeen = !!k && seenSet.has(k);
+    if (isSeen && seenCount >= maxSeen) {
+      overflow.push(p);
+    } else {
+      if (isSeen) seenCount++;
+      top.push(p);
+    }
+  }
+
+  const tail = items.slice(windowSize);
+  let cursor = 0;
+  while (top.length < windowSize && cursor < tail.length) {
+    const cand = tail[cursor];
+    const k = productKey(cand);
+    if (!k || !seenSet.has(k)) {
+      top.push(cand);
+      tail.splice(cursor, 1);
+    } else {
+      cursor++;
+    }
+  }
+  return [...top, ...overflow, ...tail];
+}
+
+/* ── Last-query memory: suppress repeats in CONSECUTIVE different queries ── */
+
+const LAST_QUERY_KEY = "wardrobe_last_query_products_v1";
+const LAST_QUERY_CAP = 60;
+
+interface LastQuerySnapshot {
+  query: string;
+  keys: string[];
+  ts: number;
+}
+
+function loadLastQuery(): LastQuerySnapshot | null {
+  try {
+    const raw = localStorage.getItem(LAST_QUERY_KEY);
+    return raw ? (JSON.parse(raw) as LastQuerySnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberLastQuery(query: string, products: Product[]): void {
+  if (!products.length) return;
+  const keys: string[] = [];
+  for (const p of products.slice(0, LAST_QUERY_CAP)) {
+    const k = productKey(p);
+    if (k) keys.push(k);
+  }
+  try {
+    localStorage.setItem(
+      LAST_QUERY_KEY,
+      JSON.stringify({ query: query.trim().toLowerCase(), keys, ts: Date.now() }),
+    );
+  } catch {
+    /* quota — ignore */
+  }
+}
+
+/**
+ * Demote products that appeared in the immediately previous (different)
+ * query so the user doesn't see the exact same items hop between searches.
+ * Same-query refreshes are governed by `mixUnseenFirst` instead.
+ */
+export function demoteLastQueryRepeats<T extends Product>(
+  currentQuery: string,
+  items: T[],
+): T[] {
+  const snap = loadLastQuery();
+  if (!snap || !snap.keys.length) return items;
+  if (snap.query === currentQuery.trim().toLowerCase()) return items;
+  const lastSet = new Set(snap.keys);
+  const fresh: T[] = [];
+  const repeat: T[] = [];
+  for (const p of items) {
+    const k = productKey(p);
+    if (k && lastSet.has(k)) repeat.push(p);
+    else fresh.push(p);
+  }
+  return [...fresh, ...repeat];
+}
