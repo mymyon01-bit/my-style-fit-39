@@ -30,7 +30,6 @@ import InterpretationBanner from "@/components/discover/InterpretationBanner";
 import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/discover-intent-parser";
 import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
 import { runSearchLadder } from "@/lib/discover/discover-search-ladder";
-import { normalizeFromCache } from "@/lib/search/product-normalizer";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
@@ -645,6 +644,9 @@ export default function DiscoverPage() {
           <div className="mt-8 space-y-12">
             {/* Layer 1 — Top DB recommendation grid (instant) */}
             <DbTopGrid products={dbTopProducts} loading={dbTopLoading} onSelect={setDetailProduct} />
+
+            {/* Interpretation banner — sits between DB grid and Styled Looks */}
+            <InterpretationBanner query={committedQuery} chips={intentChips} fallbackUsed={intentFallback} />
 
             {/* Layer 2 — Styled Looks shell */}
             <StyledLooksRow products={styledLooksPool} />
