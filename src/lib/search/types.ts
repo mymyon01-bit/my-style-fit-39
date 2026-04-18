@@ -17,4 +17,10 @@ export interface Product {
   color?: string;
   fit?: string;
   reason?: string;
+  /** ISO timestamp when the product was first cached. Used for freshness decay. */
+  createdAt?: string | null;
+  /** ISO timestamp of the last successful image/source validation. */
+  lastValidated?: string | null;
+  /** Source signal carried through from the cache for ranking. */
+  trendScore?: number;
 }
