@@ -71,22 +71,14 @@ const HomePage = () => {
             transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="relative"
           >
-            {/* Edgy corner label */}
-            <div className="mb-3 flex items-center gap-2">
-              <span className="h-px w-6 bg-accent/60" />
-              <span className="font-display text-[9px] font-bold uppercase tracking-[0.4em] text-accent/90">
-                Tell us
-              </span>
-            </div>
-
-            {/* Prompt frame — sharp corners, asymmetric accent */}
-            <div className="relative border border-foreground/15 bg-background/40 backdrop-blur-sm">
-              {/* corner ticks */}
-              <span className="absolute -left-[1px] -top-[1px] h-2 w-2 border-l border-t border-accent" />
-              <span className="absolute -right-[1px] -top-[1px] h-2 w-2 border-r border-t border-accent" />
-              <span className="absolute -bottom-[1px] -left-[1px] h-2 w-2 border-b border-l border-accent" />
-              <span className="absolute -bottom-[1px] -right-[1px] h-2 w-2 border-b border-r border-accent" />
-
+            {/* Modern prompt frame — rounded, tight padding, subtle glow on focus */}
+            <div
+              className={`group relative rounded-2xl border bg-background/50 backdrop-blur-md transition-all duration-300 ${
+                isFocused
+                  ? "border-accent/60 shadow-[0_0_0_4px_hsl(var(--accent)/0.08)]"
+                  : "border-foreground/15 hover:border-foreground/25"
+              }`}
+            >
               <input
                 ref={inputRef}
                 type="text"
@@ -96,9 +88,10 @@ const HomePage = () => {
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
                 placeholder={t("howAreYouFeeling")}
-                className="w-full bg-transparent px-5 py-5 text-center font-display text-[18px] font-semibold tracking-tight text-foreground outline-none placeholder:text-foreground/85 placeholder:font-semibold md:px-6 md:py-6 md:text-[22px]"
+                className="w-full bg-transparent px-4 py-3 text-center font-display text-[17px] font-semibold tracking-tight text-foreground outline-none placeholder:text-foreground/85 placeholder:font-semibold md:px-5 md:py-3.5 md:text-[20px]"
               />
             </div>
+
 
             {!weather.loading && (
               <motion.p
