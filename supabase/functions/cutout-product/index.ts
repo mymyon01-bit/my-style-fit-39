@@ -2,7 +2,11 @@
 // Removes background from a product image using Lovable AI (gemini-2.5-flash-image).
 // Returns a data URL (base64 PNG). Client caches it in localStorage keyed by source URL.
 
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
 interface RequestBody {
   imageUrl: string;
