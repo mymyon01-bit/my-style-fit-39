@@ -292,6 +292,31 @@ async function discoverUrls(shoppingQueries: string[]): Promise<DiscoveredCandid
   return deduped.slice(0, 50);
 }
 
+// Domain-scoped discovery — explicit `site:` queries for sources we want to
+// guarantee in the mix (Farfetch / YOOX / Zalando). Skip-on-fail; results
+// are merged with the open-web pass.
+const SCOPED_SOURCES: Array<{ site: string; label: string }> = [
+  { site: "farfetch.com", label: "farfetch" },
+  { site: "yoox.com", label: "yoox" },
+  { site: "zalando.com", label: "zalando" },
+];
+
+async function discoverScopedUrls(rawQuery: string): Promise<DiscoveredCandidate[]> {
+  if (!PERPLEXITY_KEY) return [];
+  const tasks = SCOPED_SOURCES.map(({ site, label }) =>
+    discoverForQuery(`site:${site} ${rawQuery}`).then((arr) => {
+      log("discover_scoped", { source: label, found: arr.length });
+      return arr;
+    }).catch(() => [] as DiscoveredCandidate[]),
+  );
+  const settled = await Promise.allSettled(tasks);
+  const out: DiscoveredCandidate[] = [];
+  for (const s of settled) {
+    if (s.status === "fulfilled") out.push(...s.value);
+  }
+  return out;
+}
+
 async function discoverForQuery(q: string): Promise<DiscoveredCandidate[]> {
   try {
     const ctrl = new AbortController();
@@ -785,8 +810,22 @@ serve(async (req) => {
       );
     }
 
-    // 2. Discover URLs
-    let candidates = (await discoverUrls(shoppingQueries)).slice(0, maxCandidates);
+    // 2. Discover URLs — open-web + domain-scoped (Farfetch / YOOX / Zalando)
+    const [openWeb, scoped] = await Promise.all([
+      discoverUrls(shoppingQueries),
+      discoverScopedUrls(rawQuery),
+    ]);
+    // Merge + dedupe by host+path. Scoped goes first so guaranteed-source
+    // candidates have priority when we cap at maxCandidates.
+    const merged: DiscoveredCandidate[] = [];
+    const seenUrl = new Set<string>();
+    for (const c of [...scoped, ...openWeb]) {
+      const k = c.url.split("?")[0].toLowerCase();
+      if (seenUrl.has(k)) continue;
+      seenUrl.add(k);
+      merged.push(c);
+    }
+    let candidates = merged.slice(0, maxCandidates);
 
     // 2b. Pre-extraction URL/title category filter
     if (primaryCategory) {
@@ -797,7 +836,7 @@ serve(async (req) => {
       });
       log("url_category_filter", { primaryCategory, before, after: candidates.length });
     }
-    log("discover_done", { totalCandidates: candidates.length });
+    log("discover_done", { totalCandidates: candidates.length, scoped: scoped.length, openWeb: openWeb.length });
 
     if (candidates.length === 0) {
       return new Response(
