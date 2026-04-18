@@ -3,7 +3,15 @@ import { expandQueries } from "./query-expansion-service";
 import { discoverProducts } from "./product-discovery-service";
 import { validateProduct } from "./product-validation-service";
 import { ingestQuery } from "./product-ingestion-service";
-import { appendToSession, markProductsAsSeen, mixUnseenFirst, type SearchSession } from "./search-session";
+import {
+  appendToSession,
+  capSeenInTopGrid,
+  demoteLastQueryRepeats,
+  markProductsAsSeen,
+  mixUnseenFirst,
+  rememberLastQuery,
+  type SearchSession,
+} from "./search-session";
 import { findCluster, upsertCluster } from "./query-cluster-service";
 import { categoryFirstSort } from "./category-lock";
 import { isCohortStale, rankByFreshness, rotateNewIntoWindow } from "./freshness";
