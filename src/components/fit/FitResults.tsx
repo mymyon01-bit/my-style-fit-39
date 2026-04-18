@@ -393,13 +393,17 @@ export default function FitResults({
         </div>
       </div>
 
-      {/* ══ VISUAL FIT — mannequin heatmap + legend + region summary ══ */}
+      {/* ══ VISUAL TRY-ON — silhouette + product overlay + S/M/L compare ══ */}
       {activeSizeResult && (
         <VisualFitPreviewCard
           regions={activeSizeResult.regions}
           category={product.category}
           activeSize={activeSize}
           fitScore={activeSizeResult.fitScore}
+          sizeResults={result.sizeResults}
+          productImageUrl={product.image}
+          productName={product.name}
+          onSizeChange={setActiveSize}
         />
       )}
 
