@@ -14,7 +14,9 @@ export type DiscoverEventName =
   | "discover_search_progress"
   | "discover_search_complete"
   | "discover_grid_render"
-  | "discover_search_failed";
+  | "discover_search_failed"
+  | "discover_orchestrator_live"
+  | "discover_orchestrator_cron";
 
 export interface DiscoverEventPayload {
   query: string;
