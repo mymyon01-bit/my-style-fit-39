@@ -1,40 +1,54 @@
 ---
-name: Multi-source inventory system
-description: product_cache with Firecrawl scraper (5 platforms parallel + web-search fallback), partial-failure tolerance, relaxed validation, never-empty result guarantee
+name: Multi-source inventory growth engine
+description: Auto-scaling product sourcing with hybrid Apify+Firecrawl pipeline, 4h cron fan-out (5 seeds × 2 sources), per-run telemetry tables, freshness merge, never-empty UX
 type: feature
 ---
-## Inventory System
+## Inventory System (current state)
 
-### Data Sources (all enabled)
-1. **ASOS, SSENSE, Farfetch, Naver, SSG** scraped in parallel via Firecrawl `/scrape` (15s/platform timeout, single attempt, allSettled — partial failure OK).
-2. **Firecrawl `/search` fallback** triggers when scraper returns < 6 items. Pulls real product URLs from Google-style web search.
-3. Sources are NEVER permanently disabled — failures are skipped per-request only.
+### Sources & roles
+- **Apify** = bulk inventory growth engine. Active on every tick + every live search (lower caps on live).
+  Actors: ASOS, Zalando, Coupang (KR), Google Shopping (universal).
+- **Firecrawl + Perplexity** (`search-discovery`) = page-level extraction and long-tail domain coverage.
+- **Crawlbase Farfetch** = high-trust supplemental.
 
-### product_cache table
-Extended columns: `trend_score`, `is_active`, `last_validated`, `platform` (asos|ssense|farfetch|naver|ssg|web|ai_search)
-Unique constraint: `(platform, external_id)` for dedup
+### Live search path (`product-search` → `multi-source-scraper`)
+- Always parallel: DB lookup + Apify (`intensity: "live"`).
+- Live caps per actor: ASOS 12, Zalando 12, Coupang 12, GShopping 15.
+- 60s in-memory cooldown per `(intensity, query)` pair on live calls.
+- Discovery only invoked on miss (<minTarget after merge).
 
-### Data flow (fresh search)
-1. External scraper (parallel, 5 platforms, ~15s wall-clock) + DB query run together
-2. Results merged, external first
-3. **Guarantee**: if total < 6, broaden by dropping text query, then pull trending — UI never sees empty state
-4. Cached to product_cache async
+### Cron path (`inventory-builder`, every 4h via pg_cron)
+- 70+ seeds across families: bags, streetwear, minimal, oversized, jackets, sneakers, shoes, formal, accessories, jewelry, color, seasonal, korean.
+- Each tick: 5 seeds in parallel. Each seed fans out to `search-discovery` + `multi-source-scraper` (`intensity: "cron"`) in parallel.
+- Cron caps per actor: ASOS 40, Zalando 40, Coupang 40, GShopping 50.
+- Cooldown is bypassed in cron mode (always fresh).
+- Per-tick math: 5 seeds × 2 pipelines × ~5 sources = ~50 source-runs/tick × 6 ticks/day = ~300 source-runs/day.
 
-### Validation rules (RELAXED)
-- Accept if: title + price + safe https image URL + product link
-- HEAD probe failure → ACCEPT (probe is best-effort only)
-- Trusted CDNs (ssensemedia, asos-media, ssgcdn, farfetch-contents, scene7) skip probe entirely
-- Reject only: broken/missing image, no link, non-fashion title
+### Telemetry tables (admin-only RLS)
+- `source_ingestion_runs`: one row per (source, seed) — fetched/inserted/deduped/failed/status/duration/metadata.
+- `ingestion_errors`: failure log with optional run_id link.
+- `diagnostics_events.inventory_tick`: per-tick rollup for the existing AdminDiagnostics panel.
 
-### Diversity / dedup
-- Max 3 per brand, max 5 per platform, max 3 per identical style combo
-- Dedup by title-key, image URL (no query), source URL
+### Dedup (unchanged from previous pass)
+- URL key = host+pathname (lowercased)
+- Normalized title = lowercase + strip non-alphanumeric (incl. Hangul) + 60 char cap
+- Image-host key = host+pathname
+- Reject on ANY collision
 
-### Per-source logging
-Every search logs: `commerce-scraper per-platform: {asos: N, ssense: N, ...}` and per-platform `[platformId] DONE in Xms — extracted, candidates, validated`.
+### Diversity caps (in product-search post-dedup)
+- max 3 per brand
+- max 6 per platform
+- 30% per-domain cap
 
-### UX rule
-Empty state is forbidden. Discover shows "Looking for fresh picks…" + reset button instead of "No verified products found".
+### Freshness
+- All Apify upserts set `last_validated`/`created_at` = now and `search_query` = lowercased query.
+- DB-first merge in product-search prefers `created_at DESC` then injects fresh externals at top.
 
-### Future switch
-When real APIs are issued (Naver Shopping API, etc.), swap source connector layer only — schema + ranking engine stay unchanged
+### Schedule
+pg_cron job `inventory-builder-tick` runs every 4h:
+`select cron.schedule('inventory-builder-tick', '0 */4 * * *', ...)`
+
+### UX guarantee (unchanged)
+- Empty state forbidden. Discover shows "Looking for fresh picks…" + reset button.
+- `<FreshnessPill>` rotates messages while live fetch resolves.
+- Sonner toast "N new arrivals just added" on each batch append.

@@ -108,10 +108,10 @@ async function callApifyActor(actorId: string, input: Record<string, unknown>): 
   return Array.isArray(data) ? data : [];
 }
 
-async function fetchApifyAsos(query: string): Promise<RawProduct[]> {
+async function fetchApifyAsos(query: string, max: number): Promise<RawProduct[]> {
   try {
     const items = await withTimeout(
-      callApifyActor(APIFY_ACTORS.asos, { searchTerms: [query], maxItems: 25, country: "US" }),
+      callApifyActor(APIFY_ACTORS.asos, { searchTerms: [query], maxItems: max, country: "US" }),
       SOURCE_BUDGET_MS,
       "apify_asos",
     );
@@ -142,10 +142,10 @@ async function fetchApifyAsos(query: string): Promise<RawProduct[]> {
   }
 }
 
-async function fetchApifyZalando(query: string): Promise<RawProduct[]> {
+async function fetchApifyZalando(query: string, max: number): Promise<RawProduct[]> {
   try {
     const items = await withTimeout(
-      callApifyActor(APIFY_ACTORS.zalando, { search: query, maxItems: 25, country: "DE" }),
+      callApifyActor(APIFY_ACTORS.zalando, { search: query, maxItems: max, country: "DE" }),
       SOURCE_BUDGET_MS,
       "apify_zalando",
     );
@@ -178,14 +178,14 @@ async function fetchApifyZalando(query: string): Promise<RawProduct[]> {
 
 // Coupang (KR). Field names follow `epctex/coupang-scraper`-style outputs;
 // safely handles missing fields if you swap actors.
-async function fetchApifyCoupang(query: string): Promise<RawProduct[]> {
+async function fetchApifyCoupang(query: string, max: number): Promise<RawProduct[]> {
   try {
     const items = await withTimeout(
       callApifyActor(APIFY_ACTORS.coupang, {
         search: [query],
         searches: [query],
         keywords: [query],
-        maxItems: 25,
+        maxItems: max,
         startUrls: [],
       }),
       SOURCE_BUDGET_MS,
@@ -226,13 +226,13 @@ async function fetchApifyCoupang(query: string): Promise<RawProduct[]> {
 
 // Google Shopping — universal coverage. Returns merchant-tagged items so
 // platform reflects the upstream store when available.
-async function fetchApifyGoogleShopping(query: string): Promise<RawProduct[]> {
+async function fetchApifyGoogleShopping(query: string, max: number): Promise<RawProduct[]> {
   try {
     const items = await withTimeout(
       callApifyActor(APIFY_ACTORS.gshopping, {
         queries: [query],
         searchQueries: [query],
-        maxItems: 30,
+        maxItems: max,
         countryCode: "us",
       }),
       SOURCE_BUDGET_MS,
@@ -403,7 +403,10 @@ async function upsertCache(items: RawProduct[], query: string): Promise<number> 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
-    const { query } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const query = body?.query;
+    // intensity: "live" (default, lower per-actor cap) or "cron" (bulk, higher cap)
+    const intensity: "live" | "cron" = body?.intensity === "cron" ? "cron" : "live";
     if (!query || typeof query !== "string") {
       return new Response(JSON.stringify({ error: "query required" }), {
         status: 400,
@@ -411,23 +414,30 @@ serve(async (req) => {
       });
     }
 
-    // 60s cooldown — same query within window returns last result set.
-    const ck = cooldownKey(query);
-    const cached = cooldownCache.get(ck);
-    if (cached && Date.now() - cached.ts < COOLDOWN_MS) {
-      console.log("[multi-source] cooldown hit", { query, age_ms: Date.now() - cached.ts });
-      return new Response(
-        JSON.stringify({ ok: true, cached: true, ...(cached.result as object) }),
-        { headers: { ...cors, "Content-Type": "application/json" } },
-      );
+    // Per-actor maxItems caps. Live keeps cost low; cron pulls bulk.
+    const cap = intensity === "cron"
+      ? { asos: 40, zalando: 40, coupang: 40, gshopping: 50 }
+      : { asos: 12, zalando: 12, coupang: 12, gshopping: 15 };
+
+    // 60s cooldown — only applies to live calls. Cron always re-fetches.
+    const ck = cooldownKey(`${intensity}:${query}`);
+    if (intensity === "live") {
+      const cached = cooldownCache.get(ck);
+      if (cached && Date.now() - cached.ts < COOLDOWN_MS) {
+        console.log("[multi-source] cooldown hit", { query, age_ms: Date.now() - cached.ts });
+        return new Response(
+          JSON.stringify({ ok: true, cached: true, intensity, ...(cached.result as object) }),
+          { headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     const t0 = Date.now();
     const settled = await Promise.allSettled([
-      fetchApifyAsos(query),
-      fetchApifyZalando(query),
-      fetchApifyCoupang(query),
-      fetchApifyGoogleShopping(query),
+      fetchApifyAsos(query, cap.asos),
+      fetchApifyZalando(query, cap.zalando),
+      fetchApifyCoupang(query, cap.coupang),
+      fetchApifyGoogleShopping(query, cap.gshopping),
       fetchCrawlbaseFarfetch(query),
     ]);
 
@@ -446,6 +456,7 @@ serve(async (req) => {
 
     const result = {
       query,
+      intensity,
       sources: perSource,
       merged: merged.length,
       deduped: deduped.length,
@@ -453,7 +464,7 @@ serve(async (req) => {
       products: shuffled.slice(0, 60),
     };
 
-    cooldownCache.set(ck, { ts: Date.now(), result });
+    if (intensity === "live") cooldownCache.set(ck, { ts: Date.now(), result });
     // Cheap eviction of old keys to keep memory bounded.
     if (cooldownCache.size > 200) {
       const cutoff = Date.now() - COOLDOWN_MS;
