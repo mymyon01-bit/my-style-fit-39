@@ -3,7 +3,7 @@ import { expandQueries } from "./query-expansion-service";
 import { discoverProducts } from "./product-discovery-service";
 import { validateProduct } from "./product-validation-service";
 import { ingestQuery } from "./product-ingestion-service";
-import { appendToSession, type SearchSession } from "./search-session";
+import { appendToSession, wasRecentlyShown, type SearchSession } from "./search-session";
 import { findCluster, upsertCluster } from "./query-cluster-service";
 import { categoryFirstSort } from "./category-lock";
 import { recordEvent } from "@/lib/diagnostics";
@@ -135,10 +135,20 @@ export async function runSearch(
     prevCount = session.results.length;
   }
 
-  // Final pass: ensure category-matched products lead the list when locked.
+  // Final pass: ensure category-matched products lead the list when locked,
+  // then softly demote items already shown in recent prior sessions so the
+  // user stops seeing the same hero items over and over.
   if (session.categoryLock) {
     session.results = categoryFirstSort(session.results, session.categoryLock);
   }
+  const fresh: typeof session.results = [];
+  const repeat: typeof session.results = [];
+  for (const p of session.results) {
+    const k = (p.externalUrl || p.id || p.imageUrl || "").toLowerCase();
+    if (wasRecentlyShown(k)) repeat.push(p);
+    else fresh.push(p);
+  }
+  session.results = [...fresh, ...repeat];
   session.status = "complete";
   opts.onProgress?.(session);
 
@@ -146,6 +156,7 @@ export async function runSearch(
     query: session.query,
     categoryLock: session.categoryLock,
     rejectedByCategory: session.rejectedByCategory,
+    rejectedByBrandCap: session.rejectedByBrandCap,
     final: session.results.length,
     cycles: session.cycle,
   });
@@ -173,6 +184,7 @@ export async function runSearch(
       validated: totalValidated,
       results: session.results.length,
       rejected_by_category: session.rejectedByCategory,
+      rejected_by_brand_cap: session.rejectedByBrandCap,
       cluster_hit: clusterHit,
     },
   });
