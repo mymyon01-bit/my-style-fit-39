@@ -432,7 +432,7 @@ async function fetchFromNaverApi(query: string, display = 30): Promise<Extracted
       const link = safeUrl(it.link);
       const image = safeUrl(it.image);
       if (!title || !link || !image) continue;
-      if (!FASHION_RE.test(title)) continue;
+      if (!isFashionTitle(title)) continue;
       const price = it.lprice ? `₩${Number(it.lprice).toLocaleString("ko-KR")}` : undefined;
       out.push({
         title: title.slice(0, 180),
@@ -555,7 +555,7 @@ async function extractWithFirecrawl(url: string): Promise<ExtractedProduct | nul
     const safeImg = safeUrl(image);
     if (!title || !safeImg || !isImageSafe(safeImg)) return null;
     const cleanTitle = title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180);
-    if (!FASHION_RE.test(cleanTitle) && !FASHION_RE.test(description)) return null;
+    if (!isFashionTitle(cleanTitle) && !isFashionTitle(description)) return null;
     const host = new URL(url).hostname.replace(/^www\./, "");
     const brand = (meta["og:site_name"] || meta.ogSiteName || "").toString();
     return {
@@ -610,7 +610,7 @@ async function extractWithSimpleFetch(url: string): Promise<ExtractedProduct | n
     const safeImg = safeUrl(image);
     if (!title || !safeImg || !isImageSafe(safeImg)) return null;
     const cleanTitle = title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180);
-    if (!FASHION_RE.test(cleanTitle) && !FASHION_RE.test(description)) return null;
+    if (!isFashionTitle(cleanTitle) && !isFashionTitle(description)) return null;
     const host = new URL(url).hostname.replace(/^www\./, "");
     return {
       title: cleanTitle,
