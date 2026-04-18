@@ -2174,6 +2174,8 @@ const DiscoverPage = () => {
     setLiveStatus("Searching across more stores…");
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    // 300ms debounce: collapses rapid typing/Enter into one search session,
+    // prevents wasted edge-function invocations during fast input.
     debounceTimerRef.current = setTimeout(async () => {
       const sessionId = Date.now() + Math.floor(Math.random() * 1000);
       const session = { id: sessionId, query: q, cycle: 0, totalAdded: 0, emptyCycles: 0, stopped: false };
