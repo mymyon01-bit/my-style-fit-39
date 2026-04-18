@@ -106,7 +106,7 @@ export function normalizeDiscoverProduct(raw: unknown, ctx: NormalizeContext): D
   const freshnessScore = freshnessWeight({
     createdAt,
     lastValidated: lastVerifiedAt,
-  } as Pick<Product, "createdAt" | "lastValidated">);
+  } as Product);
 
   return {
     id,
