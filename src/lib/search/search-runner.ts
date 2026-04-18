@@ -20,6 +20,7 @@ import { enforceKoreanMix, enforceSourceQuota, isKoreanMarketQuery, sourceOf } f
 import { supabase } from "@/integrations/supabase/client";
 import { prioritizeUnseenDomains, recordDomainsShown } from "./domain-rotation";
 import { recordEvent } from "@/lib/diagnostics";
+import { loadDbSeenKeys, recordDbSeen } from "./discovery-cache";
 
 export interface RunSearchOptions {
   /** Called whenever new products are appended to the session. */
@@ -62,6 +63,10 @@ export async function runSearch(
     queryType: type,
     categoryLock: session.categoryLock,
   });
+
+  // Load DB-backed 24h seen set (logged-in users only). Used to filter the
+  // result set so the same items don't reappear across devices/sessions.
+  const dbSeen = await loadDbSeenKeys();
 
   // ── STAGE 1 — DB FIRST (instant paint) ──────────────────────────────────
   // Cluster lookup + raw product_cache fallback. Never blocks on external.
@@ -249,10 +254,25 @@ export async function runSearch(
   session.results = demoteLastQueryRepeats(session.query, session.results);
   // HARD ceiling: at most 2 already-seen items in the first 12 slots.
   session.results = capSeenInTopGrid(session.results, { windowSize: 12, maxSeen: 2 });
+  // DB-backed 24h suppression (logged-in users): demote anything already
+  // seen on any device in the last 24h. Items aren't removed — just pushed
+  // past the unseen ones — so the grid still fills if the catalog is small.
+  if (dbSeen.size > 0) {
+    const fresh: typeof session.results = [];
+    const repeat: typeof session.results = [];
+    for (const p of session.results) {
+      const k = (p.externalUrl || p.id || "").toLowerCase();
+      if (k && dbSeen.has(k)) repeat.push(p);
+      else fresh.push(p);
+    }
+    session.results = [...fresh, ...repeat];
+  }
   // Persist seen set, domain history, and last-query snapshot for future searches.
   markProductsAsSeen(session.results.slice(0, 60));
   recordDomainsShown(session.results.slice(0, 24));
   rememberLastQuery(session.query, session.results.slice(0, 60));
+  // Best-effort DB write (non-blocking) so the 24h window keeps growing.
+  void recordDbSeen(session.results.slice(0, 30));
   session.status = "complete";
   opts.onProgress?.(session);
 
