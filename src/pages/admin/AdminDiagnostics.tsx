@@ -10,7 +10,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Camera, Ruler, MessageCircle, RefreshCw, Database } from "lucide-react";
+import { Loader2, Search, Camera, Ruler, MessageCircle, RefreshCw, Database, Globe, Sparkles, Layers } from "lucide-react";
 
 type EventRow = {
   id: string;
