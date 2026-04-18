@@ -299,6 +299,30 @@ export async function runSearch(
   return session;
 }
 
+/**
+ * Pull the current user's language/location from profiles (best-effort) and
+ * decide if the search should bias toward Korean sources.
+ */
+async function detectKoreanMarket(query: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    let userLanguage: string | null = null;
+    let userLocation: string | null = null;
+    if (user) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("language, location")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      userLanguage = data?.language ?? null;
+      userLocation = data?.location ?? null;
+    }
+    return isKoreanMarketQuery(query, { userLanguage, userLocation });
+  } catch {
+    return isKoreanMarketQuery(query);
+  }
+}
+
 function countBySource(items: { externalUrl?: string | null; source?: string }[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const p of items) {
