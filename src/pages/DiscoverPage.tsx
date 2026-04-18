@@ -26,6 +26,10 @@ import type { Product } from "@/lib/search/types";
 import DbTopGrid from "@/components/discover/DbTopGrid";
 import StyledLooksRow from "@/components/discover/StyledLooksRow";
 import LiveResultsSection from "@/components/discover/LiveResultsSection";
+import InterpretationBanner from "@/components/discover/InterpretationBanner";
+import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/discover-intent-parser";
+import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
+import { runSearchLadder } from "@/lib/discover/discover-search-ladder";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
@@ -131,6 +135,10 @@ export default function DiscoverPage() {
   const [freshFlash, setFreshFlash] = useState<{ count: number; label: string } | null>(null);
   const [dbSeen, setDbSeen] = useState<Set<string>>(new Set());
   const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
+  const [intent, setIntent] = useState<ParsedIntent | null>(null);
+  const [intentChips, setIntentChips] = useState<string[]>([]);
+  const [intentFallback, setIntentFallback] = useState<"alias" | "ai" | null>(null);
+  const [ladderStage, setLadderStage] = useState<string | null>(null);
 
   const sessionRef = useRef<SearchSession | null>(null);
   const searchRunRef = useRef(0);
@@ -227,6 +235,65 @@ export default function DiscoverPage() {
       setLiveStatus("Loading more products…");
       setFreshFlash(null);
       setAllLiveResults([]);
+
+      // ── INTENT PARSE (deterministic, instant) ───────────────────────
+      let parsedIntent = parseIntent(query);
+      const usedAlias = parsedIntent.enAliases.length > 0;
+      setIntent(parsedIntent);
+      setIntentChips(summarizeIntent(parsedIntent));
+      setIntentFallback(usedAlias ? "alias" : null);
+
+      // ── AI FALLBACK for vague/emotional unknowns (non-blocking) ─────
+      if (shouldUseAiFallback(parsedIntent)) {
+        void expandIntentWithAi(query).then((ai) => {
+          if (!ai || searchRunRef.current !== runId) return;
+          parsedIntent = mergeAiIntoIntent(parsedIntent, ai);
+          setIntent(parsedIntent);
+          setIntentChips(summarizeIntent(parsedIntent));
+          setIntentFallback("ai");
+        });
+      }
+
+      // ── SEARCH LADDER (DB-first seed, never empty) ──────────────────
+      void runSearchLadder(parsedIntent).then((ladder) => {
+        if (searchRunRef.current !== runId) return;
+        setLadderStage(ladder.stageReached);
+        if (ladder.products.length > 0 && allLiveResults.length === 0) {
+          // Seed Live Results immediately with cached ladder hits so users
+          // never see an empty Live section while runSearch warms up.
+          const seeded: DiscoverRenderableProduct[] = ladder.products.slice(0, PAGE_SIZE).map((p) => ({
+            id: p.id,
+            title: p.title,
+            brand: p.brand || undefined,
+            price: p.price != null ? String(p.price) : undefined,
+            category: p.category,
+            imageUrl: p.imageUrl,
+            externalUrl: p.productUrl,
+            storeName: p.source || null,
+            platform: null,
+            styleTags: [],
+            color: p.color || undefined,
+            fit: undefined,
+            reason: undefined,
+            createdAt: p.createdAt,
+            lastValidated: p.lastVerifiedAt || null,
+            trendScore: 0,
+            source: p.source,
+            origin: "product_cache",
+            queryFamily: p.queryFamily || (parsedIntent.primaryCategory || "general"),
+            freshnessScore: p.freshnessScore ?? 0.5,
+            sourceDomain: p.sourceDomain,
+            sourceKey: p.source,
+            isLocalSeen: false,
+            isDbSeen: false,
+            isUnseen: true,
+            isFresh: (p.freshnessScore ?? 0) > 0.5,
+            finalScore: 1,
+          }));
+          setAllLiveResults(seeded);
+        }
+      }).catch((e) => console.warn("[discover] ladder failed", e));
+
       const session = createSearchSession(query);
       sessionRef.current = session;
 
@@ -577,6 +644,9 @@ export default function DiscoverPage() {
           <div className="mt-8 space-y-12">
             {/* Layer 1 — Top DB recommendation grid (instant) */}
             <DbTopGrid products={dbTopProducts} loading={dbTopLoading} onSelect={setDetailProduct} />
+
+            {/* Interpretation banner — sits between DB grid and Styled Looks */}
+            <InterpretationBanner query={committedQuery} chips={intentChips} fallbackUsed={intentFallback} />
 
             {/* Layer 2 — Styled Looks shell */}
             <StyledLooksRow products={styledLooksPool} />

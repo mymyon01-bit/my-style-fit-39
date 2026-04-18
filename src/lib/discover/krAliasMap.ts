@@ -29,12 +29,15 @@ export function isKoreanQuery(q: string): boolean {
 const KR_ALIASES: Array<{ kr: string; aliases: string[]; family: string }> = [
   // multi-word styling phrases
   { kr: "코트 코디",     aliases: ["coat outfit", "outerwear styling", "coat look"], family: "coat" },
+  { kr: "비오는날 출근룩", aliases: ["rainy work outfit", "rain commute", "weather business casual"], family: "outerwear" },
   { kr: "비오는날 코디", aliases: ["rainy outfit", "rain outerwear", "weather outfit"], family: "outerwear" },
   { kr: "데이트룩",      aliases: ["date outfit", "smart casual", "date look"], family: "outfit" },
   { kr: "출근룩",        aliases: ["work outfit", "business casual", "office look"], family: "outfit" },
   { kr: "미니멀 룩",     aliases: ["minimal outfit", "clean look", "neutral outfit"], family: "minimal" },
   { kr: "여름 코디",     aliases: ["summer outfit", "summer look"], family: "seasonal" },
   { kr: "겨울 코디",     aliases: ["winter outfit", "winter look"], family: "seasonal" },
+  { kr: "뉴욕 스트릿",   aliases: ["nyc streetwear", "new york street", "urban street"], family: "streetwear" },
+  { kr: "꾸안꾸 느낌",   aliases: ["effortless", "casual clean", "minimal relaxed"], family: "minimal" },
 
   // bags
   { kr: "가방",   aliases: ["bag", "bags", "tote", "crossbody", "backpack"], family: "bag" },
@@ -55,10 +58,20 @@ const KR_ALIASES: Array<{ kr: string; aliases: string[]; family: string }> = [
   { kr: "바지",   aliases: ["pants", "trousers"], family: "pants" },
   { kr: "청바지", aliases: ["jeans", "denim"], family: "jeans" },
   { kr: "치마",   aliases: ["skirt"], family: "skirt" },
-  // styles
-  { kr: "미니멀", aliases: ["minimal", "clean", "neutral"], family: "minimal" },
-  { kr: "힙한",   aliases: ["streetwear", "oversized", "urban"], family: "streetwear" },
-  { kr: "코디",   aliases: ["outfit", "look", "styling"], family: "outfit" },
+  // styles / moods / vibes
+  { kr: "미니멀",   aliases: ["minimal", "clean", "neutral"], family: "minimal" },
+  { kr: "깔끔한",   aliases: ["minimal", "clean", "neutral"], family: "minimal" },
+  { kr: "꾸안꾸",   aliases: ["effortless", "casual clean", "minimal relaxed"], family: "minimal" },
+  { kr: "힙한",     aliases: ["streetwear", "edgy", "oversized", "urban"], family: "streetwear" },
+  { kr: "스트릿",   aliases: ["streetwear", "urban", "street"], family: "streetwear" },
+  { kr: "오버핏",   aliases: ["oversized", "loose", "relaxed"], family: "oversized" },
+  { kr: "빈티지",   aliases: ["vintage", "retro"], family: "vintage" },
+  { kr: "러블리",   aliases: ["romantic", "feminine", "soft"], family: "romantic" },
+  { kr: "캐주얼",   aliases: ["casual", "relaxed", "everyday"], family: "casual" },
+  { kr: "클래식",   aliases: ["classic", "timeless", "tailored"], family: "classic" },
+  { kr: "코디",     aliases: ["outfit", "look", "styling"], family: "outfit" },
+  // moods / weather single-token
+  { kr: "비오는",   aliases: ["rainy", "rain"], family: "weather" },
 ];
 
 /**
