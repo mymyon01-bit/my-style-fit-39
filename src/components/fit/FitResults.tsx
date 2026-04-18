@@ -305,47 +305,89 @@ export default function FitResults({
         </div>
       )}
 
-      {/* ══ RECOMMENDED SIZE BLOCK ══ */}
-      <div className="rounded-2xl border border-accent/20 bg-accent/[0.03] p-5">
-        <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50 mb-3">RECOMMENDED SIZE</p>
-        <div className="flex items-baseline gap-3">
-          <span className="font-display text-5xl font-bold text-foreground">{result.recommendedSize}</span>
-          {result.alternateSize !== "N/A" && (
-            <span className="text-sm text-foreground/40">alt: {result.alternateSize}</span>
-          )}
+      {/* ══ HERO FIT SCORE — large number + size badge (hardcoded layout) ══ */}
+      <div className="rounded-3xl border border-accent/20 bg-gradient-to-br from-accent/[0.06] to-accent/[0.02] p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`relative flex h-24 w-24 items-center justify-center rounded-full ring-2 ${heroRing} bg-background/40`}>
+              <motion.span
+                key={heroScore}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                className={`font-display text-4xl font-bold ${heroColor}`}
+              >
+                {heroScore}
+              </motion.span>
+              <span className="absolute bottom-1.5 text-[8px] font-bold tracking-[0.2em] text-foreground/40">
+                /100
+              </span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50">FIT SCORE</p>
+              <p className={`text-sm font-semibold ${heroColor}`}>{heroFitType}</p>
+              <span className={`inline-flex items-center text-[9px] font-bold tracking-[0.15em] px-2 py-0.5 rounded-full ${conf.bg} ${conf.color}`}>
+                {conf.text} CONFIDENCE
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-bold tracking-[0.2em] text-foreground/50 mb-1">SIZE</p>
+            <p className="font-display text-5xl font-bold text-foreground leading-none">{activeSize}</p>
+            {result.alternateSize !== "N/A" && activeSize !== result.alternateSize && (
+              <p className="text-[10px] text-foreground/40 mt-1">alt: {result.alternateSize}</p>
+            )}
+          </div>
         </div>
-        {recommended && (
-          <p className="text-[11px] text-foreground/60 mt-3 leading-relaxed">
-            {recommended.regions.filter(r => r.fit === "balanced" || r.fit === "fitted" || r.fit === "good-length").length > 0
-              ? `Best fit across ${recommended.regions.filter(r => r.fit === "balanced" || r.fit === "fitted" || r.fit === "good-length").map(r => r.region.toLowerCase()).join(", ")}.`
-              : ""
-            }
-            {recommended.regions.filter(r => r.fit.includes("tight")).length > 0
-              ? ` Slightly snug at ${recommended.regions.filter(r => r.fit.includes("tight")).map(r => r.region.toLowerCase()).join(", ")}.`
-              : ""
-            }
-            {alternate && ` ${alternate.size} offers ${
-              alternate.regions.filter(r => r.fit === "balanced" || r.fit === "relaxed").length > recommended.regions.filter(r => r.fit === "balanced" || r.fit === "relaxed").length
-                ? "more room" : "a tighter feel"
-            } as an alternative.`}
-          </p>
-        )}
+
+        {/* Size switcher chips */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          {result.sizeResults.map((sr) => {
+            const isActive = sr.size === activeSize;
+            const isRec = sr.recommended;
+            return (
+              <button
+                key={sr.size}
+                onClick={() => setActiveSize(sr.size)}
+                className={`relative flex flex-col items-center justify-center rounded-xl border px-3 py-2 transition-all ${
+                  isActive
+                    ? "border-accent/50 bg-accent/15 text-foreground"
+                    : "border-foreground/10 bg-background/40 text-foreground/60 hover:bg-foreground/[0.04]"
+                }`}
+              >
+                <span className="font-display text-sm font-bold leading-none">{sr.size}</span>
+                <span className={`text-[9px] font-bold tracking-wider mt-0.5 ${
+                  sr.fitScore >= 80 ? "text-green-500" :
+                  sr.fitScore >= 65 ? "text-accent" : "text-orange-500"
+                }`}>
+                  {sr.fitScore}
+                </span>
+                {isRec && (
+                  <span className="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-accent ring-2 ring-background" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ══ BODY DIAGRAM ══ */}
-      {recommended && (
+      {/* ══ BODY DIAGRAM — driven by active size ══ */}
+      {activeSizeResult && (
         <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
           <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50 mb-2">BODY FIT MAP</p>
-          <BodySilhouette regions={recommended.regions} category={product.category} />
+          <BodySilhouette regions={activeSizeResult.regions} category={product.category} />
         </div>
       )}
 
-      {/* ══ REGION-BASED FIT INDICATORS ══ */}
-      {recommended && (
+      {/* ══ REGION-BASED FIT INDICATORS — driven by active size ══ */}
+      {activeSizeResult && (
         <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-          <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50 mb-1">REGION ANALYSIS</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50">REGION ANALYSIS</p>
+            <span className="text-[9px] tracking-[0.2em] text-foreground/40">SIZE {activeSize}</span>
+          </div>
           <div className="divide-y divide-foreground/[0.04]">
-            {recommended.regions.map(r => (
+            {activeSizeResult.regions.map(r => (
               <RegionIndicator key={r.region} region={r.region} fit={r.fit} delta={r.delta} />
             ))}
           </div>
