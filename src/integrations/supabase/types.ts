@@ -836,10 +836,13 @@ export type Database = {
           created_at: string
           id: string
           last_refreshed_at: string
+          normalized_query: string | null
           product_count: number
           product_ids: string[]
           query_family: string
+          tags: string[]
           updated_at: string
+          usage_count: number
         }
         Insert: {
           category?: string | null
@@ -847,10 +850,13 @@ export type Database = {
           created_at?: string
           id?: string
           last_refreshed_at?: string
+          normalized_query?: string | null
           product_count?: number
           product_ids?: string[]
           query_family: string
+          tags?: string[]
           updated_at?: string
+          usage_count?: number
         }
         Update: {
           category?: string | null
@@ -858,10 +864,13 @@ export type Database = {
           created_at?: string
           id?: string
           last_refreshed_at?: string
+          normalized_query?: string | null
           product_count?: number
           product_ids?: string[]
           query_family?: string
+          tags?: string[]
           updated_at?: string
+          usage_count?: number
         }
         Relationships: []
       }
@@ -1128,6 +1137,17 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      upsert_query_cluster: {
+        Args: {
+          _category: string
+          _cluster_key: string
+          _normalized_query: string
+          _product_ids: string[]
+          _query_family: string
+          _tags: string[]
+        }
+        Returns: undefined
       }
     }
     Enums: {
