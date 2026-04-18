@@ -36,6 +36,17 @@ export interface GeneratedOutfit {
 
 type FashionCategory = "TOPS" | "BOTTOMS" | "SHOES" | "BAGS" | "ACCESSORIES";
 
+/** Tiny deterministic 32-bit string hash (FNV-1a). Used to pick stable
+ *  bag/accessory side items per outfit so the card never visually regenerates. */
+function stringHash(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
 // ── Style groupings for matching ──
 const STYLE_GROUPS: Record<string, string[]> = {
   minimal: ["minimal", "clean", "modern", "minimalist", "classic", "tailored"],
