@@ -134,11 +134,12 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       attempts++;
       try {
         const { data, error: invokeErr } = await supabase.functions.invoke(
-          `fit-tryon-replicate?id=${encodeURIComponent(id)}`,
+          `fit-tryon-router?id=${encodeURIComponent(id)}`,
           { method: "GET" }
         );
         if (invokeErr) throw invokeErr;
-        console.log("[TryOn] poll", id, data?.status);
+        console.log("[TryOn] poll", id, data?.status, data?.provider);
+        if (data?.provider) setProvider(data.provider);
         if (data?.status === "succeeded" && data?.resultImageUrl) {
           stopPolling();
           setResultUrl(data.resultImageUrl);
@@ -171,23 +172,29 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     setStatus("generating");
     setError(null);
     setResultUrl(null);
+    setProvider(null);
     try {
       console.log("[TryOn] start", { productKey: context.productKey, size: context.recommendedSize, force: forceRegenerate });
-      const { data, error } = await supabase.functions.invoke("fit-tryon-replicate", {
+      const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
         body: {
           userImageUrl: overrideUserImage || context.userImageUrl,
           productImageUrl: context.productImageUrl,
           productKey: context.productKey,
           productCategory: context.category,
           selectedSize: context.recommendedSize,
-          fitSummary: { fitType: context.fitDescriptor, confidence: context.confidence },
+          fitDescriptor: context.fitDescriptor,
+          regions: context.regions?.map((r) => ({ region: r.region, fit: r.fit })) ?? [],
           forceRegenerate,
+          mode: "high", // Replicate first, Gemini fallback
         },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error && data?.status !== "starting" && data?.status !== "processing") {
+        throw new Error(data.error);
+      }
 
       console.log("[TryOn] created", data);
+      if (data?.provider) setProvider(data.provider);
       if (data?.status === "succeeded" && data?.resultImageUrl) {
         setResultUrl(data.resultImageUrl);
         setStatus("ready");
