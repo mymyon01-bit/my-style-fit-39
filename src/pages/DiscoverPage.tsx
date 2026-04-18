@@ -136,6 +136,10 @@ export default function DiscoverPage() {
   const [freshFlash, setFreshFlash] = useState<{ count: number; label: string } | null>(null);
   const [dbSeen, setDbSeen] = useState<Set<string>>(new Set());
   const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
+  const [intent, setIntent] = useState<ParsedIntent | null>(null);
+  const [intentChips, setIntentChips] = useState<string[]>([]);
+  const [intentFallback, setIntentFallback] = useState<"alias" | "ai" | null>(null);
+  const [ladderStage, setLadderStage] = useState<string | null>(null);
 
   const sessionRef = useRef<SearchSession | null>(null);
   const searchRunRef = useRef(0);
