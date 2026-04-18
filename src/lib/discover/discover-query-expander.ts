@@ -39,7 +39,63 @@ function passesCategoryGuard(text: string, lock: PrimaryCategory | null): boolea
   return inferred === lock;                  // any other category noun = drift, drop it
 }
 
-const SEASONAL_HINTS = ["new arrivals", "trending", "this week"];
+/** Rotation pools — each search picks a different slice so the candidate
+ *  pool is never frozen across repeated queries. */
+const SEASONAL_POOL = [
+  "new arrivals",
+  "trending",
+  "this week",
+  "just in",
+  "fresh drops",
+  "editor picks",
+  "must have",
+  "최신",            // KR: "newest"
+  "신상",            // KR: "new arrival"
+  "인기",            // KR: "trending"
+];
+
+const STYLE_ROTATION_POOL = [
+  "minimal",
+  "street",
+  "y2k",
+  "old money",
+  "clean",
+  "vintage",
+  "oversized",
+  "tailored",
+];
+
+const DOMAIN_SCOPE_POOL = [
+  "site:asos.com",
+  "site:farfetch.com",
+  "site:yoox.com",
+  "site:zalando.com",
+  "site:ssense.com",
+  "site:shopping.naver.com",
+  "site:coupang.com",
+  "site:musinsa.com",
+];
+
+const SHOPPING_PHRASING_POOL = ["shop", "buy", "online", "best", "where to buy"];
+
+/** Deterministic but rotation-safe pick: combines a daily epoch with the
+ *  query so the same query gets a fresh slice each day, and different queries
+ *  in the same session also get different slices. */
+function rotationOffset(query: string): number {
+  const day = Math.floor(Date.now() / (1000 * 60 * 60 * 6)); // rotates every 6h
+  let hash = 0;
+  for (let i = 0; i < query.length; i++) hash = (hash * 31 + query.charCodeAt(i)) | 0;
+  return Math.abs(hash + day);
+}
+
+function rotateSlice<T>(pool: T[], offset: number, count: number): T[] {
+  if (pool.length === 0 || count <= 0) return [];
+  const out: T[] = [];
+  for (let i = 0; i < Math.min(count, pool.length); i++) {
+    out.push(pool[(offset + i) % pool.length]);
+  }
+  return out;
+}
 
 const SCENARIO_STYLE_BOOSTS: Record<string, string[]> = {
   wedding: ["formal", "elegant"],
@@ -102,12 +158,24 @@ export function expandDiscoverQuery(parsed: ParsedDiscoverQuery): ExpansionPlan 
   // Brand carriers
   if (parsed.brand && lock) tryPush(`${parsed.brand} ${lock}`);
 
-  // Seasonal freshness — also category-aware
-  if (variants.length < 4) {
-    for (const hint of SEASONAL_HINTS) {
-      tryPush(lock ? `${hint} ${lock}` : hint);
-      if (variants.length >= 4) break;
-    }
+  // ROTATION: pick a fresh slice of style + seasonal + shopping + domain
+  // modifiers each invocation so the candidate pool evolves over time.
+  const offset = rotationOffset(parsed.normalized);
+
+  for (const style of rotateSlice(STYLE_ROTATION_POOL, offset, 2)) {
+    if (parsed.styleModifiers.includes(style)) continue;
+    tryPush(lock ? `${style} ${lock}` : `${style} outfit`);
+  }
+  for (const hint of rotateSlice(SEASONAL_POOL, offset + 1, 2)) {
+    tryPush(lock ? `${hint} ${lock}` : hint);
+  }
+  for (const phrase of rotateSlice(SHOPPING_PHRASING_POOL, offset + 2, 1)) {
+    tryPush(lock ? `${phrase} ${lock}` : `${phrase} ${base}`);
+  }
+  // Domain scopes piggyback as discovery hints (search-runner can choose to
+  // honor them; harmless if it doesn't).
+  for (const scope of rotateSlice(DOMAIN_SCOPE_POOL, offset + 3, 2)) {
+    tryPush(`${base} ${scope}`);
   }
 
   if (rejectedByGuard > 0) {
