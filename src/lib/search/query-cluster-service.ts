@@ -11,6 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeFromCache } from "./product-normalizer";
 import type { Product } from "./types";
+import { detectPrimaryCategory } from "./category-lock";
 
 /* ─────────── Normalization ─────────── */
 
