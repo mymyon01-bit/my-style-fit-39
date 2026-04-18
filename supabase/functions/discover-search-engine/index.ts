@@ -26,13 +26,23 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN");
 const APIFY_WEB_SCRAPER =
   Deno.env.get("APIFY_WEB_SCRAPER_ACTOR") || "apify~web-scraper";
+// Puppeteer scraper renders JS — required for SPA-heavy Korean commerce
+// (musinsa, 29cm, wconcept, ssg). Falls back to web-scraper for static sites.
+const APIFY_PUPPETEER_SCRAPER =
+  Deno.env.get("APIFY_PUPPETEER_SCRAPER_ACTOR") || "apify~puppeteer-scraper";
 
-const VARIANTS_PER_RUN = 10;
+const VARIANTS_PER_RUN = 6;
 const DEFAULT_LIMIT_PER_DOMAIN = 30;
 
 const KR_PRIMARY = ["musinsa.com", "29cm.co.kr", "wconcept.co.kr", "ssg.com"];
 const GLOBAL_SECONDARY = ["yoox.com", "asos.com", "oakandfort.com"];
 const DEFAULT_DOMAINS = [...KR_PRIMARY, ...GLOBAL_SECONDARY];
+
+// Domains that need real Chromium rendering (SPA hydration + anti-bot).
+const SPA_DOMAINS = new Set(["musinsa.com", "29cm.co.kr", "wconcept.co.kr", "ssg.com"]);
+function actorForDomain(domain: string): string {
+  return SPA_DOMAINS.has(domain) ? APIFY_PUPPETEER_SCRAPER : APIFY_WEB_SCRAPER;
+}
 
 // Webhook URL Apify will call when each run finishes.
 const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/apify-webhook`;
