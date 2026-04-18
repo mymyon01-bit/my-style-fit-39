@@ -526,6 +526,150 @@ export default function AdminDiagnostics() {
             )}
           </div>
 
+          {/* ───────── Phase 3: Apify per-domain ───────── */}
+          <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Globe className="h-3.5 w-3.5 text-accent/70" />
+                Apify ingestion — per-domain (last 24h)
+              </h2>
+              <span className="text-[10px] text-foreground/50">
+                {apifyDomainStats.totalRuns} runs
+              </span>
+            </div>
+            {Object.keys(apifyDomainStats.byDomain).length === 0 ? (
+              <p className="text-[11px] text-foreground/50">
+                No Apify runs in the last 24h. Trigger discover-search-engine to populate.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-left text-foreground/50 border-b border-border/20">
+                      <th className="py-2 pr-3 font-medium">Domain</th>
+                      <th className="py-2 pr-3 font-medium">Runs</th>
+                      <th className="py-2 pr-3 font-medium">Success</th>
+                      <th className="py-2 pr-3 font-medium">Failed</th>
+                      <th className="py-2 pr-3 font-medium">Inserted</th>
+                      <th className="py-2 pr-3 font-medium">Median</th>
+                      <th className="py-2 pr-3 font-medium">p95</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/10">
+                    {Object.entries(apifyDomainStats.byDomain)
+                      .sort((a, b) => b[1].runs - a[1].runs)
+                      .map(([domain, s]) => {
+                        const successRate = s.runs ? Math.round((s.succeeded / s.runs) * 100) : 0;
+                        const med = Math.round(median(s.durations));
+                        const p = Math.round(p95(s.durations));
+                        return (
+                          <tr key={domain}>
+                            <td className="py-2 pr-3 font-mono text-foreground/80 truncate max-w-[200px]">{domain}</td>
+                            <td className="py-2 pr-3 text-foreground/70">{s.runs}</td>
+                            <td className="py-2 pr-3">
+                              <span className={successRate >= 70 ? "text-emerald-500/80" : successRate >= 30 ? "text-amber-500" : "text-destructive"}>
+                                {successRate}%
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 text-foreground/60">{s.failed}</td>
+                            <td className="py-2 pr-3 text-foreground/80">{s.inserted}</td>
+                            <td className="py-2 pr-3 text-foreground/60">{med ? `${(med / 1000).toFixed(1)}s` : "—"}</td>
+                            <td className="py-2 pr-3 text-foreground/60">{p ? `${(p / 1000).toFixed(1)}s` : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ───────── Phase 3: KR alias hits + Try-on providers + Stale clusters ───────── */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Sparkles className="h-3.5 w-3.5 text-accent/70" />
+                KR alias hits — last 24h
+              </h2>
+              <p className="text-2xl font-semibold text-foreground">{krAliasStats.totalHits}</p>
+              <p className="text-[10px] uppercase tracking-wider text-foreground/50">Korean term mappings used</p>
+              {krAliasStats.top.length > 0 ? (
+                <div className="mt-3 space-y-1.5">
+                  {krAliasStats.top.map(([alias, count]) => (
+                    <div key={alias} className="flex items-center justify-between text-[11px]">
+                      <span className="truncate font-mono text-foreground/70">{alias}</span>
+                      <span className="text-foreground/60">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-[10px] text-foreground/40">
+                  No alias hits logged. Run a Korean query to populate.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Ruler className="h-3.5 w-3.5 text-accent/70" />
+                Try-on success — Replicate vs Gemini (7d)
+              </h2>
+              <p className="text-2xl font-semibold text-foreground">{tryonStats.total}</p>
+              <p className="text-[10px] uppercase tracking-wider text-foreground/50">total try-ons</p>
+              {Object.keys(tryonStats.byProvider).length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {Object.entries(tryonStats.byProvider)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .map(([provider, s]) => {
+                      const rate = s.total ? Math.round((s.succeeded / s.total) * 100) : 0;
+                      return (
+                        <div key={provider} className="flex items-center justify-between text-[11px]">
+                          <span className="font-mono capitalize text-foreground/70">{provider}</span>
+                          <span className="flex items-center gap-2">
+                            <span className={rate >= 80 ? "text-emerald-500/80" : rate >= 50 ? "text-amber-500" : "text-destructive"}>
+                              {rate}%
+                            </span>
+                            <span className="text-foreground/40">({s.succeeded}/{s.total})</span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <p className="mt-3 text-[10px] text-foreground/40">No try-on records yet.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Layers className="h-3.5 w-3.5 text-accent/70" />
+                Query clusters — refresh health
+              </h2>
+              <p className="text-2xl font-semibold text-foreground">
+                {clusterStats.stale24h}
+                <span className="ml-2 text-[11px] font-normal text-foreground/40">/ {clusterStats.total} stale &gt;24h</span>
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-foreground/50">
+                {clusterStats.stale7d} not refreshed in 7d
+              </p>
+              {clusterStats.oldestStale.length > 0 ? (
+                <div className="mt-3 space-y-1.5">
+                  {clusterStats.oldestStale.map((c) => {
+                    const ageH = Math.round((Date.now() - new Date(c.last_refreshed_at).getTime()) / 3_600_000);
+                    return (
+                      <div key={c.id} className="flex items-center justify-between text-[11px]">
+                        <span className="truncate font-mono text-foreground/70">{c.cluster_key}</span>
+                        <span className="text-foreground/50">{ageH}h</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-3 text-[10px] text-foreground/40">All clusters fresh.</p>
+              )}
+            </div>
+          </div>
+
           {/* Recent events table */}
           <div className="rounded-xl border border-border/30 bg-card/40">
             <div className="flex items-center justify-between border-b border-border/30 px-5 py-3">
