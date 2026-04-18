@@ -1,16 +1,17 @@
 /**
- * HeroTransformation — premium cross-fade hero.
+ * HeroTransformation — premium 3-frame style evolution.
  *
- * Three editorial fashion frames cross-fade on a fixed cadence to suggest
- * an "ordinary → in-between → curated" style transformation. Pure CSS
- * keyframes — no JS animation loop, no video file, no layout shift.
+ * Frame 1 (basic) → Frame 2 (transitional) → Frame 3 (fully curated).
+ * Slow 15s loop (5s per frame) with Ken Burns zoom + subtle parallax drift.
+ * Communicates: WARDROBE = personal fashion curator, not just shopping.
  *
  * Performance:
- *  - First frame is `fetchpriority="high"` (LCP candidate).
- *  - Frames 2 & 3 are lazy + decoded async. They blur up under the first
+ *  - Frame 1 is `fetchpriority="high"` + eager (LCP candidate, preloaded).
+ *  - Frames 2 & 3 are lazy + decoded async — they fade in over the first
  *    frame, so the page paints instantly even on slow connections.
  *  - The block reserves height via aspect-ratio so the search section
  *    below never jumps as images load.
+ *  - Respects prefers-reduced-motion (shows static frame 1).
  */
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -45,12 +46,12 @@ const HeroTransformation = () => {
             // @ts-expect-error fetchpriority is valid HTML, not yet in React types
             fetchpriority={i === 0 ? "high" : "low"}
             className="absolute inset-0 h-full w-full object-cover hero-fade"
-            style={{ animationDelay: `${i * 3}s` }}
+            style={{ animationDelay: `${i * 5}s` }}
           />
         ))}
 
         {/* Soft dark gradient for text legibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/20 to-background/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-background/50" />
 
         {/* Editorial overlay text */}
         <div className="absolute inset-0 flex flex-col items-start justify-end px-8 pb-12 md:px-16 md:pb-20 lg:px-24 lg:pb-28">
@@ -63,6 +64,9 @@ const HeroTransformation = () => {
               <br />
               <span className="text-foreground/85">{t("heroLine2")}</span>
             </h1>
+            <p className="mt-4 max-w-md text-[13px] font-medium tracking-wide text-foreground/75 md:mt-5 md:text-[15px]">
+              {t("heroSubtitle")}
+            </p>
             <button
               onClick={() => navigate("/discover")}
               className="hover-burgundy mt-7 inline-flex items-center gap-2.5 rounded-lg border border-accent/25 bg-accent/[0.05] px-6 py-3 text-[11px] font-semibold tracking-[0.22em] text-foreground/85 backdrop-blur-sm transition-all hover:bg-accent/[0.1] hover:border-accent/40 md:mt-9"

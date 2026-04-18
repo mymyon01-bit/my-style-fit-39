@@ -171,21 +171,27 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- * Premium hero crossfade — three frames, 9s total loop.
- * Each frame fades in for 1s, holds for 2s, fades out for 1s.
- * Subsequent frames are delayed by 3s via inline style.
+ * Premium hero crossfade — three frames, 15s total loop (5s per frame).
+ * Slow crossfade with Ken Burns zoom-in + subtle parallax drift on each
+ * frame. Each frame is visible for ~5s with 1.2s overlap on either side.
+ * Subsequent frames are delayed by 5s via inline style.
  * ────────────────────────────────────────────────────────────────────────── */
 @keyframes heroFade {
-  0%   { opacity: 0; transform: scale(1.02); }
-  10%  { opacity: 1; transform: scale(1); }
-  33%  { opacity: 1; transform: scale(1); }
-  43%  { opacity: 0; transform: scale(1.02); }
-  100% { opacity: 0; transform: scale(1.02); }
+  0%   { opacity: 0; transform: scale(1.04) translate3d(-1%, 0.5%, 0); }
+  8%   { opacity: 1; }
+  28%  { opacity: 1; }
+  36%  { opacity: 0; transform: scale(1.12) translate3d(1.2%, -0.8%, 0); }
+  100% { opacity: 0; transform: scale(1.12) translate3d(1.2%, -0.8%, 0); }
 }
 .hero-fade {
   opacity: 0;
-  animation: heroFade 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  will-change: opacity;
+  animation: heroFade 15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: opacity, transform;
+  transform-origin: center center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-fade { animation: none; opacity: 1; transform: none; }
+  .hero-fade:not(:first-child) { display: none; }
 }
 @keyframes heroIn {
   from { opacity: 0; transform: translateY(14px); }
