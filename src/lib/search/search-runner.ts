@@ -4,6 +4,7 @@ import { discoverProducts } from "./product-discovery-service";
 import { validateProduct } from "./product-validation-service";
 import { ingestQuery } from "./product-ingestion-service";
 import { appendToSession, type SearchSession } from "./search-session";
+import { findCluster, upsertCluster } from "./query-cluster-service";
 
 export interface RunSearchOptions {
   /** Called whenever new products are appended to the session. */
@@ -29,6 +30,33 @@ export async function runSearch(
   const target = opts.target ?? 20;
   const maxCycles = opts.maxCycles ?? 3;
   const type = classifyQuery(session.query);
+
+  // ── CYCLE 0 — CLUSTER LOOKUP (DB-first, instant) ────────────────────────
+  // Seed the session immediately from a cached cluster so the user never
+  // sees a blank screen. The fresh external search continues in the
+  // background and the cluster is upserted at the end.
+  try {
+    const cluster = await findCluster(session.query);
+    if (cluster) {
+      let seeded = 0;
+      for (const p of cluster.products) {
+        if (!validateProduct(p)) continue;
+        if (appendToSession(session, p)) seeded++;
+      }
+      if (seeded > 0) {
+        session.status = "partial";
+        opts.onProgress?.(session);
+        console.info("[search-runner] cluster seed", {
+          query: session.query,
+          seeded,
+          clusterKey: cluster.cluster.cluster_key,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[search-runner] cluster lookup failed", e);
+  }
+
   const family = await expandQueries(session.query, type);
 
   // Cycle plan: split family into batches, expand fresh ingestion in cycle 2
@@ -38,7 +66,7 @@ export async function runSearch(
     { queries: family.slice(8, 15), fresh: true },
   ].slice(0, maxCycles);
 
-  let prevCount = 0;
+  let prevCount = session.results.length;
   let emptyCycles = 0;
 
   for (let i = 0; i < plan.length; i++) {
@@ -91,5 +119,14 @@ export async function runSearch(
 
   session.status = "complete";
   opts.onProgress?.(session);
+
+  // Persist / refresh the cluster in the background — improves next search.
+  void upsertCluster({
+    query: session.query,
+    category: type,
+    tags: family.slice(0, 8),
+    products: session.results,
+  });
+
   return session;
 }
