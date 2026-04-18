@@ -210,6 +210,100 @@ async function pageFunction(context) {
 `;
 }
 
+// ── Puppeteer page function (for SPA-heavy KR domains) ─────────────────────
+// Renders JS, waits for product tiles, then extracts directly from the
+// search-results page. No detail-page enqueueing — keeps each run small.
+function puppeteerPageFunctionForDomain(domain: string, limit: number): string {
+  const tileSelectors: Record<string, string> = {
+    "musinsa.com": "[data-mds='ProductCard'], a[href*='/products/'], li[class*='product']",
+    "29cm.co.kr": "a[href*='/product/'], li[class*='ProductItem'], div[class*='ProductItem']",
+    "wconcept.co.kr": "a[href*='/Product/'], li[class*='product'], div[class*='product-card']",
+    "ssg.com": "li.cunit_t232, a[href*='itemView.ssg'], div.cunit_prod",
+  };
+  const tileSel = tileSelectors[domain] || "a[href*='/product'], a[href*='/item'], a[href*='/goods']";
+  const linkPatterns: Record<string, string> = {
+    "musinsa.com": "/products/\\\\d+|/goods/\\\\d+",
+    "29cm.co.kr": "/product/\\\\d+",
+    "wconcept.co.kr": "/Product/",
+    "ssg.com": "/item/itemView.ssg",
+  };
+  const linkRe = linkPatterns[domain] || "/product|/item|/goods";
+  const firstSel = tileSel.split(",")[0].trim();
+  return `
+async function pageFunction(context) {
+  const { page, request, log } = context;
+  const url = request.url;
+  try { await page.waitForSelector(${JSON.stringify(firstSel)}, { timeout: 12000 }); } catch (e) {}
+  try {
+    await page.evaluate(async () => {
+      await new Promise((resolve) => {
+        let total = 0;
+        const step = 600;
+        const timer = setInterval(() => {
+          window.scrollBy(0, step);
+          total += step;
+          if (total >= 4000) { clearInterval(timer); resolve(); }
+        }, 250);
+      });
+    });
+    await new Promise((r) => setTimeout(r, 1500));
+  } catch (e) {}
+
+  const items = await page.evaluate((sel, linkReSrc, domain, limit) => {
+    const re = new RegExp(linkReSrc);
+    const out = [];
+    const seen = new Set();
+    const tiles = Array.from(document.querySelectorAll(sel));
+    for (const tile of tiles) {
+      if (out.length >= limit) break;
+      let a = tile.tagName === 'A' ? tile : tile.querySelector('a[href]');
+      if (!a) continue;
+      const href = a.getAttribute('href'); if (!href) continue;
+      let abs;
+      try { abs = new URL(href, location.href).toString(); } catch { continue; }
+      try {
+        const u = new URL(abs);
+        if (!re.test(u.pathname)) continue;
+      } catch { continue; }
+      if (seen.has(abs)) continue; seen.add(abs);
+
+      const img = tile.querySelector('img');
+      let image = null;
+      if (img) {
+        image = img.getAttribute('src') || img.getAttribute('data-src') ||
+                img.getAttribute('data-original') || img.getAttribute('data-lazy-src');
+        if (image && image.startsWith('//')) image = 'https:' + image;
+      }
+      let name = (img && img.getAttribute('alt')) || '';
+      if (!name) {
+        const t = tile.textContent || '';
+        name = t.trim().split('\\n').map(s => s.trim()).filter(Boolean)[0] || '';
+        if (name.length > 120) name = name.slice(0, 120);
+      }
+      let brand = null;
+      const brandEl = tile.querySelector('[class*="brand" i], [class*="Brand"]');
+      if (brandEl) brand = (brandEl.textContent || '').trim().slice(0, 60) || null;
+
+      let price = null;
+      const priceEl = tile.querySelector('[class*="price" i], [class*="Price"]');
+      if (priceEl) {
+        const m = (priceEl.textContent || '').match(/[0-9][0-9,]{2,}/);
+        if (m) price = m[0].replace(/,/g, '');
+      }
+
+      out.push({
+        url: abs, host: location.host.replace(/^www\\./, ''), sourceDomain: domain,
+        name, brand, image, price, currency: 'KRW', site: domain, source: 'tile',
+      });
+    }
+    return out;
+  }, ${JSON.stringify(tileSel)}, ${JSON.stringify(linkRe)}, ${JSON.stringify(domain)}, ${limit});
+
+  return items;
+}
+`;
+}
+
 // ── Diagnostics ─────────────────────────────────────────────────────────────
 async function logDiagnostic(
   event: string,
