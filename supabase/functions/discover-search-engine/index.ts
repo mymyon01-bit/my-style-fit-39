@@ -137,9 +137,14 @@ function pageFunctionForDomain(domain: string, limit: number): string {
   const linkRe = linkPatterns[domain] || "/product|/item|/goods|/p/";
   return `
 async function pageFunction(context) {
-  const { request, $, enqueueRequest, log } = context;
+  const { request, enqueueRequest, log } = context;
+  const $ = context.jQuery;
+  if (typeof $ !== 'function') {
+    return [{ url: request.url, _err: 'jquery_not_injected' }];
+  }
   const url = request.url;
   const host = (() => { try { return new URL(url).host.replace(/^www\\./, ''); } catch { return ''; } })();
+  const out = [];
   const out = [];
 
   // 1. JSON-LD
