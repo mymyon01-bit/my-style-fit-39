@@ -19,7 +19,6 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
-import HeroTransformation from "@/components/HeroTransformation";
 import Footer from "@/components/Footer";
 
 const HomePage = () => {
@@ -49,10 +48,7 @@ const HomePage = () => {
 
   return (
     <div className="snap-scroll-container min-h-screen bg-background">
-      {/* [1] Premium hero transformation — first viewport */}
-      <HeroTransformation />
-
-      {/* [2] Mood entry — original search experience preserved */}
+      {/* Mood entry — the landing experience */}
       <section className="snap-section relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 

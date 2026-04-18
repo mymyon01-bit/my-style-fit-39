@@ -17,6 +17,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import SectionReveal from "@/components/SectionReveal";
 import Footer from "@/components/Footer";
+import HeroTransformation from "@/components/HeroTransformation";
 
 const FEATURES = [
   "AI-powered product discovery",
@@ -32,6 +33,9 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Premium hero transformation — moved from homepage */}
+      <HeroTransformation />
+
       {/* Nav */}
       <div className="mx-auto flex max-w-3xl items-center gap-4 px-8 pt-10 lg:pt-16">
         <button
