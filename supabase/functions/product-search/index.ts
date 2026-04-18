@@ -822,33 +822,47 @@ serve(async (req) => {
 
     } else {
       const minTarget = Math.min(clampedLimit, 12);
+      const sanitizedQuery = query ? sanitizeSearchQuery(query) : "";
 
-      dbProducts = await loadFromDB(supabase, {
-        query: query || undefined,
-        category,
-        styles,
-        fit,
-        limit: Math.min(clampedLimit, 30),
-        excludeIds,
-        randomize,
-      });
+      // PARALLEL: DB load + Apify multi-source fetch run together. This is the
+      // "always run Apify, never treat it as fallback only" guarantee.
+      const [dbInitial, multiSourceFresh] = await Promise.all([
+        loadFromDB(supabase, {
+          query: query || undefined,
+          category,
+          styles,
+          fit,
+          limit: Math.min(clampedLimit, 30),
+          excludeIds,
+          randomize,
+        }),
+        sanitizedQuery
+          ? fetchFromMultiSource(sanitizedQuery, 9_000)
+          : Promise.resolve([] as any[]),
+      ]);
+
+      dbProducts = dbInitial;
+      // Treat multi-source results as "fresh" external. They were just
+      // upserted to product_cache by the scraper itself.
+      externalProducts = multiSourceFresh;
 
       const needsExpansion = expandExternal || dbProducts.length < minTarget;
       let discoveryProducts: any[] = [];
 
       if (needsExpansion && (query || category)) {
-        const searchTerm = sanitizeSearchQuery(query || `trending ${category || "fashion"}`);
-        externalProducts = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 18));
-        externalProducts = externalProducts.map(autoTagProduct);
+        const searchTerm = sanitizedQuery || sanitizeSearchQuery(`trending ${category || "fashion"}`);
+        // commerce-scraper kept as supplemental — only fires if the parallel
+        // path under-delivered.
+        if (externalProducts.length < 8) {
+          const cs = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 18));
+          externalProducts = mergeUniqueProducts(externalProducts, cs.map(autoTagProduct));
+        }
 
         if (externalProducts.length > 0) {
           await cacheToDB(supabase, externalProducts, searchTerm);
         }
 
-        let mergedForThreshold = mergeUniqueProducts(dbProducts, externalProducts);
-        // DB-first branch: cap discovery at 8s. If it doesn't return fast,
-        // we fall through to broadened DB / trending — UI never blocks for
-        // the slow Perplexity path on a non-explicit search.
+        let mergedForThreshold = mergeUniqueProducts(externalProducts, dbProducts);
         if (mergedForThreshold.length < minTarget) {
           discoveryProducts = await fetchFromDiscovery(supabase, searchTerm, minTarget, 8_000);
           mergedForThreshold = mergeUniqueProducts(mergedForThreshold, discoveryProducts);
@@ -867,7 +881,22 @@ serve(async (req) => {
         }
       }
 
-      let allProducts = mergeUniqueProducts(dbProducts, externalProducts);
+      // ─── FRESH-FIRST MERGE + new-batch injection ───
+      // 1. Externals (Apify + commerce-scraper) come first — they are the
+      //    truly new products this request surfaced.
+      // 2. Then the DB pool, sorted by created_at DESC so the freshest
+      //    cached items follow.
+      // 3. Guarantee 10–20 fresh items at the head of the response if any
+      //    were fetched (the "new batch injection" rule).
+      const freshHead = externalProducts.slice(0, Math.min(20, Math.max(10, externalProducts.length)));
+      const dbSortedByFreshness = [...dbProducts].sort((a, b) => {
+        const at = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return bt - at;
+      });
+      let allProducts = mergeUniqueProducts(freshHead, dbSortedByFreshness);
+      // Append remaining externals (beyond the head) and any discovery items.
+      allProducts = mergeUniqueProducts(allProducts, externalProducts.slice(freshHead.length));
       allProducts = mergeUniqueProducts(allProducts, discoveryProducts);
 
       if (allProducts.length < minTarget) {
@@ -879,7 +908,8 @@ serve(async (req) => {
         allProducts = mergeUniqueProducts(allProducts, trending);
       }
 
-      allProducts = enforceDiversity(allProducts);
+      // Diversity + 30%-per-domain cap.
+      allProducts = enforceDiversity(allProducts, { maxPerDomainPct: 0.3 });
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
       const inferredFromQuery2 = inferCategoryFromText(query || "");
@@ -891,10 +921,6 @@ serve(async (req) => {
         const before = allProducts.length;
         const filtered = allProducts.filter((p: any) => categoryMatches(intentCategory2, p.category, p.name));
         if (queryHasExplicitCategory2) {
-          // HARD LOCK — but if it would empty the result, broaden once with a
-          // category-only DB query so the UI never shows "0 items" for a
-          // valid product type. This is the "red shoes returns 2 actual
-          // red shoes" guarantee.
           if (filtered.length === 0) {
             console.log(`[SEARCH_INTENT] (db-first) HARD LOCK would empty results, broadening by category="${intentCategory2}"`);
             const categoryFallback = await loadFromDB(supabase, {
@@ -945,6 +971,7 @@ serve(async (req) => {
         query: query || "",
         category: category || "",
         db_count: dbProducts.length,
+        multi_source_fresh: multiSourceFresh.length,
         external_count: externalProducts.length,
         discovery_count: discoveryProducts.length,
         final_count: normalized.length,
