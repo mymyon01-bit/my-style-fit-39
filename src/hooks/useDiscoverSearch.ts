@@ -32,6 +32,7 @@ import {
   logDiscoverEvent,
   logQueryParsed,
 } from "@/lib/discover/discover-diagnostics";
+import { upsertCluster } from "@/lib/search/query-cluster-service";
 
 const DEFAULT_WINDOW = 24;
 
