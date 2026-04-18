@@ -11,13 +11,22 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Product } from "./types";
 
 export async function ingestQuery(query: string): Promise<{ inserted: number }> {
+  // Fan out to BOTH pipelines in parallel:
+  //   1. search-discovery (Firecrawl + Perplexity) — universal coverage
+  //   2. multi-source-scraper (Apify ASOS/Zalando + Crawlbase Farfetch)
+  // Partial failure is fine; whichever returns first grows product_cache.
   try {
-    // Diversity-pass: bigger candidate pool per ingestion so the DB grows
-    // faster between searches and the user keeps seeing new products.
-    const { data } = await supabase.functions.invoke("search-discovery", {
-      body: { query, maxQueries: 14, maxCandidates: 60 },
-    });
-    return { inserted: Number(data?.inserted) || 0 };
+    const [discovery, multi] = await Promise.allSettled([
+      supabase.functions.invoke("search-discovery", {
+        body: { query, maxQueries: 14, maxCandidates: 60 },
+      }),
+      supabase.functions.invoke("multi-source-scraper", {
+        body: { query },
+      }),
+    ]);
+    const a = discovery.status === "fulfilled" ? Number(discovery.value.data?.inserted) || 0 : 0;
+    const b = multi.status === "fulfilled" ? Number(multi.value.data?.inserted) || 0 : 0;
+    return { inserted: a + b };
   } catch {
     return { inserted: 0 };
   }
