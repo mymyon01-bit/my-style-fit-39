@@ -56,8 +56,11 @@ async function flush() {
   flushTimer = null;
   try {
     // Best-effort insert. If RLS or network fails, swallow the error —
-    // diagnostics must never break the app.
-    await supabase.from("diagnostics_events").insert(batch);
+    // diagnostics must never break the app. Cast through unknown because
+    // generated `Json` type is recursive and our metadata is loosely typed.
+    await supabase
+      .from("diagnostics_events")
+      .insert(batch as unknown as Parameters<typeof supabase.from<"diagnostics_events">>[0] extends never ? never : never[]);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn("[diagnostics] flush failed", err);
