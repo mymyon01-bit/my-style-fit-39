@@ -121,6 +121,23 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         },
       });
 
+      // Deterministic-first interpreter (KR/EN alias map). AI fallback only
+      // when the query is vague — runs async so it never blocks the search.
+      void interpretQuery(trimmed)
+        .then((interp) => {
+          logDiscoverEvent("discover_query_interpreted", {
+            query: trimmed,
+            metadata: {
+              category: interp.category,
+              language: interp.language,
+              ai_assisted: interp.aiAssisted,
+              style_tags: interp.style,
+              product_types: interp.productTypes,
+            },
+          });
+        })
+        .catch((err) => console.warn("[useDiscoverSearch] interpretQuery failed", err));
+
       setState({
         query: trimmed,
         parsed,
