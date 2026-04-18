@@ -345,7 +345,7 @@ async function kickoffApifyRun(
     .from("source_ingestion_runs")
     .insert({
       source: "apify",
-      source_actor: APIFY_WEB_SCRAPER,
+      source_actor: actorForDomain(domain),
       seed_query: query,
       query_family: domain,
       trigger: "live",
@@ -402,12 +402,24 @@ async function kickoffApifyRun(
   const webhooksB64 = btoa(bin);
 
   // 3. Kick the run — non-blocking POST (no run-sync).
-  const url = `https://api.apify.com/v2/acts/${APIFY_WEB_SCRAPER}/runs?token=${APIFY_TOKEN}&webhooks=${encodeURIComponent(webhooksB64)}`;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  const useSpa = SPA_DOMAINS.has(domain);
+  const actor = actorForDomain(domain);
+  const url = `https://api.apify.com/v2/acts/${actor}/runs?token=${APIFY_TOKEN}&webhooks=${encodeURIComponent(webhooksB64)}`;
+  // puppeteer-scraper uses a different input shape than web-scraper:
+  //  - no `injectJQuery` (use `page` API instead)
+  //  - supports `launchContext.useChrome`, residential proxy
+  const body = useSpa
+    ? {
+        startUrls,
+        pageFunction: puppeteerPageFunctionForDomain(domain, limit),
+        maxRequestsPerCrawl: startUrls.length, // no detail enqueue — tiles only
+        maxConcurrency: 4,
+        proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"], apifyProxyCountry: "KR" },
+        launchContext: { useChrome: true, stealth: true },
+        ignoreSslErrors: true,
+        pageLoadTimeoutSecs: 45,
+      }
+    : {
         startUrls,
         pageFunction: pageFunctionForDomain(domain, limit),
         maxRequestsPerCrawl: limit + startUrls.length,
@@ -415,7 +427,12 @@ async function kickoffApifyRun(
         proxyConfiguration: { useApifyProxy: true },
         injectJQuery: true,
         ignoreSslErrors: true,
-      }),
+      };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
