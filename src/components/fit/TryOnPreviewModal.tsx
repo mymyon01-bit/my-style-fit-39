@@ -99,6 +99,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [overrideUserImage, setOverrideUserImage] = useState<string | null>(null);
   const [predictionId, setPredictionId] = useState<string | null>(null);
+  const [showOverlay, setShowOverlay] = useState<boolean>(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<number | null>(null);
 
