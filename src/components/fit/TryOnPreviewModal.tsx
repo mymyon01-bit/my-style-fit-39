@@ -296,11 +296,20 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                       {showOverlay ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                       {showOverlay ? "FIT ON" : "FIT OFF"}
                     </button>
-                    {/* Size badge bottom-left */}
-                    <div className="absolute bottom-2 left-2 rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1 border border-white/15">
-                      <span className="text-white text-[9px] font-bold tracking-[0.2em]">
-                        SIZE {context.recommendedSize}
-                      </span>
+                    {/* Size + provider badge bottom-left */}
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                      <div className="rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1 border border-white/15">
+                        <span className="text-white text-[9px] font-bold tracking-[0.2em]">
+                          SIZE {context.recommendedSize}
+                        </span>
+                      </div>
+                      {provider && (
+                        <div className="rounded-full bg-black/40 backdrop-blur-md px-2 py-1 border border-white/10">
+                          <span className="text-white/80 text-[8px] font-semibold tracking-[0.15em] uppercase">
+                            {provider}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
