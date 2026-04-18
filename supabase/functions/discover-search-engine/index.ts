@@ -125,19 +125,38 @@ function buildStartUrls(domain: string, variants: string[], limit: number): stri
 function pageFunctionForDomain(domain: string, limit: number): string {
   // The selector that identifies "product detail link" varies per site;
   // we keep it permissive and rely on per-domain link-shape regexes.
+  // Allowed host suffixes per domain (handles subdomains like product.29cm.co.kr).
+  const hostSuffixes: Record<string, string[]> = {
+    "musinsa.com": ["musinsa.com"],
+    "29cm.co.kr": ["29cm.co.kr"],
+    "wconcept.co.kr": ["wconcept.co.kr"],
+    "ssg.com": ["ssg.com"],
+    "yoox.com": ["yoox.com"],
+    "asos.com": ["asos.com"],
+    "oakandfort.com": ["oakandfort.com"],
+  };
   const linkPatterns: Record<string, string> = {
-    "musinsa.com": "/app/goods/|/goods/",
-    "29cm.co.kr": "/product/",
-    "wconcept.co.kr": "/Product/",
+    "musinsa.com": "/products/\\\\d+|/app/goods/|/goods/\\\\d+",
+    "29cm.co.kr": "/catalog/\\\\d+|/product/\\\\d+",
+    "wconcept.co.kr": "/Product/|/product/",
     "ssg.com": "/item/itemView.ssg|/item/",
     "yoox.com": "/item|/p/",
     "asos.com": "/prd/",
     "oakandfort.com": "/products/",
   };
   const linkRe = linkPatterns[domain] || "/product|/item|/goods|/p/";
+  const allowedHosts = hostSuffixes[domain] || [domain];
   return `
 async function pageFunction(context) {
-  const { request, $, enqueueRequest, log } = context;
+  const { request, enqueueRequest, log } = context;
+  const $ = context.jQuery;
+  if (typeof $ !== 'function') {
+    return [{ url: request.url, _err: 'jquery_not_injected' }];
+  }
+  // Wait for SPA grids to hydrate (Musinsa/29cm/SSG render product tiles client-side).
+  if (typeof context.waitFor === 'function') {
+    try { await context.waitFor(3500); } catch (e) {}
+  }
   const url = request.url;
   const host = (() => { try { return new URL(url).host.replace(/^www\\./, ''); } catch { return ''; } })();
   const out = [];
@@ -195,6 +214,7 @@ async function pageFunction(context) {
 
   // 2. Enqueue product detail links from listing/search pages.
   const linkRe = new RegExp(${JSON.stringify(linkRe)});
+  const allowedHosts = ${JSON.stringify(allowedHosts)};
   const seen = new Set();
   let enqueued = 0;
   $('a[href]').each((_, el) => {
@@ -204,7 +224,9 @@ async function pageFunction(context) {
     try {
       const abs = new URL(href, url).toString();
       const u = new URL(abs);
-      if (u.host.replace(/^www\\./, '') !== '${domain}') return;
+      const cleanHost = u.host.replace(/^www\\./, '');
+      const hostOk = allowedHosts.some(function(s){ return cleanHost === s || cleanHost.endsWith('.' + s); });
+      if (!hostOk) return;
       if (!linkRe.test(u.pathname)) return;
       if (seen.has(abs)) return;
       seen.add(abs);
