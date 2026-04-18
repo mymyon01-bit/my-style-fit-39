@@ -63,6 +63,144 @@ async function directDbLoad(opts: {
   }
 }
 
+function buildPlaceholderProducts(seed = "fashion", limit = 8): AIRecommendation[] {
+  const safeSeed = seed.trim() || "fashion";
+  const placeholderUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/placeholder.svg`
+    : "https://example.com/placeholder.svg";
+
+  return Array.from({ length: limit }).map((_, index) => ({
+    id: `placeholder-${safeSeed.replace(/\s+/g, "-")}-${index}`,
+    name: `${safeSeed} pick ${index + 1}`,
+    brand: "WARDROBE",
+    price: "Loading",
+    category: /shoe|sneaker|boot|loafer|heel/i.test(safeSeed)
+      ? "shoes"
+      : /bag|wallet|jewelry|accessor/i.test(safeSeed)
+        ? "accessories"
+        : "outerwear",
+    reason: "We’re loading picks for you. Try another search or browse saved styles.",
+    style_tags: [],
+    color: "",
+    fit: "regular",
+    image_url: placeholderUrl,
+    source_url: null,
+    store_name: "WARDROBE",
+    platform: null,
+  }));
+}
+
+async function emergencyDbFallback(opts: {
+  query?: string;
+  category?: string;
+  styles?: string[];
+  fit?: string;
+  limit?: number;
+  excludeIds?: string[];
+}): Promise<AIRecommendation[]> {
+  const limit = opts.limit || 12;
+  const excludeSet = new Set(opts.excludeIds || []);
+  const rawQuery = (opts.query || "").trim().toLowerCase();
+  const terms = rawQuery.split(/\s+/).filter((term) => term.length > 1).slice(0, 5);
+
+  try {
+    let query = supabase
+      .from("product_cache")
+      .select("id, name, brand, price, category, style_tags, color_tags, fit, image_url, source_url, store_name, platform, reason")
+      .eq("is_active", true)
+      .not("image_url", "is", null)
+      .order("trend_score", { ascending: false })
+      .limit(Math.max(limit * 4, 32));
+
+    if (opts.styles?.length) query = query.overlaps("style_tags", opts.styles);
+    if (opts.fit) query = query.eq("fit", opts.fit);
+    if (opts.category) query = query.eq("category", opts.category);
+    if (terms.length > 0) {
+      const orClauses = terms.flatMap((term) => [
+        `name.ilike.%${term}%`,
+        `brand.ilike.%${term}%`,
+        `category.ilike.%${term}%`,
+        `search_query.ilike.%${term}%`,
+      ]);
+      query = query.or(orClauses.join(","));
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const mapped = (data || [])
+      .filter((p: any) => p.image_url?.startsWith("https") && !excludeSet.has(p.id))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "",
+        price: p.price || "",
+        category: p.category || "",
+        reason: p.reason || "Recovered from cached inventory",
+        style_tags: p.style_tags || [],
+        color: (p.color_tags || [])[0] || "",
+        fit: p.fit || "regular",
+        image_url: p.image_url,
+        source_url: p.source_url,
+        store_name: p.store_name,
+        platform: p.platform || null,
+      }))
+      .slice(0, limit);
+
+    if (mapped.length > 0) return mapped;
+    const direct = await directDbLoad({
+      styles: opts.styles,
+      fit: opts.fit,
+      limit,
+      excludeIds: opts.excludeIds,
+    });
+    return direct.slice(0, limit);
+  } catch (error) {
+    console.error("[search-pipeline] EMERGENCY_DB_FALLBACK_ERROR", error);
+    const direct = await directDbLoad({
+      styles: opts.styles,
+      fit: opts.fit,
+      limit,
+      excludeIds: opts.excludeIds,
+    });
+    return direct.slice(0, limit);
+  }
+}
+
+class SectionErrorBoundary extends React.Component<
+  { title: string; message: string; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { title: string; message: string; children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("[discover-section] RENDER_CRASH", {
+      section: this.props.title,
+      error: error.message,
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-xl border border-border/30 bg-background/60 px-4 py-5">
+          <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">{this.props.title}</p>
+          <p className="mt-2 text-[11px] text-foreground/60">{this.props.message}</p>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // ── Inflight request deduplication ──
 const inflightRequests = new Map<string, Promise<any>>();
 function deduplicatedSearch(key: string, fn: () => Promise<any>): Promise<any> {
