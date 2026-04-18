@@ -23,12 +23,11 @@ function p(id: string, title: string, category: string, extra: Partial<Product> 
     title,
     category,
     brand: extra.brand ?? "BrandX",
-    price: extra.price ?? 99,
-    currency: extra.currency ?? "USD",
+    price: extra.price ?? "99",
     imageUrl: extra.imageUrl ?? "https://img/x.jpg",
-    sourceUrl: extra.sourceUrl ?? "https://store.com/p/" + id,
+    externalUrl: extra.externalUrl ?? "https://store.com/p/" + id,
     storeName: extra.storeName ?? "store",
-    sourceType: extra.sourceType ?? "scraper",
+    source: extra.source ?? "scraper",
     ...extra,
   } as Product;
 }
