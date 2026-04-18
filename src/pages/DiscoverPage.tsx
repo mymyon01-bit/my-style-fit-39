@@ -2376,7 +2376,7 @@ const DiscoverPage = () => {
         console.error("[search-pipeline] THROWN_ERROR", { rawQuery: q, stage: "search-session", error });
         await stopSession("search-session crashed");
       }
-    }, 0);
+    }, 300);
   };
 
 
