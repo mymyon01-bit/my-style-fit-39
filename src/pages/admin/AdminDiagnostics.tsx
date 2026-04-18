@@ -81,9 +81,26 @@ function summarize(rows: EventRow[]) {
   };
 }
 
+type TryonRow = {
+  id: string;
+  provider: string;
+  status: string;
+  created_at: string;
+};
+
+type ClusterRow = {
+  id: string;
+  cluster_key: string;
+  query_family: string;
+  product_count: number;
+  last_refreshed_at: string;
+};
+
 export default function AdminDiagnostics() {
   const [rows, setRows] = useState<EventRow[]>([]);
   const [ingestionRows, setIngestionRows] = useState<IngestionRunRow[]>([]);
+  const [tryonRows, setTryonRows] = useState<TryonRow[]>([]);
+  const [clusterRows, setClusterRows] = useState<ClusterRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -110,7 +127,18 @@ export default function AdminDiagnostics() {
         .gte("started_at", since)
         .order("started_at", { ascending: false })
         .limit(500),
-    ]).then(([eventsRes, ingestionRes]) => {
+      supabase
+        .from("fit_tryons")
+        .select("id, provider, status, created_at")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase
+        .from("query_clusters")
+        .select("id, cluster_key, query_family, product_count, last_refreshed_at")
+        .order("last_refreshed_at", { ascending: true })
+        .limit(500),
+    ]).then(([eventsRes, ingestionRes, tryonRes, clusterRes]) => {
       if (cancelled) return;
       if (eventsRes.error) {
         setError(eventsRes.error.message);
@@ -120,6 +148,12 @@ export default function AdminDiagnostics() {
       }
       if (!ingestionRes.error) {
         setIngestionRows((ingestionRes.data || []) as unknown as IngestionRunRow[]);
+      }
+      if (!tryonRes.error) {
+        setTryonRows((tryonRes.data || []) as unknown as TryonRow[]);
+      }
+      if (!clusterRes.error) {
+        setClusterRows((clusterRes.data || []) as unknown as ClusterRow[]);
       }
       setLoading(false);
     });
