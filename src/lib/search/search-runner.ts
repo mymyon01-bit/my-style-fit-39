@@ -164,19 +164,20 @@ export async function runSearch(
     }
 
     // STAGE 3 — AGGRESSIVE FETCHING. Larger per-call limit → bigger pool.
+    const activeQueries = queries.filter(Boolean);
     const batches = await Promise.all(
-      queries.filter(Boolean).map((q) =>
+      activeQueries.map((q) =>
         discoverProducts(q, {
           excludeIds: Array.from(session.seenIds).slice(-120),
           limit: 18,
           freshSearch: fresh,
-        }),
+        }).then((products) => ({ q, products })),
       ),
     );
 
     let addedThisCycle = 0;
-    for (const batch of batches) {
-      for (const product of batch) {
+    for (const { q, products } of batches) {
+      for (const product of products) {
         totalCandidates++;
         // STAGE 4 — RELAXED validation (validateProduct already light).
         if (!validateProduct(product)) continue;
