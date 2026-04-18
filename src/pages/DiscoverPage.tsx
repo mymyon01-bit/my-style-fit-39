@@ -1132,7 +1132,8 @@ const DiscoverPage = () => {
     emptyCycles: number;
     stopped: boolean;
   }>({ id: 0, query: "", cycle: 0, totalAdded: 0, emptyCycles: 0, stopped: true });
-  const SESSION_TARGET = 20;
+  // 2x supply target — was 20, now 40 to fill the live section deeply.
+  const SESSION_TARGET = 40;
   const SESSION_MAX_EMPTY_CYCLES = 2;
 
   // Product detail sheet
