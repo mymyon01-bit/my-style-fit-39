@@ -251,6 +251,90 @@ export default function AdminDiagnostics() {
     };
   }, [recent]);
 
+  // ───────── Phase 3: Apify per-domain ─────────
+  const apifyDomainStats = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const apifyRuns = ingestionRows.filter(
+      (r) =>
+        new Date(r.started_at).getTime() >= cutoff &&
+        (r.source === "apify" ||
+          (r.source_actor || "").includes("apify") ||
+          /musinsa|29cm|wconcept|ssg|zalando|farfetch|asos|net-a-porter/i.test(r.source)),
+    );
+    const byDomain: Record<
+      string,
+      { runs: number; succeeded: number; failed: number; inserted: number; durations: number[] }
+    > = {};
+    for (const r of apifyRuns) {
+      const md = ((r as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
+      const domain = (md.domain as string) || (md.target_domain as string) || r.source;
+      if (!byDomain[domain]) {
+        byDomain[domain] = { runs: 0, succeeded: 0, failed: 0, inserted: 0, durations: [] };
+      }
+      byDomain[domain].runs += 1;
+      if (r.status === "succeeded" || r.status === "completed") byDomain[domain].succeeded += 1;
+      if (r.status === "failed" || r.status === "error") byDomain[domain].failed += 1;
+      byDomain[domain].inserted += r.inserted_count || 0;
+      if (typeof r.duration_ms === "number" && r.duration_ms > 0) {
+        byDomain[domain].durations.push(r.duration_ms);
+      }
+    }
+    return { byDomain, totalRuns: apifyRuns.length };
+  }, [ingestionRows]);
+
+  // ───────── Phase 3: KR alias hits ─────────
+  const krAliasStats = useMemo(() => {
+    const hits = recent.filter(
+      (r) =>
+        r.event_name === "kr_alias_hit" ||
+        r.event_name === "discover_kr_alias" ||
+        (r.event_name === "search_session" &&
+          (r.metadata as Record<string, unknown> | null)?.kr_alias_used === true),
+    );
+    const byAlias: Record<string, number> = {};
+    for (const h of hits) {
+      const md = (h.metadata as Record<string, unknown> | null) || {};
+      const alias =
+        (md.alias as string) ||
+        (md.kr_alias as string) ||
+        (md.matched_alias as string) ||
+        "unknown";
+      byAlias[alias] = (byAlias[alias] || 0) + 1;
+    }
+    const top = Object.entries(byAlias).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    return { totalHits: hits.length, top };
+  }, [recent]);
+
+  // ───────── Phase 3: Try-on provider stats ─────────
+  const tryonStats = useMemo(() => {
+    const byProvider: Record<string, { total: number; succeeded: number; failed: number }> = {};
+    for (const t of tryonRows) {
+      const p = (t.provider || "unknown").toLowerCase();
+      if (!byProvider[p]) byProvider[p] = { total: 0, succeeded: 0, failed: 0 };
+      byProvider[p].total += 1;
+      if (t.status === "succeeded") byProvider[p].succeeded += 1;
+      if (t.status === "failed" || t.status === "error") byProvider[p].failed += 1;
+    }
+    return { byProvider, total: tryonRows.length };
+  }, [tryonRows]);
+
+  // ───────── Phase 3: Stale clusters ─────────
+  const clusterStats = useMemo(() => {
+    const now = Date.now();
+    const stale24h = clusterRows.filter(
+      (c) => now - new Date(c.last_refreshed_at).getTime() > 24 * 60 * 60 * 1000,
+    );
+    const stale7d = clusterRows.filter(
+      (c) => now - new Date(c.last_refreshed_at).getTime() > 7 * 24 * 60 * 60 * 1000,
+    );
+    return {
+      total: clusterRows.length,
+      stale24h: stale24h.length,
+      stale7d: stale7d.length,
+      oldestStale: stale24h.slice(0, 5),
+    };
+  }, [clusterRows]);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
