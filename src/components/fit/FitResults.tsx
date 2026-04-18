@@ -191,6 +191,24 @@ export default function FitResults({
   const recommended = result.sizeResults.find(s => s.recommended);
   const alternate = result.sizeResults.find(s => s.alternate);
 
+  // Active size = user-selected; defaults to recommended.
+  const [activeSize, setActiveSize] = useState<string>(result.recommendedSize);
+  useEffect(() => { setActiveSize(result.recommendedSize); }, [result.recommendedSize]);
+  const activeSizeResult = result.sizeResults.find(s => s.size === activeSize) ?? recommended;
+  const heroScore = activeSizeResult?.fitScore ?? 0;
+  const heroFitType =
+    heroScore >= 80 ? "Best fit" :
+    heroScore >= 65 ? "Good fit" :
+    heroScore >= 50 ? "Wearable" : "Poor fit";
+  const heroColor =
+    heroScore >= 80 ? "text-green-500" :
+    heroScore >= 65 ? "text-accent" :
+    heroScore >= 50 ? "text-orange-400" : "text-orange-500";
+  const heroRing =
+    heroScore >= 80 ? "ring-green-500/30" :
+    heroScore >= 65 ? "ring-accent/30" :
+    heroScore >= 50 ? "ring-orange-400/30" : "ring-orange-500/30";
+
   const [tryOnOpen, setTryOnOpen] = useState(false);
   const [userImageUrl, setUserImageUrl] = useState<string | null>(null);
 
