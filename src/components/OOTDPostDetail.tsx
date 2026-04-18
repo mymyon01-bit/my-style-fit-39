@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { AuthGate } from "@/components/AuthGate";
 import { useNavigate } from "react-router-dom";
+import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
 interface OOTDPost {
@@ -125,12 +126,26 @@ export default function OOTDPostDetail({
     };
     if (replyTo) insertData.parent_id = replyTo.id;
 
+    const startedAt = performance.now();
     const { data, error } = await supabase.from("ootd_comments").insert(insertData).select().single();
     if (!error && data) {
       setComments(prev => [...prev, data as Comment]);
       setCommentText("");
       setReplyTo(null);
       if (replyTo) setExpandedReplies(prev => new Set(prev).add(replyTo.id));
+      recordEvent({
+        event_name: "comment_create",
+        status: "success",
+        duration_ms: performance.now() - startedAt,
+        metadata: { is_reply: !!replyTo, content_len: insertData.content.length },
+      });
+    } else if (error) {
+      recordEvent({
+        event_name: "comment_create",
+        status: "error",
+        duration_ms: performance.now() - startedAt,
+        metadata: { error: error.message?.slice(0, 200) || "unknown", is_reply: !!replyTo },
+      });
     }
   };
 

@@ -12,6 +12,7 @@ import FitBodyScan from "@/components/fit/FitBodyScan";
 import FitMeasurements from "@/components/fit/FitMeasurements";
 import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
+import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
 type Tab = "scan" | "measurements" | "check" | "results";
@@ -174,6 +175,7 @@ const FitPage = () => {
   }, []);
 
   const handleSelectProduct = useCallback((product: SelectedProduct) => {
+    const startedAt = performance.now();
     let fitData: ProductFitData;
     if (product.source === "mock" && mockProductFitData[product.id]) {
       fitData = mockProductFitData[product.id];
@@ -183,13 +185,37 @@ const FitPage = () => {
 
     const body: BodyMeasurements = {} as any;
     for (const [k, v] of Object.entries(measurements)) (body as any)[k] = v.value;
-    const result = computeFit(body, fitData, scanQuality || 75);
-    
-    setSelectedProduct(product);
-    setFitResult(result);
-    setActiveTab("results");
-    // Only fetch AI explanation in free mode (lightweight); premium gets deeper explanation on refine
-    fetchExplanation(result, product, fitMode);
+    let result: FitResult | null = null;
+    try {
+      result = computeFit(body, fitData, scanQuality || 75);
+      setSelectedProduct(product);
+      setFitResult(result);
+      setActiveTab("results");
+      const recommended = result.sizeResults.find(s => s.recommended);
+      recordEvent({
+        event_name: "fit_generate",
+        status: "success",
+        duration_ms: performance.now() - startedAt,
+        metadata: {
+          source: product.source,
+          fit_type: product.fitType,
+          scan_quality: scanQuality || 75,
+          fit_score: recommended?.fitScore ?? null,
+          confidence: result.confidence,
+          recommended_size: result.recommendedSize,
+        },
+      });
+      // Only fetch AI explanation in free mode (lightweight); premium gets deeper explanation on refine
+      fetchExplanation(result, product, fitMode);
+    } catch (err) {
+      recordEvent({
+        event_name: "fit_generate",
+        status: "error",
+        duration_ms: performance.now() - startedAt,
+        metadata: { error: (err as Error)?.message?.slice(0, 200) || "unknown", source: product.source },
+      });
+      throw err;
+    }
   }, [measurements, scanQuality, fitMode]);
 
   const fetchExplanation = async (result: FitResult, product: SelectedProduct, mode: FitMode) => {

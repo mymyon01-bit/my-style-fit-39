@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
+import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
 interface Props {
@@ -107,6 +108,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     if (!user || !file) return;
     setUploading(true);
     setError(null);
+    const startedAt = performance.now();
 
     try {
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
@@ -142,6 +144,19 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
         metadata: { style_tags: styleTags, occasion_tags: occasionTags, topics: allTopics, hashtags },
       });
 
+      // Telemetry: post_create success — admin-only read.
+      recordEvent({
+        event_name: "post_create",
+        status: "success",
+        duration_ms: performance.now() - startedAt,
+        metadata: {
+          file_size: file.size,
+          style_tags: styleTags.length,
+          occasion_tags: occasionTags.length,
+          topics: allTopics.length,
+        },
+      });
+
       toast.success("Posted to OOTD");
       onPosted();
       resetForm();
@@ -149,6 +164,12 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     } catch (e: any) {
       const msg = e?.message || "Upload failed. Please try again.";
       console.error("[ootd-upload]", e);
+      recordEvent({
+        event_name: "post_create",
+        status: "error",
+        duration_ms: performance.now() - startedAt,
+        metadata: { error: msg.slice(0, 200), file_size: file?.size ?? 0 },
+      });
       setError(msg);
       toast.error(msg);
     } finally {
