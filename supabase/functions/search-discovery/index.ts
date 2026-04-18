@@ -70,12 +70,13 @@ function isImageSafe(u: unknown): boolean {
 // ── Category lock: deterministic primary-category detection ──
 // Mirrors product-search/category-keyword-map. Single source of truth here.
 const PRIMARY_CATEGORY_PATTERNS: Array<{ cat: string; re: RegExp }> = [
-  { cat: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag)\b/i },
+  { cat: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag|wallet)\b/i },
   { cat: "shoes", re: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|derby|brogues?|espadrilles?|slippers?)\b/i },
   { cat: "outerwear", re: /\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan)\b/i },
   { cat: "tops", re: /\b(shirt|tee|t-shirts?|hoodie|sweater|polo|blouse|tank|knit|sweatshirt|pullover|henley|tunic|camisole)\b/i },
   { cat: "bottoms", re: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes)\b/i },
   { cat: "dresses", re: /\b(dress|jumpsuit|romper|gown)\b/i },
+  { cat: "accessories", re: /\b(jewelry|jewellery|necklace|bracelet|earrings?|ring|sunglasses|watch|belt|scarf|hat|cap|beanie|fedora|beret|gloves?|tie)\b/i },
 ];
 
 // Scenario / weather queries — these are intentionally mixed-category

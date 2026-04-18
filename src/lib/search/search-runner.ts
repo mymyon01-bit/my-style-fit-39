@@ -5,6 +5,7 @@ import { validateProduct } from "./product-validation-service";
 import { ingestQuery } from "./product-ingestion-service";
 import { appendToSession, type SearchSession } from "./search-session";
 import { findCluster, upsertCluster } from "./query-cluster-service";
+import { categoryFirstSort } from "./category-lock";
 import { recordEvent } from "@/lib/diagnostics";
 
 export interface RunSearchOptions {
@@ -36,6 +37,11 @@ export async function runSearch(
   let totalCandidates = 0;
   let totalValidated = 0;
   let clusterHit = false;
+  console.info("[search-runner] start", {
+    query: session.query,
+    queryType: type,
+    categoryLock: session.categoryLock,
+  });
 
   // ── CYCLE 0 — CLUSTER LOOKUP (DB-first, instant) ────────────────────────
   // Seed the session immediately from a cached cluster so the user never
@@ -129,8 +135,20 @@ export async function runSearch(
     prevCount = session.results.length;
   }
 
+  // Final pass: ensure category-matched products lead the list when locked.
+  if (session.categoryLock) {
+    session.results = categoryFirstSort(session.results, session.categoryLock);
+  }
   session.status = "complete";
   opts.onProgress?.(session);
+
+  console.info("[search-runner] done", {
+    query: session.query,
+    categoryLock: session.categoryLock,
+    rejectedByCategory: session.rejectedByCategory,
+    final: session.results.length,
+    cycles: session.cycle,
+  });
 
   // Persist / refresh the cluster in the background — improves next search.
   void upsertCluster({
@@ -147,12 +165,14 @@ export async function runSearch(
     duration_ms: performance.now() - sessionStart,
     metadata: {
       query_type: type,
+      category_lock: session.categoryLock,
       query_len: session.query.length,
       family_size: family.length,
       cycles: session.cycle,
       candidates: totalCandidates,
       validated: totalValidated,
       results: session.results.length,
+      rejected_by_category: session.rejectedByCategory,
       cluster_hit: clusterHit,
     },
   });

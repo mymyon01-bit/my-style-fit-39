@@ -11,3 +11,4 @@ export * from "./product-ingestion-service";
 export * from "./search-runner";
 export * from "./search-ui-state";
 export * from "./query-cluster-service";
+export * from "./category-lock";
