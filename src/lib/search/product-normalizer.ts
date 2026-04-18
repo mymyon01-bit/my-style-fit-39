@@ -33,5 +33,8 @@ export function normalizeFromCache(raw: unknown): Product | null {
     color: (r.color as string) || ((r.color_tags as string[]) || [])[0] || "",
     fit: (r.fit as string) || "regular",
     reason: (r.reason as string) || "",
+    createdAt: (r.created_at as string) || (r.createdAt as string) || null,
+    lastValidated: (r.last_validated as string) || (r.lastValidated as string) || null,
+    trendScore: typeof r.trend_score === "number" ? (r.trend_score as number) : undefined,
   };
 }

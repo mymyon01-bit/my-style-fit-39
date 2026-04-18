@@ -6,6 +6,7 @@ import { ingestQuery } from "./product-ingestion-service";
 import { appendToSession, markProductsAsSeen, mixUnseenFirst, type SearchSession } from "./search-session";
 import { findCluster, upsertCluster } from "./query-cluster-service";
 import { categoryFirstSort } from "./category-lock";
+import { isCohortStale, rankByFreshness, rotateNewIntoWindow } from "./freshness";
 import { recordEvent } from "@/lib/diagnostics";
 
 export interface RunSearchOptions {
@@ -41,6 +42,9 @@ export async function runSearch(
   let totalCandidates = 0;
   let totalValidated = 0;
   let clusterHit = false;
+  /** IDs that were already cached before this session — used for partial rotation. */
+  const oldIds = new Set<string>();
+  let cohortWasStale = false;
   console.info("[search-runner] start", {
     query: session.query,
     queryType: type,
@@ -55,16 +59,29 @@ export async function runSearch(
       let seeded = 0;
       for (const p of cluster.products) {
         if (!validateProduct(p)) continue;
-        if (appendToSession(session, p)) seeded++;
+        if (appendToSession(session, p)) {
+          seeded++;
+          oldIds.add(p.id);
+        }
       }
       if (seeded > 0) {
         clusterHit = true;
         session.status = "partial";
         opts.onProgress?.(session);
+        // If the seed cohort is mostly stale, eagerly trigger a background
+        // refresh so future cycles inject fresh products.
+        cohortWasStale = isCohortStale(session.results, 0.6);
+        if (cohortWasStale) {
+          void ingestQuery(session.query);
+          console.info("[search-runner] cohort stale, refresh triggered", {
+            query: session.query,
+          });
+        }
         console.info("[search-runner] stage1 cluster seed", {
           query: session.query,
           seeded,
           clusterKey: cluster.cluster.cluster_key,
+          cohortStale: cohortWasStale,
         });
       }
     }
@@ -154,10 +171,21 @@ export async function runSearch(
     if (session.results.length >= target) break;
   }
 
-  // ── STAGE 7 — REPEAT CONTROL + category-first sort ──────────────────────
+  // ── STAGE 7 — FRESHNESS DECAY + ROTATION + REPEAT CONTROL ───────────────
   if (session.categoryLock) {
     session.results = categoryFirstSort(session.results, session.categoryLock);
   }
+  // Soft-decay ranking: newer products win, stale ones drop (never disappear).
+  session.results = rankByFreshness(session.results);
+  // Partial rotation: at least 40% of the first window must be items newly
+  // discovered in THIS session (not the cluster seed). Prevents the cached
+  // grid from being served back unchanged.
+  const newIds = new Set<string>();
+  for (const p of session.results) if (!oldIds.has(p.id)) newIds.add(p.id);
+  session.results = rotateNewIntoWindow(session.results, newIds, {
+    windowSize: 24,
+    minNewRatio: 0.4,
+  });
   // 70/30 unseen→seen mix in the first window + anti-clustering by brand.
   session.results = mixUnseenFirst(session.results, {
     unseenRatio: 0.7,
@@ -203,6 +231,8 @@ export async function runSearch(
       rejected_by_brand_cap: session.rejectedByBrandCap,
       rejected_by_dedupe: session.rejectedByDedupe,
       cluster_hit: clusterHit,
+      cohort_stale: cohortWasStale,
+      new_in_session: newIds.size,
     },
   });
 
