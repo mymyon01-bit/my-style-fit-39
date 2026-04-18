@@ -61,7 +61,7 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
     // never re-animate when results stream in or memoization invalidates.
     // Subtle lift on hover/tap is the only motion (premium, not gimmicky).
     <div
-      className="overflow-hidden rounded-2xl border border-border/20 bg-card/60 shadow-sm backdrop-blur-sm transition-[transform,box-shadow] duration-200 ease-out animate-fade-in hover:-translate-y-1 hover:shadow-lg active:translate-y-0"
+      className="lift-card overflow-hidden rounded-2xl border border-border/30 bg-card animate-fade-in"
     >
 
       {/* Header — hardcoded structure */}

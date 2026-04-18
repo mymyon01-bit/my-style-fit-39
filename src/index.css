@@ -24,17 +24,17 @@
     --muted: 240 2% 92%;
     --muted-foreground: 240 4% 38%;
 
-    --accent: 349 50% 24%;
+    --accent: 351 60% 30%;
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 349 44% 33%;
-    --accent-highlight: 349 38% 46%;
+    --accent-muted: 351 50% 38%;
+    --accent-highlight: 351 42% 50%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 345 8% 90%;
-    --input: 345 6% 91%;
-    --ring: 349 50% 24%;
+    --border: 240 5% 90%;
+    --input: 240 5% 91%;
+    --ring: 351 60% 30%;
 
     --radius: 0.75rem;
 
@@ -46,8 +46,13 @@
     --font-display: 'Playfair Display', Georgia, serif;
     --font-body: 'Inter', -apple-system, sans-serif;
 
-    --shadow-soft: 0 2px 16px -2px hsl(0 0% 0% / 0.04);
-    --shadow-elevated: 0 8px 40px -8px hsl(0 0% 0% / 0.06);
+    /* Depth system — 3 levels: surface → card → lifted */
+    --shadow-1: 0 1px 2px hsl(240 6% 10% / 0.04);
+    --shadow-2: 0 2px 8px -2px hsl(240 6% 10% / 0.06), 0 1px 3px hsl(240 6% 10% / 0.04);
+    --shadow-3: 0 12px 32px -8px hsl(240 6% 10% / 0.14), 0 4px 12px -4px hsl(240 6% 10% / 0.08);
+    /* Legacy aliases (kept for existing usages) */
+    --shadow-soft: var(--shadow-2);
+    --shadow-elevated: var(--shadow-3);
   }
 
   .dark {
@@ -69,25 +74,28 @@
     --muted: 240 5% 14%;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 349 50% 45%;
+    --accent: 351 55% 50%;
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 349 42% 52%;
-    --accent-highlight: 349 38% 62%;
+    --accent-muted: 351 48% 56%;
+    --accent-highlight: 351 42% 64%;
 
     --destructive: 0 65% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 345 12% 18%;
-    --input: 345 10% 18%;
-    --ring: 349 50% 45%;
+    --border: 240 6% 18%;
+    --input: 240 5% 18%;
+    --ring: 351 55% 50%;
 
     --neutral: 0 0% 60%;
     --surface-elevated: 240 6% 9%;
     --surface-sunken: 240 8% 5%;
     --star: 45 93% 58%;
 
-    --shadow-soft: 0 2px 16px -2px hsl(0 0% 0% / 0.35);
-    --shadow-elevated: 0 8px 40px -8px hsl(0 0% 0% / 0.55);
+    --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-2: 0 2px 10px -2px hsl(0 0% 0% / 0.45), 0 1px 3px hsl(0 0% 0% / 0.3);
+    --shadow-3: 0 16px 40px -8px hsl(0 0% 0% / 0.6), 0 4px 14px -4px hsl(0 0% 0% / 0.4);
+    --shadow-soft: var(--shadow-2);
+    --shadow-elevated: var(--shadow-3);
   }
 }
 
@@ -99,6 +107,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -106,8 +116,13 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: hsl(var(--foreground));
   }
+  h1 { font-weight: 600; }
+  h2, h3 { font-weight: 600; }
+  p { color: hsl(var(--foreground) / 0.78); }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
      with a slightly larger base + heavier weight for crisp legibility. */
@@ -149,6 +164,50 @@
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+  /* Depth tokens — use directly on cards & surfaces */
+  .shadow-d1 { box-shadow: var(--shadow-1); }
+  .shadow-d2 { box-shadow: var(--shadow-2); }
+  .shadow-d3 { box-shadow: var(--shadow-3); }
+
+  /* Premium card lift — Level 2 → Level 3 on hover/focus.
+     Subtle: -3px translate, deeper shadow, no scale. */
+  .lift-card {
+    box-shadow: var(--shadow-2);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  @media (hover: hover) {
+    .lift-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-3);
+    }
+  }
+  .lift-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-3);
+    outline: 2px solid hsl(var(--ring) / 0.5);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lift-card { transition: box-shadow 200ms ease-out; }
+    .lift-card:hover { transform: none; }
+  }
+
+  /* Editorial image overlay — bottom-up gradient for caption legibility
+     on StyledLook / OOTD media. Apply on the image wrapper as ::after. */
+  .image-overlay-editorial {
+    position: relative;
+  }
+  .image-overlay-editorial::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to top, hsl(0 0% 0% / 0.4), hsl(0 0% 0% / 0));
+    border-radius: inherit;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
