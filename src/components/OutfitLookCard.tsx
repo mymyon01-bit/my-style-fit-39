@@ -141,12 +141,7 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
 
       {/* Expanded details — fixed list shape */}
       {expanded && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          className="space-y-2 border-t border-border/10 px-4 py-3"
-        >
+        <div className="space-y-2 border-t border-border/10 px-4 py-3 animate-fade-in">
           {allItems.map((item, i) => (
             <button
               key={item.id + i}
@@ -168,15 +163,16 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
               <ChevronRight className="h-3 w-3 flex-shrink-0 text-foreground/30" />
             </button>
           ))}
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 };
 
-// Memoize so re-renders of parent lists don't rebuild card trees.
+// Memoize on outfit identity only — index changes (reorder) must not re-render
+// the card tree. The frame stays put; only the data inside ever changes.
 const OutfitLookCard = memo(OutfitLookCardImpl, (prev, next) => {
-  return prev.outfit.id === next.outfit.id && prev.index === next.index;
+  return prev.outfit.id === next.outfit.id;
 });
 
 export default OutfitLookCard;
