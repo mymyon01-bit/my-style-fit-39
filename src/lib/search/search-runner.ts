@@ -96,15 +96,19 @@ export async function runSearch(
   const family = await expandQueries(session.query, type);
   console.info("[search-runner] stage2 family", { size: family.length });
 
-  // 4-cycle plan covering up to 16 expanded queries. Every cycle ALWAYS
+  // 4-cycle plan covering up to 20 expanded queries. Every cycle ALWAYS
   // runs — we never break early just because the first page is full. The
   // user must feel the feed continuing to grow.
   const plan: { queries: string[]; fresh: boolean }[] = [
     { queries: [session.query, ...family.slice(0, 3)], fresh: false },
-    { queries: family.slice(3, 7), fresh: false },
-    { queries: family.slice(7, 11), fresh: true },
-    { queries: family.slice(11, 16), fresh: true },
+    { queries: family.slice(3, 8), fresh: false },
+    { queries: family.slice(8, 14), fresh: true },
+    { queries: family.slice(14, 20), fresh: true },
   ].slice(0, maxCycles);
+
+  // Continuous-discovery target: at least 18 NEW (not in cluster seed)
+  // candidates must accumulate before we allow the runner to short-circuit.
+  const MIN_NEW_CANDIDATES = 18;
 
   let consecutiveEmpty = 0;
 
