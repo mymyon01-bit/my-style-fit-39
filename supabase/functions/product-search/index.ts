@@ -25,13 +25,13 @@ function isFashionProduct(name: string): boolean {
 // ─── Category inference (used to enforce search intent) ───
 // Maps a raw text blob → canonical category bucket
 const CATEGORY_PATTERNS: { category: string; re: RegExp }[] = [
-  { category: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag)\b/i },
+  { category: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag|wallet)\b/i },
   { category: "shoes", re: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|derby|brogues?|espadrilles?|slippers?)\b/i },
   { category: "outerwear", re: /\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan)\b/i },
   { category: "tops", re: /\b(shirt|tee|t-shirt|hoodie|sweater|polo|blouse|tank|knit|sweatshirt|pullover|henley|tunic|camisole|top)\b/i },
   { category: "bottoms", re: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes)\b/i },
   { category: "dresses", re: /\b(dress|jumpsuit|romper|gown)\b/i },
-  { category: "accessories", re: /\b(hat|cap|beanie|scarf|belt|watch|sunglasses|gloves?|tie|necklace|bracelet|earring|ring|wallet|fedora|beret|headband|bandana)\b/i },
+  { category: "accessories", re: /\b(hat|cap|beanie|scarf|belt|watch|sunglasses|gloves?|tie|necklace|bracelet|earring|ring|fedora|beret|headband|bandana|jewelry|jewellery)\b/i },
 ];
 
 function inferCategoryFromText(text: string): string | null {
