@@ -50,11 +50,10 @@ export function annotateSeen(product: Product, ctx: SeenFilterContext): SeenAnno
 /** Persist that a batch of products was actually rendered to the user. */
 export async function markRendered(products: Product[]): Promise<void> {
   if (products.length === 0) return;
-  const keys = products.map(productKey).filter(Boolean);
-  sessionMarkSeen(keys);
+  sessionMarkSeen(products);
   // DB write is best-effort — don't block the UI on failure.
   try {
-    await recordDbSeen(keys);
+    await recordDbSeen(products);
   } catch (err) {
     console.warn("[discover-seen-filter] recordDbSeen failed", err);
   }
