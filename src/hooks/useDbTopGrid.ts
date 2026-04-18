@@ -37,7 +37,9 @@ export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
 
     (async () => {
       try {
-        const lock = trimmed ? detectPrimaryCategory(trimmed) : null;
+        const kr = resolveKrAliases(trimmed);
+        const lockSource = kr.isKorean && kr.family ? kr.family : trimmed;
+        const lock = lockSource ? detectPrimaryCategory(lockSource) : null;
         // Pull more than we need so category-lock filtering still leaves a full grid.
         const dbLimit = Math.max(limit * 4, 48);
         let request = supabase
@@ -49,10 +51,22 @@ export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
           .limit(dbLimit);
 
         if (trimmed.length > 0) {
-          // Soft text match — never hard-fail; fallback to recent if nothing matches.
-          request = request.or(
-            `name.ilike.%${trimmed}%,brand.ilike.%${trimmed}%,search_query.ilike.%${trimmed}%,category.ilike.%${trimmed}%`,
-          );
+          // Tokenize multi-word + add KR→EN aliases when applicable.
+          const tokens = trimmed
+            .split(/\s+/)
+            .map((t) => t.replace(/[(),]/g, " ").trim())
+            .filter((t) => t.length >= 2);
+          const orTerms = kr.isKorean && kr.aliases.length > 0
+            ? Array.from(new Set([...tokens, ...kr.aliases]))
+            : tokens.length > 0 ? tokens : [trimmed];
+          const orParts: string[] = [];
+          for (const t of orTerms) {
+            orParts.push(`name.ilike.%${t}%`);
+            orParts.push(`brand.ilike.%${t}%`);
+            orParts.push(`search_query.ilike.%${t}%`);
+            orParts.push(`category.ilike.%${t}%`);
+          }
+          if (orParts.length > 0) request = request.or(orParts.join(","));
         }
 
         const { data, error: dbError } = await request;
