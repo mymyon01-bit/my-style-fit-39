@@ -19,93 +19,101 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Expanded taxonomy — 70+ seeds covering bags, streetwear, minimal, oversized,
-// jackets, sneakers, formal, accessories, jewelry, color/season variants, plus
-// Korean queries. Round-robin guarantees full coverage across cron cycles.
+// Expanded taxonomy — 100+ seeds across category, brand, style/occasion,
+// Korean, and seasonal/weather families. The cron picks ONE seed from each
+// family per tick (see SEED_GROUPS below) so DB growth is always diversified
+// and the spec/brand/KR queries get cold-cache coverage.
 const SEEDS: { q: string; family: string }[] = [
-  // bags
-  { q: "bags", family: "bags" },
-  { q: "crossbody bag", family: "bags" },
-  { q: "tote bag", family: "bags" },
-  { q: "shoulder bag", family: "bags" },
-  { q: "backpack", family: "bags" },
-  { q: "designer bag", family: "bags" },
-  { q: "mini bag", family: "bags" },
-  { q: "leather bag", family: "bags" },
-  // streetwear
-  { q: "streetwear", family: "streetwear" },
-  { q: "urban outfit", family: "streetwear" },
-  { q: "graphic tee", family: "streetwear" },
-  { q: "cargo pants", family: "streetwear" },
-  { q: "hoodie streetwear", family: "streetwear" },
-  { q: "techwear", family: "streetwear" },
-  // minimal
-  { q: "minimal style", family: "minimal" },
-  { q: "minimalist outfit", family: "minimal" },
-  { q: "neutral tones", family: "minimal" },
-  { q: "monochrome outfit", family: "minimal" },
-  { q: "clean look", family: "minimal" },
-  // oversized
-  { q: "oversized fit", family: "oversized" },
-  { q: "oversized hoodie", family: "oversized" },
-  { q: "oversized blazer", family: "oversized" },
-  { q: "baggy jeans", family: "oversized" },
-  { q: "oversized tee", family: "oversized" },
-  // jackets / outerwear
-  { q: "jackets", family: "jackets" },
-  { q: "leather jacket", family: "jackets" },
-  { q: "denim jacket", family: "jackets" },
-  { q: "bomber jacket", family: "jackets" },
-  { q: "trench coat", family: "jackets" },
-  { q: "puffer jacket", family: "jackets" },
-  { q: "wool coat", family: "jackets" },
-  { q: "rain jacket", family: "jackets" },
-  // sneakers / shoes
-  { q: "sneakers", family: "sneakers" },
-  { q: "white sneakers", family: "sneakers" },
-  { q: "running shoes", family: "sneakers" },
-  { q: "chunky sneakers", family: "sneakers" },
-  { q: "loafers", family: "shoes" },
-  { q: "boots", family: "shoes" },
-  { q: "red shoes", family: "shoes" },
-  // formal
-  { q: "formal look", family: "formal" },
-  { q: "suit", family: "formal" },
-  { q: "blazer", family: "formal" },
-  { q: "dress shirt", family: "formal" },
-  { q: "office wear", family: "formal" },
-  // accessories / jewelry
-  { q: "sunglasses", family: "accessories" },
-  { q: "belts", family: "accessories" },
-  { q: "hats", family: "accessories" },
-  { q: "scarves", family: "accessories" },
-  { q: "wallets", family: "accessories" },
-  { q: "card holder", family: "accessories" },
-  { q: "silver necklace", family: "jewelry" },
-  { q: "gold ring", family: "jewelry" },
-  { q: "minimal earrings", family: "jewelry" },
-  { q: "chain necklace", family: "jewelry" },
-  // color variations
-  { q: "black outfit", family: "color" },
-  { q: "white outfit", family: "color" },
-  { q: "beige outfit", family: "color" },
-  { q: "olive outfit", family: "color" },
-  // seasonal
+  // ===== category =====
+  { q: "bags", family: "category" },
+  { q: "crossbody bag", family: "category" },
+  { q: "tote bag", family: "category" },
+  { q: "shoulder bag", family: "category" },
+  { q: "backpack", family: "category" },
+  { q: "mini bag", family: "category" },
+  { q: "leather bag", family: "category" },
+  { q: "jackets", family: "category" },
+  { q: "leather jacket", family: "category" },
+  { q: "denim jacket", family: "category" },
+  { q: "bomber jacket", family: "category" },
+  { q: "trench coat", family: "category" },
+  { q: "puffer jacket", family: "category" },
+  { q: "wool coat", family: "category" },
+  { q: "coats", family: "category" },
+  { q: "sneakers", family: "category" },
+  { q: "white sneakers", family: "category" },
+  { q: "running shoes", family: "category" },
+  { q: "loafers", family: "category" },
+  { q: "boots", family: "category" },
+  { q: "knitwear", family: "category" },
+  { q: "trousers", family: "category" },
+  { q: "shirts", family: "category" },
+  { q: "graphic tee", family: "category" },
+  { q: "cargo pants", family: "category" },
+  // ===== brand =====
+  { q: "Gucci loafers", family: "brand" },
+  { q: "Gucci bag", family: "brand" },
+  { q: "Nike sneakers", family: "brand" },
+  { q: "Adidas sneakers", family: "brand" },
+  { q: "New Balance sneakers", family: "brand" },
+  { q: "Zara jacket", family: "brand" },
+  { q: "COS knit", family: "brand" },
+  { q: "Uniqlo coat", family: "brand" },
+  { q: "Prada bag", family: "brand" },
+  { q: "Loewe bag", family: "brand" },
+  { q: "Bottega bag", family: "brand" },
+  { q: "Acne Studios jacket", family: "brand" },
+  // ===== style / occasion =====
+  { q: "formal look", family: "style" },
+  { q: "business casual", family: "style" },
+  { q: "date night outfit", family: "style" },
+  { q: "minimal outfit", family: "style" },
+  { q: "streetwear outfit", family: "style" },
+  { q: "oversized jacket", family: "style" },
+  { q: "wedding guest look", family: "style" },
+  { q: "office wear", family: "style" },
+  { q: "techwear", family: "style" },
+  { q: "old money outfit", family: "style" },
+  { q: "y2k outfit", family: "style" },
+  { q: "monochrome outfit", family: "style" },
+  // ===== korean =====
+  { q: "가방", family: "korean" },
+  { q: "자켓", family: "korean" },
+  { q: "스니커즈", family: "korean" },
+  { q: "코트", family: "korean" },
+  { q: "코트 코디", family: "korean" },
+  { q: "미니멀 룩", family: "korean" },
+  { q: "데이트룩", family: "korean" },
+  { q: "출근룩", family: "korean" },
+  { q: "여름 코디", family: "korean" },
+  { q: "겨울 코디", family: "korean" },
+  { q: "korean street style", family: "korean" },
+  { q: "korean fashion bag", family: "korean" },
+  // ===== seasonal / weather =====
   { q: "summer outfit", family: "seasonal" },
   { q: "winter outfit", family: "seasonal" },
   { q: "fall outfit", family: "seasonal" },
   { q: "spring outfit", family: "seasonal" },
   { q: "rainy outerwear", family: "seasonal" },
-  // korean
-  { q: "korean fashion bag", family: "korean" },
-  { q: "korean street style", family: "korean" },
-  { q: "korean sneakers", family: "korean" },
-  { q: "한국 가방", family: "korean" },
-  { q: "코트", family: "korean" },
-  { q: "스니커즈", family: "korean" },
+  { q: "snow outfit", family: "seasonal" },
+  { q: "beach outfit", family: "seasonal" },
+  { q: "holiday outfit", family: "seasonal" },
 ];
 
-const SEEDS_PER_TICK = 5;
+// Diversified rotation — every cron tick pulls one seed from each family.
+const SEED_FAMILIES = ["brand", "style", "korean", "category", "seasonal"] as const;
+const SEEDS_PER_TICK = SEED_FAMILIES.length;
+
+function pickDiversifiedSeeds(cursorIdx: number): { q: string; family: string }[] {
+  const out: { q: string; family: string }[] = [];
+  for (let i = 0; i < SEED_FAMILIES.length; i++) {
+    const fam = SEED_FAMILIES[i];
+    const pool = SEEDS.filter((s) => s.family === fam);
+    if (pool.length === 0) continue;
+    out.push(pool[(cursorIdx + i) % pool.length]);
+  }
+  return out;
+}
 
 function log(stage: string, payload: Record<string, unknown>) {
   console.log(`[INVENTORY] ${stage} ${JSON.stringify(payload)}`);
@@ -333,12 +341,10 @@ serve(async (req) => {
       );
     }
 
+    // Diversified rotation: one seed per family per tick.
     const startIdx = ((cursor.cursor_index % SEEDS.length) + SEEDS.length) % SEEDS.length;
-    const seedsThisTick: { q: string; family: string }[] = [];
-    for (let i = 0; i < SEEDS_PER_TICK; i++) {
-      seedsThisTick.push(SEEDS[(startIdx + i) % SEEDS.length]);
-    }
-    const nextIndex = (startIdx + SEEDS_PER_TICK) % SEEDS.length;
+    const seedsThisTick = pickDiversifiedSeeds(startIdx);
+    const nextIndex = (startIdx + 1) % SEEDS.length;
 
     log("tick_start", { startIdx, seeds: seedsThisTick.map((s) => s.q), nextIndex });
 
