@@ -1,14 +1,20 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
+import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 
 const DesktopNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
+
+  useEffect(() => {
+    prefetchAllTabs();
+  }, []);
 
   const navLinks = [
     { path: "/about", label: t("about").toUpperCase() },
@@ -82,6 +88,7 @@ const DesktopNav = () => {
             <button
               key={link.path}
               onClick={() => navigate(link.path)}
+              onMouseEnter={() => prefetchRoute(link.path)}
               className={`hover-burgundy text-[10px] font-semibold tracking-[0.3em] transition-colors ${
                 isActive(link.path)
                   ? "text-foreground/90"

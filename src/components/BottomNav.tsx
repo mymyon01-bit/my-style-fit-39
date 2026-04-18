@@ -1,9 +1,15 @@
 import { Home, Compass, Camera, Scan, User } from "lucide-react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    prefetchAllTabs();
+  }, []);
 
   const tabs = [
     { path: "/", icon: Home, label: "HOME" },
@@ -23,6 +29,8 @@ const BottomNav = () => {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
+              onMouseEnter={() => prefetchRoute(tab.path)}
+              onTouchStart={() => prefetchRoute(tab.path)}
               className={`hover-burgundy relative flex flex-col items-center gap-1.5 px-5 py-1.5 md:gap-2 md:px-6 ${
                 isActive ? "text-foreground" : "text-foreground/75"
               }`}
