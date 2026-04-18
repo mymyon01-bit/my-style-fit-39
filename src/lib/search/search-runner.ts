@@ -9,6 +9,7 @@ import { categoryFirstSort } from "./category-lock";
 import { isCohortStale, rankByFreshness, rotateNewIntoWindow } from "./freshness";
 import { ensureTopRowDiversity, rotateStyleClusters, shuffleMidBand } from "./diversity";
 import { enforceSourceQuota, sourceOf } from "./sources";
+import { prioritizeUnseenDomains, recordDomainsShown } from "./domain-rotation";
 import { recordEvent } from "@/lib/diagnostics";
 
 export interface RunSearchOptions {
