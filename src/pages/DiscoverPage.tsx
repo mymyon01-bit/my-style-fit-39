@@ -1296,6 +1296,37 @@ const DiscoverPage = () => {
   ];
   const [progressIdx, setProgressIdx] = useState(0);
 
+  // ── Perceived freshness: track which products were appended in the last
+  // grid update so we can flash a "+N new items" banner and badge them
+  // individually with ✨ NEW. The banner auto-clears after ~4s; the badges
+  // fade after ~12s so users notice without permanent visual noise.
+  const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+  const [freshFlash, setFreshFlash] = useState<{ count: number; label: string } | null>(null);
+  const FRESH_LABELS = ["NEW ARRIVALS JUST ADDED", "FRESH PICKS", "TRENDING NOW", "HOT OFF THE STORES"];
+  const freshLabelIdx = useRef(0);
+  // Helper used by every append site to mark items as fresh + show the flash.
+  const markFresh = useCallback((newItems: AIRecommendation[]) => {
+    if (!newItems.length) return;
+    const ids = new Set(newItems.map(p => p.id));
+    setFreshIds(prev => {
+      const merged = new Set(prev);
+      ids.forEach(id => merged.add(id));
+      return merged;
+    });
+    const label = FRESH_LABELS[freshLabelIdx.current % FRESH_LABELS.length];
+    freshLabelIdx.current += 1;
+    setFreshFlash({ count: newItems.length, label });
+    // Clear the flash banner after 4s; clear individual badges after 12s.
+    window.setTimeout(() => setFreshFlash(null), 4000);
+    window.setTimeout(() => {
+      setFreshIds(prev => {
+        const next = new Set(prev);
+        ids.forEach(id => next.delete(id));
+        return next;
+      });
+    }, 12000);
+  }, []);
+
   // Rotate progress messages every 1.8s while a search is active so the
   // status line never feels frozen between cycles.
   useEffect(() => {
@@ -1426,7 +1457,13 @@ const DiscoverPage = () => {
             if (freshProducts.length > 0) {
               const freshDiverse = enforceClientDiversity(freshProducts, sessionSeenIds);
               freshDiverse.forEach(p => sessionSeenIds.add(p.id));
-              setRecommendations(prev => enforceClientDiversity([...prev, ...freshDiverse], new Set()));
+              setRecommendations(prev => {
+                const merged = enforceClientDiversity([...prev, ...freshDiverse], new Set());
+                // Mark the items that are actually in the merged grid as fresh.
+                const prevIds = new Set(prev.map(p => p.id));
+                markFresh(merged.filter(p => !prevIds.has(p.id)));
+                return merged;
+              });
             }
           }).catch(() => {});
         }, 100);
@@ -1792,6 +1829,7 @@ const DiscoverPage = () => {
       if (newProducts.length > 0) {
         newProducts.forEach(p => sessionSeenIds.add(p.id));
         setRecommendations(prev => [...prev, ...newProducts]);
+        markFresh(newProducts);
         setDbOffset(prev => prev + newProducts.length);
         setHasMoreInDB(dbCount >= 20);
       } else {
@@ -1812,6 +1850,7 @@ const DiscoverPage = () => {
         if (freshNew.length > 0) {
           freshNew.forEach(p => sessionSeenIds.add(p.id));
           setRecommendations(prev => [...prev, ...freshNew]);
+          markFresh(freshNew);
         } else {
           toast("No more items to show right now");
         }
@@ -2894,6 +2933,26 @@ const DiscoverPage = () => {
                   )}
                 </div>
 
+                {/* Fresh-arrivals flash banner — appears for ~4s when new
+                    items are appended to the grid. Builds the "live and
+                    constantly updating" feeling per spec. */}
+                <AnimatePresence>
+                  {freshFlash && (
+                    <motion.div
+                      key={freshFlash.label + freshFlash.count}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25 }}
+                      className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/[0.08] px-3 py-2 text-[10px] font-semibold tracking-[0.18em] text-accent"
+                      aria-live="polite"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>+{freshFlash.count} {freshFlash.label}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {categorizedRecs.length > 0 ? (
                   categorizedRecs.map(({ category, items }) => (
                     <div key={category} className="space-y-4">
@@ -2908,6 +2967,7 @@ const DiscoverPage = () => {
                             index={i}
                             feedback={feedbackMap[item.id]}
                             isSaved={savedIds.has(item.id)}
+                            isFresh={freshIds.has(item.id)}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
                             onOpenDetail={setDetailProduct}
@@ -2925,6 +2985,7 @@ const DiscoverPage = () => {
                         index={i}
                         feedback={feedbackMap[item.id]}
                         isSaved={savedIds.has(item.id)}
+                        isFresh={freshIds.has(item.id)}
                         onFeedback={handleFeedback}
                         onSave={handleSave}
                         onOpenDetail={setDetailProduct}
@@ -3046,13 +3107,14 @@ interface RecommendationCardProps {
   index: number;
   feedback: "like" | "dislike" | undefined;
   isSaved: boolean;
+  isFresh?: boolean;
   onFeedback: (id: string, type: "like" | "dislike") => void;
   onSave: (id: string) => void;
   onOpenDetail: (item: AIRecommendation) => void;
 }
 
 const RecommendationCardImpl = forwardRef<HTMLDivElement, RecommendationCardProps>(
-  ({ item, index, feedback, isSaved, onFeedback, onSave, onOpenDetail }, ref) => {
+  ({ item, index, feedback, isSaved, isFresh, onFeedback, onSave, onOpenDetail }, ref) => {
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -3122,6 +3184,12 @@ const RecommendationCardImpl = forwardRef<HTMLDivElement, RecommendationCardProp
             {PLATFORM_LABELS[item.platform].label}
           </div>
         )}
+        {isFresh && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-accent/90 px-2 py-0.5 text-[9px] font-bold text-accent-foreground backdrop-blur-sm tracking-wide shadow-lg shadow-accent/30 animate-pulse">
+            <Sparkles className="h-2.5 w-2.5" />
+            NEW
+          </div>
+        )}
         {item.source_url && (
           <div
             onClick={(e) => { e.stopPropagation(); window.open(item.source_url!, "_blank", "noopener,noreferrer"); }}
@@ -3152,6 +3220,7 @@ const RecommendationCard = React.memo(RecommendationCardImpl, (prev, next) => {
     prev.item.image_url === next.item.image_url &&
     prev.feedback === next.feedback &&
     prev.isSaved === next.isSaved &&
+    prev.isFresh === next.isFresh &&
     prev.onFeedback === next.onFeedback &&
     prev.onSave === next.onSave &&
     prev.onOpenDetail === next.onOpenDetail &&
