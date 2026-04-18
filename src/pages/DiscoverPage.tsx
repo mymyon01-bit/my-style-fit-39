@@ -1132,7 +1132,8 @@ const DiscoverPage = () => {
     emptyCycles: number;
     stopped: boolean;
   }>({ id: 0, query: "", cycle: 0, totalAdded: 0, emptyCycles: 0, stopped: true });
-  const SESSION_TARGET = 20;
+  // 2x supply target — was 20, now 40 to fill the live section deeply.
+  const SESSION_TARGET = 40;
   const SESSION_MAX_EMPTY_CYCLES = 2;
 
   // Product detail sheet
@@ -2624,15 +2625,25 @@ const DiscoverPage = () => {
                   </p>
                 )}
 
-                {/* ── TOP: "How about this?" — instant DB recommendations from user taste ── */}
+                {/* ═══════════════════════════════════════════════════════════
+                    DISCOVER PAGE — 3 FIXED LAYERS (HARDCODED ORDER)
+                    1. TOP DB PRODUCT GRID  ("For You" — instant DB picks)
+                    2. STYLED LOOKS GRID    (curated editorial combinations)
+                    3. LIVE SEARCH SECTION  (real, growing external results)
+                    The order MUST stay 1 → 2 → 3 regardless of data state.
+                    ═══════════════════════════════════════════════════════════ */}
+
+                {/* ── LAYER 1: TOP DB PRODUCT GRID — "For You" ──
+                   Hardcoded grid frame; only the products inside change.
+                   Renders immediately from DB so the page is never empty. */}
                 {dbRecommendations.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-baseline justify-between">
                       <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/70">
-                        HOW ABOUT THIS?
+                        FOR YOU
                       </p>
                       <span className="text-[9px] tracking-[0.1em] text-foreground/45">
-                        From your taste
+                        Curated picks
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
@@ -2653,7 +2664,39 @@ const DiscoverPage = () => {
                   </div>
                 )}
 
-                {/* ── BOTTOM: real query-based search results ── */}
+                {/* ── LAYER 2: STYLED LOOKS — editorial, hardcoded frame ──
+                   Always mounted while we have any data or are still
+                   generating. Skeletons fill empty slots so the layout
+                   never collapses or rebuilds. */}
+                {(outfitCombinations.length > 0 || isGenerating) && (
+                  <div className="space-y-4">
+                    <div className="flex items-baseline justify-between">
+                      <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 uppercase">
+                        Styled Looks
+                      </p>
+                      <span className="text-[9px] tracking-[0.1em] text-foreground/45">
+                        Curated combinations
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {outfitCombinations.map((outfit, i) => (
+                        <OutfitLookCard key={outfit.id} outfit={outfit} index={i} />
+                      ))}
+                      {isGenerating &&
+                        Array.from({
+                          length: Math.max(0, 4 - outfitCombinations.length),
+                        }).map((_, i) => (
+                          <StyledLookSkeleton key={`styled-skel-${i}`} />
+                        ))}
+                    </div>
+                    <div className="h-px bg-border/30" />
+                  </div>
+                )}
+
+                {/* ── LAYER 3: LIVE SEARCH / INGESTION ──
+                   Header + status line make it obvious that the system is
+                   still searching across more stores. Newly fetched
+                   products are appended below; the frame never resets. */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/75">
@@ -2671,36 +2714,34 @@ const DiscoverPage = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-foreground/70">{recommendations.length} {t("items")}</span>
-                    {isGenerating && (
+                    {(isGenerating || isLoadingMore) && (
                       <Loader2 className="h-3 w-3 animate-spin text-accent/50" />
                     )}
                   </div>
                 </div>
 
-                {/* ── Styled Outfits — HARDCODED FRAME ──
-                   Section + grid are always mounted while we have any data
-                   or are still generating. Skeleton placeholders fill empty
-                   slots so the layout never collapses or rebuilds. */}
-                {(outfitCombinations.length > 0 || isGenerating) && (
-                  <div className="space-y-4">
-                    <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 uppercase">
-                      Styled Looks
-                    </p>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {outfitCombinations.map((outfit, i) => (
-                        <OutfitLookCard key={outfit.id} outfit={outfit} index={i} />
-                      ))}
-                      {/* Pad with skeletons so the grid keeps a stable shape
-                         (target: 4 looks). Only renders while still loading. */}
-                      {isGenerating &&
-                        Array.from({
-                          length: Math.max(0, 4 - outfitCombinations.length),
-                        }).map((_, i) => (
-                          <StyledLookSkeleton key={`styled-skel-${i}`} />
-                        ))}
-                    </div>
-                  </div>
-                )}
+                {/* Live status line — always present, message swaps with state. */}
+                <div
+                  className="flex items-center gap-2 rounded-lg border border-accent/10 bg-accent/[0.03] px-3 py-2 text-[10px] tracking-[0.12em] text-accent/70"
+                  aria-live="polite"
+                >
+                  {isGenerating || isLoadingMore ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>SEARCHING ACROSS MORE STORES…</span>
+                    </>
+                  ) : recommendations.length > 0 ? (
+                    <>
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent/50" />
+                      <span>SHOWING {recommendations.length} VERIFIED RESULTS</span>
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>LOADING MORE PRODUCTS…</span>
+                    </>
+                  )}
+                </div>
 
                 {categorizedRecs.length > 0 ? (
                   categorizedRecs.map(({ category, items }) => (
