@@ -42,6 +42,9 @@ export async function runSearch(
   let totalCandidates = 0;
   let totalValidated = 0;
   let clusterHit = false;
+  /** IDs that were already cached before this session — used for partial rotation. */
+  const oldIds = new Set<string>();
+  let cohortWasStale = false;
   console.info("[search-runner] start", {
     query: session.query,
     queryType: type,
@@ -56,16 +59,29 @@ export async function runSearch(
       let seeded = 0;
       for (const p of cluster.products) {
         if (!validateProduct(p)) continue;
-        if (appendToSession(session, p)) seeded++;
+        if (appendToSession(session, p)) {
+          seeded++;
+          oldIds.add(p.id);
+        }
       }
       if (seeded > 0) {
         clusterHit = true;
         session.status = "partial";
         opts.onProgress?.(session);
+        // If the seed cohort is mostly stale, eagerly trigger a background
+        // refresh so future cycles inject fresh products.
+        cohortWasStale = isCohortStale(session.results, 0.6);
+        if (cohortWasStale) {
+          void ingestQuery(session.query);
+          console.info("[search-runner] cohort stale, refresh triggered", {
+            query: session.query,
+          });
+        }
         console.info("[search-runner] stage1 cluster seed", {
           query: session.query,
           seeded,
           clusterKey: cluster.cluster.cluster_key,
+          cohortStale: cohortWasStale,
         });
       }
     }
