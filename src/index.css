@@ -169,3 +169,62 @@
   0% { opacity: 0; clip-path: inset(0 50% 0 50%); }
   100% { opacity: 1; clip-path: inset(0 0 0 0); }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Premium hero crossfade — three frames, 9s total loop.
+ * Each frame fades in for 1s, holds for 2s, fades out for 1s.
+ * Subsequent frames are delayed by 3s via inline style.
+ * ────────────────────────────────────────────────────────────────────────── */
+@keyframes heroFade {
+  0%   { opacity: 0; transform: scale(1.02); }
+  10%  { opacity: 1; transform: scale(1); }
+  33%  { opacity: 1; transform: scale(1); }
+  43%  { opacity: 0; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1.02); }
+}
+.hero-fade {
+  opacity: 0;
+  animation: heroFade 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: opacity;
+}
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Section reveal — fade + small translateY when entering viewport.
+ * Triggered by SectionReveal.tsx adding `.section-revealed`.
+ * ────────────────────────────────────────────────────────────────────────── */
+.section-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 280ms ease-out, transform 280ms ease-out;
+  will-change: opacity, transform;
+}
+.section-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Desktop-only scroll-snap. Mobile keeps natural scroll. Uses `proximity`
+ * (not `mandatory`) so trackpads don't feel hijacked — the snap only
+ * engages when a section is already most of the way into view.
+ * ────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .snap-scroll-container {
+    scroll-snap-type: y proximity;
+    scroll-behavior: smooth;
+  }
+  .snap-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+  .hero-snap {
+    scroll-snap-align: start;
+  }
+}
