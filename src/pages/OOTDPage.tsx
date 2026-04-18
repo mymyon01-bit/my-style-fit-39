@@ -8,6 +8,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
+import OOTDCard from "@/components/OOTDCard";
 import CrownedBoard from "@/components/CrownedBoard";
 import StoriesRow, { type UserStories } from "@/components/StoriesRow";
 import StoryUploadSheet from "@/components/StoryUploadSheet";
@@ -262,89 +263,19 @@ const OOTDPage = () => {
     return { featured: scored.slice(0, 3), rest: scored.slice(3) };
   };
 
-  const renderPostCard = (post: OOTDPost, index: number, showAuthor = true, isMyPage = false) => {
-    const profile = getProfile(post.user_id);
-    const likes = post.like_count || 0;
-    const title = post.caption ? post.caption.split(/\s+/)[0] : null;
-    const initial = (profile?.display_name?.[0] || "?").toUpperCase();
-
-    return (
-      <motion.div
-        key={post.id}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: index * 0.02 }}
-        className="cursor-pointer group relative"
-        onClick={() => setSelectedPost(post)}
-      >
-        <div className="relative overflow-hidden rounded-lg aspect-[3/4]">
-          <img
-            src={post.image_url}
-            alt={post.caption || ""}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
-          {/* Profile circle on top — community feed only */}
-          {showAuthor && !isMyPage && (
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/u/${post.user_id}`); }}
-              className="absolute top-2 left-2 z-10"
-              aria-label={profile?.display_name || "View profile"}
-            >
-              <div className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-white/90 shadow-md bg-foreground/20 backdrop-blur-sm">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt={profile.display_name || ""} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[11px] font-semibold text-white">
-                    {initial}
-                  </div>
-                )}
-              </div>
-            </button>
-          )}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-1.5 pt-6">
-            {title && <p className="text-[8px] font-semibold text-white/80 truncate">{title}</p>}
-            {showAuthor && !title && (
-              <p className="text-[8px] font-medium text-white/70 truncate">
-                {profile?.display_name || "Anonymous"}
-              </p>
-            )}
-            <div className="flex items-center gap-1.5 mt-0.5">
-              {likes > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <Heart className="h-2 w-2 text-white/60" />
-                  <span className="text-[7px] text-white/60">{likes}</span>
-                </span>
-              )}
-              {(post.star_count || 0) > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <Star className="h-2 w-2 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[7px] text-white/70">{post.star_count}</span>
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        {/* My Page post actions */}
-        {isMyPage && (
-          <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-            <button
-              onClick={e => { e.stopPropagation(); handleEditPost(post); }}
-              className="rounded-full bg-black/50 p-1 text-white/70 hover:text-white backdrop-blur-sm"
-            >
-              <Edit3 className="h-2.5 w-2.5" />
-            </button>
-            <button
-              onClick={e => { e.stopPropagation(); handleDeletePost(post.id); }}
-              className="rounded-full bg-black/50 p-1 text-white/70 hover:text-destructive backdrop-blur-sm"
-            >
-              <Trash2 className="h-2.5 w-2.5" />
-            </button>
-          </div>
-        )}
-      </motion.div>
-    );
-  };
+  const renderPostCard = (post: OOTDPost, index: number, showAuthor = true, isMyPage = false) => (
+    <OOTDCard
+      key={post.id}
+      post={post}
+      profile={getProfile(post.user_id)}
+      index={index}
+      showAuthor={showAuthor}
+      isMyPage={isMyPage}
+      onOpen={(p) => setSelectedPost(p as OOTDPost)}
+      onEdit={isMyPage ? (p) => handleEditPost(p as OOTDPost) : undefined}
+      onDelete={isMyPage ? handleDeletePost : undefined}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
