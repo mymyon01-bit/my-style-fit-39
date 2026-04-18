@@ -201,7 +201,7 @@ const FitPage = () => {
           fit_type: product.fitType,
           scan_quality: scanQuality || 75,
           fit_score: recommended?.fitScore ?? null,
-          confidence: result.confidence,
+          confidence_modifier: result.confidenceModifier,
           recommended_size: result.recommendedSize,
         },
       });
