@@ -341,12 +341,10 @@ serve(async (req) => {
       );
     }
 
+    // Diversified rotation: one seed per family per tick.
     const startIdx = ((cursor.cursor_index % SEEDS.length) + SEEDS.length) % SEEDS.length;
-    const seedsThisTick: { q: string; family: string }[] = [];
-    for (let i = 0; i < SEEDS_PER_TICK; i++) {
-      seedsThisTick.push(SEEDS[(startIdx + i) % SEEDS.length]);
-    }
-    const nextIndex = (startIdx + SEEDS_PER_TICK) % SEEDS.length;
+    const seedsThisTick = pickDiversifiedSeeds(startIdx);
+    const nextIndex = (startIdx + 1) % SEEDS.length;
 
     log("tick_start", { startIdx, seeds: seedsThisTick.map((s) => s.q), nextIndex });
 
