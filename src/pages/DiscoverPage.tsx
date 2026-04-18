@@ -1242,6 +1242,10 @@ const DiscoverPage = () => {
       setIsGenerating(true);
       setHasGenerated(true);
 
+      // Kick off DB "FOR YOU" grid in parallel — independent of live search.
+      // This populates Layer 1 instantly without blocking the rest.
+      loadDbRecommendations("");
+
       const TARGET_COUNT = 12;
 
       // Step 1: INSTANT — Direct DB query, bypasses edge function for zero latency
@@ -2665,24 +2669,9 @@ const DiscoverPage = () => {
             )}
           </AnimatePresence>
 
-          {/* Results Area */}
+          {/* Results Area — HARDCODED SHELLS: render immediately, never block on live search */}
           <div className="mt-8">
-            {isGenerating && recommendations.length === 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="aspect-[3/4] rounded-xl bg-foreground/[0.04]" />
-                      <div className="mt-2.5 space-y-1.5 px-0.5">
-                        <div className="h-2.5 w-16 rounded bg-foreground/[0.04]" />
-                        <div className="h-3 w-24 rounded bg-foreground/[0.04]" />
-                        <div className="h-2.5 w-12 rounded bg-foreground/[0.04]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (hasGenerated || isGenerating) && recommendations.length > 0 ? (
+            {(hasGenerated || isGenerating) ? (
               <div className="space-y-12">
                 {/* Scenario context banner */}
                 {activeScenario && (
@@ -2716,41 +2705,48 @@ const DiscoverPage = () => {
                     ═══════════════════════════════════════════════════════════ */}
 
                 {/* ── LAYER 1: TOP DB PRODUCT GRID — "For You" ──
-                   Hardcoded grid frame; only the products inside change.
-                   Renders immediately from DB so the page is never empty. */}
-                {dbRecommendations.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-baseline justify-between">
-                      <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/70">
-                        FOR YOU
-                      </p>
-                      <span className="text-[9px] tracking-[0.1em] text-foreground/45">
-                        Curated picks
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-                      {dbRecommendations.map((item, i) => (
-                        <RecommendationCard
-                          key={`db-rec-${item.id}`}
-                          item={item}
-                          index={i}
-                          feedback={feedbackMap[item.id]}
-                          isSaved={savedIds.has(item.id)}
-                          onFeedback={handleFeedback}
-                          onSave={handleSave}
-                          onOpenDetail={setDetailProduct}
-                        />
-                      ))}
-                    </div>
-                    <div className="h-px bg-border/30" />
+                   Hardcoded shell — ALWAYS mounted. Skeletons fill empty
+                   slots while DB query resolves. Never blocks on live search. */}
+                <div className="space-y-4">
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-[10px] font-semibold tracking-[0.25em] text-accent/70">
+                      FOR YOU
+                    </p>
+                    <span className="text-[9px] tracking-[0.1em] text-foreground/45">
+                      Curated picks
+                    </span>
                   </div>
-                )}
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+                    {dbRecommendations.length > 0
+                      ? dbRecommendations.map((item, i) => (
+                          <RecommendationCard
+                            key={`db-rec-${item.id}`}
+                            item={item}
+                            index={i}
+                            feedback={feedbackMap[item.id]}
+                            isSaved={savedIds.has(item.id)}
+                            onFeedback={handleFeedback}
+                            onSave={handleSave}
+                            onOpenDetail={setDetailProduct}
+                          />
+                        ))
+                      : Array.from({ length: 8 }).map((_, i) => (
+                          <div key={`db-skel-${i}`} className="animate-pulse">
+                            <div className="aspect-[3/4] rounded-xl bg-foreground/[0.04]" />
+                            <div className="mt-2.5 space-y-1.5 px-0.5">
+                              <div className="h-2.5 w-16 rounded bg-foreground/[0.04]" />
+                              <div className="h-3 w-24 rounded bg-foreground/[0.04]" />
+                              <div className="h-2.5 w-12 rounded bg-foreground/[0.04]" />
+                            </div>
+                          </div>
+                        ))}
+                  </div>
+                  <div className="h-px bg-border/30" />
+                </div>
 
                 {/* ── LAYER 2: STYLED LOOKS — editorial, hardcoded frame ──
-                   Always mounted while we have any data or are still
-                   generating. Skeletons fill empty slots so the layout
-                   never collapses or rebuilds. */}
-                {(outfitCombinations.length > 0 || isGenerating) && (
+                   ALWAYS mounted. Skeletons fill while outfits compute. */}
+                {true && (
                   <div className="space-y-4">
                     <div className="flex items-baseline justify-between">
                       <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 uppercase">
