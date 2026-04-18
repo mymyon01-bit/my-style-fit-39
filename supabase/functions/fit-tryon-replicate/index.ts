@@ -11,8 +11,11 @@ const corsHeaders = {
 };
 
 // Default model: cuuupid/idm-vton — robust virtual try-on
-// Configurable via REPLICATE_TRYON_MODEL env var (format: "owner/name" or pinned version hash).
-const DEFAULT_MODEL = "cuuupid/idm-vton";
+// Community models MUST be pinned with a version hash; the /v1/models/{owner}/{name}/predictions
+// endpoint is reserved for official models only and returns 404 otherwise.
+// Override via REPLICATE_TRYON_MODEL env var (format: "owner/name:versionHash").
+const DEFAULT_MODEL =
+  "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985";
 
 interface CreateBody {
   userImageUrl?: string;
@@ -182,7 +185,15 @@ Deno.serve(async (req) => {
     const { ok, status, data } = await callReplicate(REPLICATE_API_TOKEN, model, input);
     if (!ok) {
       console.error("[tryon-replicate] create failed", status, data);
-      return json({ error: data?.detail || "Replicate request failed", details: data }, 502);
+      const detail = String(data?.detail || "");
+      let reason: "rate_limited" | "billing_required" | "auth" | "provider_error" = "provider_error";
+      if (status === 401) reason = "auth";
+      else if (status === 429 && /payment method/i.test(detail)) reason = "billing_required";
+      else if (status === 429) reason = "rate_limited";
+      return json(
+        { error: detail || "Replicate request failed", reason, retryAfter: data?.retry_after ?? null, status },
+        status === 429 ? 429 : 502
+      );
     }
 
     const predictionId = data?.id as string;
