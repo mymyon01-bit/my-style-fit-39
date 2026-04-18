@@ -185,7 +185,15 @@ Deno.serve(async (req) => {
     const { ok, status, data } = await callReplicate(REPLICATE_API_TOKEN, model, input);
     if (!ok) {
       console.error("[tryon-replicate] create failed", status, data);
-      return json({ error: data?.detail || "Replicate request failed", details: data }, 502);
+      const detail = String(data?.detail || "");
+      let reason: "rate_limited" | "billing_required" | "auth" | "provider_error" = "provider_error";
+      if (status === 401) reason = "auth";
+      else if (status === 429 && /payment method/i.test(detail)) reason = "billing_required";
+      else if (status === 429) reason = "rate_limited";
+      return json(
+        { error: detail || "Replicate request failed", reason, retryAfter: data?.retry_after ?? null, status },
+        status === 429 ? 429 : 502
+      );
     }
 
     const predictionId = data?.id as string;
