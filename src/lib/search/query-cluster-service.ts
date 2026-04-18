@@ -11,6 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeFromCache } from "./product-normalizer";
 import type { Product } from "./types";
+import { detectPrimaryCategory } from "./category-lock";
 
 /* ─────────── Normalization ─────────── */
 
@@ -108,11 +109,30 @@ export async function findCluster(
         if (cTokens.length === 0) continue;
         const overlap = tokens.filter((t) => cTokens.includes(t)).length;
         const score = overlap / Math.max(tokens.length, cTokens.length);
-        if (score >= 0.6 && (!best || score > best.score)) {
+        // Lowered 0.6 → 0.5 so multi-word queries like "street bags" hit
+        // the single-token "bags" cluster instead of cold-starting.
+        if (score >= 0.5 && (!best || score > best.score)) {
           best = { row: c, score };
         }
       }
       row = best?.row ?? null;
+    }
+  }
+
+  // 3) Category fallback: parser-detected primary category. Last resort so
+  //    a search like "red leather bag" still paints from the bags cluster
+  //    even if no token overlap qualified above.
+  if (!row) {
+    const cat = detectPrimaryCategory(query);
+    if (cat) {
+      const { data: catRows } = await supabase
+        .from("query_clusters")
+        .select("*")
+        .eq("category", cat)
+        .order("usage_count", { ascending: false })
+        .order("product_count", { ascending: false })
+        .limit(1);
+      if (catRows && catRows.length) row = catRows[0] as ClusterRow;
     }
   }
 
