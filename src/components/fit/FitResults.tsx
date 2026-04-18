@@ -1,9 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, User, RotateCcw, Pencil, Sparkles, Loader2, Lock, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, User, RotateCcw, Pencil, Sparkles, Loader2, Lock, TrendingUp, TrendingDown, Minus, Wand2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import BodySilhouette from "@/components/fit/BodySilhouette";
+import TryOnPreviewModal, { TryOnContext } from "@/components/fit/TryOnPreviewModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import type { FitMode } from "@/pages/FitPage";
 
 interface FitProduct {
@@ -182,10 +185,46 @@ export default function FitResults({
   fitMode, canUsePremium, refining, onRefineFit,
   onRescan, onEditMeasurements,
 }: Props) {
+  const { user } = useAuth();
   const conf = confidenceLabel(result.confidenceModifier);
   const isRefined = fitMode === "premium";
   const recommended = result.sizeResults.find(s => s.recommended);
   const alternate = result.sizeResults.find(s => s.alternate);
+
+  const [tryOnOpen, setTryOnOpen] = useState(false);
+  const [userImageUrl, setUserImageUrl] = useState<string | null>(null);
+
+  // Fetch the user's stored front body-scan image (used as the try-on base).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("body_scan_images")
+        .select("public_url, image_type, created_at")
+        .eq("user_id", user.id)
+        .eq("image_type", "front")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data?.public_url) setUserImageUrl(data.public_url);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const tryOnReady = !!userImageUrl && !!product.image;
+  const tryOnContext: TryOnContext | null = tryOnReady
+    ? {
+        userImageUrl: userImageUrl!,
+        productImageUrl: product.image,
+        productName: product.name,
+        productBrand: product.brand,
+        productUrl: product.url,
+        category: product.category,
+        recommendedSize: result.recommendedSize,
+        confidence: conf.text,
+      }
+    : null;
 
   return (
     <div className="space-y-5">
@@ -352,18 +391,34 @@ export default function FitResults({
         )}
       </div>
 
-      {/* Shop Now */}
-      {product.url && product.url !== "#" && (
-        <a
-          href={product.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+      {/* Try It On + Shop Now — fixed action row */}
+      <div className="space-y-2">
+        <button
+          onClick={() => setTryOnOpen(true)}
+          disabled={!tryOnReady}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/[0.06] py-3 text-sm font-semibold text-accent hover:bg-accent/[0.12] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title={tryOnReady ? "Generate a virtual try-on" : "Upload a front body scan to enable try-on"}
         >
-          <ExternalLink className="h-4 w-4" />
-          SHOP NOW
-        </a>
-      )}
+          <Wand2 className="h-4 w-4" />
+          TRY IT ON
+        </button>
+        {!tryOnReady && (
+          <p className="text-[10px] text-center text-foreground/40">
+            Upload a front body scan to enable try-on
+          </p>
+        )}
+        {product.url && product.url !== "#" && (
+          <a
+            href={product.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+          >
+            <ExternalLink className="h-4 w-4" />
+            SHOP NOW
+          </a>
+        )}
+      </div>
 
       {/* Actions */}
       <div className="flex items-center justify-center gap-6 pt-2">
@@ -378,6 +433,13 @@ export default function FitResults({
           </button>
         )}
       </div>
+
+      {/* Try-on modal */}
+      <TryOnPreviewModal
+        open={tryOnOpen}
+        onClose={() => setTryOnOpen(false)}
+        context={tryOnContext}
+      />
     </div>
   );
 }
