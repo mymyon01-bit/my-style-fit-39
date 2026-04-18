@@ -2790,7 +2790,7 @@ const DiscoverPage = () => {
                   {isGenerating || isLoadingMore ? (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>SEARCHING ACROSS MORE STORES…</span>
+                      <span>{(liveStatus || "Loading more products…").toUpperCase()}</span>
                     </>
                   ) : recommendations.length > 0 ? (
                     <>
