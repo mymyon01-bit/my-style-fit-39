@@ -844,11 +844,23 @@ async function insertProducts(
   if (!rows.length) return { inserted: 0, duplicates: 0 };
   const records = rows.map((r) => {
     const { category, subcategory } = categorize(r.title);
+    // Detect platform from URL host so Korean products are tagged correctly.
+    const host = (() => { try { return new URL(r.source_url).hostname.toLowerCase(); } catch { return ""; } })();
+    let platform = "web_search";
+    let trust = "medium";
+    let currency = "USD";
+    if (/naver\.com/.test(host)) { platform = "naver"; trust = "high"; currency = "KRW"; }
+    else if (/coupang\.com/.test(host)) { platform = "coupang"; trust = "high"; currency = "KRW"; }
+    else if (/musinsa\.com/.test(host)) { platform = "musinsa"; trust = "high"; currency = "KRW"; }
+    else if (/kream\.co\.kr/.test(host)) { platform = "kream"; trust = "high"; currency = "KRW"; }
+    else if (/ssg\.com/.test(host)) { platform = "ssg"; trust = "high"; currency = "KRW"; }
+    else if (/29cm\.co\.kr|wconcept\.co\.kr|gmarket\.co\.kr/.test(host)) { platform = host.split(".")[0]; trust = "high"; currency = "KRW"; }
     return {
       external_id: hashUrl(r.source_url),
       name: r.title,
       brand: r.brand || null,
       price: r.price || null,
+      currency,
       category,
       subcategory: subcategory || null,
       style_tags: inferStyleTags(r.title),
@@ -858,11 +870,11 @@ async function insertProducts(
       source_url: r.source_url,
       store_name: r.store_name || null,
       reason: `Discovered via "${sourceQuery}"`,
-      platform: "web_search",
+      platform,
       image_valid: true,
       is_active: true,
       source_type: "discovery",
-      source_trust_level: "medium",
+      source_trust_level: trust,
       search_query: sourceQuery,
       last_validated: new Date().toISOString(),
     };
