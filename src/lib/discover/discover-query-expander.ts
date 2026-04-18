@@ -64,43 +64,56 @@ function uniquePush(arr: string[], next: string): void {
 
 export function expandDiscoverQuery(parsed: ParsedDiscoverQuery): ExpansionPlan {
   const base = parsed.normalized || "new arrivals";
+  const lock = parsed.primaryCategory;
   const variants: string[] = [];
-  uniquePush(variants, base);
+  let rejectedByGuard = 0;
+
+  // Push only when the variant survives the category guard. If the variant
+  // has no category noun at all and we have a lock, repair it by appending
+  // the canonical family noun (so "street" → "street bag" under bags-lock).
+  const tryPush = (raw: string) => {
+    let v = raw.trim().replace(/\s+/g, " ");
+    if (!v) return;
+    if (lock && inferCategoryFromTitle(v) === null) {
+      v = `${v} ${FAMILY_HEAD_NOUN[lock]}`.trim();
+    }
+    if (!passesCategoryGuard(v, lock)) {
+      rejectedByGuard++;
+      return;
+    }
+    uniquePush(variants, v);
+  };
+
+  tryPush(base);
 
   // Modifier compounds
-  if (parsed.color && parsed.primaryCategory) {
-    uniquePush(variants, `${parsed.color} ${parsed.primaryCategory}`);
-  }
-  if (parsed.fit && parsed.primaryCategory) {
-    uniquePush(variants, `${parsed.fit} ${parsed.primaryCategory}`);
-  }
+  if (parsed.color && lock) tryPush(`${parsed.color} ${lock}`);
+  if (parsed.fit && lock) tryPush(`${parsed.fit} ${lock}`);
   for (const style of parsed.styleModifiers) {
-    if (parsed.primaryCategory) {
-      uniquePush(variants, `${style} ${parsed.primaryCategory}`);
-    } else {
-      uniquePush(variants, `${style} outfit`);
-    }
+    tryPush(lock ? `${style} ${lock}` : `${style} outfit`);
   }
 
   // Scenario boosts
   if (parsed.scenario) {
     const boosts = SCENARIO_STYLE_BOOSTS[parsed.scenario] || [];
-    for (const b of boosts) {
-      uniquePush(variants, `${b} ${parsed.scenario}`);
-    }
+    for (const b of boosts) tryPush(`${b} ${parsed.scenario}`);
   }
 
   // Brand carriers
-  if (parsed.brand && parsed.primaryCategory) {
-    uniquePush(variants, `${parsed.brand} ${parsed.primaryCategory}`);
-  }
+  if (parsed.brand && lock) tryPush(`${parsed.brand} ${lock}`);
 
-  // Seasonal freshness if we still have headroom
+  // Seasonal freshness — also category-aware
   if (variants.length < 4) {
     for (const hint of SEASONAL_HINTS) {
-      uniquePush(variants, parsed.primaryCategory ? `${hint} ${parsed.primaryCategory}` : hint);
+      tryPush(lock ? `${hint} ${lock}` : hint);
       if (variants.length >= 4) break;
     }
+  }
+
+  if (rejectedByGuard > 0) {
+    console.debug(
+      `[discover-expander] guard dropped ${rejectedByGuard} variants under lock=${lock ?? "none"}`,
+    );
   }
 
   return { base, variants, fanoutCount: variants.length };
