@@ -171,10 +171,21 @@ export async function runSearch(
     if (session.results.length >= target) break;
   }
 
-  // ── STAGE 7 — REPEAT CONTROL + category-first sort ──────────────────────
+  // ── STAGE 7 — FRESHNESS DECAY + ROTATION + REPEAT CONTROL ───────────────
   if (session.categoryLock) {
     session.results = categoryFirstSort(session.results, session.categoryLock);
   }
+  // Soft-decay ranking: newer products win, stale ones drop (never disappear).
+  session.results = rankByFreshness(session.results);
+  // Partial rotation: at least 40% of the first window must be items newly
+  // discovered in THIS session (not the cluster seed). Prevents the cached
+  // grid from being served back unchanged.
+  const newIds = new Set<string>();
+  for (const p of session.results) if (!oldIds.has(p.id)) newIds.add(p.id);
+  session.results = rotateNewIntoWindow(session.results, newIds, {
+    windowSize: 24,
+    minNewRatio: 0.4,
+  });
   // 70/30 unseen→seen mix in the first window + anti-clustering by brand.
   session.results = mixUnseenFirst(session.results, {
     unseenRatio: 0.7,
@@ -220,6 +231,8 @@ export async function runSearch(
       rejected_by_brand_cap: session.rejectedByBrandCap,
       rejected_by_dedupe: session.rejectedByDedupe,
       cluster_hit: clusterHit,
+      cohort_stale: cohortWasStale,
+      new_in_session: newIds.size,
     },
   });
 
