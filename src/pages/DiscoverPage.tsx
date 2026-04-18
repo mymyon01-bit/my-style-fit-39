@@ -1157,6 +1157,16 @@ const DiscoverPage = () => {
     "Checking new arrivals…",
   ];
   const [progressIdx, setProgressIdx] = useState(0);
+
+  // Rotate progress messages every 1.8s while a search is active so the
+  // status line never feels frozen between cycles.
+  useEffect(() => {
+    if (!isGenerating && !isLoadingMore) return;
+    const id = setInterval(() => {
+      setProgressIdx((i) => (i + 1) % PROGRESS_MESSAGES.length);
+    }, 1800);
+    return () => clearInterval(id);
+  }, [isGenerating, isLoadingMore]);
   // Same-query dedupe for explicit submits (prevents Enter-spam re-runs).
   const lastSubmitRef = useRef<{ q: string; ts: number }>({ q: "", ts: 0 });
   
