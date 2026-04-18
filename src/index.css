@@ -101,11 +101,38 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
+  }
+
+  /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
+     with a slightly larger base + heavier weight for crisp legibility. */
+  html[lang="ko"] body,
+  :lang(ko) {
+    font-family: 'Noto Sans KR', var(--font-body);
+    font-size: 16.5px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    word-break: keep-all;
+  }
+  html[lang="ko"] h1,
+  html[lang="ko"] h2,
+  html[lang="ko"] h3,
+  html[lang="ko"] h4,
+  html[lang="ko"] .font-display {
+    font-family: 'Noto Serif KR', 'Noto Sans KR', var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  html[lang="ko"] input,
+  html[lang="ko"] textarea,
+  html[lang="ko"] button {
+    font-family: 'Noto Sans KR', var(--font-body);
+    font-weight: 600;
   }
 }
 

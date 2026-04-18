@@ -336,8 +336,8 @@ const translations = {
     next: "다음",
     skip: "건너뛰기",
     done: "완료",
-    whatsYourStyle: "당신의 스타일은?",
-    tellUsAboutYou: "자기소개",
+    whatsYourStyle: "당신의 스타일은 무엇인가요?",
+    tellUsAboutYou: "당신에 대해 알려주세요",
     styleDescription: "좋아하는 스타일을 선택하세요",
     uploadPhotos: "사진 업로드",
     fullBodyPhoto: "전신 사진",
@@ -408,14 +408,14 @@ const translations = {
     sidePhoto: "측면 사진",
     analyzing: "프로필 분석 중...",
     profileGenerated: "체형, 선호도, 스타일 방향을 기반으로 맞춤 스타일 DNA를 구축했습니다.",
-    howAreYouFeeling: "오늘 당신의 스타일은?",
-    confident: "자신감",
-    casual: "캐주얼",
-    sharp: "샤프",
+    howAreYouFeeling: "오늘의 스타일은 어떤가요?",
+    confident: "자신감 있는",
+    casual: "캐주얼한",
+    sharp: "샤프한",
     lazy: "편안한",
-    dateReady: "데이트 준비",
+    dateReady: "데이트 룩",
     energetic: "활기찬",
-    creative: "크리에이티브",
+    creative: "크리에이티브한",
     basedOnMood: "기분 맞춤 추천",
     weatherOptimized: "날씨 최적화",
     bestForYouToday: "오늘의 베스트",
@@ -508,7 +508,7 @@ const translations = {
     about: "소개",
     logIn: "로그인",
     signUp: "회원가입",
-    enter: "입력",
+    enter: "확인",
     viewOn: "에서 보기",
     saveStylePrompt: "스타일을 저장하고 맞춤 추천을 받으세요.",
     createAccount: "계정 만들기",
@@ -552,14 +552,14 @@ const translations = {
     aboutCtaDesc: "계정 불필요. 기분만 알려주세요.",
     aboutCtaButton: "탐색 시작",
     heroLine1: "당신의 스타일,",
-    heroLine2: "정제되다.",
-    heroSubtitle: "기본에서 큐레이팅까지, 단 몇 초 만에.",
-    heroCta: "탐색 시작",
-    todaysTemp: "오늘의 온도는",
+    heroLine2: "더욱 정제되다.",
+    heroSubtitle: "기본에서 큐레이션까지, 단 몇 초 만에.",
+    heroCta: "탐색 시작하기",
+    todaysTemp: "오늘의 기온은",
     weatherIs: "날씨는",
     myPreferences: "내 취향",
-    newStyleYouMightLike: "좋아할 만한 새 스타일",
-    tryNewStyle: "새 스타일 시도",
+    newStyleYouMightLike: "마음에 들 만한 새로운 스타일",
+    tryNewStyle: "새 스타일 시도하기",
   },
   it: {
     appName: "WARDROBE",
@@ -854,6 +854,13 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem("wardrobe-lang");
     return (saved as Language) || "en";
   });
+
+  // Keep <html lang> in sync so :lang(ko) CSS + Korean font rules apply globally.
+  React.useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
 
   const setLang = useCallback((l: Language) => {
     setLangState(l);
