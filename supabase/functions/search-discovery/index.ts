@@ -332,7 +332,119 @@ async function discoverScopedUrls(rawQuery: string): Promise<DiscoveredCandidate
   return out;
 }
 
-async function discoverForQuery(q: string): Promise<DiscoveredCandidate[]> {
+// ─────────────────── Korean-market discovery patterns ───────────────────
+// For Korean queries we add Naver/Coupang/Musinsa/Kream-scoped passes plus
+// retail-intent variants in Korean. These run IN ADDITION to the western
+// scoped pass so the user sees both worlds in the result mix.
+const KR_SCOPED_SOURCES: Array<{ site: string; label: string }> = [
+  { site: "shopping.naver.com", label: "naver_shopping" },
+  { site: "smartstore.naver.com", label: "naver_smartstore" },
+  { site: "coupang.com", label: "coupang" },
+  { site: "musinsa.com", label: "musinsa" },
+  { site: "kream.co.kr", label: "kream" },
+  { site: "29cm.co.kr", label: "29cm" },
+  { site: "ssg.com", label: "ssg" },
+];
+
+async function discoverKoreanUrls(rawQuery: string): Promise<DiscoveredCandidate[]> {
+  if (!PERPLEXITY_KEY) return [];
+  // Korean retail-intent variants — discovery via Korean search vocabulary.
+  const krVariants = [
+    `${rawQuery} 네이버쇼핑`,
+    `${rawQuery} 쿠팡`,
+    `${rawQuery} 무신사`,
+    `${rawQuery} 구매`,
+    `${rawQuery} 최저가`,
+  ];
+  const sitePasses = KR_SCOPED_SOURCES.map(({ site, label }) =>
+    discoverForQuery(`site:${site} ${rawQuery}`).then((arr) => {
+      log("discover_kr_scoped", { source: label, found: arr.length });
+      return arr;
+    }).catch(() => [] as DiscoveredCandidate[]),
+  );
+  const variantPasses = krVariants.map((q) =>
+    discoverForQuery(q).then((arr) => {
+      log("discover_kr_variant", { q, found: arr.length });
+      return arr;
+    }).catch(() => [] as DiscoveredCandidate[]),
+  );
+  const settled = await Promise.allSettled([...sitePasses, ...variantPasses]);
+  const out: DiscoveredCandidate[] = [];
+  for (const s of settled) {
+    if (s.status === "fulfilled") out.push(...s.value);
+  }
+  return out;
+}
+
+// ─────────────────── Naver Shopping Search API ───────────────────
+// Official source for Korean products. Auto-active when NAVER_CLIENT_ID and
+// NAVER_CLIENT_SECRET are set in edge-function secrets. Until then this is a
+// no-op and KR coverage falls back to the discovery pipeline above.
+//
+// Docs: https://developers.naver.com/docs/serviceapi/search/shopping/shopping.md
+
+interface NaverShoppingItem {
+  title: string;
+  link: string;
+  image: string;
+  lprice?: string;
+  hprice?: string;
+  mallName?: string;
+  productId?: string;
+  brand?: string;
+  category1?: string;
+  category2?: string;
+  category3?: string;
+}
+
+function stripHtmlTags(s: string): string {
+  return s.replace(/<\/?b>/gi, "").replace(/<[^>]+>/g, "").trim();
+}
+
+async function fetchFromNaverApi(query: string, display = 30): Promise<ExtractedProduct[]> {
+  if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(query)}&display=${Math.min(display, 100)}&sort=sim`;
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        "X-Naver-Client-Id": NAVER_CLIENT_ID,
+        "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
+      },
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      log("naver_api_fail", { status: res.status });
+      return [];
+    }
+    const data = await res.json();
+    const items: NaverShoppingItem[] = Array.isArray(data?.items) ? data.items : [];
+    const out: ExtractedProduct[] = [];
+    for (const it of items) {
+      const title = stripHtmlTags(it.title || "");
+      const link = safeUrl(it.link);
+      const image = safeUrl(it.image);
+      if (!title || !link || !image) continue;
+      if (!FASHION_RE.test(title)) continue;
+      const price = it.lprice ? `₩${Number(it.lprice).toLocaleString("ko-KR")}` : undefined;
+      out.push({
+        title: title.slice(0, 180),
+        image_url: image,
+        source_url: link,
+        price,
+        brand: it.brand || it.mallName || "Naver",
+        store_name: it.mallName || "Naver Shopping",
+      });
+    }
+    log("naver_api_done", { query, returned: items.length, kept: out.length });
+    return out;
+  } catch (e) {
+    log("naver_api_error", { msg: (e as Error).message });
+    return [];
+  }
+}
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS.perplexitySearch);
