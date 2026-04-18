@@ -26,6 +26,7 @@ import {
 } from "@/lib/search/search-session";
 import { parseDiscoverQuery, type ParsedDiscoverQuery } from "@/lib/discover/discover-query-parser";
 import { getCategoryLock } from "@/lib/discover/discover-category-guard";
+import { interpretQuery } from "@/lib/discover/discover-interpreter";
 import { expandDiscoverQuery, type ExpansionPlan } from "@/lib/discover/discover-query-expander";
 import { loadSeenContext, markRendered } from "@/lib/discover/discover-seen-filter";
 import {
