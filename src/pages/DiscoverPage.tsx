@@ -262,33 +262,35 @@ export default function DiscoverPage() {
         if (ladder.products.length > 0 && allLiveResults.length === 0) {
           // Seed Live Results immediately with cached ladder hits so users
           // never see an empty Live section while runSearch warms up.
-          const renderable = ladder.products.slice(0, PAGE_SIZE).map((p) => {
-            const fromCache = normalizeFromCache({
-              id: p.id, name: p.title, brand: p.brand, price: p.price,
-              category: p.category, image_url: p.imageUrl, source_url: p.externalUrl,
-              store_name: p.storeName, platform: p.platform,
-              created_at: (p as any).createdAt || null,
-              style_tags: p.styleTags || [],
-              color_tags: [], reason: p.reason || null, search_query: query,
-              source_trust_level: "medium", source_type: "scraper",
-              trend_score: (p as any).trendScore ?? 0, is_active: true,
-              currency: "USD", external_id: null, fit: p.fit || null,
-              image_valid: true, last_validated: null, like_count: 0,
-              view_count: 0, subcategory: null, updated_at: null,
-            } as any);
-            return fromCache;
-          }).filter(Boolean) as Product[];
-          // Wrap as DiscoverRenderableProduct minimal shape
-          const seeded = renderable.map((r) => ({
-            ...(r as any),
-            sourceKey: r.source || "ladder",
-            sourceDomain: "",
-            freshnessScore: 0.5,
-            isFresh: false,
+          const seeded: DiscoverRenderableProduct[] = ladder.products.slice(0, PAGE_SIZE).map((p) => ({
+            id: p.id,
+            title: p.title,
+            brand: p.brand || undefined,
+            price: p.price != null ? String(p.price) : undefined,
+            category: p.category,
+            imageUrl: p.imageUrl,
+            externalUrl: p.productUrl,
+            storeName: p.source || null,
+            platform: null,
+            styleTags: [],
+            color: p.color || undefined,
+            fit: undefined,
+            reason: undefined,
+            createdAt: p.createdAt,
+            lastValidated: p.lastVerifiedAt || null,
+            trendScore: 0,
+            source: p.source,
+            origin: "product_cache",
+            queryFamily: p.queryFamily || (parsedIntent.primaryCategory || "general"),
+            freshnessScore: p.freshnessScore ?? 0.5,
+            sourceDomain: p.sourceDomain,
+            sourceKey: p.source,
+            isLocalSeen: false,
+            isDbSeen: false,
             isUnseen: true,
-            queryFamily: parsedIntent.primaryCategory || "general",
-            origin: "ladder-seed",
-          })) as DiscoverRenderableProduct[];
+            isFresh: (p.freshnessScore ?? 0) > 0.5,
+            finalScore: 1,
+          }));
           setAllLiveResults(seeded);
         }
       }).catch((e) => console.warn("[discover] ladder failed", e));
