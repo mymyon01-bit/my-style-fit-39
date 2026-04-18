@@ -33,6 +33,7 @@ import {
   logQueryParsed,
 } from "@/lib/discover/discover-diagnostics";
 import { upsertCluster } from "@/lib/search/query-cluster-service";
+import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
 
@@ -133,6 +134,12 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
       // search-runner detects its own lock from the query, but we make it
       // explicit here so style-with-category queries still respect it.
       if (lock) session.categoryLock = lock;
+
+      // Fire-and-forget: kick the search-engine pipeline (Google CSE → Apify
+      // Web Scraper) in the background. Grows product_cache for next time;
+      // never blocks the current search.
+      void supabase.functions.invoke("discover-search-engine", { body: { query: trimmed } })
+        .catch((err) => console.warn("[useDiscoverSearch] discover-search-engine kick failed", err));
 
       let dbSeen: Set<string> = new Set();
       try {
