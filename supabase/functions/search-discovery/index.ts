@@ -1010,7 +1010,11 @@ serve(async (req) => {
       else rejected++;
     }
 
-    // 3b. Post-extraction category filter — title must match the lock
+    // Inject Naver Shopping API products directly — they're already extracted.
+    if (naverDirect.length > 0) {
+      extracted = [...naverDirect, ...extracted];
+      log("naver_api_injected", { count: naverDirect.length });
+    }
     if (primaryCategory) {
       const before = extracted.length;
       extracted = extracted.filter((p) => {
