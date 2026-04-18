@@ -14,6 +14,7 @@ import ShareButton from "@/components/ShareButton";
 import { toast } from "sonner";
 import { generateOutfits, type GeneratedOutfit } from "@/lib/outfitGenerator";
 import OutfitLookCard from "@/components/OutfitLookCard";
+import StyledLookSkeleton from "@/components/StyledLookSkeleton";
 import ProductDetailSheet from "@/components/ProductDetailSheet";
 import PreferenceBanner from "@/components/PreferenceBanner";
 
@@ -2676,8 +2677,11 @@ const DiscoverPage = () => {
                   </div>
                 </div>
 
-                {/* ── Styled Outfits ── */}
-                {outfitCombinations.length > 0 && (
+                {/* ── Styled Outfits — HARDCODED FRAME ──
+                   Section + grid are always mounted while we have any data
+                   or are still generating. Skeleton placeholders fill empty
+                   slots so the layout never collapses or rebuilds. */}
+                {(outfitCombinations.length > 0 || isGenerating) && (
                   <div className="space-y-4">
                     <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/60 uppercase">
                       Styled Looks
@@ -2686,6 +2690,14 @@ const DiscoverPage = () => {
                       {outfitCombinations.map((outfit, i) => (
                         <OutfitLookCard key={outfit.id} outfit={outfit} index={i} />
                       ))}
+                      {/* Pad with skeletons so the grid keeps a stable shape
+                         (target: 4 looks). Only renders while still loading. */}
+                      {isGenerating &&
+                        Array.from({
+                          length: Math.max(0, 4 - outfitCombinations.length),
+                        }).map((_, i) => (
+                          <StyledLookSkeleton key={`styled-skel-${i}`} />
+                        ))}
                     </div>
                   </div>
                 )}

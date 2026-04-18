@@ -36,6 +36,17 @@ export interface GeneratedOutfit {
 
 type FashionCategory = "TOPS" | "BOTTOMS" | "SHOES" | "BAGS" | "ACCESSORIES";
 
+/** Tiny deterministic 32-bit string hash (FNV-1a). Used to pick stable
+ *  bag/accessory side items per outfit so the card never visually regenerates. */
+function stringHash(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
 // ── Style groupings for matching ──
 const STYLE_GROUPS: Record<string, string[]> = {
   minimal: ["minimal", "clean", "modern", "minimalist", "classic", "tailored"],
@@ -160,6 +171,10 @@ export function generateOutfits(
         // Boost for liked items
         const likeBoost = coreItems.filter(i => likedIds.has(i.id)).length * 8;
 
+        // DETERMINISTIC bag/accessory pick — derived from comboKey so the same
+        // outfit always shows the same side items. Prevents card "regeneration"
+        // flicker when results stream in and useMemo recomputes.
+        const seed = stringHash(comboKey);
         const outfit: GeneratedOutfit = {
           id: comboKey,
           score: Math.min(100, score + likeBoost),
@@ -168,8 +183,8 @@ export function generateOutfits(
             top,
             bottom,
             shoes: shoe || bottom, // fallback shouldn't happen
-            ...(bags.length > 0 ? { bag: bags[Math.floor(Math.random() * bags.length)] } : {}),
-            ...(accessories.length > 0 ? { accessory: accessories[Math.floor(Math.random() * accessories.length)] } : {}),
+            ...(bags.length > 0 ? { bag: bags[seed % bags.length] } : {}),
+            ...(accessories.length > 0 ? { accessory: accessories[(seed >>> 3) % accessories.length] } : {}),
           },
         };
 

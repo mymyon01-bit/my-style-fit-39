@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import SafeImage, { resolveImageUrl } from "@/components/SafeImage";
 import type { GeneratedOutfit } from "@/lib/outfitGenerator";
 import { useState, memo, useMemo } from "react";
@@ -58,12 +57,10 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-      className="overflow-hidden rounded-2xl border border-border/20 bg-card/60 backdrop-blur-sm"
-    >
+    // Plain div — no enter animation. The frame must stay stable; cards must
+    // never re-animate when results stream in or memoization invalidates.
+    <div className="overflow-hidden rounded-2xl border border-border/20 bg-card/60 backdrop-blur-sm animate-fade-in">
+
       {/* Header — hardcoded structure */}
       <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
         <div className="flex items-center gap-2">
@@ -144,12 +141,7 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
 
       {/* Expanded details — fixed list shape */}
       {expanded && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          className="space-y-2 border-t border-border/10 px-4 py-3"
-        >
+        <div className="space-y-2 border-t border-border/10 px-4 py-3 animate-fade-in">
           {allItems.map((item, i) => (
             <button
               key={item.id + i}
@@ -171,15 +163,16 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
               <ChevronRight className="h-3 w-3 flex-shrink-0 text-foreground/30" />
             </button>
           ))}
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 };
 
-// Memoize so re-renders of parent lists don't rebuild card trees.
+// Memoize on outfit identity only — index changes (reorder) must not re-render
+// the card tree. The frame stays put; only the data inside ever changes.
 const OutfitLookCard = memo(OutfitLookCardImpl, (prev, next) => {
-  return prev.outfit.id === next.outfit.id && prev.index === next.index;
+  return prev.outfit.id === next.outfit.id;
 });
 
 export default OutfitLookCard;
