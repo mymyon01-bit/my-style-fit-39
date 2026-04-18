@@ -1144,6 +1144,11 @@ const DiscoverPage = () => {
   const [activeScenario, setActiveScenario] = useState<{ label: string; items: string[] } | null>(null);
   // Step 3: human-readable explanation of what the search interpreted
   const [searchExplanation, setSearchExplanation] = useState<string | null>(null);
+  // Cycle-aware status for the live search section. Updated by appendCycle so
+  // the user sees the system progress through stages instead of a vague spinner.
+  const [liveStatus, setLiveStatus] = useState<string>("");
+  // Same-query dedupe for explicit submits (prevents Enter-spam re-runs).
+  const lastSubmitRef = useRef<{ q: string; ts: number }>({ q: "", ts: 0 });
   
   // Whether user needs to complete preferences
   const needsPreferences = !userStyleProfile && !quizAnswers;
