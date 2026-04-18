@@ -233,11 +233,12 @@ function categoryGuard(queries: string[], primaryCategory: string | null): { kep
 // ─────────────────── 2. URL discovery via Perplexity Search ───────────────────
 
 const TRUSTED_STORES = [
-  "asos.com", "ssense.com", "farfetch.com", "net-a-porter.com", "mrporter.com",
+  "asos.com", "ssense.com", "farfetch.com", "yoox.com", "zalando.com",
+  "zalando.co.uk", "zalando.de", "net-a-porter.com", "mrporter.com",
   "endclothing.com", "matchesfashion.com", "mytheresa.com", "nordstrom.com",
   "shopbop.com", "uniqlo.com", "hm.com", "zara.com", "cosstores.com", "arket.com",
   "everlane.com", "aritzia.com", "revolve.com", "saksfifthavenue.com",
-  "neimanmarcus.com", "luisaviaroma.com", "yoox.com", "amazon.com/dp",
+  "neimanmarcus.com", "luisaviaroma.com", "amazon.com/dp",
 ];
 
 function looksLikeProductUrl(url: string, title?: string, snippet?: string): boolean {
