@@ -122,6 +122,8 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       setError(null);
       setOverrideUserImage(null);
       setPredictionId(null);
+      setProvider(null);
+      setShowOverlay(false);
     }
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
