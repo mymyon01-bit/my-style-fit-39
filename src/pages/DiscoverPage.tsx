@@ -2118,7 +2118,6 @@ const DiscoverPage = () => {
     const q = (query || textInput).trim();
     if (!q) return;
 
-    // Dedupe: same query within 1.5s is a no-op. Prevents Enter-spam.
     const now = Date.now();
     if (lastSubmitRef.current.q === q.toLowerCase() && now - lastSubmitRef.current.ts < 1500) {
       console.info("[search] DEDUPE_SUBMIT", { q });
@@ -2133,26 +2132,40 @@ const DiscoverPage = () => {
     setLiveStatus("Searching across more stores…");
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    // 400ms debounce removed on explicit submit — kicks off immediately so
-    // the user sees DB results in <500ms instead of >3s.
     debounceTimerRef.current = setTimeout(async () => {
-      // ── Open a fresh search session ─────────────────────────────────────
       const sessionId = Date.now() + Math.floor(Math.random() * 1000);
       const session = { id: sessionId, query: q, cycle: 0, totalAdded: 0, emptyCycles: 0, stopped: false };
       searchSessionRef.current = session;
 
-      // Helpers bound to THIS session only
       const isCurrent = () => searchSessionRef.current.id === sessionId && !session.stopped;
-      const stopSession = (reason: string) => {
+      const recoverVisibleResults = async (reason: string) => {
+        if (!isCurrent()) return;
+        const fallback = await emergencyDbFallback({
+          query: q,
+          styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+          fit: selectedFit || undefined,
+          limit: 16,
+          excludeIds: Array.from(sessionSeenIds),
+        });
+        console.info("[search-pipeline] UI_RENDER_COUNT", { rawQuery: q, reason, count: fallback.length });
+        setRecommendations((prev) => {
+          if (prev.length > 0) return prev;
+          if (fallback.length > 0) return fallback;
+          return buildPlaceholderProducts(q);
+        });
+        setLiveStatus(fallback.length > 0
+          ? "We couldn't load more items right now. Showing saved picks."
+          : "We’re loading picks for you. Try another search or browse saved styles.");
+      };
+      const stopSession = async (reason: string) => {
         if (session.stopped) return;
         session.stopped = true;
         if (searchSessionRef.current.id === sessionId) {
+          await recoverVisibleResults(reason);
           setIsGenerating(false);
-          setLiveStatus("");
         }
         console.info("[search-session] STOP", { sessionId, query: q, reason, totalAdded: session.totalAdded, cycles: session.cycle });
       };
-      // Cycle-aware status messages — user sees real progress, not a vague spinner.
       const STATUS_BY_LABEL: Record<string, string> = {
         "instant-db": "Loading more products…",
         "db-quick": "Loading more products…",
@@ -2179,7 +2192,6 @@ const DiscoverPage = () => {
         }
         if (addedCount === 0) session.emptyCycles++;
         else session.emptyCycles = 0;
-        // Update visible status for this cycle
         const nextStatus = STATUS_BY_LABEL[label] || "Loading more products…";
         setLiveStatus(nextStatus);
         console.info("[search-session] CYCLE", {
@@ -2187,132 +2199,139 @@ const DiscoverPage = () => {
           incoming: incoming.length, added: addedCount,
           totalAdded: session.totalAdded, emptyCycles: session.emptyCycles,
         });
-        // Stop conditions
-        if (session.totalAdded >= SESSION_TARGET) stopSession(`reached target ${SESSION_TARGET}`);
-        else if (session.emptyCycles >= SESSION_MAX_EMPTY_CYCLES) stopSession(`${SESSION_MAX_EMPTY_CYCLES} empty cycles in a row`);
+        if (session.totalAdded >= SESSION_TARGET) void stopSession(`reached target ${SESSION_TARGET}`);
+        else if (session.emptyCycles >= SESSION_MAX_EMPTY_CYCLES) void stopSession(`${SESSION_MAX_EMPTY_CYCLES} empty cycles in a row`);
         return addedCount;
       };
 
+      console.info("[search-pipeline] RAW_QUERY", { rawQuery: q });
       console.info("[search-session] START", { sessionId, query: q });
       setIsGenerating(true);
       setHasGenerated(true);
-      // Append-only: do NOT clear previous results here. New session may reuse them
-      // visually until new ones append on top — prevents the empty-flash flicker.
       setActiveScenario(null);
       setSearchExplanation(null);
       lastPromptRef.current = q;
 
-      // Step 1: Parse query into structured intent
-      const intent = parseQueryIntent(q);
-      const isScenarioQuery = intent.queryType === "scenario";
-
-      // Build user taste signals
-      const userSignals: UserSignals = {
-        styleProfile: userStyleProfile,
-        feedbackMap,
-        savedIds,
-      };
-      setSearchExplanation(buildSearchExplanation(intent, userSignals));
-
-      // Reset visible list once per NEW query (not per re-submit of same query).
-      // We do it by clearing only when the previous prompt differs.
-      // Note: keep the list if same query — new cycles will simply append.
-      // (Already handled: new session id + append-only means stale items just stay)
-
-      // Step 2: AI query expansion with soft timeout
-      const localExpanded = expandSearchQuery(q);
-      const cacheKey = q.toLowerCase().trim();
-      const cached = intentCache.get(cacheKey);
-      let searchIntentResult: SearchIntentResult;
-      let softTimeoutTriggered = false;
-
-      // ── INSTANT CYCLE 0 ────────────────────────────────────────────────
-      // Fire a literal-query DB hit IN PARALLEL with the AI expansion so
-      // the user sees results in <500ms instead of waiting for Perplexity.
-      // This runs only when we don't have a cached intent (cached path is
-      // already fast). Errors are swallowed — it's purely additive.
-      const categoryMapEarly: Record<string, string> = {
-        OUTERWEAR: "outerwear", TOPS: "clothing", BOTTOMS: "clothing",
-        SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
-      };
-      const dbCategoryEarly = intent.categoryLock ? categoryMapEarly[intent.categoryLock] : undefined;
-      void hybridProductSearch({
+      const emergencySeed = await emergencyDbFallback({
         query: q,
-        category: dbCategoryEarly,
-        styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+        styles: selectedStyles.length > 0 ? selectedStyles : undefined,
         fit: selectedFit || undefined,
-        limit: 24,
-        freshSearch: false,
-        expandExternal: false,
-        randomize: false,
-      }).then(({ products }) => {
-        if (!isCurrent() || products.length === 0) return;
-        const relevant = filterByRelevance(products, intent, MIN_RESULT_TARGET, userSignals);
-        const diverse = enforceClientDiversity(relevant, new Set(Array.from(sessionSeenIds)));
-        appendCycle("instant-db", diverse);
-      }).catch(() => {});
-
-      if (cached && Date.now() - cached.ts < (cached.isFallback ? FALLBACK_INTENT_CACHE_TTL : INTENT_CACHE_TTL)) {
-        searchIntentResult = {
-          queries: cached.queries,
-          category: cached.category,
-          style_tags: cached.style_tags || [],
-          type: cached.type,
-          source: cached.isFallback ? "fallback" : "cache",
-          cacheable: !cached.isFallback,
-          searchPathStatus: cached.isFallback ? "FALLBACK_ONLY" : "PERPLEXITY_CACHED",
-        };
-      } else {
-        const aiPromise = aiExpandQuery(q);
-        // Late Perplexity result → background ingestion that APPENDS to current session
-        void aiPromise.then((lateResult) => {
-          if (!softTimeoutTriggered) return;
-          if (lateResult.source !== "perplexity" || !lateResult.cacheable) return;
-          if (!isCurrent()) return;
-          const lateQueries = lateResult.queries.slice(0, 4);
-          Promise.all(
-            lateQueries.map(lq =>
-              hybridProductSearch({
-                query: lq, limit: 10,
-                excludeIds: Array.from(sessionSeenIds),
-                freshSearch: true, expandExternal: true, randomize: false,
-              }).catch(() => ({ products: [] as AIRecommendation[], expanded: false, dbCount: 0 }))
-            )
-          ).then(results => {
-            if (!isCurrent()) return;
-            const lateProducts = results.flatMap(r => r.products);
-            const lateRelevant = filterByRelevanceStrict(lateProducts, intent, userSignals);
-            appendCycle("late-perplexity", lateRelevant);
-          });
-        }).catch(() => {});
-
-        searchIntentResult = await Promise.race([
-          aiPromise,
-          new Promise<SearchIntentResult>((resolve) =>
-            setTimeout(() => {
-              softTimeoutTriggered = true;
-              intentCache.set(cacheKey, { queries: localExpanded, ts: Date.now(), isFallback: true });
-              resolve({
-                queries: localExpanded, source: "fallback", cacheable: false,
-                searchPathStatus: "FALLBACK_ONLY",
-                debug: { soft_timeout_triggered: true, fallback_triggered: true },
-              });
-            }, SEARCH_INTENT_SOFT_TIMEOUT_MS)
-          ),
-        ]);
+        limit: 16,
+      });
+      console.info("[search-pipeline] DB_FALLBACK_COUNT", { rawQuery: q, count: emergencySeed.length });
+      if (emergencySeed.length > 0 && isCurrent()) {
+        setRecommendations(emergencySeed);
+        emergencySeed.forEach((p) => sessionSeenIds.add(p.id));
+        session.totalAdded = emergencySeed.length;
+      } else if (isCurrent()) {
+        setRecommendations(buildPlaceholderProducts(q));
       }
 
-      const searchQueries = [...new Set([...searchIntentResult.queries, ...localExpanded])].slice(0, 8);
-      console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, searchQueries });
+      try {
+        const intent = parseQueryIntent(q);
+        console.info("[search-pipeline] QUERY_PARSED", { rawQuery: q, type: intent.queryType, categoryLock: intent.categoryLock });
+        const isScenarioQuery = intent.queryType === "scenario";
 
-      const categoryMap: Record<string, string> = {
-        OUTERWEAR: "outerwear", TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
-      };
-      const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
+        const userSignals: UserSignals = {
+          styleProfile: userStyleProfile,
+          feedbackMap,
+          savedIds,
+        };
+        setSearchExplanation(buildSearchExplanation(intent, userSignals));
 
-      if (isScenarioQuery) {
-        setActiveScenario({ label: intent.scenarioLabel!, items: searchQueries });
+        const localExpanded = expandSearchQuery(q);
+        const cacheKey = q.toLowerCase().trim();
+        const cached = intentCache.get(cacheKey);
+        let searchIntentResult: SearchIntentResult;
+        let softTimeoutTriggered = false;
 
+        const categoryMapEarly: Record<string, string> = {
+          OUTERWEAR: "outerwear", TOPS: "clothing", BOTTOMS: "clothing",
+          SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
+        };
+        const dbCategoryEarly = intent.categoryLock ? categoryMapEarly[intent.categoryLock] : undefined;
+        console.info("[search-pipeline] EXTERNAL_FETCH_START", { rawQuery: q, mode: "instant-db" });
+        void hybridProductSearch({
+          query: q,
+          category: dbCategoryEarly,
+          styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+          fit: selectedFit || undefined,
+          limit: 24,
+          freshSearch: false,
+          expandExternal: false,
+          randomize: false,
+        }).then(({ products }) => {
+          if (!isCurrent() || products.length === 0) return;
+          console.info("[search-pipeline] EXTERNAL_FETCH_RETURNED_COUNT", { rawQuery: q, mode: "instant-db", count: products.length });
+          const relevant = filterByRelevance(products, intent, MIN_RESULT_TARGET, userSignals);
+          const diverse = enforceClientDiversity(relevant, new Set(Array.from(sessionSeenIds)));
+          appendCycle("instant-db", diverse);
+        }).catch((error) => console.error("[search-pipeline] THROWN_ERROR", { rawQuery: q, stage: "instant-db", error }));
+
+        if (cached && Date.now() - cached.ts < (cached.isFallback ? FALLBACK_INTENT_CACHE_TTL : INTENT_CACHE_TTL)) {
+          searchIntentResult = {
+            queries: cached.queries,
+            category: cached.category,
+            style_tags: cached.style_tags || [],
+            type: cached.type,
+            source: cached.isFallback ? "fallback" : "cache",
+            cacheable: !cached.isFallback,
+            searchPathStatus: cached.isFallback ? "FALLBACK_ONLY" : "PERPLEXITY_CACHED",
+          };
+        } else {
+          const aiPromise = aiExpandQuery(q);
+          void aiPromise.then((lateResult) => {
+            if (!softTimeoutTriggered || lateResult.source !== "perplexity" || !lateResult.cacheable || !isCurrent()) return;
+            const lateQueries = lateResult.queries.slice(0, 4);
+            Promise.all(
+              lateQueries.map(lq =>
+                hybridProductSearch({
+                  query: lq, limit: 10,
+                  excludeIds: Array.from(sessionSeenIds),
+                  freshSearch: true, expandExternal: true, randomize: false,
+                }).catch(() => ({ products: [] as AIRecommendation[], expanded: false, dbCount: 0 }))
+              )
+            ).then(results => {
+              if (!isCurrent()) return;
+              const lateProducts = results.flatMap(r => r.products);
+              const lateRelevant = filterByRelevanceStrict(lateProducts, intent, userSignals);
+              appendCycle("late-perplexity", lateRelevant);
+            }).catch((error) => console.error("[search-pipeline] THROWN_ERROR", { rawQuery: q, stage: "late-perplexity", error }));
+          }).catch(() => {});
+
+          searchIntentResult = await Promise.race([
+            aiPromise,
+            new Promise<SearchIntentResult>((resolve) =>
+              setTimeout(() => {
+                softTimeoutTriggered = true;
+                intentCache.set(cacheKey, { queries: localExpanded, ts: Date.now(), isFallback: true });
+                resolve({
+                  queries: localExpanded, source: "fallback", cacheable: false,
+                  searchPathStatus: "FALLBACK_ONLY",
+                  debug: { soft_timeout_triggered: true, fallback_triggered: true },
+                });
+              }, SEARCH_INTENT_SOFT_TIMEOUT_MS)
+            ),
+          ]);
+        }
+
+        const searchQueries = [...new Set([...searchIntentResult.queries, ...localExpanded])].slice(0, 8);
+        console.log("Search:", { query: q, type: intent.queryType, scenario: intent.scenarioLabel, searchQueries });
+
+        const categoryMap: Record<string, string> = {
+          OUTERWEAR: "outerwear", TOPS: "clothing", BOTTOMS: "clothing", SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
+        };
+        const dbCategory = intent.categoryLock ? categoryMap[intent.categoryLock] : undefined;
+
+        if (isScenarioQuery) {
+          setActiveScenario({ label: intent.scenarioLabel!, items: searchQueries });
+        }
+      } catch (error) {
+        console.error("[search-pipeline] THROWN_ERROR", { rawQuery: q, stage: "search-session", error });
+        await stopSession("search-session crashed");
+      }
+    }, 0);
+  };
         // CYCLE 1: Quick DB results (instant)
         const quickDbResults = await Promise.all(
           searchQueries.slice(0, 2).map(eq =>
