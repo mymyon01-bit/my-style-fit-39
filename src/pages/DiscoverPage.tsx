@@ -2009,6 +2009,32 @@ const DiscoverPage = () => {
       let searchIntentResult: SearchIntentResult;
       let softTimeoutTriggered = false;
 
+      // ── INSTANT CYCLE 0 ────────────────────────────────────────────────
+      // Fire a literal-query DB hit IN PARALLEL with the AI expansion so
+      // the user sees results in <500ms instead of waiting for Perplexity.
+      // This runs only when we don't have a cached intent (cached path is
+      // already fast). Errors are swallowed — it's purely additive.
+      const categoryMapEarly: Record<string, string> = {
+        OUTERWEAR: "outerwear", TOPS: "clothing", BOTTOMS: "clothing",
+        SHOES: "shoes", BAGS: "bags", ACCESSORIES: "accessories",
+      };
+      const dbCategoryEarly = intent.categoryLock ? categoryMapEarly[intent.categoryLock] : undefined;
+      void hybridProductSearch({
+        query: q,
+        category: dbCategoryEarly,
+        styles: intent.styleIntent.length > 0 ? intent.styleIntent : undefined,
+        fit: selectedFit || undefined,
+        limit: 24,
+        freshSearch: false,
+        expandExternal: false,
+        randomize: false,
+      }).then(({ products }) => {
+        if (!isCurrent() || products.length === 0) return;
+        const relevant = filterByRelevance(products, intent, MIN_RESULT_TARGET, userSignals);
+        const diverse = enforceClientDiversity(relevant, new Set(Array.from(sessionSeenIds)));
+        appendCycle("instant-db", diverse);
+      }).catch(() => {});
+
       if (cached && Date.now() - cached.ts < (cached.isFallback ? FALLBACK_INTENT_CACHE_TTL : INTENT_CACHE_TTL)) {
         searchIntentResult = {
           queries: cached.queries,
