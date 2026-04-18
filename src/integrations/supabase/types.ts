@@ -829,6 +829,42 @@ export type Database = {
         }
         Relationships: []
       }
+      query_clusters: {
+        Row: {
+          category: string | null
+          cluster_key: string
+          created_at: string
+          id: string
+          last_refreshed_at: string
+          product_count: number
+          product_ids: string[]
+          query_family: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          cluster_key: string
+          created_at?: string
+          id?: string
+          last_refreshed_at?: string
+          product_count?: number
+          product_ids?: string[]
+          query_family: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          cluster_key?: string
+          created_at?: string
+          id?: string
+          last_refreshed_at?: string
+          product_count?: number
+          product_ids?: string[]
+          query_family?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       saved_folders: {
         Row: {
           created_at: string
