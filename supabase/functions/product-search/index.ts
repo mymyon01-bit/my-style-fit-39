@@ -362,7 +362,12 @@ async function fetchFromCommerceScraper(query: string, limit = 20): Promise<any[
   }
 }
 
-async function fetchFromDiscovery(supabase: any, query: string, limit = 12): Promise<any[]> {
+async function fetchFromDiscovery(
+  supabase: any,
+  query: string,
+  limit = 12,
+  timeoutMs = 25_000,
+): Promise<any[]> {
   const sanitizedQuery = sanitizeSearchQuery(query);
   if (!sanitizedQuery) return [];
 
@@ -372,7 +377,7 @@ async function fetchFromDiscovery(supabase: any, query: string, limit = 12): Pro
     if (!baseUrl || !serviceKey) return [];
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25_000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     const res = await fetch(`${baseUrl}/functions/v1/search-discovery`, {
       method: "POST",
@@ -740,8 +745,11 @@ serve(async (req) => {
         }
 
         let mergedForThreshold = mergeUniqueProducts(dbProducts, externalProducts);
+        // DB-first branch: cap discovery at 8s. If it doesn't return fast,
+        // we fall through to broadened DB / trending — UI never blocks for
+        // the slow Perplexity path on a non-explicit search.
         if (mergedForThreshold.length < minTarget) {
-          discoveryProducts = await fetchFromDiscovery(supabase, searchTerm, minTarget);
+          discoveryProducts = await fetchFromDiscovery(supabase, searchTerm, minTarget, 8_000);
           mergedForThreshold = mergeUniqueProducts(mergedForThreshold, discoveryProducts);
         }
 
