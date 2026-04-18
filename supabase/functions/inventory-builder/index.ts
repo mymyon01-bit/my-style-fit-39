@@ -149,24 +149,34 @@ serve(async (req) => {
       );
     }
 
-    const idx = ((cursor.cursor_index % SEEDS.length) + SEEDS.length) % SEEDS.length;
-    const seed = SEEDS[idx];
-    const nextIndex = (idx + 1) % SEEDS.length;
+    // Fan out across SEEDS_PER_TICK seeds in parallel — DB grows ~3× per tick.
+    const startIdx = ((cursor.cursor_index % SEEDS.length) + SEEDS.length) % SEEDS.length;
+    const seedsThisTick: string[] = [];
+    for (let i = 0; i < SEEDS_PER_TICK; i++) {
+      seedsThisTick.push(SEEDS[(startIdx + i) % SEEDS.length]);
+    }
+    const nextIndex = (startIdx + SEEDS_PER_TICK) % SEEDS.length;
 
-    log("tick_start", { idx, seed, nextIndex });
-    const result = await callDiscovery(seed);
-    log("tick_done", { seed, ...result, ms: Date.now() - t0 });
+    log("tick_start", { startIdx, seeds: seedsThisTick, nextIndex });
+    const settled = await Promise.allSettled(seedsThisTick.map(callDiscovery));
+    const perSeed = settled.map((s, i) => ({
+      seed: seedsThisTick[i],
+      ...(s.status === "fulfilled" ? s.value : { ok: false, inserted: 0, candidatesFound: 0 }),
+    }));
+    const totalInserted = perSeed.reduce((n, r) => n + r.inserted, 0);
+    log("tick_done", { perSeed, totalInserted, ms: Date.now() - t0 });
 
-    await advanceCursor(supabase, cursor.id, nextIndex, seed, result.inserted);
+    await advanceCursor(supabase, cursor.id, nextIndex, seedsThisTick.join(","), totalInserted);
 
     return new Response(
       JSON.stringify({
         ok: true,
         mode: "cron",
-        seed,
-        cursorIndex: idx,
+        seeds: seedsThisTick,
+        cursorIndex: startIdx,
         nextIndex,
-        ...result,
+        perSeed,
+        totalInserted,
         ms: Date.now() - t0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
