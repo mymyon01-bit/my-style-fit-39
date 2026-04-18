@@ -16,7 +16,8 @@ import { findCluster, upsertCluster } from "./query-cluster-service";
 import { categoryFirstSort } from "./category-lock";
 import { isCohortStale, rankByFreshness, rotateNewIntoWindow } from "./freshness";
 import { ensureTopRowDiversity, rotateStyleClusters, shuffleMidBand } from "./diversity";
-import { enforceSourceQuota, sourceOf } from "./sources";
+import { enforceKoreanMix, enforceSourceQuota, isKoreanMarketQuery, sourceOf } from "./sources";
+import { supabase } from "@/integrations/supabase/client";
 import { prioritizeUnseenDomains, recordDomainsShown } from "./domain-rotation";
 import { recordEvent } from "@/lib/diagnostics";
 
@@ -229,6 +230,16 @@ export async function runSearch(
     windowSize: 24,
     maxRatio: 0.3,
   });
+  // Korean-market re-weight: if query has Hangul / KR hints / user lang=ko,
+  // pull Naver/Coupang/Musinsa/Kream/SSG into a 50/50 split with western
+  // sources in the first 12 slots. No-op for non-KR queries.
+  const krMarket = await detectKoreanMarket(session.query);
+  if (krMarket) {
+    session.results = enforceKoreanMix(session.results, {
+      windowSize: 12,
+      krRatio: 0.5,
+    });
+  }
   // Domain rotation: prefer sources the user hasn't seen recently. Floats
   // unseen domains (and least-recent ones) toward the top of the window.
   session.results = prioritizeUnseenDomains(session.results, { windowSize: 24 });
@@ -286,6 +297,30 @@ export async function runSearch(
   });
 
   return session;
+}
+
+/**
+ * Pull the current user's language/location from profiles (best-effort) and
+ * decide if the search should bias toward Korean sources.
+ */
+async function detectKoreanMarket(query: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    let userLanguage: string | null = null;
+    let userLocation: string | null = null;
+    if (user) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("language, location")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      userLanguage = data?.language ?? null;
+      userLocation = data?.location ?? null;
+    }
+    return isKoreanMarketQuery(query, { userLanguage, userLocation });
+  } catch {
+    return isKoreanMarketQuery(query);
+  }
 }
 
 function countBySource(items: { externalUrl?: string | null; source?: string }[]): Record<string, number> {

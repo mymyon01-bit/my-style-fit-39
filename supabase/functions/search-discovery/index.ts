@@ -16,12 +16,26 @@ const cors = {
 
 const PERPLEXITY_KEY = Deno.env.get("PERPLEXITY_API_KEY");
 const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+const NAVER_CLIENT_ID = Deno.env.get("NAVER_CLIENT_ID");
+const NAVER_CLIENT_SECRET = Deno.env.get("NAVER_CLIENT_SECRET");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Korean-market detection (mirrors src/lib/search/sources.ts)
+const HANGUL_RE = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/;
+const KR_HINTS_RE = /\b(korea|korean|seoul|musinsa|kream|naver|coupang|ssg|gmarket|29cm|wconcept|k-fashion|kfashion)\b/i;
+function isKoreanMarketQuery(q: string): boolean {
+  return HANGUL_RE.test(q) || KR_HINTS_RE.test(q);
+}
 
 // ─────────────────────────── helpers ───────────────────────────
 
 const FASHION_RE = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|hat|cap|beanie|belt|scarf|bomber|parka|pullover|sweatshirt|chinos?|joggers?|blouse|knit|denim|leather|jumpsuit|trench|gilet|leggings?|culottes|windbreaker|tank|fedora|mules?|oxfords?|brogues?|espadrilles?|pumps?|heels?|flats?|clutch|crossbody|outfit|outerwear|footwear)\b/i;
+// Korean fashion vocabulary — Naver titles are Hangul, FASHION_RE wouldn't match.
+const FASHION_KR_RE = /(자켓|재킷|코트|블레이저|셔츠|후디|후드|스웨터|니트|가디건|티셔츠|티|폴로|바지|팬츠|청바지|진|반바지|스커트|치마|드레스|원피스|운동화|스니커즈|신발|슈즈|부츠|로퍼|샌들|가방|백|토트|백팩|크로스백|클러치|모자|캡|비니|벨트|스카프|봄버|파카|풀오버|맨투맨|블라우스|점퍼|패딩|아우터|악세서리|악세사리|선글라스|시계|목걸이|팔찌|귀걸이|반지)/;
+function isFashionTitle(title: string): boolean {
+  return FASHION_RE.test(title) || FASHION_KR_RE.test(title);
+}
 
 const TIMEOUT_MS = {
   perplexity: 12_000,
@@ -233,6 +247,11 @@ function categoryGuard(queries: string[], primaryCategory: string | null): { kep
 // ─────────────────── 2. URL discovery via Perplexity Search ───────────────────
 
 const TRUSTED_STORES = [
+  // Korean (priority for KR launch)
+  "shopping.naver.com", "smartstore.naver.com", "brand.naver.com",
+  "coupang.com", "musinsa.com", "kream.co.kr", "ssg.com",
+  "gmarket.co.kr", "29cm.co.kr", "wconcept.co.kr",
+  // Western
   "asos.com", "ssense.com", "farfetch.com", "yoox.com", "zalando.com",
   "zalando.co.uk", "zalando.de", "net-a-porter.com", "mrporter.com",
   "endclothing.com", "matchesfashion.com", "mytheresa.com", "nordstrom.com",
@@ -316,6 +335,120 @@ async function discoverScopedUrls(rawQuery: string): Promise<DiscoveredCandidate
     if (s.status === "fulfilled") out.push(...s.value);
   }
   return out;
+}
+
+// ─────────────────── Korean-market discovery patterns ───────────────────
+// For Korean queries we add Naver/Coupang/Musinsa/Kream-scoped passes plus
+// retail-intent variants in Korean. These run IN ADDITION to the western
+// scoped pass so the user sees both worlds in the result mix.
+const KR_SCOPED_SOURCES: Array<{ site: string; label: string }> = [
+  { site: "shopping.naver.com", label: "naver_shopping" },
+  { site: "smartstore.naver.com", label: "naver_smartstore" },
+  { site: "coupang.com", label: "coupang" },
+  { site: "musinsa.com", label: "musinsa" },
+  { site: "kream.co.kr", label: "kream" },
+  { site: "29cm.co.kr", label: "29cm" },
+  { site: "ssg.com", label: "ssg" },
+];
+
+async function discoverKoreanUrls(rawQuery: string): Promise<DiscoveredCandidate[]> {
+  if (!PERPLEXITY_KEY) return [];
+  // Korean retail-intent variants — discovery via Korean search vocabulary.
+  const krVariants = [
+    `${rawQuery} 네이버쇼핑`,
+    `${rawQuery} 쿠팡`,
+    `${rawQuery} 무신사`,
+    `${rawQuery} 구매`,
+    `${rawQuery} 최저가`,
+  ];
+  const sitePasses = KR_SCOPED_SOURCES.map(({ site, label }) =>
+    discoverForQuery(`site:${site} ${rawQuery}`).then((arr) => {
+      log("discover_kr_scoped", { source: label, found: arr.length });
+      return arr;
+    }).catch(() => [] as DiscoveredCandidate[]),
+  );
+  const variantPasses = krVariants.map((q) =>
+    discoverForQuery(q).then((arr) => {
+      log("discover_kr_variant", { q, found: arr.length });
+      return arr;
+    }).catch(() => [] as DiscoveredCandidate[]),
+  );
+  const settled = await Promise.allSettled([...sitePasses, ...variantPasses]);
+  const out: DiscoveredCandidate[] = [];
+  for (const s of settled) {
+    if (s.status === "fulfilled") out.push(...s.value);
+  }
+  return out;
+}
+
+// ─────────────────── Naver Shopping Search API ───────────────────
+// Official source for Korean products. Auto-active when NAVER_CLIENT_ID and
+// NAVER_CLIENT_SECRET are set in edge-function secrets. Until then this is a
+// no-op and KR coverage falls back to the discovery pipeline above.
+//
+// Docs: https://developers.naver.com/docs/serviceapi/search/shopping/shopping.md
+
+interface NaverShoppingItem {
+  title: string;
+  link: string;
+  image: string;
+  lprice?: string;
+  hprice?: string;
+  mallName?: string;
+  productId?: string;
+  brand?: string;
+  category1?: string;
+  category2?: string;
+  category3?: string;
+}
+
+function stripHtmlTags(s: string): string {
+  return s.replace(/<\/?b>/gi, "").replace(/<[^>]+>/g, "").trim();
+}
+
+async function fetchFromNaverApi(query: string, display = 30): Promise<ExtractedProduct[]> {
+  if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8_000);
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(query)}&display=${Math.min(display, 100)}&sort=sim`;
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        "X-Naver-Client-Id": NAVER_CLIENT_ID,
+        "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
+      },
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      log("naver_api_fail", { status: res.status });
+      return [];
+    }
+    const data = await res.json();
+    const items: NaverShoppingItem[] = Array.isArray(data?.items) ? data.items : [];
+    const out: ExtractedProduct[] = [];
+    for (const it of items) {
+      const title = stripHtmlTags(it.title || "");
+      const link = safeUrl(it.link);
+      const image = safeUrl(it.image);
+      if (!title || !link || !image) continue;
+      if (!isFashionTitle(title)) continue;
+      const price = it.lprice ? `₩${Number(it.lprice).toLocaleString("ko-KR")}` : undefined;
+      out.push({
+        title: title.slice(0, 180),
+        image_url: image,
+        source_url: link,
+        price,
+        brand: it.brand || it.mallName || "Naver",
+        store_name: it.mallName || "Naver Shopping",
+      });
+    }
+    log("naver_api_done", { query, returned: items.length, kept: out.length });
+    return out;
+  } catch (e) {
+    log("naver_api_error", { msg: (e as Error).message });
+    return [];
+  }
 }
 
 async function discoverForQuery(q: string): Promise<DiscoveredCandidate[]> {
@@ -422,7 +555,7 @@ async function extractWithFirecrawl(url: string): Promise<ExtractedProduct | nul
     const safeImg = safeUrl(image);
     if (!title || !safeImg || !isImageSafe(safeImg)) return null;
     const cleanTitle = title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180);
-    if (!FASHION_RE.test(cleanTitle) && !FASHION_RE.test(description)) return null;
+    if (!isFashionTitle(cleanTitle) && !isFashionTitle(description)) return null;
     const host = new URL(url).hostname.replace(/^www\./, "");
     const brand = (meta["og:site_name"] || meta.ogSiteName || "").toString();
     return {
@@ -477,7 +610,7 @@ async function extractWithSimpleFetch(url: string): Promise<ExtractedProduct | n
     const safeImg = safeUrl(image);
     if (!title || !safeImg || !isImageSafe(safeImg)) return null;
     const cleanTitle = title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180);
-    if (!FASHION_RE.test(cleanTitle) && !FASHION_RE.test(description)) return null;
+    if (!isFashionTitle(cleanTitle) && !isFashionTitle(description)) return null;
     const host = new URL(url).hostname.replace(/^www\./, "");
     return {
       title: cleanTitle,
@@ -716,11 +849,23 @@ async function insertProducts(
   if (!rows.length) return { inserted: 0, duplicates: 0 };
   const records = rows.map((r) => {
     const { category, subcategory } = categorize(r.title);
+    // Detect platform from URL host so Korean products are tagged correctly.
+    const host = (() => { try { return new URL(r.source_url).hostname.toLowerCase(); } catch { return ""; } })();
+    let platform = "web_search";
+    let trust = "medium";
+    let currency = "USD";
+    if (/naver\.com/.test(host)) { platform = "naver"; trust = "high"; currency = "KRW"; }
+    else if (/coupang\.com/.test(host)) { platform = "coupang"; trust = "high"; currency = "KRW"; }
+    else if (/musinsa\.com/.test(host)) { platform = "musinsa"; trust = "high"; currency = "KRW"; }
+    else if (/kream\.co\.kr/.test(host)) { platform = "kream"; trust = "high"; currency = "KRW"; }
+    else if (/ssg\.com/.test(host)) { platform = "ssg"; trust = "high"; currency = "KRW"; }
+    else if (/29cm\.co\.kr|wconcept\.co\.kr|gmarket\.co\.kr/.test(host)) { platform = host.split(".")[0]; trust = "high"; currency = "KRW"; }
     return {
       external_id: hashUrl(r.source_url),
       name: r.title,
       brand: r.brand || null,
       price: r.price || null,
+      currency,
       category,
       subcategory: subcategory || null,
       style_tags: inferStyleTags(r.title),
@@ -730,11 +875,11 @@ async function insertProducts(
       source_url: r.source_url,
       store_name: r.store_name || null,
       reason: `Discovered via "${sourceQuery}"`,
-      platform: "web_search",
+      platform,
       image_valid: true,
       is_active: true,
       source_type: "discovery",
-      source_trust_level: "medium",
+      source_trust_level: trust,
       search_query: sourceQuery,
       last_validated: new Date().toISOString(),
     };
@@ -811,16 +956,27 @@ serve(async (req) => {
       );
     }
 
-    // 2. Discover URLs — open-web + domain-scoped (Farfetch / YOOX / Zalando)
-    const [openWeb, scoped] = await Promise.all([
+    // 2. Discover URLs — open-web + western-scoped + (when KR) Korean-scoped
+    //    Plus: official Naver Shopping API runs in parallel and is inserted
+    //    directly (skips the extraction step since we already have everything).
+    const krMarket = isKoreanMarketQuery(rawQuery);
+    log("market_detect", { rawQuery, krMarket, naverApiActive: !!(NAVER_CLIENT_ID && NAVER_CLIENT_SECRET) });
+
+    const [openWeb, scoped, krScoped, naverDirect] = await Promise.all([
       discoverUrls(shoppingQueries),
       discoverScopedUrls(rawQuery),
+      krMarket ? discoverKoreanUrls(rawQuery) : Promise.resolve([] as DiscoveredCandidate[]),
+      krMarket ? fetchFromNaverApi(rawQuery, 30) : Promise.resolve([] as ExtractedProduct[]),
     ]);
-    // Merge + dedupe by host+path. Scoped goes first so guaranteed-source
-    // candidates have priority when we cap at maxCandidates.
+
+    // Merge + dedupe by host+path. Korean-scoped goes FIRST when KR market so
+    // Naver/Coupang/Musinsa candidates are not dropped by the maxCandidates cap.
     const merged: DiscoveredCandidate[] = [];
     const seenUrl = new Set<string>();
-    for (const c of [...scoped, ...openWeb]) {
+    const orderedSources = krMarket
+      ? [...krScoped, ...scoped, ...openWeb]
+      : [...scoped, ...openWeb];
+    for (const c of orderedSources) {
       const k = c.url.split("?")[0].toLowerCase();
       if (seenUrl.has(k)) continue;
       seenUrl.add(k);
@@ -839,7 +995,7 @@ serve(async (req) => {
     }
     log("discover_done", { totalCandidates: candidates.length, scoped: scoped.length, openWeb: openWeb.length });
 
-    if (candidates.length === 0) {
+    if (candidates.length === 0 && naverDirect.length === 0) {
       return new Response(
         JSON.stringify({
           ok: true,
@@ -871,7 +1027,11 @@ serve(async (req) => {
       else rejected++;
     }
 
-    // 3b. Post-extraction category filter — title must match the lock
+    // Inject Naver Shopping API products directly — they're already extracted.
+    if (naverDirect.length > 0) {
+      extracted = [...naverDirect, ...extracted];
+      log("naver_api_injected", { count: naverDirect.length });
+    }
     if (primaryCategory) {
       const before = extracted.length;
       extracted = extracted.filter((p) => {
