@@ -267,12 +267,32 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                   </div>
                 )}
                 {status === "ready" && resultUrl && (
-                  <SafeImage
-                    src={resultUrl}
-                    alt="Virtual try-on"
-                    className="w-full h-full object-cover"
-                    fallbackClassName="w-full h-full bg-foreground/[0.04] flex items-center justify-center"
-                  />
+                  <>
+                    <SafeImage
+                      src={resultUrl}
+                      alt="Virtual try-on"
+                      className="w-full h-full object-cover"
+                      fallbackClassName="w-full h-full bg-foreground/[0.04] flex items-center justify-center"
+                    />
+                    {showOverlay && context.regions?.length > 0 && (
+                      <FitOverlay regions={context.regions} />
+                    )}
+                    {/* Toggle overlay */}
+                    <button
+                      onClick={() => setShowOverlay((v) => !v)}
+                      className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1.5 border border-white/15 text-white text-[9px] font-bold tracking-[0.15em] uppercase pointer-events-auto hover:bg-black/70 transition-colors"
+                      title={showOverlay ? "Hide fit annotations" : "Show fit annotations"}
+                    >
+                      {showOverlay ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      {showOverlay ? "FIT ON" : "FIT OFF"}
+                    </button>
+                    {/* Size badge bottom-left */}
+                    <div className="absolute bottom-2 left-2 rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1 border border-white/15">
+                      <span className="text-white text-[9px] font-bold tracking-[0.2em]">
+                        SIZE {context.recommendedSize}
+                      </span>
+                    </div>
+                  </>
                 )}
                 {status === "failed" && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
