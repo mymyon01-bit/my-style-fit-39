@@ -119,5 +119,14 @@ export async function runSearch(
 
   session.status = "complete";
   opts.onProgress?.(session);
+
+  // Persist / refresh the cluster in the background — improves next search.
+  void upsertCluster({
+    query: session.query,
+    category: type,
+    tags: family.slice(0, 8),
+    products: session.results,
+  });
+
   return session;
 }
