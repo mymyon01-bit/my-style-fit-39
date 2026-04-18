@@ -89,14 +89,27 @@ function imageHostKey(u: string): string {
 const FASHION_RE = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|hat|cap|beanie|belt|scarf|bomber|parka|pullover|sweatshirt|chinos?|joggers?|blouse|knit|denim|leather|jumpsuit|trench|gilet|leggings?|tank|outfit|outerwear|footwear|swimwear|swimsuit|bikini)\b/i;
 const FASHION_KR_RE = /(자켓|재킷|코트|블레이저|셔츠|후디|스웨터|니트|가디건|티셔츠|폴로|바지|팬츠|청바지|진|반바지|스커트|치마|드레스|원피스|운동화|스니커즈|신발|부츠|로퍼|샌들|가방|백|토트|백팩|모자|벨트|봄버|파카|풀오버|맨투맨|블라우스|점퍼|패딩|아우터|수영복|비키니)/;
 
+function nameFromUrl(u: string): string {
+  try {
+    const path = new URL(u).pathname.replace(/\/$/, "");
+    const last = path.split("/").filter(Boolean).pop() || "";
+    return decodeURIComponent(last).replace(/[-_]+/g, " ").slice(0, 80);
+  } catch { return ""; }
+}
+
 function normalize(items: ExtractedProduct[], sourceDomain: string): NormalizedProduct[] {
   const out: NormalizedProduct[] = [];
   for (const it of items) {
-    const name = String(it.name ?? "").trim();
+    let name = String(it.name ?? "").trim();
     const img = safeImage(it.image);
     const link = typeof it.url === "string" ? it.url : null;
-    if (!name || !img || !link) continue;
-    if (!FASHION_RE.test(name) && !FASHION_KR_RE.test(name)) continue;
+    if (!img || !link) continue;
+    if (!name) name = nameFromUrl(link);
+    if (!name) continue;
+    // Fashion keyword is required for non-KR domains; KR commerce domains are
+    // pre-filtered by site context, so accept all named items there.
+    const isKr = /(musinsa|29cm|wconcept|ssg)\.(com|co\.kr)/i.test(sourceDomain);
+    if (!isKr && !FASHION_RE.test(name) && !FASHION_KR_RE.test(name)) continue;
     let host = sourceDomain;
     try { host = new URL(link).host.replace(/^www\./, ""); } catch { /* */ }
     const platform = host.split(".")[0] || "web";
