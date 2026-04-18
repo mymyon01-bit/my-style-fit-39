@@ -939,16 +939,27 @@ serve(async (req) => {
       );
     }
 
-    // 2. Discover URLs — open-web + domain-scoped (Farfetch / YOOX / Zalando)
-    const [openWeb, scoped] = await Promise.all([
+    // 2. Discover URLs — open-web + western-scoped + (when KR) Korean-scoped
+    //    Plus: official Naver Shopping API runs in parallel and is inserted
+    //    directly (skips the extraction step since we already have everything).
+    const krMarket = isKoreanMarketQuery(rawQuery);
+    log("market_detect", { rawQuery, krMarket, naverApiActive: !!(NAVER_CLIENT_ID && NAVER_CLIENT_SECRET) });
+
+    const [openWeb, scoped, krScoped, naverDirect] = await Promise.all([
       discoverUrls(shoppingQueries),
       discoverScopedUrls(rawQuery),
+      krMarket ? discoverKoreanUrls(rawQuery) : Promise.resolve([] as DiscoveredCandidate[]),
+      krMarket ? fetchFromNaverApi(rawQuery, 30) : Promise.resolve([] as ExtractedProduct[]),
     ]);
-    // Merge + dedupe by host+path. Scoped goes first so guaranteed-source
-    // candidates have priority when we cap at maxCandidates.
+
+    // Merge + dedupe by host+path. Korean-scoped goes FIRST when KR market so
+    // Naver/Coupang/Musinsa candidates are not dropped by the maxCandidates cap.
     const merged: DiscoveredCandidate[] = [];
     const seenUrl = new Set<string>();
-    for (const c of [...scoped, ...openWeb]) {
+    const orderedSources = krMarket
+      ? [...krScoped, ...scoped, ...openWeb]
+      : [...scoped, ...openWeb];
+    for (const c of orderedSources) {
       const k = c.url.split("?")[0].toLowerCase();
       if (seenUrl.has(k)) continue;
       seenUrl.add(k);
