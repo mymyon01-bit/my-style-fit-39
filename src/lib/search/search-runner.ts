@@ -78,34 +78,43 @@ export async function runSearch(
 
   const family = await expandQueries(session.query, type);
 
-  // 5-cycle plan covering up to 20 expanded queries — 2x the prior reach.
-  // Earlier cycles use cached/DB; later cycles trigger fresh ingestion.
+  // Speed-tuned plan: smaller, faster batches. Cycle 1 = tight & fast for
+  // first paint. Cycles 2-3 broaden + trigger fresh ingestion. Each cycle
+  // runs at most 4 parallel queries to keep edge fan-out reasonable.
   const plan: { queries: string[]; fresh: boolean }[] = [
-    { queries: [session.query, ...family.slice(0, 4)], fresh: false },
-    { queries: family.slice(4, 9), fresh: false },
-    { queries: family.slice(9, 13), fresh: true },
-    { queries: family.slice(13, 17), fresh: true },
-    { queries: family.slice(17, 20), fresh: true },
+    { queries: [session.query, ...family.slice(0, 2)], fresh: false },
+    { queries: family.slice(2, 6), fresh: false },
+    { queries: family.slice(6, 10), fresh: true },
   ].slice(0, maxCycles);
 
   let prevCount = session.results.length;
   let emptyCycles = 0;
 
   for (let i = 0; i < plan.length; i++) {
+    // Hard time budget — never let the user wait > HARD_BUDGET_MS.
+    if (performance.now() - sessionStart > HARD_BUDGET_MS) {
+      console.info("[search-runner] hard budget hit, stopping", {
+        elapsed: performance.now() - sessionStart,
+        results: session.results.length,
+      });
+      break;
+    }
+
     session.cycle = i + 1;
     const { queries, fresh } = plan[i];
 
-    // Cycle 2 onward: trigger background ingestion (non-blocking on result)
+    // Cycle 3: trigger background ingestion (non-blocking)
     if (fresh) {
       void ingestQuery(session.query);
     }
 
-    // Run all queries in this cycle in parallel — wider candidate window.
+    // Run all queries in this cycle in parallel — smaller per-call limit
+    // for faster edge response.
     const batches = await Promise.all(
       queries.filter(Boolean).map((q) =>
         discoverProducts(q, {
-          excludeIds: Array.from(session.seenIds).slice(-80),
-          limit: 18,
+          excludeIds: Array.from(session.seenIds).slice(-60),
+          limit: 12,
           freshSearch: fresh,
         }),
       ),
@@ -126,15 +135,18 @@ export async function runSearch(
       addedThisCycle,
       total: session.results.length,
       type,
+      elapsed: Math.round(performance.now() - sessionStart),
     });
 
     session.status = session.results.length >= target ? "complete" : "partial";
     opts.onProgress?.(session);
 
+    // Early exit: once we have a comfortable first page after cycle 1, stop.
+    if (i >= 0 && session.results.length >= FIRST_PAGE_MIN && clusterHit) break;
     if (session.results.length >= target) break;
     if (session.results.length === prevCount) {
       emptyCycles++;
-      if (emptyCycles >= 2) break;
+      if (emptyCycles >= 1) break; // stop on first empty cycle, not second
     } else {
       emptyCycles = 0;
     }
