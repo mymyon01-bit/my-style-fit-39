@@ -1210,6 +1210,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_seen_products: {
+        Row: {
+          id: string
+          product_key: string
+          seen_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          product_key: string
+          seen_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          product_key?: string
+          seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1222,6 +1243,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_old_seen_products: { Args: never; Returns: undefined }
       upsert_query_cluster: {
         Args: {
           _category: string
