@@ -13,6 +13,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { detectPrimaryCategory, productMatchesCategory } from "@/lib/search/category-lock";
 import { normalizeDiscoverProducts } from "./discover-product-normalizer";
+import { resolveKrAliases } from "./krAliasMap";
 import type { DiscoverProduct } from "./discover-types";
 
 export interface FastSelectorOptions {
