@@ -2665,24 +2665,9 @@ const DiscoverPage = () => {
             )}
           </AnimatePresence>
 
-          {/* Results Area */}
+          {/* Results Area — HARDCODED SHELLS: render immediately, never block on live search */}
           <div className="mt-8">
-            {isGenerating && recommendations.length === 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="aspect-[3/4] rounded-xl bg-foreground/[0.04]" />
-                      <div className="mt-2.5 space-y-1.5 px-0.5">
-                        <div className="h-2.5 w-16 rounded bg-foreground/[0.04]" />
-                        <div className="h-3 w-24 rounded bg-foreground/[0.04]" />
-                        <div className="h-2.5 w-12 rounded bg-foreground/[0.04]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (hasGenerated || isGenerating) && recommendations.length > 0 ? (
+            {(hasGenerated || isGenerating) ? (
               <div className="space-y-12">
                 {/* Scenario context banner */}
                 {activeScenario && (
