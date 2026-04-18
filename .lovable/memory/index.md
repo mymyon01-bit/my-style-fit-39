@@ -17,3 +17,4 @@ Search: explicit category keyword in query = HARD category lock (no wrong types)
 - [Category lock](mem://features/category-lock) — Hard category enforcement in search-discovery + product-search
 - [Search intelligence](mem://features/search-intelligence) — Emotion-based intent, dual scoring, hybrid fallback
 - [Inventory](mem://features/inventory) — Multi-source scraper + Firecrawl fallback + cron seed builder
+- [Korean market](mem://features/korean-market) — Naver API scaffold + Coupang/Musinsa discovery + 50/50 KR mix
