@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeFromCache } from "@/lib/search/product-normalizer";
 import { detectPrimaryCategory, productMatchesCategory } from "@/lib/search/category-lock";
+import { resolveKrAliases } from "@/lib/discover/krAliasMap";
 import type { Product } from "@/lib/search/types";
 
 /**
