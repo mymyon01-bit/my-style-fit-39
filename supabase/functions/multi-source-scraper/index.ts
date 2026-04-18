@@ -1,14 +1,18 @@
-// Multi-source product scraper.
+// Multi-source product scraper — Apify-first parallel fetch.
 //
-// Runs THREE sources in parallel for a given query:
-//   1. Firecrawl   — universal (existing pipeline; we proxy via search-discovery)
-//   2. Apify       — ASOS + Zalando actors
-//   3. Crawlbase   — Farfetch
+// Runs Apify actors in parallel for FRESH inventory on every call:
+//   - ASOS    (jupri/asos-scraper)
+//   - Zalando (tugkan/zalando-scraper)
+//   - Coupang (KR) — actor id from APIFY_COUPANG_ACTOR or default
+//   - Google Shopping — actor id from APIFY_GSHOPPING_ACTOR or default
+// Plus optional Crawlbase (Farfetch).
 //
-// Each source has a hard 15s budget. Partial failure is tolerated
-// (allSettled). Results are merged, deduped by URL/title fingerprint,
-// shuffled (Fisher–Yates), then upserted into product_cache so the next
-// search hits a hot DB cache.
+// 60-second per-query cooldown: same query within the cooldown reuses the
+// last result set instead of re-running paid actors.
+//
+// Each source has a hard 14s budget. Partial failure is tolerated
+// (allSettled). Results are deduped (URL + normalized title + image host),
+// shuffled, then upserted into product_cache.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -20,20 +24,20 @@ const cors = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN");
 const CRAWLBASE_TOKEN = Deno.env.get("CRAWLBASE_TOKEN");
 
-const SOURCE_BUDGET_MS = 15_000;
+const SOURCE_BUDGET_MS = 14_000;
+const COOLDOWN_MS = 60_000;
 
-// ── Apify actor IDs (publicly available, JSON output via run-sync) ──────────
-//   ASOS:    `jupri/asos-scraper`
-//   Zalando: `tugkan/zalando-scraper`
-// Both use the synchronous "run-sync-get-dataset-items" endpoint so we get
-// JSON back in a single HTTP call (no polling).
+// Apify actor IDs. Defaults are public actors known to return JSON via the
+// run-sync-get-dataset-items endpoint. Override via env if you want to swap
+// in a different actor (e.g. private Coupang scraper).
 const APIFY_ACTORS = {
   asos: "jupri~asos-scraper",
   zalando: "tugkan~zalando-scraper",
+  coupang: Deno.env.get("APIFY_COUPANG_ACTOR") || "epctex~coupang-scraper",
+  gshopping: Deno.env.get("APIFY_GSHOPPING_ACTOR") || "emastra~google-shopping-scraper",
 } as const;
 
 interface RawProduct {
@@ -77,7 +81,16 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   ]);
 }
 
-// ── Apify — generic JSON-actor caller ────────────────────────────────────────
+// ── Per-query 60s cooldown ──────────────────────────────────────────────────
+// Lives in worker memory. Cheap insurance against Apify cost spikes when the
+// same user retries the same query rapidly.
+interface CacheRow { ts: number; result: unknown; }
+const cooldownCache = new Map<string, CacheRow>();
+function cooldownKey(query: string): string {
+  return query.trim().toLowerCase();
+}
+
+// ── Generic Apify caller ────────────────────────────────────────────────────
 
 async function callApifyActor(actorId: string, input: Record<string, unknown>): Promise<unknown[]> {
   if (!APIFY_TOKEN) return [];
@@ -98,11 +111,7 @@ async function callApifyActor(actorId: string, input: Record<string, unknown>): 
 async function fetchApifyAsos(query: string): Promise<RawProduct[]> {
   try {
     const items = await withTimeout(
-      callApifyActor(APIFY_ACTORS.asos, {
-        searchTerms: [query],
-        maxItems: 25,
-        country: "US",
-      }),
+      callApifyActor(APIFY_ACTORS.asos, { searchTerms: [query], maxItems: 25, country: "US" }),
       SOURCE_BUDGET_MS,
       "apify_asos",
     );
@@ -136,11 +145,7 @@ async function fetchApifyAsos(query: string): Promise<RawProduct[]> {
 async function fetchApifyZalando(query: string): Promise<RawProduct[]> {
   try {
     const items = await withTimeout(
-      callApifyActor(APIFY_ACTORS.zalando, {
-        search: query,
-        maxItems: 25,
-        country: "DE",
-      }),
+      callApifyActor(APIFY_ACTORS.zalando, { search: query, maxItems: 25, country: "DE" }),
       SOURCE_BUDGET_MS,
       "apify_zalando",
     );
@@ -171,9 +176,104 @@ async function fetchApifyZalando(query: string): Promise<RawProduct[]> {
   }
 }
 
-// ── Crawlbase — Farfetch via Crawling API + JS rendering ─────────────────────
-// We use Crawlbase to fetch the Farfetch search HTML, then extract product
-// cards with a light regex pass. Crawlbase handles anti-bot + JS rendering.
+// Coupang (KR). Field names follow `epctex/coupang-scraper`-style outputs;
+// safely handles missing fields if you swap actors.
+async function fetchApifyCoupang(query: string): Promise<RawProduct[]> {
+  try {
+    const items = await withTimeout(
+      callApifyActor(APIFY_ACTORS.coupang, {
+        search: [query],
+        searches: [query],
+        keywords: [query],
+        maxItems: 25,
+        startUrls: [],
+      }),
+      SOURCE_BUDGET_MS,
+      "apify_coupang",
+    );
+    return items.flatMap((it) => {
+      const o = it as Record<string, unknown>;
+      const img = safeImage(
+        o.image ?? o.imageUrl ?? o.thumbnail ??
+        (Array.isArray(o.images) ? (o.images as unknown[])[0] : null),
+      );
+      const name = String(o.name ?? o.title ?? o.productName ?? "").trim();
+      const link =
+        typeof o.url === "string" ? o.url :
+        typeof o.productUrl === "string" ? o.productUrl :
+        typeof o.link === "string" ? o.link : null;
+      if (!img || !link || !name || !isFashion(name)) return [];
+      return [{
+        external_id: `coupang-${String(o.productId ?? o.id ?? link)}`,
+        name,
+        brand: typeof o.brand === "string" ? o.brand : null,
+        price: o.price != null ? String(o.price) : (o.salePrice != null ? String(o.salePrice) : null),
+        currency: typeof o.currency === "string" ? o.currency : "KRW",
+        image_url: img,
+        source_url: link,
+        store_name: "Coupang",
+        platform: "coupang",
+        source_type: "scraper",
+        source_trust_level: "medium" as const,
+        category: typeof o.category === "string" ? o.category : null,
+      }];
+    });
+  } catch (e) {
+    console.warn("[apify:coupang] failed", (e as Error).message);
+    return [];
+  }
+}
+
+// Google Shopping — universal coverage. Returns merchant-tagged items so
+// platform reflects the upstream store when available.
+async function fetchApifyGoogleShopping(query: string): Promise<RawProduct[]> {
+  try {
+    const items = await withTimeout(
+      callApifyActor(APIFY_ACTORS.gshopping, {
+        queries: [query],
+        searchQueries: [query],
+        maxItems: 30,
+        countryCode: "us",
+      }),
+      SOURCE_BUDGET_MS,
+      "apify_gshopping",
+    );
+    return items.flatMap((it) => {
+      const o = it as Record<string, unknown>;
+      const img = safeImage(
+        o.image ?? o.imageUrl ?? o.thumbnail ??
+        (Array.isArray(o.images) ? (o.images as unknown[])[0] : null),
+      );
+      const name = String(o.title ?? o.name ?? "").trim();
+      const link =
+        typeof o.link === "string" ? o.link :
+        typeof o.productUrl === "string" ? o.productUrl :
+        typeof o.url === "string" ? o.url : null;
+      if (!img || !link || !name || !isFashion(name)) return [];
+      const merchant = typeof o.merchant === "string" ? o.merchant.toLowerCase() :
+        (typeof o.source === "string" ? o.source.toLowerCase() : "google_shopping");
+      return [{
+        external_id: `gshop-${String(o.productId ?? o.id ?? link)}`,
+        name,
+        brand: typeof o.brand === "string" ? o.brand : null,
+        price: o.price != null ? String(o.price) : null,
+        currency: typeof o.currency === "string" ? o.currency : "USD",
+        image_url: img,
+        source_url: link,
+        store_name: typeof o.merchant === "string" ? o.merchant : "Google Shopping",
+        platform: merchant.replace(/\s+/g, "_").slice(0, 32),
+        source_type: "scraper",
+        source_trust_level: "medium" as const,
+        category: typeof o.category === "string" ? o.category : null,
+      }];
+    });
+  } catch (e) {
+    console.warn("[apify:gshopping] failed", (e as Error).message);
+    return [];
+  }
+}
+
+// ── Crawlbase — Farfetch (kept as supplemental high-trust source) ───────────
 
 async function fetchCrawlbaseFarfetch(query: string): Promise<RawProduct[]> {
   if (!CRAWLBASE_TOKEN) return [];
@@ -187,7 +287,6 @@ async function fetchCrawlbaseFarfetch(query: string): Promise<RawProduct[]> {
     }
     const data = await res.json().catch(() => null) as Record<string, unknown> | null;
     if (!data) return [];
-    // Crawlbase autoparse returns `products` array for known retailers.
     const items = Array.isArray((data as { products?: unknown[] }).products)
       ? (data as { products: unknown[] }).products
       : [];
@@ -218,54 +317,39 @@ async function fetchCrawlbaseFarfetch(query: string): Promise<RawProduct[]> {
   }
 }
 
-// ── Firecrawl — delegate to existing search-discovery pipeline ───────────────
-async function fetchFirecrawl(query: string): Promise<RawProduct[]> {
-  if (!FIRECRAWL_KEY) return [];
-  // Defer to the existing search-discovery edge function (which owns the
-  // Firecrawl extraction logic). We call it with a small budget so this stays
-  // parallel to the Apify/Crawlbase paths.
+// ── Dedupe (URL + normalized title + image host) ────────────────────────────
+
+function imageHostKey(u: string): string {
   try {
-    const res = await withTimeout(
-      fetch(`${SUPABASE_URL}/functions/v1/search-discovery`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${SERVICE_KEY}`,
-        },
-        body: JSON.stringify({ query, maxQueries: 4, maxCandidates: 18 }),
-      }),
-      SOURCE_BUDGET_MS,
-      "firecrawl_discovery",
-    );
-    if (!res.ok) return [];
-    // search-discovery already wrote rows; we re-read the freshest matches.
-    return [];
+    const url = new URL(u);
+    return `${url.host}${url.pathname}`.toLowerCase();
   } catch {
-    return [];
+    return u.toLowerCase();
   }
 }
-
-// ── Dedupe + shuffle ────────────────────────────────────────────────────────
-
-function fingerprint(p: RawProduct): string {
+function normalizedTitleKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9가-힣]+/g, "").slice(0, 60);
+}
+function urlKey(u: string): string {
   try {
-    const u = new URL(p.image_url);
-    return `${u.host}${u.pathname}`.toLowerCase();
+    const url = new URL(u);
+    return `${url.host}${url.pathname}`.toLowerCase();
   } catch {
-    return p.image_url.toLowerCase();
+    return u.toLowerCase();
   }
 }
 
 function dedupe(items: RawProduct[]): RawProduct[] {
   const seenUrl = new Set<string>();
-  const seenFp = new Set<string>();
+  const seenTitle = new Set<string>();
+  const seenImage = new Set<string>();
   const out: RawProduct[] = [];
   for (const p of items) {
-    const url = p.source_url.toLowerCase();
-    const fp = fingerprint(p);
-    if (seenUrl.has(url) || seenFp.has(fp)) continue;
-    seenUrl.add(url);
-    seenFp.add(fp);
+    const u = urlKey(p.source_url);
+    const t = normalizedTitleKey(p.name);
+    const i = imageHostKey(p.image_url);
+    if (seenUrl.has(u) || seenTitle.has(t) || seenImage.has(i)) continue;
+    seenUrl.add(u); seenTitle.add(t); seenImage.add(i);
     out.push(p);
   }
   return out;
@@ -280,7 +364,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// ── Persist into product_cache ──────────────────────────────────────────────
+// ── Persist into product_cache (with normalized_title in search_query) ──────
 
 async function upsertCache(items: RawProduct[], query: string): Promise<number> {
   if (!items.length) return 0;
@@ -301,7 +385,7 @@ async function upsertCache(items: RawProduct[], query: string): Promise<number> 
     image_valid: true,
     is_active: true,
     last_validated: new Date().toISOString(),
-    search_query: query,
+    search_query: query.toLowerCase().trim(),
     trend_score: 1,
   }));
   const { error, count } = await sb
@@ -327,15 +411,27 @@ serve(async (req) => {
       });
     }
 
+    // 60s cooldown — same query within window returns last result set.
+    const ck = cooldownKey(query);
+    const cached = cooldownCache.get(ck);
+    if (cached && Date.now() - cached.ts < COOLDOWN_MS) {
+      console.log("[multi-source] cooldown hit", { query, age_ms: Date.now() - cached.ts });
+      return new Response(
+        JSON.stringify({ ok: true, cached: true, ...(cached.result as object) }),
+        { headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+
     const t0 = Date.now();
     const settled = await Promise.allSettled([
-      fetchFirecrawl(query),
       fetchApifyAsos(query),
       fetchApifyZalando(query),
+      fetchApifyCoupang(query),
+      fetchApifyGoogleShopping(query),
       fetchCrawlbaseFarfetch(query),
     ]);
 
-    const labels = ["firecrawl", "apify_asos", "apify_zalando", "crawlbase_farfetch"];
+    const labels = ["apify_asos", "apify_zalando", "apify_coupang", "apify_gshopping", "crawlbase_farfetch"];
     const perSource: Record<string, number> = {};
     const merged: RawProduct[] = [];
     settled.forEach((r, i) => {
@@ -348,25 +444,26 @@ serve(async (req) => {
     const shuffled = shuffle(deduped);
     const inserted = await upsertCache(shuffled, query);
 
-    console.log("[multi-source] done", {
+    const result = {
       query,
-      perSource,
+      sources: perSource,
       merged: merged.length,
       deduped: deduped.length,
       inserted,
-      elapsed_ms: Date.now() - t0,
-    });
+      products: shuffled.slice(0, 60),
+    };
+
+    cooldownCache.set(ck, { ts: Date.now(), result });
+    // Cheap eviction of old keys to keep memory bounded.
+    if (cooldownCache.size > 200) {
+      const cutoff = Date.now() - COOLDOWN_MS;
+      for (const [k, v] of cooldownCache.entries()) if (v.ts < cutoff) cooldownCache.delete(k);
+    }
+
+    console.log("[multi-source] done", { ...result, products: shuffled.length, elapsed_ms: Date.now() - t0 });
 
     return new Response(
-      JSON.stringify({
-        ok: true,
-        query,
-        sources: perSource,
-        merged: merged.length,
-        deduped: deduped.length,
-        inserted,
-        products: shuffled.slice(0, 60),
-      }),
+      JSON.stringify({ ok: true, cached: false, ...result }),
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (e) {
