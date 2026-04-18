@@ -233,6 +233,7 @@ export default function FitResults({
   const tryOnReady = !!userImageUrl && !!product.image;
   const tryOnFitDescriptor =
     activeSizeResult?.regions.find(r => r.region === "Chest" || r.region === "Waist")?.fit?.toString() || "regular";
+  const productKey = `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 200);
   const tryOnContext: TryOnContext | null = tryOnReady
     ? {
         userImageUrl: userImageUrl!,
@@ -244,6 +245,7 @@ export default function FitResults({
         recommendedSize: activeSize,
         confidence: conf.text,
         fitDescriptor: tryOnFitDescriptor,
+        productKey,
       }
     : null;
 
