@@ -12,6 +12,10 @@ const DesktopNav = () => {
   const { user } = useAuth();
   const { t } = useI18n();
 
+  useEffect(() => {
+    prefetchAllTabs();
+  }, []);
+
   const navLinks = [
     { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: t("discover").toUpperCase() },
@@ -84,6 +88,7 @@ const DesktopNav = () => {
             <button
               key={link.path}
               onClick={() => navigate(link.path)}
+              onMouseEnter={() => prefetchRoute(link.path)}
               className={`hover-burgundy text-[10px] font-semibold tracking-[0.3em] transition-colors ${
                 isActive(link.path)
                   ? "text-foreground/90"
