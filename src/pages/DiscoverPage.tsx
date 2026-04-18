@@ -3107,13 +3107,14 @@ interface RecommendationCardProps {
   index: number;
   feedback: "like" | "dislike" | undefined;
   isSaved: boolean;
+  isFresh?: boolean;
   onFeedback: (id: string, type: "like" | "dislike") => void;
   onSave: (id: string) => void;
   onOpenDetail: (item: AIRecommendation) => void;
 }
 
 const RecommendationCardImpl = forwardRef<HTMLDivElement, RecommendationCardProps>(
-  ({ item, index, feedback, isSaved, onFeedback, onSave, onOpenDetail }, ref) => {
+  ({ item, index, feedback, isSaved, isFresh, onFeedback, onSave, onOpenDetail }, ref) => {
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
 
