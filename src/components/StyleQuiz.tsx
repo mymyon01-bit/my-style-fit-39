@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronLeft, Plus, X } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 
 export interface StyleQuizAnswers {
   preferredStyles: string[];
@@ -18,105 +18,149 @@ interface StyleQuizProps {
   onClose: () => void;
 }
 
-interface QuizStep {
-  key: keyof StyleQuizAnswers;
+/**
+ * HARDCODED QUIZ BANK — do not generate dynamically.
+ * Curated, deduplicated, fixed order. Maps each answer to the
+ * StyleQuizAnswers shape consumed by the recommendation pipeline.
+ */
+type AnswerKey = keyof StyleQuizAnswers;
+
+interface QuizQuestion {
+  id: string;
+  group: "Style" | "Fit" | "Color" | "Shopping" | "Occasion";
   title: string;
   subtitle: string;
   options: string[];
   multi?: boolean;
-  allowCustom?: boolean;
+  // Where each selection is stored
+  target: AnswerKey;
 }
 
-const STEPS: QuizStep[] = [
+const QUESTIONS: QuizQuestion[] = [
+  // Group A — Style identity
   {
-    key: "preferredStyles",
-    title: "What speaks to you?",
-    subtitle: "Select all that resonate — or add your own",
-    options: ["Minimal", "Street", "Classic", "Edgy", "Clean Fit", "Old Money", "Chic"],
+    id: "style-lean",
+    group: "Style",
+    title: "Which overall style do you lean toward most?",
+    subtitle: "Pick the directions that feel like you",
+    options: ["Minimal", "Modern", "Street", "Classic", "Relaxed", "Formal"],
     multi: true,
-    allowCustom: true,
+    target: "preferredStyles",
   },
   {
-    key: "fitPreference",
-    title: "How do you wear it?",
-    subtitle: "Your ideal silhouette",
-    options: ["Oversized", "Regular", "Slim", "Relaxed"],
+    id: "vibe",
+    group: "Style",
+    title: "Which vibe fits you best?",
+    subtitle: "Your day-to-day energy",
+    options: ["Clean", "Bold", "Soft", "Sharp", "Casual", "Edgy"],
+    target: "dailyVibe",
+  },
+  // Group B — Fit
+  {
+    id: "tops-fit",
+    group: "Fit",
+    title: "How do you like your tops to fit?",
+    subtitle: "Your usual silhouette up top",
+    options: ["Slim", "Regular", "Relaxed", "Oversized"],
+    target: "fitPreference",
   },
   {
-    key: "colorPreference",
-    title: "Your color world",
-    subtitle: "What palette draws you in",
-    options: ["Neutral", "Dark", "Mixed", "Bold", "Earth Tones"],
+    id: "bottoms-fit",
+    group: "Fit",
+    title: "How do you like your bottoms to fit?",
+    subtitle: "Your usual cut below",
+    options: ["Slim", "Straight", "Relaxed", "Wide"],
+    // stored alongside fit modifier — we keep last selection as preferredFit refinement
+    target: "fitPreference",
+  },
+  // Group C — Color
+  {
+    id: "color-range",
+    group: "Color",
+    title: "Which color range do you wear most?",
+    subtitle: "Your everyday palette",
+    options: [
+      "Black / Grey / White",
+      "Beige / Brown / Earth tones",
+      "Navy / Blue",
+      "Mixed colors",
+      "Dark tones",
+      "Light tones",
+    ],
+    target: "colorPreference",
   },
   {
-    key: "dailyVibe",
-    title: "Day-to-day energy",
-    subtitle: "How you naturally dress",
-    options: ["Relaxed", "Clean", "Sharp", "Casual", "Confident"],
-  },
-  {
-    key: "occasionPreference",
-    title: "Where are you going?",
-    subtitle: "Select your usual contexts",
-    options: ["Daily", "Work", "Social", "Date", "Travel", "Mixed"],
+    id: "color-avoid",
+    group: "Color",
+    title: "Which color do you usually avoid?",
+    subtitle: "We'll steer away from these",
+    options: ["Bright colors", "Dark colors", "Earth tones", "Monochrome", "No preference"],
+    target: "dislikedStyles",
     multi: true,
   },
+  // Group D — Shopping
   {
-    key: "brandFamiliarity",
-    title: "Brands you know",
-    subtitle: "Optional — helps us curate better",
-    options: ["COS", "ARKET", "Lemaire", "AMI Paris", "Our Legacy", "Acne Studios", "None"],
+    id: "shop-first",
+    group: "Shopping",
+    title: "What do you usually shop for first?",
+    subtitle: "Your priority categories",
+    options: ["Jackets / Outerwear", "Tops", "Bottoms", "Shoes", "Bags", "Accessories"],
     multi: true,
+    target: "brandFamiliarity", // reused as shopping signal bucket
   },
   {
-    key: "budgetRange",
-    title: "Investment level",
-    subtitle: "Per piece, roughly",
-    options: ["Under $80", "$80–200", "$200–400", "$400+"],
+    id: "matters-most",
+    group: "Shopping",
+    title: "What matters most when choosing an item?",
+    subtitle: "Your top criteria",
+    options: ["Fit", "Style", "Comfort", "Versatility", "Brand", "Price"],
+    target: "budgetRange",
+  },
+  // Group E — Occasion
+  {
+    id: "dress-for",
+    group: "Occasion",
+    title: "What do you dress for most often?",
+    subtitle: "Your usual contexts",
+    options: ["Everyday", "Work", "Going out", "Travel", "Date / social", "Special occasions"],
+    multi: true,
+    target: "occasionPreference",
   },
   {
-    key: "dislikedStyles",
-    title: "What's not for you?",
-    subtitle: "We'll steer away from these — or add your own",
-    options: ["Sporty", "Loud Prints", "Ultra Slim", "Heavy Logos", "Oversized", "Formal"],
+    id: "wardrobe-vision",
+    group: "Occasion",
+    title: "Which description sounds most like your ideal wardrobe?",
+    subtitle: "Your north star",
+    options: [
+      "Clean and versatile",
+      "Fashion-forward and expressive",
+      "Comfortable and relaxed",
+      "Refined and structured",
+      "Street and trend-aware",
+    ],
+    target: "preferredStyles",
     multi: true,
-    allowCustom: true,
   },
 ];
 
 const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
-  const [customInput, setCustomInput] = useState("");
+  const [responses, setResponses] = useState<Record<string, string | string[]>>({});
 
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
-  const selected = answers[current.key];
+  const current = QUESTIONS[step];
+  const isLast = step === QUESTIONS.length - 1;
+  const selected = responses[current.id];
 
   const handleSelect = (option: string) => {
     if (current.multi) {
       const arr = (selected as string[]) || [];
       const updated = arr.includes(option)
-        ? arr.filter(x => x !== option)
+        ? arr.filter((x) => x !== option)
         : [...arr, option];
-      setAnswers({ ...answers, [current.key]: updated });
+      setResponses({ ...responses, [current.id]: updated });
     } else {
-      setAnswers({ ...answers, [current.key]: option });
+      setResponses({ ...responses, [current.id]: option });
     }
-  };
-
-  const handleAddCustom = () => {
-    const trimmed = customInput.trim();
-    if (!trimmed) return;
-    if (current.multi) {
-      const arr = (selected as string[]) || [];
-      if (!arr.includes(trimmed)) {
-        setAnswers({ ...answers, [current.key]: [...arr, trimmed] });
-      }
-    } else {
-      setAnswers({ ...answers, [current.key]: trimmed });
-    }
-    setCustomInput("");
   };
 
   const isSelected = (option: string) => {
@@ -128,38 +172,39 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
     ? ((selected as string[]) || []).length > 0
     : !!selected;
 
+  const buildAnswers = (): StyleQuizAnswers => {
+    const get = (id: string) => responses[id];
+    const asArr = (id: string) => (get(id) as string[]) || [];
+    const asStr = (id: string) => (get(id) as string) || "";
+
+    const preferredStyles = [
+      ...asArr("style-lean"),
+      ...asArr("wardrobe-vision"),
+    ];
+    return {
+      preferredStyles: Array.from(new Set(preferredStyles)),
+      fitPreference: asStr("tops-fit") || asStr("bottoms-fit") || "Regular",
+      colorPreference: asStr("color-range") || "Mixed",
+      dailyVibe: asStr("vibe") || "Casual",
+      occasionPreference: asArr("dress-for"),
+      brandFamiliarity: asArr("shop-first"),
+      budgetRange: asStr("matters-most") || "Style",
+      dislikedStyles: asArr("color-avoid"),
+    };
+  };
+
   const handleNext = () => {
-    setCustomInput("");
     if (isLast) {
-      onComplete({
-        preferredStyles: (answers.preferredStyles as string[]) || [],
-        fitPreference: (answers.fitPreference as string) || "Regular",
-        colorPreference: (answers.colorPreference as string) || "Mixed",
-        dailyVibe: (answers.dailyVibe as string) || "Casual",
-        occasionPreference: (answers.occasionPreference as string[]) || [],
-        brandFamiliarity: (answers.brandFamiliarity as string[]) || [],
-        budgetRange: (answers.budgetRange as string) || "$80–200",
-        dislikedStyles: (answers.dislikedStyles as string[]) || [],
-      });
+      onComplete(buildAnswers());
     } else {
       setStep(step + 1);
     }
   };
 
   const handleSkip = () => {
-    setCustomInput("");
-    if (isLast) {
-      // Skip last step = submit with whatever we have
-      handleNext();
-    } else {
-      setStep(step + 1);
-    }
+    if (isLast) handleNext();
+    else setStep(step + 1);
   };
-
-  // Get all custom items (items not in the original options)
-  const customItems = current.multi
-    ? ((selected as string[]) || []).filter(s => !current.options.includes(s))
-    : [];
 
   return (
     <motion.div
@@ -170,8 +215,8 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
     >
       {/* Progress */}
       <div className="flex items-center justify-between px-8 pt-8 md:px-12">
-        <div className="flex gap-1.5 flex-1 mr-6">
-          {STEPS.map((_, i) => (
+        <div className="flex flex-1 gap-1.5 mr-6">
+          {QUESTIONS.map((_, i) => (
             <div
               key={i}
               className={`h-[2px] flex-1 transition-all duration-500 ${
@@ -188,23 +233,26 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
         </button>
       </div>
 
-      {/* Step counter */}
-      <div className="px-8 pt-6 md:px-12">
+      {/* Step counter + group */}
+      <div className="flex items-center justify-between px-8 pt-6 md:px-12">
         <span className="text-[11px] font-medium tracking-[0.25em] text-foreground/70">
-          {step + 1} / {STEPS.length}
+          {step + 1} / {QUESTIONS.length}
+        </span>
+        <span className="text-[10px] tracking-[0.3em] text-accent/70 uppercase">
+          {current.group}
         </span>
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col justify-center px-8 md:px-12 lg:px-16 overflow-y-auto">
+      <div className="flex flex-1 flex-col justify-center overflow-y-auto px-8 md:px-12 lg:px-16">
         <AnimatePresence mode="wait">
           <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 40 }}
+            key={current.id}
+            initial={{ opacity: 0, x: 32 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="max-w-lg mx-auto w-full"
+            exit={{ opacity: 0, x: -32 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="mx-auto w-full max-w-lg"
           >
             <h2 className="font-display text-2xl font-light text-foreground/90 md:text-3xl">
               {current.title}
@@ -214,54 +262,20 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
-              {current.options.map(option => (
+              {current.options.map((option) => (
                 <button
                   key={option}
                   onClick={() => handleSelect(option)}
                   className={`rounded-full px-6 py-3.5 text-[13px] font-light transition-all duration-300 md:text-[14px] ${
                     isSelected(option)
                       ? "bg-accent text-accent-foreground ring-1 ring-accent shadow-[0_0_0_3px_hsl(var(--accent)/0.18)]"
-                      : "text-foreground/75 hover:text-foreground ring-1 ring-foreground/[0.08] hover:ring-foreground/[0.15]"
+                      : "text-foreground/75 ring-1 ring-foreground/[0.08] hover:text-foreground hover:ring-foreground/[0.15]"
                   }`}
                 >
                   {option}
                 </button>
               ))}
-
-              {/* Show custom-added items */}
-              {customItems.map(item => (
-                <button
-                  key={item}
-                  onClick={() => handleSelect(item)}
-                  className="rounded-full px-6 py-3.5 text-[13px] font-light bg-accent text-accent-foreground ring-1 ring-accent shadow-[0_0_0_3px_hsl(var(--accent)/0.18)] flex items-center gap-1.5"
-                >
-                  {item}
-                  <X className="h-3 w-3 opacity-70" />
-                </button>
-              ))}
             </div>
-
-            {/* Custom style input */}
-            {current.allowCustom && (
-              <div className="mt-6 flex items-center gap-2">
-                <input
-                  type="text"
-                  value={customInput}
-                  onChange={e => setCustomInput(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleAddCustom()}
-                  placeholder="+ Add your own style…"
-                  maxLength={30}
-                  className="flex-1 rounded-full border border-foreground/[0.08] bg-transparent px-5 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/40 focus:border-accent/30 transition-colors"
-                />
-                <button
-                  onClick={handleAddCustom}
-                  disabled={!customInput.trim()}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-foreground/[0.08] text-foreground/60 hover:text-accent hover:border-accent/30 transition-colors disabled:opacity-30"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            )}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -269,8 +283,8 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
       {/* Navigation */}
       <div className="flex items-center justify-between px-8 pb-12 md:px-12">
         <button
-          onClick={() => { setCustomInput(""); step > 0 ? setStep(step - 1) : onClose(); }}
-          className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] text-foreground/70 hover:text-foreground transition-colors"
+          onClick={() => (step > 0 ? setStep(step - 1) : onClose())}
+          className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] text-foreground/70 transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           {step > 0 ? "BACK" : "EXIT"}
@@ -292,7 +306,7 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
               canProceed
                 ? "bg-accent text-accent-foreground hover:bg-accent/90"
                 : "text-foreground/60 ring-1 ring-foreground/[0.12] hover:text-foreground hover:ring-foreground/[0.2]"
-            } disabled:opacity-30 disabled:cursor-not-allowed`}
+            } disabled:cursor-not-allowed disabled:opacity-30`}
           >
             {isLast ? "SEE MY PICKS" : "NEXT"}
             <ChevronRight className="h-3.5 w-3.5" />
@@ -303,4 +317,4 @@ const StyleQuiz = ({ onComplete, onClose }: StyleQuizProps) => {
   );
 };
 
-export default StyleQuiz;
+export default memo(StyleQuiz);
