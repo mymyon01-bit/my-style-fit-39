@@ -4,6 +4,7 @@ import { discoverProducts } from "./product-discovery-service";
 import { validateProduct } from "./product-validation-service";
 import { ingestQuery } from "./product-ingestion-service";
 import { appendToSession, type SearchSession } from "./search-session";
+import { findCluster, upsertCluster } from "./query-cluster-service";
 
 export interface RunSearchOptions {
   /** Called whenever new products are appended to the session. */
