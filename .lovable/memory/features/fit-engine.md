@@ -22,23 +22,24 @@ type: feature
 - Auto-saves to DB on manual edit (height, shoulder, waist, inseam)
 - Scan estimates: premium → "high", free → "medium"/"low"
 
-### Fit Engine (src/lib/fitEngine.ts)
-- Deterministic scoring with ease allowances per fit type
-- Tops: shoulder 0.30, chest 0.22, waist 0.14, sleeve 0.12, length 0.12
-- Bottoms: waist 0.24, hip 0.20, thigh 0.18, inseam 0.14, rise 0.12
-- Classification: too-tight → fitted → balanced → relaxed → too-loose
-- Confidence modifier = (productDataQuality/100) * (scanQuality/100) * 1.2
+### Fit Engine (src/lib/fitEngine.ts) — recalibrated for realism
+- Tolerance margins (absolute cm): shoulder ±3, chest ±7, waist ±5, hip ±6, thigh ±5, length ±4
+- Within tolerance → "balanced" (neutral, no penalty)
+- Tops weights: shoulder 0.40, chest 0.30, waist 0.20, sleeve 0.05, length 0.05
+- Bottoms weights: waist 0.35, hip 0.25, thigh 0.20, inseam 0.15, rise 0.05
+- Score tiers: perfect 85-100, good 70-85, acceptable 60-70, bad <60
+- Soft confidence blend: score * (0.55 + 0.45 * confidenceModifier)
+- Min-score clamp at 65 unless region has too-tight/too-loose/too-short/too-long
+- Friendly labels: balanced→PERFECT FIT, oversized→SLIGHTLY LOOSE, relaxed→RELAXED FIT
 
-### Cost Control
-- Free mode = default, handles majority of traffic
-- Premium scan only on explicit user action
-- Free sends 1 image, premium sends all
-- Cached body profile reused across sessions
-- AI explanation only runs once per product selection
+### Visual Try-On (VisualFitPreviewCard)
+- Layered: SVG silhouette + product image overlay with CSS transforms
+- Garment scaleX from chest/waist delta, scaleY from length delta (clamped)
+- Confidence FX: low score → slight blur (max 1.4px), opacity 0.92
+- Framer-motion spring entrance + cross-size morph
+- S/M/L compare toggle inside card
+- Cutout via cutout-product edge fn (gemini-2.5-flash-image), localStorage cache
+- Falls back to mix-blend-mode:multiply on raw image while cutout loads
 
 ### Results UI
-- Shows "ESTIMATED FIT" (free) or "REFINED FIT ✨" (premium)
-- "Refine Fit — High Precision" CTA for premium users
-- Locked CTA with "(Premium)" for free users
-- Shop Now button links to external product page
-- Confidence badge (HIGH/MEDIUM/LOW)
+- Shows ESTIMATED FIT (free) or REFINED FIT ✨ (premium), HIGH/MEDIUM/LOW confidence badge
