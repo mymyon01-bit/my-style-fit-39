@@ -62,15 +62,20 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager
     );
   }
 
+  // Premium load-in: blurred placeholder swap → sharp image fades+unblurs.
+  // Image is always mounted so the slot height never collapses (no layout shift).
   return (
-    <>
+    <div className="relative h-full w-full">
       {!loaded && (
-        <div className={`animate-pulse bg-foreground/[0.04] ${className || ""}`} />
+        <div
+          className={`absolute inset-0 animate-pulse bg-foreground/[0.04] ${className || ""}`}
+          aria-hidden
+        />
       )}
       <img
         src={currentSrc}
         alt={alt || ""}
-        className={`${className || ""} ${loaded ? "" : "hidden"}`}
+        className={`${className || ""} ${loaded ? "animate-blur-up" : "opacity-0"}`}
         loading={eager ? "eager" : "lazy"}
         decoding="async"
         // @ts-expect-error fetchpriority is a valid HTML attr but not yet typed
@@ -79,7 +84,7 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager
         onError={handleError}
         {...props}
       />
-    </>
+    </div>
   );
 };
 
