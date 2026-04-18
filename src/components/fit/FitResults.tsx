@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import BodySilhouette from "@/components/fit/BodySilhouette";
+import VisualFitPreviewCard from "@/components/fit/VisualFitPreviewCard";
 import TryOnPreviewModal, { TryOnContext } from "@/components/fit/TryOnPreviewModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -376,12 +377,14 @@ export default function FitResults({
         </div>
       </div>
 
-      {/* ══ BODY DIAGRAM — driven by active size ══ */}
+      {/* ══ VISUAL FIT — mannequin heatmap + legend + region summary ══ */}
       {activeSizeResult && (
-        <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
-          <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50 mb-2">BODY FIT MAP</p>
-          <BodySilhouette regions={activeSizeResult.regions} category={product.category} />
-        </div>
+        <VisualFitPreviewCard
+          regions={activeSizeResult.regions}
+          category={product.category}
+          activeSize={activeSize}
+          fitScore={activeSizeResult.fitScore}
+        />
       )}
 
       {/* ══ REGION-BASED FIT INDICATORS — driven by active size ══ */}
