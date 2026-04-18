@@ -377,23 +377,47 @@ async function fetchFromDiscovery(
     if (!baseUrl || !serviceKey) return [];
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    // Tight timeout — search-discovery often hangs on slow upstream sites.
+    // We'd rather skip the trigger than crash the worker.
+    const effectiveTimeout = Math.min(timeoutMs, 6000);
+    const timeout = setTimeout(() => controller.abort(), effectiveTimeout);
 
-    const res = await fetch(`${baseUrl}/functions/v1/search-discovery`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify({
-        query: sanitizedQuery,
-        maxQueries: 4,
-        maxCandidates: Math.min(Math.max(limit, 12), 18),
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}/functions/v1/search-discovery`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          query: sanitizedQuery,
+          maxQueries: 4,
+          maxCandidates: Math.min(Math.max(limit, 12), 18),
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr) {
+      // Aborts and network errors here are expected — fall back to DB only.
+      clearTimeout(timeout);
+      const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+      console.warn(`[SEARCH_DISCOVERY] fetch skipped: ${msg}`);
+      // Still try DB read for whatever we already have cached.
+      const { data } = await supabase
+        .from("product_cache")
+        .select("*")
+        .eq("is_active", true)
+        .eq("image_valid", true)
+        .eq("search_query", sanitizedQuery)
+        .order("created_at", { ascending: false })
+        .limit(Math.min(limit * 2, 24));
+      if (!data) return [];
+      return data
+        .filter((p: any) => isImageUrlSafe(p.image_url) && isFashionProduct(p.name || ""))
+        .map((p: any) => autoTagProduct(p));
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       console.error(`[SEARCH_DISCOVERY] HTTP ${res.status}`);
