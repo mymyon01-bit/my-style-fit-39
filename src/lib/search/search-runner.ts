@@ -8,6 +8,7 @@ import { findCluster, upsertCluster } from "./query-cluster-service";
 import { categoryFirstSort } from "./category-lock";
 import { isCohortStale, rankByFreshness, rotateNewIntoWindow } from "./freshness";
 import { ensureTopRowDiversity, rotateStyleClusters, shuffleMidBand } from "./diversity";
+import { enforceSourceQuota, sourceOf } from "./sources";
 import { recordEvent } from "@/lib/diagnostics";
 
 export interface RunSearchOptions {
@@ -207,6 +208,13 @@ export async function runSearch(
     minBrands: 3,
     minStyles: 2,
   });
+  // Multi-source quota: no single store > 30% of the first window. Asos /
+  // Farfetch / YOOX / Zalando / SSENSE / etc. are mixed automatically based
+  // on the source_url host (no DB migration required).
+  session.results = enforceSourceQuota(session.results, {
+    windowSize: 24,
+    maxRatio: 0.3,
+  });
   // Persist the seen set for future searches so the user keeps seeing fresh.
   markProductsAsSeen(session.results.slice(0, 60));
   session.status = "complete";
@@ -249,8 +257,18 @@ export async function runSearch(
       cluster_hit: clusterHit,
       cohort_stale: cohortWasStale,
       new_in_session: newIds.size,
+      sources: countBySource(session.results.slice(0, 24)),
     },
   });
 
   return session;
+}
+
+function countBySource(items: { externalUrl?: string | null; source?: string }[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of items) {
+    const s = sourceOf(p as Parameters<typeof sourceOf>[0]);
+    out[s] = (out[s] || 0) + 1;
+  }
+  return out;
 }
