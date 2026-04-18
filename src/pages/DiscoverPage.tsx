@@ -3184,6 +3184,12 @@ const RecommendationCardImpl = forwardRef<HTMLDivElement, RecommendationCardProp
             {PLATFORM_LABELS[item.platform].label}
           </div>
         )}
+        {isFresh && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-accent/90 px-2 py-0.5 text-[9px] font-bold text-accent-foreground backdrop-blur-sm tracking-wide shadow-lg shadow-accent/30 animate-pulse">
+            <Sparkles className="h-2.5 w-2.5" />
+            NEW
+          </div>
+        )}
         {item.source_url && (
           <div
             onClick={(e) => { e.stopPropagation(); window.open(item.source_url!, "_blank", "noopener,noreferrer"); }}
@@ -3214,6 +3220,7 @@ const RecommendationCard = React.memo(RecommendationCardImpl, (prev, next) => {
     prev.item.image_url === next.item.image_url &&
     prev.feedback === next.feedback &&
     prev.isSaved === next.isSaved &&
+    prev.isFresh === next.isFresh &&
     prev.onFeedback === next.onFeedback &&
     prev.onSave === next.onSave &&
     prev.onOpenDetail === next.onOpenDetail &&
