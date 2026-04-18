@@ -236,8 +236,9 @@ export async function runSearch(
   const krMarket = await detectKoreanMarket(session.query);
   if (krMarket) {
     session.results = enforceKoreanMix(session.results, {
-      windowSize: 12,
-      krRatio: 0.5,
+      windowSize: 24,
+      topRowSize: 4,
+      interparkCap: 0.12,
     });
   }
   // Domain rotation: prefer sources the user hasn't seen recently. Floats

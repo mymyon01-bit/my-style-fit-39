@@ -23,7 +23,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Korean-market detection (mirrors src/lib/search/sources.ts)
 const HANGUL_RE = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/;
-const KR_HINTS_RE = /\b(korea|korean|seoul|musinsa|kream|naver|coupang|ssg|gmarket|29cm|wconcept|k-fashion|kfashion)\b/i;
+const KR_HINTS_RE = /\b(korea|korean|seoul|musinsa|kream|naver|coupang|ssg|gmarket|29cm|wconcept|interpark|k-fashion|kfashion)\b/i;
 function isKoreanMarketQuery(q: string): boolean {
   return HANGUL_RE.test(q) || KR_HINTS_RE.test(q);
 }
@@ -250,7 +250,7 @@ const TRUSTED_STORES = [
   // Korean (priority for KR launch)
   "shopping.naver.com", "smartstore.naver.com", "brand.naver.com",
   "coupang.com", "musinsa.com", "kream.co.kr", "ssg.com",
-  "gmarket.co.kr", "29cm.co.kr", "wconcept.co.kr",
+  "gmarket.co.kr", "29cm.co.kr", "wconcept.co.kr", "interpark.com", "interpark.co.kr",
   // Western
   "asos.com", "ssense.com", "farfetch.com", "yoox.com", "zalando.com",
   "zalando.co.uk", "zalando.de", "net-a-porter.com", "mrporter.com",
@@ -342,10 +342,13 @@ async function discoverScopedUrls(rawQuery: string): Promise<DiscoveredCandidate
 // retail-intent variants in Korean. These run IN ADDITION to the western
 // scoped pass so the user sees both worlds in the result mix.
 const KR_SCOPED_SOURCES: Array<{ site: string; label: string }> = [
+  // Tier 1 — style + primary inventory (run first, get more passes)
+  { site: "musinsa.com", label: "musinsa" },
   { site: "shopping.naver.com", label: "naver_shopping" },
   { site: "smartstore.naver.com", label: "naver_smartstore" },
+  // Tier 2 — conversion / price + supplementary
   { site: "coupang.com", label: "coupang" },
-  { site: "musinsa.com", label: "musinsa" },
+  { site: "interpark.com", label: "interpark" },
   { site: "kream.co.kr", label: "kream" },
   { site: "29cm.co.kr", label: "29cm" },
   { site: "ssg.com", label: "ssg" },
@@ -354,12 +357,14 @@ const KR_SCOPED_SOURCES: Array<{ site: string; label: string }> = [
 async function discoverKoreanUrls(rawQuery: string): Promise<DiscoveredCandidate[]> {
   if (!PERPLEXITY_KEY) return [];
   // Korean retail-intent variants — discovery via Korean search vocabulary.
+  // Style-leaning (Musinsa) + conversion-leaning (Coupang/Interpark) split.
   const krVariants = [
-    `${rawQuery} 네이버쇼핑`,
-    `${rawQuery} 쿠팡`,
-    `${rawQuery} 무신사`,
+    `${rawQuery} 무신사`,           // style: musinsa
+    `${rawQuery} 네이버쇼핑`,       // inventory: naver
+    `${rawQuery} 쿠팡 최저가`,      // conversion: coupang
+    `${rawQuery} 인터파크`,         // supplementary: interpark
+    `${rawQuery} 스타일`,           // style discovery
     `${rawQuery} 구매`,
-    `${rawQuery} 최저가`,
   ];
   const sitePasses = KR_SCOPED_SOURCES.map(({ site, label }) =>
     discoverForQuery(`site:${site} ${rawQuery}`).then((arr) => {
