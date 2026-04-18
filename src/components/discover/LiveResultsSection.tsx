@@ -50,7 +50,7 @@ const LiveResultsSectionImpl = ({
             {query.trim() ? `LIVE RESULTS · "${query.trim().toUpperCase()}"` : "LIVE DISCOVERY"}
           </p>
           <p className="mt-1 text-[10px] text-foreground/55">
-            Appending fresh items as they arrive from external stores.
+            Adding fresh items as they arrive. Existing products stay in place.
           </p>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-foreground/60">
