@@ -12,6 +12,8 @@ interface TryOnRequest {
   userImageUrl: string;
   productImageUrl: string;
   category?: string;
+  fitDescriptor?: string;
+  size?: string;
   bodyProfile?: Record<string, unknown>;
 }
 
@@ -38,10 +40,14 @@ Deno.serve(async (req) => {
     }
 
     const category = body.category || "garment";
+    const fit = body.fitDescriptor ? `${body.fitDescriptor} fit` : "true-to-size fit";
+    const size = body.size ? ` in size ${body.size}` : "";
     const instruction =
-      `Generate a realistic virtual try-on image. Take the person from the first image and dress them in the ${category} from the second image. ` +
-      `Preserve the person's face, body proportions, pose, and background exactly. Replace only the relevant clothing region with the new ${category}. ` +
-      `Match lighting, fabric drape, and shadows realistically. Output a single full-body photo.`;
+      `Generate a photorealistic virtual try-on image. Take the person from the FIRST image and dress them in the ${category}${size} from the SECOND image. ` +
+      `Render it as a ${fit} so the drape, ease, and silhouette match that fit type accurately. ` +
+      `Preserve the person's face, hair, skin tone, body proportions, pose, and original background EXACTLY — only the relevant clothing region (${category}) should change. ` +
+      `Match the original lighting direction, color temperature, and shadow softness. Render natural fabric drape, seams, and creases consistent with the garment's material in the source image. ` +
+      `Avoid distortion, warping, extra limbs, duplicated faces, or text overlays. Output a single full-body editorial photo, sharp and well-exposed.`;
 
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
