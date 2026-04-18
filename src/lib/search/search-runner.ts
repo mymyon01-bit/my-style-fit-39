@@ -9,6 +9,7 @@ import { categoryFirstSort } from "./category-lock";
 import { isCohortStale, rankByFreshness, rotateNewIntoWindow } from "./freshness";
 import { ensureTopRowDiversity, rotateStyleClusters, shuffleMidBand } from "./diversity";
 import { enforceSourceQuota, sourceOf } from "./sources";
+import { prioritizeUnseenDomains, recordDomainsShown } from "./domain-rotation";
 import { recordEvent } from "@/lib/diagnostics";
 
 export interface RunSearchOptions {
@@ -95,15 +96,19 @@ export async function runSearch(
   const family = await expandQueries(session.query, type);
   console.info("[search-runner] stage2 family", { size: family.length });
 
-  // 4-cycle plan covering up to 16 expanded queries. Every cycle ALWAYS
+  // 4-cycle plan covering up to 20 expanded queries. Every cycle ALWAYS
   // runs — we never break early just because the first page is full. The
   // user must feel the feed continuing to grow.
   const plan: { queries: string[]; fresh: boolean }[] = [
     { queries: [session.query, ...family.slice(0, 3)], fresh: false },
-    { queries: family.slice(3, 7), fresh: false },
-    { queries: family.slice(7, 11), fresh: true },
-    { queries: family.slice(11, 16), fresh: true },
+    { queries: family.slice(3, 8), fresh: false },
+    { queries: family.slice(8, 14), fresh: true },
+    { queries: family.slice(14, 20), fresh: true },
   ].slice(0, maxCycles);
+
+  // Continuous-discovery target: at least 18 NEW (not in cluster seed)
+  // candidates must accumulate before we allow the runner to short-circuit.
+  const MIN_NEW_CANDIDATES = 18;
 
   let consecutiveEmpty = 0;
 
@@ -169,8 +174,11 @@ export async function runSearch(
       consecutiveEmpty = 0;
     }
 
-    // Hit target? Still safe to stop — user has plenty.
-    if (session.results.length >= target) break;
+    // Continuous-discovery gate: even if we hit `target`, keep going until
+    // the NEW-candidate floor is met. Guarantees every search introduces
+    // fresh items beyond the cached cluster seed.
+    const newSoFar = session.results.filter((p) => !oldIds.has(p.id)).length;
+    if (session.results.length >= target && newSoFar >= MIN_NEW_CANDIDATES) break;
   }
 
   // ── STAGE 7 — FRESHNESS DECAY + ROTATION + REPEAT CONTROL ───────────────
@@ -208,15 +216,17 @@ export async function runSearch(
     minBrands: 3,
     minStyles: 2,
   });
-  // Multi-source quota: no single store > 30% of the first window. Asos /
-  // Farfetch / YOOX / Zalando / SSENSE / etc. are mixed automatically based
-  // on the source_url host (no DB migration required).
+  // Multi-source quota: no single store > 30% of the first window.
   session.results = enforceSourceQuota(session.results, {
     windowSize: 24,
     maxRatio: 0.3,
   });
-  // Persist the seen set for future searches so the user keeps seeing fresh.
+  // Domain rotation: prefer sources the user hasn't seen recently. Floats
+  // unseen domains (and least-recent ones) toward the top of the window.
+  session.results = prioritizeUnseenDomains(session.results, { windowSize: 24 });
+  // Persist seen set + domain history for future searches.
   markProductsAsSeen(session.results.slice(0, 60));
+  recordDomainsShown(session.results.slice(0, 24));
   session.status = "complete";
   opts.onProgress?.(session);
 
