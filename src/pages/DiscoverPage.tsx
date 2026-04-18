@@ -1144,6 +1144,11 @@ const DiscoverPage = () => {
   const [activeScenario, setActiveScenario] = useState<{ label: string; items: string[] } | null>(null);
   // Step 3: human-readable explanation of what the search interpreted
   const [searchExplanation, setSearchExplanation] = useState<string | null>(null);
+  // Cycle-aware status for the live search section. Updated by appendCycle so
+  // the user sees the system progress through stages instead of a vague spinner.
+  const [liveStatus, setLiveStatus] = useState<string>("");
+  // Same-query dedupe for explicit submits (prevents Enter-spam re-runs).
+  const lastSubmitRef = useRef<{ q: string; ts: number }>({ q: "", ts: 0 });
   
   // Whether user needs to complete preferences
   const needsPreferences = !userStyleProfile && !quizAnswers;
@@ -1927,10 +1932,20 @@ const DiscoverPage = () => {
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
+
+    // Dedupe: same query within 1.5s is a no-op. Prevents Enter-spam.
+    const now = Date.now();
+    if (lastSubmitRef.current.q === q.toLowerCase() && now - lastSubmitRef.current.ts < 1500) {
+      console.info("[search] DEDUPE_SUBMIT", { q });
+      return;
+    }
+    lastSubmitRef.current = { q: q.toLowerCase(), ts: now };
+
     setTextInput(q);
     setActiveTab("for-you");
     setActiveSubcategory(null);
     setShowSuggestions(false);
+    setLiveStatus("Searching across more stores…");
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     // 400ms debounce removed on explicit submit — kicks off immediately so
@@ -1946,8 +1961,22 @@ const DiscoverPage = () => {
       const stopSession = (reason: string) => {
         if (session.stopped) return;
         session.stopped = true;
-        if (searchSessionRef.current.id === sessionId) setIsGenerating(false);
+        if (searchSessionRef.current.id === sessionId) {
+          setIsGenerating(false);
+          setLiveStatus("");
+        }
         console.info("[search-session] STOP", { sessionId, query: q, reason, totalAdded: session.totalAdded, cycles: session.cycle });
+      };
+      // Cycle-aware status messages — user sees real progress, not a vague spinner.
+      const STATUS_BY_LABEL: Record<string, string> = {
+        "instant-db": "Loading more products…",
+        "db-quick": "Loading more products…",
+        "scenario-db-quick": "Loading more products…",
+        "external-fresh": "Searching across more stores…",
+        "scenario-external": "Searching across more stores…",
+        "late-perplexity": "Adding new verified items…",
+        "discovery-ingestion": "Adding new verified items…",
+        "fallback-broaden": "Searching wider for more options…",
       };
       const appendCycle = (label: string, incoming: AIRecommendation[]) => {
         if (!isCurrent()) return 0;
@@ -1965,6 +1994,9 @@ const DiscoverPage = () => {
         }
         if (addedCount === 0) session.emptyCycles++;
         else session.emptyCycles = 0;
+        // Update visible status for this cycle
+        const nextStatus = STATUS_BY_LABEL[label] || "Loading more products…";
+        setLiveStatus(nextStatus);
         console.info("[search-session] CYCLE", {
           sessionId, query: q, cycle: session.cycle, label,
           incoming: incoming.length, added: addedCount,
@@ -2682,8 +2714,8 @@ const DiscoverPage = () => {
                           key={`db-rec-${item.id}`}
                           item={item}
                           index={i}
-                          feedbackMap={feedbackMap}
-                          savedIds={savedIds}
+                          feedback={feedbackMap[item.id]}
+                          isSaved={savedIds.has(item.id)}
                           onFeedback={handleFeedback}
                           onSave={handleSave}
                           onOpenDetail={setDetailProduct}
@@ -2758,7 +2790,7 @@ const DiscoverPage = () => {
                   {isGenerating || isLoadingMore ? (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>SEARCHING ACROSS MORE STORES…</span>
+                      <span>{(liveStatus || "Loading more products…").toUpperCase()}</span>
                     </>
                   ) : recommendations.length > 0 ? (
                     <>
@@ -2785,8 +2817,8 @@ const DiscoverPage = () => {
                             key={item.id}
                             item={item}
                             index={i}
-                            feedbackMap={feedbackMap}
-                            savedIds={savedIds}
+                            feedback={feedbackMap[item.id]}
+                            isSaved={savedIds.has(item.id)}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
                             onOpenDetail={setDetailProduct}
@@ -2802,8 +2834,8 @@ const DiscoverPage = () => {
                         key={item.id}
                         item={item}
                         index={i}
-                        feedbackMap={feedbackMap}
-                        savedIds={savedIds}
+                        feedback={feedbackMap[item.id]}
+                        isSaved={savedIds.has(item.id)}
                         onFeedback={handleFeedback}
                         onSave={handleSave}
                         onOpenDetail={setDetailProduct}
@@ -2851,8 +2883,8 @@ const DiscoverPage = () => {
                             key={item.id}
                             item={item}
                             index={i}
-                            feedbackMap={feedbackMap}
-                            savedIds={savedIds}
+                            feedback={feedbackMap[item.id]}
+                            isSaved={savedIds.has(item.id)}
                             onFeedback={handleFeedback}
                             onSave={handleSave}
                             onOpenDetail={setDetailProduct}
@@ -2911,22 +2943,29 @@ const DiscoverPage = () => {
 };
 
 // ─── Product Card Component ───
+//
+// IMPORTANT — perf:
+//   - Wrapped in React.memo with a custom comparator that ignores Map/Set
+//     identity (parent recreates these on every keystroke). We only re-render
+//     when this card's own `feedback`/`isSaved`/`item` actually changes.
+//   - Image slot is a fixed aspect-[3/4] container with a blurred placeholder
+//     so cards never resize while images stream in (no layout shift).
+//   - Above-the-fold: first 4 eager + high priority. Rest: lazy + low.
 
 interface RecommendationCardProps {
   item: AIRecommendation;
   index: number;
-  feedbackMap: Record<string, "like" | "dislike">;
-  savedIds: Set<string>;
+  feedback: "like" | "dislike" | undefined;
+  isSaved: boolean;
   onFeedback: (id: string, type: "like" | "dislike") => void;
   onSave: (id: string) => void;
   onOpenDetail: (item: AIRecommendation) => void;
 }
 
-const RecommendationCard = forwardRef<HTMLDivElement, RecommendationCardProps>(
-  ({ item, index, feedbackMap, savedIds, onFeedback, onSave, onOpenDetail }, ref) => {
-  const feedback = feedbackMap[item.id];
-  const isSaved = savedIds.has(item.id);
+const RecommendationCardImpl = forwardRef<HTMLDivElement, RecommendationCardProps>(
+  ({ item, index, feedback, isSaved, onFeedback, onSave, onOpenDetail }, ref) => {
   const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   if (!item.image_url || !item.image_url.startsWith("http") || imgFailed) return null;
 
@@ -2934,15 +2973,25 @@ const RecommendationCard = forwardRef<HTMLDivElement, RecommendationCardProps>(
 
   return (
     <div ref={ref} className="group cursor-pointer" onClick={() => onOpenDetail(item)}>
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.03]">
+      {/* Fixed slot — placeholder always visible until <img> reports load. */}
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.04]">
+        {!imgLoaded && (
+          <div
+            className="absolute inset-0 animate-pulse bg-gradient-to-br from-foreground/[0.05] to-foreground/[0.02]"
+            aria-hidden
+          />
+        )}
         <img
           src={item.image_url}
           alt={item.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-105 ${
+            imgLoaded ? "opacity-100" : "opacity-0"
+          }`}
           loading={isAboveFold ? "eager" : "lazy"}
           decoding="async"
-          fetchPriority={isAboveFold ? "high" : "auto"}
+          fetchPriority={isAboveFold ? "high" : "low"}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          onLoad={() => setImgLoaded(true)}
           onError={() => setImgFailed(true)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -3004,6 +3053,21 @@ const RecommendationCard = forwardRef<HTMLDivElement, RecommendationCardProps>(
     </div>
   );
 });
-RecommendationCard.displayName = "RecommendationCard";
+RecommendationCardImpl.displayName = "RecommendationCardImpl";
+
+// Memoized wrapper — bails when only unrelated parent state changed.
+// Only re-renders when this card's own props actually differ.
+const RecommendationCard = React.memo(RecommendationCardImpl, (prev, next) => {
+  return (
+    prev.item.id === next.item.id &&
+    prev.item.image_url === next.item.image_url &&
+    prev.feedback === next.feedback &&
+    prev.isSaved === next.isSaved &&
+    prev.onFeedback === next.onFeedback &&
+    prev.onSave === next.onSave &&
+    prev.onOpenDetail === next.onOpenDetail &&
+    prev.index === next.index
+  );
+});
 
 export default DiscoverPage;
