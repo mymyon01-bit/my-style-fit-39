@@ -29,9 +29,15 @@ export async function runSearch(
   session: SearchSession,
   opts: RunSearchOptions = {},
 ): Promise<SearchSession> {
-  // 2x supply: target 20 → 40, max cycles 3 → 5, batch size 12 → 18.
-  const target = opts.target ?? 40;
-  const maxCycles = opts.maxCycles ?? 5;
+  // Speed-tuned defaults. First paint must feel instant; we stop as soon as
+  // we have enough to fill the visible grid. Heavier supply still available
+  // by passing target/maxCycles explicitly.
+  const target = opts.target ?? 24;
+  const maxCycles = opts.maxCycles ?? 3;
+  // Hard wall-clock budget so a single search NEVER blocks the UI for >12s.
+  const HARD_BUDGET_MS = 12_000;
+  // Once we have a usable first page, stop early instead of chasing target.
+  const FIRST_PAGE_MIN = 12;
   const type = classifyQuery(session.query);
   const sessionStart = performance.now();
   let totalCandidates = 0;
