@@ -69,7 +69,12 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="relative rounded-2xl border border-accent/20 bg-card/40 px-6 pb-6 pt-8 shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.18)] backdrop-blur-sm md:px-8 md:pb-8 md:pt-10"
           >
+            <span className="absolute -top-2.5 left-5 bg-background px-2 text-[9px] font-semibold tracking-[0.3em] text-accent/80 md:text-[10px]">
+              TELL US
+            </span>
+
             <input
               ref={inputRef}
               type="text"
@@ -79,7 +84,7 @@ const HomePage = () => {
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder={t("howAreYouFeeling")}
-              className={`w-full bg-transparent py-5 text-center font-display text-[22px] font-semibold tracking-tight text-foreground outline-none transition-all duration-700 placeholder:text-foreground placeholder:font-semibold md:py-7 md:text-[26px] lg:py-8 lg:text-[32px] ${
+              className={`w-full bg-transparent py-3 text-center font-display text-[22px] font-semibold tracking-tight text-foreground outline-none transition-all duration-700 placeholder:text-foreground/85 placeholder:font-semibold md:py-4 md:text-[26px] lg:py-5 lg:text-[32px] ${
                 isFocused ? "placeholder:text-foreground" : ""
               }`}
             />
