@@ -335,6 +335,60 @@ export type Database = {
         }
         Relationships: []
       }
+      fit_tryons: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json
+          model_id: string | null
+          prediction_id: string | null
+          product_image_url: string | null
+          product_key: string
+          provider: string
+          result_image_url: string | null
+          selected_size: string
+          status: string
+          updated_at: string
+          user_id: string
+          user_image_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          model_id?: string | null
+          prediction_id?: string | null
+          product_image_url?: string | null
+          product_key: string
+          provider?: string
+          result_image_url?: string | null
+          selected_size: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_image_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          model_id?: string | null
+          prediction_id?: string | null
+          product_image_url?: string | null
+          product_key?: string
+          provider?: string
+          result_image_url?: string | null
+          selected_size?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_image_url?: string | null
+        }
+        Relationships: []
+      }
       image_failures: {
         Row: {
           brand: string | null
