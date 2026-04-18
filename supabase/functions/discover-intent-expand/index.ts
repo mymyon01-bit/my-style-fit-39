@@ -93,7 +93,7 @@ serve(async (req) => {
   const t0 = Date.now();
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const timer = setTimeout(() => ctrl.abort(), 20000);
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -149,9 +149,12 @@ serve(async (req) => {
     });
   } catch (e) {
     const msg = (e as Error).message || "unknown";
-    console.error("[discover-intent-expand] fatal", msg);
-    return new Response(JSON.stringify({ error: msg, durationMs: Date.now() - t0 }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const aborted = msg.includes("abort");
+    console.warn("[discover-intent-expand]", aborted ? "timeout" : "fatal", msg);
+    // Return 200 with null intent so the client falls back gracefully (no console error spam).
+    return new Response(
+      JSON.stringify({ ok: false, reason: aborted ? "timeout" : "error", durationMs: Date.now() - t0, intent: null }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
