@@ -1147,6 +1147,16 @@ const DiscoverPage = () => {
   // Cycle-aware status for the live search section. Updated by appendCycle so
   // the user sees the system progress through stages instead of a vague spinner.
   const [liveStatus, setLiveStatus] = useState<string>("");
+  // Rotating "we're still working" messages — cycle every 1.8s while a search
+  // is active so the status line never feels frozen, even between cycles.
+  const PROGRESS_MESSAGES = [
+    "Searching more stores…",
+    "Adding new items…",
+    "Expanding results…",
+    "Pulling fresh picks…",
+    "Checking new arrivals…",
+  ];
+  const [progressIdx, setProgressIdx] = useState(0);
   // Same-query dedupe for explicit submits (prevents Enter-spam re-runs).
   const lastSubmitRef = useRef<{ q: string; ts: number }>({ q: "", ts: 0 });
   
