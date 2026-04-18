@@ -1932,10 +1932,20 @@ const DiscoverPage = () => {
   const handleTextSubmit = (query?: string) => {
     const q = (query || textInput).trim();
     if (!q) return;
+
+    // Dedupe: same query within 1.5s is a no-op. Prevents Enter-spam.
+    const now = Date.now();
+    if (lastSubmitRef.current.q === q.toLowerCase() && now - lastSubmitRef.current.ts < 1500) {
+      console.info("[search] DEDUPE_SUBMIT", { q });
+      return;
+    }
+    lastSubmitRef.current = { q: q.toLowerCase(), ts: now };
+
     setTextInput(q);
     setActiveTab("for-you");
     setActiveSubcategory(null);
     setShowSuggestions(false);
+    setLiveStatus("Searching across more stores…");
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     // 400ms debounce removed on explicit submit — kicks off immediately so
