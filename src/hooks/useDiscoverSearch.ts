@@ -32,6 +32,7 @@ import {
   logDiscoverEvent,
   logQueryParsed,
 } from "@/lib/discover/discover-diagnostics";
+import { upsertCluster } from "@/lib/search/query-cluster-service";
 
 const DEFAULT_WINDOW = 24;
 
@@ -163,6 +164,15 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         });
         if (runIdRef.current !== runId) return;
         applySession(session, dbSeen, "complete");
+        // Background cluster evolution — never blocks the UI. Pushes the
+        // top-60 fresh DB-backed UUIDs into query_clusters so future searches
+        // see an evolving pool, not a frozen one.
+        void upsertCluster({
+          query: trimmed,
+          category: lock,
+          tags: [parsed.queryType, ...parsed.styleModifiers].filter(Boolean),
+          products: session.results.slice(0, 60),
+        });
         logDiscoverEvent("discover_search_complete", {
           query: trimmed,
           status: "success",

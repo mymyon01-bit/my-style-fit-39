@@ -38,7 +38,7 @@ export interface SearchSession {
  * fresh products across reloads, not the same cached loop. Capped at 600 keys
  * (rolling window) so old items eventually re-surface.
  */
-const SEEN_CAP = 600;
+const SEEN_CAP = 800;
 const SEEN_KEY = "wardrobe_seen_products_v2";
 
 function loadSeen(): string[] {
