@@ -64,51 +64,56 @@ const HomePage = () => {
           <LanguageSelector />
         </motion.div>
 
-        <div className="relative z-10 w-full max-w-md px-8 sm:max-w-lg md:max-w-xl lg:max-w-2xl">
+        <div className="relative z-10 w-full max-w-[420px] px-6 sm:max-w-[460px] md:max-w-[520px]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="relative rounded-2xl border border-accent/20 bg-card/40 px-6 pb-6 pt-8 shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.18)] backdrop-blur-sm md:px-8 md:pb-8 md:pt-10"
+            className="relative"
           >
-            <span className="absolute -top-2.5 left-5 bg-background px-2 text-[9px] font-semibold tracking-[0.3em] text-accent/80 md:text-[10px]">
-              TELL US
-            </span>
+            {/* Edgy corner label */}
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-px w-6 bg-accent/60" />
+              <span className="font-display text-[9px] font-bold uppercase tracking-[0.4em] text-accent/90">
+                Tell us
+              </span>
+            </div>
 
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("howAreYouFeeling")}
-              className={`w-full bg-transparent py-3 text-center font-display text-[22px] font-semibold tracking-tight text-foreground outline-none transition-all duration-700 placeholder:text-foreground/85 placeholder:font-semibold md:py-4 md:text-[26px] lg:py-5 lg:text-[32px] ${
-                isFocused ? "placeholder:text-foreground" : ""
-              }`}
-            />
-            <div
-              className={`mx-auto h-px transition-all duration-700 ${
-                isFocused ? "w-full bg-foreground/12" : "w-1/3 bg-accent/20"
-              }`}
-            />
+            {/* Prompt frame — sharp corners, asymmetric accent */}
+            <div className="relative border border-foreground/15 bg-background/40 backdrop-blur-sm">
+              {/* corner ticks */}
+              <span className="absolute -left-[1px] -top-[1px] h-2 w-2 border-l border-t border-accent" />
+              <span className="absolute -right-[1px] -top-[1px] h-2 w-2 border-r border-t border-accent" />
+              <span className="absolute -bottom-[1px] -left-[1px] h-2 w-2 border-b border-l border-accent" />
+              <span className="absolute -bottom-[1px] -right-[1px] h-2 w-2 border-b border-r border-accent" />
+
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={handleKeyDown}
+                placeholder={t("howAreYouFeeling")}
+                className="w-full bg-transparent px-5 py-5 text-center font-display text-[18px] font-semibold tracking-tight text-foreground outline-none placeholder:text-foreground/85 placeholder:font-semibold md:px-6 md:py-6 md:text-[22px]"
+              />
+            </div>
 
             {!weather.loading && (
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 1 }}
-                className="mt-5 text-center text-[11px] font-medium tracking-[0.12em] text-foreground/90 md:text-[12px]"
+                className="mt-4 text-center text-[10px] font-medium tracking-[0.18em] text-foreground/80 md:text-[11px]"
               >
-                {t("todaysTemp")} {weather.temp}° {t("weatherIs")}{" "}
-                {weatherLabel.toLowerCase()}
-                {weather.location && !weather.error ? ` · ${weather.location}` : ""}
+                {weather.temp}° · {weatherLabel.toUpperCase()}
+                {weather.location && !weather.error ? ` · ${weather.location.toUpperCase()}` : ""}
               </motion.p>
             )}
 
             {isLoading && (
-              <div className="mt-7 flex justify-center md:mt-8 lg:mt-10">
+              <div className="mt-6 flex justify-center">
                 <Loader2 className="h-4 w-4 animate-spin text-foreground/70" />
               </div>
             )}
@@ -120,7 +125,7 @@ const HomePage = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={handleSubmit}
-                  className="hover-burgundy mx-auto mt-7 flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] text-foreground md:mt-8 lg:mt-10"
+                  className="hover-burgundy mx-auto mt-6 flex items-center gap-2 text-[10px] font-semibold tracking-[0.3em] text-foreground"
                 >
                   {t("enter").toUpperCase()}
                   <ArrowRight className="h-3.5 w-3.5" />
