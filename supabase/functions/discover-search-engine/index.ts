@@ -145,7 +145,6 @@ async function pageFunction(context) {
   const url = request.url;
   const host = (() => { try { return new URL(url).host.replace(/^www\\./, ''); } catch { return ''; } })();
   const out = [];
-  const out = [];
 
   // 1. JSON-LD
   $('script[type="application/ld+json"]').each((_, el) => {
