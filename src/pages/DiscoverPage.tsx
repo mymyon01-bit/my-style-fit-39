@@ -2184,7 +2184,7 @@ const DiscoverPage = () => {
           }).catch(() => stopSession("fallback-broaden failed"));
         });
       }
-    }, 400);
+    }, 0);
   };
 
 
