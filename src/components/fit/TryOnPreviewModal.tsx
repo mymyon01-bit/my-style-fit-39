@@ -1,16 +1,12 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles } from "lucide-react";
+import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import SafeImage from "@/components/SafeImage";
 
 /**
  * Hardcoded try-on result modal.
  * Layout never changes — only the image and metadata inside the slots.
- *
- *   [ × close ]                    [ title ]
- *   [        try-on image (9:12)         ]
- *   [ size · confidence ][ regenerate ][ shop ]
  */
 
 export interface TryOnContext {
@@ -22,6 +18,7 @@ export interface TryOnContext {
   category: string;
   recommendedSize: string;
   confidence: string; // HIGH | MEDIUM | LOW
+  fitDescriptor?: string; // e.g. "slim", "oversized", "relaxed"
 }
 
 interface Props {
@@ -36,16 +33,18 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [overrideUserImage, setOverrideUserImage] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (open && context && status === "idle") {
       void generate();
     }
     if (!open) {
-      // reset on close so the next open re-generates fresh
       setStatus("idle");
       setResultUrl(null);
       setError(null);
+      setOverrideUserImage(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -57,9 +56,11 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     try {
       const { data, error } = await supabase.functions.invoke("fit-tryon", {
         body: {
-          userImageUrl: context.userImageUrl,
+          userImageUrl: overrideUserImage || context.userImageUrl,
           productImageUrl: context.productImageUrl,
           category: context.category,
+          fitDescriptor: context.fitDescriptor,
+          size: context.recommendedSize,
         },
       });
       if (error) throw error;
@@ -70,6 +71,19 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       setError(e?.message || "Try-on generation failed");
       setStatus("failed");
     }
+  };
+
+  const handleUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setOverrideUserImage(dataUrl);
+      setStatus("idle");
+      setResultUrl(null);
+      setTimeout(() => void generate(), 50);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
