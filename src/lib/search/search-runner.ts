@@ -20,6 +20,7 @@ import { enforceKoreanMix, enforceSourceQuota, isKoreanMarketQuery, sourceOf } f
 import { supabase } from "@/integrations/supabase/client";
 import { prioritizeUnseenDomains, recordDomainsShown } from "./domain-rotation";
 import { recordEvent } from "@/lib/diagnostics";
+import { loadDbSeenKeys, recordDbSeen } from "./discovery-cache";
 
 export interface RunSearchOptions {
   /** Called whenever new products are appended to the session. */
