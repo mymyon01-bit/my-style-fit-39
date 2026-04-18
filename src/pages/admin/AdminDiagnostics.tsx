@@ -37,11 +37,12 @@ type IngestionRunRow = {
   started_at: string;
 };
 
-const TRACKED_EVENTS = ["search_session", "post_create", "comment_create", "fit_generate"] as const;
+const TRACKED_EVENTS = ["search_session", "discover_grid_render", "post_create", "comment_create", "fit_generate"] as const;
 type TrackedEvent = (typeof TRACKED_EVENTS)[number];
 
 const EVENT_META: Record<TrackedEvent, { label: string; icon: typeof Search; flow: string }> = {
   search_session: { label: "Search sessions", icon: Search, flow: "Discover (Flow A)" },
+  discover_grid_render: { label: "Discover grid renders", icon: Search, flow: "Discover (Flow A)" },
   post_create: { label: "OOTD posts", icon: Camera, flow: "Social (Flow B)" },
   comment_create: { label: "Comments", icon: MessageCircle, flow: "Social (Flow B)" },
   fit_generate: { label: "FIT calculations", icon: Ruler, flow: "FIT (Flow C)" },
@@ -199,6 +200,23 @@ export default function AdminDiagnostics() {
     };
   }, [recent]);
 
+  const discoverGridAggregates = useMemo(() => {
+    const renders = recent.filter((r) => r.event_name === "discover_grid_render");
+    const sum = (key: string) => renders
+      .map((r) => Number((r.metadata as Record<string, unknown> | null)?.[key] ?? 0))
+      .reduce((a, b) => a + b, 0);
+    return {
+      renders: renders.length,
+      avgFreshRendered: renders.length ? Math.round(sum("fresh_rendered_count") / renders.length) : 0,
+      avgSeenRejected: renders.length ? Math.round(sum("total_rejected_by_seen_filter") / renders.length) : 0,
+      avgDbSeenRejected: renders.length ? Math.round(sum("total_rejected_by_db_seen_filter") / renders.length) : 0,
+      avgFirstRowChanged: renders.length ? Number((sum("first_row_changed_count") / renders.length).toFixed(1)) : 0,
+      avgEligible: renders.length ? Math.round(sum("total_eligible_for_current_query") / renders.length) : 0,
+      avgInserted: renders.length ? Math.round(sum("total_inserted_into_db") / renders.length) : 0,
+      latestRenderedIds: (((renders[0]?.metadata as Record<string, unknown> | null)?.final_rendered_product_ids as string[] | undefined) || []).slice(0, 8),
+    };
+  }, [recent]);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -323,6 +341,28 @@ export default function AdminDiagnostics() {
                 value={searchAggregates.avgResults.toString()}
               />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+            <h2 className="mb-4 text-[13px] font-medium tracking-wide text-foreground/80">
+              Discover grid — what users actually saw
+            </h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <Stat label="Grid renders" value={discoverGridAggregates.renders.toString()} />
+              <Stat label="Avg fresh shown" value={discoverGridAggregates.avgFreshRendered.toString()} hint="fresh + unseen in visible grid" />
+              <Stat label="Avg seen blocked" value={discoverGridAggregates.avgSeenRejected.toString()} hint="local seen filter" />
+              <Stat label="Avg first-row change" value={discoverGridAggregates.avgFirstRowChanged.toString()} hint="cards changed across repeated runs" />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
+              <Stat label="Avg DB seen blocked" value={discoverGridAggregates.avgDbSeenRejected.toString()} />
+              <Stat label="Avg eligible" value={discoverGridAggregates.avgEligible.toString()} />
+              <Stat label="Avg inserted to DB" value={discoverGridAggregates.avgInserted.toString()} />
+            </div>
+            {discoverGridAggregates.latestRenderedIds.length > 0 && (
+              <p className="mt-4 text-[10px] text-foreground/50">
+                Latest rendered IDs: {discoverGridAggregates.latestRenderedIds.join(", ")}
+              </p>
+            )}
           </div>
 
           {/* Inventory ingestion — last 24h per source */}
