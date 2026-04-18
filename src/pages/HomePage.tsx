@@ -47,9 +47,9 @@ const HomePage = () => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="snap-scroll-container min-h-screen bg-background">
-      {/* Mood entry — the landing experience */}
-      <section className="snap-section relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden">
+    <div className="flex min-h-[100dvh] flex-col bg-background pb-20 md:pb-0">
+      {/* Mood entry — fills remaining space above the footer */}
+      <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 
         <motion.div
