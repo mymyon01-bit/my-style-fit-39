@@ -160,6 +160,10 @@ export function generateOutfits(
         // Boost for liked items
         const likeBoost = coreItems.filter(i => likedIds.has(i.id)).length * 8;
 
+        // DETERMINISTIC bag/accessory pick — derived from comboKey so the same
+        // outfit always shows the same side items. Prevents card "regeneration"
+        // flicker when results stream in and useMemo recomputes.
+        const seed = stringHash(comboKey);
         const outfit: GeneratedOutfit = {
           id: comboKey,
           score: Math.min(100, score + likeBoost),
@@ -168,8 +172,8 @@ export function generateOutfits(
             top,
             bottom,
             shoes: shoe || bottom, // fallback shouldn't happen
-            ...(bags.length > 0 ? { bag: bags[Math.floor(Math.random() * bags.length)] } : {}),
-            ...(accessories.length > 0 ? { accessory: accessories[Math.floor(Math.random() * accessories.length)] } : {}),
+            ...(bags.length > 0 ? { bag: bags[seed % bags.length] } : {}),
+            ...(accessories.length > 0 ? { accessory: accessories[(seed >>> 3) % accessories.length] } : {}),
           },
         };
 
