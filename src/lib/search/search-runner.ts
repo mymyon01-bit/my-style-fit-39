@@ -5,6 +5,7 @@ import { validateProduct } from "./product-validation-service";
 import { ingestQuery } from "./product-ingestion-service";
 import { appendToSession, type SearchSession } from "./search-session";
 import { findCluster, upsertCluster } from "./query-cluster-service";
+import { recordEvent } from "@/lib/diagnostics";
 
 export interface RunSearchOptions {
   /** Called whenever new products are appended to the session. */
@@ -31,6 +32,10 @@ export async function runSearch(
   const target = opts.target ?? 40;
   const maxCycles = opts.maxCycles ?? 5;
   const type = classifyQuery(session.query);
+  const sessionStart = performance.now();
+  let totalCandidates = 0;
+  let totalValidated = 0;
+  let clusterHit = false;
 
   // ── CYCLE 0 — CLUSTER LOOKUP (DB-first, instant) ────────────────────────
   // Seed the session immediately from a cached cluster so the user never
