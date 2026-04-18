@@ -71,14 +71,19 @@ const HomePage = () => {
             transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="relative"
           >
-            {/* Modern prompt frame — rounded, tight padding, subtle glow on focus */}
+            {/* Pill search bar — magnifier left, submit arrow right */}
             <div
-              className={`group relative rounded-2xl border bg-background/50 backdrop-blur-md transition-all duration-300 ${
+              className={`group relative flex items-center rounded-full border bg-background/60 backdrop-blur-md transition-all duration-300 ${
                 isFocused
                   ? "border-accent/60 shadow-[0_0_0_4px_hsl(var(--accent)/0.08)]"
                   : "border-foreground/15 hover:border-foreground/25"
               }`}
             >
+              <Search
+                className={`ml-4 h-4 w-4 shrink-0 transition-colors ${
+                  isFocused ? "text-accent" : "text-foreground/50"
+                }`}
+              />
               <input
                 ref={inputRef}
                 type="text"
@@ -88,10 +93,21 @@ const HomePage = () => {
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
                 placeholder={t("howAreYouFeeling")}
-                className="w-full bg-transparent px-4 py-3 text-center font-display text-[17px] font-semibold tracking-tight text-foreground outline-none placeholder:text-foreground/85 placeholder:font-semibold md:px-5 md:py-3.5 md:text-[20px]"
+                className="flex-1 bg-transparent px-3 py-3 font-display text-[15px] font-semibold tracking-tight text-foreground outline-none placeholder:text-foreground/70 placeholder:font-semibold md:py-3.5 md:text-[17px]"
               />
+              <button
+                onClick={handleSubmit}
+                disabled={!query.trim() || isLoading}
+                aria-label={t("enter")}
+                className="mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all hover:bg-foreground/85 disabled:cursor-not-allowed disabled:bg-foreground/20 disabled:text-foreground/40 md:h-10 md:w-10"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
+              </button>
             </div>
-
 
             {!weather.loading && (
               <motion.p
@@ -104,27 +120,6 @@ const HomePage = () => {
                 {weather.location && !weather.error ? ` · ${weather.location.toUpperCase()}` : ""}
               </motion.p>
             )}
-
-            {isLoading && (
-              <div className="mt-6 flex justify-center">
-                <Loader2 className="h-4 w-4 animate-spin text-foreground/70" />
-              </div>
-            )}
-
-            <AnimatePresence>
-              {query.length > 0 && !isLoading && (
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={handleSubmit}
-                  className="hover-burgundy mx-auto mt-6 flex items-center gap-2 text-[10px] font-semibold tracking-[0.3em] text-foreground"
-                >
-                  {t("enter").toUpperCase()}
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </motion.button>
-              )}
-            </AnimatePresence>
           </motion.div>
         </div>
 
