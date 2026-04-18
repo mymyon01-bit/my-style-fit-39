@@ -1,16 +1,17 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useTransition } from "@/lib/transition";
 import BottomNav from "./BottomNav";
 import DailyPicksNotice from "./DailyPicksNotice";
 
 const AppLayout = () => {
-  const { transitionClass } = useTransition();
-  const location = useLocation();
+  const { transitionClass, transition } = useTransition();
 
   return (
     <>
       <DailyPicksNotice />
-      <div key={location.pathname} className={transitionClass}>
+      {/* No remount key — keeps page chunks warm and avoids full re-renders.
+          Transition class only applies when the user opted into a non-"none" style. */}
+      <div className={transition === "none" ? undefined : transitionClass}>
         <Outlet />
       </div>
       <BottomNav />
