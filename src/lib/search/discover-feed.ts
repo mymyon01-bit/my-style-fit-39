@@ -129,6 +129,17 @@ function takeGreedyBySource(
   return selected;
 }
 
+/**
+ * Mandatory mix:
+ *   - 40–60% fresh new products (isUnseen && isFresh)
+ *   - 20–30% cached but unseen products (isUnseen && !isFresh)
+ *   - 10–20% older fallback products (!isUnseen)
+ *
+ * Plus enforced rules:
+ *   - first visible row (4 items) may contain ≤ 2 repeated/seen items
+ *   - no source > 35% of window
+ *   - no brand > 30% of window for generic searches
+ */
 export function composeDiscoverGrid(
   items: DiscoverRenderableProduct[],
   opts: { windowSize?: number; minFreshRatio?: number } = {},
@@ -138,51 +149,99 @@ export function composeDiscoverGrid(
   const windowSize = Math.min(opts.windowSize ?? 24, items.length);
   const minFreshRatio = opts.minFreshRatio ?? 0.4;
   const maxPerSource = Math.max(2, Math.floor(windowSize * 0.35));
-  const ranked = sortByScore(items);
+  const maxPerBrand = Math.max(2, Math.floor(windowSize * 0.30));
+  const maxRepeatedFirstRow = 2;
+  const firstRowSize = 4;
 
+  const ranked = sortByScore(items);
   const freshUnseen = ranked.filter((item) => item.isUnseen && item.isFresh);
   const cachedUnseen = ranked.filter((item) => item.isUnseen && !item.isFresh);
   const fallback = ranked.filter((item) => !item.isUnseen);
 
-  const selectedIds = new Set<string>();
-  const sourceCounts = new Map<string, number>();
-
+  // Mandatory mix targets (clamped by what's actually available)
   const targetFresh = Math.min(
     freshUnseen.length,
-    Math.max(Math.round(windowSize * minFreshRatio), Math.min(4, freshUnseen.length)),
+    Math.max(Math.round(windowSize * Math.max(minFreshRatio, 0.4)), Math.min(4, freshUnseen.length)),
   );
   const targetCached = Math.min(
     cachedUnseen.length,
-    Math.max(Math.round(windowSize * 0.25), Math.min(4, cachedUnseen.length)),
+    Math.max(Math.round(windowSize * 0.25), Math.min(3, cachedUnseen.length)),
+  );
+  const targetFallback = Math.max(
+    0,
+    Math.min(fallback.length, Math.round(windowSize * 0.15)),
   );
 
-  const head = [
-    ...takeGreedyBySource(freshUnseen, targetFresh, selectedIds, sourceCounts, maxPerSource),
-    ...takeGreedyBySource(cachedUnseen, targetCached, selectedIds, sourceCounts, maxPerSource),
-  ];
+  const selectedIds = new Set<string>();
+  const sourceCounts = new Map<string, number>();
+  const brandCounts = new Map<string, number>();
+  const composed: DiscoverRenderableProduct[] = [];
+  let repeatedInFirstRow = 0;
 
-  const remainingHeadCount = Math.max(0, windowSize - head.length);
-  const remainingPool = ranked.filter((item) => !selectedIds.has(item.id));
-  const tailHead = takeGreedyBySource(remainingPool, remainingHeadCount, selectedIds, sourceCounts, maxPerSource);
-  const composedHead = [...head, ...tailHead].slice(0, windowSize);
+  const tryAdd = (item: DiscoverRenderableProduct, opts: { allowRepeatedInFirstRow?: boolean } = {}): boolean => {
+    if (selectedIds.has(item.id)) return false;
+    if (composed.length >= windowSize) return false;
+    const sk = item.sourceKey || "other";
+    const bk = (item.brand || "").toLowerCase() || "_nobrand";
+    if ((sourceCounts.get(sk) ?? 0) >= maxPerSource) return false;
+    if (item.brand && (brandCounts.get(bk) ?? 0) >= maxPerBrand) return false;
 
-  const firstRow = composedHead.slice(0, 4);
-  const staleFirstRow = firstRow.filter((item) => !item.isUnseen || !item.isFresh).length;
-  if (staleFirstRow === firstRow.length) {
-    const freshCandidate = ranked.find((item) => item.isUnseen && item.isFresh && !firstRow.some((entry) => entry.id === item.id));
-    if (freshCandidate) {
-      const swapIndex = composedHead.findIndex((item) => !item.isUnseen || !item.isFresh);
-      if (swapIndex >= 0) composedHead[swapIndex] = freshCandidate;
+    const isRepeated = !item.isUnseen;
+    if (composed.length < firstRowSize && isRepeated) {
+      if (!opts.allowRepeatedInFirstRow && repeatedInFirstRow >= maxRepeatedFirstRow) return false;
+      repeatedInFirstRow++;
+    }
+    composed.push(item);
+    selectedIds.add(item.id);
+    sourceCounts.set(sk, (sourceCounts.get(sk) ?? 0) + 1);
+    brandCounts.set(bk, (brandCounts.get(bk) ?? 0) + 1);
+    return true;
+  };
+
+  // Pass 1: place fresh-unseen first (front-load the visible section)
+  let placedFresh = 0;
+  for (const item of freshUnseen) {
+    if (placedFresh >= targetFresh) break;
+    if (tryAdd(item)) placedFresh++;
+  }
+  // Pass 2: cached-unseen
+  let placedCached = 0;
+  for (const item of cachedUnseen) {
+    if (placedCached >= targetCached) break;
+    if (tryAdd(item)) placedCached++;
+  }
+  // Pass 3: fallback (older repeats), strictly capped
+  let placedFallback = 0;
+  for (const item of fallback) {
+    if (placedFallback >= targetFallback) break;
+    if (tryAdd(item)) placedFallback++;
+  }
+  // Pass 4: fill the rest from any pool, still respecting caps
+  for (const item of ranked) {
+    if (composed.length >= windowSize) break;
+    tryAdd(item);
+  }
+  // Pass 5: relax first-row repeat cap if grid still short
+  if (composed.length < windowSize) {
+    for (const item of ranked) {
+      if (composed.length >= windowSize) break;
+      tryAdd(item, { allowRepeatedInFirstRow: true });
+    }
+  }
+  // Pass 6: ignore caps entirely as a last resort
+  if (composed.length < windowSize) {
+    for (const item of ranked) {
+      if (composed.length >= windowSize) break;
+      if (selectedIds.has(item.id)) continue;
+      composed.push(item);
+      selectedIds.add(item.id);
     }
   }
 
-  const remainder = [
-    ...freshUnseen,
-    ...cachedUnseen,
-    ...fallback,
-  ].filter((item) => !composedHead.some((entry) => entry.id === item.id));
-
-  return [...composedHead, ...remainder];
+  // Append the rest of the pool below the visible window so infinite scroll
+  // still has material to show.
+  const remainder = ranked.filter((item) => !selectedIds.has(item.id));
+  return [...composed, ...remainder];
 }
 
 export function trackFirstRowChange(ids: string[]): number {
