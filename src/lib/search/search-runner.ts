@@ -201,6 +201,7 @@ export async function runSearch(
       results: session.results.length,
       rejected_by_category: session.rejectedByCategory,
       rejected_by_brand_cap: session.rejectedByBrandCap,
+      rejected_by_dedupe: session.rejectedByDedupe,
       cluster_hit: clusterHit,
     },
   });
