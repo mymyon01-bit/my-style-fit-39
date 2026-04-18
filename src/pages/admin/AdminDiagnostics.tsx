@@ -10,7 +10,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Camera, Ruler, MessageCircle, RefreshCw, Database } from "lucide-react";
+import { Loader2, Search, Camera, Ruler, MessageCircle, RefreshCw, Database, Globe, Sparkles, Layers } from "lucide-react";
 
 type EventRow = {
   id: string;
@@ -81,9 +81,26 @@ function summarize(rows: EventRow[]) {
   };
 }
 
+type TryonRow = {
+  id: string;
+  provider: string;
+  status: string;
+  created_at: string;
+};
+
+type ClusterRow = {
+  id: string;
+  cluster_key: string;
+  query_family: string;
+  product_count: number;
+  last_refreshed_at: string;
+};
+
 export default function AdminDiagnostics() {
   const [rows, setRows] = useState<EventRow[]>([]);
   const [ingestionRows, setIngestionRows] = useState<IngestionRunRow[]>([]);
+  const [tryonRows, setTryonRows] = useState<TryonRow[]>([]);
+  const [clusterRows, setClusterRows] = useState<ClusterRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -110,7 +127,18 @@ export default function AdminDiagnostics() {
         .gte("started_at", since)
         .order("started_at", { ascending: false })
         .limit(500),
-    ]).then(([eventsRes, ingestionRes]) => {
+      supabase
+        .from("fit_tryons")
+        .select("id, provider, status, created_at")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase
+        .from("query_clusters")
+        .select("id, cluster_key, query_family, product_count, last_refreshed_at")
+        .order("last_refreshed_at", { ascending: true })
+        .limit(500),
+    ]).then(([eventsRes, ingestionRes, tryonRes, clusterRes]) => {
       if (cancelled) return;
       if (eventsRes.error) {
         setError(eventsRes.error.message);
@@ -120,6 +148,12 @@ export default function AdminDiagnostics() {
       }
       if (!ingestionRes.error) {
         setIngestionRows((ingestionRes.data || []) as unknown as IngestionRunRow[]);
+      }
+      if (!tryonRes.error) {
+        setTryonRows((tryonRes.data || []) as unknown as TryonRow[]);
+      }
+      if (!clusterRes.error) {
+        setClusterRows((clusterRes.data || []) as unknown as ClusterRow[]);
       }
       setLoading(false);
     });
@@ -216,6 +250,90 @@ export default function AdminDiagnostics() {
       latestRenderedIds: (((renders[0]?.metadata as Record<string, unknown> | null)?.final_rendered_product_ids as string[] | undefined) || []).slice(0, 8),
     };
   }, [recent]);
+
+  // ───────── Phase 3: Apify per-domain ─────────
+  const apifyDomainStats = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const apifyRuns = ingestionRows.filter(
+      (r) =>
+        new Date(r.started_at).getTime() >= cutoff &&
+        (r.source === "apify" ||
+          (r.source_actor || "").includes("apify") ||
+          /musinsa|29cm|wconcept|ssg|zalando|farfetch|asos|net-a-porter/i.test(r.source)),
+    );
+    const byDomain: Record<
+      string,
+      { runs: number; succeeded: number; failed: number; inserted: number; durations: number[] }
+    > = {};
+    for (const r of apifyRuns) {
+      const md = ((r as unknown as { metadata?: Record<string, unknown> }).metadata) || {};
+      const domain = (md.domain as string) || (md.target_domain as string) || r.source;
+      if (!byDomain[domain]) {
+        byDomain[domain] = { runs: 0, succeeded: 0, failed: 0, inserted: 0, durations: [] };
+      }
+      byDomain[domain].runs += 1;
+      if (r.status === "succeeded" || r.status === "completed") byDomain[domain].succeeded += 1;
+      if (r.status === "failed" || r.status === "error") byDomain[domain].failed += 1;
+      byDomain[domain].inserted += r.inserted_count || 0;
+      if (typeof r.duration_ms === "number" && r.duration_ms > 0) {
+        byDomain[domain].durations.push(r.duration_ms);
+      }
+    }
+    return { byDomain, totalRuns: apifyRuns.length };
+  }, [ingestionRows]);
+
+  // ───────── Phase 3: KR alias hits ─────────
+  const krAliasStats = useMemo(() => {
+    const hits = recent.filter(
+      (r) =>
+        r.event_name === "kr_alias_hit" ||
+        r.event_name === "discover_kr_alias" ||
+        (r.event_name === "search_session" &&
+          (r.metadata as Record<string, unknown> | null)?.kr_alias_used === true),
+    );
+    const byAlias: Record<string, number> = {};
+    for (const h of hits) {
+      const md = (h.metadata as Record<string, unknown> | null) || {};
+      const alias =
+        (md.alias as string) ||
+        (md.kr_alias as string) ||
+        (md.matched_alias as string) ||
+        "unknown";
+      byAlias[alias] = (byAlias[alias] || 0) + 1;
+    }
+    const top = Object.entries(byAlias).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    return { totalHits: hits.length, top };
+  }, [recent]);
+
+  // ───────── Phase 3: Try-on provider stats ─────────
+  const tryonStats = useMemo(() => {
+    const byProvider: Record<string, { total: number; succeeded: number; failed: number }> = {};
+    for (const t of tryonRows) {
+      const p = (t.provider || "unknown").toLowerCase();
+      if (!byProvider[p]) byProvider[p] = { total: 0, succeeded: 0, failed: 0 };
+      byProvider[p].total += 1;
+      if (t.status === "succeeded") byProvider[p].succeeded += 1;
+      if (t.status === "failed" || t.status === "error") byProvider[p].failed += 1;
+    }
+    return { byProvider, total: tryonRows.length };
+  }, [tryonRows]);
+
+  // ───────── Phase 3: Stale clusters ─────────
+  const clusterStats = useMemo(() => {
+    const now = Date.now();
+    const stale24h = clusterRows.filter(
+      (c) => now - new Date(c.last_refreshed_at).getTime() > 24 * 60 * 60 * 1000,
+    );
+    const stale7d = clusterRows.filter(
+      (c) => now - new Date(c.last_refreshed_at).getTime() > 7 * 24 * 60 * 60 * 1000,
+    );
+    return {
+      total: clusterRows.length,
+      stale24h: stale24h.length,
+      stale7d: stale7d.length,
+      oldestStale: stale24h.slice(0, 5),
+    };
+  }, [clusterRows]);
 
   return (
     <div className="space-y-8">
@@ -406,6 +524,150 @@ export default function AdminDiagnostics() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* ───────── Phase 3: Apify per-domain ───────── */}
+          <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Globe className="h-3.5 w-3.5 text-accent/70" />
+                Apify ingestion — per-domain (last 24h)
+              </h2>
+              <span className="text-[10px] text-foreground/50">
+                {apifyDomainStats.totalRuns} runs
+              </span>
+            </div>
+            {Object.keys(apifyDomainStats.byDomain).length === 0 ? (
+              <p className="text-[11px] text-foreground/50">
+                No Apify runs in the last 24h. Trigger discover-search-engine to populate.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-left text-foreground/50 border-b border-border/20">
+                      <th className="py-2 pr-3 font-medium">Domain</th>
+                      <th className="py-2 pr-3 font-medium">Runs</th>
+                      <th className="py-2 pr-3 font-medium">Success</th>
+                      <th className="py-2 pr-3 font-medium">Failed</th>
+                      <th className="py-2 pr-3 font-medium">Inserted</th>
+                      <th className="py-2 pr-3 font-medium">Median</th>
+                      <th className="py-2 pr-3 font-medium">p95</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/10">
+                    {Object.entries(apifyDomainStats.byDomain)
+                      .sort((a, b) => b[1].runs - a[1].runs)
+                      .map(([domain, s]) => {
+                        const successRate = s.runs ? Math.round((s.succeeded / s.runs) * 100) : 0;
+                        const med = Math.round(median(s.durations));
+                        const p = Math.round(p95(s.durations));
+                        return (
+                          <tr key={domain}>
+                            <td className="py-2 pr-3 font-mono text-foreground/80 truncate max-w-[200px]">{domain}</td>
+                            <td className="py-2 pr-3 text-foreground/70">{s.runs}</td>
+                            <td className="py-2 pr-3">
+                              <span className={successRate >= 70 ? "text-emerald-500/80" : successRate >= 30 ? "text-amber-500" : "text-destructive"}>
+                                {successRate}%
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 text-foreground/60">{s.failed}</td>
+                            <td className="py-2 pr-3 text-foreground/80">{s.inserted}</td>
+                            <td className="py-2 pr-3 text-foreground/60">{med ? `${(med / 1000).toFixed(1)}s` : "—"}</td>
+                            <td className="py-2 pr-3 text-foreground/60">{p ? `${(p / 1000).toFixed(1)}s` : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ───────── Phase 3: KR alias hits + Try-on providers + Stale clusters ───────── */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Sparkles className="h-3.5 w-3.5 text-accent/70" />
+                KR alias hits — last 24h
+              </h2>
+              <p className="text-2xl font-semibold text-foreground">{krAliasStats.totalHits}</p>
+              <p className="text-[10px] uppercase tracking-wider text-foreground/50">Korean term mappings used</p>
+              {krAliasStats.top.length > 0 ? (
+                <div className="mt-3 space-y-1.5">
+                  {krAliasStats.top.map(([alias, count]) => (
+                    <div key={alias} className="flex items-center justify-between text-[11px]">
+                      <span className="truncate font-mono text-foreground/70">{alias}</span>
+                      <span className="text-foreground/60">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-[10px] text-foreground/40">
+                  No alias hits logged. Run a Korean query to populate.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Ruler className="h-3.5 w-3.5 text-accent/70" />
+                Try-on success — Replicate vs Gemini (7d)
+              </h2>
+              <p className="text-2xl font-semibold text-foreground">{tryonStats.total}</p>
+              <p className="text-[10px] uppercase tracking-wider text-foreground/50">total try-ons</p>
+              {Object.keys(tryonStats.byProvider).length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {Object.entries(tryonStats.byProvider)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .map(([provider, s]) => {
+                      const rate = s.total ? Math.round((s.succeeded / s.total) * 100) : 0;
+                      return (
+                        <div key={provider} className="flex items-center justify-between text-[11px]">
+                          <span className="font-mono capitalize text-foreground/70">{provider}</span>
+                          <span className="flex items-center gap-2">
+                            <span className={rate >= 80 ? "text-emerald-500/80" : rate >= 50 ? "text-amber-500" : "text-destructive"}>
+                              {rate}%
+                            </span>
+                            <span className="text-foreground/40">({s.succeeded}/{s.total})</span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <p className="mt-3 text-[10px] text-foreground/40">No try-on records yet.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border/30 bg-card/40 p-5">
+              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-medium tracking-wide text-foreground/80">
+                <Layers className="h-3.5 w-3.5 text-accent/70" />
+                Query clusters — refresh health
+              </h2>
+              <p className="text-2xl font-semibold text-foreground">
+                {clusterStats.stale24h}
+                <span className="ml-2 text-[11px] font-normal text-foreground/40">/ {clusterStats.total} stale &gt;24h</span>
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-foreground/50">
+                {clusterStats.stale7d} not refreshed in 7d
+              </p>
+              {clusterStats.oldestStale.length > 0 ? (
+                <div className="mt-3 space-y-1.5">
+                  {clusterStats.oldestStale.map((c) => {
+                    const ageH = Math.round((Date.now() - new Date(c.last_refreshed_at).getTime()) / 3_600_000);
+                    return (
+                      <div key={c.id} className="flex items-center justify-between text-[11px]">
+                        <span className="truncate font-mono text-foreground/70">{c.cluster_key}</span>
+                        <span className="text-foreground/50">{ageH}h</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-3 text-[10px] text-foreground/40">All clusters fresh.</p>
+              )}
+            </div>
           </div>
 
           {/* Recent events table */}
