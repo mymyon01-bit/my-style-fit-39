@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 export async function expandQueries(query: string, type: QueryType): Promise<string[]> {
   try {
     const { data, error } = await supabase.functions.invoke("search-discovery", {
-      body: { query, expandOnly: true, maxQueries: 10 },
+      body: { query, expandOnly: true, maxQueries: 16 },
     });
     if (!error && data?.queries && Array.isArray(data.queries) && data.queries.length > 0) {
       // Merge edge-function results with local fallback to guarantee breadth,

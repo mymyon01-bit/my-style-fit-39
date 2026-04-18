@@ -29,15 +29,13 @@ export async function runSearch(
   session: SearchSession,
   opts: RunSearchOptions = {},
 ): Promise<SearchSession> {
-  // Speed-tuned defaults. First paint must feel instant; we stop as soon as
-  // we have enough to fill the visible grid. Heavier supply still available
-  // by passing target/maxCycles explicitly.
-  const target = opts.target ?? 24;
-  const maxCycles = opts.maxCycles ?? 3;
-  // Hard wall-clock budget so a single search NEVER blocks the UI for >12s.
-  const HARD_BUDGET_MS = 12_000;
-  // Once we have a usable first page, stop early instead of chasing target.
-  const FIRST_PAGE_MIN = 12;
+  // Diversity-tuned defaults. Stage 1 paints instantly from DB; stages 2-4
+  // KEEP appending fresh external results so the feed always feels alive.
+  const target = opts.target ?? 60;
+  const maxCycles = opts.maxCycles ?? 4;
+  // Hard wall-clock budget for the WHOLE pipeline (covers all stages).
+  // Stage 1 must paint within ~1.5s; full expansion runs up to 25s.
+  const HARD_BUDGET_MS = 25_000;
   const type = classifyQuery(session.query);
   const sessionStart = performance.now();
   let totalCandidates = 0;
@@ -49,10 +47,8 @@ export async function runSearch(
     categoryLock: session.categoryLock,
   });
 
-  // ── CYCLE 0 — CLUSTER LOOKUP (DB-first, instant) ────────────────────────
-  // Seed the session immediately from a cached cluster so the user never
-  // sees a blank screen. The fresh external search continues in the
-  // background and the cluster is upserted at the end.
+  // ── STAGE 1 — DB FIRST (instant paint) ──────────────────────────────────
+  // Cluster lookup + raw product_cache fallback. Never blocks on external.
   try {
     const cluster = await findCluster(session.query);
     if (cluster) {
@@ -65,7 +61,7 @@ export async function runSearch(
         clusterHit = true;
         session.status = "partial";
         opts.onProgress?.(session);
-        console.info("[search-runner] cluster seed", {
+        console.info("[search-runner] stage1 cluster seed", {
           query: session.query,
           seeded,
           clusterKey: cluster.cluster.cluster_key,
@@ -76,25 +72,26 @@ export async function runSearch(
     console.warn("[search-runner] cluster lookup failed", e);
   }
 
+  // ── STAGE 2 — FORCED EXPANSION (12-16 query family) ─────────────────────
   const family = await expandQueries(session.query, type);
+  console.info("[search-runner] stage2 family", { size: family.length });
 
-  // Speed-tuned plan: smaller, faster batches. Cycle 1 = tight & fast for
-  // first paint. Cycles 2-3 broaden + trigger fresh ingestion. Each cycle
-  // runs at most 4 parallel queries to keep edge fan-out reasonable.
+  // 4-cycle plan covering up to 16 expanded queries. Every cycle ALWAYS
+  // runs — we never break early just because the first page is full. The
+  // user must feel the feed continuing to grow.
   const plan: { queries: string[]; fresh: boolean }[] = [
-    { queries: [session.query, ...family.slice(0, 2)], fresh: false },
-    { queries: family.slice(2, 6), fresh: false },
-    { queries: family.slice(6, 10), fresh: true },
+    { queries: [session.query, ...family.slice(0, 3)], fresh: false },
+    { queries: family.slice(3, 7), fresh: false },
+    { queries: family.slice(7, 11), fresh: true },
+    { queries: family.slice(11, 16), fresh: true },
   ].slice(0, maxCycles);
 
-  let prevCount = session.results.length;
-  let emptyCycles = 0;
+  let consecutiveEmpty = 0;
 
   for (let i = 0; i < plan.length; i++) {
-    // Hard time budget — never let the user wait > HARD_BUDGET_MS.
     if (performance.now() - sessionStart > HARD_BUDGET_MS) {
       console.info("[search-runner] hard budget hit, stopping", {
-        elapsed: performance.now() - sessionStart,
+        elapsed: Math.round(performance.now() - sessionStart),
         results: session.results.length,
       });
       break;
@@ -103,18 +100,17 @@ export async function runSearch(
     session.cycle = i + 1;
     const { queries, fresh } = plan[i];
 
-    // Cycle 3: trigger background ingestion (non-blocking)
+    // Stage 3+: trigger background ingestion of new URLs (non-blocking)
     if (fresh) {
       void ingestQuery(session.query);
     }
 
-    // Run all queries in this cycle in parallel — smaller per-call limit
-    // for faster edge response.
+    // STAGE 3 — AGGRESSIVE FETCHING. Larger per-call limit → bigger pool.
     const batches = await Promise.all(
       queries.filter(Boolean).map((q) =>
         discoverProducts(q, {
-          excludeIds: Array.from(session.seenIds).slice(-60),
-          limit: 12,
+          excludeIds: Array.from(session.seenIds).slice(-120),
+          limit: 18,
           freshSearch: fresh,
         }),
       ),
@@ -124,8 +120,10 @@ export async function runSearch(
     for (const batch of batches) {
       for (const product of batch) {
         totalCandidates++;
+        // STAGE 4 — RELAXED validation (validateProduct already light).
         if (!validateProduct(product)) continue;
         totalValidated++;
+        // STAGE 5/6 — appendToSession dedupes + appends (never replaces).
         if (appendToSession(session, product)) addedThisCycle++;
       }
     }
@@ -141,32 +139,33 @@ export async function runSearch(
     session.status = session.results.length >= target ? "complete" : "partial";
     opts.onProgress?.(session);
 
-    // Early exit: once we have a comfortable first page after cycle 1, stop.
-    if (i >= 0 && session.results.length >= FIRST_PAGE_MIN && clusterHit) break;
-    if (session.results.length >= target) break;
-    if (session.results.length === prevCount) {
-      emptyCycles++;
-      if (emptyCycles >= 1) break; // stop on first empty cycle, not second
+    // Only stop on TWO consecutive truly-empty cycles (real exhaustion).
+    if (addedThisCycle === 0) {
+      consecutiveEmpty++;
+      if (consecutiveEmpty >= 2) {
+        console.info("[search-runner] exhausted (2 empty cycles)");
+        break;
+      }
     } else {
-      emptyCycles = 0;
+      consecutiveEmpty = 0;
     }
-    prevCount = session.results.length;
+
+    // Hit target? Still safe to stop — user has plenty.
+    if (session.results.length >= target) break;
   }
 
-  // Final pass: ensure category-matched products lead the list when locked,
-  // then softly demote items already shown in recent prior sessions so the
-  // user stops seeing the same hero items over and over.
+  // ── STAGE 7 — REPEAT CONTROL + category-first sort ──────────────────────
   if (session.categoryLock) {
     session.results = categoryFirstSort(session.results, session.categoryLock);
   }
-  const fresh: typeof session.results = [];
-  const repeat: typeof session.results = [];
+  const freshItems: typeof session.results = [];
+  const repeatItems: typeof session.results = [];
   for (const p of session.results) {
     const k = (p.externalUrl || p.id || p.imageUrl || "").toLowerCase();
-    if (wasRecentlyShown(k)) repeat.push(p);
-    else fresh.push(p);
+    if (wasRecentlyShown(k)) repeatItems.push(p);
+    else freshItems.push(p);
   }
-  session.results = [...fresh, ...repeat];
+  session.results = [...freshItems, ...repeatItems];
   session.status = "complete";
   opts.onProgress?.(session);
 
@@ -177,6 +176,7 @@ export async function runSearch(
     rejectedByBrandCap: session.rejectedByBrandCap,
     final: session.results.length,
     cycles: session.cycle,
+    elapsed: Math.round(performance.now() - sessionStart),
   });
 
   // Persist / refresh the cluster in the background — improves next search.
@@ -187,7 +187,6 @@ export async function runSearch(
     products: session.results,
   });
 
-  // Telemetry: one event per completed search session. Admin-only read.
   recordEvent({
     event_name: "search_session",
     status: session.results.length === 0 ? "error" : session.results.length < 8 ? "partial" : "success",

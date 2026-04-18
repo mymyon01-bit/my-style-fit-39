@@ -12,10 +12,10 @@ import type { Product } from "./types";
 
 export async function ingestQuery(query: string): Promise<{ inserted: number }> {
   try {
-    // Background ingestion — keep it light so it doesn't tie up the
-    // edge function while the user is waiting on cycle 1/2 results.
+    // Diversity-pass: bigger candidate pool per ingestion so the DB grows
+    // faster between searches and the user keeps seeing new products.
     const { data } = await supabase.functions.invoke("search-discovery", {
-      body: { query, maxQueries: 8, maxCandidates: 30 },
+      body: { query, maxQueries: 14, maxCandidates: 60 },
     });
     return { inserted: Number(data?.inserted) || 0 };
   } catch {
