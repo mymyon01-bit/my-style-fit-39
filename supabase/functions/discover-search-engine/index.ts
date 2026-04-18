@@ -100,7 +100,8 @@ async function searchCSE(query: string): Promise<string[]> {
   try {
     const res = await withTimeout(fetch(u.toString()), CSE_BUDGET_MS, "cse");
     if (!res.ok) {
-      console.warn(`[cse] HTTP ${res.status} for "${query}"`);
+      const errBody = await res.text().catch(() => "");
+      console.warn(`[cse] HTTP ${res.status} for "${query}" :: ${errBody.slice(0, 300)}`);
       return [];
     }
     const data = await res.json().catch(() => null) as { items?: Array<{ link?: string }> } | null;
