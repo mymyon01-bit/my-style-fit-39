@@ -96,7 +96,7 @@ async function callDiscovery(seed: string): Promise<{ inserted: number; candidat
         "Content-Type": "application/json",
         Authorization: `Bearer ${SERVICE_KEY}`,
       },
-      body: JSON.stringify({ query: seed, maxQueries: 10, maxCandidates: 30 }),
+      body: JSON.stringify({ query: seed, maxQueries: 14, maxCandidates: 60 }),
     });
     const json = await res.json().catch(() => ({}));
     return {
