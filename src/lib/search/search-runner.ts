@@ -232,9 +232,15 @@ export async function runSearch(
   // Domain rotation: prefer sources the user hasn't seen recently. Floats
   // unseen domains (and least-recent ones) toward the top of the window.
   session.results = prioritizeUnseenDomains(session.results, { windowSize: 24 });
-  // Persist seen set + domain history for future searches.
+  // Consecutive-query suppression: if the previous (DIFFERENT) search showed
+  // any of these items, push them past the unseen ones.
+  session.results = demoteLastQueryRepeats(session.query, session.results);
+  // HARD ceiling: at most 2 already-seen items in the first 12 slots.
+  session.results = capSeenInTopGrid(session.results, { windowSize: 12, maxSeen: 2 });
+  // Persist seen set, domain history, and last-query snapshot for future searches.
   markProductsAsSeen(session.results.slice(0, 60));
   recordDomainsShown(session.results.slice(0, 24));
+  rememberLastQuery(session.query, session.results.slice(0, 60));
   session.status = "complete";
   opts.onProgress?.(session);
 
