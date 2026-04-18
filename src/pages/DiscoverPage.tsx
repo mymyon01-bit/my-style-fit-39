@@ -1242,6 +1242,10 @@ const DiscoverPage = () => {
       setIsGenerating(true);
       setHasGenerated(true);
 
+      // Kick off DB "FOR YOU" grid in parallel — independent of live search.
+      // This populates Layer 1 instantly without blocking the rest.
+      loadDbRecommendations("");
+
       const TARGET_COUNT = 12;
 
       // Step 1: INSTANT — Direct DB query, bypasses edge function for zero latency
