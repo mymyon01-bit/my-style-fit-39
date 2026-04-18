@@ -241,12 +241,12 @@ export function computeFit(
   const rec = sizeResults[0];
   const alt = sizeResults[1];
 
-  const tightRegions = rec?.regions.filter(r => r.fit.includes("tight")).map(r => r.region) ?? [];
-  const looseRegions = rec?.regions.filter(r => r.fit.includes("loose") || r.fit === "oversized").map(r => r.region) ?? [];
+  const tightRegions = rec?.regions.filter(r => r.fit === "too-tight" || r.fit === "slightly-tight").map(r => r.region) ?? [];
+  const looseRegions = rec?.regions.filter(r => r.fit === "too-loose" || r.fit === "oversized").map(r => r.region) ?? [];
 
   let summary = `${rec?.size} is the best fit.`;
   if (tightRegions.length) summary += ` May feel snug at ${tightRegions.join(", ").toLowerCase()}.`;
-  if (looseRegions.length) summary += ` Extra room at ${looseRegions.join(", ").toLowerCase()}.`;
+  if (looseRegions.length) summary += ` Relaxed at ${looseRegions.join(", ").toLowerCase()}.`;
   if (alt) summary += ` ${alt.size} is a close alternative.`;
 
   return {
