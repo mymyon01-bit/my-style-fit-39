@@ -99,7 +99,8 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [overrideUserImage, setOverrideUserImage] = useState<string | null>(null);
   const [predictionId, setPredictionId] = useState<string | null>(null);
-  const [showOverlay, setShowOverlay] = useState<boolean>(true);
+  const [showOverlay, setShowOverlay] = useState<boolean>(false); // default clean image
+  const [provider, setProvider] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<number | null>(null);
 
@@ -121,6 +122,8 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       setError(null);
       setOverrideUserImage(null);
       setPredictionId(null);
+      setProvider(null);
+      setShowOverlay(false);
     }
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,11 +136,12 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       attempts++;
       try {
         const { data, error: invokeErr } = await supabase.functions.invoke(
-          `fit-tryon-replicate?id=${encodeURIComponent(id)}`,
+          `fit-tryon-router?id=${encodeURIComponent(id)}`,
           { method: "GET" }
         );
         if (invokeErr) throw invokeErr;
-        console.log("[TryOn] poll", id, data?.status);
+        console.log("[TryOn] poll", id, data?.status, data?.provider);
+        if (data?.provider) setProvider(data.provider);
         if (data?.status === "succeeded" && data?.resultImageUrl) {
           stopPolling();
           setResultUrl(data.resultImageUrl);
@@ -170,23 +174,29 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     setStatus("generating");
     setError(null);
     setResultUrl(null);
+    setProvider(null);
     try {
       console.log("[TryOn] start", { productKey: context.productKey, size: context.recommendedSize, force: forceRegenerate });
-      const { data, error } = await supabase.functions.invoke("fit-tryon-replicate", {
+      const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
         body: {
           userImageUrl: overrideUserImage || context.userImageUrl,
           productImageUrl: context.productImageUrl,
           productKey: context.productKey,
           productCategory: context.category,
           selectedSize: context.recommendedSize,
-          fitSummary: { fitType: context.fitDescriptor, confidence: context.confidence },
+          fitDescriptor: context.fitDescriptor,
+          regions: context.regions?.map((r) => ({ region: r.region, fit: r.fit })) ?? [],
           forceRegenerate,
+          mode: "high", // Replicate first, Gemini fallback
         },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error && data?.status !== "starting" && data?.status !== "processing") {
+        throw new Error(data.error);
+      }
 
       console.log("[TryOn] created", data);
+      if (data?.provider) setProvider(data.provider);
       if (data?.status === "succeeded" && data?.resultImageUrl) {
         setResultUrl(data.resultImageUrl);
         setStatus("ready");
@@ -286,11 +296,20 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                       {showOverlay ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                       {showOverlay ? "FIT ON" : "FIT OFF"}
                     </button>
-                    {/* Size badge bottom-left */}
-                    <div className="absolute bottom-2 left-2 rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1 border border-white/15">
-                      <span className="text-white text-[9px] font-bold tracking-[0.2em]">
-                        SIZE {context.recommendedSize}
-                      </span>
+                    {/* Size + provider badge bottom-left */}
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                      <div className="rounded-full bg-black/55 backdrop-blur-md px-2.5 py-1 border border-white/15">
+                        <span className="text-white text-[9px] font-bold tracking-[0.2em]">
+                          SIZE {context.recommendedSize}
+                        </span>
+                      </div>
+                      {provider && (
+                        <div className="rounded-full bg-black/40 backdrop-blur-md px-2 py-1 border border-white/10">
+                          <span className="text-white/80 text-[8px] font-semibold tracking-[0.15em] uppercase">
+                            {provider}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
