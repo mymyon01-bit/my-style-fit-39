@@ -33,6 +33,7 @@ import {
   logQueryParsed,
 } from "@/lib/discover/discover-diagnostics";
 import { upsertCluster } from "@/lib/search/query-cluster-service";
+import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
 
