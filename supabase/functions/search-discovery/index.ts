@@ -357,12 +357,14 @@ const KR_SCOPED_SOURCES: Array<{ site: string; label: string }> = [
 async function discoverKoreanUrls(rawQuery: string): Promise<DiscoveredCandidate[]> {
   if (!PERPLEXITY_KEY) return [];
   // Korean retail-intent variants — discovery via Korean search vocabulary.
+  // Style-leaning (Musinsa) + conversion-leaning (Coupang/Interpark) split.
   const krVariants = [
-    `${rawQuery} 네이버쇼핑`,
-    `${rawQuery} 쿠팡`,
-    `${rawQuery} 무신사`,
+    `${rawQuery} 무신사`,           // style: musinsa
+    `${rawQuery} 네이버쇼핑`,       // inventory: naver
+    `${rawQuery} 쿠팡 최저가`,      // conversion: coupang
+    `${rawQuery} 인터파크`,         // supplementary: interpark
+    `${rawQuery} 스타일`,           // style discovery
     `${rawQuery} 구매`,
-    `${rawQuery} 최저가`,
   ];
   const sitePasses = KR_SCOPED_SOURCES.map(({ site, label }) =>
     discoverForQuery(`site:${site} ${rawQuery}`).then((arr) => {
