@@ -27,8 +27,9 @@ export async function runSearch(
   session: SearchSession,
   opts: RunSearchOptions = {},
 ): Promise<SearchSession> {
-  const target = opts.target ?? 20;
-  const maxCycles = opts.maxCycles ?? 3;
+  // 2x supply: target 20 → 40, max cycles 3 → 5, batch size 12 → 18.
+  const target = opts.target ?? 40;
+  const maxCycles = opts.maxCycles ?? 5;
   const type = classifyQuery(session.query);
 
   // ── CYCLE 0 — CLUSTER LOOKUP (DB-first, instant) ────────────────────────
@@ -59,11 +60,14 @@ export async function runSearch(
 
   const family = await expandQueries(session.query, type);
 
-  // Cycle plan: split family into batches, expand fresh ingestion in cycle 2
+  // 5-cycle plan covering up to 20 expanded queries — 2x the prior reach.
+  // Earlier cycles use cached/DB; later cycles trigger fresh ingestion.
   const plan: { queries: string[]; fresh: boolean }[] = [
-    { queries: [session.query, ...family.slice(0, 3)], fresh: false },
-    { queries: family.slice(3, 8), fresh: true },
-    { queries: family.slice(8, 15), fresh: true },
+    { queries: [session.query, ...family.slice(0, 4)], fresh: false },
+    { queries: family.slice(4, 9), fresh: false },
+    { queries: family.slice(9, 13), fresh: true },
+    { queries: family.slice(13, 17), fresh: true },
+    { queries: family.slice(17, 20), fresh: true },
   ].slice(0, maxCycles);
 
   let prevCount = session.results.length;
@@ -78,12 +82,12 @@ export async function runSearch(
       void ingestQuery(session.query);
     }
 
-    // Run all queries in this cycle in parallel
+    // Run all queries in this cycle in parallel — wider candidate window.
     const batches = await Promise.all(
       queries.filter(Boolean).map((q) =>
         discoverProducts(q, {
-          excludeIds: Array.from(session.seenIds).slice(-50),
-          limit: 12,
+          excludeIds: Array.from(session.seenIds).slice(-80),
+          limit: 18,
           freshSearch: fresh,
         }),
       ),
