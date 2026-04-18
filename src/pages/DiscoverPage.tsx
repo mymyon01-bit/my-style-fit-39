@@ -1683,8 +1683,8 @@ const DiscoverPage = () => {
     setDbOffset(0);
     setShowSuggestions(false);
     lastPromptRef.current = prompt;
+    console.info("[search-pipeline] HANDLER_START", { rawQuery: prompt, categoryFilter });
 
-    // Kick off "How about this?" DB recommendations in parallel — instant render
     loadDbRecommendations(prompt);
 
     try {
@@ -1698,6 +1698,19 @@ const DiscoverPage = () => {
       const fullPrompt = filterContext.length > 0
         ? `${prompt}. Filters: ${filterContext.join(". ")}`
         : prompt;
+
+      const fallbackSeed = await emergencyDbFallback({
+        query: prompt,
+        category: categoryFilter,
+        styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+        fit: selectedFit || undefined,
+        limit: 12,
+      });
+      console.info("[search-pipeline] DB_FALLBACK_COUNT", { rawQuery: prompt, count: fallbackSeed.length });
+      if (fallbackSeed.length > 0) {
+        setRecommendations((prev) => prev.length > 0 ? prev : fallbackSeed);
+        setDbOffset(fallbackSeed.length);
+      }
 
       const { data, error } = await supabase.functions.invoke("wardrobe-ai", {
         body: {
@@ -1719,11 +1732,21 @@ const DiscoverPage = () => {
         if (!r.image_url || !r.image_url.startsWith("http")) return false;
         return true;
       });
-      setRecommendations(recs);
-      setDbOffset(recs.length);
-      resultCache.set(cacheKey, { data: recs, ts: Date.now() });
+      console.info("[search-pipeline] NORMALIZATION_COMPLETE", { rawQuery: prompt, uiCount: recs.length });
+      setRecommendations(recs.length > 0 ? recs : (fallbackSeed.length > 0 ? fallbackSeed : buildPlaceholderProducts(prompt)));
+      setDbOffset(recs.length > 0 ? recs.length : fallbackSeed.length);
+      resultCache.set(cacheKey, { data: recs.length > 0 ? recs : fallbackSeed, ts: Date.now() });
     } catch (e: any) {
       console.error("Recommendation error:", e);
+      const fallback = await emergencyDbFallback({
+        query: prompt,
+        category: categoryFilter,
+        styles: selectedStyles.length > 0 ? selectedStyles : undefined,
+        fit: selectedFit || undefined,
+        limit: 12,
+      });
+      console.error("[search-pipeline] THROWN_ERROR", { rawQuery: prompt, error: e?.message || e });
+      setRecommendations(fallback.length > 0 ? fallback : buildPlaceholderProducts(prompt));
       if (e?.message?.includes("Rate limited") || e?.status === 429) {
         toast.error("Too many requests — please wait a moment.");
       } else if (e?.message?.includes("credits") || e?.status === 402) {
