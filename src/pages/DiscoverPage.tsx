@@ -1961,8 +1961,22 @@ const DiscoverPage = () => {
       const stopSession = (reason: string) => {
         if (session.stopped) return;
         session.stopped = true;
-        if (searchSessionRef.current.id === sessionId) setIsGenerating(false);
+        if (searchSessionRef.current.id === sessionId) {
+          setIsGenerating(false);
+          setLiveStatus("");
+        }
         console.info("[search-session] STOP", { sessionId, query: q, reason, totalAdded: session.totalAdded, cycles: session.cycle });
+      };
+      // Cycle-aware status messages — user sees real progress, not a vague spinner.
+      const STATUS_BY_LABEL: Record<string, string> = {
+        "instant-db": "Loading more products…",
+        "db-quick": "Loading more products…",
+        "scenario-db-quick": "Loading more products…",
+        "external-fresh": "Searching across more stores…",
+        "scenario-external": "Searching across more stores…",
+        "late-perplexity": "Adding new verified items…",
+        "discovery-ingestion": "Adding new verified items…",
+        "fallback-broaden": "Searching wider for more options…",
       };
       const appendCycle = (label: string, incoming: AIRecommendation[]) => {
         if (!isCurrent()) return 0;
@@ -1980,6 +1994,9 @@ const DiscoverPage = () => {
         }
         if (addedCount === 0) session.emptyCycles++;
         else session.emptyCycles = 0;
+        // Update visible status for this cycle
+        const nextStatus = STATUS_BY_LABEL[label] || "Loading more products…";
+        setLiveStatus(nextStatus);
         console.info("[search-session] CYCLE", {
           sessionId, query: q, cycle: session.cycle, label,
           incoming: incoming.length, added: addedCount,
