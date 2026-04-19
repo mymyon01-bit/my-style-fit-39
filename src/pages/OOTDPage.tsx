@@ -443,7 +443,7 @@ const OOTDPage = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by user ID (e.g. minimal_anna)"
+                    placeholder="Search @user or #hashtag"
                     className="w-full rounded-full border border-border/40 bg-card/50 pl-9 pr-9 py-2.5 text-[12px] text-foreground placeholder:text-foreground/35 outline-none focus:border-accent/40 transition-colors"
                   />
                   {searchQuery && (
@@ -458,33 +458,61 @@ const OOTDPage = () => {
                       <div className="py-4 flex items-center justify-center">
                         <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/40" />
                       </div>
-                    ) : searchResults.length === 0 ? (
-                      <div className="py-4 text-center text-[11px] text-foreground/40">No users found</div>
+                    ) : searchUsers.length === 0 && searchTopics.length === 0 ? (
+                      <div className="py-4 text-center text-[11px] text-foreground/40">No matches</div>
                     ) : (
-                      <ul className="divide-y divide-border/20">
-                        {searchResults.map((u) => (
-                          <li key={u.user_id}>
-                            <button
-                              onClick={() => navigate(`/u/${u.user_id}`)}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left"
-                            >
-                              {u.avatar_url ? (
-                                <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
-                              ) : (
-                                <div className="h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-medium text-foreground/60">
-                                  {(u.username || u.display_name || "?").charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[12px] font-medium text-foreground truncate">@{u.username}</div>
-                                {u.display_name && (
-                                  <div className="text-[10px] text-foreground/50 truncate">{u.display_name}</div>
-                                )}
-                              </div>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="divide-y divide-border/20">
+                        {searchUsers.length > 0 && (
+                          <div>
+                            <div className="px-3 pt-2.5 pb-1 text-[9px] font-medium tracking-[0.2em] text-foreground/40">USERS</div>
+                            <ul>
+                              {searchUsers.map((u) => (
+                                <li key={u.user_id}>
+                                  <button
+                                    onClick={() => navigate(`/u/${u.user_id}`)}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left"
+                                  >
+                                    {u.avatar_url ? (
+                                      <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
+                                    ) : (
+                                      <div className="h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-medium text-foreground/60">
+                                        {(u.username || u.display_name || "?").charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[12px] font-medium text-foreground truncate">@{u.username}</div>
+                                      {u.display_name && (
+                                        <div className="text-[10px] text-foreground/50 truncate">{u.display_name}</div>
+                                      )}
+                                    </div>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {searchTopics.length > 0 && (
+                          <div>
+                            <div className="px-3 pt-2.5 pb-1 text-[9px] font-medium tracking-[0.2em] text-foreground/40">HASHTAGS</div>
+                            <ul>
+                              {searchTopics.map((t) => (
+                                <li key={t.id}>
+                                  <button
+                                    onClick={() => { setActiveTopic(t.name); setSearchQuery(""); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left"
+                                  >
+                                    <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center text-[12px] font-medium text-accent/80">#</div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[12px] font-medium text-foreground truncate">#{t.name}</div>
+                                      <div className="text-[10px] text-foreground/50">{t.post_count} {t.post_count === 1 ? "post" : "posts"}</div>
+                                    </div>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
