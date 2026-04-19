@@ -33,6 +33,8 @@ interface Props {
   refreshKey?: number;
   /** When true, only show stories from users the current user follows (their circle) + their own. */
   circlesOnly?: boolean;
+  /** Notifies parent whenever the grouped story list refreshes. */
+  onLoaded?: (users: UserStories[]) => void;
 }
 
 const SEEN_KEY = "wardrobe.seenStories";
@@ -45,7 +47,7 @@ const getSeen = (): Record<string, string> => {
   }
 };
 
-const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false }: Props) => {
+const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded }: Props) => {
   const { user } = useAuth();
   const [grouped, setGrouped] = useState<UserStories[]>([]);
   const [myProfile, setMyProfile] = useState<ProfileLite | null>(null);
@@ -127,6 +129,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
 
     setGrouped(ordered);
     setLoading(false);
+    onLoaded?.(ordered);
   };
 
   const myHasStory = !!user && grouped.some((g) => g.user_id === user.id);
