@@ -62,7 +62,11 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
     const { data } = await supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle();
     if (data) {
       if (data.height_cm) setHeight(data.height_cm);
-      if (data.weight_kg) setWeight(data.weight_kg);
+      if (data.weight_kg) {
+        setWeight(Number(data.weight_kg));
+        setWeightTouched(true);
+        onWeightChange?.(Number(data.weight_kg));
+      }
       // avatar removed
       if (data.silhouette_type) {
         const typeMap: Record<string, BodyTypeKey> = {
