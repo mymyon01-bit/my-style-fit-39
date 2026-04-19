@@ -10,6 +10,7 @@
 import { detectPrimaryCategory, type PrimaryCategory } from "@/lib/search/category-lock";
 import { tokenizeSearchQuery } from "./searchTokenizer";
 import { expandSearchAliases } from "./searchAliases";
+import { parseGenderIntent } from "./genderFilter";
 
 export type DiscoverQueryType =
   | "category"      // "summer dresses", "leather bags"
@@ -48,6 +49,8 @@ export interface ParsedDiscoverQuery {
   scenario: string | null;
   colors: string[];
   fit: string | null;
+  /** Explicit gender from query (e.g. "mens jacket" → "men"). null if absent. */
+  genderIntent: "men" | "women" | null;
 }
 
 function pickAll(re: RegExp, q: string): string[] {
@@ -97,5 +100,6 @@ export function parseDiscoverQuery(raw: string): ParsedDiscoverQuery {
     colors: color ? [color] : [],
     scenario,
     fit,
+    genderIntent: parseGenderIntent(normalized),
   };
 }

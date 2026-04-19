@@ -24,7 +24,7 @@ import {
 } from "./discover-tokenizer";
 import { expandSearchAliases } from "./searchAliases";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS, getFreshnessBonus, looksLikeProductImage } from "./constants";
-import { passesGenderFilter, type GenderFilter } from "./genderFilter";
+import { passesGenderFilter, parseGenderIntent, genderRankAdjustment, type GenderFilter } from "./genderFilter";
 import type { ParsedIntent } from "./discover-intent-parser";
 import type { DiscoverProduct } from "./discover-types";
 
@@ -95,10 +95,13 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
   let stage: "tokens" | "longest-token" | "recent" = "tokens";
 
   // GENDER FILTER — applied to the candidate pool BEFORE ranking so the
-  // visible window is dominated by the right gender.
-  const genderPref = opts.gender ?? "all";
-  if (genderPref !== "all") {
-    rows = rows.filter((r) => passesGenderFilter(r as never, genderPref));
+  // visible window is dominated by the right gender. Query-level intent
+  // (e.g. "mens jacket") OVERRIDES the toggle when toggle is "all".
+  const queryGender = parseGenderIntent(opts.query);
+  const effectiveGender: GenderFilter =
+    queryGender ?? (opts.gender ?? "all");
+  if (effectiveGender !== "all") {
+    rows = rows.filter((r) => passesGenderFilter(r as never, effectiveGender));
   }
 
   // Pass 2 — degrade to longest single token if pool too thin
@@ -168,6 +171,8 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
       score += getFreshnessBonus(row.created_at);
       // Unseen bonus.
       if (!seenIds.has(row.id)) score += W.unseen;
+      // Gender intent adjustment (only when query has explicit gender).
+      score += genderRankAdjustment(row as never, queryGender);
       // Tiny jitter so ties shuffle and the first row rotates.
       const jitter = Math.random() * 0.5;
       return { row, rank: score + jitter };
