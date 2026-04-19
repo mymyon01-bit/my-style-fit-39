@@ -11,7 +11,7 @@ import { buildFitExplanation, confidenceTier } from "@/lib/fit/explain";
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
 import FitVisual from "@/components/fit/FitVisual";
-import { useReplicateTryOn } from "@/hooks/useReplicateTryOn";
+import { useAiTryOn } from "@/hooks/useAiTryOn";
 
 interface FitProduct {
   id: string;
@@ -201,16 +201,25 @@ export default function FitResults({
       }
     : null;
 
-  // ── PRIMARY visual generation: auto-call Replicate via fit-tryon-router ──
-  const tryOn = useReplicateTryOn({
-    enabled: tryOnReady,
+  // ── PRIMARY visual: hybrid AI try-on (photo → text fallback) ──
+  const tryOn = useAiTryOn({
+    enabled: !!product.image,
     userImageUrl,
     productImageUrl: product.image,
     productKey,
     productCategory: product.category,
+    productName: product.name,
     selectedSize: activeSize,
+    body: {
+      heightCm: bodyHeightCm ?? null,
+      weightKg: bodyWeightKg ?? null,
+      shoulderWidthCm: estUserShoulder,
+      chestCm: estUserChest,
+      waistCm: null,
+    },
     fitDescriptor: activeSizeResult?.regions.find(r => r.region === "Chest")?.fit?.toString() || "regular",
     regions: activeSizeResult?.regions?.map(r => ({ region: r.region, fit: String(r.fit) })) ?? [],
+    productUrl: product.url,
   });
 
   return (
@@ -312,19 +321,17 @@ export default function FitResults({
         </div>
       </div>
 
-      {/* ══ VISUAL FIT — Replicate-generated try-on (primary) ══ */}
+      {/* ══ VISUAL FIT — AI-generated try-on (hero) ══ */}
       <FitVisual
         productImage={product.image}
         productName={product.name}
         category={product.category}
         activeSize={activeSize}
-        userChestCm={estUserChest}
-        userShoulderCm={estUserShoulder}
-        userHeightCm={bodyHeightCm}
-        userWeightKg={bodyWeightKg}
         tryOnImageUrl={tryOn.imageUrl}
         tryOnStatus={tryOn.status}
         tryOnProvider={tryOn.provider}
+        tryOnMode={tryOn.mode}
+        cacheHit={tryOn.cacheHit}
         onRescanBody={onRescan}
       />
       {tryOn.status === "error" && (
