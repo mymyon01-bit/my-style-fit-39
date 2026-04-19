@@ -45,6 +45,7 @@ const ProfilePage = () => {
   const [myOotds, setMyOotds] = useState<any[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [circlesSheet, setCirclesSheet] = useState<{ open: boolean; tab: "circle" | "ripple" }>({ open: false, tab: "circle" });
 
   useEffect(() => { if (user) loadProfileData(); }, [user]);
 
