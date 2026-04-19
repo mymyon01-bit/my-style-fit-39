@@ -37,6 +37,42 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// ─── SIZE → FIT BEHAVIOR (CRITICAL — drives visible S/M/L/XL differences) ──
+function sizeFitBehavior(size: string): {
+  ease: string;
+  silhouette: string;
+  drape: string;
+} {
+  const s = (size || "M").toUpperCase();
+  if (s === "XS" || s === "S") {
+    return {
+      ease: "tight, body-skimming with minimal ease (about 2cm)",
+      silhouette: "fitted close to the torso, sleeves taut, hem sits high",
+      drape: "fabric stretches across chest and shoulders, no excess folds",
+    };
+  }
+  if (s === "L") {
+    return {
+      ease: "relaxed with generous ease (about 8cm)",
+      silhouette: "loose through chest and waist, sleeves slightly long",
+      drape: "soft folds at the waist and under the arms, hem drops naturally",
+    };
+  }
+  if (s === "XL" || s === "XXL") {
+    return {
+      ease: "oversized with very generous ease (about 12cm or more)",
+      silhouette: "dropped shoulders, boxy through the body, long sleeves",
+      drape: "deep folds across the chest, billowing hem, fabric hangs away from body",
+    };
+  }
+  // M / default
+  return {
+    ease: "true-to-size with natural ease (about 5cm)",
+    silhouette: "follows body lines with comfortable room",
+    drape: "natural folds, sleeves hit the wrist, hem at the hip",
+  };
+}
+
 /** Build a fit-aware natural-language description used by both providers. */
 function buildFitDescription(
   category: string | undefined,
@@ -46,13 +82,14 @@ function buildFitDescription(
 ): string {
   const cat = (category || "garment").toLowerCase();
   const fit = fitDescriptor || "true-to-size";
+  const behavior = sizeFitBehavior(size);
   const regionPhrases = (regions || [])
     .filter((r) => r && r.region && r.fit)
     .slice(0, 5)
     .map((r) => `${r.region.toLowerCase()} ${r.fit.replace(/-/g, " ")}`)
     .join(", ");
-  const base = `${cat} in size ${size}, ${fit} fit`;
-  return regionPhrases ? `${base} — ${regionPhrases}` : base;
+  const base = `${cat} in size ${size} (${fit} fit, ${behavior.ease}); ${behavior.silhouette}; ${behavior.drape}`;
+  return regionPhrases ? `${base} — region notes: ${regionPhrases}` : base;
 }
 
 /** Compose a strong editorial prompt for Gemini fallback. */
@@ -63,13 +100,23 @@ function buildGeminiPrompt(
   regions: RegionFitLite[] | undefined
 ): string {
   const desc = buildFitDescription(category, size, fitDescriptor, regions);
+  const behavior = sizeFitBehavior(size);
   return (
-    `Generate a photorealistic virtual try-on. Take the person from the FIRST image and dress them in the ${desc} from the SECOND image. ` +
-    `Render the garment so the drape, ease, and silhouette accurately reflect the size and fit notes. ` +
-    `Preserve the person's face, hair, skin tone, body proportions, pose, and original background EXACTLY. ` +
-    `Match the original lighting direction, color temperature, and shadow softness. ` +
-    `Render natural fabric drape, seams, and creases. Avoid distortion, warping, extra limbs, duplicated faces, or text overlays. ` +
-    `Output a single full-body editorial-quality fashion photo, sharp and well-exposed.`
+    `Generate a single photorealistic full-body virtual try-on image. ` +
+    `Take the PERSON from the FIRST image and dress them in the GARMENT from the SECOND image. ` +
+    `Garment: ${desc}. ` +
+    `Fit behavior for size ${size}: ${behavior.silhouette}. Drape: ${behavior.drape}. ` +
+    `STRICT REQUIREMENTS:\n` +
+    `- The garment MUST sit on the person's body, anchored to shoulders / waist / hips with correct perspective.\n` +
+    `- The garment MUST NOT float, hover, or appear as a centered sticker overlay.\n` +
+    `- Preserve the person's face, hair, skin tone, body proportions, pose, and background EXACTLY.\n` +
+    `- Match original lighting direction, color temperature, and shadow softness.\n` +
+    `- Render natural fabric drape, seams, creases, and shadow contact at hem and sleeves.\n` +
+    `- Background must remain clean, neutral, and identical to the original.\n` +
+    `- Output a single sharp full-body editorial fashion photo, minimum 768px on the long edge.\n` +
+    `DO NOT: produce a mannequin, duplicated faces, extra limbs, distorted hands, text overlays, ` +
+    `logo hallucinations, duplicate clothing, or a different person. ` +
+    `DO NOT center the garment in the frame independent of the body.`
   );
 }
 
@@ -92,17 +139,34 @@ async function tryReplicate(token: string, body: CreateBody): Promise<{
   })();
   const garment_des = buildFitDescription(body.productCategory, body.selectedSize, body.fitDescriptor, body.regions);
 
+  // Size-stable but size-distinct seed so S/M/L/XL diverge visibly without random churn.
+  const sizeSeed: Record<string, number> = { XS: 11, S: 23, M: 42, L: 71, XL: 97, XXL: 113 };
+  const seed = sizeSeed[(body.selectedSize || "M").toUpperCase()] ?? 42;
+
   const url = model.includes(":")
     ? "https://api.replicate.com/v1/predictions"
     : `https://api.replicate.com/v1/models/${model}/predictions`;
-  const payload = model.includes(":")
-    ? { version: model.split(":")[1], input: { human_img: body.userImageUrl, garm_img: body.productImageUrl, garment_des, category: garmentCategory, crop: false, seed: 42, steps: 30 } }
-    : { input: { human_img: body.userImageUrl, garm_img: body.productImageUrl, garment_des, category: garmentCategory, crop: false, seed: 42, steps: 30 } };
 
-  console.log("[router] replicate try", { model, size: body.selectedSize, garment_des });
+  const input = {
+    human_img: body.userImageUrl,
+    garm_img: body.productImageUrl,
+    garment_des,
+    category: garmentCategory,
+    crop: false,
+    force_dc: false,
+    mask_only: false,
+    seed,
+    steps: 40, // higher quality (was 30)
+  };
+
+  const payload = model.includes(":")
+    ? { version: model.split(":")[1], input }
+    : { input };
+
+  console.log("[router] replicate try", { model, size: body.selectedSize, seed, garment_des });
   const r = await fetch(url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Prefer: "wait=5" },
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Prefer: "wait=10" },
     body: JSON.stringify(payload),
   });
   const data = await r.json().catch(() => ({}));
@@ -213,7 +277,7 @@ Deno.serve(async (req) => {
       return json({ error: "productImageUrl, productKey, selectedSize required" }, 400);
     }
 
-    // Cache lookup (per provider-agnostic key)
+    // Cache lookup (per provider-agnostic key) — keyed by product + size so S/M/L/XL are distinct rows
     if (userId && !body.forceRegenerate) {
       const { data: cached } = await supabase
         .from("fit_tryons")
@@ -264,7 +328,7 @@ Deno.serve(async (req) => {
               user_image_url: body.userImageUrl,
               product_image_url: body.productImageUrl,
               result_image_url: res.resultImageUrl,
-              metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [] },
+              metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], sizeBehavior: sizeFitBehavior(body.selectedSize) },
             }, { onConflict: "user_id,product_key,selected_size" });
           }
           return json({
@@ -292,7 +356,7 @@ Deno.serve(async (req) => {
               user_image_url: body.userImageUrl,
               product_image_url: body.productImageUrl,
               result_image_url: res.resultImageUrl,
-              metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], fallback: mode === "high" },
+              metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], sizeBehavior: sizeFitBehavior(body.selectedSize), fallback: mode === "high" },
             }, { onConflict: "user_id,product_key,selected_size" });
           }
           return json({
