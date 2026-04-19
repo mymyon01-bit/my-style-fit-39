@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Heart, Share2, ExternalLink, X, Tag } from "lucide-react";
+import { Heart, Share2, ExternalLink, X, Tag, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SafeImage from "@/components/SafeImage";
 import ShareButton from "@/components/ShareButton";
 import { AuthGate } from "@/components/AuthGate";
@@ -39,7 +40,29 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: ProductDetailSheetProps) => {
+  const navigate = useNavigate();
   if (!product) return null;
+
+  const handleTryOn = () => {
+    const parsed = product.price ? parseFloat(String(product.price).replace(/[^0-9.]/g, "")) : NaN;
+    const payload = {
+      id: product.id,
+      name: product.name,
+      brand: product.brand,
+      price: Number.isFinite(parsed) ? parsed : null,
+      image: product.image_url || "",
+      url: product.source_url || "#",
+      category: (product.category || "tops").toLowerCase().includes("bottom") ? "bottoms" : "tops",
+      fitType: product.fit || "regular",
+      dataQuality: 60,
+      source: "db" as const,
+    };
+    try {
+      sessionStorage.setItem(`fit:product:${product.id}`, JSON.stringify(payload));
+    } catch { /* ignore */ }
+    onClose();
+    navigate(`/fit/${encodeURIComponent(product.id)}`);
+  };
 
   const tags = [
     ...(product.style_tags || []),
