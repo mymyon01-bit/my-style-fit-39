@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
 import { useAirQuality } from "@/hooks/useAirQuality";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles, Cloud, Wind, RefreshCw } from "lucide-react";
+import { Sparkles, Cloud, Wind, RefreshCw, Loader2 } from "lucide-react";
 import TodayQuizSheet from "./TodayQuizSheet";
 import TodayLooksGrid from "./TodayLooksGrid";
-import { generateTodayLooks, type TodayLook } from "@/lib/today/generateLooks";
+import type { TodayLook } from "@/lib/today/generateLooks";
 import type { QuizAnswer } from "@/lib/today/quizOptions";
 
 const AQI_LABEL: Record<string, string> = {
@@ -26,50 +26,84 @@ export default function TodayPicks() {
   const [open, setOpen] = useState(false);
   const [answers, setAnswers] = useState<QuizAnswer | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [looks, setLooks] = useState<TodayLook[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [genderPref, setGenderPref] = useState<"women" | "men" | "all">("all");
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Load today's answers from DB
+  // Load today's answers + gender pref
   useEffect(() => {
     if (!user) { setLoaded(true); return; }
     (async () => {
-      const { data } = await supabase
-        .from("today_quiz_answers")
-        .select("occasion, style, craving")
-        .eq("user_id", user.id)
-        .eq("quiz_date", today)
-        .maybeSingle();
-      if (data) setAnswers({ occasion: data.occasion, style: data.style, craving: data.craving });
+      const [{ data: ans }, { data: prof }] = await Promise.all([
+        supabase.from("today_quiz_answers").select("occasion, style, craving").eq("user_id", user.id).eq("quiz_date", today).maybeSingle(),
+        supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle(),
+      ]);
+      if (ans) setAnswers({ occasion: ans.occasion, style: ans.style, craving: ans.craving });
+      const g = (prof?.gender_preference || "").toLowerCase();
+      setGenderPref(g === "female" || g === "women" ? "women" : g === "male" || g === "men" ? "men" : "all");
       setLoaded(true);
     })();
   }, [user, today]);
 
-  const looks = useMemo<TodayLook[]>(() => {
-    if (!answers || weather.loading) return [];
-    return generateTodayLooks({
-      temp: weather.temp,
-      condition: weather.condition,
-      aqiLevel: aq.level,
-      answers,
-    });
-  }, [answers, weather.temp, weather.condition, weather.loading, aq.level]);
+  const generateLooks = async (a: QuizAnswer) => {
+    if (weather.loading) return;
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("today-looks", {
+        body: {
+          weather: { temp: weather.temp, condition: weather.condition, location: weather.location },
+          aqi: { pm25: aq.pm25, pm10: aq.pm10, level: aq.level },
+          answers: a,
+          gender: genderPref,
+        },
+      });
+      if (error) throw error;
+      if (data?.error === "rate_limited") {
+        toast({ title: "Rate limited", description: "Try again in a moment.", variant: "destructive" });
+        return;
+      }
+      if (data?.error === "credits_exhausted") {
+        toast({ title: "AI credits exhausted", description: "Add credits in Settings → Workspace.", variant: "destructive" });
+        return;
+      }
+      setLooks(data?.looks ?? []);
+    } catch (e) {
+      console.error("today-looks error:", e);
+      toast({ title: "Couldn't generate looks", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // Auto-generate when answers + weather ready and no looks yet
+  useEffect(() => {
+    if (answers && !weather.loading && looks.length === 0 && !generating) {
+      generateLooks(answers);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, weather.loading]);
 
   const handleSubmitQuiz = async (a: QuizAnswer) => {
     setAnswers(a);
     setOpen(false);
-    if (!user) return;
-    await supabase.from("today_quiz_answers").upsert(
-      {
-        user_id: user.id,
-        quiz_date: today,
-        occasion: a.occasion,
-        style: a.style,
-        craving: a.craving,
-        weather_snapshot: { temp: weather.temp, condition: weather.condition, location: weather.location },
-        aqi_snapshot: { pm25: aq.pm25, pm10: aq.pm10, level: aq.level },
-      },
-      { onConflict: "user_id,quiz_date" }
-    );
+    setLooks([]);
+    if (user) {
+      await supabase.from("today_quiz_answers").upsert(
+        {
+          user_id: user.id,
+          quiz_date: today,
+          occasion: a.occasion,
+          style: a.style,
+          craving: a.craving,
+          weather_snapshot: { temp: weather.temp, condition: weather.condition, location: weather.location },
+          aqi_snapshot: { pm25: aq.pm25, pm10: aq.pm10, level: aq.level },
+        },
+        { onConflict: "user_id,quiz_date" }
+      );
+    }
+    generateLooks(a);
   };
 
   const handleShareToOOTD = (look: TodayLook) => {
@@ -136,6 +170,15 @@ export default function TodayPicks() {
           >
             <Sparkles className="h-3.5 w-3.5" /> START QUIZ
           </button>
+        </div>
+      ) : generating ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-4 w-4 animate-spin text-foreground/70" />
+          <span className="ml-3 text-[11px] tracking-[0.2em] text-foreground/60">STYLING…</span>
+        </div>
+      ) : looks.length === 0 ? (
+        <div className="py-12 text-center text-[11px] text-foreground/55">
+          No looks yet. <button onClick={() => answers && generateLooks(answers)} className="underline">Retry</button>
         </div>
       ) : (
         <TodayLooksGrid looks={looks} onShareToOOTD={handleShareToOOTD} onTry={handleTry} />
