@@ -10,7 +10,7 @@ import {
 import { expandSearchAliases } from "@/lib/discover/searchAliases";
 import { logGridRender } from "@/lib/discover/discover-diagnostics";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS } from "@/lib/discover/constants";
-import { passesGenderFilter, type GenderFilter } from "@/lib/discover/genderFilter";
+import { passesGenderFilter, parseGenderIntent, genderRankAdjustment, type GenderFilter } from "@/lib/discover/genderFilter";
 import type { Product } from "@/lib/search/types";
 
 /**
