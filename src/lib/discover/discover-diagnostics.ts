@@ -55,3 +55,50 @@ export function logQueryParsed(parsed: ParsedDiscoverQuery): void {
     },
   });
 }
+
+/**
+ * Logged once per DB-first selector pass. Captures EXACTLY what Phase 10
+ * of the upgrade spec asks for: raw, normalized, tokens, expanded tokens,
+ * locked category, DB result count, fallback stage, and the top product
+ * ids returned (truncated to 10 to keep the row small).
+ */
+export interface GridRenderDiagnostic {
+  query: string;
+  normalized: string;
+  tokens: string[];
+  expandedTokens: string[];
+  lockedCategory: string | null;
+  dbResultCount: number;
+  fallbackStage: "tokens" | "longest-token" | "recent" | "category-ilike" | "trending";
+  topProductIds: string[];
+  layer?: "db" | "live" | "looks";
+}
+
+export function logGridRender(d: GridRenderDiagnostic): void {
+  // Always console-log during this rollout pass — admin diagnostics page
+  // can read the same data from `diagnostics_events` afterwards.
+  // eslint-disable-next-line no-console
+  console.log("[discover_grid_render]", {
+    raw: d.query,
+    normalized: d.normalized,
+    tokens: d.tokens,
+    expanded: d.expandedTokens,
+    locked: d.lockedCategory,
+    count: d.dbResultCount,
+    stage: d.fallbackStage,
+    topIds: d.topProductIds.slice(0, 5),
+  });
+  logDiscoverEvent("discover_grid_render", {
+    query: d.query,
+    layer: d.layer ?? "db",
+    metadata: {
+      normalized: d.normalized,
+      tokens: d.tokens,
+      expanded_tokens: d.expandedTokens,
+      locked_category: d.lockedCategory,
+      db_result_count: d.dbResultCount,
+      fallback_stage: d.fallbackStage,
+      top_product_ids: d.topProductIds.slice(0, 10),
+    },
+  });
+}
