@@ -24,9 +24,9 @@ export function computeBmi(heightCm: number, weightKg: number | null): number | 
 
 export function computeFrame(bmi: number | null): FrameType {
   if (bmi == null) return "regular";
-  if (bmi < 20) return "slim";
-  if (bmi >= 26) return "broad";
-  return "regular";
+  if (bmi < 21) return "slim";       // 170/60 → 20.8 → slim
+  if (bmi >= 25) return "broad";     // 180/85 → 26.2 → broad
+  return "regular";                  // 175/70 → 22.9 → regular
 }
 
 export function normalizeBodyProfile(input: {
