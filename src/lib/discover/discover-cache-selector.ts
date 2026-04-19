@@ -94,6 +94,13 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
   let rows = await fetchPool(orTerms, poolSize);
   let stage: "tokens" | "longest-token" | "recent" = "tokens";
 
+  // GENDER FILTER — applied to the candidate pool BEFORE ranking so the
+  // visible window is dominated by the right gender.
+  const genderPref = opts.gender ?? "all";
+  if (genderPref !== "all") {
+    rows = rows.filter((r) => passesGenderFilter(r as never, genderPref));
+  }
+
   // Pass 2 — degrade to longest single token if pool too thin
   let usedFallback = false;
   if (rows.length < windowSize && orTerms.length > 1) {
