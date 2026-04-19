@@ -56,6 +56,10 @@ export interface DiscoverSearchState {
   query: string;
   parsed: ParsedDiscoverQuery | null;
   expansion: ExpansionPlan | null;
+  intent: ParsedIntent | null;
+  intentChips: string[];
+  intentFallback: "alias" | "ai" | null;
+  ladderStage: LadderStage | null;
   results: DiscoverRenderableProduct[];
   diagnostics: (DiscoverGridDiagnostics & { query: string }) | null;
   status: "idle" | "searching" | "partial" | "complete" | "error";
@@ -73,6 +77,10 @@ const INITIAL_STATE: DiscoverSearchState = {
   query: "",
   parsed: null,
   expansion: null,
+  intent: null,
+  intentChips: [],
+  intentFallback: null,
+  ladderStage: null,
   results: [],
   diagnostics: null,
   status: "idle",
