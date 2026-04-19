@@ -8,6 +8,7 @@ import {
   Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock
 } from "lucide-react";
 import StylePreferenceEditor from "@/components/StylePreferenceEditor";
+import CirclesSheet from "@/components/CirclesSheet";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useSavedFolders } from "@/hooks/useSavedFolders";
