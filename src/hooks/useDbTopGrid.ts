@@ -10,6 +10,7 @@ import {
 import { expandSearchAliases } from "@/lib/discover/searchAliases";
 import { logGridRender } from "@/lib/discover/discover-diagnostics";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS } from "@/lib/discover/constants";
+import { passesGenderFilter, type GenderFilter } from "@/lib/discover/genderFilter";
 import type { Product } from "@/lib/search/types";
 
 /**
@@ -25,7 +26,7 @@ export interface UseDbTopGridResult {
   error: string | null;
 }
 
-export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
+export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "all"): UseDbTopGridResult {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
