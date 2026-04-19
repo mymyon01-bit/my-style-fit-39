@@ -304,6 +304,13 @@ const OOTDPage = () => {
             postCount={myPosts.length}
             totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
             refreshKey={storiesRefreshKey}
+            hasStory={hasOwnStory}
+            hasUnseenStory={hasOwnUnseen}
+            onUploadStory={() => setStoryUploadOpen(true)}
+            onViewMyStory={() => {
+              const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
+              if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
+            }}
           />
         )}
 
@@ -318,6 +325,7 @@ const OOTDPage = () => {
               setStoryUploadOpen(true);
             }}
             onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
+            onLoaded={setAllStoryUsers}
           />
         )}
         {/* Tabs */}
