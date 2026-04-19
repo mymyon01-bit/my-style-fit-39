@@ -221,20 +221,34 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-foreground/75">Weight</span>
-              <span className="text-sm font-bold text-foreground">{weight} kg</span>
+              <span className="text-xs text-foreground/75">
+                Weight {!weightTouched && <span className="text-orange-500/90 font-bold">· required</span>}
+              </span>
+              <span className={`text-sm font-bold ${weightTouched ? "text-foreground" : "text-orange-500"}`}>
+                {weightTouched ? `${weight} kg` : "— kg"}
+              </span>
             </div>
             <input
               type="range"
-              min={35}
-              max={150}
+              min={40}
+              max={120}
               value={weight}
-              onChange={e => setWeight(Number(e.target.value))}
+              onChange={e => {
+                const w = Number(e.target.value);
+                setWeight(w);
+                setWeightTouched(true);
+                onWeightChange?.(w);
+              }}
               className="w-full accent-accent h-1.5 rounded-full appearance-none bg-foreground/[0.08] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
             />
             <div className="flex justify-between text-[10px] text-foreground/40 mt-1">
-              <span>35</span><span>90</span><span>150</span>
+              <span>40</span><span>80</span><span>120</span>
             </div>
+            {!weightTouched && (
+              <p className="text-[10px] text-orange-500/80 mt-2 leading-relaxed">
+                Slide to set your weight — needed for accurate fit (40–120 kg).
+              </p>
+            )}
           </div>
         </div>
       </div>
