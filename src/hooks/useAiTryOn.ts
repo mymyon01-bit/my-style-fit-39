@@ -74,11 +74,17 @@ export function useAiTryOn(args: Args) {
   });
   const cancelRef = useRef(false);
 
+  // Run text path when:
+  //   • no photo, OR
+  //   • photo path failed (invalid_body / error / missing_image)
+  const photoFailed =
+    hasPhoto && (photo.status === "invalid_body" || photo.status === "error" || photo.status === "missing_image");
+  const shouldRunText = args.enabled && (!hasPhoto || photoFailed);
+
   useEffect(() => {
     cancelRef.current = false;
-    if (!args.enabled || hasPhoto) {
-      // photo path active OR disabled — clear text state
-      if (!hasPhoto && !args.enabled) {
+    if (!shouldRunText) {
+      if (!args.enabled) {
         setTextState((s) => ({ ...s, status: "idle", imageUrl: null, error: null }));
       }
       return;
@@ -94,6 +100,7 @@ export function useAiTryOn(args: Args) {
       user: args.body,
       product,
       selectedSize: args.selectedSize,
+      recommendedSize: args.prewarmSize ?? undefined,
     });
 
     const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
@@ -197,13 +204,15 @@ export function useAiTryOn(args: Args) {
       clearTimeout(guardTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [args.enabled, hasPhoto, args.productKey, args.selectedSize]);
+  }, [shouldRunText, args.productKey, args.selectedSize]);
 
   // ── PATCH 4 — BACKGROUND PREWARM ─────────────────────────────────────────
   // Fire-and-forget generation for a default/recommended size so that when
   // the user clicks it, the cache already has it.
   useEffect(() => {
-    if (!args.enabled || hasPhoto) return;
+    if (!args.enabled) return;
+    // Skip prewarm only when photo path is clearly working
+    if (hasPhoto && !photoFailed && photo.status !== "idle") return;
     const warm = args.prewarmSize;
     if (!warm || warm === args.selectedSize) return;
     if (!args.productKey) return;
@@ -215,7 +224,7 @@ export function useAiTryOn(args: Args) {
       category: args.productCategory ?? null,
       fitType: args.productFitType ?? null,
     };
-    const prompt = buildTryOnPrompt({ user: args.body, product, selectedSize: warm });
+    const prompt = buildTryOnPrompt({ user: args.body, product, selectedSize: warm, recommendedSize: warm });
 
     const run = () => {
       supabase.functions
@@ -241,7 +250,18 @@ export function useAiTryOn(args: Args) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [args.enabled, hasPhoto, args.productKey, args.prewarmSize]);
 
-  if (hasPhoto) {
+  // ── Output selection ──────────────────────────────────────────────────
+  // If photo path is actively producing/produced something usable, return it.
+  // Otherwise (idle, invalid_body, error, missing_image), fall back to the
+  // text path so the VISUAL FIT block is never blank.
+  const photoUsable =
+    hasPhoto &&
+    (photo.status === "ready" ||
+      photo.status === "fallback" ||
+      photo.status === "generating" ||
+      photo.status === "resolving_image");
+
+  if (photoUsable) {
     return {
       status: photo.status,
       imageUrl: photo.imageUrl,
@@ -251,6 +271,12 @@ export function useAiTryOn(args: Args) {
       prompt: null,
       mode: "photo" as const,
     };
+  }
+
+  // text-state may still be `idle` if effect hasn't fired — surface as generating
+  // so the UI shows the loading skeleton rather than a blank.
+  if (hasPhoto && textState.status === "idle") {
+    console.log("[useAiTryOn] photo path unusable, deferring to text", { photoStatus: photo.status });
   }
   return textState;
 }

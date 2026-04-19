@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -77,6 +78,7 @@ const FitPage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const { productId: routeProductId } = useParams<{ productId?: string }>();
   const [activeTab, setActiveTab] = useState<Tab>("scan");
   const [fitMode, setFitMode] = useState<FitMode>("free");
   const [scanQuality, setScanQuality] = useState(0);
@@ -99,6 +101,54 @@ const FitPage = () => {
   const canUsePremium = subscription.isPremium;
 
   useEffect(() => { if (user) loadBodyProfile(); }, [user]);
+
+  // ── DEEP LINK: /fit/:productId — auto-load product and jump to RESULTS ──
+  const deepLinkAttempted = useRef<string | null>(null);
+  useEffect(() => {
+    if (!routeProductId) return;
+    if (deepLinkAttempted.current === routeProductId) return;
+    deepLinkAttempted.current = routeProductId;
+
+    (async () => {
+      try {
+        // Try sessionStorage hand-off first (set by ProductDetailSheet)
+        const cached = sessionStorage.getItem(`fit:product:${routeProductId}`);
+        let product: SelectedProduct | null = null;
+        if (cached) {
+          try { product = JSON.parse(cached) as SelectedProduct; } catch { /* ignore */ }
+        }
+        if (!product) {
+          const { data } = await supabase
+            .from("product_cache")
+            .select("id, name, brand, price, image_url, source_url, category, fit, style_tags")
+            .eq("id", routeProductId)
+            .maybeSingle();
+          if (!data) {
+            toast.error("Product not found");
+            return;
+          }
+          const parsed = data.price ? parseFloat(String(data.price).replace(/[^0-9.]/g, "")) : NaN;
+          product = {
+            id: data.id,
+            name: data.name,
+            brand: data.brand || "Unknown",
+            price: Number.isFinite(parsed) ? parsed : null,
+            image: data.image_url || "",
+            url: data.source_url || "#",
+            category: (data.category || "tops").toLowerCase().includes("bottom") ? "bottoms" : "tops",
+            fitType: data.fit || "regular",
+            dataQuality: 60,
+            source: "db",
+          };
+        }
+        // Wait a tick so body profile is loaded before computing fit
+        setTimeout(() => handleSelectProduct(product!), 250);
+      } catch (e) {
+        console.error("[FitPage] deep-link load failed", e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeProductId]);
 
   const loadBodyProfile = async () => {
     if (!user) return;

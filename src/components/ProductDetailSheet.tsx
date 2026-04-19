@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Heart, Share2, ExternalLink, X, Tag } from "lucide-react";
+import { Heart, Share2, ExternalLink, X, Tag, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SafeImage from "@/components/SafeImage";
 import ShareButton from "@/components/ShareButton";
 import { AuthGate } from "@/components/AuthGate";
@@ -39,7 +40,29 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: ProductDetailSheetProps) => {
+  const navigate = useNavigate();
   if (!product) return null;
+
+  const handleTryOn = () => {
+    const parsed = product.price ? parseFloat(String(product.price).replace(/[^0-9.]/g, "")) : NaN;
+    const payload = {
+      id: product.id,
+      name: product.name,
+      brand: product.brand,
+      price: Number.isFinite(parsed) ? parsed : null,
+      image: product.image_url || "",
+      url: product.source_url || "#",
+      category: (product.category || "tops").toLowerCase().includes("bottom") ? "bottoms" : "tops",
+      fitType: product.fit || "regular",
+      dataQuality: 60,
+      source: "db" as const,
+    };
+    try {
+      sessionStorage.setItem(`fit:product:${product.id}`, JSON.stringify(payload));
+    } catch { /* ignore */ }
+    onClose();
+    navigate(`/fit/${encodeURIComponent(product.id)}`);
+  };
 
   const tags = [
     ...(product.style_tags || []),
@@ -120,19 +143,29 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-3 pt-2">
-              {/* Shop Now — primary CTA */}
-              {product.source_url && (
-                <a
-                  href={product.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  SHOP NOW
-                </a>
-              )}
+            <div className="space-y-2.5 pt-2">
+              {/* Try this on — primary AI CTA */}
+              <button
+                onClick={handleTryOn}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent transition-all hover:bg-accent/20"
+              >
+                <Sparkles className="h-4 w-4" />
+                TRY THIS ON
+              </button>
+
+              <div className="flex items-center gap-3">
+                {/* Shop Now */}
+                {product.source_url && (
+                  <a
+                    href={product.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    SHOP NOW
+                  </a>
+                )}
 
               {/* Save */}
               <AuthGate action="save items">
@@ -148,12 +181,13 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                 </button>
               </AuthGate>
 
-              {/* Share */}
-              <ShareButton
-                title={`${product.brand} — ${product.name}`}
-                url={product.source_url || window.location.href}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80 transition-all"
-              />
+                {/* Share */}
+                <ShareButton
+                  title={`${product.brand} — ${product.name}`}
+                  url={product.source_url || window.location.href}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80 transition-all"
+                />
+              </div>
             </div>
           </div>
         </div>

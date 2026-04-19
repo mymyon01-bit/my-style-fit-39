@@ -65,9 +65,10 @@ export function buildTryOnPrompt(args: {
   user: TryOnUserBody;
   product: TryOnProductInfo;
   selectedSize: string;
+  recommendedSize?: string;
 }): string {
-  const { user, product, selectedSize } = args;
-  const behavior = sizeBehaviorStrong(selectedSize);
+  const { user, product, selectedSize, recommendedSize } = args;
+  const behavior = sizeBehaviorStrong(selectedSize, recommendedSize);
   const cat = (product.category || "garment").toLowerCase();
   const desc = buildDescriptor(product);
   const persona = pickPersona({
