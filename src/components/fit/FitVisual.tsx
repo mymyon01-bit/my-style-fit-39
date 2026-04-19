@@ -1,33 +1,27 @@
 // ─── FIT VISUAL ─────────────────────────────────────────────────────────────
-// HERO: procedural 3D avatar wearing a 3D garment shell that visibly
-// responds to size + body. The Replicate AI Photo Try-On is now a
-// secondary, collapsible panel below the 3D viewer.
+// HERO: AI-generated try-on image (edge-to-edge). The previous 3D viewer
+// has been demoted to legacy code (Fit3DViewer.tsx still exists but is no
+// longer rendered). Silhouette is shown ONLY as final fallback.
+//
+// States rendered:
+//   1. generating      → clean overlay with thin progress bar
+//   2. ready/fallback  → full image, edge-to-edge
+//   3. invalid_body    → CTA to upload body photo (text-prompt path still works)
+//   4. error / missing → silhouette + "Preview unavailable"
 
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ChevronDown, Camera } from "lucide-react";
-import { useState, lazy, Suspense } from "react";
+import { motion } from "framer-motion";
+import { Sparkles, Camera, ImageOff, User } from "lucide-react";
 import SafeImage from "@/components/SafeImage";
-import type { UserBody } from "@/lib/fit/bodyToAvatar";
 
-// Lazy: ~150 KB three.js bundle only loads when FIT renders.
-const Fit3DViewer = lazy(() => import("@/components/fit/Fit3DViewer"));
-
-function ViewerSkeleton({ height }: { height: number }) {
-  return (
-    <div
-      className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.05]"
-      style={{
-        height,
-        background:
-          "radial-gradient(ellipse at 50% 38%, hsl(var(--accent) / 0.06), transparent 60%), linear-gradient(180deg, #18181c 0%, #0e0e11 100%)",
-      }}
-    >
-      <div className="absolute inset-0 flex items-center justify-center">
-        <p className="text-[10px] tracking-[0.22em] text-foreground/40">LOADING 3D FIT…</p>
-      </div>
-    </div>
-  );
-}
+export type TryOnUiStatus =
+  | "idle"
+  | "generating"
+  | "resolving_image"
+  | "missing_image"
+  | "ready"
+  | "fallback"
+  | "error"
+  | "invalid_body";
 
 interface Props {
   productImage: string;
@@ -35,225 +29,167 @@ interface Props {
   category: string;
   activeSize: string;
 
-  /** real user body if available — used by 3D avatar */
-  userChestCm?: number;
-  userShoulderCm?: number;
-  userHeightCm?: number;
-  userWeightKg?: number | null;
-  userWaistCm?: number;
-  userInseamCm?: number;
-
-  /** AI try-on (secondary) */
+  /** AI try-on result (primary visual) */
   tryOnImageUrl?: string | null;
-  tryOnStatus?:
-    | "idle"
-    | "generating"
-    | "resolving_image"
-    | "missing_image"
-    | "ready"
-    | "fallback"
-    | "error"
-    | "invalid_body";
-  tryOnProvider?: "replicate" | "perplexity" | null;
+  tryOnStatus?: TryOnUiStatus;
+  tryOnProvider?: "replicate" | "perplexity" | "replicate-text" | null;
+  tryOnMode?: "photo" | "text";
+  cacheHit?: boolean;
+
   onRescanBody?: () => void;
+}
+
+function FallbackSilhouette({ label }: { label: string }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]">
+      <User className="h-20 w-20 text-foreground/15" strokeWidth={1} />
+      <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/45">
+        {label}
+      </p>
+    </div>
+  );
 }
 
 export default function FitVisual({
   productImage,
   productName,
-  category,
   activeSize,
-  userChestCm,
-  userShoulderCm,
-  userHeightCm,
-  userWeightKg,
-  userWaistCm,
-  userInseamCm,
   tryOnImageUrl,
   tryOnStatus = "idle",
   tryOnProvider,
+  tryOnMode = "text",
+  cacheHit = false,
   onRescanBody,
 }: Props) {
-  const [aiOpen, setAiOpen] = useState(false);
-
-  const userBody: UserBody = {
-    heightCm: userHeightCm ?? null,
-    weightKg: userWeightKg ?? null,
-    shoulderWidthCm: userShoulderCm ?? null,
-    chestCm: userChestCm ?? null,
-    waistCm: userWaistCm ?? null,
-    inseamCm: userInseamCm ?? null,
-  };
-
   const hasReal =
-    !!tryOnImageUrl && (tryOnStatus === "ready" || tryOnStatus === "fallback");
-  const isGenerating = tryOnStatus === "generating";
-  const isResolvingImage = tryOnStatus === "resolving_image";
-  const isMissingImage = tryOnStatus === "missing_image";
+    !!tryOnImageUrl &&
+    (tryOnStatus === "ready" || tryOnStatus === "fallback");
+  const isGenerating =
+    tryOnStatus === "generating" || tryOnStatus === "resolving_image";
+  const isInvalidBody = tryOnStatus === "invalid_body";
+  const isMissing = tryOnStatus === "missing_image";
+  const isError = tryOnStatus === "error";
 
-  const aiStatusLabel =
-    hasReal && tryOnProvider === "replicate"
-      ? "AI TRY-ON · READY"
-      : hasReal && tryOnProvider === "perplexity"
-      ? "AI TRY-ON · FALLBACK"
-      : isGenerating
-      ? "GENERATING…"
-      : isResolvingImage
-      ? "FETCHING IMAGE…"
-      : isMissingImage
-      ? "IMAGE REQUIRED"
-      : tryOnStatus === "invalid_body"
-      ? "BODY IMAGE NEEDED"
-      : tryOnStatus === "error"
-      ? "UNAVAILABLE"
-      : "OPTIONAL";
-
-  const aiStatusTone =
-    hasReal && tryOnProvider === "replicate"
-      ? "text-accent"
-      : hasReal && tryOnProvider === "perplexity"
-      ? "text-amber-400/90"
-      : isMissingImage || tryOnStatus === "invalid_body"
-      ? "text-amber-400/85"
-      : tryOnStatus === "error"
-      ? "text-orange-400/80"
-      : "text-foreground/55";
+  const providerLabel =
+    tryOnProvider === "replicate"
+      ? "AI · PHOTO TRY-ON"
+      : tryOnProvider === "perplexity"
+      ? "AI · REFERENCE LOOK"
+      : tryOnProvider === "replicate-text"
+      ? "AI · STYLE PREVIEW"
+      : "AI TRY-ON";
 
   return (
-    <div className="rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-5 space-y-4 overflow-hidden">
+    <div className="rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4 space-y-3 overflow-hidden">
       {/* header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-1">
         <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">
           VISUAL FIT
         </p>
         <span className="flex items-center gap-1 text-[9px] font-semibold tracking-[0.18em] text-accent">
-          <Sparkles className="h-2.5 w-2.5" /> 3D · SIZE {activeSize}
+          <Sparkles className="h-2.5 w-2.5" /> SIZE {activeSize}
+          {cacheHit && <span className="text-foreground/35"> · CACHED</span>}
         </span>
       </div>
 
-      {/* HERO — 3D viewer (lazy-loaded) */}
-      <Suspense fallback={<ViewerSkeleton height={460} />}>
-        <Fit3DViewer
-          productImage={productImage}
-          productName={productName}
-          category={category}
-          size={activeSize}
-          body={userBody}
-          height={460}
-        />
-      </Suspense>
+      {/* ── HERO IMAGE — edge-to-edge ── */}
+      <div
+        className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06]"
+        style={{ aspectRatio: "3 / 4", maxHeight: 560 }}
+      >
+        {hasReal ? (
+          <SafeImage
+            src={tryOnImageUrl!}
+            alt={`${productName} try-on, size ${activeSize}`}
+            className="h-full w-full object-cover"
+            fallbackClassName="h-full w-full"
+            loading="lazy"
+          />
+        ) : isGenerating ? (
+          <div className="relative h-full w-full bg-gradient-to-b from-background/80 to-background/40">
+            {/* faint preview using product image */}
+            {productImage && (
+              <div className="absolute inset-0 opacity-[0.12]">
+                <SafeImage
+                  src={productImage}
+                  alt=""
+                  className="h-full w-full object-contain"
+                  fallbackClassName="h-full w-full"
+                />
+              </div>
+            )}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
+              <div className="h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
+                <motion.div
+                  className="h-full w-1/3 rounded-full bg-accent"
+                  animate={{ x: ["-100%", "300%"] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+                />
+              </div>
+              <p className="text-[10px] font-semibold tracking-[0.24em] text-foreground/75">
+                GENERATING TRY-ON…
+              </p>
+              <p className="text-[10px] text-foreground/45 max-w-[260px] text-center leading-relaxed">
+                Building a realistic preview at size <strong>{activeSize}</strong>
+              </p>
+            </div>
+          </div>
+        ) : isInvalidBody ? (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center bg-gradient-to-b from-background/80 to-background/40">
+            <Camera className="h-10 w-10 text-accent/70" strokeWidth={1.4} />
+            <p className="text-[12px] font-semibold leading-snug text-foreground/85 max-w-[260px]">
+              Upload a full-body front photo for a personalized try-on
+            </p>
+            <p className="text-[10px] text-foreground/45 max-w-[240px] leading-relaxed">
+              We'll show a style preview meanwhile.
+            </p>
+            {onRescanBody && (
+              <button
+                onClick={onRescanBody}
+                className="rounded-full bg-accent px-5 py-2 text-[10px] font-bold tracking-[0.18em] text-accent-foreground hover:bg-accent/90 transition-colors"
+              >
+                SCAN BODY
+              </button>
+            )}
+          </div>
+        ) : isMissing ? (
+          <div className="relative h-full w-full">
+            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
+            <div className="absolute bottom-4 left-0 right-0 px-6 text-center">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] text-amber-400/90">
+                <ImageOff className="h-3 w-3" /> Product image missing
+              </div>
+            </div>
+          </div>
+        ) : isError ? (
+          <div className="relative h-full w-full">
+            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
+          </div>
+        ) : (
+          // idle
+          <FallbackSilhouette label="PREPARING…" />
+        )}
 
-      <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
-        Drag to rotate · Size changes the garment live
-      </p>
-
-      {/* SECONDARY — AI Photo Try-On (collapsible) */}
-      <div className="rounded-2xl border border-foreground/[0.06] bg-background/30 overflow-hidden">
-        <button
-          onClick={() => setAiOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-foreground/[0.02]"
-        >
-          <div className="flex items-center gap-2.5">
-            <Camera className="h-3.5 w-3.5 text-foreground/55" />
-            <span className="text-[11px] font-bold tracking-[0.2em] text-foreground/75">
-              AI PHOTO TRY-ON
-            </span>
-            <span className={`text-[9px] font-semibold tracking-[0.18em] ${aiStatusTone}`}>
-              · {aiStatusLabel}
+        {/* provider chip overlay (only when image is shown) */}
+        {hasReal && (
+          <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
+            <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
+              {providerLabel}
             </span>
           </div>
-          <ChevronDown
-            className={`h-4 w-4 text-foreground/45 transition-transform ${
-              aiOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        <AnimatePresence initial={false}>
-          {aiOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="overflow-hidden"
-            >
-              <div className="px-4 pb-4 pt-1">
-                <div className="relative mx-auto h-[360px] w-full max-w-[280px] overflow-hidden rounded-xl border border-foreground/[0.05] bg-foreground/[0.03]">
-                  {hasReal ? (
-                    <SafeImage
-                      src={tryOnImageUrl!}
-                      alt={`${productName} virtual try-on`}
-                      className="h-full w-full object-cover"
-                      fallbackClassName="h-full w-full bg-foreground/[0.05]"
-                    />
-                  ) : isGenerating || isResolvingImage ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-3">
-                      <div className="h-1 w-24 overflow-hidden rounded-full bg-foreground/10">
-                        <motion.div
-                          className="h-full w-1/3 rounded-full bg-accent"
-                          animate={{ x: ["-100%", "300%"] }}
-                          transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
-                        />
-                      </div>
-                      <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/70">
-                        {isResolvingImage ? "FETCHING PRODUCT IMAGE…" : "GENERATING PHOTO TRY-ON…"}
-                      </p>
-                    </div>
-                  ) : tryOnStatus === "invalid_body" ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-3 px-5 text-center">
-                      <p className="text-[11px] font-semibold leading-snug text-foreground/85">
-                        Upload a full-body front photo to enable photo try-on
-                      </p>
-                      {onRescanBody && (
-                        <button
-                          onClick={onRescanBody}
-                          className="rounded-full bg-accent px-4 py-1.5 text-[10px] font-bold tracking-[0.18em] text-accent-foreground hover:bg-accent/90"
-                        >
-                          SCAN BODY
-                        </button>
-                      )}
-                    </div>
-                  ) : isMissingImage ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 px-5 text-center">
-                      <p className="text-[11px] font-semibold text-foreground/85">
-                        Image required for try-on
-                      </p>
-                      <p className="text-[10px] text-foreground/55">
-                        This product has no usable image.
-                      </p>
-                    </div>
-                  ) : tryOnStatus === "error" ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 px-5 text-center">
-                      <p className="text-[11px] font-semibold text-foreground/80">
-                        Photo try-on unavailable
-                      </p>
-                      <p className="text-[10px] text-foreground/55">
-                        The 3D fit above is your accurate preview.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 px-5 text-center">
-                      <Camera className="h-6 w-6 text-foreground/30" />
-                      <p className="text-[10px] tracking-[0.18em] text-foreground/55">
-                        OPTIONAL · AI-GENERATED
-                      </p>
-                      <p className="text-[10px] text-foreground/45 max-w-[210px] leading-relaxed">
-                        Generates a photo of you wearing this item. The 3D fit above is the source of truth.
-                      </p>
-                    </div>
-                  )}
-                </div>
-                {hasReal && tryOnProvider === "perplexity" && (
-                  <p className="mt-2 text-center text-[9.5px] text-amber-400/75">
-                    Reference look — not your exact try-on
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        )}
       </div>
+
+      {/* tiny footer */}
+      <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
+        {hasReal
+          ? tryOnMode === "photo"
+            ? "Generated from your body photo"
+            : "Style preview · upload a body photo for personal try-on"
+          : isGenerating
+          ? "Usually ready in a few seconds"
+          : "Switch sizes to compare fit"}
+      </p>
     </div>
   );
 }
