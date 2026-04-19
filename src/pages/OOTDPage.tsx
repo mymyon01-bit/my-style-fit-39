@@ -82,6 +82,11 @@ const OOTDPage = () => {
     users: [],
   });
 
+  // Username search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ProfileInfo[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   const myStoryUser = user ? allStoryUsers.find((u) => u.user_id === user.id) : undefined;
   const hasOwnStory = !!myStoryUser;
   const hasOwnUnseen = !!myStoryUser?.hasUnseen;
