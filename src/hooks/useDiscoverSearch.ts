@@ -41,7 +41,7 @@ import { enforceDiversity } from "@/lib/discover/rankResults";
 import { assessQueryCoverage } from "@/lib/discover/queryHealth";
 import { interpretQueryWithAI } from "@/lib/discover/aiQueryInterpreter";
 import { triggerAutoDiscovery, loadCachedInterpretation } from "@/lib/discover/triggerAutoDiscovery";
-import { passesGenderFilter, parseGenderIntent, type GenderFilter } from "@/lib/discover/genderFilter";
+import { parseGenderIntent, prioritizeGenderPool, type GenderFilter } from "@/lib/discover/genderFilter";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
@@ -112,12 +112,7 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
       const effectiveGender: GenderFilter = queryGender ?? gender;
       // Gender filter applied to the renderable pool BEFORE composition.
       if (effectiveGender !== "all") {
-        renderables = renderables.filter((r) =>
-          passesGenderFilter(
-            { name: r.title, brand: r.brand, category: r.category, search_query: null },
-            effectiveGender,
-          ),
-        );
+        renderables = prioritizeGenderPool(renderables as never[], effectiveGender).slice();
       }
       const composed = composeDiscoverGrid(renderables, { windowSize, minFreshRatio });
       // Enforce source/brand diversity caps on the visible window (35%/30%).

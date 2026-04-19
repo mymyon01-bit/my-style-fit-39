@@ -24,7 +24,7 @@ import {
 } from "./discover-tokenizer";
 import { expandSearchAliases } from "./searchAliases";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS, getFreshnessBonus, looksLikeProductImage } from "./constants";
-import { passesGenderFilter, parseGenderIntent, genderRankAdjustment, type GenderFilter } from "./genderFilter";
+import { parseGenderIntent, genderRankAdjustment, prioritizeGenderPool, type GenderFilter } from "./genderFilter";
 import type { ParsedIntent } from "./discover-intent-parser";
 import type { DiscoverProduct } from "./discover-types";
 
@@ -100,10 +100,6 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
   const queryGender = parseGenderIntent(opts.query);
   const effectiveGender: GenderFilter =
     queryGender ?? (opts.gender ?? "all");
-  if (effectiveGender !== "all") {
-    rows = rows.filter((r) => passesGenderFilter(r as never, effectiveGender));
-  }
-
   // Pass 2 — degrade to longest single token if pool too thin
   let usedFallback = false;
   if (rows.length < windowSize && orTerms.length > 1) {
@@ -120,6 +116,10 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
     rows = await fetchPool([], poolSize);
     usedFallback = true;
     stage = "recent";
+  }
+
+  if (effectiveGender !== "all") {
+    rows = prioritizeGenderPool(rows as never[], effectiveGender).slice();
   }
 
   // Spec-weighted scoring: category +30, name +20, category-token +15,

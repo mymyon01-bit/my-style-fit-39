@@ -1,73 +1,89 @@
-/**
- * Gender filter for Discover
- * --------------------------
- * product_cache has no `gender` column, so we infer from textual signals
- * (name, category, search_query, brand) using a keyword dictionary.
- *
- * - "women" / "men" returns rows that match those signals AND drops rows
- *   that clearly belong to the opposite gender.
- * - Unisex / unknown rows are KEPT for both genders (better recall on a
- *   sparse cache than strict exclusion).
- * - "all" is a no-op pass-through.
- */
+import { MEN_TERMS, WOMEN_TERMS } from "./constants";
+import { getProductGender, type ProductGender } from "./getProductGender";
+
 export type GenderFilter = "all" | "women" | "men";
 
-const WOMEN_HINTS = [
-  "women", "woman", "womens", "women's", "ladies", "ladys", "lady",
-  "female", "femme", "girls", "girl", "miss", "ms.",
-  "여성", "여자", "우먼", "미스",
-  "dress", "skirt", "blouse", "heels", "pumps", "stiletto", "bra", "lingerie",
-  "midi", "maxi", "bodycon", "camisole", "kitten heel", "slingback",
-];
-
-const MEN_HINTS = [
-  "men", "mens", "men's", "man", "male", "boys", "boy", "guys", "gentleman",
-  "남성", "남자", "맨즈",
-  "boxer", "boxers", "necktie", "tuxedo",
-];
-
-// Strong opposite-gender signals — drop on conflict.
-const STRICT_WOMEN_ONLY = ["dress", "skirt", "blouse", "heels", "lingerie", "bra"];
-const STRICT_MEN_ONLY = ["boxer", "boxers", "necktie", "tuxedo"];
-
-interface GenderableRow {
+export interface GenderableRow extends Record<string, unknown> {
   name?: string | null;
   brand?: string | null;
   category?: string | null;
   search_query?: string | null;
+  gender?: string | null;
+  department?: string | null;
+  audience?: string | null;
+  breadcrumb?: string | string[] | null;
+  searchQuery?: string | null;
 }
 
-function buildHaystack(row: GenderableRow): string {
-  return [row.name, row.brand, row.category, row.search_query]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+export type GenderMatchBucket = "same" | "unisex" | "unknown" | "opposite";
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function matchesAny(hay: string, hints: string[]): boolean {
-  return hints.some((h) => hay.includes(h));
+function buildIntentRegex(terms: readonly string[]): RegExp {
+  const parts = terms.map((term) => {
+    const escaped = escapeRegex(term.toLowerCase());
+    return /[a-z]/i.test(term)
+      ? `(?<![a-z])${escaped}(?![a-z])`
+      : escaped;
+  });
+  return new RegExp(`(${parts.join("|")})`, "i");
 }
+
+const MEN_INTENT_RE = buildIntentRegex(MEN_TERMS);
+const WOMEN_INTENT_RE = buildIntentRegex(WOMEN_TERMS);
 
 export function inferRowGender(row: GenderableRow): "women" | "men" | "unisex" {
-  const hay = buildHaystack(row);
-  const w = matchesAny(hay, WOMEN_HINTS);
-  const m = matchesAny(hay, MEN_HINTS);
-  if (w && !m) return "women";
-  if (m && !w) return "men";
+  const gender = getProductGender(row);
+  if (gender === "men" || gender === "women" || gender === "unisex") return gender;
   return "unisex";
+}
+
+function mapBucket(gender: ProductGender, target: Exclude<GenderFilter, "all">): GenderMatchBucket {
+  if (gender === target) return "same";
+  if (gender === "unisex") return "unisex";
+  if (gender === null) return "unknown";
+  return "opposite";
+}
+
+export function getGenderBucket(
+  row: GenderableRow,
+  gender: Exclude<GenderFilter, "all">,
+): GenderMatchBucket {
+  return mapBucket(getProductGender(row), gender);
+}
+
+export function partitionByGender<T extends GenderableRow>(
+  rows: T[],
+  gender: Exclude<GenderFilter, "all">,
+): Record<GenderMatchBucket, T[]> {
+  const buckets: Record<GenderMatchBucket, T[]> = {
+    same: [],
+    unisex: [],
+    unknown: [],
+    opposite: [],
+  };
+  for (const row of rows) {
+    buckets[getGenderBucket(row, gender)].push(row);
+  }
+  return buckets;
+}
+
+export function prioritizeGenderPool<T extends GenderableRow>(
+  rows: T[],
+  gender: Exclude<GenderFilter, "all">,
+): T[] {
+  const buckets = partitionByGender(rows, gender);
+  const preferred = [...buckets.same, ...buckets.unisex];
+  if (preferred.length > 0) return preferred;
+  if (buckets.unknown.length > 0) return buckets.unknown;
+  return buckets.opposite;
 }
 
 export function passesGenderFilter(row: GenderableRow, gender: GenderFilter): boolean {
   if (gender === "all") return true;
-  const hay = buildHaystack(row);
-  if (gender === "women") {
-    if (matchesAny(hay, STRICT_MEN_ONLY)) return false;
-    // Keep women + unisex (no strong signal). Only drop confirmed men.
-    return inferRowGender(row) !== "men";
-  }
-  // men
-  if (matchesAny(hay, STRICT_WOMEN_ONLY)) return false;
-  return inferRowGender(row) !== "women";
+  return getGenderBucket(row, gender) !== "opposite";
 }
 
 /** Map a profile.gender_preference value to a Discover filter. */
@@ -83,11 +99,6 @@ export function genderPreferenceToFilter(pref?: string | null): GenderFilter {
  * Parse explicit gender intent from a free-text query (EN + KR).
  * Returns "men"/"women" only when an unambiguous gender token is present.
  */
-const MEN_INTENT_RE =
-  /(\bmen'?s?\b|\bmens\b|\bmale\b|\bman\b|\bfor\s+men\b|\bguys?\b|\bgentlem(a|e)n\b|남자|남성|맨즈)/i;
-const WOMEN_INTENT_RE =
-  /(\bwomen'?s?\b|\bwomens\b|\bfemale\b|\bwoman\b|\bfor\s+women\b|\bladies\b|\blady\b|여자|여성|우먼즈?|미스)/i;
-
 export function parseGenderIntent(query: string): "men" | "women" | null {
   if (!query) return null;
   const q = query.toLowerCase();
@@ -110,8 +121,9 @@ export function genderRankAdjustment(
   intent: "men" | "women" | null,
 ): number {
   if (!intent) return 0;
-  const g = inferRowGender(row);
+  const g = getProductGender(row);
   if (g === intent) return 40;
   if (g === "unisex") return 15;
+  if (g === null) return 0;
   return -60;
 }

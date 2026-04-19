@@ -84,6 +84,38 @@ export const SEARCH_KR_EN_MAP: Record<string, string[]> = {
   "빈티지": ["vintage", "retro"],
 };
 
+export const MEN_TERMS = [
+  "men",
+  "mens",
+  "men's",
+  "male",
+  "man",
+  "남자",
+  "남성",
+  "맨즈",
+] as const;
+
+export const WOMEN_TERMS = [
+  "women",
+  "womens",
+  "women's",
+  "female",
+  "woman",
+  "여자",
+  "여성",
+  "우먼",
+  "우먼즈",
+] as const;
+
+export const UNISEX_TERMS = [
+  "unisex",
+  "genderless",
+  "all gender",
+  "all-gender",
+  "공용",
+  "남녀공용",
+] as const;
+
 export const SEARCH_SCORE_WEIGHTS = {
   /** Hard category match (intent.primaryCategory === row.category family). */
   categoryExact: 30,
