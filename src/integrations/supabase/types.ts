@@ -916,6 +916,9 @@ export type Database = {
           location: string | null
           onboarded: boolean | null
           phone: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -935,6 +938,9 @@ export type Database = {
           location?: string | null
           onboarded?: boolean | null
           phone?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -954,6 +960,9 @@ export type Database = {
           location?: string | null
           onboarded?: boolean | null
           phone?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
