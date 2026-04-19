@@ -100,6 +100,7 @@ export function useAiTryOn(args: Args) {
       user: args.body,
       product,
       selectedSize: args.selectedSize,
+      recommendedSize: args.prewarmSize ?? undefined,
     });
 
     const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
@@ -223,7 +224,7 @@ export function useAiTryOn(args: Args) {
       category: args.productCategory ?? null,
       fitType: args.productFitType ?? null,
     };
-    const prompt = buildTryOnPrompt({ user: args.body, product, selectedSize: warm });
+    const prompt = buildTryOnPrompt({ user: args.body, product, selectedSize: warm, recommendedSize: warm });
 
     const run = () => {
       supabase.functions
