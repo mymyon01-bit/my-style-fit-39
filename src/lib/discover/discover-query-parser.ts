@@ -10,6 +10,7 @@
 import { detectPrimaryCategory, type PrimaryCategory } from "@/lib/search/category-lock";
 import { tokenizeSearchQuery } from "./searchTokenizer";
 import { expandSearchAliases } from "./searchAliases";
+import { parseGenderIntent } from "./genderFilter";
 
 export type DiscoverQueryType =
   | "category"      // "summer dresses", "leather bags"
