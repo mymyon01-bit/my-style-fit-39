@@ -25,7 +25,7 @@ interface Props {
   /** optional AI try-on URL — if present, supersedes the 2D render */
   tryOnImageUrl?: string | null;
   /** generation lifecycle: drives the badge + loading overlay */
-  tryOnStatus?: "idle" | "generating" | "ready" | "fallback" | "error" | "invalid_body";
+  tryOnStatus?: "idle" | "generating" | "resolving_image" | "missing_image" | "ready" | "fallback" | "error" | "invalid_body";
   /** which provider produced the image (for the small label) */
   tryOnProvider?: "replicate" | "perplexity" | null;
   /** called when the user taps the "Scan Body" CTA shown on invalid input */
@@ -80,10 +80,14 @@ export default function FitVisual({
   // Secondary: silhouette + cloth overlay, clearly labelled "Preview only".
   const hasReal = !!tryOnImageUrl && (tryOnStatus === "ready" || tryOnStatus === "fallback");
   const isGenerating = tryOnStatus === "generating";
+  const isResolvingImage = tryOnStatus === "resolving_image";
+  const isMissingImage = tryOnStatus === "missing_image";
 
   const badgeLabel =
     hasReal && tryOnProvider === "replicate" ? "AI TRY-ON"
     : hasReal && tryOnProvider === "perplexity" ? "AI TRY-ON · FALLBACK"
+    : isResolvingImage ? "FETCHING IMAGE"
+    : isMissingImage ? "IMAGE REQUIRED"
     : isGenerating ? "GENERATING"
     : tryOnStatus === "invalid_body" ? "BODY IMAGE NEEDED"
     : tryOnStatus === "error" ? "PREVIEW ONLY"
@@ -92,6 +96,8 @@ export default function FitVisual({
   const badgeTone =
     hasReal && tryOnProvider === "replicate" ? "text-accent"
     : hasReal && tryOnProvider === "perplexity" ? "text-amber-400/90"
+    : isResolvingImage ? "text-foreground/60"
+    : isMissingImage ? "text-orange-400/90"
     : isGenerating ? "text-foreground/60"
     : tryOnStatus === "invalid_body" ? "text-amber-400/90"
     : tryOnStatus === "error" ? "text-orange-400/85"
