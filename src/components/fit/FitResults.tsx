@@ -10,6 +10,8 @@ import type { FitMode } from "@/pages/FitPage";
 import { buildFitExplanation, confidenceTier } from "@/lib/fit/explain";
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
+import { computeVisualTransform } from "@/lib/fit/visualFitEngine";
+import VisualFitCard from "@/components/fit/VisualFitCard";
 
 interface FitProduct {
   id: string;
@@ -157,6 +159,11 @@ export default function FitResults({
     : null;
   const globalSize = profile ? estimateGlobalSize(profile.heightCm, profile.frame) : null;
 
+  // ── Visual fit transform (drives VisualFitCard hero) ─────────────────────
+  const visualTransform = activeSizeResult
+    ? computeVisualTransform(activeSizeResult, profile)
+    : null;
+
   // ── Try-on availability ─────────────────────────────────────────────────
   const [tryOnOpen, setTryOnOpen] = useState(false);
   const [userImageUrl, setUserImageUrl] = useState<string | null>(null);
@@ -293,6 +300,17 @@ export default function FitResults({
           })}
         </div>
       </div>
+
+      {/* ══ VISUAL FIT — hero, hybrid 2D simulation ══ */}
+      {visualTransform && (
+        <VisualFitCard
+          productImage={product.image}
+          productName={product.name}
+          category={product.category}
+          activeSize={activeSize}
+          transform={visualTransform}
+        />
+      )}
 
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">

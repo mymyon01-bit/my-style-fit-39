@@ -94,6 +94,7 @@ const FitPage = () => {
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [refining, setRefining] = useState(false);
+  const [weightKg, setWeightKg] = useState<number | null>(null);
 
   const canUsePremium = subscription.isPremium;
 
@@ -109,6 +110,7 @@ const FitPage = () => {
       if (data.waist_cm) update.waistCm = { value: Number(data.waist_cm), confidence: "high" };
       if (data.inseam_cm) update.inseamCm = { value: Number(data.inseam_cm), confidence: "high" };
       if (data.scan_confidence) setScanQuality(Number(data.scan_confidence));
+      if (data.weight_kg) setWeightKg(Number(data.weight_kg));
       setMeasurements(update);
     }
   };
@@ -121,7 +123,7 @@ const FitPage = () => {
       shoulder_width_cm: measurements.shoulderWidthCm.value,
       waist_cm: measurements.waistCm.value,
       inseam_cm: measurements.inseamCm.value,
-      weight_kg: null,
+      weight_kg: weightKg,
       scan_confidence: scanQuality,
       silhouette_type: "balanced",
     }, { onConflict: "user_id" });
@@ -175,6 +177,13 @@ const FitPage = () => {
   }, []);
 
   const handleSelectProduct = useCallback((product: SelectedProduct) => {
+    if (!weightKg || weightKg < 40 || weightKg > 120) {
+      toast.error("Please enter weight to improve fit accuracy", {
+        description: "Go to BODY tab and set your weight (40–120 kg).",
+      });
+      setActiveTab("measurements");
+      return;
+    }
     const startedAt = performance.now();
     let fitData: ProductFitData;
     if (product.source === "mock" && mockProductFitData[product.id]) {
@@ -203,6 +212,7 @@ const FitPage = () => {
           fit_score: recommended?.fitScore ?? null,
           confidence_modifier: result.confidenceModifier,
           recommended_size: result.recommendedSize,
+          weight_kg: weightKg,
         },
       });
       // Only fetch AI explanation in free mode (lightweight); premium gets deeper explanation on refine
@@ -216,7 +226,7 @@ const FitPage = () => {
       });
       throw err;
     }
-  }, [measurements, scanQuality, fitMode]);
+  }, [measurements, scanQuality, fitMode, weightKg]);
 
   const fetchExplanation = async (result: FitResult, product: SelectedProduct, mode: FitMode) => {
     setLoadingExplanation(true);
@@ -340,7 +350,22 @@ const FitPage = () => {
                 canUsePremium={canUsePremium}
               />
             )}
-            {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} onBulkUpdate={handleBulkUpdate} />}
+            {activeTab === "measurements" && (
+              <FitMeasurements
+                measurements={measurements}
+                onUpdate={handleMeasurementUpdate}
+                onBulkUpdate={handleBulkUpdate}
+                weightKg={weightKg}
+                onWeightChange={(w) => {
+                  setWeightKg(w);
+                  if (user) {
+                    supabase.from("body_profiles")
+                      .upsert({ user_id: user.id, weight_kg: w, height_cm: measurements.heightCm.value }, { onConflict: "user_id" })
+                      .then(() => {});
+                  }
+                }}
+              />
+            )}
             {activeTab === "check" && <FitProductCheck onSelectProduct={handleSelectProduct} />}
             {activeTab === "results" && fitResult && fitResultProduct ? (
               <FitResults
@@ -352,7 +377,7 @@ const FitPage = () => {
                 canUsePremium={canUsePremium}
                 refining={refining}
                 bodyHeightCm={measurements.heightCm.value}
-                bodyWeightKg={null}
+                bodyWeightKg={weightKg}
                 onRefineFit={handleRefineFit}
                 onRescan={() => setActiveTab("scan")}
                 onEditMeasurements={() => setActiveTab("measurements")}

@@ -24,9 +24,9 @@ export function computeBmi(heightCm: number, weightKg: number | null): number | 
 
 export function computeFrame(bmi: number | null): FrameType {
   if (bmi == null) return "regular";
-  if (bmi < 20) return "slim";
-  if (bmi >= 26) return "broad";
-  return "regular";
+  if (bmi < 21) return "slim";       // 170/60 → 20.8 → slim
+  if (bmi >= 25) return "broad";     // 180/85 → 26.2 → broad
+  return "regular";                  // 175/70 → 22.9 → regular
 }
 
 export function normalizeBodyProfile(input: {
@@ -37,15 +37,33 @@ export function normalizeBodyProfile(input: {
   chestCm?: number | null;
   inseamCm?: number | null;
 }): NormalizedBodyProfile {
-  const bmi = computeBmi(input.heightCm, input.weightKg ?? null);
+  const weightKg = input.weightKg ?? null;
+  const bmi = computeBmi(input.heightCm, weightKg);
+  const frame = computeFrame(bmi);
+
+  // Diagnostic log — height/weight/bmi/frame, every normalization
+  if (typeof console !== "undefined") {
+    console.debug("[fit/bodyProfile]", {
+      height: input.heightCm,
+      weight: weightKg,
+      bmi,
+      frame,
+    });
+  }
+
   return {
     heightCm: input.heightCm,
-    weightKg: input.weightKg ?? null,
+    weightKg,
     bmi,
-    frame: computeFrame(bmi),
+    frame,
     hasManualShoulder: !!input.shoulderWidthCm,
     hasManualWaist: !!input.waistCm,
     hasManualChest: !!input.chestCm,
     hasManualInseam: !!input.inseamCm,
   };
+}
+
+/** Validate weight is in plausible adult range. */
+export function isValidWeight(weightKg: number | null | undefined): boolean {
+  return typeof weightKg === "number" && weightKg >= 40 && weightKg <= 120;
 }
