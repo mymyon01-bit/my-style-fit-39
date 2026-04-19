@@ -27,7 +27,7 @@ interface Props {
   /** generation lifecycle: drives the badge + loading overlay */
   tryOnStatus?: "idle" | "generating" | "ready" | "fallback" | "error" | "invalid_body";
   /** which provider produced the image (for the small label) */
-  tryOnProvider?: "replicate" | "gemini" | null;
+  tryOnProvider?: "replicate" | "perplexity" | null;
   /** called when the user taps the "Scan Body" CTA shown on invalid input */
   onRescanBody?: () => void;
 }
@@ -83,7 +83,7 @@ export default function FitVisual({
 
   const badgeLabel =
     hasReal && tryOnProvider === "replicate" ? "AI TRY-ON"
-    : hasReal && tryOnProvider === "gemini" ? "AI TRY-ON · FALLBACK"
+    : hasReal && tryOnProvider === "perplexity" ? "AI TRY-ON · FALLBACK"
     : isGenerating ? "GENERATING"
     : tryOnStatus === "invalid_body" ? "BODY IMAGE NEEDED"
     : tryOnStatus === "error" ? "PREVIEW ONLY"
@@ -91,7 +91,7 @@ export default function FitVisual({
 
   const badgeTone =
     hasReal && tryOnProvider === "replicate" ? "text-accent"
-    : hasReal && tryOnProvider === "gemini" ? "text-amber-400/90"
+    : hasReal && tryOnProvider === "perplexity" ? "text-amber-400/90"
     : isGenerating ? "text-foreground/60"
     : tryOnStatus === "invalid_body" ? "text-amber-400/90"
     : tryOnStatus === "error" ? "text-orange-400/85"

@@ -130,7 +130,7 @@ export function useReplicateTryOn(args: Args) {
           return { data, invokeErr };
         };
 
-        const finalize = async (resultUrl: string, providerName: "replicate" | "gemini") => {
+        const finalize = async (resultUrl: string, _providerName: TryOnProvider) => {
           // ── 4. OUTPUT VALIDATION ────────────────────────────────
           const validation = await validateTryOnOutput(resultUrl, productImageUrl);
           console.log("[tryon-pipeline]", {
@@ -146,13 +146,13 @@ export function useReplicateTryOn(args: Args) {
         const handleResult = async (
           data: any,
           attempt: 1 | 2
-        ): Promise<{ done: boolean; resultUrl?: string; provider?: "replicate" | "gemini" }> => {
+        ): Promise<{ done: boolean; resultUrl?: string; provider?: TryOnProvider }> => {
           if (data?.error && !data?.resultImageUrl) {
             return { done: true };
           }
 
           let resultUrl: string | null = null;
-          let providerName: "replicate" | "gemini" = data?.provider || "replicate";
+          let providerName: TryOnProvider = (data?.provider as TryOnProvider) || "replicate";
 
           if (data?.status === "succeeded" && data?.resultImageUrl) {
             resultUrl = data.resultImageUrl;
@@ -212,14 +212,20 @@ export function useReplicateTryOn(args: Args) {
         if (cancelRef.current) return;
 
         if (outcome.resultUrl) {
+          const isFallback = outcome.provider === "perplexity";
           memoryCache.set(cacheKey, {
             url: outcome.resultUrl,
             provider: outcome.provider || "replicate",
-            fallback: outcome.provider === "gemini",
+            fallback: isFallback,
+          });
+          console.log("[tryon-pipeline]", {
+            stage: "final",
+            final_provider: outcome.provider,
+            fallback_used: isFallback,
           });
           setImageUrl(outcome.resultUrl);
           setProvider(outcome.provider || "replicate");
-          setStatus(outcome.provider === "gemini" ? "fallback" : "ready");
+          setStatus(isFallback ? "fallback" : "ready");
         } else {
           setStatus("error");
           setError("generation failed");
