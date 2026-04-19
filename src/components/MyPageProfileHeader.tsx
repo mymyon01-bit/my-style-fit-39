@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import StoryRippleRing from "@/components/StoryRippleRing";
+import CirclesSheet from "@/components/CirclesSheet";
 
 interface ProfileData {
   display_name: string | null;
