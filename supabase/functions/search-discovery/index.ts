@@ -558,14 +558,27 @@ async function extractWithFirecrawl(url: string): Promise<ExtractedProduct | nul
       /(?:USD|US\$|EUR|GBP|KRW|\$|€|£|₩)\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?/
     );
     const safeImg = safeUrl(image);
-    if (!title || !safeImg || !isImageSafe(safeImg)) return null;
-    const cleanTitle = title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180);
-    if (!isFashionTitle(cleanTitle) && !isFashionTitle(description)) return null;
+
+    // RELAXED VALIDATION (stabilization pass 2026-04-19):
+    // Old rule required title AND safe image AND fashion-keyword in title.
+    // That dropped ~100% of legit candidates. New rule:
+    //   - URL is always present (we got here from a URL)
+    //   - accept if AT LEAST ONE of: title, safe image, price
+    //   - if title is present, allow even when fashion regex doesn't match
+    //     (the URL was already filtered by trusted-store / product-path).
+    const cleanTitle = title ? title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180) : "";
+    const hasTitle = cleanTitle.length > 0;
+    const hasImage = !!safeImg && isImageSafe(safeImg);
+    const hasPrice = !!priceMatch;
+    if (!hasTitle && !hasImage && !hasPrice) {
+      log("firecrawl_drop", { url, reason: "no_title_image_price" });
+      return null;
+    }
     const host = new URL(url).hostname.replace(/^www\./, "");
     const brand = (meta["og:site_name"] || meta.ogSiteName || "").toString();
     return {
-      title: cleanTitle,
-      image_url: safeImg,
+      title: cleanTitle || hostToBrand(host),
+      image_url: safeImg || "",
       source_url: url,
       price: priceMatch?.[0],
       brand: brand || hostToBrand(host),
