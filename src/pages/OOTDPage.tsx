@@ -100,22 +100,44 @@ const OOTDPage = () => {
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
 
-  // Debounced username search
+  // Debounced combined search (users + hashtags)
   useEffect(() => {
-    const q = searchQuery.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
-    if (!q || q.length < 2) {
-      setSearchResults([]);
+    const raw = searchQuery.trim();
+    if (!raw || raw.replace(/[@#\s]/g, "").length < 2) {
+      setSearchUsers([]);
+      setSearchTopics([]);
+      setSearchLoading(false);
+      return;
+    }
+    const intent: "user" | "tag" | "any" = raw.startsWith("@") ? "user" : raw.startsWith("#") ? "tag" : "any";
+    const q = raw.replace(/^[@#]/, "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (q.length < 2) {
+      setSearchUsers([]);
+      setSearchTopics([]);
       setSearchLoading(false);
       return;
     }
     setSearchLoading(true);
     const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, avatar_url, username")
-        .ilike("username", `${q}%`)
-        .limit(20);
-      setSearchResults((data as ProfileInfo[]) || []);
+      const [userRes, topicRes] = await Promise.all([
+        intent === "tag"
+          ? Promise.resolve({ data: [] as ProfileInfo[] })
+          : supabase
+              .from("profiles")
+              .select("user_id, display_name, avatar_url, username")
+              .ilike("username", `${q}%`)
+              .limit(15),
+        intent === "user"
+          ? Promise.resolve({ data: [] as Topic[] })
+          : supabase
+              .from("ootd_topics")
+              .select("*")
+              .ilike("name", `${q}%`)
+              .order("post_count", { ascending: false })
+              .limit(15),
+      ]);
+      setSearchUsers((userRes.data as ProfileInfo[]) || []);
+      setSearchTopics((topicRes.data as Topic[]) || []);
       setSearchLoading(false);
     }, 250);
     return () => clearTimeout(timer);
