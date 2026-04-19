@@ -107,12 +107,15 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
   const applySession = useCallback(
     (session: SearchSession, dbSeen: Set<string>, status: DiscoverSearchState["status"]) => {
       let renderables = buildDiscoverRenderables(session, dbSeen);
+      // Query-level gender intent OVERRIDES the toggle when toggle === "all".
+      const queryGender = parseGenderIntent(session.query);
+      const effectiveGender: GenderFilter = queryGender ?? gender;
       // Gender filter applied to the renderable pool BEFORE composition.
-      if (gender !== "all") {
+      if (effectiveGender !== "all") {
         renderables = renderables.filter((r) =>
           passesGenderFilter(
             { name: r.title, brand: r.brand, category: r.category, search_query: null },
-            gender,
+            effectiveGender,
           ),
         );
       }
