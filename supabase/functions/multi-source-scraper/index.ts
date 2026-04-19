@@ -652,6 +652,7 @@ serve(async (req) => {
     }
 
     const t0 = Date.now();
+    const krCap = intensity === "cron" ? 25 : 10;
     // Source-lock: short-circuit any source not in ENABLED_SOURCES so we
     // don't waste actor budget or Crawlbase credits on disabled platforms.
     const skip = async () => [] as RawProduct[];
@@ -661,16 +662,46 @@ serve(async (req) => {
       sourceEnabled("apify_coupang") ? fetchApifyCoupang(query, cap.coupang) : skip(),
       sourceEnabled("apify_gshopping") ? fetchApifyGoogleShopping(query, cap.gshopping) : skip(),
       sourceEnabled("crawlbase_farfetch") ? fetchCrawlbaseFarfetch(query) : skip(),
+      // KR retailers — Apify actors don't exist for these, so route directly to ScrapingBee.
+      sourceEnabled("apify_musinsa") ? fetchScrapingBeeKR("musinsa", query, krCap) : skip(),
+      sourceEnabled("apify_29cm") ? fetchScrapingBeeKR("29cm", query, krCap) : skip(),
+      sourceEnabled("apify_wconcept") ? fetchScrapingBeeKR("wconcept", query, krCap) : skip(),
+      sourceEnabled("apify_ssg") ? fetchScrapingBeeKR("ssg", query, krCap) : skip(),
     ]);
 
-    const labels = ["apify_asos", "apify_zalando", "apify_coupang", "apify_gshopping", "crawlbase_farfetch"];
+    const labels = [
+      "apify_asos", "apify_zalando", "apify_coupang", "apify_gshopping",
+      "crawlbase_farfetch",
+      "apify_musinsa", "apify_29cm", "apify_wconcept", "apify_ssg",
+    ];
     const perSource: Record<string, number> = {};
+    const fallbackUsed: string[] = [];
     const merged: RawProduct[] = [];
     settled.forEach((r, i) => {
       const items = r.status === "fulfilled" ? r.value : [];
       perSource[labels[i]] = items.length;
       merged.push(...items);
     });
+
+    // Apify-empty fallback: if a major Apify actor returned 0, try ScrapingBee
+    // on the merchant's own search page. Runs in parallel; bounded budget.
+    const apifyFallbackTargets = (["apify_asos", "apify_zalando", "apify_coupang", "apify_gshopping"] as const)
+      .filter((label) => sourceEnabled(label) && (perSource[label] ?? 0) === 0 && SCRAPINGBEE_API_KEY);
+    if (apifyFallbackTargets.length) {
+      const fbCap = intensity === "cron" ? 20 : 8;
+      const fbResults = await Promise.allSettled(
+        apifyFallbackTargets.map((label) => scrapingBeeFallbackFor(label, query, fbCap)),
+      );
+      fbResults.forEach((r, i) => {
+        const label = apifyFallbackTargets[i];
+        const items = r.status === "fulfilled" ? r.value : [];
+        if (items.length) {
+          perSource[`${label}_fallback`] = items.length;
+          fallbackUsed.push(label);
+          merged.push(...items);
+        }
+      });
+    }
 
     const deduped = dedupe(merged);
     const shuffled = shuffle(deduped);
@@ -680,11 +711,14 @@ serve(async (req) => {
       query,
       intensity,
       sources: perSource,
+      fallback_used: fallbackUsed,
+      scrapingbee_available: !!SCRAPINGBEE_API_KEY,
       merged: merged.length,
       deduped: deduped.length,
       inserted,
       products: shuffled.slice(0, 60),
     };
+
 
     if (intensity === "live") cooldownCache.set(ck, { ts: Date.now(), result });
     // Cheap eviction of old keys to keep memory bounded.
