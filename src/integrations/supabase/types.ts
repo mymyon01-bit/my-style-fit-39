@@ -1302,6 +1302,45 @@ export type Database = {
         }
         Relationships: []
       }
+      today_quiz_answers: {
+        Row: {
+          aqi_snapshot: Json | null
+          craving: string
+          created_at: string
+          id: string
+          occasion: string
+          quiz_date: string
+          style: string
+          updated_at: string
+          user_id: string
+          weather_snapshot: Json | null
+        }
+        Insert: {
+          aqi_snapshot?: Json | null
+          craving: string
+          created_at?: string
+          id?: string
+          occasion: string
+          quiz_date?: string
+          style: string
+          updated_at?: string
+          user_id: string
+          weather_snapshot?: Json | null
+        }
+        Update: {
+          aqi_snapshot?: Json | null
+          craving?: string
+          created_at?: string
+          id?: string
+          occasion?: string
+          quiz_date?: string
+          style?: string
+          updated_at?: string
+          user_id?: string
+          weather_snapshot?: Json | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
