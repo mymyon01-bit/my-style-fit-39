@@ -5,10 +5,29 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ChevronDown, Camera } from "lucide-react";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import SafeImage from "@/components/SafeImage";
-import Fit3DViewer from "@/components/fit/Fit3DViewer";
 import type { UserBody } from "@/lib/fit/bodyToAvatar";
+
+// Lazy: ~150 KB three.js bundle only loads when FIT renders.
+const Fit3DViewer = lazy(() => import("@/components/fit/Fit3DViewer"));
+
+function ViewerSkeleton({ height }: { height: number }) {
+  return (
+    <div
+      className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.05]"
+      style={{
+        height,
+        background:
+          "radial-gradient(ellipse at 50% 38%, hsl(var(--accent) / 0.06), transparent 60%), linear-gradient(180deg, #18181c 0%, #0e0e11 100%)",
+      }}
+    >
+      <div className="absolute inset-0 flex items-center justify-center">
+        <p className="text-[10px] tracking-[0.22em] text-foreground/40">LOADING 3D FIT…</p>
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   productImage: string;
@@ -112,15 +131,17 @@ export default function FitVisual({
         </span>
       </div>
 
-      {/* HERO — 3D viewer */}
-      <Fit3DViewer
-        productImage={productImage}
-        productName={productName}
-        category={category}
-        size={activeSize}
-        body={userBody}
-        height={460}
-      />
+      {/* HERO — 3D viewer (lazy-loaded) */}
+      <Suspense fallback={<ViewerSkeleton height={460} />}>
+        <Fit3DViewer
+          productImage={productImage}
+          productName={productName}
+          category={category}
+          size={activeSize}
+          body={userBody}
+          height={460}
+        />
+      </Suspense>
 
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
         Drag to rotate · Size changes the garment live
