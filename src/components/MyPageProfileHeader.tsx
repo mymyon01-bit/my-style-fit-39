@@ -38,6 +38,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const [editBio, setEditBio] = useState("");
   const [circleCount, setCircleCount] = useState(0);
   const [rippleCount, setRippleCount] = useState(0);
+  const [circlesOpen, setCirclesOpen] = useState<null | "circle" | "ripple">(null);
 
   useEffect(() => {
     if (!user) return;
