@@ -41,6 +41,7 @@ import { enforceDiversity } from "@/lib/discover/rankResults";
 import { assessQueryCoverage } from "@/lib/discover/queryHealth";
 import { interpretQueryWithAI } from "@/lib/discover/aiQueryInterpreter";
 import { triggerAutoDiscovery, loadCachedInterpretation } from "@/lib/discover/triggerAutoDiscovery";
+import { passesGenderFilter, type GenderFilter } from "@/lib/discover/genderFilter";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
@@ -54,6 +55,8 @@ export interface UseDiscoverSearchOptions {
   target?: number;
   /** runSearch hard cycle cap. */
   maxCycles?: number;
+  /** Gender filter applied to live results ("all" | "women" | "men"). */
+  gender?: GenderFilter;
 }
 
 export interface DiscoverSearchState {
