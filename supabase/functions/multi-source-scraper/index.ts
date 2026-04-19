@@ -668,12 +668,13 @@ serve(async (req) => {
       sourceEnabled("apify_29cm") ? fetchScrapingBeeKR("29cm", query, krCap) : skip(),
       sourceEnabled("apify_wconcept") ? fetchScrapingBeeKR("wconcept", query, krCap) : skip(),
       sourceEnabled("apify_ssg") ? fetchScrapingBeeKR("ssg", query, krCap) : skip(),
+      sourceEnabled("apify_naver") ? fetchScrapingBeeKR("naver", query, krCap) : skip(),
     ]);
 
     const labels = [
       "apify_asos", "apify_zalando", "apify_coupang", "apify_gshopping",
       "crawlbase_farfetch",
-      "apify_musinsa", "apify_29cm", "apify_wconcept", "apify_ssg",
+      "apify_musinsa", "apify_29cm", "apify_wconcept", "apify_ssg", "apify_naver",
     ];
     const perSource: Record<string, number> = {};
     const fallbackUsed: string[] = [];
