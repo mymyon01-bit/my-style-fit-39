@@ -24,7 +24,7 @@ import {
 } from "./discover-tokenizer";
 import { expandSearchAliases } from "./searchAliases";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS, getFreshnessBonus, looksLikeProductImage } from "./constants";
-import { passesGenderFilter, type GenderFilter } from "./genderFilter";
+import { passesGenderFilter, parseGenderIntent, genderRankAdjustment, type GenderFilter } from "./genderFilter";
 import type { ParsedIntent } from "./discover-intent-parser";
 import type { DiscoverProduct } from "./discover-types";
 
