@@ -82,9 +82,10 @@ const OOTDPage = () => {
     users: [],
   });
 
-  // Username search
+  // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<ProfileInfo[]>([]);
+  const [searchUsers, setSearchUsers] = useState<ProfileInfo[]>([]);
+  const [searchTopics, setSearchTopics] = useState<Topic[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
   const myStoryUser = user ? allStoryUsers.find((u) => u.user_id === user.id) : undefined;
