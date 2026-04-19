@@ -37,6 +37,7 @@ import { upsertCluster } from "@/lib/search/query-cluster-service";
 import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/discover-intent-parser";
 import { runSearchLadder, type LadderStage } from "@/lib/discover/discover-search-ladder";
 import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
+import { enforceDiversity } from "@/lib/discover/rankResults";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
@@ -100,10 +101,12 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
     (session: SearchSession, dbSeen: Set<string>, status: DiscoverSearchState["status"]) => {
       const renderables = buildDiscoverRenderables(session, dbSeen);
       const composed = composeDiscoverGrid(renderables, { windowSize, minFreshRatio });
-      const diagnostics = buildDiscoverGridDiagnostics(session, renderables, composed.slice(0, windowSize));
+      // Enforce source/brand diversity caps on the visible window (35%/30%).
+      const diversified = enforceDiversity(composed, windowSize);
+      const diagnostics = buildDiscoverGridDiagnostics(session, renderables, diversified.slice(0, windowSize));
       setState((prev) => ({
         ...prev,
-        results: composed,
+        results: diversified,
         diagnostics: { query: session.query, ...diagnostics },
         status,
       }));

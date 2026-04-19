@@ -91,21 +91,31 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
     usedFallback = true;
   }
 
-  // Score + jittered ranking — ORDER BY score DESC, RANDOM()*0.2, freshness DESC
+  // Score + jittered ranking with HARD category penalty when locked.
+  // Spec: locked-category mismatch → -100 (effectively filtered).
   const maxFresh = rows.reduce((m, r) => Math.max(m, freshnessSeconds(r)), 1);
   const ranked = rows
     .map((row) => {
-      const score = scoreRowAgainstTokens(row, tq.searchTerms);
+      let score = scoreRowAgainstTokens(row, tq.searchTerms);
+      // Hard category lock — penalize non-matching rows so they sink.
+      if (lock) {
+        const cat = (row.category || "").toLowerCase();
+        const name = (row.name || "").toLowerCase();
+        const matches = cat.includes(lock) || name.includes(lock);
+        if (matches) score += 6;
+        else score -= 100;
+      }
       const freshNorm = freshnessSeconds(row) / maxFresh;
-      const jitter = Math.random() * 0.2;
+      const jitter = Math.random() * 0.15;
       return { row, rank: score + jitter + freshNorm * 0.05 };
     })
+    .filter((x) => x.rank > -50) // drop hard-penalized rows
     .sort((a, b) => b.rank - a.rank)
     .map((x) => x.row);
 
   let products = normalizeDiscoverProducts(ranked, { originalQuery: tq.raw });
 
-  // Soft category lock
+  // Soft category lock as final guardrail (uses richer productMatchesCategory).
   if (lock) {
     const matched = products.filter((p) =>
       productMatchesCategory(
