@@ -376,12 +376,14 @@ function pickPrice(o: Record<string, unknown>): { price: string | null; currency
   return { price: null, currency: null };
 }
 
-function extractProductsFromHtml(html: string, pageUrl: string): Array<{
+interface ExtractedItem {
   title: string; image: string | null; brand: string | null;
   price: string | null; currency: string | null; url: string;
-}> {
+}
+
+function extractProductsFromHtml(html: string, pageUrl: string): ExtractedItem[] {
   const products = extractJsonLdProducts(html);
-  const out: Array<{ title: string; image: string | null; brand: string | null; price: string | null; currency: string | null; url: string }> = [];
+  const out: ExtractedItem[] = [];
   for (const o of products) {
     const title = String(o.name ?? "").trim();
     if (!title) continue;
@@ -411,16 +413,133 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
     const { price, currency } = pickPrice(o);
     out.push({ title, image, brand, price, currency, url });
   }
-  // og:image + <title> single-product fallback
-  if (out.length === 0) {
-    const ogImg = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1];
-    const ogTitle = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1]
-      || /<title>([^<]+)<\/title>/i.exec(html)?.[1];
-    if (ogImg && ogTitle) {
-      out.push({ title: ogTitle.trim(), image: safeImage(ogImg), brand: null, price: null, currency: null, url: pageUrl });
+  return out;
+}
+
+// ── Domain-specific HTML card extractors ───────────────────────────────────
+// KR commerce pages render product cards client-side and rarely include
+// JSON-LD on listing pages. For each domain we walk a regex over the HTML
+// to find product anchors + their nearest <img> + nearest price text.
+//
+// This is intentionally regex-based (not a DOM parser) because the Deno
+// edge runtime doesn't ship a full HTML parser and we want low latency.
+
+function absUrl(href: string, base: string): string | null {
+  try { return new URL(href, base).toString(); } catch { return null; }
+}
+
+// Generic anchor + image + price triple-walker. Slices the HTML around each
+// matching anchor and looks for the nearest <img src=...> and the nearest
+// price string within ~1200 chars of context.
+function walkAnchorsForCards(opts: {
+  html: string;
+  baseUrl: string;
+  linkRe: RegExp;
+  pricePatterns: RegExp[];
+  store: string;
+  defaultCurrency: string;
+}): ExtractedItem[] {
+  const { html, baseUrl, linkRe, pricePatterns, defaultCurrency } = opts;
+  const out: ExtractedItem[] = [];
+  const seen = new Set<string>();
+  // Find every anchor with a product-shaped href.
+  const anchorRe = /<a[^>]+href=["']([^"'#]+)["'][^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = anchorRe.exec(html)) !== null) {
+    const href = m[1];
+    if (!linkRe.test(href)) continue;
+    const abs = absUrl(href, baseUrl);
+    if (!abs) continue;
+    const key = abs.split("?")[0].split("#")[0];
+    if (seen.has(key)) continue;
+
+    const context = html.slice(Math.max(0, m.index - 200), Math.min(html.length, m.index + 1400));
+
+    // Title — anchor's own text content or alt= of nearest img.
+    let title = "";
+    const closingTagAt = context.indexOf("</a>", 200);
+    if (closingTagAt > 0) {
+      const inner = context.slice(200, closingTagAt);
+      // Strip nested tags
+      const text = inner.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      if (text.length >= 3 && text.length <= 200) title = text;
     }
+    const altMatch = /<img[^>]+alt=["']([^"']{3,200})["']/i.exec(context);
+    if (!title && altMatch) title = altMatch[1].trim();
+    if (!title) continue;
+
+    // Image — first <img> with src/data-src/srcset in the surrounding card.
+    const imgMatch = /<img[^>]+(?:src|data-src|data-original|data-lazy-src|data-srcset|srcset)=["']([^"' ]+)/i.exec(context);
+    let image: string | null = null;
+    if (imgMatch) {
+      let src = imgMatch[1].trim();
+      if (src.startsWith("//")) src = "https:" + src;
+      const safe = safeImage(absUrl(src, baseUrl) || src);
+      if (safe) image = safe;
+    }
+    if (!image) continue;
+
+    // Price — first matching pattern.
+    let price: string | null = null;
+    for (const p of pricePatterns) {
+      const pm = p.exec(context);
+      if (pm) { price = pm[0].replace(/[^0-9.,]/g, "").replace(/^[.,]+/, ""); break; }
+    }
+
+    seen.add(key);
+    out.push({ title: title.slice(0, 180), image, brand: null, price, currency: defaultCurrency, url: abs });
   }
   return out;
+}
+
+const KR_PRICE_PATTERNS = [
+  /[0-9]{1,3}(?:,[0-9]{3})+\s*원/,
+  /₩\s*[0-9]{1,3}(?:,[0-9]{3})+/,
+  /[0-9]{4,}\s*원/,
+];
+
+function extractCardsForDomain(domain: string, html: string, pageUrl: string): ExtractedItem[] {
+  const linkPatterns: Record<string, RegExp> = {
+    musinsa: /\/products\/\d+|\/app\/goods\/\d+|\/goods\/\d+/i,
+    "29cm": /\/product\/\d+|\/catalog\/\d+/i,
+    wconcept: /\/Product\/[^"' ]+|\/product\/[^"' ]+/i,
+    ssg: /\/item\/itemView\.ssg|\/item\/[^"' ]+/i,
+    naver: /shopping\.naver\.com\/[^"' ]*?\/(?:catalog|products?)\/\d+|smartstore\.naver\.com\/[^"' ]+\/products\/\d+|brand\.naver\.com\/[^"' ]+\/products\/\d+/i,
+  };
+  const linkRe = linkPatterns[domain];
+  if (!linkRe) return [];
+  return walkAnchorsForCards({
+    html, baseUrl: pageUrl, linkRe,
+    pricePatterns: KR_PRICE_PATTERNS,
+    store: domain,
+    defaultCurrency: "KRW",
+  });
+}
+
+// Final extractor: try JSON-LD, then domain-specific cards, then og: fallback.
+function extractAllProducts(domain: string, html: string, pageUrl: string): ExtractedItem[] {
+  const jsonld = extractProductsFromHtml(html, pageUrl);
+  if (jsonld.length >= 3) return jsonld;
+  const cards = extractCardsForDomain(domain, html, pageUrl);
+  if (jsonld.length + cards.length > 0) {
+    // Merge, prefer JSON-LD then cards, dedupe by url
+    const seen = new Set<string>();
+    const out: ExtractedItem[] = [];
+    for (const it of [...jsonld, ...cards]) {
+      const k = it.url.split("?")[0].toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k); out.push(it);
+    }
+    return out;
+  }
+  // og: image + <title> single-product fallback (last resort)
+  const ogImg = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1];
+  const ogTitle = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1]
+    || /<title>([^<]+)<\/title>/i.exec(html)?.[1];
+  if (ogImg && ogTitle) {
+    return [{ title: ogTitle.trim(), image: safeImage(ogImg), brand: null, price: null, currency: "KRW", url: pageUrl }];
+  }
+  return [];
 }
 
 // Korean retailer search URLs. ScrapingBee fetches the search results page,
