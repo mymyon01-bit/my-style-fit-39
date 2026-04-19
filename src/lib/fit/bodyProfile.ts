@@ -37,15 +37,33 @@ export function normalizeBodyProfile(input: {
   chestCm?: number | null;
   inseamCm?: number | null;
 }): NormalizedBodyProfile {
-  const bmi = computeBmi(input.heightCm, input.weightKg ?? null);
+  const weightKg = input.weightKg ?? null;
+  const bmi = computeBmi(input.heightCm, weightKg);
+  const frame = computeFrame(bmi);
+
+  // Diagnostic log — height/weight/bmi/frame, every normalization
+  if (typeof console !== "undefined") {
+    console.debug("[fit/bodyProfile]", {
+      height: input.heightCm,
+      weight: weightKg,
+      bmi,
+      frame,
+    });
+  }
+
   return {
     heightCm: input.heightCm,
-    weightKg: input.weightKg ?? null,
+    weightKg,
     bmi,
-    frame: computeFrame(bmi),
+    frame,
     hasManualShoulder: !!input.shoulderWidthCm,
     hasManualWaist: !!input.waistCm,
     hasManualChest: !!input.chestCm,
     hasManualInseam: !!input.inseamCm,
   };
+}
+
+/** Validate weight is in plausible adult range. */
+export function isValidWeight(weightKg: number | null | undefined): boolean {
+  return typeof weightKg === "number" && weightKg >= 40 && weightKg <= 120;
 }

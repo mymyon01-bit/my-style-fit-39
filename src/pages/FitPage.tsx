@@ -94,6 +94,7 @@ const FitPage = () => {
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [refining, setRefining] = useState(false);
+  const [weightKg, setWeightKg] = useState<number | null>(null);
 
   const canUsePremium = subscription.isPremium;
 
@@ -109,6 +110,7 @@ const FitPage = () => {
       if (data.waist_cm) update.waistCm = { value: Number(data.waist_cm), confidence: "high" };
       if (data.inseam_cm) update.inseamCm = { value: Number(data.inseam_cm), confidence: "high" };
       if (data.scan_confidence) setScanQuality(Number(data.scan_confidence));
+      if (data.weight_kg) setWeightKg(Number(data.weight_kg));
       setMeasurements(update);
     }
   };
@@ -121,7 +123,7 @@ const FitPage = () => {
       shoulder_width_cm: measurements.shoulderWidthCm.value,
       waist_cm: measurements.waistCm.value,
       inseam_cm: measurements.inseamCm.value,
-      weight_kg: null,
+      weight_kg: weightKg,
       scan_confidence: scanQuality,
       silhouette_type: "balanced",
     }, { onConflict: "user_id" });
