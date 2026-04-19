@@ -323,10 +323,16 @@ export default function FitResults({
         tryOnImageUrl={tryOn.imageUrl}
         tryOnStatus={tryOn.status}
         tryOnProvider={tryOn.provider}
+        onRescanBody={onRescan}
       />
       {tryOn.status === "error" && (
         <p className="text-[10px] text-center text-orange-400/75 -mt-3">
           Couldn't generate try-on ({tryOn.error || "unknown error"}). Showing preview silhouette.
+        </p>
+      )}
+      {tryOn.status === "invalid_body" && (
+        <p className="text-[10px] text-center text-amber-400/85 -mt-3">
+          Body image needs a full-body front shot for an accurate try-on.
         </p>
       )}
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
