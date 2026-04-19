@@ -158,9 +158,9 @@ export default function FitResults({
     : null;
   const globalSize = profile ? estimateGlobalSize(profile.heightCm, profile.frame) : null;
 
-  // ── User body extracts for visual ────────────────────────────────────────
-  const userChestRegion = activeSizeResult?.regions.find(r => r.region === "Chest");
-  const userShoulderRegion = activeSizeResult?.regions.find(r => r.region === "Shoulder");
+  // ── User body extracts for visual (estimated from height/weight) ─────────
+  const estUserShoulder = profile?.frame === "broad" ? 50 : profile?.frame === "slim" ? 42 : 46;
+  const estUserChest = bodyWeightKg ? Math.max(50, Math.min(72, bodyWeightKg * 0.55 + 18)) : 56;
 
   // ── Try-on availability ─────────────────────────────────────────────────
   const [tryOnOpen, setTryOnOpen] = useState(false);
@@ -305,11 +305,9 @@ export default function FitResults({
         productName={product.name}
         category={product.category}
         activeSize={activeSize}
-        userChestCm={userChestRegion?.user}
-        userShoulderCm={userShoulderRegion?.user}
+        userChestCm={estUserChest}
+        userShoulderCm={estUserShoulder}
       />
-      {/* underscore-use to silence unused warnings if any */}
-      {void profile && null}
 
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
