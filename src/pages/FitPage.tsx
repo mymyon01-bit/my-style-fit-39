@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -77,6 +78,7 @@ const FitPage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const { productId: routeProductId } = useParams<{ productId?: string }>();
   const [activeTab, setActiveTab] = useState<Tab>("scan");
   const [fitMode, setFitMode] = useState<FitMode>("free");
   const [scanQuality, setScanQuality] = useState(0);
