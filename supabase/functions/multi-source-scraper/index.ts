@@ -28,18 +28,28 @@ const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN");
 const CRAWLBASE_TOKEN = Deno.env.get("CRAWLBASE_TOKEN");
 const SCRAPINGBEE_API_KEY = Deno.env.get("SCRAPINGBEE_API_KEY");
 
+// ── APIFY GATE (stabilization pass 2026-04-19) ─────────────────────────────
+// Apify is disabled by default. When false, every fetchApify* call short-
+// circuits and only ScrapingBee KR routes return rows.
+const APIFY_ENABLED = (Deno.env.get("APIFY_ENABLED") || "false").toLowerCase() === "true";
+
 // ── SOURCE LOCK ────────────────────────────────────────────────────────────
-// Comma-separated list of allowed source labels. Defaults to KR-only.
-// To re-enable a source, set ENABLED_SOURCES env var, e.g.
-//   ENABLED_SOURCES="apify_musinsa,apify_29cm,apify_wconcept,apify_ssg"
-// Anything not in this set is short-circuited to [] and never costs an actor call.
+// Comma-separated list of allowed source labels. Defaults to KR-only ScrapingBee.
+// To re-enable an Apify source, set APIFY_ENABLED=true AND list the label here.
 const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver";
 const ENABLED_SOURCES = new Set(
   (Deno.env.get("ENABLED_SOURCES") || DEFAULT_ENABLED)
     .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
 );
 function sourceEnabled(label: string): boolean {
-  return ENABLED_SOURCES.has(label.toLowerCase());
+  if (!ENABLED_SOURCES.has(label.toLowerCase())) return false;
+  // Apify-backed labels (NOT the KR ScrapingBee ones, which are also prefixed
+  // apify_* for legacy reasons but actually run via ScrapingBee).
+  const APIFY_BACKED = new Set([
+    "apify_asos", "apify_zalando", "apify_coupang", "apify_gshopping",
+  ]);
+  if (APIFY_BACKED.has(label.toLowerCase()) && !APIFY_ENABLED) return false;
+  return true;
 }
 
 const SOURCE_BUDGET_MS = 14_000;
