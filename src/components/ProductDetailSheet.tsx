@@ -120,19 +120,29 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-3 pt-2">
-              {/* Shop Now — primary CTA */}
-              {product.source_url && (
-                <a
-                  href={product.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  SHOP NOW
-                </a>
-              )}
+            <div className="space-y-2.5 pt-2">
+              {/* Try this on — primary AI CTA */}
+              <button
+                onClick={handleTryOn}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent transition-all hover:bg-accent/20"
+              >
+                <Sparkles className="h-4 w-4" />
+                TRY THIS ON
+              </button>
+
+              <div className="flex items-center gap-3">
+                {/* Shop Now */}
+                {product.source_url && (
+                  <a
+                    href={product.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    SHOP NOW
+                  </a>
+                )}
 
               {/* Save */}
               <AuthGate action="save items">
