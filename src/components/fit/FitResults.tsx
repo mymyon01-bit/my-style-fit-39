@@ -159,6 +159,11 @@ export default function FitResults({
     : null;
   const globalSize = profile ? estimateGlobalSize(profile.heightCm, profile.frame) : null;
 
+  // ── Visual fit transform (drives VisualFitCard hero) ─────────────────────
+  const visualTransform = activeSizeResult
+    ? computeVisualTransform(activeSizeResult, profile)
+    : null;
+
   // ── Try-on availability ─────────────────────────────────────────────────
   const [tryOnOpen, setTryOnOpen] = useState(false);
   const [userImageUrl, setUserImageUrl] = useState<string | null>(null);
