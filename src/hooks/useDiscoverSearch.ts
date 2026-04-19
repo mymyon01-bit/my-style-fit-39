@@ -241,6 +241,44 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         });
         if (runIdRef.current !== runId) return;
         applySession(session, dbSeen, "complete");
+
+        // ── AUTO AI EXPANSION + BACKGROUND INGESTION ────────────────────
+        // Assess coverage of what we just rendered. If the grid is thin or
+        // not fresh enough, ask the AI to interpret the query and fan out
+        // discovery in the background. Never blocks the UI.
+        try {
+          const candidateCount = session.results.length;
+          // Best-effort visible/fresh estimates (use windowSize and rendered fresh from session).
+          const visibleCount = Math.min(candidateCount, windowSize);
+          const freshCount = session.results.filter((r) => {
+            const ts = r.createdAt ? new Date(r.createdAt).getTime() : 0;
+            return ts > 0 && Date.now() - ts < 72 * 3600 * 1000;
+          }).length;
+          const coverage = assessQueryCoverage({
+            query: trimmed,
+            candidateCount,
+            visibleCount,
+            lockedCategory: lock,
+            freshCount,
+          });
+          if (coverage.isWeak) {
+            void (async () => {
+              const cached = await loadCachedInterpretation(parsed.normalized);
+              const interpreted = cached
+                ? // Reuse cached: still call AI only if cache is stale (>24h) — for now, reuse always.
+                  await interpretQueryWithAI(trimmed)
+                : await interpretQueryWithAI(trimmed);
+              await triggerAutoDiscovery({
+                query: trimmed,
+                interpreted,
+                reason: coverage.reason,
+              });
+            })().catch((err) => console.warn("[useDiscoverSearch] auto-discovery failed", err));
+          }
+        } catch (err) {
+          console.warn("[useDiscoverSearch] coverage assessment failed", err);
+        }
+
         // Background cluster evolution — never blocks the UI. Pushes the
         // top-60 fresh DB-backed UUIDs into query_clusters so future searches
         // see an evolving pool, not a frozen one.
