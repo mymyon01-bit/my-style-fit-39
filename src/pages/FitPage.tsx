@@ -144,7 +144,7 @@ const FitPage = () => {
         // Ensure we have a weight so we can compute fit and jump straight to RESULTS
         if (!weightKg) setWeightKg(70);
         // Wait a tick so body profile is loaded before computing fit
-        setTimeout(() => handleSelectProduct(product!), 350);
+        setTimeout(() => handleSelectProduct(product!, { silent: true }), 350);
       } catch (e) {
         console.error("[FitPage] deep-link load failed", e);
       }
