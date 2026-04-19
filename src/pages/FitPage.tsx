@@ -351,6 +351,8 @@ const FitPage = () => {
                 fitMode={fitMode}
                 canUsePremium={canUsePremium}
                 refining={refining}
+                bodyHeightCm={measurements.heightCm.value}
+                bodyWeightKg={null}
                 onRefineFit={handleRefineFit}
                 onRescan={() => setActiveTab("scan")}
                 onEditMeasurements={() => setActiveTab("measurements")}
