@@ -11,25 +11,15 @@ import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
 import { AuthGate } from "@/components/AuthGate";
 import { useCategories } from "@/hooks/useCategories";
 import { useDbTopGrid } from "@/hooks/useDbTopGrid";
+import { useDiscoverSearch } from "@/hooks/useDiscoverSearch";
 import { generateSuggestions, TRENDING_SEARCHES } from "@/lib/searchSuggestions";
 import { recordEvent } from "@/lib/diagnostics";
-import { loadDbSeenKeys } from "@/lib/search/discovery-cache";
-import {
-  buildDiscoverGridDiagnostics,
-  buildDiscoverRenderables,
-  composeDiscoverGrid,
-  type DiscoverRenderableProduct,
-} from "@/lib/search/discover-feed";
-import { runSearch } from "@/lib/search/search-runner";
-import { createSearchSession, type SearchSession } from "@/lib/search/search-session";
+import type { DiscoverRenderableProduct } from "@/lib/search/discover-feed";
 import type { Product } from "@/lib/search/types";
 import DbTopGrid from "@/components/discover/DbTopGrid";
 import StyledLooksRow from "@/components/discover/StyledLooksRow";
 import LiveResultsSection from "@/components/discover/LiveResultsSection";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
-import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/discover-intent-parser";
-import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
-import { runSearchLadder } from "@/lib/discover/discover-search-ladder";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
@@ -125,29 +115,44 @@ export default function DiscoverPage() {
   const [showAuthHint, setShowAuthHint] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | DiscoverRenderableProduct | null>(null);
 
-  // ── Live (Layer 3) state ──────────────────────────────────────────────
+  // ── Live (Layer 3) state — UI only; search lives in useDiscoverSearch ──
   const [committedQuery, setCommittedQuery] = useState(moodParam || "new arrivals");
-  const [allLiveResults, setAllLiveResults] = useState<DiscoverRenderableProduct[]>([]);
-  const [visibleLiveResults, setVisibleLiveResults] = useState<DiscoverRenderableProduct[]>([]);
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
-  const [isSearching, setIsSearching] = useState(false);
-  const [liveStatus, setLiveStatus] = useState("Loading fresh inventory…");
   const [freshFlash, setFreshFlash] = useState<{ count: number; label: string } | null>(null);
-  const [dbSeen, setDbSeen] = useState<Set<string>>(new Set());
-  const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
-  const [intent, setIntent] = useState<ParsedIntent | null>(null);
-  const [intentChips, setIntentChips] = useState<string[]>([]);
-  const [intentFallback, setIntentFallback] = useState<"alias" | "ai" | null>(null);
-  const [ladderStage, setLadderStage] = useState<string | null>(null);
-
-  const sessionRef = useRef<SearchSession | null>(null);
-  const searchRunRef = useRef(0);
   const gridSignatureRef = useRef("");
 
-  // ── Layer 1 — instant DB grid (independent fetch, no live coupling) ───
+  // ── Hook owns: parse → ladder seed → runSearch → compose → diagnostics ─
+  const {
+    results: allLiveResults,
+    diagnostics,
+    status: searchStatus,
+    intentChips,
+    intentFallback,
+    ladderStage,
+    search: runDiscoverSearch,
+    markVisibleSeen,
+  } = useDiscoverSearch({ windowSize: PAGE_SIZE, minFreshRatio: 0.4 });
+
+  const isSearching = searchStatus === "searching" || searchStatus === "partial";
+  const liveStatus = useMemo(() => {
+    if (searchStatus === "complete") {
+      const fresh = diagnostics?.totalRenderedFresh ?? 0;
+      return fresh > 0 ? `Updated with new products (+${fresh})` : "Updated with new products";
+    }
+    if (allLiveResults.length === 0) return "Loading more products…";
+    const fetched = diagnostics?.totalFreshFetched ?? 0;
+    return fetched > 0 ? `Adding fresh items… (+${fetched} so far)` : "Searching across more stores…";
+  }, [allLiveResults.length, diagnostics, searchStatus]);
+
+  const visibleLiveResults = useMemo(
+    () => allLiveResults.slice(0, displayCount),
+    [allLiveResults, displayCount],
+  );
+
+  // ── Layer 1 — instant DB grid (independent fetch) ─────────────────────
   const { products: dbTopProducts, loading: dbTopLoading } = useDbTopGrid(committedQuery, 8);
 
-  // ── Layer 2 — styled looks pool (composed from already-loaded layers) ─
+  // ── Layer 2 — styled looks pool ───────────────────────────────────────
   const styledLooksPool = useMemo<Product[]>(() => {
     if (allLiveResults.length >= 12) return allLiveResults.slice(0, 12);
     if (dbTopProducts.length >= 4) return dbTopProducts;
@@ -190,35 +195,9 @@ export default function DiscoverPage() {
     void loadSavedIds();
   }, [loadSavedIds]);
 
-  // ── Layer 3 — live discovery pipeline ─────────────────────────────────
-  const applySessionToLiveLayer = useCallback(
-    (session: SearchSession, dbSeenSet: Set<string>) => {
-      const renderables = buildDiscoverRenderables(session, dbSeenSet);
-      const composed = composeDiscoverGrid(renderables, { windowSize: PAGE_SIZE, minFreshRatio: 0.4 });
-      setAllLiveResults(composed);
-      const summary = buildDiscoverGridDiagnostics(session, renderables, composed.slice(0, PAGE_SIZE));
-      setDiagnostics({ query: session.query, ...summary });
-      // Status messaging vocabulary — exact phrases per UX spec.
-      let nextStatus: string;
-      if (session.status === "complete") {
-        nextStatus = summary.totalRenderedFresh > 0
-          ? `Updated with new products (+${summary.totalRenderedFresh})`
-          : "Updated with new products";
-      } else if (composed.length === 0) {
-        nextStatus = "Loading more products…";
-      } else if (summary.totalFreshFetched > 0) {
-        nextStatus = `Adding fresh items… (+${summary.totalFreshFetched} so far)`;
-      } else {
-        nextStatus = "Searching across more stores…";
-      }
-      setLiveStatus(nextStatus);
-      setIsSearching(session.status !== "complete");
-    },
-    [],
-  );
-
+  // ── Run discover (single entry point — hook owns the pipeline) ────────
   const runDiscover = useCallback(
-    async (baseQuery: string) => {
+    (baseQuery: string) => {
       const query = buildQuery(baseQuery, {
         subcategory: activeSubcategory,
         styles: selectedStyles,
@@ -226,152 +205,58 @@ export default function DiscoverPage() {
         quiz: quizAnswers,
       });
       if (!query) return;
-
-      const runId = Date.now();
-      searchRunRef.current = runId;
       setCommittedQuery(query);
       setDisplayCount(PAGE_SIZE);
-      setIsSearching(true);
-      setLiveStatus("Loading more products…");
       setFreshFlash(null);
-      setAllLiveResults([]);
-
-      // ── INTENT PARSE (deterministic, instant) ───────────────────────
-      let parsedIntent = parseIntent(query);
-      const usedAlias = parsedIntent.enAliases.length > 0;
-      setIntent(parsedIntent);
-      setIntentChips(summarizeIntent(parsedIntent));
-      setIntentFallback(usedAlias ? "alias" : null);
-
-      // ── AI FALLBACK for vague/emotional unknowns (non-blocking) ─────
-      if (shouldUseAiFallback(parsedIntent)) {
-        void expandIntentWithAi(query).then((ai) => {
-          if (!ai || searchRunRef.current !== runId) return;
-          parsedIntent = mergeAiIntoIntent(parsedIntent, ai);
-          setIntent(parsedIntent);
-          setIntentChips(summarizeIntent(parsedIntent));
-          setIntentFallback("ai");
-        });
-      }
-
-      // ── SEARCH LADDER (DB-first seed, never empty) ──────────────────
-      void runSearchLadder(parsedIntent).then((ladder) => {
-        if (searchRunRef.current !== runId) return;
-        setLadderStage(ladder.stageReached);
-        if (ladder.products.length > 0 && allLiveResults.length === 0) {
-          // Seed Live Results immediately with cached ladder hits so users
-          // never see an empty Live section while runSearch warms up.
-          const seeded: DiscoverRenderableProduct[] = ladder.products.slice(0, PAGE_SIZE).map((p) => ({
-            id: p.id,
-            title: p.title,
-            brand: p.brand || undefined,
-            price: p.price != null ? String(p.price) : undefined,
-            category: p.category,
-            imageUrl: p.imageUrl,
-            externalUrl: p.productUrl,
-            storeName: p.source || null,
-            platform: null,
-            styleTags: [],
-            color: p.color || undefined,
-            fit: undefined,
-            reason: undefined,
-            createdAt: p.createdAt,
-            lastValidated: p.lastVerifiedAt || null,
-            trendScore: 0,
-            source: p.source,
-            origin: "product_cache",
-            queryFamily: p.queryFamily || (parsedIntent.primaryCategory || "general"),
-            freshnessScore: p.freshnessScore ?? 0.5,
-            sourceDomain: p.sourceDomain,
-            sourceKey: p.source,
-            isLocalSeen: false,
-            isDbSeen: false,
-            isUnseen: true,
-            isFresh: (p.freshnessScore ?? 0) > 0.5,
-            finalScore: 1,
-          }));
-          setAllLiveResults(seeded);
-        }
-      }).catch((e) => console.warn("[discover] ladder failed", e));
-
-      const session = createSearchSession(query);
-      sessionRef.current = session;
-
-      void loadDbSeenKeys().then((keys) => {
-        if (searchRunRef.current !== runId) return;
-        setDbSeen(keys);
-        if (sessionRef.current) applySessionToLiveLayer(sessionRef.current, keys);
-      });
-
-      try {
-        await runSearch(session, {
-          target: 60,
-          maxCycles: 4,
-          onProgress: (nextSession) => {
-            if (searchRunRef.current !== runId) return;
-            sessionRef.current = nextSession;
-            applySessionToLiveLayer(nextSession, dbSeen);
-          },
-        });
-        if (searchRunRef.current !== runId) return;
-        sessionRef.current = session;
-        applySessionToLiveLayer(session, dbSeen);
-      } catch (error) {
-        if (searchRunRef.current !== runId) return;
-        console.error("[discover] live search failed", error);
-        setIsSearching(false);
-        setLiveStatus("Searching across more stores…");
-      }
+      void runDiscoverSearch(query);
     },
-    [activeSubcategory, applySessionToLiveLayer, dbSeen, quizAnswers, selectedFit, selectedStyles],
+    [activeSubcategory, quizAnswers, runDiscoverSearch, selectedFit, selectedStyles],
   );
 
   // initial load + tab change
   useEffect(() => {
     if (moodParam) {
-      void runDiscover(moodParam);
+      runDiscover(moodParam);
       return;
     }
-    void runDiscover(activeTab === "for-you" ? "new arrivals" : activeTabData?.label || "new arrivals");
+    runDiscover(activeTab === "for-you" ? "new arrivals" : activeTabData?.label || "new arrivals");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (activeTab === "for-you" && !committedQuery) return;
     if (activeTab === "for-you") return;
-    void runDiscover(activeSubcategory || activeTabData?.label || activeTab);
+    runDiscover(activeSubcategory || activeTabData?.label || activeTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSubcategory, activeTab]);
 
+  // diagnostics + freshness flash + mark-seen on render
   useEffect(() => {
-    setVisibleLiveResults(allLiveResults.slice(0, displayCount));
-  }, [allLiveResults, displayCount]);
-
-  // diagnostics + freshness flash
-  useEffect(() => {
-    if (visibleLiveResults.length === 0 || !sessionRef.current) return;
-    const signature = `${sessionRef.current.query}:${visibleLiveResults.slice(0, PAGE_SIZE).map((item) => item.id).join(",")}`;
+    if (visibleLiveResults.length === 0) return;
+    const signature = `${committedQuery}:${visibleLiveResults.slice(0, PAGE_SIZE).map((item) => item.id).join(",")}`;
     if (gridSignatureRef.current === signature) return;
     const previousSig = gridSignatureRef.current;
     gridSignatureRef.current = signature;
 
     const previousIds = new Set(previousSig.split(":")[1]?.split(",") ?? []);
-    const newlyVisible = visibleLiveResults.filter((item) => item.isUnseen && item.isFresh && !previousIds.has(item.id));
+    const newlyVisible = visibleLiveResults.filter(
+      (item) => item.isUnseen && item.isFresh && !previousIds.has(item.id),
+    );
     if (newlyVisible.length > 0 && previousSig) {
       setFreshFlash({ count: newlyVisible.length, label: "New arrivals just added" });
       window.setTimeout(() => setFreshFlash(null), 3000);
     }
 
-    const firstGrid = visibleLiveResults.slice(0, PAGE_SIZE).map(toCardMeta);
-    console.table(firstGrid);
+    // Mark visible as seen so suppression works on the next search.
+    void markVisibleSeen(visibleLiveResults.slice(0, PAGE_SIZE));
 
-    const summary = diagnostics || {};
+    const summary = diagnostics;
     recordEvent({
       event_name: "discover_grid_render",
       status: visibleLiveResults.length > 0 ? "success" : "partial",
       metadata: {
-        query: sessionRef.current.query,
+        query: committedQuery,
         layer: "live",
+        ladder_stage: ladderStage,
         total_new_products_fetched_session: summary.totalFreshFetched,
         total_inserted_into_db: summary.totalInsertedToDb,
         total_eligible_for_current_query: summary.totalEligible,
@@ -384,7 +269,8 @@ export default function DiscoverPage() {
         fresh_rendered_count: visibleLiveResults.filter((item) => item.isUnseen && item.isFresh).length,
       },
     });
-  }, [diagnostics, visibleLiveResults]);
+  }, [committedQuery, diagnostics, ladderStage, markVisibleSeen, visibleLiveResults]);
+
 
   const handleSubmit = useCallback((query?: string) => {
     const next = (query || textInput).trim();
