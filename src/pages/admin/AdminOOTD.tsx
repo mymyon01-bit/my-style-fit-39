@@ -1,20 +1,40 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2, Camera, Trash2 } from "lucide-react";
 import SafeImage from "@/components/SafeImage";
+import { toast } from "sonner";
 
 const AdminOOTD = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  useEffect(() => {
-    supabase
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
       .from("ootd_posts")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(50)
-      .then(({ data }) => { setPosts(data || []); setLoading(false); });
+      .limit(100);
+    setPosts(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
   }, []);
+
+  const remove = async (post: any) => {
+    if (!confirm("Delete this OOTD post permanently?")) return;
+    setBusyId(post.id);
+    const { error } = await supabase.from("ootd_posts").delete().eq("id", post.id);
+    setBusyId(null);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Post deleted");
+      setPosts((prev) => prev.filter((p) => p.id !== post.id));
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -24,7 +44,9 @@ const AdminOOTD = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-4 w-4 animate-spin text-foreground/75" /></div>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-4 w-4 animate-spin text-foreground/75" />
+        </div>
       ) : posts.length === 0 ? (
         <div className="py-16 text-center space-y-3">
           <Camera className="mx-auto h-8 w-8 text-foreground/70" />
@@ -32,27 +54,45 @@ const AdminOOTD = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {posts.map(post => (
-            <div key={post.id} className="rounded-xl border border-border/20 bg-card/30 overflow-hidden">
+          {posts.map((post) => (
+            <div
+              key={post.id}
+              className="rounded-xl border border-border/20 bg-card/30 overflow-hidden"
+            >
               <SafeImage
                 src={post.image_url}
                 alt={post.caption || "OOTD"}
                 className="aspect-square w-full object-cover"
                 fallbackClassName="aspect-square w-full"
               />
-              <div className="p-3 space-y-1">
-                <p className="text-[11px] text-foreground/75 truncate">{post.caption || "No caption"}</p>
+              <div className="p-3 space-y-2">
+                <p className="text-[11px] text-foreground/75 truncate">
+                  {post.caption || "No caption"}
+                </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-foreground/70">⭐ {post.star_count || 0}</span>
-                  <span className="text-[10px] text-foreground/70">{new Date(post.created_at).toLocaleDateString()}</span>
+                  <span className="text-[10px] text-foreground/70">
+                    ⭐ {post.star_count || 0}
+                  </span>
+                  <span className="text-[10px] text-foreground/70">
+                    {new Date(post.created_at).toLocaleDateString()}
+                  </span>
                 </div>
                 {post.topics?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="flex flex-wrap gap-1">
                     {post.topics.map((t: string) => (
-                      <span key={t} className="text-[11px] text-accent/60">#{t}</span>
+                      <span key={t} className="text-[11px] text-accent/60">
+                        #{t}
+                      </span>
                     ))}
                   </div>
                 )}
+                <button
+                  onClick={() => remove(post)}
+                  disabled={busyId === post.id}
+                  className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-destructive/30 px-2 py-1.5 text-[10px] text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                >
+                  <Trash2 className="h-3 w-3" /> Delete
+                </button>
               </div>
             </div>
           ))}
