@@ -29,6 +29,8 @@ interface Args {
   regions?: { region: string; fit: string }[];
   productUrl?: string | null;
   productImagesFallback?: (string | null | undefined)[];
+  /** PATCH 4 — when set, also prewarm this size in the background on mount. */
+  prewarmSize?: string | null;
 }
 
 interface State {
