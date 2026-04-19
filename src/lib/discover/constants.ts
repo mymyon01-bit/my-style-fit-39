@@ -24,6 +24,8 @@
 export const SEARCH_POOL_LIMIT = 2000;
 export const SEARCH_RANK_LIMIT = 2000;
 export const SEARCH_MIN_GOOD_RESULTS = 24;
+/** Spec alias for SEARCH_MIN_GOOD_RESULTS — used by fallbackCascade. */
+export const SEARCH_MIN_STRONG_RESULTS = SEARCH_MIN_GOOD_RESULTS;
 export const SEARCH_VISIBLE_LIMIT = 24;
 
 export const SEARCH_KR_EN_MAP: Record<string, string[]> = {
