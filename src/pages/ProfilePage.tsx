@@ -494,6 +494,13 @@ const ProfilePage = () => {
           {t("signOut")}
         </button>
       </div>
+
+      <CirclesSheet
+        open={circlesSheet.open}
+        initialTab={circlesSheet.tab}
+        onClose={() => setCirclesSheet(s => ({ ...s, open: false }))}
+        onChanged={loadProfileData}
+      />
     </div>
   );
 };
