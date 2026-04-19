@@ -130,7 +130,7 @@ export function useReplicateTryOn(args: Args) {
         }
 
         // ── 2. GARMENT CLASSIFICATION ───────────────────────────────
-        const garment = await preprocessGarment(productImageUrl, productCategory);
+        const garment = await preprocessGarment(workingProductImage, productCategory);
         const garmentType: GarmentType = garment.type !== "unknown"
           ? garment.type
           : garmentTypeFromCategory(productCategory);
@@ -150,7 +150,7 @@ export function useReplicateTryOn(args: Args) {
           const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
             body: {
               userImageUrl: body.croppedImageUrl,
-              productImageUrl,
+              productImageUrl: workingProductImage,
               productKey,
               productCategory: garmentType === "lower" ? `${productCategory || ""} pants`.trim()
                               : garmentType === "full" ? `${productCategory || ""} dress`.trim()
