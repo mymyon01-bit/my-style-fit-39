@@ -10,6 +10,8 @@ interface Props {
   measurements: Record<keyof BodyMeasurements, { value: number; confidence: ConfidenceLevel }>;
   onUpdate: (key: keyof BodyMeasurements, value: number) => void;
   onBulkUpdate?: (updates: Partial<Record<keyof BodyMeasurements, number>>) => void;
+  weightKg?: number | null;
+  onWeightChange?: (weight: number) => void;
 }
 
 const BODY_TYPES: { key: BodyTypeKey; label: string; labelKo: string; icon: string }[] = [
@@ -30,10 +32,11 @@ const BODY_HINTS: { key: BodyHint; label: string }[] = [
   { key: "slim-legs", label: "Slim legs" },
 ];
 
-export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }: Props) {
+export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange }: Props) {
   const { user } = useAuth();
   const [height, setHeight] = useState(measurements.heightCm?.value || 175);
-  const [weight, setWeight] = useState(75);
+  const [weight, setWeight] = useState<number>(weightKg ?? 70);
+  const [weightTouched, setWeightTouched] = useState<boolean>(weightKg != null);
   const [bodyType, setBodyType] = useState<BodyTypeKey>("regular");
   const [selectedHints, setSelectedHints] = useState<BodyHint[]>([]);
   const [description, setDescription] = useState("");
@@ -41,6 +44,14 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate }
   const [interpreting, setInterpreting] = useState(false);
   const [interpreted, setInterpreted] = useState(false);
   const [gender, setGender] = useState<string | null>(null);
+
+  // Sync external weight changes
+  useEffect(() => {
+    if (weightKg != null && weightKg !== weight) {
+      setWeight(weightKg);
+      setWeightTouched(true);
+    }
+  }, [weightKg]);
 
   useEffect(() => {
     if (user) loadSavedProfile();
