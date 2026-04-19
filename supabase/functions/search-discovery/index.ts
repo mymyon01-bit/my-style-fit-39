@@ -626,13 +626,16 @@ async function extractWithSimpleFetch(url: string): Promise<ExtractedProduct | n
       og("product:price:amount") ||
       (html.match(/(?:USD|US\$|EUR|GBP|KRW|\$|€|£|₩)\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?/)?.[0]);
     const safeImg = safeUrl(image);
-    if (!title || !safeImg || !isImageSafe(safeImg)) return null;
-    const cleanTitle = title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180);
-    if (!isFashionTitle(cleanTitle) && !isFashionTitle(description)) return null;
+    // RELAXED VALIDATION: accept if at least title + image OR title + price.
+    const cleanTitle = title ? title.replace(/\s*\|\s*.*$/, "").trim().slice(0, 180) : "";
+    const hasTitle = cleanTitle.length > 0;
+    const hasImage = !!safeImg && isImageSafe(safeImg);
+    const hasPrice = !!priceMatch;
+    if (!hasTitle || (!hasImage && !hasPrice)) return null;
     const host = new URL(url).hostname.replace(/^www\./, "");
     return {
       title: cleanTitle,
-      image_url: safeImg,
+      image_url: safeImg || "",
       source_url: url,
       price: priceMatch ? String(priceMatch) : undefined,
       brand: og("og:site_name") || hostToBrand(host),
