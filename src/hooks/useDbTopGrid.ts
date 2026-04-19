@@ -71,16 +71,19 @@ export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "
         let rows = await fetchPool(orTerms);
         let stage: "tokens" | "longest-token" | "recent" = "tokens";
 
-        // GENDER FILTER (post-fetch, pre-rank).
-        if (gender !== "all") {
-          rows = rows.filter((r) => passesGenderFilter(r as never, gender));
+        // GENDER FILTER (post-fetch, pre-rank). Query-level intent overrides
+        // the toggle when the toggle is "all" (e.g. "mens jacket").
+        const queryGender = parseGenderIntent(trimmed);
+        const effectiveGender: GenderFilter = queryGender ?? gender;
+        if (effectiveGender !== "all") {
+          rows = rows.filter((r) => passesGenderFilter(r as never, effectiveGender));
         }
 
         // Pass 2 — degrade to longest single token if too thin
         if (rows.length < limit && orTerms.length > 1) {
           const longest = [...orTerms].sort((a, b) => b.length - a.length)[0];
           let extra = await fetchPool([longest]);
-          if (gender !== "all") extra = extra.filter((r) => passesGenderFilter(r as never, gender));
+          if (effectiveGender !== "all") extra = extra.filter((r) => passesGenderFilter(r as never, effectiveGender));
           const seen = new Set(rows.map((r: { id: string }) => r.id));
           for (const r of extra) if (!seen.has(r.id)) rows.push(r);
           stage = "longest-token";
@@ -88,7 +91,7 @@ export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "
         // Pass 3 — last-resort
         if (rows.length === 0) {
           rows = await fetchPool([]);
-          if (gender !== "all") rows = rows.filter((r) => passesGenderFilter(r as never, gender));
+          if (effectiveGender !== "all") rows = rows.filter((r) => passesGenderFilter(r as never, effectiveGender));
           stage = "recent";
         }
 
