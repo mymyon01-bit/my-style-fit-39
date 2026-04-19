@@ -32,9 +32,11 @@ interface Args {
   regions?: { region: string; fit: string }[];
 }
 
+export type TryOnProvider = "replicate" | "perplexity" | null;
+
 interface CacheEntry {
   url: string | null;
-  provider: "replicate" | "gemini" | null;
+  provider: TryOnProvider;
   fallback: boolean;
 }
 
@@ -47,7 +49,7 @@ export function useReplicateTryOn(args: Args) {
 
   const [status, setStatus] = useState<TryOnStatus>("idle");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [provider, setProvider] = useState<"replicate" | "gemini" | null>(null);
+  const [provider, setProvider] = useState<TryOnProvider>(null);
   const [error, setError] = useState<string | null>(null);
   const cancelRef = useRef(false);
 

@@ -191,48 +191,53 @@ function parseOutput(output: unknown): string | undefined {
   return undefined;
 }
 
-async function tryGemini(lovableKey: string, body: CreateBody): Promise<{
+// ─── PERPLEXITY FALLBACK (PRIMARY FALLBACK — replaces Gemini) ──────────────
+async function tryPerplexity(body: CreateBody): Promise<{
   ok: boolean;
   status: string;
   resultImageUrl?: string;
   error?: string;
+  latency_ms?: number;
 }> {
-  const prompt = buildGeminiPrompt(body.productCategory, body.selectedSize, body.fitDescriptor, body.regions);
-  console.log("[router] gemini try", { size: body.selectedSize });
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-pro-image-preview",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: body.userImageUrl } },
-            { type: "image_url", image_url: { url: body.productImageUrl } },
-          ],
-        },
-      ],
-      modalities: ["image", "text"],
-    }),
-  });
-  if (!r.ok) {
-    const t = await r.text().catch(() => "");
-    console.error("[router] gemini failed", r.status, t.slice(0, 300));
-    return { ok: false, status: "failed", error: `gemini http ${r.status}` };
+  const t0 = Date.now();
+  const garment_des = buildFitDescription(body.productCategory, body.selectedSize, body.fitDescriptor, body.regions);
+  console.log("[router] perplexity try", { size: body.selectedSize });
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/fit-tryon-perplexity`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        productImageUrl: body.productImageUrl,
+        productCategory: body.productCategory,
+        selectedSize: body.selectedSize,
+        fitDescriptor: body.fitDescriptor,
+        garmentDescription: garment_des,
+      }),
+    });
+    const data = await r.json().catch(() => ({}));
+    const latency = Date.now() - t0;
+    if (!data?.ok || !data?.imageUrl) {
+      console.error("[router] perplexity failed", data?.error, { latency });
+      return { ok: false, status: "failed", error: data?.error || "perplexity_failed", latency_ms: latency };
+    }
+    return { ok: true, status: "succeeded", resultImageUrl: data.imageUrl, latency_ms: latency };
+  } catch (e) {
+    console.error("[router] perplexity error", e);
+    return { ok: false, status: "failed", error: e instanceof Error ? e.message : "perplexity_unknown" };
   }
-  const data = await r.json();
-  const url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-  if (!url) return { ok: false, status: "failed", error: "gemini returned no image" };
-  return { ok: true, status: "succeeded", resultImageUrl: url };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -304,18 +309,34 @@ Deno.serve(async (req) => {
 
     if (!body.userImageUrl) return json({ error: "userImageUrl required for try-on" }, 400);
 
-    // Decide provider order
+    // Provider order: REPLICATE (primary) → PERPLEXITY (fallback). Gemini removed.
+    // `mode === "quick"` is now an alias for "perplexity-only attempt".
     const mode = body.mode || "high";
-    const order: Array<"replicate" | "gemini"> =
-      mode === "quick" ? ["gemini", "replicate"] : ["replicate", "gemini"];
+    const order: Array<"replicate" | "perplexity"> =
+      mode === "quick" ? ["perplexity"] : ["replicate", "perplexity"];
 
+    const log = {
+      provider_attempted: [] as string[],
+      replicate_failed: false as boolean,
+      perplexity_failed: false as boolean,
+      fallback_used: false as boolean,
+      final_provider: null as string | null,
+      latency_ms: 0,
+    };
+    const tStart = Date.now();
     let lastError = "";
+
     for (const provider of order) {
+      log.provider_attempted.push(provider);
+
       if (provider === "replicate") {
-        if (!REPLICATE_API_TOKEN) { lastError = "REPLICATE_API_TOKEN missing"; continue; }
+        if (!REPLICATE_API_TOKEN) {
+          lastError = "REPLICATE_API_TOKEN missing";
+          log.replicate_failed = true;
+          continue;
+        }
         const res = await tryReplicate(REPLICATE_API_TOKEN, body);
         if (res.ok) {
-          // Cache row
           if (userId) {
             await supabase.from("fit_tryons").upsert({
               user_id: userId,
@@ -331,46 +352,77 @@ Deno.serve(async (req) => {
               metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], sizeBehavior: sizeFitBehavior(body.selectedSize) },
             }, { onConflict: "user_id,product_key,selected_size" });
           }
+          log.final_provider = "replicate";
+          log.latency_ms = Date.now() - tStart;
+          console.log("[router] success", log);
           return json({
             status: res.status,
             predictionId: res.predictionId,
             resultImageUrl: res.resultImageUrl,
             provider: "replicate",
+            fallbackUsed: false,
           });
         }
+        log.replicate_failed = true;
         lastError = res.error || "replicate failed";
-        console.warn("[router] replicate failed → falling back", lastError);
+        console.warn("[router] replicate failed → trying perplexity", lastError);
       } else {
-        if (!LOVABLE_API_KEY) { lastError = "LOVABLE_API_KEY missing"; continue; }
-        const res = await tryGemini(LOVABLE_API_KEY, body);
+        // ── PERPLEXITY FALLBACK ─────────────────────────────────
+        if (!PERPLEXITY_API_KEY) {
+          lastError = "PERPLEXITY_API_KEY missing";
+          log.perplexity_failed = true;
+          console.warn("[router] perplexity skipped — key missing");
+          continue;
+        }
+        const res = await tryPerplexity(body);
         if (res.ok) {
+          log.fallback_used = true;
+          log.final_provider = "perplexity";
+          log.latency_ms = Date.now() - tStart;
           if (userId) {
             await supabase.from("fit_tryons").upsert({
               user_id: userId,
               product_key: body.productKey,
               selected_size: body.selectedSize,
-              provider: "gemini",
-              model_id: "google/gemini-3-pro-image-preview",
+              provider: "perplexity",
+              model_id: "perplexity/sonar",
               prediction_id: null,
               status: "succeeded",
               user_image_url: body.userImageUrl,
               product_image_url: body.productImageUrl,
               result_image_url: res.resultImageUrl,
-              metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], sizeBehavior: sizeFitBehavior(body.selectedSize), fallback: mode === "high" },
+              metadata: {
+                fitDescriptor: body.fitDescriptor,
+                regions: body.regions || [],
+                sizeBehavior: sizeFitBehavior(body.selectedSize),
+                fallback: true,
+                replicate_error: lastError || null,
+              },
             }, { onConflict: "user_id,product_key,selected_size" });
           }
+          console.log("[router] success (fallback)", log);
           return json({
             status: "succeeded",
             resultImageUrl: res.resultImageUrl,
-            provider: "gemini",
+            provider: "perplexity",
+            fallbackUsed: true,
           });
         }
-        lastError = res.error || "gemini failed";
-        console.warn("[router] gemini failed", lastError);
+        log.perplexity_failed = true;
+        lastError = res.error || "perplexity failed";
+        console.warn("[router] perplexity failed", lastError);
       }
     }
 
-    return json({ status: "failed", error: lastError || "all providers failed" }, 502);
+    log.latency_ms = Date.now() - tStart;
+    console.error("[router] all providers failed", log, lastError);
+    return json({
+      status: "failed",
+      error: lastError || "all providers failed",
+      provider: null,
+      fallbackUsed: false,
+      previewOnly: true,
+    }, 502);
   } catch (e) {
     console.error("[router] error", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
