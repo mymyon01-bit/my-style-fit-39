@@ -159,16 +159,17 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                   </div>
                 )}
               </div>
-              <button
+              <span
                 onClick={(e) => {
                   e.stopPropagation();
                   onUploadClick();
                 }}
-                className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-accent text-background flex items-center justify-center border-2 border-background shadow-sm hover:scale-110 transition-transform"
+                role="button"
                 aria-label="Add story"
+                className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-tr from-accent via-pink-400 to-amber-300 text-background flex items-center justify-center border-2 border-background shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
               >
-                <Plus className="h-3 w-3" strokeWidth={3} />
-              </button>
+                <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+              </span>
             </div>
             <span className="text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate max-w-[60px]">
               Your story
