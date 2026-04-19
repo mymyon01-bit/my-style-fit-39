@@ -301,6 +301,17 @@ export default function FitResults({
         </div>
       </div>
 
+      {/* ══ VISUAL FIT — hero, hybrid 2D simulation ══ */}
+      {visualTransform && (
+        <VisualFitCard
+          productImage={product.image}
+          productName={product.name}
+          category={product.category}
+          activeSize={activeSize}
+          transform={visualTransform}
+        />
+      )}
+
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
         <div className="flex items-center gap-2">
