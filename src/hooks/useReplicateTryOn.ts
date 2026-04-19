@@ -7,8 +7,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { preprocessBodyImage } from "@/lib/fit/preprocessBodyImage";
 
-export type TryOnStatus = "idle" | "generating" | "ready" | "fallback" | "error";
+export type TryOnStatus =
+  | "idle"
+  | "generating"
+  | "ready"
+  | "fallback"
+  | "error"
+  | "invalid_body"; // body image quality gate failed — UI should prompt re-scan
 
 interface Args {
   enabled: boolean;
@@ -69,9 +76,26 @@ export function useReplicateTryOn(args: Args) {
 
     (async () => {
       try {
+        // ── BODY QUALITY GATE ───────────────────────────────────────
+        const processed = await preprocessBodyImage(userImageUrl);
+        console.log("[useReplicateTryOn] preprocess", {
+          body_valid: processed.valid,
+          reason: processed.reason,
+          crop_applied: processed.cropApplied,
+          zoom_ratio: processed.zoomRatio,
+          replicate_called: processed.valid,
+          fallback_triggered: !processed.valid,
+        });
+        if (!processed.valid) {
+          setStatus("invalid_body");
+          setError(processed.reason || "body_image_invalid");
+          return;
+        }
+        const cleanUserImage = processed.croppedImageUrl;
+
         const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
           body: {
-            userImageUrl,
+            userImageUrl: cleanUserImage,
             productImageUrl,
             productKey,
             productCategory,
