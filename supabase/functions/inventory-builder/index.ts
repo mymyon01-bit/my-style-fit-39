@@ -242,14 +242,19 @@ async function invokeFunction(
   }
 }
 
-// Run BOTH discovery + Apify-bulk for one seed. Returns combined stats.
+// Apify gate — flip to true (and re-enable kickoff path in
+// discover-search-engine + apify-webhook) to restore Apify ingestion.
+const APIFY_ENABLED = (Deno.env.get("APIFY_ENABLED") || "false").toLowerCase() === "true";
+
+// Run discovery + ScrapingBee-bulk for one seed. Apify path is skipped while
+// APIFY_ENABLED=false. multi-source-scraper still runs but ONLY its
+// ScrapingBee KR branches return rows (apify_* sources are gated by env).
 async function processSeed(
   sb: SupabaseClient,
   seed: { q: string; family: string },
   trigger: string,
-): Promise<{ seed: string; family: string; discovery: number; apify: number; total: number }> {
-  // Run both in parallel — they hit different sources.
-  const [discoveryRun, apifyRun] = await Promise.all([
+): Promise<{ seed: string; family: string; discovery: number; scrapingbee: number; apify_skipped: boolean; total: number }> {
+  const [discoveryRun, scrapingbeeRun] = await Promise.all([
     (async () => {
       const t0 = Date.now();
       const runId = await startRun(sb, "discovery", "search-discovery", seed, trigger);
@@ -267,13 +272,13 @@ async function processSeed(
         inserted_count: inserted,
         status: r.ok ? "success" : "failed",
         duration_ms,
-        metadata: { ok: r.ok },
+        metadata: { ok: r.ok, provider_used: "discovery", apify_skipped: !APIFY_ENABLED },
       });
       return inserted;
     })(),
     (async () => {
       const t0 = Date.now();
-      const runId = await startRun(sb, "apify", "multi-source-scraper", seed, trigger);
+      const runId = await startRun(sb, "scrapingbee", "multi-source-scraper", seed, trigger);
       const r = await invokeFunction("multi-source-scraper", {
         query: seed.q,
         intensity: "cron",
@@ -282,14 +287,14 @@ async function processSeed(
       const inserted = Number(r.data?.inserted) || 0;
       const fetched = Number(r.data?.merged) || 0;
       const deduped = Math.max(0, fetched - Number(r.data?.deduped || 0));
-      if (!r.ok) await logError(sb, runId, "apify", seed, JSON.stringify(r.data).slice(0, 400));
+      if (!r.ok) await logError(sb, runId, "scrapingbee", seed, JSON.stringify(r.data).slice(0, 400));
       await finishRun(sb, runId, {
         fetched_count: fetched,
         inserted_count: inserted,
         deduped_count: deduped,
         status: r.ok ? "success" : "failed",
         duration_ms,
-        metadata: { sources: r.data?.sources ?? {} },
+        metadata: { sources: r.data?.sources ?? {}, provider_used: "scrapingbee", apify_skipped: !APIFY_ENABLED },
       });
       return inserted;
     })(),
@@ -299,8 +304,9 @@ async function processSeed(
     seed: seed.q,
     family: seed.family,
     discovery: discoveryRun,
-    apify: apifyRun,
-    total: discoveryRun + apifyRun,
+    scrapingbee: scrapingbeeRun,
+    apify_skipped: !APIFY_ENABLED,
+    total: discoveryRun + scrapingbeeRun,
   };
 }
 
