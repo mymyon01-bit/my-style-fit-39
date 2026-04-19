@@ -10,6 +10,8 @@ import type { FitMode } from "@/pages/FitPage";
 import { buildFitExplanation, confidenceTier } from "@/lib/fit/explain";
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
+import { computeVisualTransform } from "@/lib/fit/visualFitEngine";
+import VisualFitCard from "@/components/fit/VisualFitCard";
 
 interface FitProduct {
   id: string;
