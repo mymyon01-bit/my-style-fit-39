@@ -12,10 +12,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { preprocessBodyImage } from "@/lib/fit/preprocessBodyImage";
 import { preprocessGarment, garmentTypeFromCategory, type GarmentType } from "@/lib/fit/preprocessGarment";
 import { validateTryOnOutput } from "@/lib/fit/validateOutput";
+import { resolveProductImage } from "@/lib/discover/resolveProductImage";
 
 export type TryOnStatus =
   | "idle"
   | "generating"
+  | "resolving_image"
+  | "missing_image"
   | "ready"
   | "fallback"
   | "error"
@@ -30,6 +33,9 @@ interface Args {
   selectedSize: string;
   fitDescriptor?: string;
   regions?: { region: string; fit: string }[];
+  /** Optional context used to auto-recover a missing product image */
+  productUrl?: string | null;
+  productImagesFallback?: (string | null | undefined)[];
 }
 
 export type TryOnProvider = "replicate" | "perplexity" | null;
@@ -45,12 +51,13 @@ const POLL_INTERVAL_MS = 2500;
 const POLL_MAX_ATTEMPTS = 40;
 
 export function useReplicateTryOn(args: Args) {
-  const { enabled, userImageUrl, productImageUrl, productKey, productCategory, selectedSize, fitDescriptor, regions } = args;
+  const { enabled, userImageUrl, productImageUrl, productKey, productCategory, selectedSize, fitDescriptor, regions, productUrl, productImagesFallback } = args;
 
   const [status, setStatus] = useState<TryOnStatus>("idle");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [provider, setProvider] = useState<TryOnProvider>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resolvedProductImage, setResolvedProductImage] = useState<string | null>(null);
   const cancelRef = useRef(false);
 
   const cacheKey = `${productKey}::${selectedSize}`;
@@ -58,7 +65,7 @@ export function useReplicateTryOn(args: Args) {
   useEffect(() => {
     cancelRef.current = false;
 
-    if (!enabled || !userImageUrl || !productImageUrl || !productKey || !selectedSize) {
+    if (!enabled || !userImageUrl || !productKey || !selectedSize) {
       setStatus("idle");
       setImageUrl(null);
       setProvider(null);
@@ -78,6 +85,34 @@ export function useReplicateTryOn(args: Args) {
     setError(null);
 
     (async () => {
+      // ── 0. PRODUCT IMAGE GUARD + RECOVERY ───────────────────────
+      let workingProductImage = productImageUrl;
+      const looksUsable = (u: string | null | undefined) =>
+        !!u && /^(https?:\/\/|data:image\/)/i.test(String(u).trim()) &&
+        String(u).trim() !== "null" && String(u).trim() !== "undefined";
+
+      if (!looksUsable(workingProductImage)) {
+        setStatus("resolving_image");
+        console.log("[tryon-pipeline]", { stage: "image_guard", product_image_missing: true });
+        const resolved = await resolveProductImage({
+          id: productKey,
+          image: productImageUrl,
+          images: productImagesFallback,
+          url: productUrl,
+          category: productCategory,
+        });
+        if (cancelRef.current) return;
+        if (!resolved) {
+          console.warn("[tryon-pipeline]", { stage: "image_guard", recovered: false, replicate_called: false });
+          setStatus("missing_image");
+          setError("missing_image");
+          return;
+        }
+        workingProductImage = resolved.url;
+        setResolvedProductImage(resolved.url);
+        console.log("[tryon-pipeline]", { stage: "image_guard", recovered: true, source: resolved.source });
+        setStatus("generating");
+      }
       try {
         // ── 1. BODY GATE ────────────────────────────────────────────
         const body = await preprocessBodyImage(userImageUrl);
