@@ -158,12 +158,13 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                 </button>
               </AuthGate>
 
-              {/* Share */}
-              <ShareButton
-                title={`${product.brand} — ${product.name}`}
-                url={product.source_url || window.location.href}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80 transition-all"
-              />
+                {/* Share */}
+                <ShareButton
+                  title={`${product.brand} — ${product.name}`}
+                  url={product.source_url || window.location.href}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80 transition-all"
+                />
+              </div>
             </div>
           </div>
         </div>
