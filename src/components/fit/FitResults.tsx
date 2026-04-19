@@ -320,6 +320,8 @@ export default function FitResults({
         activeSize={activeSize}
         userChestCm={estUserChest}
         userShoulderCm={estUserShoulder}
+        userHeightCm={bodyHeightCm}
+        userWeightKg={bodyWeightKg}
         tryOnImageUrl={tryOn.imageUrl}
         tryOnStatus={tryOn.status}
         tryOnProvider={tryOn.provider}
