@@ -24,6 +24,7 @@ import {
 } from "./discover-tokenizer";
 import { expandSearchAliases } from "./searchAliases";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS, getFreshnessBonus, looksLikeProductImage } from "./constants";
+import { passesGenderFilter, type GenderFilter } from "./genderFilter";
 import type { ParsedIntent } from "./discover-intent-parser";
 import type { DiscoverProduct } from "./discover-types";
 
@@ -34,6 +35,8 @@ export interface FastSelectorOptions {
   intent?: ParsedIntent | null;
   /** Optional set of product ids the user has already seen — small unseen bonus. */
   seenIds?: Set<string>;
+  /** Optional gender filter ("all" | "women" | "men"). Applied post-rank. */
+  gender?: GenderFilter;
 }
 
 export interface FastSelectorResult {
