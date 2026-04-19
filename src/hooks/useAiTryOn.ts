@@ -115,6 +115,16 @@ export function useAiTryOn(args: Args) {
     setTextState((s) => ({ ...s, status: "generating", prompt, error: null }));
     const startedAt = performance.now();
 
+    // PATCH 7 — client-side 8s hard guard.
+    const guardTimer = setTimeout(() => {
+      if (cancelRef.current) return;
+      setTextState((s) => {
+        if (s.status !== "generating") return s;
+        console.warn("[useAiTryOn] client guard: 8s exceeded, falling back");
+        return { ...s, status: "fallback", error: "timeout_8s" };
+      });
+    }, 8_000);
+
     (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("fit-tryon-text", {
@@ -125,6 +135,7 @@ export function useAiTryOn(args: Args) {
             productImageUrl: args.productImageUrl,
           },
         });
+        clearTimeout(guardTimer);
         if (cancelRef.current) return;
         const elapsed = Math.round(performance.now() - startedAt);
 
@@ -154,6 +165,7 @@ export function useAiTryOn(args: Args) {
           cacheHit: !!data.cacheHit,
           elapsed,
           size: args.selectedSize,
+          nearestSize: data.nearestSize ?? null,
         });
         setTextState({
           status: "ready",
@@ -165,6 +177,7 @@ export function useAiTryOn(args: Args) {
           mode: "text",
         });
       } catch (e) {
+        clearTimeout(guardTimer);
         if (cancelRef.current) return;
         console.error("[useAiTryOn] text path crash", e);
         setTextState({
@@ -181,9 +194,52 @@ export function useAiTryOn(args: Args) {
 
     return () => {
       cancelRef.current = true;
+      clearTimeout(guardTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [args.enabled, hasPhoto, args.productKey, args.selectedSize]);
+
+  // ── PATCH 4 — BACKGROUND PREWARM ─────────────────────────────────────────
+  // Fire-and-forget generation for a default/recommended size so that when
+  // the user clicks it, the cache already has it.
+  useEffect(() => {
+    if (!args.enabled || hasPhoto) return;
+    const warm = args.prewarmSize;
+    if (!warm || warm === args.selectedSize) return;
+    if (!args.productKey) return;
+    const warmKey = `${args.productKey}::${warm}::text`;
+    if (TEXT_CACHE.has(warmKey)) return;
+
+    const product: TryOnProductInfo = {
+      title: args.productName,
+      category: args.productCategory ?? null,
+      fitType: args.productFitType ?? null,
+    };
+    const prompt = buildTryOnPrompt({ user: args.body, product, selectedSize: warm });
+
+    const run = () => {
+      supabase.functions
+        .invoke("fit-tryon-text", {
+          body: {
+            prompt,
+            productKey: args.productKey,
+            selectedSize: warm,
+            productImageUrl: args.productImageUrl,
+          },
+        })
+        .then(({ data }) => {
+          if (data?.resultImageUrl) {
+            TEXT_CACHE.set(warmKey, { url: data.resultImageUrl, cacheHit: !!data.cacheHit });
+            console.log("[useAiTryOn] prewarm ok", { size: warm });
+          }
+        })
+        .catch((e) => console.warn("[useAiTryOn] prewarm fail", e));
+    };
+    const ric = (globalThis as any).requestIdleCallback;
+    if (typeof ric === "function") ric(run, { timeout: 2000 });
+    else setTimeout(run, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [args.enabled, hasPhoto, args.productKey, args.prewarmSize]);
 
   if (hasPhoto) {
     return {
