@@ -228,11 +228,14 @@ const FitPage = () => {
     });
   }, []);
 
-  const handleSelectProduct = useCallback((product: SelectedProduct) => {
-    if (!weightKg || weightKg < 40 || weightKg > 120) {
-      toast.error("Please enter weight to improve fit accuracy", {
-        description: "Go to BODY tab and set your weight (40–120 kg).",
-      });
+  const handleSelectProduct = useCallback((product: SelectedProduct, opts?: { silent?: boolean }) => {
+    const effectiveWeight = weightKg ?? 70; // graceful default for deep-link / guest
+    if (effectiveWeight < 40 || effectiveWeight > 120) {
+      if (!opts?.silent) {
+        toast.error("Please enter weight to improve fit accuracy", {
+          description: "Go to BODY tab and set your weight (40–120 kg).",
+        });
+      }
       setActiveTab("measurements");
       return;
     }
