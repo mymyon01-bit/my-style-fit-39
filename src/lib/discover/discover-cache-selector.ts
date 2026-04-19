@@ -24,6 +24,7 @@ import {
 } from "./discover-tokenizer";
 import { expandSearchAliases } from "./searchAliases";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS, getFreshnessBonus, looksLikeProductImage } from "./constants";
+import { passesGenderFilter, type GenderFilter } from "./genderFilter";
 import type { ParsedIntent } from "./discover-intent-parser";
 import type { DiscoverProduct } from "./discover-types";
 
@@ -34,6 +35,8 @@ export interface FastSelectorOptions {
   intent?: ParsedIntent | null;
   /** Optional set of product ids the user has already seen — small unseen bonus. */
   seenIds?: Set<string>;
+  /** Optional gender filter ("all" | "women" | "men"). Applied post-rank. */
+  gender?: GenderFilter;
 }
 
 export interface FastSelectorResult {
@@ -90,6 +93,13 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
   // Pass 1 — full token + alias set
   let rows = await fetchPool(orTerms, poolSize);
   let stage: "tokens" | "longest-token" | "recent" = "tokens";
+
+  // GENDER FILTER — applied to the candidate pool BEFORE ranking so the
+  // visible window is dominated by the right gender.
+  const genderPref = opts.gender ?? "all";
+  if (genderPref !== "all") {
+    rows = rows.filter((r) => passesGenderFilter(r as never, genderPref));
+  }
 
   // Pass 2 — degrade to longest single token if pool too thin
   let usedFallback = false;
