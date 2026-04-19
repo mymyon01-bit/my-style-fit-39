@@ -10,8 +10,7 @@ import type { FitMode } from "@/pages/FitPage";
 import { buildFitExplanation, confidenceTier } from "@/lib/fit/explain";
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
-import { computeVisualTransform } from "@/lib/fit/visualFitEngine";
-import VisualFitCard from "@/components/fit/VisualFitCard";
+import FitVisual from "@/components/fit/FitVisual";
 
 interface FitProduct {
   id: string;
@@ -159,10 +158,9 @@ export default function FitResults({
     : null;
   const globalSize = profile ? estimateGlobalSize(profile.heightCm, profile.frame) : null;
 
-  // ── Visual fit transform (drives VisualFitCard hero) ─────────────────────
-  const visualTransform = activeSizeResult
-    ? computeVisualTransform(activeSizeResult, profile)
-    : null;
+  // ── User body extracts for visual ────────────────────────────────────────
+  const userChestRegion = activeSizeResult?.regions.find(r => r.region === "Chest");
+  const userShoulderRegion = activeSizeResult?.regions.find(r => r.region === "Shoulder");
 
   // ── Try-on availability ─────────────────────────────────────────────────
   const [tryOnOpen, setTryOnOpen] = useState(false);
@@ -301,16 +299,17 @@ export default function FitResults({
         </div>
       </div>
 
-      {/* ══ VISUAL FIT — hero, hybrid 2D simulation ══ */}
-      {visualTransform && (
-        <VisualFitCard
-          productImage={product.image}
-          productName={product.name}
-          category={product.category}
-          activeSize={activeSize}
-          transform={visualTransform}
-        />
-      )}
+      {/* ══ VISUAL FIT — body-anchored hero ══ */}
+      <FitVisual
+        productImage={product.image}
+        productName={product.name}
+        category={product.category}
+        activeSize={activeSize}
+        userChestCm={userChestRegion?.user}
+        userShoulderCm={userShoulderRegion?.user}
+      />
+      {/* underscore-use to silence unused warnings if any */}
+      {void profile && null}
 
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
