@@ -16,6 +16,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { productMatchesCategory, type PrimaryCategory } from "@/lib/search/category-lock";
 import { normalizeDiscoverProducts } from "./discover-product-normalizer";
+import { buildOrClause, tokenizeQuery } from "./discover-tokenizer";
 import type { DiscoverProduct } from "./discover-types";
 import type { ParsedIntent } from "./discover-intent-parser";
 
@@ -40,19 +41,26 @@ function applyLock(products: DiscoverProduct[], lock: PrimaryCategory | null): D
   return matched.length >= 6 ? matched : products;
 }
 
+/**
+ * Delegate to the shared tokenizer's OR builder so stopword stripping
+ * stays aligned with the DB selectors. Local wrapper retained for
+ * call-site clarity inside the ladder.
+ */
 function buildOr(tokens: string[]): string {
-  const safe = tokens
-    .map((t) => t.replace(/[(),]/g, " ").trim())
-    .filter((t) => t.length >= 2);
-  if (safe.length === 0) return "";
-  const parts: string[] = [];
-  for (const t of safe) {
-    parts.push(`name.ilike.%${t}%`);
-    parts.push(`brand.ilike.%${t}%`);
-    parts.push(`search_query.ilike.%${t}%`);
-    parts.push(`category.ilike.%${t}%`);
+  // tokens are already split words — pass through tokenizer's safe builder.
+  return buildOrClause(tokens);
+}
+
+/** Strip fashion stopwords from a list of raw tokens (look, 추천, 느낌, ...). */
+function cleanTokens(tokens: string[]): string[] {
+  // Re-tokenize each word individually — tokenizeQuery drops stopwords + sub-2-char noise.
+  const out = new Set<string>();
+  for (const t of tokens) {
+    if (!t) continue;
+    const tq = tokenizeQuery(t);
+    for (const word of tq.tokens) out.add(word);
   }
-  return parts.join(",");
+  return Array.from(out);
 }
 
 async function fetchPool(orClause: string, query: string): Promise<DiscoverProduct[]> {
@@ -88,28 +96,28 @@ export async function runSearchLadder(intent: ParsedIntent): Promise<LadderResul
     return { products: exact, stageReached: "exact", poolSize: exact.length, perStageCounts: counts };
   }
 
-  // ── Stage 2 — tokenized (per-word OR + KR alias tokens)
-  const tokens = Array.from(new Set([
+  // ── Stage 2 — tokenized (per-word OR + KR alias tokens, stopwords stripped)
+  const tokens = cleanTokens([
     ...intent.normalized.split(/\s+/),
     ...intent.enAliases,
     ...(intent.brand ? [intent.brand] : []),
     ...(intent.color ? [intent.color] : []),
-  ]));
+  ]);
   const tokenized = applyLock(await fetchPool(buildOr(tokens), intent.rawQuery), lock);
   counts.tokenized = tokenized.length;
   if (tokenized.length >= ENOUGH) {
     return { products: tokenized, stageReached: "tokenized", poolSize: tokenized.length, perStageCounts: counts };
   }
 
-  // ── Stage 3 — semantic (style + mood + family tokens)
-  const semanticTokens = Array.from(new Set([
+  // ── Stage 3 — semantic (style + mood + family tokens, stopwords stripped)
+  const semanticTokens = cleanTokens([
     ...tokens,
     ...intent.styleTags,
     ...intent.moodTags,
     ...(intent.family ? [intent.family] : []),
     ...(intent.occasion ? [intent.occasion] : []),
     ...(intent.weather ? [intent.weather] : []),
-  ]));
+  ]);
   const semantic = applyLock(await fetchPool(buildOr(semanticTokens), intent.rawQuery), lock);
   counts.semantic = semantic.length;
   if (semantic.length >= ENOUGH) {
