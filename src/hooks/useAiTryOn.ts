@@ -203,13 +203,15 @@ export function useAiTryOn(args: Args) {
       clearTimeout(guardTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [args.enabled, hasPhoto, args.productKey, args.selectedSize]);
+  }, [shouldRunText, args.productKey, args.selectedSize]);
 
   // ── PATCH 4 — BACKGROUND PREWARM ─────────────────────────────────────────
   // Fire-and-forget generation for a default/recommended size so that when
   // the user clicks it, the cache already has it.
   useEffect(() => {
-    if (!args.enabled || hasPhoto) return;
+    if (!args.enabled) return;
+    // Skip prewarm only when photo path is clearly working
+    if (hasPhoto && !photoFailed && photo.status !== "idle") return;
     const warm = args.prewarmSize;
     if (!warm || warm === args.selectedSize) return;
     if (!args.productKey) return;
