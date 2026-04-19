@@ -71,6 +71,10 @@ export interface DiscoverSearchState {
   diagnostics: (DiscoverGridDiagnostics & { query: string }) | null;
   status: "idle" | "searching" | "partial" | "complete" | "error";
   errorMessage: string | null;
+  /** Number of new products silently appended after a background refresh. */
+  appendedCount: number;
+  /** True while the background refresh re-query is in flight. */
+  isRefreshing: boolean;
 }
 
 export interface UseDiscoverSearchResult extends DiscoverSearchState {
@@ -92,6 +96,8 @@ const INITIAL_STATE: DiscoverSearchState = {
   diagnostics: null,
   status: "idle",
   errorMessage: null,
+  appendedCount: 0,
+  isRefreshing: false,
 };
 
 export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDiscoverSearchResult {
@@ -103,6 +109,7 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
 
   const [state, setState] = useState<DiscoverSearchState>(INITIAL_STATE);
   const runIdRef = useRef(0);
+  const refreshTimerRef = useRef<number | null>(null);
 
   const applySession = useCallback(
     (session: SearchSession, dbSeen: Set<string>, status: DiscoverSearchState["status"]) => {
@@ -199,6 +206,8 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         diagnostics: null,
         status: "searching",
         errorMessage: null,
+        appendedCount: 0,
+        isRefreshing: false,
       });
 
       const session = createSearchSession(trimmed);
@@ -252,6 +261,7 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         });
         if (runIdRef.current !== runId) return;
         applySession(session, dbSeen, "complete");
+        const completedCount = session.results.length;
 
         // ── AUTO AI EXPANSION + BACKGROUND INGESTION ────────────────────
         // Assess coverage of what we just rendered. If the grid is thin or
@@ -265,12 +275,16 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
             const ts = r.createdAt ? new Date(r.createdAt).getTime() : 0;
             return ts > 0 && Date.now() - ts < 72 * 3600 * 1000;
           }).length;
+          const strongImageCount = session.results
+            .slice(0, windowSize)
+            .filter((r) => typeof r.imageUrl === "string" && r.imageUrl.length > 10).length;
           const coverage = assessQueryCoverage({
             query: trimmed,
             candidateCount,
             visibleCount,
             lockedCategory: lock,
             freshCount,
+            strongImageCount,
           });
           if (coverage.isWeak) {
             void (async () => {
@@ -279,11 +293,38 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
                 ? // Reuse cached: still call AI only if cache is stale (>24h) — for now, reuse always.
                   await interpretQueryWithAI(trimmed)
                 : await interpretQueryWithAI(trimmed);
-              await triggerAutoDiscovery({
+              const auto = await triggerAutoDiscovery({
                 query: trimmed,
                 interpreted,
                 reason: coverage.reason,
               });
+              if (!auto.shouldRefresh) return;
+              if (runIdRef.current !== runId) return;
+              // ── SOFT REFRESH ──
+              // Wait for ingestion to land (no polling) and re-run search ONCE
+              // so newly inserted rows surface as "appended" in the live grid.
+              if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
+              setState((prev) => ({ ...prev, isRefreshing: true }));
+              refreshTimerRef.current = window.setTimeout(async () => {
+                if (runIdRef.current !== runId) return;
+                try {
+                  const refreshSession = createSearchSession(trimmed);
+                  if (lock) refreshSession.categoryLock = lock;
+                  await runSearch(refreshSession, { target, maxCycles: 2 });
+                  if (runIdRef.current !== runId) return;
+                  const beforeCount = completedCount;
+                  const newCount = Math.max(0, refreshSession.results.length - beforeCount);
+                  applySession(refreshSession, dbSeen, "complete");
+                  setState((prev) => ({
+                    ...prev,
+                    appendedCount: prev.appendedCount + newCount,
+                    isRefreshing: false,
+                  }));
+                } catch (err) {
+                  console.warn("[useDiscoverSearch] soft refresh failed", err);
+                  setState((prev) => ({ ...prev, isRefreshing: false }));
+                }
+              }, 7000);
             })().catch((err) => console.warn("[useDiscoverSearch] auto-discovery failed", err));
           }
         } catch (err) {
@@ -332,6 +373,10 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
   useEffect(() => {
     return () => {
       runIdRef.current += 1;
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
     };
   }, []);
 

@@ -29,7 +29,7 @@ const GENDER_FILTERS: { id: GenderFilter; label: string }[] = [
   { id: "women", label: "Women" },
   { id: "men", label: "Men" },
 ];
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 36;
 
 type CategoryTab = { slug: string; label: string; children?: { slug: string; label: string }[] };
 
@@ -138,10 +138,16 @@ export default function DiscoverPage() {
     ladderStage,
     search: runDiscoverSearch,
     markVisibleSeen,
+    appendedCount,
+    isRefreshing,
   } = useDiscoverSearch({ windowSize: PAGE_SIZE, minFreshRatio: 0.4, gender: genderFilter });
 
   const isSearching = searchStatus === "searching" || searchStatus === "partial";
   const liveStatus = useMemo(() => {
+    if (isRefreshing) return "Adding fresh products…";
+    if (appendedCount > 0 && searchStatus === "complete") {
+      return `Loaded more items (+${appendedCount})`;
+    }
     if (searchStatus === "complete") {
       const fresh = diagnostics?.totalRenderedFresh ?? 0;
       return fresh > 0 ? `Updated with new products (+${fresh})` : "Updated with new products";
@@ -149,7 +155,7 @@ export default function DiscoverPage() {
     if (allLiveResults.length === 0) return "Loading more products…";
     const fetched = diagnostics?.totalFreshFetched ?? 0;
     return fetched > 0 ? `Adding fresh items… (+${fetched} so far)` : "Searching across more stores…";
-  }, [allLiveResults.length, diagnostics, searchStatus]);
+  }, [allLiveResults.length, appendedCount, diagnostics, isRefreshing, searchStatus]);
 
   const visibleLiveResults = useMemo(
     () => allLiveResults.slice(0, displayCount),
