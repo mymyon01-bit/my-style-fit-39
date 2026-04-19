@@ -209,8 +209,36 @@ export default function FitVisual({
               </div>
             )}
 
+            {/* Resolving missing product image */}
+            {isResolvingImage && (
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-background/90 via-background/65 to-transparent px-5 pb-5 pt-12">
+                <div className="h-1 w-24 overflow-hidden rounded-full bg-foreground/10">
+                  <motion.div
+                    className="h-full w-1/3 rounded-full bg-accent"
+                    animate={{ x: ["-100%", "300%"] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+                <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/75">
+                  FETCHING PRODUCT IMAGE…
+                </p>
+              </div>
+            )}
+
+            {/* Missing product image — block try-on */}
+            {isMissingImage && (
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-background/95 via-background/75 to-transparent px-5 pb-5 pt-12">
+                <p className="text-[11px] font-semibold text-center text-foreground/85 leading-snug max-w-[240px]">
+                  Image required for try-on
+                </p>
+                <p className="text-[10px] text-center text-foreground/55 max-w-[240px]">
+                  This product has no usable image. Try a different listing.
+                </p>
+              </div>
+            )}
+
             {/* Idle / fallback label */}
-            {!isGenerating && tryOnStatus !== "ready" && tryOnStatus !== "invalid_body" && (
+            {!isGenerating && !isResolvingImage && !isMissingImage && tryOnStatus !== "ready" && tryOnStatus !== "invalid_body" && (
               <div className="absolute left-3 bottom-3 rounded-md bg-background/70 px-2 py-1 backdrop-blur-sm">
                 <p className="text-[8.5px] font-bold tracking-[0.2em] text-foreground/65">
                   {tryOnStatus === "error" ? "PREVIEW · TRY-ON UNAVAILABLE" : "PREVIEW SILHOUETTE"}
