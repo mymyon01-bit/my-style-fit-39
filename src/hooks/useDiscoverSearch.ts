@@ -34,6 +34,9 @@ import {
   logQueryParsed,
 } from "@/lib/discover/discover-diagnostics";
 import { upsertCluster } from "@/lib/search/query-cluster-service";
+import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/discover-intent-parser";
+import { runSearchLadder, type LadderStage } from "@/lib/discover/discover-search-ladder";
+import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
