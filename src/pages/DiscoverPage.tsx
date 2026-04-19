@@ -484,7 +484,29 @@ export default function DiscoverPage() {
           </AnimatePresence>
 
           {/* filters bar */}
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {/* Gender segmented toggle — distinct W / M / All */}
+            <div className="inline-flex items-center rounded-full border border-border/30 p-0.5">
+              {GENDER_FILTERS.map((g) => {
+                const active = genderFilter === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => {
+                      setGenderFilter(g.id);
+                      // re-run search so live results refilter immediately
+                      void runDiscoverSearch(committedQuery);
+                    }}
+                    aria-pressed={active}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.05em] transition-all ${
+                      active ? "bg-foreground text-background" : "text-foreground/70 hover:text-foreground"
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                );
+              })}
+            </div>
             <button onClick={() => setShowQuiz(true)} className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/65">
               <Sparkles className="h-3.5 w-3.5 text-accent/70" />
               {quizAnswers ? t("refine") : t("takeStyleQuiz")}
