@@ -201,6 +201,18 @@ export default function FitResults({
       }
     : null;
 
+  // ── PRIMARY visual generation: auto-call Replicate via fit-tryon-router ──
+  const tryOn = useReplicateTryOn({
+    enabled: tryOnReady,
+    userImageUrl,
+    productImageUrl: product.image,
+    productKey,
+    productCategory: product.category,
+    selectedSize: activeSize,
+    fitDescriptor: activeSizeResult?.regions.find(r => r.region === "Chest")?.fit?.toString() || "regular",
+    regions: activeSizeResult?.regions?.map(r => ({ region: r.region, fit: String(r.fit) })) ?? [],
+  });
+
   return (
     <div className="space-y-5">
       {/* Mode + Confidence row */}
