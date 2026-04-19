@@ -282,6 +282,22 @@ Deno.serve(async (req) => {
       return json({ error: "productImageUrl, productKey, selectedSize required" }, 400);
     }
 
+    // ── HARD IMAGE GUARD: never call any provider without a usable URL
+    const img = String(body.productImageUrl || "").trim();
+    const usable = !!img && img !== "null" && img !== "undefined" &&
+                   /^(https?:\/\/|data:image\/)/i.test(img);
+    if (!usable) {
+      console.warn("[router] blocked: missing_image", { productKey: body.productKey });
+      return json({
+        status: "failed",
+        error: "missing_image",
+        provider: null,
+        block: true,
+        fallbackUsed: false,
+        previewOnly: true,
+      }, 422);
+    }
+
     // Cache lookup (per provider-agnostic key) — keyed by product + size so S/M/L/XL are distinct rows
     if (userId && !body.forceRegenerate) {
       const { data: cached } = await supabase
