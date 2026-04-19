@@ -99,13 +99,23 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
   const minFreshRatio = opts.minFreshRatio ?? 0.4;
   const target = opts.target ?? 60;
   const maxCycles = opts.maxCycles ?? 4;
+  const gender: GenderFilter = opts.gender ?? "all";
 
   const [state, setState] = useState<DiscoverSearchState>(INITIAL_STATE);
   const runIdRef = useRef(0);
 
   const applySession = useCallback(
     (session: SearchSession, dbSeen: Set<string>, status: DiscoverSearchState["status"]) => {
-      const renderables = buildDiscoverRenderables(session, dbSeen);
+      let renderables = buildDiscoverRenderables(session, dbSeen);
+      // Gender filter applied to the renderable pool BEFORE composition.
+      if (gender !== "all") {
+        renderables = renderables.filter((r) =>
+          passesGenderFilter(
+            { name: r.title, brand: r.brand, category: r.category, search_query: null },
+            gender,
+          ),
+        );
+      }
       const composed = composeDiscoverGrid(renderables, { windowSize, minFreshRatio });
       // Enforce source/brand diversity caps on the visible window (35%/30%).
       const diversified = enforceDiversity(composed, windowSize);
@@ -117,7 +127,7 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         status,
       }));
     },
-    [minFreshRatio, windowSize],
+    [gender, minFreshRatio, windowSize],
   );
 
   const search = useCallback(
