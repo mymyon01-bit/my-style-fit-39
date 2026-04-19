@@ -78,3 +78,40 @@ export function genderPreferenceToFilter(pref?: string | null): GenderFilter {
   if (p === "male" || p === "men" || p === "man" || p === "m") return "men";
   return "all";
 }
+
+/**
+ * Parse explicit gender intent from a free-text query (EN + KR).
+ * Returns "men"/"women" only when an unambiguous gender token is present.
+ */
+const MEN_INTENT_RE =
+  /(\bmen'?s?\b|\bmens\b|\bmale\b|\bman\b|\bfor\s+men\b|\bguys?\b|\bgentlem(a|e)n\b|남자|남성|맨즈)/i;
+const WOMEN_INTENT_RE =
+  /(\bwomen'?s?\b|\bwomens\b|\bfemale\b|\bwoman\b|\bfor\s+women\b|\bladies\b|\blady\b|여자|여성|우먼즈?|미스)/i;
+
+export function parseGenderIntent(query: string): "men" | "women" | null {
+  if (!query) return null;
+  const q = query.toLowerCase();
+  const w = WOMEN_INTENT_RE.test(q);
+  const m = MEN_INTENT_RE.test(q);
+  if (w && !m) return "women";
+  if (m && !w) return "men";
+  return null;
+}
+
+/**
+ * Gender-aware ranking adjustment — only applied when query has explicit
+ * gender intent. Strong enough to overpower a single category-token match.
+ *   same gender:     +40
+ *   unisex/unknown:  +15
+ *   opposite gender: -60
+ */
+export function genderRankAdjustment(
+  row: GenderableRow,
+  intent: "men" | "women" | null,
+): number {
+  if (!intent) return 0;
+  const g = inferRowGender(row);
+  if (g === intent) return 40;
+  if (g === "unisex") return 15;
+  return -60;
+}
