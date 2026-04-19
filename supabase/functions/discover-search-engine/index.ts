@@ -34,9 +34,19 @@ const APIFY_PUPPETEER_SCRAPER =
 const VARIANTS_PER_RUN = 6;
 const DEFAULT_LIMIT_PER_DOMAIN = 30;
 
+// ── SOURCE LOCK ────────────────────────────────────────────────────────────
+// Lock discovery to the four KR commerce sites by default.
+// Override via ENABLED_DOMAINS env var, e.g.
+//   ENABLED_DOMAINS="musinsa.com,29cm.co.kr,wconcept.co.kr,ssg.com,yoox.com"
 const KR_PRIMARY = ["musinsa.com", "29cm.co.kr", "wconcept.co.kr", "ssg.com"];
-const GLOBAL_SECONDARY = ["yoox.com", "asos.com", "oakandfort.com"];
-const DEFAULT_DOMAINS = [...KR_PRIMARY, ...GLOBAL_SECONDARY];
+const ENABLED_DOMAINS = new Set(
+  (Deno.env.get("ENABLED_DOMAINS") || KR_PRIMARY.join(","))
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+);
+function domainEnabled(d: string): boolean {
+  return ENABLED_DOMAINS.has(d.toLowerCase());
+}
+const DEFAULT_DOMAINS = Array.from(ENABLED_DOMAINS);
 
 // Domains that need real Chromium rendering (SPA hydration + anti-bot).
 const SPA_DOMAINS = new Set(["musinsa.com", "29cm.co.kr", "wconcept.co.kr", "ssg.com"]);
@@ -491,9 +501,20 @@ serve(async (req) => {
     const queries: string[] = Array.isArray(body?.queries)
       ? body.queries.filter((q: unknown): q is string => typeof q === "string" && q.trim().length > 0)
       : (typeof body?.query === "string" && body.query.trim() ? [body.query.trim()] : []);
-    const domains: string[] = Array.isArray(body?.domains) && body.domains.length > 0
+    // Source-lock: requested domains are intersected with ENABLED_DOMAINS.
+    // Anything outside the lock list is dropped silently.
+    const requested: string[] = Array.isArray(body?.domains) && body.domains.length > 0
       ? body.domains.filter((d: unknown): d is string => typeof d === "string")
       : DEFAULT_DOMAINS;
+    const domains = requested.filter(domainEnabled);
+    if (domains.length === 0) {
+      return new Response(JSON.stringify({
+        ok: true, async: true, locked: true,
+        message: "No requested domain matches ENABLED_DOMAINS — nothing to do.",
+        enabledDomains: Array.from(ENABLED_DOMAINS),
+        startedCount: 0, totalCount: 0, results: [], elapsed_ms: 0,
+      }), { headers: { ...cors, "Content-Type": "application/json" } });
+    }
     const limitPerDomain = Number.isFinite(body?.limitPerDomain)
       ? Math.max(5, Math.min(60, Number(body.limitPerDomain)))
       : DEFAULT_LIMIT_PER_DOMAIN;
