@@ -412,6 +412,61 @@ const OOTDPage = () => {
             </motion.div>
           ) : (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* User Search */}
+              <div className="space-y-2.5">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by user ID (e.g. minimal_anna)"
+                    className="w-full rounded-full border border-border/40 bg-card/50 pl-9 pr-9 py-2.5 text-[12px] text-foreground placeholder:text-foreground/35 outline-none focus:border-accent/40 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground/70">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {searchQuery.trim().length >= 2 && (
+                  <div className="rounded-xl border border-border/30 bg-card/30 overflow-hidden">
+                    {searchLoading ? (
+                      <div className="py-4 flex items-center justify-center">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/40" />
+                      </div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="py-4 text-center text-[11px] text-foreground/40">No users found</div>
+                    ) : (
+                      <ul className="divide-y divide-border/20">
+                        {searchResults.map((u) => (
+                          <li key={u.user_id}>
+                            <button
+                              onClick={() => navigate(`/u/${u.user_id}`)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left"
+                            >
+                              {u.avatar_url ? (
+                                <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-medium text-foreground/60">
+                                  {(u.username || u.display_name || "?").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[12px] font-medium text-foreground truncate">@{u.username}</div>
+                                {u.display_name && (
+                                  <div className="text-[10px] text-foreground/50 truncate">{u.display_name}</div>
+                                )}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Trending Topics */}
               {trendingTopics.length > 0 && (
                 <div className="space-y-2.5">
