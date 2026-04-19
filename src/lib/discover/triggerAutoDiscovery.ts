@@ -15,8 +15,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { logDiscoverEvent } from "./discover-diagnostics";
 import type { InterpretedQuery } from "./aiQueryInterpreter";
 
-const COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
-const MAX_VARIANTS_TO_TRIGGER = 4;
+/**
+ * Cooldown is shortened so weak queries can be re-fanned out within the same
+ * browsing session if the first pass returned little. 90 minutes is enough
+ * to avoid duplicate spam without making Discover feel stalled.
+ */
+const COOLDOWN_MS = 90 * 60 * 1000;
+const MAX_VARIANTS_TO_TRIGGER = 6;
+/**
+ * Per-variant source fan-out. Each variant invokes `search-discovery`
+ * (Perplexity + Firecrawl + Naver — KR auto-routed inside the function)
+ * AND `multi-source-scraper` so we hit two healthy backends per variant.
+ */
+const SOURCE_TARGETS = ["search-discovery", "multi-source-scraper"] as const;
 const triggerCache = new Map<string, number>();
 
 function cooldownKey(query: string): string {
@@ -43,6 +54,9 @@ export interface AutoDiscoveryResult {
   triggered: boolean;
   cooldownSuppressed: boolean;
   variantsTried: string[];
+  /** True when ingestion has been initiated; the hook can use this to
+   *  schedule a single soft refresh without polling. */
+  shouldRefresh: boolean;
 }
 
 export async function triggerAutoDiscovery(input: AutoDiscoveryInput): Promise<AutoDiscoveryResult> {
@@ -56,7 +70,7 @@ export async function triggerAutoDiscovery(input: AutoDiscoveryInput): Promise<A
         weak_reason: input.reason,
       },
     });
-    return { triggered: false, cooldownSuppressed: true, variantsTried: [] };
+    return { triggered: false, cooldownSuppressed: true, variantsTried: [], shouldRefresh: false };
   }
   triggerCache.set(key, Date.now());
 
@@ -68,11 +82,16 @@ export async function triggerAutoDiscovery(input: AutoDiscoveryInput): Promise<A
     console.warn("[triggerAutoDiscovery] persistInterpretation failed", err),
   );
 
-  // Fan out to discovery — fire-and-forget per variant.
+  // Fan out to discovery + multi-source — fire-and-forget per variant × source.
+  // We DON'T await: the hook handles the soft-refresh after a delay.
   for (const v of variants) {
-    void supabase.functions
-      .invoke("search-discovery", { body: { query: v } })
-      .catch((err) => console.warn(`[triggerAutoDiscovery] search-discovery failed for "${v}"`, err));
+    for (const target of SOURCE_TARGETS) {
+      void supabase.functions
+        .invoke(target, { body: { query: v } })
+        .catch((err) =>
+          console.warn(`[triggerAutoDiscovery] ${target} failed for "${v}"`, err),
+        );
+    }
   }
 
   logDiscoverEvent("discover_search_progress", {
@@ -83,12 +102,12 @@ export async function triggerAutoDiscovery(input: AutoDiscoveryInput): Promise<A
       weak_reason: input.reason,
       variant_count: variants.length,
       variants,
-      provider_targets: ["search-discovery"],
+      provider_targets: [...SOURCE_TARGETS],
       primary_category: input.interpreted.primaryCategory,
     },
   });
 
-  return { triggered: true, cooldownSuppressed: false, variantsTried: variants };
+  return { triggered: true, cooldownSuppressed: false, variantsTried: variants, shouldRefresh: true };
 }
 
 async function persistInterpretation(interp: InterpretedQuery): Promise<void> {

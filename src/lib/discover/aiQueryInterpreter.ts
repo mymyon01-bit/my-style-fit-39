@@ -27,8 +27,25 @@ export interface InterpretedQuery {
   searchVariants: string[];
 }
 
-const MAX_VARIANTS = 8;
-const MIN_VARIANTS = 4;
+const MAX_VARIANTS = 16;
+const MIN_VARIANTS = 6;
+
+const GENDER_AXIS = ["women", "men"];
+const STYLE_AXIS = ["minimal", "street", "vintage", "classic"];
+const COLOR_AXIS = ["black", "white", "beige"];
+const FIT_AXIS = ["oversized", "slim"];
+const SCENARIO_AXIS = ["work", "weekend", "evening"];
+
+function buildAxisVariants(base: string, primaryCategory?: string): string[] {
+  const out: string[] = [];
+  const head = primaryCategory && !base.includes(primaryCategory) ? `${base} ${primaryCategory}` : base;
+  for (const g of GENDER_AXIS) out.push(`${g} ${head}`);
+  for (const s of STYLE_AXIS) out.push(`${s} ${head}`);
+  for (const c of COLOR_AXIS) out.push(`${c} ${head}`);
+  for (const f of FIT_AXIS) out.push(`${f} ${head}`);
+  for (const sc of SCENARIO_AXIS) out.push(`${head} ${sc}`);
+  return out;
+}
 
 function dedupePush(arr: string[], v: string | null | undefined): void {
   if (!v) return;
@@ -46,6 +63,11 @@ function deterministicInterpret(query: string): InterpretedQuery {
   dedupePush(variants, parsed.normalized);
   for (const a of intent.enAliases) dedupePush(variants, a);
   for (const v of expansion.variants) dedupePush(variants, v);
+  // Axis fan-out — guarantees gender/style/color/fit/scenario coverage even
+  // when the deterministic expander is conservative under category lock.
+  for (const v of buildAxisVariants(parsed.normalized, parsed.primaryCategory ?? undefined)) {
+    dedupePush(variants, v);
+  }
   return {
     raw: query,
     normalized: parsed.normalized,
