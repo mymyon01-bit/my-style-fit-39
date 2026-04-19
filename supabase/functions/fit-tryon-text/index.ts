@@ -115,15 +115,15 @@ Deno.serve(async (req) => {
   const created = await createRes.json();
   let prediction = created;
 
-  // ── 3. POLL (max 20s) ────────────────────────────────────────────────────
-  const maxMs = 20_000;
+  // ── 3. POLL (max 8s — PATCH 7 perf guard) ───────────────────────────────
+  const maxMs = 8_000;
   while (
     prediction.status !== "succeeded" &&
     prediction.status !== "failed" &&
     prediction.status !== "canceled" &&
     Date.now() - startedAt < maxMs
   ) {
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 500));
     const pollRes = await fetch(prediction.urls.get, {
       headers: { Authorization: `Bearer ${REPLICATE_TOKEN}` },
     });
@@ -133,7 +133,18 @@ Deno.serve(async (req) => {
   const durationMs = Date.now() - startedAt;
 
   if (prediction.status !== "succeeded") {
-    console.warn("[fit-tryon-text]", { stage: "fail", status: prediction.status, durationMs });
+    console.warn("[fit-tryon-text]", { stage: "fail_or_timeout", status: prediction.status, durationMs });
+    // PATCH 7 — fall back to nearest cached size for this product/user
+    const { data: nearby } = await admin
+      .from("fit_tryons")
+      .select("result_image_url, selected_size")
+      .eq("user_id", user.id)
+      .eq("product_key", body.productKey)
+      .eq("status", "succeeded")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     await admin.from("fit_tryons").insert({
       user_id: user.id,
       product_key: body.productKey,
@@ -145,6 +156,16 @@ Deno.serve(async (req) => {
       product_image_url: body.productImageUrl ?? null,
       metadata: { prompt: body.prompt, durationMs },
     });
+
+    if (nearby?.result_image_url) {
+      return json({
+        status: "succeeded",
+        resultImageUrl: nearby.result_image_url,
+        provider: "replicate-text",
+        cacheHit: true,
+        nearestSize: nearby.selected_size,
+      });
+    }
     return json({ error: "generation_failed", status: prediction.status }, 502);
   }
 

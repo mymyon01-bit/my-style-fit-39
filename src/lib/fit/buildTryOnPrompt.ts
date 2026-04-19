@@ -1,6 +1,13 @@
 // ─── TRY-ON PROMPT BUILDER ──────────────────────────────────────────────────
 // Builds a structured natural-language prompt for text→image try-on
 // generation. Used by the text-prompt fallback path (no body photo).
+//
+// Identity: a fixed "house model" persona is injected so faces/bodies stay
+// consistent across generations (PATCH 1).
+// Size: amplified visual differentiation (PATCH 2).
+// Product anchor: visual descriptor extracted from title/category (PATCH 3).
+
+import { pickPersona, sizeBehaviorStrong } from "./personas";
 
 export interface TryOnUserBody {
   heightCm?: number | null;
@@ -20,14 +27,8 @@ export interface TryOnProductInfo {
 export type SizeToken = "XS" | "S" | "M" | "L" | "XL" | "XXL";
 
 export function sizeToBehavior(size: string): string {
-  const s = (size || "M").toUpperCase();
-  if (s === "XS") return "very tight fit, snug across chest and shoulders, short cropped length";
-  if (s === "S") return "tight fit, snug chest, shorter length, no excess fabric";
-  if (s === "M") return "regular fit, balanced proportions, natural drape";
-  if (s === "L") return "slightly loose fit, relaxed chest, mild shoulder drop, soft folds at waist";
-  if (s === "XL") return "oversized fit, loose body, dropped shoulders, longer length, generous drape";
-  if (s === "XXL") return "very oversized fit, baggy chest and hem, fully dropped shoulders, extra length";
-  return "regular fit, balanced proportions, natural drape";
+  // Kept for backward compat; new code should use sizeBehaviorStrong.
+  return sizeBehaviorStrong(size);
 }
 
 function shoulderDescriptor(shoulderCm?: number | null): string {
@@ -43,18 +44,42 @@ function buildDescriptor(p: TryOnProductInfo): string {
   return t.slice(0, 110);
 }
 
+/** PATCH 3 — extract visual descriptors from product title/category. */
+function buildProductAnchor(p: TryOnProductInfo): string {
+  const txt = `${p.title} ${p.category ?? ""}`.toLowerCase();
+  const colors = ["black","white","navy","blue","red","green","beige","cream","grey","gray","brown","pink","yellow","purple","olive","khaki","ivory"]
+    .filter((c) => txt.includes(c));
+  const patterns = ["striped","plaid","check","floral","graphic","print","logo","plain","ribbed","knit","denim","leather","suede","linen","cotton","wool","silk"]
+    .filter((p2) => txt.includes(p2));
+  const garmentHints = ["t-shirt","tee","shirt","blouse","sweater","hoodie","jacket","coat","blazer","dress","skirt","pants","jeans","shorts","cardigan","trench"]
+    .filter((g) => txt.includes(g));
+
+  const parts: string[] = [];
+  if (colors.length) parts.push(colors.slice(0, 2).join(" and "));
+  if (patterns.length) parts.push(patterns.slice(0, 2).join(", "));
+  if (garmentHints.length) parts.push(garmentHints[0]);
+  return parts.join(" ");
+}
+
 export function buildTryOnPrompt(args: {
   user: TryOnUserBody;
   product: TryOnProductInfo;
   selectedSize: string;
 }): string {
   const { user, product, selectedSize } = args;
-  const behavior = sizeToBehavior(selectedSize);
+  const behavior = sizeBehaviorStrong(selectedSize);
   const cat = (product.category || "garment").toLowerCase();
   const desc = buildDescriptor(product);
+  const persona = pickPersona({
+    gender: user.gender ?? null,
+    heightCm: user.heightCm ?? null,
+    weightKg: user.weightKg ?? null,
+  });
+  const productAnchor = buildProductAnchor(product);
 
   const lines = [
-    `A realistic fashion model wearing ${desc}.`,
+    `A realistic ${persona.description} wearing ${productAnchor || desc}.`,
+    `Use a consistent model identity across generations — do not randomize face, hair, or body. Persona: ${persona.id}.`,
     ``,
     `Body proportions:`,
     user.heightCm ? `- height: ${Math.round(user.heightCm)} cm` : `- height: average adult`,
@@ -66,21 +91,20 @@ export function buildTryOnPrompt(args: {
     `Garment:`,
     `- type: ${cat}`,
     `- description: ${desc}`,
+    productAnchor ? `- visual: ${productAnchor}` : null,
     product.fitType ? `- fit: ${product.fitType}` : `- fit: as designed`,
     `- size: ${selectedSize}`,
     `- behavior: ${behavior}`,
     ``,
     `Visual:`,
-    `- natural fabric drape`,
-    `- realistic wrinkles and fabric folds`,
-    `- correct garment scaling to body`,
+    `- natural fabric drape with realistic wrinkles and folds`,
+    `- correct garment scaling to body — size ${selectedSize} must be visibly distinct`,
     `- front-facing pose, full upper body visible`,
-    `- neutral light studio background`,
-    `- soft fashion lighting`,
+    `- neutral light studio background, soft fashion lighting`,
     ``,
-    `Style: premium e-commerce look, realistic human model, photographic, no distortion.`,
+    `Style: premium e-commerce look, photographic, no distortion.`,
     ``,
-    `Negative: floating clothes, mannequin, headless body, duplicate limbs, warped body, fake logos, text artifacts, watermark, deformed hands.`,
+    `Negative: floating clothes, mannequin, headless body, duplicate limbs, warped body, random face change, fake logos, text artifacts, watermark, deformed hands.`,
   ];
   return lines.filter(Boolean).join("\n");
 }

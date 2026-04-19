@@ -220,6 +220,8 @@ export default function FitResults({
     fitDescriptor: activeSizeResult?.regions.find(r => r.region === "Chest")?.fit?.toString() || "regular",
     regions: activeSizeResult?.regions?.map(r => ({ region: r.region, fit: String(r.fit) })) ?? [],
     productUrl: product.url,
+    // PATCH 4 — prewarm the recommended size so it's instant when user picks it
+    prewarmSize: result.recommendedSize,
   });
 
   return (
