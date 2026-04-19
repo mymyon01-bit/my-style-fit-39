@@ -25,9 +25,11 @@ interface Props {
   /** optional AI try-on URL — if present, supersedes the 2D render */
   tryOnImageUrl?: string | null;
   /** generation lifecycle: drives the badge + loading overlay */
-  tryOnStatus?: "idle" | "generating" | "ready" | "fallback" | "error";
+  tryOnStatus?: "idle" | "generating" | "ready" | "fallback" | "error" | "invalid_body";
   /** which provider produced the image (for the small label) */
   tryOnProvider?: "replicate" | "gemini" | null;
+  /** called when the user taps the "Scan Body" CTA shown on invalid input */
+  onRescanBody?: () => void;
 }
 
 function normalizeSizeKey(size: string): SimpleSizeKey {
@@ -56,6 +58,7 @@ export default function FitVisual({
   tryOnImageUrl,
   tryOnStatus = "idle",
   tryOnProvider,
+  onRescanBody,
 }: Props) {
   const fitTable = getDefaultFit(category);
   const sizeKey = normalizeSizeKey(activeSize);
@@ -82,6 +85,7 @@ export default function FitVisual({
     hasReal && tryOnProvider === "replicate" ? "AI TRY-ON"
     : hasReal && tryOnProvider === "gemini" ? "AI TRY-ON · FALLBACK"
     : isGenerating ? "GENERATING"
+    : tryOnStatus === "invalid_body" ? "BODY IMAGE NEEDED"
     : tryOnStatus === "error" ? "PREVIEW ONLY"
     : "PREVIEW";
 
@@ -89,6 +93,7 @@ export default function FitVisual({
     hasReal && tryOnProvider === "replicate" ? "text-accent"
     : hasReal && tryOnProvider === "gemini" ? "text-amber-400/90"
     : isGenerating ? "text-foreground/60"
+    : tryOnStatus === "invalid_body" ? "text-amber-400/90"
     : tryOnStatus === "error" ? "text-orange-400/85"
     : "text-foreground/55";
 
@@ -181,8 +186,25 @@ export default function FitVisual({
               </motion.div>
             )}
 
+            {/* Invalid body image — block try-on, prompt for re-scan */}
+            {tryOnStatus === "invalid_body" && (
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-background/95 via-background/75 to-transparent px-5 pb-5 pt-12">
+                <p className="text-[11px] font-semibold text-center text-foreground/85 leading-snug max-w-[240px]">
+                  Upload a full-body front image for accurate fit preview
+                </p>
+                {onRescanBody && (
+                  <button
+                    onClick={onRescanBody}
+                    className="mt-1 rounded-full bg-accent px-4 py-1.5 text-[10px] font-bold tracking-[0.18em] text-accent-foreground hover:bg-accent/90 transition-colors"
+                  >
+                    SCAN BODY
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Idle / fallback label */}
-            {!isGenerating && tryOnStatus !== "ready" && (
+            {!isGenerating && tryOnStatus !== "ready" && tryOnStatus !== "invalid_body" && (
               <div className="absolute left-3 bottom-3 rounded-md bg-background/70 px-2 py-1 backdrop-blur-sm">
                 <p className="text-[8.5px] font-bold tracking-[0.2em] text-foreground/65">
                   {tryOnStatus === "error" ? "PREVIEW · TRY-ON UNAVAILABLE" : "PREVIEW SILHOUETTE"}
