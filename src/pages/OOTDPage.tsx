@@ -99,6 +99,27 @@ const OOTDPage = () => {
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
 
+  // Debounced username search
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (!q || q.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url, username")
+        .ilike("username", `${q}%`)
+        .limit(20);
+      setSearchResults((data as ProfileInfo[]) || []);
+      setSearchLoading(false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const loadTopics = async () => {
     const { data } = await supabase.from("ootd_topics").select("*").order("post_count", { ascending: false }).limit(15);
     setTrendingTopics((data as Topic[]) || []);
