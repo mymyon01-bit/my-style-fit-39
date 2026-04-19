@@ -124,6 +124,8 @@ export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "
             const created = r.created_at ? freshnessSeconds(r) : 0;
             const freshNorm = (created && maxFresh) ? (created / maxFresh) : 0;
             score += freshNorm * W.freshness;
+            // Gender intent adjustment (only if query has explicit gender).
+            score += genderRankAdjustment(r as never, queryGender);
             const jitter = Math.random() * 0.5;
             return { row, rank: score + jitter };
           })
