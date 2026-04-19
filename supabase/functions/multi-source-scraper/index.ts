@@ -288,6 +288,210 @@ async function fetchApifyGoogleShopping(query: string, max: number): Promise<Raw
   }
 }
 
+// ── ScrapingBee — backup HTML fetch + JSON-LD extractor ─────────────────────
+// Used as automatic fallback when Apify kickoff fails / returns empty,
+// and as the primary route for Korean domains without a working Apify actor.
+//
+// Strategy: hit each retailer's search URL through ScrapingBee with JS render,
+// pull JSON-LD `Product` blocks (most KR shops emit them), then fall back to
+// og:image + <title>. Normalized into the same RawProduct shape used by the
+// Apify branch so the rest of the pipeline (dedupe, upsert) is unchanged.
+
+interface ScrapingBeeResult { ok: boolean; html?: string; status?: number; error?: string; }
+
+async function fetchWithScrapingBee(input: { url: string; renderJs?: boolean }): Promise<ScrapingBeeResult> {
+  if (!SCRAPINGBEE_API_KEY) return { ok: false, error: "SCRAPINGBEE_API_KEY_MISSING" };
+  try {
+    const endpoint = new URL("https://app.scrapingbee.com/api/v1/");
+    endpoint.searchParams.set("api_key", SCRAPINGBEE_API_KEY);
+    endpoint.searchParams.set("url", input.url);
+    if (input.renderJs) endpoint.searchParams.set("render_js", "true");
+    endpoint.searchParams.set("block_resources", "true");
+    const res = await withTimeout(fetch(endpoint.toString()), SOURCE_BUDGET_MS, "scrapingbee");
+    if (!res.ok) return { ok: false, status: res.status, error: `SCRAPINGBEE_HTTP_${res.status}` };
+    const html = await res.text();
+    if (!html || html.length < 200) return { ok: false, error: "SCRAPINGBEE_EMPTY_HTML" };
+    return { ok: true, html, status: res.status };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// Extract product objects from JSON-LD blocks. Handles single Product and
+// arrays/ItemList graphs (ssg, wconcept, 29cm all use these patterns).
+function extractJsonLdProducts(html: string): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = [];
+  const re = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    try {
+      const parsed = JSON.parse(m[1].trim());
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      for (const node of list) {
+        if (!node || typeof node !== "object") continue;
+        const o = node as Record<string, unknown>;
+        const t = String(o["@type"] ?? "").toLowerCase();
+        if (t.includes("product")) out.push(o);
+        const graph = o["@graph"];
+        if (Array.isArray(graph)) {
+          for (const g of graph) {
+            if (g && typeof g === "object" && String((g as Record<string, unknown>)["@type"] ?? "").toLowerCase().includes("product")) {
+              out.push(g as Record<string, unknown>);
+            }
+          }
+        }
+        const items = (o.itemListElement ?? null) as unknown;
+        if (Array.isArray(items)) {
+          for (const it of items) {
+            const item = (it as Record<string, unknown>)?.item;
+            if (item && typeof item === "object") out.push(item as Record<string, unknown>);
+          }
+        }
+      }
+    } catch { /* ignore malformed JSON-LD */ }
+  }
+  return out;
+}
+
+function pickPrice(o: Record<string, unknown>): { price: string | null; currency: string | null } {
+  const offers = o.offers as unknown;
+  if (offers && typeof offers === "object") {
+    const arr = Array.isArray(offers) ? offers : [offers];
+    for (const off of arr) {
+      const ob = off as Record<string, unknown>;
+      const p = ob.price ?? ob.lowPrice;
+      if (p != null) return { price: String(p), currency: typeof ob.priceCurrency === "string" ? ob.priceCurrency : null };
+    }
+  }
+  return { price: null, currency: null };
+}
+
+function extractProductsFromHtml(html: string, pageUrl: string): Array<{
+  title: string; image: string | null; brand: string | null;
+  price: string | null; currency: string | null; url: string;
+}> {
+  const products = extractJsonLdProducts(html);
+  const out: Array<{ title: string; image: string | null; brand: string | null; price: string | null; currency: string | null; url: string }> = [];
+  for (const o of products) {
+    const title = String(o.name ?? "").trim();
+    if (!title) continue;
+    const image = (() => {
+      const img = o.image;
+      if (typeof img === "string") return safeImage(img);
+      if (Array.isArray(img) && typeof img[0] === "string") return safeImage(img[0]);
+      if (img && typeof img === "object") return safeImage((img as Record<string, unknown>).url as string);
+      return null;
+    })();
+    const brand = (() => {
+      const b = o.brand;
+      if (typeof b === "string") return b;
+      if (b && typeof b === "object") {
+        const n = (b as Record<string, unknown>).name;
+        if (typeof n === "string") return n;
+      }
+      return null;
+    })();
+    const url = (() => {
+      const u = o.url;
+      if (typeof u === "string") {
+        try { return new URL(u, pageUrl).toString(); } catch { return u; }
+      }
+      return pageUrl;
+    })();
+    const { price, currency } = pickPrice(o);
+    out.push({ title, image, brand, price, currency, url });
+  }
+  // og:image + <title> single-product fallback
+  if (out.length === 0) {
+    const ogImg = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1];
+    const ogTitle = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1]
+      || /<title>([^<]+)<\/title>/i.exec(html)?.[1];
+    if (ogImg && ogTitle) {
+      out.push({ title: ogTitle.trim(), image: safeImage(ogImg), brand: null, price: null, currency: null, url: pageUrl });
+    }
+  }
+  return out;
+}
+
+// Korean retailer search URLs. ScrapingBee fetches the search results page,
+// JSON-LD extractor pulls Product nodes. Most KR shops emit ItemList JSON-LD
+// on category/search pages — this is enough to seed product_cache entries.
+const KR_SEARCH_URLS: Record<string, (q: string) => string> = {
+  musinsa: (q) => `https://www.musinsa.com/search/musinsa/integration?q=${encodeURIComponent(q)}`,
+  "29cm": (q) => `https://search.29cm.co.kr/search?keyword=${encodeURIComponent(q)}`,
+  wconcept: (q) => `https://www.wconcept.co.kr/Search?kwd=${encodeURIComponent(q)}`,
+  ssg: (q) => `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(q)}`,
+};
+
+async function fetchScrapingBeeKR(domain: keyof typeof KR_SEARCH_URLS, query: string, max: number): Promise<RawProduct[]> {
+  const pageUrl = KR_SEARCH_URLS[domain](query);
+  const r = await fetchWithScrapingBee({ url: pageUrl, renderJs: true });
+  if (!r.ok || !r.html) {
+    console.warn(`[scrapingbee:${domain}] ${r.error}`);
+    return [];
+  }
+  const extracted = extractProductsFromHtml(r.html, pageUrl);
+  const out: RawProduct[] = [];
+  for (const e of extracted) {
+    if (!e.image || !e.title || !isFashion(e.title)) continue;
+    out.push({
+      external_id: `${domain}-${urlKey(e.url).slice(0, 80)}`,
+      name: e.title,
+      brand: e.brand,
+      price: e.price,
+      currency: e.currency || "KRW",
+      image_url: e.image,
+      source_url: e.url,
+      store_name: domain.toUpperCase(),
+      platform: `apify_${domain}`, // share platform tag w/ source-lock entries
+      source_type: "scrapingbee",
+      source_trust_level: "medium" as const,
+      category: null,
+    });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+// Generic ScrapingBee fallback for an Apify-failed source. Hits the merchant's
+// own search page (best-effort) and extracts JSON-LD products.
+async function scrapingBeeFallbackFor(label: string, query: string, max: number): Promise<RawProduct[]> {
+  const fallbackUrls: Record<string, string> = {
+    apify_asos: `https://www.asos.com/search/?q=${encodeURIComponent(query)}`,
+    apify_zalando: `https://www.zalando.de/catalog/?q=${encodeURIComponent(query)}`,
+    apify_coupang: `https://www.coupang.com/np/search?q=${encodeURIComponent(query)}`,
+    apify_gshopping: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(query)}`,
+  };
+  const url = fallbackUrls[label];
+  if (!url) return [];
+  const r = await fetchWithScrapingBee({ url, renderJs: true });
+  if (!r.ok || !r.html) {
+    console.warn(`[scrapingbee:${label}] fallback ${r.error}`);
+    return [];
+  }
+  const extracted = extractProductsFromHtml(r.html, url);
+  const out: RawProduct[] = [];
+  for (const e of extracted) {
+    if (!e.image || !e.title || !isFashion(e.title)) continue;
+    out.push({
+      external_id: `${label}-sb-${urlKey(e.url).slice(0, 80)}`,
+      name: e.title,
+      brand: e.brand,
+      price: e.price,
+      currency: e.currency || "USD",
+      image_url: e.image,
+      source_url: e.url,
+      store_name: label.replace(/^apify_/, "").toUpperCase(),
+      platform: label,
+      source_type: "scrapingbee",
+      source_trust_level: "medium" as const,
+      category: null,
+    });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 // ── Crawlbase — Farfetch (kept as supplemental high-trust source) ───────────
 
 async function fetchCrawlbaseFarfetch(query: string): Promise<RawProduct[]> {
