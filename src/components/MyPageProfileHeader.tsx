@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import StoryRippleRing from "@/components/StoryRippleRing";
+import CirclesSheet from "@/components/CirclesSheet";
 
 interface ProfileData {
   display_name: string | null;
@@ -37,6 +38,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const [editBio, setEditBio] = useState("");
   const [circleCount, setCircleCount] = useState(0);
   const [rippleCount, setRippleCount] = useState(0);
+  const [circlesOpen, setCirclesOpen] = useState<null | "circle" | "ripple">(null);
 
   useEffect(() => {
     if (!user) return;
@@ -218,8 +220,8 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
         <div className="flex gap-5">
           <Stat label="Posts" value={postCount} />
           <Stat label="Stars" value={totalStars} />
-          <Stat label="Circle" value={circleCount} />
-          <Stat label="Ripple" value={rippleCount} />
+          <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
+          <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
         <button
           onClick={togglePrivate}
@@ -234,15 +236,32 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
           {profile?.is_private ? "Private" : "Public"}
         </button>
       </div>
+
+      <CirclesSheet
+        open={circlesOpen !== null}
+        initialTab={circlesOpen ?? "circle"}
+        onClose={() => setCirclesOpen(null)}
+        onChanged={load}
+      />
     </div>
   );
 };
 
-const Stat = ({ label, value }: { label: string; value: number }) => (
-  <div className="text-center">
-    <p className="text-[14px] font-semibold text-foreground/85 leading-none">{value}</p>
-    <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/45 mt-1">{label}</p>
-  </div>
-);
+const Stat = ({ label, value, onClick }: { label: string; value: number; onClick?: () => void }) => {
+  const inner = (
+    <>
+      <p className="text-[14px] font-semibold text-foreground/85 leading-none">{value}</p>
+      <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/45 mt-1">{label}</p>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button onClick={onClick} className="text-center hover:opacity-80 transition-opacity" aria-label={`View ${label}`}>
+        {inner}
+      </button>
+    );
+  }
+  return <div className="text-center">{inner}</div>;
+};
 
 export default MyPageProfileHeader;
