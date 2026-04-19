@@ -407,4 +407,16 @@ const FitPage = () => {
   );
 };
 
+const NextButton = ({ onClick, label }: { onClick: () => void; label: string }) => (
+  <div className="mt-10 flex justify-center md:mt-12">
+    <button
+      onClick={onClick}
+      className="group inline-flex items-center gap-3 rounded-full border border-accent/30 bg-accent/10 px-8 py-3 text-[11px] font-medium tracking-[0.25em] text-foreground/85 transition-all duration-300 hover:border-accent/60 hover:bg-accent/20 md:px-10 md:py-3.5"
+    >
+      {label.toUpperCase()}
+      <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+    </button>
+  </div>
+);
+
 export default FitPage;
