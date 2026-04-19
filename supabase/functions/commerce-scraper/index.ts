@@ -518,7 +518,7 @@ async function cacheToDB(supabase: any, products: ScrapedProduct[]): Promise<num
 
   const { error } = await supabase
     .from("product_cache")
-    .upsert(rows, { onConflict: "platform,external_id", ignoreDuplicates: true });
+    .upsert(rows, { onConflict: "platform,external_id", ignoreDuplicates: false });
 
   if (error) {
     console.error("Cache error:", error.message);

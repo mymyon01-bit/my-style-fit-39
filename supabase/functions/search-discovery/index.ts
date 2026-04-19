@@ -868,7 +868,11 @@ async function insertProducts(
   sourceQuery: string
 ): Promise<{ inserted: number; duplicates: number }> {
   if (!rows.length) return { inserted: 0, duplicates: 0 };
-  const records = rows.map((r) => {
+  // Drop rows that have no image — DB layer requires it for product_cache
+  // to render. Relaxed extractors may now return image_url="".
+  const usable = rows.filter((r) => r.image_url && r.image_url.length > 0);
+  if (!usable.length) return { inserted: 0, duplicates: 0 };
+  const records = usable.map((r) => {
     const { category, subcategory } = categorize(r.title);
     // Detect platform from URL host so Korean products are tagged correctly.
     const host = (() => { try { return new URL(r.source_url).hostname.toLowerCase(); } catch { return ""; } })();
