@@ -9,6 +9,19 @@ const corsHeaders = {
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
+// ── SOURCE LOCK ────────────────────────────────────────────────────────────
+// Locks commerce-scraper to KR-first platforms. Override with ENABLED_PLATFORMS
+// env var, e.g. ENABLED_PLATFORMS="musinsa,29cm,wconcept,ssg".
+// Internal platform IDs match the keys in PLATFORMS below.
+const DEFAULT_ENABLED_PLATFORMS = "musinsa,29cm,wconcept,ssg";
+const ENABLED_PLATFORMS = new Set(
+  (Deno.env.get("ENABLED_PLATFORMS") || DEFAULT_ENABLED_PLATFORMS)
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+);
+function platformEnabled(id: string): boolean {
+  return ENABLED_PLATFORMS.has(id.toLowerCase());
+}
+
 // ─── Blocked image domains ───
 const BLOCKED_IMAGE_DOMAINS = [
   "via.placeholder.com", "placehold.it", "placekitten.com",
@@ -146,6 +159,9 @@ async function scrapePlatform(
 ): Promise<ScrapedProduct[]> {
   const platform = PLATFORMS[platformId];
   if (!platform?.enabled) return [];
+  // Source-lock: silently skip platforms not in ENABLED_PLATFORMS so we
+  // don't burn Firecrawl credits on disabled sites.
+  if (!platformEnabled(platformId)) return [];
 
   // Rate limit per platform
   if (!canCallPlatform(platformId)) {
