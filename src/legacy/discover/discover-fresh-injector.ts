@@ -13,8 +13,8 @@
  *   - Returns the IDs that were actually added so the caller can flash a
  *     "N new arrivals" badge.
  */
-import { mergeWithoutDuplicates } from "./discover-dedupe";
-import type { DiscoverProduct } from "./discover-types";
+import { mergeWithoutDuplicates } from "@/lib/discover/discover-dedupe";
+import type { DiscoverProduct } from "@/lib/discover/discover-types";
 
 export interface InjectionResult {
   merged: DiscoverProduct[];

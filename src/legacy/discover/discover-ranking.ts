@@ -20,7 +20,7 @@ import type {
   AnnotatedDiscoverProduct,
   DiscoverProduct,
   DiscoverProductAnnotations,
-} from "./discover-types";
+} from "@/lib/discover/discover-types";
 
 export interface RankInput {
   product: DiscoverProduct;
