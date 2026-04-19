@@ -123,13 +123,40 @@ export function getFreshnessBonus(createdAt: string | Date | null | undefined): 
   return 0;
 }
 
-/** True if the image_url looks like a real product image (not placeholder/svg). */
+/**
+ * True if the image_url looks like a real PRODUCT image — not a logo, sprite,
+ * placeholder, social icon, or tracking pixel. Used to drop non-product rows
+ * from the visible top of Discover.
+ */
+const NON_PRODUCT_IMAGE_HINTS = [
+  "placeholder",
+  "logo",
+  "sprite",
+  "favicon",
+  "icon-",
+  "/icons/",
+  "social",
+  "pixel",
+  "blank.gif",
+  "spacer",
+  "1x1",
+  "transparent",
+  "default-image",
+  "no-image",
+  "noimage",
+  "missing",
+  "avatar-default",
+];
+
 export function looksLikeProductImage(imageUrl: string | null | undefined): boolean {
   if (!imageUrl) return false;
   const url = imageUrl.toLowerCase().trim();
   if (url.length < 10) return false;
-  if (url.includes("placeholder")) return false;
-  if (url.endsWith(".svg")) return false;
+  if (url.endsWith(".svg")) return false; // SVGs are almost always logos/icons in product feeds
   if (url.startsWith("data:") && url.length < 200) return false;
-  return /^https?:\/\//.test(url) || url.startsWith("/");
+  if (!/^https?:\/\//.test(url) && !url.startsWith("/")) return false;
+  for (const hint of NON_PRODUCT_IMAGE_HINTS) {
+    if (url.includes(hint)) return false;
+  }
+  return true;
 }
