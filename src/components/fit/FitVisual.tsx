@@ -154,7 +154,7 @@ export default function FitVisual({
           </div>
         ) : isMissing ? (
           <div className="relative h-full w-full">
-            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
+            <FallbackSilhouette label="AI PREVIEW UNAVAILABLE — SHOWING ESTIMATED FIT" />
             <div className="absolute bottom-4 left-0 right-0 px-6 text-center">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] text-amber-400/90">
                 <ImageOff className="h-3 w-3" /> Product image missing
@@ -163,7 +163,7 @@ export default function FitVisual({
           </div>
         ) : isError ? (
           <div className="relative h-full w-full">
-            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
+            <FallbackSilhouette label="AI PREVIEW UNAVAILABLE — SHOWING ESTIMATED FIT" />
           </div>
         ) : (
           // idle
