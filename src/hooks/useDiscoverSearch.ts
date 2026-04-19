@@ -41,7 +41,7 @@ import { enforceDiversity } from "@/lib/discover/rankResults";
 import { assessQueryCoverage } from "@/lib/discover/queryHealth";
 import { interpretQueryWithAI } from "@/lib/discover/aiQueryInterpreter";
 import { triggerAutoDiscovery, loadCachedInterpretation } from "@/lib/discover/triggerAutoDiscovery";
-import { passesGenderFilter, type GenderFilter } from "@/lib/discover/genderFilter";
+import { passesGenderFilter, parseGenderIntent, type GenderFilter } from "@/lib/discover/genderFilter";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
