@@ -8,6 +8,7 @@ import {
   scoreRowAgainstTokens,
   tokenizeQuery,
 } from "@/lib/discover/discover-tokenizer";
+import { logGridRender } from "@/lib/discover/discover-diagnostics";
 import type { Product } from "@/lib/search/types";
 
 /**
@@ -59,15 +60,20 @@ export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
 
         // Pass 1 — all tokens
         let rows = await fetchPool(tq.searchTerms);
+        let stage: "tokens" | "longest-token" | "recent" = "tokens";
         // Pass 2 — degrade to longest single token if too thin
         if (rows.length < limit && tq.searchTerms.length > 1) {
           const longest = [...tq.searchTerms].sort((a, b) => b.length - a.length)[0];
           const extra = await fetchPool([longest]);
           const seen = new Set(rows.map((r: { id: string }) => r.id));
           for (const r of extra) if (!seen.has(r.id)) rows.push(r);
+          stage = "longest-token";
         }
         // Pass 3 — last-resort
-        if (rows.length === 0) rows = await fetchPool([]);
+        if (rows.length === 0) {
+          rows = await fetchPool([]);
+          stage = "recent";
+        }
 
         if (token !== tokenRef.current) return;
 
@@ -100,9 +106,23 @@ export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
           if (matches.length >= Math.min(limit / 2, 6)) normalized = matches;
         }
 
-        setProducts(normalized.slice(0, limit));
+        const finalProducts = normalized.slice(0, limit);
+        setProducts(finalProducts);
         setLoading(false);
-      } catch (err) {
+
+        if (trimmed) {
+          logGridRender({
+            query: trimmed,
+            normalized: tq.raw,
+            tokens: tq.tokens,
+            expandedTokens: tq.searchTerms,
+            lockedCategory: lock,
+            dbResultCount: finalProducts.length,
+            fallbackStage: stage,
+            topProductIds: finalProducts.map((p) => p.id),
+            layer: "db",
+          });
+        }
         if (token !== tokenRef.current) return;
         console.warn("[useDbTopGrid] failed", err);
         setError(err instanceof Error ? err.message : "DB grid failed");
