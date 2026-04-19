@@ -26,6 +26,7 @@ const FAMILY_HEAD_NOUN: Record<PrimaryCategory, string> = {
   bottoms: "pants",
   dresses: "dress",
   accessories: "accessory",
+  jewelry: "jewelry",
   swimwear: "swimwear",
 };
 
