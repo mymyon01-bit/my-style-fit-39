@@ -1,23 +1,34 @@
 // Combine avatar body morph + garment size morph into final mesh transforms.
-// This is the bridge between body data and the procedural garment in Fit3DViewer.
+// Adds FAKE DRAPE (chest bulge / waist taper / hem flare / sleeve bend) so
+// the procedural garment reads as soft fabric instead of a rigid shell.
 
 import type { AvatarMorph } from "./bodyToAvatar";
 import type { GarmentMorph } from "./sizeToMorph";
 import type { GarmentType } from "./getGarmentType";
 
 export interface GarmentTransform {
-  /** scene-unit scale applied to garment mesh */
+  /** scene-unit scale applied to garment root */
   scale: [number, number, number];
-  /** scene-unit position applied to garment mesh */
+  /** scene-unit position applied to garment root */
   position: [number, number, number];
-  /** sleeve / leg length multiplier (consumed by mesh shader/geometry) */
+
+  /** per-region drape multipliers (chest > waist tapers in, hem flares out) */
+  chestScale: number;
+  waistScale: number;
+  hemScale: number;
+
+  /** sleeve length+volume + small inward bend at the elbow */
   limbScale: number;
-  /** shoulder drop applied to top garments (scene units) */
+  sleeveBend: number; // radians
+  /** shoulder drop applied to top garments (scene units, negative = down) */
   shoulderDrop: number;
-  /** material roughness — looser fits = softer drape look */
+
+  /** material settings */
   roughness: number;
-  /** material clearcoat — leathers/jackets read shinier */
   clearcoat: number;
+
+  /** debug/telemetry */
+  drape: number; // 0..1
 }
 
 export function applyGarmentFit(args: {
@@ -49,18 +60,34 @@ export function applyGarmentFit(args: {
     garmentType === "full" ? -0.05 + size.lengthOffset * 0.4 :
     0.45 + size.shoulderOffset;
 
-  const clearcoat =
-    garmentType === "outerwear" ? 0.45 :
-    garmentType === "bottom" ? 0.05 : 0.15;
+  // ── FAKE DRAPE ────────────────────────────────────────────────────────
+  // drape ∈ [0..1] from sizeToMorph: bigger size = more drape.
+  // We bias chest outward, taper waist slightly inward, and flare hem.
+  // Top tighter → bottom looser is encoded by chest < hem.
+  const d = size.drape;
+  const chestScale = 1 + d * 0.06;        // up to +6% bulge at chest
+  const waistScale = 1 - 0.02 + d * 0.04; // baseline slight taper, opens with drape
+  const hemScale   = 1 + 0.03 + d * 0.10; // hem always flares, more with drape
+  const sleeveBend = 0.06 + d * 0.10;     // radians: relaxed sleeves bend more
 
-  const roughness = Math.max(0.35, 0.85 - size.drape * 0.25);
+  const clearcoat =
+    garmentType === "outerwear" ? 0.32 :
+    garmentType === "bottom" ? 0.04 : 0.10;
+
+  // Fabric, not plastic: keep roughness high and stable.
+  const roughness = Math.max(0.55, 0.78 - d * 0.18);
 
   return {
     scale: [scaleX, scaleY, scaleZ],
     position: [0, baseY, 0],
+    chestScale,
+    waistScale,
+    hemScale,
     limbScale: size.sleeveScale,
+    sleeveBend,
     shoulderDrop: size.shoulderOffset,
     roughness,
     clearcoat,
+    drape: d,
   };
 }
