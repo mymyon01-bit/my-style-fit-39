@@ -17,9 +17,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { productMatchesCategory, type PrimaryCategory } from "@/lib/search/category-lock";
 import { normalizeDiscoverProducts } from "./discover-product-normalizer";
 import { buildOrClause, tokenizeQuery } from "./discover-tokenizer";
+import { expandSearchAliases } from "./searchAliases";
 import type { DiscoverProduct } from "./discover-types";
 import type { ParsedIntent } from "./discover-intent-parser";
-import { SEARCH_POOL_LIMIT } from "./constants";
+import { SEARCH_POOL_LIMIT, SEARCH_MIN_GOOD_RESULTS } from "./constants";
 
 export type LadderStage = "exact" | "tokenized" | "semantic" | "broad" | "taste";
 
@@ -30,7 +31,11 @@ export interface LadderResult {
   perStageCounts: Record<LadderStage, number>;
 }
 
-const ENOUGH = 8;                   // success threshold per stage
+// Ladder still escalates aggressively — a stage "succeeds" with 8+ results
+// (legacy threshold). The final visible grid uses SEARCH_MIN_GOOD_RESULTS
+// to decide if we need a wider fallback in useDiscoverSearch.
+const ENOUGH = 8;
+const FINAL_GOOD = SEARCH_MIN_GOOD_RESULTS;
 const POOL = SEARCH_POOL_LIMIT;     // pull large candidate pool per stage
 
 function applyLock(products: DiscoverProduct[], lock: PrimaryCategory | null): DiscoverProduct[] {
@@ -98,11 +103,14 @@ export async function runSearchLadder(intent: ParsedIntent): Promise<LadderResul
   }
 
   // ── Stage 2 — tokenized (per-word OR + KR alias tokens, stopwords stripped)
+  //              + spec-mandated `expandSearchAliases` so vibe / KR queries
+  //              survive against an EN-heavy cache.
   const tokens = cleanTokens([
     ...intent.normalized.split(/\s+/),
     ...intent.enAliases,
     ...(intent.brand ? [intent.brand] : []),
     ...(intent.color ? [intent.color] : []),
+    ...expandSearchAliases(intent.rawQuery),
   ]);
   const tokenized = applyLock(await fetchPool(buildOr(tokens), intent.rawQuery), lock);
   counts.tokenized = tokenized.length;
