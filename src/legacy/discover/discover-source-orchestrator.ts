@@ -40,9 +40,9 @@ import {
 import {
   normalizeDiscoverProducts,
   type NormalizeContext,
-} from "./discover-product-normalizer";
-import type { DiscoverProduct } from "./discover-types";
-import { logDiscoverEvent } from "./discover-diagnostics";
+} from "@/lib/discover/discover-product-normalizer";
+import type { DiscoverProduct } from "@/lib/discover/discover-types";
+import { logDiscoverEvent } from "@/lib/discover/discover-diagnostics";
 
 // ---------- types ----------------------------------------------------------
 

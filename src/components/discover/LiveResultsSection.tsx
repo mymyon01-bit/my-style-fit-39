@@ -153,7 +153,7 @@ function LiveCard({ item, index, isSaved, feedback, onFeedback, onSave, onSelect
           className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-105 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
           loading={isAboveFold ? "eager" : "lazy"}
           decoding="async"
-          fetchPriority={isAboveFold ? "high" : "low"}
+          {...({ fetchpriority: isAboveFold ? "high" : "low" } as Record<string, string>)}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           onLoad={() => setImgLoaded(true)}
           onError={() => setImgFailed(true)}
