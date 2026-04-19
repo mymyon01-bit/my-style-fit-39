@@ -11,25 +11,15 @@ import StyleQuiz, { type StyleQuizAnswers } from "@/components/StyleQuiz";
 import { AuthGate } from "@/components/AuthGate";
 import { useCategories } from "@/hooks/useCategories";
 import { useDbTopGrid } from "@/hooks/useDbTopGrid";
+import { useDiscoverSearch } from "@/hooks/useDiscoverSearch";
 import { generateSuggestions, TRENDING_SEARCHES } from "@/lib/searchSuggestions";
 import { recordEvent } from "@/lib/diagnostics";
-import { loadDbSeenKeys } from "@/lib/search/discovery-cache";
-import {
-  buildDiscoverGridDiagnostics,
-  buildDiscoverRenderables,
-  composeDiscoverGrid,
-  type DiscoverRenderableProduct,
-} from "@/lib/search/discover-feed";
-import { runSearch } from "@/lib/search/search-runner";
-import { createSearchSession, type SearchSession } from "@/lib/search/search-session";
+import type { DiscoverRenderableProduct } from "@/lib/search/discover-feed";
 import type { Product } from "@/lib/search/types";
 import DbTopGrid from "@/components/discover/DbTopGrid";
 import StyledLooksRow from "@/components/discover/StyledLooksRow";
 import LiveResultsSection from "@/components/discover/LiveResultsSection";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
-import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/discover-intent-parser";
-import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
-import { runSearchLadder } from "@/lib/discover/discover-search-ladder";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
