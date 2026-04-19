@@ -171,6 +171,8 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
       score += getFreshnessBonus(row.created_at);
       // Unseen bonus.
       if (!seenIds.has(row.id)) score += W.unseen;
+      // Gender intent adjustment (only when query has explicit gender).
+      score += genderRankAdjustment(row as never, queryGender);
       // Tiny jitter so ties shuffle and the first row rotates.
       const jitter = Math.random() * 0.5;
       return { row, rank: score + jitter };
