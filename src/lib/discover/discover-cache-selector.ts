@@ -15,6 +15,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { detectPrimaryCategory, productMatchesCategory } from "@/lib/search/category-lock";
+import { logGridRender } from "./discover-diagnostics";
 import { normalizeDiscoverProducts } from "./discover-product-normalizer";
 import {
   buildOrClause,
@@ -74,6 +75,7 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
 
   // Pass 1 — full token set
   let rows = await fetchPool(tq.searchTerms, poolSize);
+  let stage: "tokens" | "longest-token" | "recent" = "tokens";
 
   // Pass 2 — degrade to longest single token if pool too thin
   let usedFallback = false;
@@ -83,12 +85,14 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
     const seen = new Set(rows.map((r) => r.id));
     for (const r of more) if (!seen.has(r.id)) rows.push(r);
     usedFallback = true;
+    stage = "longest-token";
   }
 
   // Pass 3 — last-resort: recent unfiltered
   if (rows.length === 0) {
     rows = await fetchPool([], poolSize);
     usedFallback = true;
+    stage = "recent";
   }
 
   // Score + jittered ranking with HARD category penalty when locked.
@@ -124,6 +128,20 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
       ),
     );
     if (matched.length >= Math.min(windowSize / 2, 6)) products = matched;
+  }
+
+  if (tq.raw) {
+    logGridRender({
+      query: tq.raw,
+      normalized: tq.raw,
+      tokens: tq.tokens,
+      expandedTokens: tq.searchTerms,
+      lockedCategory: lock,
+      dbResultCount: products.length,
+      fallbackStage: stage,
+      topProductIds: products.map((p) => p.id),
+      layer: "db",
+    });
   }
 
   return { products, poolSize: rows.length, usedFallback };
