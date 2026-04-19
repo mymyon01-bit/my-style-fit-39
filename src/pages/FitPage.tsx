@@ -177,6 +177,13 @@ const FitPage = () => {
   }, []);
 
   const handleSelectProduct = useCallback((product: SelectedProduct) => {
+    if (!weightKg || weightKg < 40 || weightKg > 120) {
+      toast.error("Please enter weight to improve fit accuracy", {
+        description: "Go to BODY tab and set your weight (40–120 kg).",
+      });
+      setActiveTab("measurements");
+      return;
+    }
     const startedAt = performance.now();
     let fitData: ProductFitData;
     if (product.source === "mock" && mockProductFitData[product.id]) {
@@ -205,6 +212,7 @@ const FitPage = () => {
           fit_score: recommended?.fitScore ?? null,
           confidence_modifier: result.confidenceModifier,
           recommended_size: result.recommendedSize,
+          weight_kg: weightKg,
         },
       });
       // Only fetch AI explanation in free mode (lightweight); premium gets deeper explanation on refine
@@ -218,7 +226,7 @@ const FitPage = () => {
       });
       throw err;
     }
-  }, [measurements, scanQuality, fitMode]);
+  }, [measurements, scanQuality, fitMode, weightKg]);
 
   const fetchExplanation = async (result: FitResult, product: SelectedProduct, mode: FitMode) => {
     setLoadingExplanation(true);
