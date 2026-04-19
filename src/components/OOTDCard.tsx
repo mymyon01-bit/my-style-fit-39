@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Heart, Star, Edit3, Trash2 } from "lucide-react";
+import { Heart, Star, Edit3, Trash2, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -73,55 +73,69 @@ function OOTDCardImpl({
           loading="lazy"
         />
 
-        {/* Avatar — community feed only */}
-        {showAuthor && !isMyPage && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/u/${post.user_id}`);
-            }}
-            className="absolute top-2 left-2 z-10"
-            aria-label={profile?.display_name || "View profile"}
-          >
-            <div className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-white/90 shadow-md bg-foreground/20 backdrop-blur-sm">
-              {profile?.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={profile.display_name || ""}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[11px] font-semibold text-white">
-                  {initial}
+        {/* Bottom gradient — readable footer */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent p-2 pt-10">
+          <div className="flex items-end justify-between gap-2">
+            {/* Bottom-left: profile avatar (community feed only) */}
+            {showAuthor && !isMyPage ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/u/${post.user_id}`);
+                }}
+                className="flex items-center gap-1.5 min-w-0"
+                aria-label={profile?.display_name || "View profile"}
+              >
+                <div className="h-7 w-7 rounded-full overflow-hidden ring-1 ring-white/80 shadow-md bg-foreground/20 backdrop-blur-sm shrink-0">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.display_name || ""}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[9px] font-semibold text-white">
+                      {initial}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </button>
-        )}
+                <span className="text-[9px] font-medium text-white/85 truncate max-w-[80px]">
+                  {profile?.display_name || "Anonymous"}
+                </span>
+              </button>
+            ) : (
+              <div className="min-w-0">
+                {title && (
+                  <p className="text-[9px] font-semibold text-white/85 truncate">{title}</p>
+                )}
+              </div>
+            )}
 
-        {/* Footer overlay: title + counters */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-1.5 pt-6">
-          {title && (
-            <p className="text-[8px] font-semibold text-white/80 truncate">{title}</p>
-          )}
-          {showAuthor && !title && (
-            <p className="text-[8px] font-medium text-white/70 truncate">
-              {profile?.display_name || "Anonymous"}
-            </p>
-          )}
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {likes > 0 && (
-              <span className="flex items-center gap-0.5">
-                <Heart className="h-2 w-2 text-white/60" />
-                <span className="text-[7px] text-white/60">{likes}</span>
-              </span>
-            )}
-            {stars > 0 && (
-              <span className="flex items-center gap-0.5">
-                <Star className="h-2 w-2 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                <span className="text-[7px] text-white/70">{stars}</span>
-              </span>
-            )}
+            {/* Bottom-right: comment + counters */}
+            <div className="flex items-center gap-2 shrink-0">
+              {likes > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Heart className="h-2.5 w-2.5 text-white/70" />
+                  <span className="text-[8px] text-white/70">{likes}</span>
+                </span>
+              )}
+              {stars > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                  <span className="text-[8px] text-white/80">{stars}</span>
+                </span>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen(post);
+                }}
+                className="rounded-full bg-white/15 p-1.5 text-white backdrop-blur-sm hover:bg-white/25 transition-colors"
+                aria-label="Add a comment"
+              >
+                <MessageCircle className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
