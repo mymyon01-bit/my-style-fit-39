@@ -23,6 +23,7 @@ import {
   scoreRowAgainstTokens,
   tokenizeQuery,
 } from "./discover-tokenizer";
+import { SEARCH_POOL_LIMIT } from "./constants";
 import type { DiscoverProduct } from "./discover-types";
 
 export interface FastSelectorOptions {
@@ -67,7 +68,8 @@ async function fetchPool(orTerms: string[], poolSize: number): Promise<CacheRow[
 
 export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<FastSelectorResult> {
   const windowSize = opts.windowSize ?? 12;
-  const poolSize = Math.max(48, windowSize * 6);
+  // SEARCH pool — large candidate set for ranking. UI slice happens later.
+  const poolSize = SEARCH_POOL_LIMIT;
 
   const tq = tokenizeQuery(opts.query);
   const lockSource = tq.isKorean && tq.krFamily ? tq.krFamily : tq.raw;
@@ -129,6 +131,15 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
     );
     if (matched.length >= Math.min(windowSize / 2, 6)) products = matched;
   }
+
+  // Diagnostics — verify pool is reaching SEARCH_POOL_LIMIT, not 200.
+  console.log("[discover-search] selectFastTopGrid", {
+    query: tq.raw,
+    candidateCount: rows.length,
+    afterRanking: ranked.length,
+    visibleCount: products.length,
+    stage,
+  });
 
   if (tq.raw) {
     logGridRender({

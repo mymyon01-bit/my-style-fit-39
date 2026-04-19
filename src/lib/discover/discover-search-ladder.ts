@@ -19,6 +19,7 @@ import { normalizeDiscoverProducts } from "./discover-product-normalizer";
 import { buildOrClause, tokenizeQuery } from "./discover-tokenizer";
 import type { DiscoverProduct } from "./discover-types";
 import type { ParsedIntent } from "./discover-intent-parser";
+import { SEARCH_POOL_LIMIT } from "./constants";
 
 export type LadderStage = "exact" | "tokenized" | "semantic" | "broad" | "taste";
 
@@ -29,8 +30,8 @@ export interface LadderResult {
   perStageCounts: Record<LadderStage, number>;
 }
 
-const ENOUGH = 8;       // success threshold per stage
-const POOL = 60;        // pull pool per stage
+const ENOUGH = 8;                   // success threshold per stage
+const POOL = SEARCH_POOL_LIMIT;     // pull large candidate pool per stage
 
 function applyLock(products: DiscoverProduct[], lock: PrimaryCategory | null): DiscoverProduct[] {
   if (!lock) return products;

@@ -9,6 +9,7 @@ import {
   tokenizeQuery,
 } from "@/lib/discover/discover-tokenizer";
 import { logGridRender } from "@/lib/discover/discover-diagnostics";
+import { SEARCH_POOL_LIMIT } from "@/lib/discover/constants";
 import type { Product } from "@/lib/search/types";
 
 /**
@@ -41,7 +42,8 @@ export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
         const tq = tokenizeQuery(trimmed);
         const lockSource = tq.isKorean && tq.krFamily ? tq.krFamily : tq.raw;
         const lock = lockSource ? detectPrimaryCategory(lockSource) : null;
-        const dbLimit = Math.max(limit * 6, 48);
+        // SEARCH pool — large candidate set; `limit` is the UI slice applied later.
+        const dbLimit = SEARCH_POOL_LIMIT;
 
         const fetchPool = async (terms: string[]) => {
           let req = supabase
@@ -107,6 +109,15 @@ export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
         }
 
         const finalProducts = normalized.slice(0, limit);
+        // Diagnostics — confirm large candidate pool reaches selector.
+        console.log("[discover-search] useDbTopGrid", {
+          query: trimmed,
+          candidateCount: rows.length,
+          afterDedupe: normalized.length,
+          afterRanking: ranked.length,
+          visibleCount: finalProducts.length,
+          stage,
+        });
         setProducts(finalProducts);
         setLoading(false);
 
