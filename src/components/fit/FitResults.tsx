@@ -11,6 +11,7 @@ import { buildFitExplanation, confidenceTier } from "@/lib/fit/explain";
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
 import FitVisual from "@/components/fit/FitVisual";
+import { useReplicateTryOn } from "@/hooks/useReplicateTryOn";
 
 interface FitProduct {
   id: string;
@@ -299,7 +300,7 @@ export default function FitResults({
         </div>
       </div>
 
-      {/* ══ VISUAL FIT — body-anchored hero ══ */}
+      {/* ══ VISUAL FIT — Replicate-generated try-on (primary) ══ */}
       <FitVisual
         productImage={product.image}
         productName={product.name}
@@ -307,8 +308,15 @@ export default function FitResults({
         activeSize={activeSize}
         userChestCm={estUserChest}
         userShoulderCm={estUserShoulder}
+        tryOnImageUrl={tryOn.imageUrl}
+        tryOnStatus={tryOn.status}
+        tryOnProvider={tryOn.provider}
       />
-
+      {tryOn.status === "error" && (
+        <p className="text-[10px] text-center text-orange-400/75 -mt-3">
+          Couldn't generate try-on ({tryOn.error || "unknown error"}). Showing preview silhouette.
+        </p>
+      )}
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
         <div className="flex items-center gap-2">
