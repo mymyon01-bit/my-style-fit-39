@@ -123,6 +123,7 @@ export function useDbTopGrid(query: string, limit = 12): UseDbTopGridResult {
             layer: "db",
           });
         }
+      } catch (err) {
         if (token !== tokenRef.current) return;
         console.warn("[useDbTopGrid] failed", err);
         setError(err instanceof Error ? err.message : "DB grid failed");
