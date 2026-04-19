@@ -8,6 +8,8 @@
  * Intentionally regex-only — no AI, no async. Fast and predictable.
  */
 import { detectPrimaryCategory, type PrimaryCategory } from "@/lib/search/category-lock";
+import { tokenizeSearchQuery } from "./searchTokenizer";
+import { expandSearchAliases } from "./searchAliases";
 
 export type DiscoverQueryType =
   | "category"      // "summer dresses", "leather bags"
@@ -34,12 +36,17 @@ const FIT_RE = /\b(oversized|regular|slim|relaxed|cropped|tailored|loose|fitted|
 export interface ParsedDiscoverQuery {
   raw: string;
   normalized: string;
+  /** Stopword-stripped tokens (e.g. "red shoes" → ["red","shoes"]). */
+  tokens: string[];
+  /** Tokens + KR/vibe alias expansions, deduped — feed straight to ranker. */
+  expandedTerms: string[];
   queryType: DiscoverQueryType;
   primaryCategory: PrimaryCategory | null;
   styleModifiers: string[];
   brand: string | null;
   color: string | null;
   scenario: string | null;
+  colors: string[];
   fit: string | null;
 }
 
@@ -74,14 +81,20 @@ export function parseDiscoverQuery(raw: string): ParsedDiscoverQuery {
   else if (styleModifiers.length > 0) queryType = "style";
   else if (color) queryType = "color";
 
+  const tokens = tokenizeSearchQuery(normalized);
+  const expandedTerms = expandSearchAliases(normalized);
+
   return {
     raw,
     normalized,
+    tokens,
+    expandedTerms,
     queryType,
     primaryCategory,
     styleModifiers,
     brand,
     color,
+    colors: color ? [color] : [],
     scenario,
     fit,
   };
