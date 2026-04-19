@@ -17,18 +17,21 @@ export type PrimaryCategory =
   | "bottoms"
   | "dresses"
   | "accessories"
+  | "jewelry"
   | "swimwear";
 
 const PRIMARY_PATTERNS: Array<{ cat: PrimaryCategory; re: RegExp }> = [
   // swimwear FIRST so "swim shorts" / "board shorts" don't get caught by bottoms
   { cat: "swimwear", re: /\b(swimwear|swimsuit|swim\s*trunks?|board\s*shorts?|swim\s*shorts?|bikini|one[-\s]?piece|rashguard|rash\s*guard|beachwear|수영복|스윔웨어|비치웨어|비키니|래쉬가드|보드숏)\b/i },
+  // jewelry BEFORE accessories so "necklace" / "diamond" / 목걸이 lock to jewelry, not generic accessories
+  { cat: "jewelry", re: /(\b(necklace|pendant|chain|bracelet|bangle|ring|band|earrings?|stud|hoop|jewelry|jewellery|fine\s*jewelry|diamond|diamonds|gemstone|gold|silver|platinum|pearl|sapphire|ruby|emerald|carat|karat)\b|목걸이|팔찌|반지|귀걸이|쥬얼리|주얼리|다이아|다이아몬드|진주|금목걸이|은반지)/i },
   { cat: "bags", re: /\b(bags?|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|shoulder\s*bag|hobo|bucket\s*bag|wallet|가방|백팩|토트|클러치|지갑)\b/i },
   { cat: "shoes", re: /\b(sneakers?|shoes?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|derby|brogues?|espadrilles?|slippers?|신발|스니커즈|운동화|로퍼|부츠|샌들|힐)\b/i },
   { cat: "outerwear", re: /\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan|자켓|재킷|코트|아우터|패딩|점퍼|가디건|블레이저)\b/i },
   { cat: "tops", re: /\b(shirt|tee|t-shirts?|hoodie|sweater|polo|blouse|tank|knit|sweatshirt|pullover|henley|tunic|camisole|top|셔츠|티셔츠|후드|니트|맨투맨|블라우스|탑)\b/i },
   { cat: "bottoms", re: /\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes|바지|청바지|슬랙스|반바지|치마|스커트|조거)\b/i },
   { cat: "dresses", re: /\b(dress|jumpsuit|romper|gown|드레스|원피스|점프수트)\b/i },
-  { cat: "accessories", re: /\b(hat|cap|beanie|scarf|belt|watch|sunglasses|gloves?|tie|necklace|bracelet|earring|ring|fedora|beret|headband|bandana|jewelry|jewellery|모자|벨트|시계|선글라스|장갑|목걸이|팔찌|귀걸이|반지|쥬얼리|주얼리)\b/i },
+  { cat: "accessories", re: /\b(hat|cap|beanie|scarf|belt|watch|sunglasses|gloves?|tie|fedora|beret|headband|bandana|cardholder|wallet|모자|벨트|시계|선글라스|장갑)\b/i },
 ];
 
 // Scenario/weather queries get NO lock (mixed-category is intentional).

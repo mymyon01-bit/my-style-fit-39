@@ -75,6 +75,21 @@ export async function runFallbackCascade(opts: FallbackCascadeOptions): Promise<
       if (merged.length >= SEARCH_MIN_STRONG_RESULTS * 2) break;
     }
     stagesUsed.push("category");
+
+    // Stage 1b — jewelry ↔ accessories crosswalk before broad fallback.
+    // "diamond necklace" should never collapse to random apparel.
+    if (merged.length < SEARCH_MIN_STRONG_RESULTS && (opts.lock === "jewelry" || opts.lock === "accessories")) {
+      const sister: PrimaryCategory = opts.lock === "jewelry" ? "accessories" : "jewelry";
+      const sisterRows = await fetchRecent(sister, opts.query);
+      for (const p of sisterRows) {
+        if (!seen.has(p.id)) {
+          merged.push(p);
+          seen.add(p.id);
+        }
+        if (merged.length >= SEARCH_MIN_STRONG_RESULTS * 2) break;
+      }
+    }
+
     if (merged.length >= SEARCH_MIN_STRONG_RESULTS) {
       console.log("[discover-search] fallback cascade", {
         query: opts.query,

@@ -29,7 +29,7 @@ export const SEARCH_MIN_STRONG_RESULTS = SEARCH_MIN_GOOD_RESULTS;
 export const SEARCH_VISIBLE_LIMIT = 24;
 
 export const SEARCH_KR_EN_MAP: Record<string, string[]> = {
-  // Categories
+  // Apparel categories
   "가방": ["bag", "bags", "handbag", "tote"],
   "자켓": ["jacket", "outerwear", "blazer"],
   "재킷": ["jacket", "outerwear", "blazer"],
@@ -47,6 +47,32 @@ export const SEARCH_KR_EN_MAP: Record<string, string[]> = {
   "바지": ["pants", "trousers"],
   "청바지": ["jeans", "denim"],
   "치마": ["skirt"],
+  // Jewelry & accessories (KR)
+  "목걸이": ["necklace", "jewelry", "pendant", "chain"],
+  "다이아": ["diamond", "diamond jewelry", "fine jewelry"],
+  "다이아몬드": ["diamond", "diamond jewelry", "fine jewelry"],
+  "다이아목걸이": ["diamond necklace", "diamond pendant", "jewelry necklace"],
+  "다이아 목걸이": ["diamond necklace", "diamond pendant", "jewelry necklace"],
+  "반지": ["ring", "jewelry", "band"],
+  "귀걸이": ["earrings", "jewelry"],
+  "팔찌": ["bracelet", "bangle", "jewelry"],
+  "쥬얼리": ["jewelry", "fine jewelry", "accessories"],
+  "주얼리": ["jewelry", "fine jewelry", "accessories"],
+  "액세서리": ["accessories", "jewelry", "fashion accessories"],
+  "지갑": ["wallet", "small leather goods", "accessories"],
+  "벨트": ["belt", "accessories"],
+  "시계": ["watch", "watches", "accessories"],
+  "선글라스": ["sunglasses", "eyewear", "accessories"],
+  // Jewelry & accessories (EN — strengthen self-aliases)
+  "wallet": ["wallet", "small leather goods", "accessories"],
+  "necklace": ["necklace", "jewelry", "pendant", "chain"],
+  "diamond": ["diamond", "fine jewelry", "luxury jewelry"],
+  "bracelet": ["bracelet", "bangle", "jewelry"],
+  "ring": ["ring", "band", "jewelry"],
+  "earrings": ["earrings", "jewelry"],
+  "pendant": ["pendant", "necklace", "jewelry"],
+  "jewelry": ["jewelry", "fine jewelry", "accessories"],
+  "jewellery": ["jewellery", "jewelry", "fine jewelry"],
   // Vibe / scenario
   "데이트룩": ["date night", "evening outfit", "romantic look"],
   "출근룩": ["office wear", "workwear", "formal look"],
@@ -71,8 +97,39 @@ export const SEARCH_SCORE_WEIGHTS = {
   tokenInSearchQuery: 10,
   /** Style or scenario / mood match from intent. */
   styleOrScenario: 8,
-  /** Freshness bonus (normalized 0..1 then scaled). */
-  freshness: 5,
+  /** Image presence bonus (shopping UX — visual rows must dominate top). */
+  imageBonus: 20,
+  /** Image absence penalty — text-only rows sink hard. */
+  imageMissingPenalty: 40,
+  /** Freshness — tiered bonus applied via getFreshnessBonus(hoursOld). */
+  freshness: 25,
   /** Unseen bonus (item has never been rendered for this user). */
   unseen: 5,
 } as const;
+
+/**
+ * Tiered freshness bonus for shopping discovery.
+ * Applied AFTER category correctness so a fresh-but-wrong item never beats
+ * a correct-but-older one.
+ */
+export function getFreshnessBonus(createdAt: string | Date | null | undefined): number {
+  if (!createdAt) return 0;
+  const ts = createdAt instanceof Date ? createdAt.getTime() : new Date(createdAt).getTime();
+  if (!Number.isFinite(ts)) return 0;
+  const hoursOld = (Date.now() - ts) / 3_600_000;
+  if (hoursOld <= 24) return 25;
+  if (hoursOld <= 72) return 15;
+  if (hoursOld <= 168) return 8;
+  return 0;
+}
+
+/** True if the image_url looks like a real product image (not placeholder/svg). */
+export function looksLikeProductImage(imageUrl: string | null | undefined): boolean {
+  if (!imageUrl) return false;
+  const url = imageUrl.toLowerCase().trim();
+  if (url.length < 10) return false;
+  if (url.includes("placeholder")) return false;
+  if (url.endsWith(".svg")) return false;
+  if (url.startsWith("data:") && url.length < 200) return false;
+  return /^https?:\/\//.test(url) || url.startsWith("/");
+}

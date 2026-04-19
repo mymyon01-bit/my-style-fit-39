@@ -23,7 +23,7 @@ import {
   tokenizeQuery,
 } from "./discover-tokenizer";
 import { expandSearchAliases } from "./searchAliases";
-import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS } from "./constants";
+import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS, getFreshnessBonus, looksLikeProductImage } from "./constants";
 import type { ParsedIntent } from "./discover-intent-parser";
 import type { DiscoverProduct } from "./discover-types";
 
@@ -110,7 +110,8 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
   }
 
   // Spec-weighted scoring: category +30, name +20, category-token +15,
-  // brand +12, search_query +10, style/scenario +8, freshness +5, unseen +5.
+  // brand +12, search_query +10, style/scenario +8, image ±20/-40,
+  // freshness 0/8/15/25 tiered, unseen +5.
   const W = SEARCH_SCORE_WEIGHTS;
   const intent = opts.intent ?? null;
   const intentSemanticTerms = intent
@@ -122,7 +123,6 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
       ]))
     : [];
   const seenIds = opts.seenIds || new Set<string>();
-  const maxFresh = rows.reduce((m, r) => Math.max(m, freshnessSeconds(r)), 1);
 
   const ranked = rows
     .map((row) => {
@@ -130,6 +130,7 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
       const brand = (row.brand || "").toLowerCase();
       const category = (row.category || "").toLowerCase();
       const sq = (row.search_query || "").toLowerCase();
+      const imageUrl = (row as { image_url?: string | null }).image_url ?? null;
       let score = 0;
       // Token-level matches (spec weights)
       for (const t of orTerms) {
@@ -150,9 +151,11 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
           score += W.styleOrScenario;
         }
       }
-      // Freshness bonus (normalized).
-      const freshNorm = freshnessSeconds(row) / maxFresh;
-      score += freshNorm * W.freshness;
+      // Image-first ranking — shopping UX. Real product image rises, missing sinks hard.
+      if (looksLikeProductImage(imageUrl)) score += W.imageBonus;
+      else score -= W.imageMissingPenalty;
+      // Tiered freshness bonus (24h / 72h / 168h tiers).
+      score += getFreshnessBonus(row.created_at);
       // Unseen bonus.
       if (!seenIds.has(row.id)) score += W.unseen;
       // Tiny jitter so ties shuffle and the first row rotates.
@@ -175,6 +178,16 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
     );
     if (matched.length >= Math.min(windowSize / 2, 6)) products = matched;
   }
+
+  // Top-of-pool image filter — visible top must prefer rows with usable images.
+  // We don't drop image-less rows from the pool (load-more), we just push them down.
+  const withImage: typeof products = [];
+  const withoutImage: typeof products = [];
+  for (const p of products) {
+    if (looksLikeProductImage((p as { image?: string | null }).image)) withImage.push(p);
+    else withoutImage.push(p);
+  }
+  products = [...withImage, ...withoutImage];
 
   // Diagnostics — verify pool is reaching SEARCH_POOL_LIMIT, not 200.
   console.log("[discover-search] selectFastTopGrid", {
