@@ -584,15 +584,19 @@ const KR_SEARCH_URLS: Record<string, (q: string) => string> = {
 
 async function fetchScrapingBeeKR(domain: keyof typeof KR_SEARCH_URLS, query: string, max: number): Promise<RawProduct[]> {
   const pageUrl = KR_SEARCH_URLS[domain](query);
-  const r = await fetchWithScrapingBee({ url: pageUrl, renderJs: true });
+  const r = await fetchKrPage(domain, pageUrl);
   if (!r.ok || !r.html) {
-    console.warn(`[scrapingbee:${domain}] ${r.error}`);
+    console.warn(`[scrapingbee:${domain}] fetch_failed ${r.error}`);
     return [];
   }
-  const extracted = extractProductsFromHtml(r.html, pageUrl);
+  const extracted = extractAllProducts(domain, r.html, pageUrl);
+  console.log(`[scrapingbee:${domain}] parsed_rows=${extracted.length}`);
   const out: RawProduct[] = [];
   for (const e of extracted) {
-    if (!e.image || !e.title || !isFashion(e.title)) continue;
+    if (!e.image || !e.title) continue;
+    // RELAXED gate: a card with image + title + KR-domain context is enough.
+    // The strict isFashion regex was rejecting most KR card titles because
+    // tile text often lacks Hangul fashion vocabulary (just brand + model).
     out.push({
       external_id: `${domain}-${urlKey(e.url).slice(0, 80)}`,
       name: e.title,
@@ -609,6 +613,7 @@ async function fetchScrapingBeeKR(domain: keyof typeof KR_SEARCH_URLS, query: st
     });
     if (out.length >= max) break;
   }
+  console.log(`[scrapingbee:${domain}] validated_rows=${out.length}`);
   return out;
 }
 
