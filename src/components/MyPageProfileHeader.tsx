@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, Edit3, Save, X, Lock, Globe, Settings } from "lucide-react";
+import { Camera, Loader2, Edit3, Save, X, Lock, Globe, Settings, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import StoryRippleRing from "@/components/StoryRippleRing";
 
 interface ProfileData {
   display_name: string | null;
@@ -17,9 +18,13 @@ interface Props {
   postCount: number;
   totalStars: number;
   refreshKey?: number;
+  hasStory?: boolean;
+  hasUnseenStory?: boolean;
+  onViewMyStory?: () => void;
+  onUploadStory?: () => void;
 }
 
-const MyPageProfileHeader = ({ postCount, totalStars, refreshKey }: Props) => {
+const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
@@ -115,22 +120,36 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey }: Props) => {
   return (
     <div className="mb-6 rounded-2xl border border-border/30 bg-card/40 p-4 space-y-4">
       <div className="flex items-start gap-4">
-        {/* Avatar with upload */}
+        {/* Avatar with story ring + upload */}
         <div className="relative shrink-0">
-          <div className="h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] ring-2 ring-accent/20">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-base font-semibold text-foreground/60">{initial}</div>
-            )}
+          <div className="relative h-16 w-16">
+            <StoryRippleRing active={!!hasStory} unseen={!!hasUnseenStory} inset={3} />
+            <button
+              type="button"
+              onClick={() => {
+                if (hasStory && onViewMyStory) onViewMyStory();
+                else photoRef.current?.click();
+              }}
+              className="relative h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] ring-2 ring-background block"
+              aria-label={hasStory ? "View your story" : "Change profile photo"}
+            >
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-base font-semibold text-foreground/60">{initial}</div>
+              )}
+            </button>
           </div>
           <button
-            onClick={() => photoRef.current?.click()}
+            onClick={() => {
+              if (onUploadStory) onUploadStory();
+              else photoRef.current?.click();
+            }}
             disabled={uploading}
-            className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-accent text-background flex items-center justify-center border-2 border-card shadow-sm hover:scale-110 transition-transform disabled:opacity-60"
-            aria-label="Change profile photo"
+            className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-tr from-accent via-pink-400 to-amber-300 text-background flex items-center justify-center border-2 border-card shadow-md hover:scale-110 active:scale-95 transition-transform disabled:opacity-60"
+            aria-label={onUploadStory ? "Add story" : "Change profile photo"}
           >
-            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : onUploadStory ? <Plus className="h-3.5 w-3.5" strokeWidth={3} /> : <Camera className="h-3 w-3" />}
           </button>
           <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
         </div>
