@@ -131,15 +131,17 @@ export default function FitVisual({
         </span>
       </div>
 
-      {/* HERO — 3D viewer */}
-      <Fit3DViewer
-        productImage={productImage}
-        productName={productName}
-        category={category}
-        size={activeSize}
-        body={userBody}
-        height={460}
-      />
+      {/* HERO — 3D viewer (lazy-loaded) */}
+      <Suspense fallback={<ViewerSkeleton height={460} />}>
+        <Fit3DViewer
+          productImage={productImage}
+          productName={productName}
+          category={category}
+          size={activeSize}
+          body={userBody}
+          height={460}
+        />
+      </Suspense>
 
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
         Drag to rotate · Size changes the garment live
