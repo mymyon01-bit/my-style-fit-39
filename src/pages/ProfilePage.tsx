@@ -309,18 +309,25 @@ const ProfilePage = () => {
         {/* Stats */}
         <div className="flex gap-8 flex-wrap">
           {[
-            { icon: Camera, label: t("posts"), value: postCount },
-            { icon: Star, label: t("stars"), value: totalStars },
-            { icon: Bookmark, label: t("saved"), value: savedCount },
-            { icon: Crown, label: "Circle", value: circleCount },
-            { icon: Crown, label: "Ripple", value: addedByCount },
-            { icon: Bookmark, label: "Scrap", value: scrapCount },
-          ].map(stat => (
-            <div key={stat.label} className="text-center">
-              <p className="text-xl font-light text-foreground/80">{stat.value}</p>
-              <p className="text-[10px] text-foreground/70 mt-1.5">{stat.label}</p>
-            </div>
-          ))}
+            { icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
+            { icon: Star, label: t("stars"), value: totalStars, onClick: undefined },
+            { icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
+            { icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
+            { icon: Crown, label: "Ripple", value: addedByCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
+            { icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
+          ].map(stat => {
+            const Wrap: any = stat.onClick ? "button" : "div";
+            return (
+              <Wrap
+                key={stat.label}
+                onClick={stat.onClick}
+                className={`text-center ${stat.onClick ? "hover:text-accent transition-colors cursor-pointer" : ""}`}
+              >
+                <p className="text-xl font-light text-foreground/80">{stat.value}</p>
+                <p className="text-[10px] text-foreground/70 mt-1.5">{stat.label}</p>
+              </Wrap>
+            );
+          })}
         </div>
 
         {!subscription.isPremium && <PremiumBanner />}
