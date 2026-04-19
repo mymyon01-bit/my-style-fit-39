@@ -10,7 +10,7 @@ import {
 import { expandSearchAliases } from "@/lib/discover/searchAliases";
 import { logGridRender } from "@/lib/discover/discover-diagnostics";
 import { SEARCH_POOL_LIMIT, SEARCH_SCORE_WEIGHTS } from "@/lib/discover/constants";
-import { passesGenderFilter, parseGenderIntent, genderRankAdjustment, type GenderFilter } from "@/lib/discover/genderFilter";
+import { parseGenderIntent, genderRankAdjustment, prioritizeGenderPool, type GenderFilter } from "@/lib/discover/genderFilter";
 import type { Product } from "@/lib/search/types";
 
 /**
@@ -75,15 +75,11 @@ export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "
         // the toggle when the toggle is "all" (e.g. "mens jacket").
         const queryGender = parseGenderIntent(trimmed);
         const effectiveGender: GenderFilter = queryGender ?? gender;
-        if (effectiveGender !== "all") {
-          rows = rows.filter((r) => passesGenderFilter(r as never, effectiveGender));
-        }
 
         // Pass 2 — degrade to longest single token if too thin
         if (rows.length < limit && orTerms.length > 1) {
           const longest = [...orTerms].sort((a, b) => b.length - a.length)[0];
-          let extra = await fetchPool([longest]);
-          if (effectiveGender !== "all") extra = extra.filter((r) => passesGenderFilter(r as never, effectiveGender));
+          const extra = await fetchPool([longest]);
           const seen = new Set(rows.map((r: { id: string }) => r.id));
           for (const r of extra) if (!seen.has(r.id)) rows.push(r);
           stage = "longest-token";
@@ -91,8 +87,11 @@ export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "
         // Pass 3 — last-resort
         if (rows.length === 0) {
           rows = await fetchPool([]);
-          if (effectiveGender !== "all") rows = rows.filter((r) => passesGenderFilter(r as never, effectiveGender));
           stage = "recent";
+        }
+
+        if (effectiveGender !== "all") {
+          rows = prioritizeGenderPool(rows as never[], effectiveGender).slice();
         }
 
         if (token !== tokenRef.current) return;
