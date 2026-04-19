@@ -62,13 +62,37 @@ export function pickPersona(args: {
 }
 
 /** Stronger size-behavior copy used inside prompts (PATCH 2). */
-export function sizeBehaviorStrong(size: string): string {
-  const s = (size || "M").toUpperCase();
+export function sizeBehaviorStrong(size: string, recommendedSize?: string): string {
+  const raw = (size || "M").toString().trim();
+  const s = raw.toUpperCase();
+
+  // ── Letter sizes ────────────────────────────────────────────────
   if (s === "XS") return "very tight fit, fabric tension visible across chest, shorter cropped length, no excess fabric";
   if (s === "S")  return "tight fit, fabric tension visible, shorter length, snug shoulders";
   if (s === "M")  return "regular fit, balanced proportions, natural drape, true-to-size";
   if (s === "L")  return "clearly visible relaxed fit, slight shoulder drop, looser chest, soft folds at waist";
   if (s === "XL") return "noticeably oversized, dropped shoulders, longer hem, visibly baggy chest, generous drape";
-  if (s === "XXL")return "very oversized, fully dropped shoulders, extra long hem, baggy throughout, heavy drape";
+  if (s === "XXL") return "very oversized, fully dropped shoulders, extra long hem, baggy throughout, heavy drape";
+
+  // ── Numeric sizes (waist 28-40, EU 34-48, etc.) ────────────────
+  const n = parseInt(raw, 10);
+  if (!Number.isNaN(n)) {
+    const ref = recommendedSize ? parseInt(recommendedSize, 10) : NaN;
+    if (!Number.isNaN(ref)) {
+      const diff = n - ref;
+      if (diff <= -4) return "very tight fit, fabric tension visible, snug throughout";
+      if (diff <= -2) return "tight fit, snug waist and hips, shorter length";
+      if (diff === 0) return "regular fit, balanced proportions, natural drape, true-to-size";
+      if (diff <= 2)  return "relaxed fit, looser waist, soft folds";
+      if (diff <= 4)  return "noticeably loose fit, dropped waist, generous drape";
+      return "very oversized, baggy throughout, heavy drape";
+    }
+    // No reference — infer by absolute number ranges
+    if (n <= 28) return "tight fit, snug waist, shorter length";
+    if (n <= 32) return "regular fit, balanced proportions, natural drape";
+    if (n <= 36) return "relaxed fit, looser waist, soft folds";
+    return "noticeably loose fit, generous drape";
+  }
+
   return "regular fit, balanced proportions, natural drape";
 }

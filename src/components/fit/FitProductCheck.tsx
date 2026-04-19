@@ -70,18 +70,21 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
           .filter(p => p.category && ["tops", "bottoms", "outerwear", "shoes"].some(c => 
             (p.category || "").toLowerCase().includes(c)
           ))
-          .map(p => ({
+          .map(p => {
+            const parsed = p.price ? parseFloat(String(p.price).replace(/[^0-9.]/g, "")) : NaN;
+            return ({
             id: p.id,
             name: p.name,
             brand: p.brand || "Unknown",
-            price: p.price ? parseFloat(p.price) : null,
+            price: Number.isFinite(parsed) ? parsed : null,
             image: p.image_url || "",
             url: p.source_url || "#",
             category: inferCategory(p.category || ""),
             fitType: p.fit || "regular",
             dataQuality: estimateDataQuality(p),
             source: "db" as const,
-          }));
+          });
+        });
         setDbProducts(mapped);
       }
     } catch (err) {
@@ -192,7 +195,7 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
                     <ShieldCheck className="h-2.5 w-2.5" />
                     {product.dataQuality}/100
                   </span>
-                  {product.price && (
+                  {Number.isFinite(product.price as number) && (product.price as number) > 0 && (
                     <span className="text-[11px] font-medium text-foreground/60">
                       ${product.price}
                     </span>
