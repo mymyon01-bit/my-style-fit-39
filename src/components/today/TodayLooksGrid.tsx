@@ -36,13 +36,28 @@ export default function TodayLooksGrid({ looks, onShareToOOTD, onTry }: Props) {
             </div>
           </div>
 
-          <div className="space-y-2 mb-4">
-            {look.pieces.map((p) => (
-              <div key={p.category} className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-[12.5px] text-foreground/75">{p.name}</span>
-                <span className="text-[10px] uppercase tracking-wider text-foreground/45">{p.category}</span>
-              </div>
+          <div className="grid grid-cols-2 gap-2 mb-4 md:grid-cols-3">
+            {look.pieces.map((p, idx) => (
+              <a
+                key={idx}
+                href={p.source_url ?? undefined}
+                target="_blank"
+                rel="noreferrer"
+                className="group block rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/[0.03]"
+              >
+                <div className="aspect-square w-full overflow-hidden bg-foreground/5">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  ) : (
+                    <div className="h-full w-full" style={{ backgroundColor: p.color }} />
+                  )}
+                </div>
+                <div className="px-2 py-1.5">
+                  <p className="text-[10px] uppercase tracking-wider text-foreground/45">{p.category}</p>
+                  <p className="text-[11.5px] text-foreground/80 truncate">{p.name}</p>
+                  {p.brand && <p className="text-[10px] text-foreground/50 truncate">{p.brand}</p>}
+                </div>
+              </a>
             ))}
           </div>
 
