@@ -167,7 +167,7 @@ export function useReplicateTryOn(args: Args) {
 
         const finalize = async (resultUrl: string, _providerName: TryOnProvider) => {
           // ── 4. OUTPUT VALIDATION ────────────────────────────────
-          const validation = await validateTryOnOutput(resultUrl, productImageUrl);
+          const validation = await validateTryOnOutput(resultUrl, workingProductImage);
           console.log("[tryon-pipeline]", {
             stage: "validate",
             replicate_success: true,
@@ -279,5 +279,5 @@ export function useReplicateTryOn(args: Args) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, userImageUrl, productImageUrl, productKey, selectedSize]);
 
-  return { status, imageUrl, provider, error };
+  return { status, imageUrl, provider, error, resolvedProductImage };
 }
