@@ -309,15 +309,21 @@ async function fetchApifyGoogleShopping(query: string, max: number): Promise<Raw
 
 interface ScrapingBeeResult { ok: boolean; html?: string; status?: number; error?: string; }
 
-async function fetchWithScrapingBee(input: { url: string; renderJs?: boolean }): Promise<ScrapingBeeResult> {
+async function fetchWithScrapingBee(input: {
+  url: string;
+  renderJs?: boolean;
+  timeoutMs?: number;
+  blockResources?: boolean;
+}): Promise<ScrapingBeeResult> {
   if (!SCRAPINGBEE_API_KEY) return { ok: false, error: "SCRAPINGBEE_API_KEY_MISSING" };
+  const timeoutMs = input.timeoutMs ?? SOURCE_BUDGET_MS;
   try {
     const endpoint = new URL("https://app.scrapingbee.com/api/v1/");
     endpoint.searchParams.set("api_key", SCRAPINGBEE_API_KEY);
     endpoint.searchParams.set("url", input.url);
     if (input.renderJs) endpoint.searchParams.set("render_js", "true");
-    endpoint.searchParams.set("block_resources", "true");
-    const res = await withTimeout(fetch(endpoint.toString()), SOURCE_BUDGET_MS, "scrapingbee");
+    if (input.blockResources !== false) endpoint.searchParams.set("block_resources", "true");
+    const res = await withTimeout(fetch(endpoint.toString()), timeoutMs, "scrapingbee");
     if (!res.ok) return { ok: false, status: res.status, error: `SCRAPINGBEE_HTTP_${res.status}` };
     const html = await res.text();
     if (!html || html.length < 200) return { ok: false, error: "SCRAPINGBEE_EMPTY_HTML" };
@@ -325,6 +331,29 @@ async function fetchWithScrapingBee(input: { url: string; renderJs?: boolean }):
   } catch (e) {
     return { ok: false, error: String(e) };
   }
+}
+
+// Domain-aware fetch with one-retry policy. WConcept retries without JS if
+// the JS-rendered call times out; SSG gets a slightly longer budget.
+async function fetchKrPage(domain: string, url: string): Promise<ScrapingBeeResult> {
+  const t0 = Date.now();
+  if (domain === "ssg") {
+    const r = await fetchWithScrapingBee({ url, renderJs: true, timeoutMs: 22_000 });
+    console.log(`[scrapingbee:${domain}] fetched in ${Date.now() - t0}ms ok=${r.ok}`);
+    return r;
+  }
+  if (domain === "wconcept") {
+    const r1 = await fetchWithScrapingBee({ url, renderJs: true, timeoutMs: 16_000 });
+    if (r1.ok) { console.log(`[scrapingbee:${domain}] fetched in ${Date.now() - t0}ms ok=true`); return r1; }
+    console.warn(`[scrapingbee:${domain}] retry without JS (${r1.error})`);
+    const r2 = await fetchWithScrapingBee({ url, renderJs: false, timeoutMs: 10_000 });
+    console.log(`[scrapingbee:${domain}] fallback fetched in ${Date.now() - t0}ms ok=${r2.ok}`);
+    return r2;
+  }
+  // Default: render JS, standard budget.
+  const r = await fetchWithScrapingBee({ url, renderJs: true, timeoutMs: SOURCE_BUDGET_MS });
+  console.log(`[scrapingbee:${domain}] fetched in ${Date.now() - t0}ms ok=${r.ok}`);
+  return r;
 }
 
 // Extract product objects from JSON-LD blocks. Handles single Product and
