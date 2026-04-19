@@ -26,6 +26,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN");
 const CRAWLBASE_TOKEN = Deno.env.get("CRAWLBASE_TOKEN");
+const SCRAPINGBEE_API_KEY = Deno.env.get("SCRAPINGBEE_API_KEY");
 
 // ── SOURCE LOCK ────────────────────────────────────────────────────────────
 // Comma-separated list of allowed source labels. Defaults to KR-only.
