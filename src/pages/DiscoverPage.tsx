@@ -202,6 +202,22 @@ export default function DiscoverPage() {
     void loadSavedIds();
   }, [loadSavedIds]);
 
+  // Default gender filter from the user's profile preference (one-shot).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("gender_preference")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || !data?.gender_preference) return;
+      setGenderFilter((current) => (current === "all" ? genderPreferenceToFilter(data.gender_preference) : current));
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   // ── Run discover (single entry point — hook owns the pipeline) ────────
   const runDiscover = useCallback(
     (baseQuery: string) => {
