@@ -33,6 +33,8 @@ interface Props {
   refreshKey?: number;
   /** When true, only show stories from users the current user follows (their circle) + their own. */
   circlesOnly?: boolean;
+  /** Notifies parent whenever the grouped story list refreshes. */
+  onLoaded?: (users: UserStories[]) => void;
 }
 
 const SEEN_KEY = "wardrobe.seenStories";
@@ -45,7 +47,7 @@ const getSeen = (): Record<string, string> => {
   }
 };
 
-const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false }: Props) => {
+const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded }: Props) => {
   const { user } = useAuth();
   const [grouped, setGrouped] = useState<UserStories[]>([]);
   const [myProfile, setMyProfile] = useState<ProfileLite | null>(null);
@@ -127,6 +129,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
 
     setGrouped(ordered);
     setLoading(false);
+    onLoaded?.(ordered);
   };
 
   const myHasStory = !!user && grouped.some((g) => g.user_id === user.id);
@@ -159,16 +162,17 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                   </div>
                 )}
               </div>
-              <button
+              <span
                 onClick={(e) => {
                   e.stopPropagation();
                   onUploadClick();
                 }}
-                className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-accent text-background flex items-center justify-center border-2 border-background shadow-sm hover:scale-110 transition-transform"
+                role="button"
                 aria-label="Add story"
+                className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-tr from-accent via-pink-400 to-amber-300 text-background flex items-center justify-center border-2 border-background shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
               >
-                <Plus className="h-3 w-3" strokeWidth={3} />
-              </button>
+                <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+              </span>
             </div>
             <span className="text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate max-w-[60px]">
               Your story

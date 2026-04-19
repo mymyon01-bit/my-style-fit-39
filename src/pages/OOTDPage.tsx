@@ -74,11 +74,16 @@ const OOTDPage = () => {
   // Stories
   const [storyUploadOpen, setStoryUploadOpen] = useState(false);
   const [storiesRefreshKey, setStoriesRefreshKey] = useState(0);
+  const [allStoryUsers, setAllStoryUsers] = useState<UserStories[]>([]);
   const [viewerState, setViewerState] = useState<{ open: boolean; index: number; users: UserStories[] }>({
     open: false,
     index: 0,
     users: [],
   });
+
+  const myStoryUser = user ? allStoryUsers.find((u) => u.user_id === user.id) : undefined;
+  const hasOwnStory = !!myStoryUser;
+  const hasOwnUnseen = !!myStoryUser?.hasUnseen;
 
   useEffect(() => {
     loadPosts();
@@ -299,6 +304,13 @@ const OOTDPage = () => {
             postCount={myPosts.length}
             totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
             refreshKey={storiesRefreshKey}
+            hasStory={hasOwnStory}
+            hasUnseenStory={hasOwnUnseen}
+            onUploadStory={() => setStoryUploadOpen(true)}
+            onViewMyStory={() => {
+              const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
+              if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
+            }}
           />
         )}
 
@@ -313,6 +325,7 @@ const OOTDPage = () => {
               setStoryUploadOpen(true);
             }}
             onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
+            onLoaded={setAllStoryUsers}
           />
         )}
         {/* Tabs */}
