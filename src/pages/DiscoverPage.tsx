@@ -20,9 +20,15 @@ import DbTopGrid from "@/components/discover/DbTopGrid";
 import StyledLooksRow from "@/components/discover/StyledLooksRow";
 import LiveResultsSection from "@/components/discover/LiveResultsSection";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
+import { genderPreferenceToFilter, type GenderFilter } from "@/lib/discover/genderFilter";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
+const GENDER_FILTERS: { id: GenderFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "women", label: "Women" },
+  { id: "men", label: "Men" },
+];
 const PAGE_SIZE = 24;
 
 type CategoryTab = { slug: string; label: string; children?: { slug: string; label: string }[] };
@@ -114,6 +120,7 @@ export default function DiscoverPage() {
   const [feedbackMap, setFeedbackMap] = useState<Record<string, "like" | "dislike">>({});
   const [showAuthHint, setShowAuthHint] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | DiscoverRenderableProduct | null>(null);
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
 
   // ── Live (Layer 3) state — UI only; search lives in useDiscoverSearch ──
   const [committedQuery, setCommittedQuery] = useState(moodParam || "new arrivals");
@@ -131,7 +138,7 @@ export default function DiscoverPage() {
     ladderStage,
     search: runDiscoverSearch,
     markVisibleSeen,
-  } = useDiscoverSearch({ windowSize: PAGE_SIZE, minFreshRatio: 0.4 });
+  } = useDiscoverSearch({ windowSize: PAGE_SIZE, minFreshRatio: 0.4, gender: genderFilter });
 
   const isSearching = searchStatus === "searching" || searchStatus === "partial";
   const liveStatus = useMemo(() => {
@@ -150,7 +157,7 @@ export default function DiscoverPage() {
   );
 
   // ── Layer 1 — instant DB grid (independent fetch) ─────────────────────
-  const { products: dbTopProducts, loading: dbTopLoading } = useDbTopGrid(committedQuery, 8);
+  const { products: dbTopProducts, loading: dbTopLoading } = useDbTopGrid(committedQuery, 8, genderFilter);
 
   // ── Layer 2 — styled looks pool ───────────────────────────────────────
   const styledLooksPool = useMemo<Product[]>(() => {
