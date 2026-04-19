@@ -33,7 +33,7 @@ const SCRAPINGBEE_API_KEY = Deno.env.get("SCRAPINGBEE_API_KEY");
 // To re-enable a source, set ENABLED_SOURCES env var, e.g.
 //   ENABLED_SOURCES="apify_musinsa,apify_29cm,apify_wconcept,apify_ssg"
 // Anything not in this set is short-circuited to [] and never costs an actor call.
-const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg";
+const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver";
 const ENABLED_SOURCES = new Set(
   (Deno.env.get("ENABLED_SOURCES") || DEFAULT_ENABLED)
     .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
@@ -421,6 +421,7 @@ const KR_SEARCH_URLS: Record<string, (q: string) => string> = {
   "29cm": (q) => `https://search.29cm.co.kr/search?keyword=${encodeURIComponent(q)}`,
   wconcept: (q) => `https://www.wconcept.co.kr/Search?kwd=${encodeURIComponent(q)}`,
   ssg: (q) => `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(q)}`,
+  naver: (q) => `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}`,
 };
 
 async function fetchScrapingBeeKR(domain: keyof typeof KR_SEARCH_URLS, query: string, max: number): Promise<RawProduct[]> {
