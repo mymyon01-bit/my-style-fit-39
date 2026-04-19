@@ -141,8 +141,10 @@ const FitPage = () => {
             source: "db",
           };
         }
+        // Ensure we have a weight so we can compute fit and jump straight to RESULTS
+        if (!weightKg) setWeightKg(70);
         // Wait a tick so body profile is loaded before computing fit
-        setTimeout(() => handleSelectProduct(product!), 250);
+        setTimeout(() => handleSelectProduct(product!, { silent: true }), 350);
       } catch (e) {
         console.error("[FitPage] deep-link load failed", e);
       }
@@ -226,11 +228,14 @@ const FitPage = () => {
     });
   }, []);
 
-  const handleSelectProduct = useCallback((product: SelectedProduct) => {
-    if (!weightKg || weightKg < 40 || weightKg > 120) {
-      toast.error("Please enter weight to improve fit accuracy", {
-        description: "Go to BODY tab and set your weight (40–120 kg).",
-      });
+  const handleSelectProduct = useCallback((product: SelectedProduct, opts?: { silent?: boolean }) => {
+    const effectiveWeight = weightKg ?? 70; // graceful default for deep-link / guest
+    if (effectiveWeight < 40 || effectiveWeight > 120) {
+      if (!opts?.silent) {
+        toast.error("Please enter weight to improve fit accuracy", {
+          description: "Go to BODY tab and set your weight (40–120 kg).",
+        });
+      }
       setActiveTab("measurements");
       return;
     }
