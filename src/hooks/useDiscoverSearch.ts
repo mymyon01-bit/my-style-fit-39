@@ -122,6 +122,12 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
       const expansion = expandDiscoverQuery(parsed);
       const lock = getCategoryLock(parsed);
 
+      // Deterministic intent (KR/EN aliases, mood, family) — drives chips + ladder.
+      let intent = parseIntent(trimmed);
+      const usedAlias = intent.enAliases.length > 0;
+      const initialChips = summarizeIntent(intent);
+      const initialFallback: DiscoverSearchState["intentFallback"] = usedAlias ? "alias" : null;
+
       logQueryParsed(parsed);
       logDiscoverEvent("discover_search_started", {
         query: trimmed,
@@ -129,11 +135,26 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
           query_type: parsed.queryType,
           category_lock: lock,
           variant_count: expansion.variants.length,
+          intent_category: intent.primaryCategory,
+          intent_language: intent.language,
         },
       });
 
-      // Deterministic-first interpreter (KR/EN alias map). AI fallback only
-      // when the query is vague — runs async so it never blocks the search.
+      // Optional AI fallback — only for vague unknowns; never blocks.
+      if (shouldUseAiFallback(intent)) {
+        void expandIntentWithAi(trimmed).then((ai) => {
+          if (!ai || runIdRef.current !== runId) return;
+          intent = mergeAiIntoIntent(intent, ai);
+          setState((prev) => ({
+            ...prev,
+            intent,
+            intentChips: summarizeIntent(intent),
+            intentFallback: "ai",
+          }));
+        }).catch((err) => console.warn("[useDiscoverSearch] AI fallback failed", err));
+      }
+
+      // Background interpreter logging (KR/EN alias diagnostic) — fire-and-forget.
       void interpretQuery(trimmed)
         .then((interp) => {
           logDiscoverEvent("discover_query_interpreted", {
@@ -153,6 +174,10 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         query: trimmed,
         parsed,
         expansion,
+        intent,
+        intentChips: initialChips,
+        intentFallback: initialFallback,
+        ladderStage: null,
         results: [],
         diagnostics: null,
         status: "searching",
@@ -160,15 +185,25 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
       });
 
       const session = createSearchSession(trimmed);
-      // search-runner detects its own lock from the query, but we make it
-      // explicit here so style-with-category queries still respect it.
       if (lock) session.categoryLock = lock;
 
-      // Fire-and-forget: kick the search-engine pipeline (Google CSE → Apify
-      // Web Scraper) in the background. Grows product_cache for next time;
-      // never blocks the current search.
+      // Fire-and-forget cache warmer (Apify/CSE).
       void supabase.functions.invoke("discover-search-engine", { body: { query: trimmed } })
         .catch((err) => console.warn("[useDiscoverSearch] discover-search-engine kick failed", err));
+
+      // Ladder seed — paint Live grid INSTANTLY from cache while runSearch warms up.
+      void runSearchLadder(intent).then((ladder) => {
+        if (runIdRef.current !== runId) return;
+        setState((prev) => ({ ...prev, ladderStage: ladder.stageReached }));
+        logDiscoverEvent("discover_ladder_complete", {
+          query: trimmed,
+          metadata: {
+            stage: ladder.stageReached,
+            pool_size: ladder.poolSize,
+            per_stage: ladder.perStageCounts,
+          },
+        });
+      }).catch((err) => console.warn("[useDiscoverSearch] ladder failed", err));
 
       let dbSeen: Set<string> = new Set();
       try {
