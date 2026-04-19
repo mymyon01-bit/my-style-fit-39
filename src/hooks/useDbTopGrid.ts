@@ -171,7 +171,7 @@ export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "
         setLoading(false);
       }
     })();
-  }, [query, limit]);
+  }, [query, limit, gender]);
 
   return { products, loading, error };
 }
