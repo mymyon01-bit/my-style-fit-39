@@ -350,7 +350,22 @@ const FitPage = () => {
                 canUsePremium={canUsePremium}
               />
             )}
-            {activeTab === "measurements" && <FitMeasurements measurements={measurements} onUpdate={handleMeasurementUpdate} onBulkUpdate={handleBulkUpdate} />}
+            {activeTab === "measurements" && (
+              <FitMeasurements
+                measurements={measurements}
+                onUpdate={handleMeasurementUpdate}
+                onBulkUpdate={handleBulkUpdate}
+                weightKg={weightKg}
+                onWeightChange={(w) => {
+                  setWeightKg(w);
+                  if (user) {
+                    supabase.from("body_profiles")
+                      .upsert({ user_id: user.id, weight_kg: w, height_cm: measurements.heightCm.value }, { onConflict: "user_id" })
+                      .then(() => {});
+                  }
+                }}
+              />
+            )}
             {activeTab === "check" && <FitProductCheck onSelectProduct={handleSelectProduct} />}
             {activeTab === "results" && fitResult && fitResultProduct ? (
               <FitResults
@@ -362,7 +377,7 @@ const FitPage = () => {
                 canUsePremium={canUsePremium}
                 refining={refining}
                 bodyHeightCm={measurements.heightCm.value}
-                bodyWeightKg={null}
+                bodyWeightKg={weightKg}
                 onRefineFit={handleRefineFit}
                 onRescan={() => setActiveTab("scan")}
                 onEditMeasurements={() => setActiveTab("measurements")}
