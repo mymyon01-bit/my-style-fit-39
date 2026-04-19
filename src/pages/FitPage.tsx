@@ -345,28 +345,39 @@ const FitPage = () => {
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && (
-              <FitBodyScan
-                onScanComplete={handleScanComplete}
-                canUsePremium={canUsePremium}
-              />
+              <>
+                <FitBodyScan
+                  onScanComplete={handleScanComplete}
+                  canUsePremium={canUsePremium}
+                />
+                <NextButton onClick={() => setActiveTab("measurements")} label="Next: Body" />
+              </>
             )}
             {activeTab === "measurements" && (
-              <FitMeasurements
-                measurements={measurements}
-                onUpdate={handleMeasurementUpdate}
-                onBulkUpdate={handleBulkUpdate}
-                weightKg={weightKg}
-                onWeightChange={(w) => {
-                  setWeightKg(w);
-                  if (user) {
-                    supabase.from("body_profiles")
-                      .upsert({ user_id: user.id, weight_kg: w, height_cm: measurements.heightCm.value }, { onConflict: "user_id" })
-                      .then(() => {});
-                  }
-                }}
-              />
+              <>
+                <FitMeasurements
+                  measurements={measurements}
+                  onUpdate={handleMeasurementUpdate}
+                  onBulkUpdate={handleBulkUpdate}
+                  weightKg={weightKg}
+                  onWeightChange={(w) => {
+                    setWeightKg(w);
+                    if (user) {
+                      supabase.from("body_profiles")
+                        .upsert({ user_id: user.id, weight_kg: w, height_cm: measurements.heightCm.value }, { onConflict: "user_id" })
+                        .then(() => {});
+                    }
+                  }}
+                />
+                <NextButton onClick={() => setActiveTab("check")} label="Next: Check" />
+              </>
             )}
-            {activeTab === "check" && <FitProductCheck onSelectProduct={handleSelectProduct} />}
+            {activeTab === "check" && (
+              <>
+                <FitProductCheck onSelectProduct={handleSelectProduct} />
+                <NextButton onClick={() => setActiveTab("results")} label="Next: Results" />
+              </>
+            )}
             {activeTab === "results" && fitResult && fitResultProduct ? (
               <FitResults
                 result={fitResult}
@@ -386,6 +397,7 @@ const FitPage = () => {
               <div className="py-24 text-center space-y-4 md:py-28 lg:py-32">
                 <p className="text-[14px] text-foreground/80">Select a product first</p>
                 <p className="text-[11px] text-foreground/80">Go to CHECK to pick an item</p>
+                <NextButton onClick={() => setActiveTab("check")} label="Go to Check" />
               </div>
             )}
           </motion.div>
