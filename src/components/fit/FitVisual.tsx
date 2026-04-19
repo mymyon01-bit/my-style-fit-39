@@ -24,6 +24,10 @@ interface Props {
   userShoulderCm?: number;
   /** optional AI try-on URL — if present, supersedes the 2D render */
   tryOnImageUrl?: string | null;
+  /** generation lifecycle: drives the badge + loading overlay */
+  tryOnStatus?: "idle" | "generating" | "ready" | "fallback" | "error";
+  /** which provider produced the image (for the small label) */
+  tryOnProvider?: "replicate" | "gemini" | null;
 }
 
 function normalizeSizeKey(size: string): SimpleSizeKey {
