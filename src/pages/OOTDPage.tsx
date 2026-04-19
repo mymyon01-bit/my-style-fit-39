@@ -74,11 +74,16 @@ const OOTDPage = () => {
   // Stories
   const [storyUploadOpen, setStoryUploadOpen] = useState(false);
   const [storiesRefreshKey, setStoriesRefreshKey] = useState(0);
+  const [allStoryUsers, setAllStoryUsers] = useState<UserStories[]>([]);
   const [viewerState, setViewerState] = useState<{ open: boolean; index: number; users: UserStories[] }>({
     open: false,
     index: 0,
     users: [],
   });
+
+  const myStoryUser = user ? allStoryUsers.find((u) => u.user_id === user.id) : undefined;
+  const hasOwnStory = !!myStoryUser;
+  const hasOwnUnseen = !!myStoryUser?.hasUnseen;
 
   useEffect(() => {
     loadPosts();
