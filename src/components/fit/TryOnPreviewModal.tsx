@@ -4,7 +4,21 @@ import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles, Upload, E
 import { supabase } from "@/integrations/supabase/client";
 import SafeImage from "@/components/SafeImage";
 import { RegionFit } from "@/lib/fitEngine";
-import { fitBucket, bucketColor } from "@/components/fit/BodySilhouette";
+// Inlined from former BodySilhouette helpers — 4-bucket color rule for fit annotation overlay.
+const fitBucket = (fit: string): "tight" | "slightly" | "balanced" | "loose" => {
+  if (fit === "too-tight" || fit === "too-short") return "tight";
+  if (fit.includes("tight") || fit.includes("short") || fit.includes("long")) return "slightly";
+  if (fit === "fitted" || fit === "balanced" || fit === "good-length" || fit === "relaxed") return "balanced";
+  return "loose";
+};
+const bucketColor = (b: ReturnType<typeof fitBucket>) => {
+  switch (b) {
+    case "tight":    return "hsl(0 84% 60%)";
+    case "slightly": return "hsl(25 95% 53%)";
+    case "balanced": return "hsl(142 71% 45%)";
+    case "loose":    return "hsl(217 91% 60%)";
+  }
+};
 
 /**
  * Async try-on modal — Replicate provider.
