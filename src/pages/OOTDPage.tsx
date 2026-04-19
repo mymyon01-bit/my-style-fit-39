@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +41,7 @@ interface ProfileInfo {
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
+  username?: string | null;
 }
 
 type Tab = "community" | "mypage" | "crowned";
@@ -81,6 +82,11 @@ const OOTDPage = () => {
     users: [],
   });
 
+  // Username search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ProfileInfo[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   const myStoryUser = user ? allStoryUsers.find((u) => u.user_id === user.id) : undefined;
   const hasOwnStory = !!myStoryUser;
   const hasOwnUnseen = !!myStoryUser?.hasUnseen;
@@ -92,6 +98,27 @@ const OOTDPage = () => {
   }, [user]);
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
+
+  // Debounced username search
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (!q || q.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url, username")
+        .ilike("username", `${q}%`)
+        .limit(20);
+      setSearchResults((data as ProfileInfo[]) || []);
+      setSearchLoading(false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadTopics = async () => {
     const { data } = await supabase.from("ootd_topics").select("*").order("post_count", { ascending: false }).limit(15);
@@ -109,7 +136,7 @@ const OOTDPage = () => {
 
     const userIds = [...new Set(fetched.map(p => p.user_id))];
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, username").in("user_id", userIds);
       if (profiles) {
         const map: Record<string, ProfileInfo> = {};
         for (const p of profiles) map[p.user_id] = p as ProfileInfo;
@@ -385,6 +412,61 @@ const OOTDPage = () => {
             </motion.div>
           ) : (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* User Search */}
+              <div className="space-y-2.5">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by user ID (e.g. minimal_anna)"
+                    className="w-full rounded-full border border-border/40 bg-card/50 pl-9 pr-9 py-2.5 text-[12px] text-foreground placeholder:text-foreground/35 outline-none focus:border-accent/40 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground/70">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {searchQuery.trim().length >= 2 && (
+                  <div className="rounded-xl border border-border/30 bg-card/30 overflow-hidden">
+                    {searchLoading ? (
+                      <div className="py-4 flex items-center justify-center">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/40" />
+                      </div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="py-4 text-center text-[11px] text-foreground/40">No users found</div>
+                    ) : (
+                      <ul className="divide-y divide-border/20">
+                        {searchResults.map((u) => (
+                          <li key={u.user_id}>
+                            <button
+                              onClick={() => navigate(`/u/${u.user_id}`)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left"
+                            >
+                              {u.avatar_url ? (
+                                <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-medium text-foreground/60">
+                                  {(u.username || u.display_name || "?").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[12px] font-medium text-foreground truncate">@{u.username}</div>
+                                {u.display_name && (
+                                  <div className="text-[10px] text-foreground/50 truncate">{u.display_name}</div>
+                                )}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Trending Topics */}
               {trendingTopics.length > 0 && (
                 <div className="space-y-2.5">
