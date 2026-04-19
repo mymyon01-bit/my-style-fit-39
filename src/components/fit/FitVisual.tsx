@@ -25,9 +25,11 @@ interface Props {
   /** optional AI try-on URL — if present, supersedes the 2D render */
   tryOnImageUrl?: string | null;
   /** generation lifecycle: drives the badge + loading overlay */
-  tryOnStatus?: "idle" | "generating" | "ready" | "fallback" | "error";
+  tryOnStatus?: "idle" | "generating" | "ready" | "fallback" | "error" | "invalid_body";
   /** which provider produced the image (for the small label) */
   tryOnProvider?: "replicate" | "gemini" | null;
+  /** called when the user taps the "Scan Body" CTA shown on invalid input */
+  onRescanBody?: () => void;
 }
 
 function normalizeSizeKey(size: string): SimpleSizeKey {
@@ -56,6 +58,7 @@ export default function FitVisual({
   tryOnImageUrl,
   tryOnStatus = "idle",
   tryOnProvider,
+  onRescanBody,
 }: Props) {
   const fitTable = getDefaultFit(category);
   const sizeKey = normalizeSizeKey(activeSize);
@@ -82,6 +85,7 @@ export default function FitVisual({
     hasReal && tryOnProvider === "replicate" ? "AI TRY-ON"
     : hasReal && tryOnProvider === "gemini" ? "AI TRY-ON · FALLBACK"
     : isGenerating ? "GENERATING"
+    : tryOnStatus === "invalid_body" ? "BODY IMAGE NEEDED"
     : tryOnStatus === "error" ? "PREVIEW ONLY"
     : "PREVIEW";
 
@@ -89,6 +93,7 @@ export default function FitVisual({
     hasReal && tryOnProvider === "replicate" ? "text-accent"
     : hasReal && tryOnProvider === "gemini" ? "text-amber-400/90"
     : isGenerating ? "text-foreground/60"
+    : tryOnStatus === "invalid_body" ? "text-amber-400/90"
     : tryOnStatus === "error" ? "text-orange-400/85"
     : "text-foreground/55";
 
