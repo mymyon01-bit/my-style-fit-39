@@ -41,6 +41,7 @@ interface ProfileInfo {
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
+  username?: string | null;
 }
 
 type Tab = "community" | "mypage" | "crowned";
