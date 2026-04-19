@@ -74,11 +74,17 @@ export function useAiTryOn(args: Args) {
   });
   const cancelRef = useRef(false);
 
+  // Run text path when:
+  //   • no photo, OR
+  //   • photo path failed (invalid_body / error / missing_image)
+  const photoFailed =
+    hasPhoto && (photo.status === "invalid_body" || photo.status === "error" || photo.status === "missing_image");
+  const shouldRunText = args.enabled && (!hasPhoto || photoFailed);
+
   useEffect(() => {
     cancelRef.current = false;
-    if (!args.enabled || hasPhoto) {
-      // photo path active OR disabled — clear text state
-      if (!hasPhoto && !args.enabled) {
+    if (!shouldRunText) {
+      if (!args.enabled) {
         setTextState((s) => ({ ...s, status: "idle", imageUrl: null, error: null }));
       }
       return;
