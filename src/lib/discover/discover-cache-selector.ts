@@ -95,10 +95,13 @@ export async function selectFastTopGrid(opts: FastSelectorOptions): Promise<Fast
   let stage: "tokens" | "longest-token" | "recent" = "tokens";
 
   // GENDER FILTER — applied to the candidate pool BEFORE ranking so the
-  // visible window is dominated by the right gender.
-  const genderPref = opts.gender ?? "all";
-  if (genderPref !== "all") {
-    rows = rows.filter((r) => passesGenderFilter(r as never, genderPref));
+  // visible window is dominated by the right gender. Query-level intent
+  // (e.g. "mens jacket") OVERRIDES the toggle when toggle is "all".
+  const queryGender = parseGenderIntent(opts.query);
+  const effectiveGender: GenderFilter =
+    queryGender ?? (opts.gender ?? "all");
+  if (effectiveGender !== "all") {
+    rows = rows.filter((r) => passesGenderFilter(r as never, effectiveGender));
   }
 
   // Pass 2 — degrade to longest single token if pool too thin
