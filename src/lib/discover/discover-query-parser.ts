@@ -100,5 +100,6 @@ export function parseDiscoverQuery(raw: string): ParsedDiscoverQuery {
     colors: color ? [color] : [],
     scenario,
     fit,
+    genderIntent: parseGenderIntent(normalized),
   };
 }
