@@ -249,7 +249,7 @@ export default function DiscoverPage() {
     // Mark visible as seen so suppression works on the next search.
     void markVisibleSeen(visibleLiveResults.slice(0, PAGE_SIZE));
 
-    const summary = diagnostics || {};
+    const summary = diagnostics;
     recordEvent({
       event_name: "discover_grid_render",
       status: visibleLiveResults.length > 0 ? "success" : "partial",
