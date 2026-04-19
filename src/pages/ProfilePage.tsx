@@ -14,6 +14,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useSavedFolders } from "@/hooks/useSavedFolders";
 import { useAdmin } from "@/hooks/useAdmin";
 import PremiumBanner from "@/components/PremiumBanner";
+import TodayPicks from "@/components/today/TodayPicks";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
@@ -331,6 +332,11 @@ const ProfilePage = () => {
         </div>
 
         {!subscription.isPremium && <PremiumBanner />}
+
+        <div className="h-px bg-accent/[0.12]" />
+
+        {/* Today's 5 Looks — quiz-driven */}
+        <TodayPicks />
 
         <div className="h-px bg-accent/[0.12]" />
 
