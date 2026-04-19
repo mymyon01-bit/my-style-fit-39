@@ -49,6 +49,8 @@ export interface ParsedDiscoverQuery {
   scenario: string | null;
   colors: string[];
   fit: string | null;
+  /** Explicit gender from query (e.g. "mens jacket" → "men"). null if absent. */
+  genderIntent: "men" | "women" | null;
 }
 
 function pickAll(re: RegExp, q: string): string[] {
