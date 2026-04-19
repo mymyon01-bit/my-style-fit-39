@@ -241,7 +241,18 @@ export function useAiTryOn(args: Args) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [args.enabled, hasPhoto, args.productKey, args.prewarmSize]);
 
-  if (hasPhoto) {
+  // ── Output selection ──────────────────────────────────────────────────
+  // If photo path is actively producing/produced something usable, return it.
+  // Otherwise (idle, invalid_body, error, missing_image), fall back to the
+  // text path so the VISUAL FIT block is never blank.
+  const photoUsable =
+    hasPhoto &&
+    (photo.status === "ready" ||
+      photo.status === "fallback" ||
+      photo.status === "generating" ||
+      photo.status === "resolving_image");
+
+  if (photoUsable) {
     return {
       status: photo.status,
       imageUrl: photo.imageUrl,
@@ -251,6 +262,12 @@ export function useAiTryOn(args: Args) {
       prompt: null,
       mode: "photo" as const,
     };
+  }
+
+  // text-state may still be `idle` if effect hasn't fired — surface as generating
+  // so the UI shows the loading skeleton rather than a blank.
+  if (hasPhoto && textState.status === "idle") {
+    console.log("[useAiTryOn] photo path unusable, deferring to text", { photoStatus: photo.status });
   }
   return textState;
 }
