@@ -1,13 +1,17 @@
 // ─── REPLICATE TRY-ON HOOK ──────────────────────────────────────────────────
-// Auto-invokes fit-tryon-router whenever product + size + body image are ready.
-// Caches results by (productKey, size) within session and polls Replicate
-// predictions to completion. Returns the generated image URL + a status flag
-// that FitVisual uses to decide between primary (Replicate) and fallback
-// (silhouette overlay) rendering.
+// End-to-end pipeline:
+//   1. Body quality gate  (preprocessBodyImage — local + AI bbox)
+//   2. Garment classification (preprocessGarment — AI type)
+//   3. Replicate via fit-tryon-router
+//   4. Output validation  (validateTryOnOutput — AI vision)
+//   5. One retry with stricter prompt + forceRegenerate if step 4 fails
+// All steps log a single structured line so we can audit the funnel.
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { preprocessBodyImage } from "@/lib/fit/preprocessBodyImage";
+import { preprocessGarment, garmentTypeFromCategory, type GarmentType } from "@/lib/fit/preprocessGarment";
+import { validateTryOnOutput } from "@/lib/fit/validateOutput";
 
 export type TryOnStatus =
   | "idle"
@@ -15,7 +19,7 @@ export type TryOnStatus =
   | "ready"
   | "fallback"
   | "error"
-  | "invalid_body"; // body image quality gate failed — UI should prompt re-scan
+  | "invalid_body";
 
 interface Args {
   enabled: boolean;
@@ -36,7 +40,7 @@ interface CacheEntry {
 
 const memoryCache = new Map<string, CacheEntry>();
 const POLL_INTERVAL_MS = 2500;
-const POLL_MAX_ATTEMPTS = 40; // ~100s
+const POLL_MAX_ATTEMPTS = 40;
 
 export function useReplicateTryOn(args: Args) {
   const { enabled, userImageUrl, productImageUrl, productKey, productCategory, selectedSize, fitDescriptor, regions } = args;
@@ -59,15 +63,12 @@ export function useReplicateTryOn(args: Args) {
       return;
     }
 
-    // Memory cache hit
     const cached = memoryCache.get(cacheKey);
-    if (cached) {
-      if (cached.url) {
-        setImageUrl(cached.url);
-        setProvider(cached.provider);
-        setStatus(cached.fallback ? "fallback" : "ready");
-        return;
-      }
+    if (cached?.url) {
+      setImageUrl(cached.url);
+      setProvider(cached.provider);
+      setStatus(cached.fallback ? "fallback" : "ready");
+      return;
     }
 
     setStatus("generating");
@@ -76,108 +77,151 @@ export function useReplicateTryOn(args: Args) {
 
     (async () => {
       try {
-        // ── BODY QUALITY GATE ───────────────────────────────────────
-        const processed = await preprocessBodyImage(userImageUrl);
-        console.log("[useReplicateTryOn] preprocess", {
-          body_valid: processed.valid,
-          reason: processed.reason,
-          crop_applied: processed.cropApplied,
-          zoom_ratio: processed.zoomRatio,
-          replicate_called: processed.valid,
-          fallback_triggered: !processed.valid,
-        });
-        if (!processed.valid) {
+        // ── 1. BODY GATE ────────────────────────────────────────────
+        const body = await preprocessBodyImage(userImageUrl);
+        if (!body.valid) {
+          console.log("[tryon-pipeline]", {
+            stage: "body",
+            body_valid: false,
+            reason: body.reason,
+            replicate_called: false,
+            fallback_triggered: true,
+          });
           setStatus("invalid_body");
-          setError(processed.reason || "body_image_invalid");
+          setError(body.reason || "body_image_invalid");
           return;
         }
-        const cleanUserImage = processed.croppedImageUrl;
 
-        const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
-          body: {
-            userImageUrl: cleanUserImage,
-            productImageUrl,
-            productKey,
-            productCategory,
-            selectedSize,
-            fitDescriptor,
-            regions: regions || [],
-            mode: "high",
-          },
+        // ── 2. GARMENT CLASSIFICATION ───────────────────────────────
+        const garment = await preprocessGarment(productImageUrl, productCategory);
+        const garmentType: GarmentType = garment.type !== "unknown"
+          ? garment.type
+          : garmentTypeFromCategory(productCategory);
+
+        console.log("[tryon-pipeline]", {
+          stage: "preprocess",
+          body_valid: true,
+          bbox_size: body.bbox ? Number((body.bbox.w * body.bbox.h).toFixed(2)) : null,
+          pose_quality: body.confidence ?? null,
+          framing: body.framing,
+          garment_type: garmentType,
+          garment_on_model: garment.onModel,
         });
+
+        // ── 3. REPLICATE (with built-in retry on validation failure) ─
+        const runReplicate = async (force: boolean, strict: boolean) => {
+          const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
+            body: {
+              userImageUrl: body.croppedImageUrl,
+              productImageUrl,
+              productKey,
+              productCategory: garmentType === "lower" ? `${productCategory || ""} pants`.trim()
+                              : garmentType === "full" ? `${productCategory || ""} dress`.trim()
+                              : productCategory,
+              selectedSize,
+              fitDescriptor: strict ? `${fitDescriptor || "regular"} (strict alignment)` : fitDescriptor,
+              regions: regions || [],
+              mode: "high",
+              forceRegenerate: force,
+            },
+          });
+          return { data, invokeErr };
+        };
+
+        const finalize = async (resultUrl: string, providerName: "replicate" | "gemini") => {
+          // ── 4. OUTPUT VALIDATION ────────────────────────────────
+          const validation = await validateTryOnOutput(resultUrl, productImageUrl);
+          console.log("[tryon-pipeline]", {
+            stage: "validate",
+            replicate_success: true,
+            validation_passed: validation.passed,
+            quality_score: validation.qualityScore,
+            reasons: validation.reasons,
+          });
+          return validation;
+        };
+
+        const handleResult = async (
+          data: any,
+          attempt: 1 | 2
+        ): Promise<{ done: boolean; resultUrl?: string; provider?: "replicate" | "gemini" }> => {
+          if (data?.error && !data?.resultImageUrl) {
+            return { done: true };
+          }
+
+          let resultUrl: string | null = null;
+          let providerName: "replicate" | "gemini" = data?.provider || "replicate";
+
+          if (data?.status === "succeeded" && data?.resultImageUrl) {
+            resultUrl = data.resultImageUrl;
+          } else if (data?.predictionId) {
+            for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
+              if (cancelRef.current) return { done: true };
+              await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+              const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fit-tryon-router?id=${encodeURIComponent(data.predictionId)}`;
+              const { data: { session } } = await supabase.auth.getSession();
+              const headers: Record<string, string> = { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY };
+              if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+              const r = await fetch(baseUrl, { headers });
+              const polled = await r.json().catch(() => ({}));
+              if (polled?.status === "succeeded" && polled?.resultImageUrl) {
+                resultUrl = polled.resultImageUrl;
+                providerName = polled.provider || providerName;
+                break;
+              }
+              if (polled?.status === "failed") return { done: true };
+            }
+          }
+
+          if (!resultUrl) return { done: true };
+
+          const validation = await finalize(resultUrl, providerName);
+          if (validation.passed || attempt === 2) {
+            return { done: true, resultUrl, provider: providerName };
+          }
+          return { done: false }; // retry
+        };
+
+        // First pass
+        const first = await runReplicate(false, false);
+        if (cancelRef.current) return;
+        if (first.invokeErr) {
+          setStatus("error");
+          setError(first.invokeErr.message || "try-on request failed");
+          return;
+        }
+        let outcome = await handleResult(first.data, 1);
+
+        // Retry with stricter prompt + forced regeneration if validation failed
+        if (!outcome.done || (!outcome.resultUrl && !cancelRef.current)) {
+          if (!outcome.resultUrl) {
+            console.log("[tryon-pipeline]", { stage: "retry", retry_used: true, reason: "validation_failed" });
+            const second = await runReplicate(true, true);
+            if (cancelRef.current) return;
+            if (second.invokeErr) {
+              setStatus("error");
+              setError(second.invokeErr.message || "retry failed");
+              return;
+            }
+            outcome = await handleResult(second.data, 2);
+          }
+        }
 
         if (cancelRef.current) return;
 
-        if (invokeErr) {
-          console.error("[useReplicateTryOn] invoke error", invokeErr);
-          setStatus("error");
-          setError(invokeErr.message || "try-on request failed");
-          return;
-        }
-
-        if (data?.error && !data?.resultImageUrl) {
-          setStatus("error");
-          setError(String(data.error));
-          return;
-        }
-
-        // Inline succeeded
-        if (data?.status === "succeeded" && data?.resultImageUrl) {
+        if (outcome.resultUrl) {
           memoryCache.set(cacheKey, {
-            url: data.resultImageUrl,
-            provider: data.provider || "replicate",
-            fallback: data.provider === "gemini" && data.metadata?.fallback === true,
+            url: outcome.resultUrl,
+            provider: outcome.provider || "replicate",
+            fallback: outcome.provider === "gemini",
           });
-          setImageUrl(data.resultImageUrl);
-          setProvider(data.provider || "replicate");
-          setStatus("ready");
-          return;
-        }
-
-        // Async — poll Replicate prediction
-        const predictionId = data?.predictionId;
-        if (!predictionId) {
+          setImageUrl(outcome.resultUrl);
+          setProvider(outcome.provider || "replicate");
+          setStatus(outcome.provider === "gemini" ? "fallback" : "ready");
+        } else {
           setStatus("error");
-          setError("no prediction id returned");
-          return;
+          setError("generation failed");
         }
-
-        for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
-          if (cancelRef.current) return;
-          await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-
-          const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fit-tryon-router?id=${encodeURIComponent(predictionId)}`;
-          const { data: { session } } = await supabase.auth.getSession();
-          const headers: Record<string, string> = {
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          };
-          if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-          const r = await fetch(baseUrl, { headers });
-          const polled = await r.json().catch(() => ({}));
-
-          if (cancelRef.current) return;
-
-          if (polled?.status === "succeeded" && polled?.resultImageUrl) {
-            memoryCache.set(cacheKey, {
-              url: polled.resultImageUrl,
-              provider: polled.provider || "replicate",
-              fallback: false,
-            });
-            setImageUrl(polled.resultImageUrl);
-            setProvider(polled.provider || "replicate");
-            setStatus("ready");
-            return;
-          }
-          if (polled?.status === "failed") {
-            setStatus("error");
-            setError(polled.error || "generation failed");
-            return;
-          }
-          // else still starting/processing → keep polling
-        }
-
-        setStatus("error");
-        setError("generation timed out");
       } catch (e) {
         if (cancelRef.current) return;
         console.error("[useReplicateTryOn] unexpected", e);
