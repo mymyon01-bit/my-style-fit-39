@@ -685,7 +685,7 @@ const OOTDPage = () => {
       <AnimatePresence>
         {selectedPost && (
           <OOTDPostDetail
-            post={selectedPost}
+            post={posts.find(p => p.id === selectedPost.id) || myPosts.find(p => p.id === selectedPost.id) || selectedPost}
             profile={getProfile(selectedPost.user_id)}
             reaction={reactions[selectedPost.id]}
             isStarred={starredPosts.has(selectedPost.id)}
