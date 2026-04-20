@@ -138,26 +138,37 @@ interface LiveCardProps {
 }
 
 function LiveCard({ item, index, isSaved, feedback, onFeedback, onSave, onSelect }: LiveCardProps) {
-  const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
-  if (!item.imageUrl || !item.imageUrl.startsWith("http") || imgFailed) return null;
+  const [imgFailed, setImgFailed] = useState(false);
   const isAboveFold = index < 4;
+
+  // STRICT IMAGE PRIORITY: imageUrl (already normalized) → fallback gray box
+  const src = item.imageUrl && item.imageUrl.startsWith("http") ? item.imageUrl : null;
+  if (!src && typeof window !== "undefined") {
+    console.log("PRODUCT IMAGE:", item.id, item.imageUrl);
+  }
 
   return (
     <div className="group cursor-pointer" onClick={() => onSelect(item)}>
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.04]">
-        {!imgLoaded && <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-foreground/[0.05] to-foreground/[0.02]" aria-hidden />}
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted/40">
+        {!imgLoaded && !imgFailed && src && (
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-foreground/[0.05] to-foreground/[0.02]" aria-hidden />
+        )}
         <img
-          src={item.imageUrl}
+          src={src || "/placeholder.svg"}
           alt={item.title}
-          className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-105 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+          className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-105 ${imgLoaded || imgFailed || !src ? "opacity-100" : "opacity-0"}`}
           loading={isAboveFold ? "eager" : "lazy"}
           decoding="async"
           {...({ fetchpriority: isAboveFold ? "high" : "low" } as Record<string, string>)}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           onLoad={() => setImgLoaded(true)}
-          onError={() => setImgFailed(true)}
+          onError={(e) => {
+            setImgFailed(true);
+            e.currentTarget.src = "/placeholder.svg";
+          }}
         />
+
         <div className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5 text-[9px] font-semibold tracking-[0.12em] text-foreground/75 backdrop-blur-sm">
           {item.sourceKey.toUpperCase()}
         </div>
