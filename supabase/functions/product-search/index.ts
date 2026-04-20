@@ -715,34 +715,7 @@ async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, t
   }
 }
 
-// ─── Google CSE — URL-only discovery, then hand to search-discovery ───
-// CSE returns URLs only. We send them to search-discovery as candidate URLs
-// (search-discovery will extract og:image/title and write to cache).
-async function triggerCseExpansion(query: string, hl?: string, timeoutMs = 6_000): Promise<number> {
-  const sanitized = sanitizeSearchQuery(query);
-  if (!sanitized) return 0;
-  try {
-    const baseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!baseUrl || !serviceKey) return 0;
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    const res = await fetch(`${baseUrl}/functions/v1/google-cse`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
-      body: JSON.stringify({ query: sanitized, num: 20, hl }),
-      signal: ctrl.signal,
-    }).finally(() => clearTimeout(t));
-    if (!res.ok) return 0;
-    const data = await res.json().catch(() => null);
-    const count = Array.isArray(data?.candidates) ? data.candidates.length : 0;
-    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({ stage: "GOOGLE_CSE", query: sanitized, candidates: count })}`);
-    return count;
-  } catch (e) {
-    console.warn("[google-cse] fetch skipped:", (e as Error).message);
-    return 0;
-  }
-}
+
 
 // ─── Freshness scoring (used to re-rank merged pool) ───
 function freshnessScore(p: any): number {
@@ -810,10 +783,9 @@ serve(async (req) => {
       const minTarget = Math.min(clampedLimit, 18);
       const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL: SerpAPI Google Shopping + commerce-scraper + DB.
-      // Google Shopping is a first-class source — runs every freshSearch.
-      // Also fire CSE in the background to seed search-discovery for next time.
-      const cseTrigger = triggerCseExpansion(normalizedQuery, hl).catch(() => 0);
+      // PARALLEL MAIN SOURCES: Google (SerpAPI Shopping) + ScrapingBee
+      // (commerce-scraper / multi-source) + DB. CSE removed — bee+google now
+      // carry the discovery load directly.
       const [gShop, externalResult, dbResult] = await Promise.all([
         fetchFromGoogleShopping(normalizedQuery, Math.min(clampedLimit, 30), hl)
           .catch((e) => { console.error("Google Shopping failed:", e); return [] as any[]; }),
@@ -880,8 +852,6 @@ serve(async (req) => {
         .map((p) => ({ ...p, _freshness: freshnessScore(p) }))
         .sort((a, b) => (b._freshness || 0) - (a._freshness || 0));
 
-      // Don't await CSE — it just seeds discovery for next request.
-      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
       // Inference from the query text takes priority over the (often generic
@@ -959,12 +929,8 @@ serve(async (req) => {
       const sanitizedQuery = query ? sanitizeSearchQuery(query) : "";
       const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL: DB + Apify multi-source + Google Shopping (SerpAPI) all fire
-      // together. Google Shopping is now first-class on the db-first path too.
-      // CSE is fired in the background to seed search-discovery for next call.
-      const cseTrigger = sanitizedQuery
-        ? triggerCseExpansion(sanitizedQuery, hl).catch(() => 0)
-        : Promise.resolve(0);
+      // PARALLEL MAIN SOURCES: DB + ScrapingBee multi-source + Google (SerpAPI).
+      // Bee + Google now carry discovery directly. CSE removed.
       const [dbInitial, multiSourceFresh, gShop] = await Promise.all([
         loadFromDB(supabase, {
           query: query || undefined,
@@ -984,9 +950,8 @@ serve(async (req) => {
       ]);
 
       dbProducts = dbInitial;
-      // Multi-source + Google Shopping = fresh externals (already cached upstream).
+      // Multi-source (ScrapingBee) + Google Shopping = fresh externals (cached upstream).
       externalProducts = mergeUniqueProducts(multiSourceFresh, gShop);
-      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       const needsExpansion = expandExternal || dbProducts.length < minTarget;
       let discoveryProducts: any[] = [];
