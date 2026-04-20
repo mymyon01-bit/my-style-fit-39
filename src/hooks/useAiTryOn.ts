@@ -15,6 +15,7 @@ import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
 import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
 import { buildProductVisualDescriptor } from "@/lib/fit/buildProductVisualDescriptor";
 import { buildFitGenerationPrompt } from "@/lib/fit/buildFitGenerationPrompt";
+import { solveFit } from "@/lib/fit/fitSolver";
 
 interface Args {
   enabled: boolean;
@@ -124,6 +125,12 @@ export function useAiTryOn(args: Args) {
       brand: undefined,
       fitType: args.productFitType ?? null,
     });
+    const solver = solveFit({
+      body: bodyProfile,
+      fit: fitMap,
+      category: fitMap.category,
+      selectedSize: args.selectedSize,
+    });
     const prompt = buildFitGenerationPrompt({
       body: bodyProfile,
       fit: fitMap,
@@ -131,6 +138,7 @@ export function useAiTryOn(args: Args) {
       selectedSize: args.selectedSize,
       hasBodyImage: !!args.userImageUrl,
       gender: args.body.gender ?? null,
+      solverHints: solver.visualPromptHints,
     });
 
     const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
@@ -302,6 +310,12 @@ export function useAiTryOn(args: Args) {
       category: args.productCategory ?? null,
       fitType: args.productFitType ?? null,
     });
+    const warmSolver = solveFit({
+      body: warmBodyProfile,
+      fit: warmFitMap,
+      category: warmFitMap.category,
+      selectedSize: warm,
+    });
     const prompt = buildFitGenerationPrompt({
       body: warmBodyProfile,
       fit: warmFitMap,
@@ -309,6 +323,7 @@ export function useAiTryOn(args: Args) {
       selectedSize: warm,
       hasBodyImage: !!args.userImageUrl,
       gender: args.body.gender ?? null,
+      solverHints: warmSolver.visualPromptHints,
     });
 
     const run = () => {
