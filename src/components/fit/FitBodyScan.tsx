@@ -299,18 +299,22 @@ export default function FitBodyScan({ onScanComplete, canUsePremium, onSelectSav
 
       <div className="grid grid-cols-3 gap-2">
         {(["front", "side", "back"] as const).map(side => {
-          const uploaded = status[`${side}Uploaded`];
           const preview = status[`${side}Preview`];
           const ref = side === "front" ? frontRef : side === "side" ? sideRef : backRef;
           const isOptional = side === "back";
+          const isBusy = pickingSavedFor === side;
           return (
             <motion.button
               key={side}
-              onClick={() => ref.current?.click()}
-              className="relative flex aspect-[3/4] flex-col items-center justify-center rounded-2xl border border-dashed border-foreground/10 bg-card/30 overflow-hidden transition-colors hover:border-accent/30"
+              type="button"
+              onClick={() => setSheetSide(side)}
+              disabled={isBusy}
+              className="relative flex aspect-[3/4] flex-col items-center justify-center rounded-2xl border border-dashed border-foreground/10 bg-card/30 overflow-hidden transition-colors hover:border-accent/30 disabled:opacity-60"
               whileTap={{ scale: 0.97 }}
             >
-              {preview ? (
+              {isBusy ? (
+                <Loader2 className="h-5 w-5 animate-spin text-accent" />
+              ) : preview ? (
                 <>
                   <img src={preview} alt={side} className="absolute inset-0 h-full w-full object-cover opacity-80" />
                   <div className="absolute inset-0 bg-background/40" />
@@ -327,6 +331,16 @@ export default function FitBodyScan({ onScanComplete, canUsePremium, onSelectSav
                 </>
               )}
               <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleUpload(side)} />
+              {side === sheetSide && (
+                <input
+                  ref={cameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleUpload(side)}
+                />
+              )}
             </motion.button>
           );
         })}
