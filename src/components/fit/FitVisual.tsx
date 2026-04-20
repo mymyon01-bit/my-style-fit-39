@@ -187,26 +187,18 @@ export default function FitVisual({
               </button>
             )}
           </div>
-        ) : isMissing ? (
-          <div className="relative h-full w-full">
-            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
-            <div className="absolute bottom-4 left-0 right-0 px-6 text-center">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] text-amber-400/90">
-                <ImageOff className="h-3 w-3" /> Product image missing
-              </div>
-            </div>
-          </div>
-        ) : isFallback ? (
-          <div className="relative h-full w-full">
-            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
-          </div>
-        ) : isError ? (
-          <div className="relative h-full w-full">
-            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
-          </div>
         ) : (
+          // Single unified fallback for: missing-image / generic fallback / error / idle.
+          // Keeps the surface stable so fit breakdown below carries the value.
           <div className="relative h-full w-full">
             <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
+            {isMissing && (
+              <div className="absolute bottom-4 left-0 right-0 px-6 text-center">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-foreground/[0.06] px-3 py-1 text-[10px] text-foreground/60">
+                  <ImageOff className="h-3 w-3" /> Product image missing
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -379,16 +379,6 @@ export default function FitResults({
         onRescanBody={onRescan}
         onReload={() => setReloadToken((n) => n + 1)}
       />
-      {tryOn.status === "error" && (
-        <p className="text-[10px] text-center text-orange-400/75 -mt-3">
-          Couldn't generate try-on ({tryOn.error || "unknown error"}). Showing preview silhouette.
-        </p>
-      )}
-      {tryOn.status === "invalid_body" && (
-        <p className="text-[10px] text-center text-amber-400/85 -mt-3">
-          Body image needs a full-body front shot for an accurate try-on.
-        </p>
-      )}
       {/* ══ SILHOUETTE + FIT BREAKDOWN — driven by FitSolver ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
         <div className="flex items-center justify-between">
