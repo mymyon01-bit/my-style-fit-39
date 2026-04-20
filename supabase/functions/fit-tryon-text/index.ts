@@ -103,13 +103,13 @@ Deno.serve(async (req) => {
     seed,
   };
   // Pass product image as visual reference (FLUX 1.1 Pro supports `image_prompt`).
-  // CRITICAL: pre-validate URL — if Replicate can't fetch it, the WHOLE prediction
-  // fails (404). Many cached product URLs are broken/placeholder, so we must
-  // gracefully degrade to prompt-only generation when the image isn't reachable.
-  if (body.productImageUrl && /^https?:\/\//i.test(body.productImageUrl)) {
+  // RULE: if no productImageUrl is provided OR the URL is unreachable, we run
+  // prompt-only and rely entirely on the body-measurement-driven prompt.
+  const hasImage = !!body.productImageUrl && /^https?:\/\//i.test(body.productImageUrl);
+  if (hasImage) {
     let imageReachable = false;
     try {
-      const head = await fetch(body.productImageUrl, {
+      const head = await fetch(body.productImageUrl!, {
         method: "HEAD",
         redirect: "follow",
         signal: AbortSignal.timeout(3500),
@@ -125,7 +125,11 @@ Deno.serve(async (req) => {
     if (imageReachable) {
       input.image_prompt = body.productImageUrl;
       input.image_prompt_strength = 0.35;
+    } else {
+      console.log("[fit-tryon-text] running prompt-only (image unreachable) — body metrics drive output");
     }
+  } else {
+    console.log("[fit-tryon-text] running prompt-only (no productImageUrl) — body metrics drive output");
   }
 
   const createRes = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_TEXT_MODEL}/predictions`, {
