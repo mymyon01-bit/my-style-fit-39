@@ -18,6 +18,7 @@ import {
   readStoredTryOnSuccess,
   readTryOnCacheRecord,
   storeTryOnSuccess,
+  clearStoredTryOn,
 } from "@/lib/fit/tryOnState";
 
 export type TryOnStatus =
@@ -41,6 +42,7 @@ interface Args {
   regions?: { region: string; fit: string }[];
   productUrl?: string | null;
   productImagesFallback?: (string | null | undefined)[];
+  reloadToken?: number;
 }
 
 export type TryOnProvider = "replicate" | "perplexity" | null;
