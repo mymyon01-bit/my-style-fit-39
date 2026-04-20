@@ -8,6 +8,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
+import { applyGarmentDistortion, buildDistortionPlan, describeDistortion } from "./distortion.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -274,9 +275,39 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: reason, fallback: true }, 200);
   }
 
+  // ─── DISTORTION STAGE ────────────────────────────────────────────────────
+  // Apply size-based non-uniform warp to the garment overlay BEFORE compositing.
+  // This is what makes S/M/L/XL look visibly different even when the AI
+  // produced similar silhouettes.
+  const distortionPlan = buildDistortionPlan({
+    selectedSize:    body.selectedSize,
+    chestWidthPx:    body.overlay.chestWidthPx,
+    waistWidthPx:    body.overlay.waistWidthPx,
+    hemWidthPx:      body.overlay.hemWidthPx,
+    bodyLengthPx:    body.overlay.bodyLengthPx,
+    sleeveLengthPx:  body.overlay.sleeveLengthPx,
+    shoulderDropPx:  body.overlay.shoulderDropPx,
+    canvasWidth:     CANVAS_W,
+    canvasHeight:    CANVAS_H,
+    shoulderLineY:   body.bodyFrame.shoulderLineY,
+    chestLineY:      body.bodyFrame.chestLineY,
+    waistLineY:      body.bodyFrame.waistLineY,
+  });
+  log("DISTORTION_PLAN", { plan: describeDistortion(distortionPlan) });
+
+  let distortedOverlayBytes: Uint8Array;
+  try {
+    distortedOverlayBytes = await applyGarmentDistortion(
+      overlayResult.bytes!, distortionPlan, CANVAS_W,
+    );
+  } catch (err) {
+    log("STAGE_WARN", { stage: "distortion", reason: err instanceof Error ? err.message : "distortion_failed" });
+    distortedOverlayBytes = overlayResult.bytes!; // fall back to undistorted overlay
+  }
+
   let compositeBytes: Uint8Array;
   try {
-    compositeBytes = await compositeImages(bodyResult.bytes!, overlayResult.bytes!);
+    compositeBytes = await compositeImages(bodyResult.bytes!, distortedOverlayBytes);
   } catch (err) {
     log("STAGE_FAIL", { stage: "composite", reason: err instanceof Error ? err.message : "composite_failed" });
     return json({ ok: false, error: "composite_failed", fallback: true }, 200);
@@ -328,8 +359,9 @@ Deno.serve(async (req) => {
       compositeUrl,
       bodyFrame: body.bodyFrame,
       overlay: body.overlay,
+      distortion: describeDistortion(distortionPlan),
       durationMs,
-      pipeline: "two-image-coordinate",
+      pipeline: "two-image-coordinate-distorted",
     },
   }, { onConflict: "user_id,product_key,selected_size" });
 
