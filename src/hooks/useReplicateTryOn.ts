@@ -334,7 +334,7 @@ export function useReplicateTryOn(args: Args) {
         setResolvedProductImage(result.resolvedProductImage);
 
         if (result.visualState.kind === "success") {
-          const provider = normalizeTryOnSource(result.visualState.source, "replicate");
+          const provider: TryOnProvider = result.visualState.source === "perplexity" ? "perplexity" : "replicate";
           memoryCache.set(cacheKey, { url: result.visualState.imageUrl, provider });
           storeTryOnSuccess(productKey, selectedSize, result.visualState.imageUrl, provider);
           logTryOnClient("ROUTER_SUCCESS", {

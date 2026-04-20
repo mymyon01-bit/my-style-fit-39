@@ -532,7 +532,7 @@ export function useAiTryOn(args: Args) {
     status: toStatus(textState.visualState),
     visualState: textState.visualState,
     imageUrl: textState.visualState.kind === "success" ? textState.visualState.imageUrl : null,
-    provider: textState.visualState.kind === "success" ? "replicate-text" : textState.provider,
+    provider: textState.visualState.kind === "success" ? ("replicate-text" as const) : textState.provider,
     error: textState.error,
     cacheHit: textState.cacheHit,
     prompt: textState.prompt,
