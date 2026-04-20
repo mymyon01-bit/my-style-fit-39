@@ -1,17 +1,21 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, RotateCcw, Pencil, Sparkles, Loader2, Lock, Wand2, Globe2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import TryOnPreviewModal, { TryOnContext } from "@/components/fit/TryOnPreviewModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import type { FitMode } from "@/pages/FitPage";
-import { buildFitExplanation, confidenceTier } from "@/lib/fit/explain";
+import { buildFitExplanation as buildLegacyExplanation, confidenceTier } from "@/lib/fit/explain";
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
 import FitVisual from "@/components/fit/FitVisual";
 import { useAiTryOn } from "@/hooks/useAiTryOn";
+import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
+import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
+import { buildBodyShapeScales, type BodyShapeInput } from "@/lib/fit/bodyShape";
+import { buildFitExplanation as buildSizeExplanation, buildFitBreakdown } from "@/lib/fit/buildFitExplanation";
 
 interface FitProduct {
   id: string;
@@ -33,6 +37,7 @@ interface Props {
   refining: boolean;
   bodyHeightCm?: number;
   bodyWeightKg?: number | null;
+  bodyShape?: BodyShapeInput;
   onRefineFit?: () => void;
   onRescan?: () => void;
   onEditMeasurements?: () => void;
@@ -122,7 +127,7 @@ function SizeComparisonCard({ result, isRecommended, isAlternate }: {
 /* ── Main Component ── */
 export default function FitResults({
   result, product, explanation, loadingExplanation,
-  fitMode, canUsePremium, refining, bodyHeightCm, bodyWeightKg,
+  fitMode, canUsePremium, refining, bodyHeightCm, bodyWeightKg, bodyShape,
   onRefineFit, onRescan, onEditMeasurements,
 }: Props) {
   const { user } = useAuth();
@@ -151,7 +156,26 @@ export default function FitResults({
   const heroRing = heroScore >= 80 ? "ring-green-500/30" : heroScore >= 65 ? "ring-accent/30" : heroScore >= 50 ? "ring-orange-400/30" : "ring-orange-500/30";
 
   // ── Deterministic explanation (always available; AI text overrides if present) ──
-  const builtExplanation = buildFitExplanation(result, confTier, usedGlobalFallback);
+  const builtExplanation = buildLegacyExplanation(result, confTier, usedGlobalFallback);
+
+  // ── NEW: size-aware silhouette explanation + breakdown ──
+  const shapeScales = useMemo(() => buildBodyShapeScales(bodyShape ?? null), [bodyShape]);
+  const newBodyProfile = useMemo(() => buildBodyProfile({
+    heightCm: bodyHeightCm ?? null,
+    weightKg: bodyWeightKg ?? null,
+    shapeScales,
+  }), [bodyHeightCm, bodyWeightKg, shapeScales]);
+  const garmentFit = useMemo(() => buildGarmentFitMap({
+    category: product.category,
+    selectedSize: activeSize,
+    fitType: null,
+    body: newBodyProfile,
+  }), [product.category, activeSize, newBodyProfile]);
+  const sizeExplanation = useMemo(
+    () => buildSizeExplanation({ fit: garmentFit, body: newBodyProfile, size: activeSize }),
+    [garmentFit, newBodyProfile, activeSize],
+  );
+  const breakdown = useMemo(() => buildFitBreakdown(garmentFit), [garmentFit]);
 
   // ── Global size fallback card (only when truly missing brand data) ───────
   const profile = bodyHeightCm
@@ -346,6 +370,31 @@ export default function FitResults({
           Body image needs a full-body front shot for an accurate try-on.
         </p>
       )}
+      {/* ══ NEW: SILHOUETTE + FIT BREAKDOWN (size-aware, deterministic) ══ */}
+      <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">SILHOUETTE</p>
+          <span className="rounded-full bg-accent/10 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-accent">
+            {sizeExplanation.silhouetteLabel}
+          </span>
+        </div>
+        <p className="text-[13px] leading-relaxed text-foreground/80">{sizeExplanation.paragraph}</p>
+        <div className="grid grid-cols-5 gap-2 pt-1">
+          {[
+            { label: "CHEST",    value: breakdown.chest },
+            { label: "WAIST",    value: breakdown.waist },
+            { label: "SHOULDER", value: breakdown.shoulder },
+            { label: "LENGTH",   value: breakdown.length },
+            { label: "SLEEVE",   value: breakdown.sleeve },
+          ].map((m) => (
+            <div key={m.label} className="rounded-lg border border-foreground/[0.05] bg-background/40 py-2 text-center">
+              <p className="text-[8px] font-bold tracking-[0.15em] text-foreground/40">{m.label}</p>
+              <p className="text-[11px] font-semibold text-foreground mt-0.5">{m.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
         <div className="flex items-center gap-2">

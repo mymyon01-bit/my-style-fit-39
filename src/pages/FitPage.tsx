@@ -100,6 +100,8 @@ const FitPage = () => {
   const [weightKg, setWeightKg] = useState<number | null>(null);
   const [activeSize, setActiveSize] = useState<string | null>(null);
   const [userBodyImageUrl, setUserBodyImageUrl] = useState<string | null>(null);
+  // Simple shape inputs — refine fit accuracy without raw cm.
+  const [bodyShape, setBodyShape] = useState<import("@/lib/fit/bodyShape").BodyShapeInput>({});
 
   // Default activeSize to the recommended size whenever a new fit result lands.
   useEffect(() => {
@@ -474,6 +476,8 @@ const FitPage = () => {
                         .then(() => {});
                     }
                   }}
+                  bodyShape={bodyShape}
+                  onBodyShapeChange={setBodyShape}
                 />
                 <NextButton onClick={() => setActiveTab("check")} label="Next: Check" />
               </>
@@ -496,6 +500,7 @@ const FitPage = () => {
                   refining={refining}
                   bodyHeightCm={measurements.heightCm.value}
                   bodyWeightKg={weightKg}
+                  bodyShape={bodyShape}
                   onRefineFit={handleRefineFit}
                   onRescan={() => setActiveTab("scan")}
                   onEditMeasurements={() => setActiveTab("measurements")}
