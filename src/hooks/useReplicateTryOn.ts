@@ -382,7 +382,12 @@ export function useReplicateTryOn(args: Args) {
       window.clearTimeout(guardTimer);
     };
   }, [
-    args,
+    args.fitDescriptor,
+    args.productCategory,
+    args.productImageUrl,
+    args.productImagesFallback,
+    args.productUrl,
+    args.regions,
     enabled,
     userImageUrl,
     productKey,
