@@ -364,8 +364,8 @@ const OOTDPage = () => {
           />
         )}
 
-        {/* Stories row — Community shows everyone, My Page shows your circle */}
-        {activeTab !== "crowned" && (
+        {/* Stories row — Feed shows everyone, My Page shows your circle */}
+        {(activeTab === "feed" || activeTab === "mypage") && (
           <StoriesRow
             key={activeTab}
             refreshKey={storiesRefreshKey}
@@ -378,18 +378,22 @@ const OOTDPage = () => {
             onLoaded={setAllStoryUsers}
           />
         )}
-        {/* Tabs */}
+        {/* Tabs — Ranking · Feed · Community · My Page */}
         <div className="flex">
-          {(["crowned", "mypage", "community"] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className="relative flex-1 pb-5 text-center">
-              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 flex items-center justify-center gap-1.5 ${
-                activeTab === tab ? "text-foreground/85" : "text-foreground/50"
+          {([
+            { key: "ranking" as const, label: "RANKING" },
+            { key: "feed" as const, label: "FEED" },
+            { key: "community" as const, label: "COMMUNITY" },
+            { key: "mypage" as const, label: "MY PAGE" },
+          ]).map(({ key, label }) => (
+            <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 pb-5 text-center">
+              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+                activeTab === key ? "text-foreground/90" : "text-foreground/45"
               }`}>
-                {tab === "crowned" && <Crown className={`h-3 w-3 ${activeTab === "crowned" ? "text-yellow-400" : ""}`} />}
-                {tab === "mypage" ? "MY PAGE" : tab === "crowned" ? "CROWNED" : "COMMUNITY"}
+                {label}
               </span>
-              {activeTab === tab && (
-                <motion.div layoutId="ootd-tab" className={`absolute bottom-0 left-1/4 right-1/4 h-px ${tab === "crowned" ? "bg-yellow-400/50" : "bg-accent/50"}`} />
+              {activeTab === key && (
+                <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/60" />
               )}
             </button>
           ))}
