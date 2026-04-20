@@ -11,7 +11,7 @@ import { buildFitExplanation as buildLegacyExplanation, confidenceTier } from "@
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
 import FitVisual from "@/components/fit/FitVisual";
-import { useAiTryOn } from "@/hooks/useAiTryOn";
+import { useCanvasTryOn } from "@/hooks/useCanvasTryOn";
 import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
 import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
 import { buildBodyShapeScales, type BodyShapeInput } from "@/lib/fit/bodyShape";
@@ -241,15 +241,15 @@ export default function FitResults({
   // ── Reload token: bump to force-clear all try-on caches and regenerate ──
   const [reloadToken, setReloadToken] = useState(0);
 
-  // ── PRIMARY visual: hybrid AI try-on (photo → text fallback) ──
-  const tryOn = useAiTryOn({
+  // ── PRIMARY visual: deterministic canvas compositor (+ optional AI swap) ──
+  const tryOn = useCanvasTryOn({
     enabled: !!product.image,
-    userImageUrl,
-    productImageUrl: product.image,
     productKey,
-    productCategory: product.category,
+    productImageUrl: product.image,
     productName: product.name,
+    productCategory: product.category,
     selectedSize: activeSize,
+    userImageUrl,
     body: {
       heightCm: bodyHeightCm ?? null,
       weightKg: bodyWeightKg ?? null,
@@ -257,12 +257,8 @@ export default function FitResults({
       chestCm: estUserChest,
       waistCm: null,
     },
-    fitDescriptor: activeSizeResult?.regions.find(r => r.region === "Chest")?.fit?.toString() || "regular",
-    regions: activeSizeResult?.regions?.map(r => ({ region: r.region, fit: String(r.fit) })) ?? [],
-    productUrl: product.url,
-    // PATCH 4 — prewarm the recommended size so it's instant when user picks it
-    prewarmSize: result.recommendedSize,
     reloadToken,
+    enableAiSwap: true,
   });
 
   return (
@@ -364,18 +360,11 @@ export default function FitResults({
         </div>
       </div>
 
-      {/* ══ VISUAL FIT — AI-generated try-on (hero) ══ */}
+      {/* ══ VISUAL FIT — canvas compositor (instant) + optional AI swap ══ */}
       <FitVisual
-        productImage={product.image}
         productName={product.name}
-        category={product.category}
         activeSize={activeSize}
-        tryOnImageUrl={tryOn.imageUrl}
-        tryOnStatus={tryOn.status}
-        tryOnProvider={tryOn.provider as "replicate" | "perplexity" | "replicate-text" | null}
-        tryOnMode={tryOn.mode}
-        cacheHit={tryOn.cacheHit}
-        visualState={tryOn.visualState}
+        state={tryOn}
         onRescanBody={onRescan}
         onReload={() => setReloadToken((n) => n + 1)}
       />

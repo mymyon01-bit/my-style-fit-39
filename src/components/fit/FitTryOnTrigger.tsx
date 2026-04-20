@@ -1,13 +1,12 @@
 // ─── FIT TRY-ON TRIGGER ─────────────────────────────────────────────────────
-// Headless component: mounts useAiTryOn the moment a product + size exist.
-// Lives at the FitPage level so the AI generation kicks off immediately on
-// product selection — independent of the active tab (SCAN / BODY / CHECK /
-// RESULTS). When the user later opens RESULTS the image is already
-// generated (or in flight) and rendered from the per-(product,size) cache.
+// Headless component: pre-warms the canvas pipeline (pose detect + garment
+// cutout) the moment a product + size exist, even before the user opens
+// the RESULTS tab. Mounting `useCanvasTryOn` is the trigger — the canvas
+// composite is cached in-memory by the cutout/pose hooks so the eventual
+// FitVisual render is instant.
 
 import { useEffect } from "react";
-import { useAiTryOn } from "@/hooks/useAiTryOn";
-import type { TryOnUserBody } from "@/lib/fit/buildTryOnPrompt";
+import { useCanvasTryOn } from "@/hooks/useCanvasTryOn";
 
 interface Props {
   productKey: string;
@@ -19,35 +18,39 @@ interface Props {
   selectedSize: string;
   userImageUrl: string | null;
   bodyImageHash?: string | null;
-  body: TryOnUserBody;
+  body: {
+    heightCm?: number | null;
+    weightKg?: number | null;
+    shoulderWidthCm?: number | null;
+    chestCm?: number | null;
+    waistCm?: number | null;
+    gender?: string | null;
+  };
 }
 
 export default function FitTryOnTrigger(props: Props) {
-  // Mounting useAiTryOn with enabled=true is the trigger — its internal
-  // effect runs on (productKey, selectedSize, bodyImageHash) change and
-  // posts to the router / fit-tryon-text edge function immediately.
-  const tryOn = useAiTryOn({
+  const tryOn = useCanvasTryOn({
     enabled: true,
-    userImageUrl: props.userImageUrl,
-    productImageUrl: props.productImageUrl,
     productKey: props.productKey,
-    productCategory: props.productCategory,
+    productImageUrl: props.productImageUrl,
     productName: props.productName,
+    productCategory: props.productCategory,
     productFitType: props.productFitType ?? null,
     selectedSize: props.selectedSize,
-    bodyImageHash: props.bodyImageHash ?? null,
+    userImageUrl: props.userImageUrl,
     body: props.body,
-    productUrl: props.productUrl ?? null,
+    enableAiSwap: false, // pre-warm only — RESULTS tab handles AI swap
   });
 
   useEffect(() => {
     console.log("[FitTryOnTrigger] mounted/updated", {
       productKey: props.productKey,
       size: props.selectedSize,
-      status: tryOn.status,
+      stage: tryOn.stage,
       hasImage: !!tryOn.imageUrl,
+      poseSource: tryOn.poseSource,
     });
-  }, [props.productKey, props.selectedSize, tryOn.status, tryOn.imageUrl]);
+  }, [props.productKey, props.selectedSize, tryOn.stage, tryOn.imageUrl, tryOn.poseSource]);
 
   return null;
 }
