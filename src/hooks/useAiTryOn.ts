@@ -10,7 +10,11 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useReplicateTryOn, type TryOnStatus, type TryOnProvider } from "@/hooks/useReplicateTryOn";
-import { buildTryOnPrompt, type TryOnUserBody, type TryOnProductInfo } from "@/lib/fit/buildTryOnPrompt";
+import { type TryOnUserBody } from "@/lib/fit/buildTryOnPrompt";
+import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
+import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
+import { buildProductVisualDescriptor } from "@/lib/fit/buildProductVisualDescriptor";
+import { buildFitGenerationPrompt } from "@/lib/fit/buildFitGenerationPrompt";
 
 interface Args {
   enabled: boolean;
@@ -91,16 +95,32 @@ export function useAiTryOn(args: Args) {
     }
     if (!args.productKey || !args.selectedSize) return;
 
-    const product: TryOnProductInfo = {
+    const bodyProfile = buildBodyProfile({
+      heightCm: args.body.heightCm ?? null,
+      weightKg: args.body.weightKg ?? null,
+      shoulderCm: args.body.shoulderWidthCm ?? null,
+      chestCm: args.body.chestCm ?? null,
+      waistCm: args.body.waistCm ?? null,
+    });
+    const fitMap = buildGarmentFitMap({
+      category: args.productCategory ?? null,
+      selectedSize: args.selectedSize,
+      fitType: args.productFitType ?? null,
+      body: bodyProfile,
+    });
+    const visual = buildProductVisualDescriptor({
       title: args.productName,
       category: args.productCategory ?? null,
+      brand: undefined,
       fitType: args.productFitType ?? null,
-    };
-    const prompt = buildTryOnPrompt({
-      user: args.body,
-      product,
+    });
+    const prompt = buildFitGenerationPrompt({
+      body: bodyProfile,
+      fit: fitMap,
+      product: visual,
       selectedSize: args.selectedSize,
-      recommendedSize: args.prewarmSize ?? undefined,
+      hasBodyImage: !!args.userImageUrl,
+      gender: args.body.gender ?? null,
     });
 
     const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
@@ -219,12 +239,32 @@ export function useAiTryOn(args: Args) {
     const warmKey = `${args.productKey}::${warm}::text`;
     if (TEXT_CACHE.has(warmKey)) return;
 
-    const product: TryOnProductInfo = {
+    const warmBodyProfile = buildBodyProfile({
+      heightCm: args.body.heightCm ?? null,
+      weightKg: args.body.weightKg ?? null,
+      shoulderCm: args.body.shoulderWidthCm ?? null,
+      chestCm: args.body.chestCm ?? null,
+      waistCm: args.body.waistCm ?? null,
+    });
+    const warmFitMap = buildGarmentFitMap({
+      category: args.productCategory ?? null,
+      selectedSize: warm,
+      fitType: args.productFitType ?? null,
+      body: warmBodyProfile,
+    });
+    const warmVisual = buildProductVisualDescriptor({
       title: args.productName,
       category: args.productCategory ?? null,
       fitType: args.productFitType ?? null,
-    };
-    const prompt = buildTryOnPrompt({ user: args.body, product, selectedSize: warm, recommendedSize: warm });
+    });
+    const prompt = buildFitGenerationPrompt({
+      body: warmBodyProfile,
+      fit: warmFitMap,
+      product: warmVisual,
+      selectedSize: warm,
+      hasBodyImage: !!args.userImageUrl,
+      gender: args.body.gender ?? null,
+    });
 
     const run = () => {
       supabase.functions
