@@ -14,6 +14,8 @@ export interface FitGenerationPromptArgs {
   selectedSize: string;
   hasBodyImage: boolean;
   gender?: Gender;
+  /** Region-level imperative phrases from FitSolver.visualPromptHints. */
+  solverHints?: string[];
 }
 
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
@@ -47,12 +49,22 @@ export function buildFitGenerationPrompt(args: FitGenerationPromptArgs): string 
   const sizeDirective =
     SILHOUETTE_DIRECTIVE[fit.silhouetteType] ?? SILHOUETTE_DIRECTIVE.regular;
 
+  const solverBlock =
+    args.solverHints && args.solverHints.length > 0
+      ? [
+          ``,
+          `REGION-LEVEL FIT (from deterministic solver — must be visibly reflected):`,
+          ...args.solverHints.map((h) => `- ${h}`),
+        ].join("\n")
+      : "";
+
   const lines = [
     `A premium fashion image of a model wearing the selected garment in size ${selectedSize}.`,
     `Persona: ${persona.description} (id ${persona.id} — keep face/hair/body consistent across renders).`,
     ``,
     `SIZE INTENT (${selectedSize} → ${fit.silhouetteType.toUpperCase()}):`,
     sizeDirective,
+    solverBlock,
     ``,
     `Body:`,
     `- ${body.bodySummary}`,
