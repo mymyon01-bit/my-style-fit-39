@@ -490,16 +490,57 @@ export async function composeFitImage(args: CompositeArgs): Promise<CompositeRes
   const drawH = Math.max(60, aspectH * 0.6 + targetH * 0.4);
   const drawW = Math.max(60, targetW);
 
+  // ── REALISM PARAMS (size-driven, deterministic) ──────────────────────────
+  const shoulderOffsetPx = (() => {
+    if (isBottom) return 0;
+    switch (detail.silhouetteLabel) {
+      case "TRIM":      return -5;
+      case "FITTED":    return -2;
+      case "REGULAR":   return 0;
+      case "RELAXED":   return 10;
+      case "OVERSIZED": return 20;
+      default:          return 0;
+    }
+  })();
+  const adjTopY = topY + shoulderOffsetPx;
+
+  const hemCurvePx = (() => {
+    switch (detail.silhouetteLabel) {
+      case "TRIM":      return -6;
+      case "FITTED":    return -2;
+      case "REGULAR":   return 0;
+      case "RELAXED":   return 10;
+      case "OVERSIZED": return 18;
+      default:          return 0;
+    }
+  })();
+
+  const drapeIntensity = (() => {
+    const base = detail.drapeAmount;
+    const bias =
+      detail.silhouetteLabel === "OVERSIZED" ? 0.35 :
+      detail.silhouetteLabel === "RELAXED"   ? 0.20 :
+      detail.silhouetteLabel === "TRIM"      ? 0.0  : 0.05;
+    return Math.min(1, base + bias);
+  })();
+
+  // ── 2a. CONTACT SHADOW (anchors garment to body) ─────────────────────────
+  try {
+    drawContactShadow(ctx, centerX, adjTopY, drawW, drawH, isBottom);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] contact shadow skipped", err);
+  }
+
+  // ── 2b. GARMENT (sliced, non-uniform) ────────────────────────────────────
   ctx.save();
   ctx.globalAlpha = args.garmentOpacity ?? 1;
   if (bodySource === "photo") {
     ctx.globalCompositeOperation = "multiply";
   }
-
   try {
     drawGarmentSliced(ctx, garmentImg, {
       centerX,
-      topY,
+      topY: adjTopY,
       drawW,
       drawH,
       chestMul: detail.chestWidthMul,
@@ -508,16 +549,36 @@ export async function composeFitImage(args: CompositeArgs): Promise<CompositeRes
       isBottom,
     });
   } catch {
-    // Safety net: uniform draw
-    ctx.drawImage(garmentImg, centerX - drawW / 2, topY, drawW, drawH);
+    ctx.drawImage(garmentImg, centerX - drawW / 2, adjTopY, drawW, drawH);
   }
   ctx.restore();
 
-  // ── 3. DETAIL OVERLAY (tension + drape) ──────────────────────────────────
+  // ── 2c. HEM CURVE (carve curved bottom edge) ─────────────────────────────
+  try {
+    applyHemCurve(ctx, centerX, adjTopY, drawW, drawH, hemCurvePx, frame.canvasWidth, frame.canvasHeight);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] hem curve skipped", err);
+  }
+
+  // ── 3. DRAPE LINES (vertical fabric folds, L/XL) ─────────────────────────
+  try {
+    drawDrapeLines(ctx, centerX, adjTopY, drawW, drawH, drapeIntensity);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] drape lines skipped", err);
+  }
+
+  // ── 4. TENSION OVERLAY (chest / shoulder tension lines) ──────────────────
   try {
     drawDetailOverlay(ctx, detail, frame, pose, isBottom);
   } catch (err) {
     console.warn("[canvasFitCompositor] detail overlay skipped", err);
+  }
+
+  // ── 5. FABRIC NOISE (kills flat-PNG sheen) ───────────────────────────────
+  try {
+    drawFabricNoise(ctx, centerX, adjTopY, drawW, drawH);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] fabric noise skipped", err);
   }
 
   return {
