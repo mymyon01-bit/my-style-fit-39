@@ -206,27 +206,15 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
       }
     };
 
+    // ── INSTANT FALLBACK ─────────────────────────────────────────────────
+    // Render the silhouette + raw garment immediately so the user is NEVER
+    // stuck on "PREPARING PREVIEW". The richer cutout pipeline runs after
+    // and replaces the image when ready.
+    void renderFallback();
+
     (async () => {
       try {
-        if (!aiLockedRef.current) {
-          setState((s) => ({
-            ...s,
-            stage: "pose",
-            poseDegraded,
-            poseSource,
-            solver,
-            fitChips,
-          }));
-        }
-
-        if (!aiLockedRef.current) {
-          setState((s) => ({ ...s, stage: "cutout" }));
-        }
         const cutoutUrl = await getGarmentCutout(args.productImageUrl, args.productName);
-
-        if (!aiLockedRef.current) {
-          setState((s) => ({ ...s, stage: "composite" }));
-        }
         const composite = await composeFitImage({
           bodyImageUrl: args.userImageUrl ?? null,
           garmentImageUrl: cutoutUrl,
@@ -249,8 +237,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
         });
       } catch (err) {
         if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
-        console.warn("[useCanvasTryOn] pipeline error → fallback", err);
-        await renderFallback();
+        console.warn("[useCanvasTryOn] pipeline error → fallback already shown", err);
       } finally {
         window.clearTimeout(hardTimer);
       }
