@@ -65,9 +65,9 @@ interface Args {
   enableAiSwap?: boolean;
 }
 
-// Force the canvas fallback to commit within 8s no matter what — the UI must
-// never stay on "BUILDING PREVIEW" after this point.
-const HARD_TIMEOUT_MS = 8_000;
+// Force the canvas fallback to commit within 2.5s no matter what — the UI must
+// never stay on "PREPARING PREVIEW" after this point.
+const HARD_TIMEOUT_MS = 2_500;
 // AI swap window: keep polling for the AI try-on result for up to 45s after
 // the canvas fallback renders. Fallback shows immediately so the UI never
 // hangs, and the moment the AI result arrives we swap it in as the hero.
