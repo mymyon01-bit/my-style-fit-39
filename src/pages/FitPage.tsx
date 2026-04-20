@@ -98,6 +98,31 @@ const FitPage = () => {
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [refining, setRefining] = useState(false);
   const [weightKg, setWeightKg] = useState<number | null>(null);
+  const [activeSize, setActiveSize] = useState<string | null>(null);
+  const [userBodyImageUrl, setUserBodyImageUrl] = useState<string | null>(null);
+
+  // Default activeSize to the recommended size whenever a new fit result lands.
+  useEffect(() => {
+    if (fitResult?.recommendedSize) setActiveSize(fitResult.recommendedSize);
+  }, [fitResult?.recommendedSize]);
+
+  // Load latest body scan front photo so the photo-based try-on path can fire.
+  useEffect(() => {
+    if (!user) { setUserBodyImageUrl(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("body_scan_images")
+        .select("public_url")
+        .eq("user_id", user.id)
+        .eq("image_type", "front")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setUserBodyImageUrl(data?.public_url ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const canUsePremium = subscription.isPremium;
 
