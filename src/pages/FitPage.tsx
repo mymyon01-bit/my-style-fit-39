@@ -515,18 +515,53 @@ const FitPage = () => {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && (
               <>
-                <BodyPhotoPicker
+                <ScanEntry
                   className="mb-8"
-                  selectedImageId={selectedBodyImage?.id ?? null}
-                  selectedImageUrl={userBodyImageUrl}
-                  onSelect={handleSelectBodyImage}
-                  onClear={handleClearBodyImage}
+                  savedCount={savedCount}
+                  busy={entryBusy}
+                  onPickFile={handleScanEntryFile}
+                  onOpenSaved={() => setSavedDialogOpen(true)}
                 />
+                {/* Selected preview chip */}
+                {userBodyImageUrl && (
+                  <div className="mb-8 flex items-center gap-3 rounded-2xl border border-accent/25 bg-accent/[0.05] p-3">
+                    <img src={userBodyImageUrl} alt="Selected body photo" className="h-16 w-12 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold tracking-[0.18em] text-accent/80">SELECTED FOR FIT</p>
+                      <p className="mt-0.5 truncate text-[11px] text-foreground/65">
+                        {selectedBodyImage?.label || "Body photo"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearBodyImage}
+                      className="text-[10px] font-medium text-foreground/55 hover:text-foreground/85"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
                 <FitBodyScan
                   onScanComplete={handleScanComplete}
                   canUsePremium={canUsePremium}
                 />
                 <NextButton onClick={() => setActiveTab("measurements")} label="Next: Body" />
+
+                {/* Saved photo library dialog */}
+                <Dialog open={savedDialogOpen} onOpenChange={setSavedDialogOpen}>
+                  <DialogContent className="max-w-lg p-6">
+                    <DialogHeader>
+                      <DialogTitle className="font-display text-base">Saved body photos</DialogTitle>
+                    </DialogHeader>
+                    <BodyPhotoPicker
+                      className="mt-2"
+                      selectedImageId={selectedBodyImage?.id ?? null}
+                      selectedImageUrl={userBodyImageUrl}
+                      onSelect={handleSelectBodyImage}
+                      onClear={handleClearBodyImage}
+                    />
+                  </DialogContent>
+                </Dialog>
               </>
             )}
             {activeTab === "measurements" && (
