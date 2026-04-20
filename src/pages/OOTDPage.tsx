@@ -536,113 +536,21 @@ const OOTDPage = () => {
               )}
             </motion.div>
           ) : (
-            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-              {/* User Search */}
-              <div className="space-y-2.5">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search @user or #hashtag"
-                    className="w-full rounded-full border border-border/40 bg-card/50 pl-9 pr-9 py-2.5 text-[12px] text-foreground placeholder:text-foreground/35 outline-none focus:border-accent/40 transition-colors"
-                  />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground/70">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                {searchQuery.trim().length >= 2 && (
-                  <div className="rounded-xl border border-border/30 bg-card/30 overflow-hidden">
-                    {searchLoading ? (
-                      <div className="py-4 flex items-center justify-center">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/40" />
-                      </div>
-                    ) : searchUsers.length === 0 && searchTopics.length === 0 ? (
-                      <div className="py-4 text-center text-[11px] text-foreground/40">No matches</div>
-                    ) : (
-                      <div className="divide-y divide-border/20">
-                        {searchUsers.length > 0 && (
-                          <div>
-                            <div className="px-3 pt-2.5 pb-1 text-[9px] font-medium tracking-[0.2em] text-foreground/40">USERS</div>
-                            <ul>
-                              {searchUsers.map((u) => (
-                                <li key={u.user_id}>
-                                  <button
-                                    onClick={() => navigate(`/u/${u.user_id}`)}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left"
-                                  >
-                                    {u.avatar_url ? (
-                                      <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
-                                    ) : (
-                                      <div className="h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-medium text-foreground/60">
-                                        {(u.username || u.display_name || "?").charAt(0).toUpperCase()}
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-[12px] font-medium text-foreground truncate">@{u.username}</div>
-                                      {u.display_name && (
-                                        <div className="text-[10px] text-foreground/50 truncate">{u.display_name}</div>
-                                      )}
-                                    </div>
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {searchTopics.length > 0 && (
-                          <div>
-                            <div className="px-3 pt-2.5 pb-1 text-[9px] font-medium tracking-[0.2em] text-foreground/40">HASHTAGS</div>
-                            <ul>
-                              {searchTopics.map((t) => (
-                                <li key={t.id}>
-                                  <button
-                                    onClick={() => { setActiveTopic(t.name); setSearchQuery(""); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left"
-                                  >
-                                    <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center text-[12px] font-medium text-accent/80">#</div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-[12px] font-medium text-foreground truncate">#{t.name}</div>
-                                      <div className="text-[10px] text-foreground/50">{t.post_count} {t.post_count === 1 ? "post" : "posts"}</div>
-                                    </div>
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Trending Topics */}
-              {trendingTopics.length > 0 && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3 text-accent/60" />
-                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">TOPICS</span>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => setActiveTopic(null)} className={`rounded-full border px-3 py-1.5 text-[10px] font-medium transition-all ${!activeTopic ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-foreground/50"}`}>
-                      All
-                    </button>
-                    {trendingTopics.map(topic => (
-                      <button key={topic.id} onClick={() => setActiveTopic(activeTopic === topic.name ? null : topic.name)} className={`rounded-full border px-3 py-1.5 text-[10px] font-medium transition-all ${activeTopic === topic.name ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-foreground/50"}`}>
-                        #{topic.name}
-                      </button>
-                    ))}
-                  </div>
+            <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* Active topic filter pill */}
+              {activeTopic && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/45">FILTER</span>
+                  <button onClick={() => setActiveTopic(null)} className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/30 px-3 py-1 text-[11px] font-medium text-accent">
+                    #{activeTopic}
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
               )}
 
               {/* Social Feed */}
               {isLoading ? (
-                <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
+                <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
                   {Array.from({ length: 9 }).map((_, i) => (
                     <div key={i} className="animate-pulse">
                       <div className="rounded-lg bg-foreground/[0.04] aspect-[3/4]" />
@@ -653,7 +561,7 @@ const OOTDPage = () => {
                 <div className="py-20 text-center space-y-4">
                   <Camera className="h-6 w-6 text-foreground/30 mx-auto" />
                   <p className="text-[13px] text-foreground/50">
-                    {activeTopic ? `No posts in #${activeTopic} yet` : "Community feed is growing"}
+                    {activeTopic ? `No posts in #${activeTopic} yet` : "Feed is growing"}
                   </p>
                   {user && (
                     <button onClick={() => { setActiveTab("mypage"); setUploadOpen(true); }} className="text-[10px] font-medium tracking-[0.2em] text-accent/60 hover:text-accent">
@@ -664,20 +572,20 @@ const OOTDPage = () => {
               ) : (() => {
                 const { featured, rest } = getFeaturedPosts();
                 return (
-                  <div className="space-y-3">
+                  <div className="space-y-5">
                     {featured.length > 0 && (
-                      <div>
-                        <span className="text-[9px] font-medium tracking-[0.2em] text-foreground/40 mb-1.5 block">FEATURED</span>
-                        <div className="grid grid-cols-3 gap-1.5">
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-medium tracking-[0.25em] text-foreground/40 block">FEATURED</span>
+                        <div className="grid grid-cols-3 gap-2">
                           {featured.map((post, i) => (
-                            <div key={post.id} className="ring-1 ring-accent/10 rounded-lg overflow-hidden">
+                            <div key={post.id} className="ring-1 ring-accent/15 rounded-lg overflow-hidden">
                               {renderPostCard(post, i, true)}
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-                    <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
+                    <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
                       {rest.map((post, i) => renderPostCard(post, i, true))}
                     </div>
                   </div>
