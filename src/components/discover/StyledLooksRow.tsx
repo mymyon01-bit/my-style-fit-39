@@ -60,38 +60,40 @@ const StyledLooksRowImpl = ({ products }: StyledLooksRowProps) => {
 };
 
 function LookTileView({ tile }: { tile: LookTile }) {
+  const heroSrc = tile.hero.imageUrl && tile.hero.imageUrl.startsWith("http") ? tile.hero.imageUrl : "/placeholder.svg";
   return (
-    <div className="group relative grid aspect-[5/3] grid-cols-2 gap-1.5 overflow-hidden rounded-xl border border-border/15 bg-foreground/[0.03] p-1.5">
-      <div className="relative overflow-hidden rounded-lg bg-foreground/[0.05]">
-        {tile.hero.imageUrl && (
-          <img
-            src={tile.hero.imageUrl}
-            alt={tile.hero.title}
-            loading="lazy"
-            decoding="async"
-            sizes="(max-width: 640px) 50vw, 25vw"
-            className="h-full w-full object-cover"
-          />
-        )}
+    <div className="group relative grid aspect-[5/3] grid-cols-2 gap-1.5 overflow-hidden rounded-xl border border-border/15 bg-muted/30 p-1.5">
+      <div className="relative overflow-hidden rounded-lg bg-muted/40">
+        <img
+          src={heroSrc}
+          alt={tile.hero.title}
+          loading="lazy"
+          decoding="async"
+          sizes="(max-width: 640px) 50vw, 25vw"
+          className="h-full w-full object-cover"
+          onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
+        />
         <div className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[9px] font-semibold tracking-[0.15em] text-foreground/80 backdrop-blur-sm">
           <Sparkles className="h-2.5 w-2.5 text-accent/70" />
           {tile.label.toUpperCase()}
         </div>
       </div>
       <div className="grid grid-rows-3 gap-1.5">
-        {tile.side.map((item, idx) => (
-          <div key={`${tile.hero.id}-side-${idx}`} className="overflow-hidden rounded-lg bg-foreground/[0.05]">
-            {item.imageUrl && (
+        {tile.side.map((item, idx) => {
+          const sideSrc = item.imageUrl && item.imageUrl.startsWith("http") ? item.imageUrl : "/placeholder.svg";
+          return (
+            <div key={`${tile.hero.id}-side-${idx}`} className="overflow-hidden rounded-lg bg-muted/40">
               <img
-                src={item.imageUrl}
+                src={sideSrc}
                 alt={item.title}
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover"
+                onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
               />
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
