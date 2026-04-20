@@ -371,6 +371,7 @@ export default function FitResults({
         tryOnProvider={tryOn.provider}
         tryOnMode={tryOn.mode}
         cacheHit={tryOn.cacheHit}
+        visualState={tryOn.visualState}
         onRescanBody={onRescan}
       />
       {tryOn.status === "error" && (
