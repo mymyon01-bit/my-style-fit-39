@@ -235,6 +235,146 @@ function drawDetailOverlay(
   ctx.restore();
 }
 
+// ── REALISM LAYERS ─────────────────────────────────────────────────────────
+// Lightweight illusion-only layers. None of these change geometry — they just
+// make the flat scaled overlay feel like a worn garment.
+
+/** Soft contact shadow under the garment to anchor it on the body. */
+function drawContactShadow(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  topY: number,
+  drawW: number,
+  drawH: number,
+  isBottom: boolean
+) {
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = "rgba(0,0,0,1)";
+  // canvas filter is widely supported in modern browsers; if unsupported,
+  // the rect just renders sharper — still acceptable.
+  try { (ctx as any).filter = "blur(10px)"; } catch { /* ignore */ }
+  const padX = drawW * 0.08;
+  const shadowY = isBottom ? topY + drawH * 0.15 : topY + drawH * 0.25;
+  const shadowH = drawH * 0.7;
+  ctx.beginPath();
+  ctx.ellipse(
+    centerX,
+    shadowY + shadowH / 2,
+    drawW / 2 - padX,
+    shadowH / 2,
+    0, 0, Math.PI * 2
+  );
+  ctx.fill();
+  try { (ctx as any).filter = "none"; } catch { /* ignore */ }
+  ctx.restore();
+}
+
+/** Curved hem mask — clears the rectangular bottom into a quadratic curve. */
+function applyHemCurve(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  topY: number,
+  drawW: number,
+  drawH: number,
+  curvePx: number,
+  canvasW: number,
+  canvasH: number
+) {
+  if (curvePx === 0) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.fillStyle = "rgba(0,0,0,1)";
+  const left = centerX - drawW / 2 - 4;
+  const right = centerX + drawW / 2 + 4;
+  const baseY = topY + drawH;
+  ctx.beginPath();
+  if (curvePx > 0) {
+    // hem dips lower in the center → carve a downward arc out of the area
+    // *below* the rectangle so visible hem becomes convex
+    ctx.moveTo(left, baseY - Math.abs(curvePx));
+    ctx.quadraticCurveTo(centerX, baseY + Math.abs(curvePx) * 1.1, right, baseY - Math.abs(curvePx));
+    ctx.lineTo(right, canvasH + 20);
+    ctx.lineTo(left, canvasH + 20);
+  } else {
+    // hem rises in the center → carve an upward arc (concave hem)
+    const rise = Math.abs(curvePx);
+    ctx.moveTo(left, baseY - rise * 1.4);
+    ctx.quadraticCurveTo(centerX, baseY + rise * 0.2, right, baseY - rise * 1.4);
+    ctx.lineTo(right, canvasH + 20);
+    ctx.lineTo(left, canvasH + 20);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Evenly spaced soft vertical drape lines — for L / XL / relaxed fits. */
+function drawDrapeLines(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  topY: number,
+  drawW: number,
+  drawH: number,
+  intensity: number // 0..1
+) {
+  if (intensity <= 0) return;
+  const count = Math.round(2 + intensity * 5); // 2..7 lines
+  const usableW = drawW * 0.78;
+  const left = centerX - usableW / 2;
+  const step = usableW / (count + 1);
+  const top = topY + drawH * 0.18;
+  const bottom = topY + drawH * 0.92;
+  ctx.save();
+  ctx.globalAlpha = 0.10 + intensity * 0.12;
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= count; i++) {
+    const x = left + step * i;
+    const sway = (i % 2 === 0 ? 1 : -1) * (1.5 + intensity * 3);
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.quadraticCurveTo(x + sway, (top + bottom) / 2, x, bottom);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Very subtle film-grain noise across the garment area only. */
+function drawFabricNoise(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  topY: number,
+  drawW: number,
+  drawH: number
+) {
+  try {
+    const w = Math.max(8, Math.floor(drawW));
+    const h = Math.max(8, Math.floor(drawH));
+    const img = ctx.createImageData(w, h);
+    const data = img.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const v = (Math.random() * 255) | 0;
+      data[i] = v;
+      data[i + 1] = v;
+      data[i + 2] = v;
+      data[i + 3] = 10; // ~4% alpha — barely perceptible
+    }
+    const tmp = document.createElement("canvas");
+    tmp.width = w; tmp.height = h;
+    const tctx = tmp.getContext("2d");
+    if (!tctx) return;
+    tctx.putImageData(img, 0, 0);
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.globalCompositeOperation = "overlay";
+    ctx.drawImage(tmp, centerX - drawW / 2, topY, drawW, drawH);
+    ctx.restore();
+  } catch {
+    /* noise is decorative — never break render */
+  }
+}
+
 function drawWrinkleLines(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -350,16 +490,57 @@ export async function composeFitImage(args: CompositeArgs): Promise<CompositeRes
   const drawH = Math.max(60, aspectH * 0.6 + targetH * 0.4);
   const drawW = Math.max(60, targetW);
 
+  // ── REALISM PARAMS (size-driven, deterministic) ──────────────────────────
+  const shoulderOffsetPx = (() => {
+    if (isBottom) return 0;
+    switch (detail.silhouetteLabel) {
+      case "TRIM":      return -5;
+      case "FITTED":    return -2;
+      case "REGULAR":   return 0;
+      case "RELAXED":   return 10;
+      case "OVERSIZED": return 20;
+      default:          return 0;
+    }
+  })();
+  const adjTopY = topY + shoulderOffsetPx;
+
+  const hemCurvePx = (() => {
+    switch (detail.silhouetteLabel) {
+      case "TRIM":      return -6;
+      case "FITTED":    return -2;
+      case "REGULAR":   return 0;
+      case "RELAXED":   return 10;
+      case "OVERSIZED": return 18;
+      default:          return 0;
+    }
+  })();
+
+  const drapeIntensity = (() => {
+    const base = detail.drapeAmount;
+    const bias =
+      detail.silhouetteLabel === "OVERSIZED" ? 0.35 :
+      detail.silhouetteLabel === "RELAXED"   ? 0.20 :
+      detail.silhouetteLabel === "TRIM"      ? 0.0  : 0.05;
+    return Math.min(1, base + bias);
+  })();
+
+  // ── 2a. CONTACT SHADOW (anchors garment to body) ─────────────────────────
+  try {
+    drawContactShadow(ctx, centerX, adjTopY, drawW, drawH, isBottom);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] contact shadow skipped", err);
+  }
+
+  // ── 2b. GARMENT (sliced, non-uniform) ────────────────────────────────────
   ctx.save();
   ctx.globalAlpha = args.garmentOpacity ?? 1;
   if (bodySource === "photo") {
     ctx.globalCompositeOperation = "multiply";
   }
-
   try {
     drawGarmentSliced(ctx, garmentImg, {
       centerX,
-      topY,
+      topY: adjTopY,
       drawW,
       drawH,
       chestMul: detail.chestWidthMul,
@@ -368,16 +549,36 @@ export async function composeFitImage(args: CompositeArgs): Promise<CompositeRes
       isBottom,
     });
   } catch {
-    // Safety net: uniform draw
-    ctx.drawImage(garmentImg, centerX - drawW / 2, topY, drawW, drawH);
+    ctx.drawImage(garmentImg, centerX - drawW / 2, adjTopY, drawW, drawH);
   }
   ctx.restore();
 
-  // ── 3. DETAIL OVERLAY (tension + drape) ──────────────────────────────────
+  // ── 2c. HEM CURVE (carve curved bottom edge) ─────────────────────────────
+  try {
+    applyHemCurve(ctx, centerX, adjTopY, drawW, drawH, hemCurvePx, frame.canvasWidth, frame.canvasHeight);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] hem curve skipped", err);
+  }
+
+  // ── 3. DRAPE LINES (vertical fabric folds, L/XL) ─────────────────────────
+  try {
+    drawDrapeLines(ctx, centerX, adjTopY, drawW, drawH, drapeIntensity);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] drape lines skipped", err);
+  }
+
+  // ── 4. TENSION OVERLAY (chest / shoulder tension lines) ──────────────────
   try {
     drawDetailOverlay(ctx, detail, frame, pose, isBottom);
   } catch (err) {
     console.warn("[canvasFitCompositor] detail overlay skipped", err);
+  }
+
+  // ── 5. FABRIC NOISE (kills flat-PNG sheen) ───────────────────────────────
+  try {
+    drawFabricNoise(ctx, centerX, adjTopY, drawW, drawH);
+  } catch (err) {
+    console.warn("[canvasFitCompositor] fabric noise skipped", err);
   }
 
   return {
