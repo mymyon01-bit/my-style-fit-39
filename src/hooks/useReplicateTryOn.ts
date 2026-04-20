@@ -277,6 +277,13 @@ export function useReplicateTryOn(args: Args) {
     const cacheKey = `${productKey}::${selectedSize}`;
     requestKeyRef.current = cacheKey;
 
+    // Force-reload: clear all cache layers for this key when reloadToken bumps
+    if (args.reloadToken && args.reloadToken > 0) {
+      clearStoredTryOn(productKey, selectedSize);
+      memoryCache.delete(cacheKey);
+      activePhotoRequests.delete(cacheKey);
+    }
+
     const local = readStoredTryOnSuccess(productKey, selectedSize);
     if (local?.kind === "success") {
       transition(local, { reason: "stored_success" });
@@ -390,6 +397,7 @@ export function useReplicateTryOn(args: Args) {
     args.productImagesFallback,
     args.productUrl,
     args.regions,
+    args.reloadToken,
     enabled,
     userImageUrl,
     productKey,
