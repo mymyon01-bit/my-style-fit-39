@@ -370,6 +370,31 @@ export default function FitResults({
           Body image needs a full-body front shot for an accurate try-on.
         </p>
       )}
+      {/* ══ NEW: SILHOUETTE + FIT BREAKDOWN (size-aware, deterministic) ══ */}
+      <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">SILHOUETTE</p>
+          <span className="rounded-full bg-accent/10 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-accent">
+            {sizeExplanation.silhouetteLabel}
+          </span>
+        </div>
+        <p className="text-[13px] leading-relaxed text-foreground/80">{sizeExplanation.paragraph}</p>
+        <div className="grid grid-cols-5 gap-2 pt-1">
+          {[
+            { label: "CHEST",    value: breakdown.chest },
+            { label: "WAIST",    value: breakdown.waist },
+            { label: "SHOULDER", value: breakdown.shoulder },
+            { label: "LENGTH",   value: breakdown.length },
+            { label: "SLEEVE",   value: breakdown.sleeve },
+          ].map((m) => (
+            <div key={m.label} className="rounded-lg border border-foreground/[0.05] bg-background/40 py-2 text-center">
+              <p className="text-[8px] font-bold tracking-[0.15em] text-foreground/40">{m.label}</p>
+              <p className="text-[11px] font-semibold text-foreground mt-0.5">{m.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
         <div className="flex items-center gap-2">
