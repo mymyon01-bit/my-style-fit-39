@@ -5,6 +5,8 @@ import { BodyMeasurements, ConfidenceLevel, estimateBodyFromProfile, type BodyTy
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import BodyShapeInputs from "@/components/fit/BodyShapeInputs";
+import type { BodyShapeInput } from "@/lib/fit/bodyShape";
 
 interface Props {
   measurements: Record<keyof BodyMeasurements, { value: number; confidence: ConfidenceLevel }>;
@@ -12,6 +14,8 @@ interface Props {
   onBulkUpdate?: (updates: Partial<Record<keyof BodyMeasurements, number>>) => void;
   weightKg?: number | null;
   onWeightChange?: (weight: number) => void;
+  bodyShape?: BodyShapeInput;
+  onBodyShapeChange?: (next: BodyShapeInput) => void;
 }
 
 const BODY_TYPES: { key: BodyTypeKey; label: string; labelKo: string; icon: string }[] = [
@@ -32,7 +36,7 @@ const BODY_HINTS: { key: BodyHint; label: string }[] = [
   { key: "slim-legs", label: "Slim legs" },
 ];
 
-export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange }: Props) {
+export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange, bodyShape, onBodyShapeChange }: Props) {
   const { user } = useAuth();
   const [height, setHeight] = useState(measurements.heightCm?.value || 175);
   const [weight, setWeight] = useState<number>(weightKg ?? 70);
