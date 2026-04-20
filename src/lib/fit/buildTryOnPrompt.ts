@@ -113,7 +113,7 @@ export function buildTryOnPrompt(args: {
     product.fitType ? `- designed fit: ${product.fitType}` : null,
     `- selected size: ${selectedSize}`,
     `- size-specific fit behavior: ${behavior}`,
-    `Reference product image must be respected as closely as possible (color, pattern, silhouette, fabric).`,
+    productAnchor ? `Reference product image must be respected as closely as possible (color, pattern, silhouette, fabric).` : `No reference image provided — render the garment based on the description and the body metrics below.`,
     ``,
     `Body:`,
     `- ${bodySummary}`,
