@@ -44,7 +44,7 @@ interface ProfileInfo {
   username?: string | null;
 }
 
-type Tab = "community" | "mypage" | "crowned";
+type Tab = "ranking" | "feed" | "community" | "mypage";
 
 const MAX_MESSAGE = 100;
 
@@ -52,7 +52,7 @@ const OOTDPage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>("community");
+  const [activeTab, setActiveTab] = useState<Tab>("ranking");
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
