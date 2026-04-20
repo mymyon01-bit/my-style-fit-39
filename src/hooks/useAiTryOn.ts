@@ -7,6 +7,9 @@ import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
 import { buildProductVisualDescriptor } from "@/lib/fit/buildProductVisualDescriptor";
 import { buildFitGenerationPrompt } from "@/lib/fit/buildFitGenerationPrompt";
 import { solveFit } from "@/lib/fit/fitSolver";
+import { buildBodyFrame } from "@/lib/fit/buildBodyFrame";
+import { buildGarmentOverlayMap } from "@/lib/fit/buildGarmentOverlayMap";
+import { runCompositeFitTryOn } from "@/lib/fit/compositeFitImages";
 import {
   type FitVisualState,
   TRYON_ACTIVE_REQUEST_MS,
