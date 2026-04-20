@@ -15,7 +15,8 @@ import { useState, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Search } from "lucide-react";
+import { ArrowRight, Loader2, Search, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -41,6 +42,24 @@ const HomePage = () => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSubmit();
   };
+
+  const handleShareApp = useCallback(async () => {
+    const shareData = {
+      title: "WARDROBE — AI fashion stylist",
+      text: "Discover your style on WARDROBE",
+      url: typeof window !== "undefined" ? window.location.origin : "https://mymyon.com",
+    };
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(shareData);
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareData.url);
+        toast.success("Link copied — share with friends");
+      }
+    } catch {
+      // user cancelled — no-op
+    }
+  }, []);
 
   const weatherLabel = weather.condition
     .replace(/-/g, " ")
@@ -141,6 +160,13 @@ const HomePage = () => {
             className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:text-foreground"
           >
             {t("about").toUpperCase()}
+          </button>
+          <button
+            onClick={handleShareApp}
+            aria-label="Share WARDROBE with friends"
+            className="hover-burgundy flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:bg-accent/[0.1]"
+          >
+            <Share2 className="h-3 w-3" /> SHARE
           </button>
         </motion.div>
       </section>
