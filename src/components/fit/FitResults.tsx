@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import TryOnPreviewModal, { TryOnContext } from "@/components/fit/TryOnPreviewModal";
+import SelectedProductCard from "@/components/fit/SelectedProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import type { FitMode } from "@/pages/FitPage";
@@ -279,29 +280,21 @@ export default function FitResults({
         </span>
       </div>
 
-      {/* Product header */}
-      <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-4">
-        <div className="flex gap-4">
-          {product.image ? (
-            <SafeImage src={product.image} alt={product.name}
-              className="h-28 w-20 rounded-xl object-cover"
-              fallbackClassName="h-28 w-20 rounded-xl bg-foreground/[0.04] flex items-center justify-center" />
-          ) : (
-            <div className="h-28 w-20 rounded-xl bg-foreground/[0.04] flex items-center justify-center">
-              <span className="font-display text-2xl font-bold text-foreground/75">{product.name.charAt(0)}</span>
-            </div>
-          )}
-          <div className="flex-1 space-y-1.5">
-            <p className="text-[10px] tracking-[0.1em] text-foreground/50 uppercase">{product.brand}</p>
-            <p className="font-display text-sm font-semibold text-foreground leading-tight">{product.name}</p>
-            {product.price && <p className="text-base font-bold text-foreground">${product.price}</p>}
-            <div className="flex items-center gap-1 mt-1">
-              <ShieldCheck className="h-3 w-3 text-foreground/40" />
-              <span className="text-[10px] text-foreground/50">Brand data {result.productDataQuality}/100 · Scan {result.scanQuality}/100</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Product header — premium selected card carried from Discover */}
+      <SelectedProductCard
+        brand={product.brand}
+        name={product.name}
+        price={product.price}
+        image={product.image}
+        url={product.url}
+        category={product.category}
+        dataQuality={result.productDataQuality}
+        onChange={onRescan ? undefined : undefined /* change handled in CHECK */}
+        compact
+      />
+      <p className="-mt-2 px-1 text-[10px] text-foreground/45">
+        Brand data {result.productDataQuality}/100 · Scan {result.scanQuality}/100
+      </p>
 
       {/* Limited confidence warning */}
       {confTier === "limited" && (

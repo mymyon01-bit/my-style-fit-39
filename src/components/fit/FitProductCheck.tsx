@@ -4,6 +4,7 @@ import { Link2, Search, Info, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { mockProductFitData } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
+import SelectedProductCard from "@/components/fit/SelectedProductCard";
 
 interface FitProduct {
   id: string;
@@ -20,6 +21,8 @@ interface FitProduct {
 
 interface Props {
   onSelectProduct: (product: FitProduct) => void;
+  selectedProduct?: FitProduct | null;
+  onClearSelected?: () => void;
 }
 
 // Built-in demo products
@@ -36,7 +39,7 @@ const MOCK_CATALOG: FitProduct[] = Object.entries(mockProductFitData).map(([id, 
   source: "mock" as const,
 }));
 
-export default function FitProductCheck({ onSelectProduct }: Props) {
+export default function FitProductCheck({ onSelectProduct, selectedProduct, onClearSelected }: Props) {
   const [url, setUrl] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [dbProducts, setDbProducts] = useState<FitProduct[]>([]);
@@ -105,6 +108,24 @@ export default function FitProductCheck({ onSelectProduct }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Currently selected product — premium continuity from Discover */}
+      {selectedProduct && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/55">CURRENTLY FITTING</p>
+          <SelectedProductCard
+            brand={selectedProduct.brand}
+            name={selectedProduct.name}
+            price={selectedProduct.price}
+            image={selectedProduct.image}
+            url={selectedProduct.url}
+            category={selectedProduct.category}
+            dataQuality={selectedProduct.dataQuality}
+            onChange={onClearSelected}
+            changeLabel="Change product"
+          />
+        </div>
+      )}
+
       {/* Search products */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
         <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80">SEARCH PRODUCTS</p>

@@ -15,7 +15,13 @@ import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
 import FitTryOnTrigger from "@/components/fit/FitTryOnTrigger";
 import BodyPhotoPicker from "@/components/fit/BodyPhotoPicker";
-import type { UserBodyImage } from "@/lib/fit/userBodyImages";
+import ScanEntry from "@/components/fit/ScanEntry";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  type UserBodyImage,
+  uploadOrReuseBodyImage,
+  listUserBodyImages,
+} from "@/lib/fit/userBodyImages";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
@@ -106,15 +112,50 @@ const FitPage = () => {
   // Simple shape inputs — refine fit accuracy without raw cm.
   const [bodyShape, setBodyShape] = useState<import("@/lib/fit/bodyShape").BodyShapeInput>({});
 
+  const [savedCount, setSavedCount] = useState(0);
+  const [savedDialogOpen, setSavedDialogOpen] = useState(false);
+  const [entryBusy, setEntryBusy] = useState(false);
+
+  const refreshSavedCount = useCallback(async () => {
+    if (!user) { setSavedCount(0); return; }
+    const rows = await listUserBodyImages(user.id);
+    setSavedCount(rows.length);
+  }, [user]);
+
+  useEffect(() => { refreshSavedCount(); }, [refreshSavedCount]);
+
   const handleSelectBodyImage = useCallback((image: UserBodyImage, url: string) => {
     setSelectedBodyImage(image);
     setUserBodyImageUrl(url);
+    setSavedDialogOpen(false);
   }, []);
 
   const handleClearBodyImage = useCallback(() => {
     setSelectedBodyImage(null);
     setUserBodyImageUrl(null);
   }, []);
+
+  const handleScanEntryFile = useCallback(async (file: File) => {
+    if (!user) { toast.error("Please sign in first"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("Please pick an image"); return; }
+    if (file.size > 15 * 1024 * 1024) { toast.error("Image too large (max 15MB)"); return; }
+    setEntryBusy(true);
+    try {
+      const res = await uploadOrReuseBodyImage(user.id, file);
+      if (res.reused) toast.success("Using your existing photo");
+      else toast.success("Photo added to your library");
+      if (res.url) {
+        setSelectedBodyImage(res.image);
+        setUserBodyImageUrl(res.url);
+      }
+      await refreshSavedCount();
+    } catch (err) {
+      console.error("[FitPage] scan entry upload failed", err);
+      toast.error("Upload failed");
+    } finally {
+      setEntryBusy(false);
+    }
+  }, [user, refreshSavedCount]);
 
   // Default activeSize to the recommended size whenever a new fit result lands.
   useEffect(() => {
@@ -474,18 +515,53 @@ const FitPage = () => {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && (
               <>
-                <BodyPhotoPicker
+                <ScanEntry
                   className="mb-8"
-                  selectedImageId={selectedBodyImage?.id ?? null}
-                  selectedImageUrl={userBodyImageUrl}
-                  onSelect={handleSelectBodyImage}
-                  onClear={handleClearBodyImage}
+                  savedCount={savedCount}
+                  busy={entryBusy}
+                  onPickFile={handleScanEntryFile}
+                  onOpenSaved={() => setSavedDialogOpen(true)}
                 />
+                {/* Selected preview chip */}
+                {userBodyImageUrl && (
+                  <div className="mb-8 flex items-center gap-3 rounded-2xl border border-accent/25 bg-accent/[0.05] p-3">
+                    <img src={userBodyImageUrl} alt="Selected body photo" className="h-16 w-12 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold tracking-[0.18em] text-accent/80">SELECTED FOR FIT</p>
+                      <p className="mt-0.5 truncate text-[11px] text-foreground/65">
+                        {selectedBodyImage?.label || "Body photo"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearBodyImage}
+                      className="text-[10px] font-medium text-foreground/55 hover:text-foreground/85"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
                 <FitBodyScan
                   onScanComplete={handleScanComplete}
                   canUsePremium={canUsePremium}
                 />
                 <NextButton onClick={() => setActiveTab("measurements")} label="Next: Body" />
+
+                {/* Saved photo library dialog */}
+                <Dialog open={savedDialogOpen} onOpenChange={setSavedDialogOpen}>
+                  <DialogContent className="max-w-lg p-6">
+                    <DialogHeader>
+                      <DialogTitle className="font-display text-base">Saved body photos</DialogTitle>
+                    </DialogHeader>
+                    <BodyPhotoPicker
+                      className="mt-2"
+                      selectedImageId={selectedBodyImage?.id ?? null}
+                      selectedImageUrl={userBodyImageUrl}
+                      onSelect={handleSelectBodyImage}
+                      onClear={handleClearBodyImage}
+                    />
+                  </DialogContent>
+                </Dialog>
               </>
             )}
             {activeTab === "measurements" && (
@@ -511,7 +587,11 @@ const FitPage = () => {
             )}
             {activeTab === "check" && (
               <>
-                <FitProductCheck onSelectProduct={handleSelectProduct} />
+                <FitProductCheck
+                  onSelectProduct={handleSelectProduct}
+                  selectedProduct={selectedProduct}
+                  onClearSelected={() => setSelectedProduct(null)}
+                />
                 <NextButton onClick={() => setActiveTab("results")} label="Next: Results" />
               </>
             )}
