@@ -17,8 +17,15 @@ export async function ingestQuery(query: string): Promise<{ inserted: number }> 
   //   3. discover-search-engine (Google CSE → Apify Web Scraper) — search-engine
   //      style: 10 query variants → 50–80 URLs → parallel page extraction.
   // Partial failure is fine; whichever returns first grows product_cache.
+  // Detect user language for region routing
+  let hl: string | undefined;
   try {
-    const [discovery, multi, engine] = await Promise.allSettled([
+    const stored = typeof window !== "undefined" ? window.localStorage?.getItem("wardrobe-lang") : null;
+    hl = stored || undefined;
+  } catch { /* ignore */ }
+
+  try {
+    const [discovery, multi, engine, gshop] = await Promise.allSettled([
       supabase.functions.invoke("search-discovery", {
         body: { query, maxQueries: 14, maxCandidates: 60 },
       }),
@@ -28,11 +35,15 @@ export async function ingestQuery(query: string): Promise<{ inserted: number }> 
       supabase.functions.invoke("discover-search-engine", {
         body: { query },
       }),
+      supabase.functions.invoke("google-shopping", {
+        body: { query, hl, limit: 60 },
+      }),
     ]);
     const a = discovery.status === "fulfilled" ? Number(discovery.value.data?.inserted) || 0 : 0;
     const b = multi.status === "fulfilled" ? Number(multi.value.data?.inserted) || 0 : 0;
     const c = engine.status === "fulfilled" ? Number(engine.value.data?.totalInserted) || 0 : 0;
-    return { inserted: a + b + c };
+    const d = gshop.status === "fulfilled" ? Number(gshop.value.data?.inserted) || 0 : 0;
+    return { inserted: a + b + c + d };
   } catch {
     return { inserted: 0 };
   }
