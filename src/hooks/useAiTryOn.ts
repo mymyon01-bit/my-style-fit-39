@@ -239,12 +239,32 @@ export function useAiTryOn(args: Args) {
     const warmKey = `${args.productKey}::${warm}::text`;
     if (TEXT_CACHE.has(warmKey)) return;
 
-    const product: TryOnProductInfo = {
+    const warmBodyProfile = buildBodyProfile({
+      heightCm: args.body.heightCm ?? null,
+      weightKg: args.body.weightKg ?? null,
+      shoulderCm: args.body.shoulderWidthCm ?? null,
+      chestCm: args.body.chestCm ?? null,
+      waistCm: args.body.waistCm ?? null,
+    });
+    const warmFitMap = buildGarmentFitMap({
+      category: args.productCategory ?? null,
+      selectedSize: warm,
+      fitType: args.productFitType ?? null,
+      body: warmBodyProfile,
+    });
+    const warmVisual = buildProductVisualDescriptor({
       title: args.productName,
       category: args.productCategory ?? null,
       fitType: args.productFitType ?? null,
-    };
-    const prompt = buildTryOnPrompt({ user: args.body, product, selectedSize: warm, recommendedSize: warm });
+    });
+    const prompt = buildFitGenerationPrompt({
+      body: warmBodyProfile,
+      fit: warmFitMap,
+      product: warmVisual,
+      selectedSize: warm,
+      hasBodyImage: !!args.userImageUrl,
+      gender: args.body.gender ?? null,
+    });
 
     const run = () => {
       supabase.functions
