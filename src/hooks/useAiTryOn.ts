@@ -37,6 +37,10 @@ interface Args {
   productFitType?: string | null;
   selectedSize: string;
   body: TryOnUserBody;
+  /** SHA-256 of the user's body image, when picked from the user_body_images
+   *  library. Used as part of the cache key so the same body+product+size
+   *  reuses an existing try-on instead of re-generating. */
+  bodyImageHash?: string | null;
   fitDescriptor?: string;
   regions?: { region: string; fit: string }[];
   productUrl?: string | null;
