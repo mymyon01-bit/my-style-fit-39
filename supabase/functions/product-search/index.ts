@@ -13,6 +13,47 @@ const BLOCKED_IMAGE_DOMAINS = [
   "dummyimage.com", "fakeimg.pl", "picsum.photos", "lorempixel.com",
 ];
 
+// ─── HARD-REJECT image signals (logos, favicons, sprites, banners) ───
+// Any of these in the URL path/filename → image is dropped (drop-on-hard).
+const HARD_REJECT_IMAGE_RE =
+  /(^|[\/_\-.])(logo|logos|brand[-_]?logo|favicon|sprite|sprites|icon[-_]?set|navbar|header[-_]?(logo|banner)|site[-_]?logo|app[-_]?icon|apple[-_]?touch[-_]?icon|placeholder|placehold|noimage|no[-_]?image|default[-_]?image|coming[-_]?soon)([\/_\-.]|$)/i;
+
+// Soft signals — image kept but flagged as low-quality (image_missing=true downstream).
+const SOFT_REJECT_IMAGE_RE =
+  /(^|[\/_\-.])(banner|hero|cover[-_]?image|category[-_]?(banner|hero)|promo|campaign|lookbook[-_]?cover|landing)([\/_\-.]|$)/i;
+
+/**
+ * Hybrid image quality gate.
+ *  - returns { ok: true }                → image is fine
+ *  - returns { ok: true, soft: true }    → keep product, mark as low-quality
+ *  - returns { ok: false, reason }       → drop the image (caller decides whether
+ *                                          to drop the product or render fallback)
+ */
+function imageQualityCheck(url: unknown, ctx?: { title?: string }): { ok: boolean; soft?: boolean; reason?: string } {
+  if (!url || typeof url !== "string") return { ok: false, reason: "empty" };
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") return { ok: false, reason: "empty" };
+  let u: URL;
+  try { u = new URL(trimmed); } catch { return { ok: false, reason: "invalid_url" }; }
+  if (u.protocol !== "https:") return { ok: false, reason: "not_https" };
+  if (BLOCKED_IMAGE_DOMAINS.some((d) => u.hostname.includes(d))) return { ok: false, reason: "blocked_domain" };
+  if (trimmed.length > 2000) return { ok: false, reason: "url_too_long" };
+
+  const path = (u.pathname + u.search).toLowerCase();
+  if (HARD_REJECT_IMAGE_RE.test(path)) return { ok: false, reason: "rejected_logo_or_sprite" };
+  // Favicon / apple-touch-icon by exact name
+  if (/\/favicon\.ico(\?|$)/i.test(path)) return { ok: false, reason: "rejected_favicon" };
+  // Tiny suffix hint (e.g. _16x16, _32x32, _48.png)
+  if (/[_-](16|24|32|48|64)x?(16|24|32|48|64)?\.(png|jpe?g|webp|svg)(\?|$)/i.test(path)) {
+    return { ok: false, reason: "rejected_tiny_icon" };
+  }
+  // Title context — if title is literally the brand/store name only, don't reject
+  // image based on that alone, but flag as soft.
+  if (SOFT_REJECT_IMAGE_RE.test(path)) return { ok: true, soft: true, reason: "soft_banner" };
+
+  return { ok: true };
+}
+
 // ─── Fashion product title validator ───
 const FASHION_TITLE_RE = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|top|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|purse|wallet|hat|cap|beanie|watch|belt|scarf|gloves?|socks?|bomber|parka|pullover|sweatshirt|chinos?|joggers?|blouse|knit|denim|leather|suede|canvas|necklace|bracelet|earring|ring|sunglasses|tie|cufflinks|headband|bandana|beret|mules?|oxfords?|derby|brogues?|espadrilles?|pumps?|heels?|flats?|clutch|satchel|duffle|messenger|crossbody|jumpsuit|romper|overalls?|flannel|henley|anorak|trench|gilet|poncho|cape|leggings?|culottes|slacks|windbreaker|camisole|tunic|tank|fedora|frame|hoops)\b/i;
 const NON_FASHION_RE = /\b(banana|food|fruit|tofu|두부|바나나|grocery|snack|vitamin|supplement|gift\s*card|상품\s*권|교환권|charger|cable|phone|laptop|tablet|kitchen|cook|recipe|drink|beverage|coffee|tea|milk|cream|soap|detergent|shampoo|tissue|diaper|pet\s*food|toy|game|book|movie|music|electronics?)\b/i;
