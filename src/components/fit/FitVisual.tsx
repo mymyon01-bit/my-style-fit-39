@@ -1,97 +1,39 @@
 import { motion } from "framer-motion";
-import { Sparkles, Camera, ImageOff, User, RefreshCw, Share2 } from "lucide-react";
+import { Sparkles, AlertTriangle, RefreshCw, Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SafeImage from "@/components/SafeImage";
-import type { FitVisualState } from "@/lib/fit/tryOnState";
-
-export type TryOnUiStatus =
-  | "idle"
-  | "generating"
-  | "resolving_image"
-  | "missing_image"
-  | "ready"
-  | "fallback"
-  | "error"
-  | "invalid_body";
+import type { CanvasTryOnState } from "@/hooks/useCanvasTryOn";
 
 interface Props {
-  productImage: string;
   productName: string;
-  category: string;
   activeSize: string;
-  tryOnImageUrl?: string | null;
-  tryOnStatus?: TryOnUiStatus;
-  tryOnProvider?: "replicate" | "perplexity" | "replicate-text" | null;
-  tryOnMode?: "photo" | "text";
-  cacheHit?: boolean;
-  visualState?: FitVisualState;
+  state: CanvasTryOnState;
   onRescanBody?: () => void;
   onReload?: () => void;
 }
 
-function FallbackSilhouette({ label }: { label: string }) {
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]">
-      <User className="h-20 w-20 text-foreground/15" strokeWidth={1} />
-      <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/45">{label}</p>
-    </div>
-  );
-}
-
-const mapLegacyState = (
-  status: TryOnUiStatus,
-  selectedSize: string,
-  imageUrl?: string | null,
-  provider?: "replicate" | "perplexity" | "replicate-text" | null
-): FitVisualState => {
-  if ((status === "ready" || status === "fallback") && imageUrl) {
-    return { kind: "success", selectedSize, imageUrl, source: provider ?? "replicate-text" };
-  }
-  if (status === "generating" || status === "resolving_image") {
-    return { kind: "loading", selectedSize, startedAt: Date.now() };
-  }
-  if (status === "missing_image" || status === "invalid_body" || status === "fallback") {
-    return { kind: "fallback", selectedSize, reason: status };
-  }
-  if (status === "error") {
-    return { kind: "error", selectedSize, message: "generation_failed" };
-  }
-  return { kind: "idle" };
+const TONE_STYLE: Record<string, { dot: string; label: string }> = {
+  tight: { dot: "bg-orange-500", label: "TIGHT" },
+  regular: { dot: "bg-emerald-500", label: "REGULAR" },
+  loose: { dot: "bg-sky-500", label: "LOOSE" },
 };
 
 export default function FitVisual({
   productName,
   activeSize,
-  tryOnImageUrl,
-  tryOnStatus = "idle",
-  tryOnProvider,
-  tryOnMode = "text",
-  cacheHit = false,
-  visualState,
+  state,
   onRescanBody,
   onReload,
 }: Props) {
-  const state = visualState ?? mapLegacyState(tryOnStatus, activeSize, tryOnImageUrl, tryOnProvider);
-  const hasReal = state.kind === "success" && !!state.imageUrl;
-  // Loading state: trust the state machine. The hook owns the 12s timeout
-  // and will transition to "fallback" itself — don't second-guess here.
-  const isLoading = state.kind === "loading";
-  const isFallback = state.kind === "fallback";
-  const isError = state.kind === "error";
-  const isInvalidBody = isFallback && state.reason === "invalid_body";
-  const isMissing = isFallback && state.reason === "missing_image";
+  const isLoading = state.stage !== "ready" && state.stage !== "refining" && !state.imageUrl;
+  const isRefining = state.stage === "refining";
+  const hasImage = !!state.imageUrl;
 
-  const providerLabel =
-    state.kind === "success"
-      ? state.source === "replicate"
-        ? "AI TRY-ON"
-        : "STYLE PREVIEW"
-      : tryOnMode === "photo"
-      ? "AI TRY-ON"
-      : "STYLE PREVIEW";
+  const sourceLabel =
+    state.source === "ai" ? "AI TRY-ON" : "STYLE PREVIEW";
 
-  const handleShareImage = async () => {
-    if (state.kind !== "success" || !state.imageUrl) return;
+  const handleShare = async () => {
+    if (!state.imageUrl) return;
     try {
       if (navigator.share) {
         await navigator.share({
@@ -103,7 +45,6 @@ export default function FitVisual({
         toast.success("Try-on image link copied");
       }
     } catch {
-      // user cancelled or share failed — try clipboard fallback silently
       try {
         await navigator.clipboard.writeText(state.imageUrl);
         toast.success("Try-on image link copied");
@@ -115,26 +56,27 @@ export default function FitVisual({
 
   return (
     <div className="space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4">
+      {/* Header */}
       <div className="flex items-center justify-between px-1">
         <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">VISUAL FIT</p>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-[9px] font-semibold tracking-[0.18em] text-accent">
             <Sparkles className="h-2.5 w-2.5" /> SIZE {activeSize}
-            {cacheHit && <span className="text-foreground/35"> · CACHED</span>}
+            {isRefining && <span className="text-foreground/35"> · REFINING</span>}
           </span>
           {onReload && (
             <button
               onClick={onReload}
-              disabled={state.kind === "loading"}
+              disabled={isLoading}
               aria-label="Reload try-on"
               className="flex h-6 w-6 items-center justify-center rounded-full border border-foreground/10 text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground disabled:opacity-40"
             >
-              <RefreshCw className={`h-3 w-3 ${state.kind === "loading" ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
             </button>
           )}
-          {state.kind === "success" && state.imageUrl && (
+          {hasImage && (
             <button
-              onClick={handleShareImage}
+              onClick={handleShare}
               aria-label="Share try-on image"
               className="flex h-6 w-6 items-center justify-center rounded-full border border-foreground/10 text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground"
             >
@@ -144,79 +86,110 @@ export default function FitVisual({
         </div>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06]" style={{ aspectRatio: "3 / 4", maxHeight: 560 }}>
-        {hasReal ? (
-          <SafeImage
-            src={state.imageUrl}
-            alt={`${productName} try-on, size ${activeSize}`}
-            className="h-full w-full object-cover"
-            fallbackClassName="h-full w-full"
-            loading="lazy"
-          />
-        ) : isLoading ? (
-          <div className="relative h-full w-full bg-gradient-to-b from-muted/40 to-muted/20">
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-6">
+      {/* Canvas / image surface */}
+      <div
+        className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06] bg-muted/20"
+        style={{ aspectRatio: "3 / 4", maxHeight: 560 }}
+      >
+        {hasImage ? (
+          <>
+            <SafeImage
+              src={state.imageUrl!}
+              alt={`${productName} try-on, size ${activeSize}`}
+              className="h-full w-full object-cover"
+              fallbackClassName="h-full w-full"
+              loading="lazy"
+            />
+            <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
+              <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
+                {sourceLabel}
+              </span>
+            </div>
+            {isRefining && (
+              <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
+                <Loader2 className="h-3 w-3 animate-spin text-accent" />
+                <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
+                  ENHANCING
+                </span>
+              </div>
+            )}
+          </>
+        ) : (
+          // Skeleton — only shown for the first ~2s while pose+cutout resolve
+          <div className="relative h-full w-full">
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
               <div className="h-1 w-40 overflow-hidden rounded-full bg-foreground/10">
                 <motion.div
                   className="h-full w-1/3 rounded-full bg-accent"
                   animate={{ x: ["-100%", "300%"] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
                 />
               </div>
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-foreground/70">GENERATING TRY-ON</p>
-              <p className="max-w-[280px] text-center text-[12px] leading-relaxed text-foreground/55">
-                Building a realistic preview at size <strong className="text-foreground/80">{activeSize}</strong>
+              <p className="text-[11px] font-semibold tracking-[0.22em] text-foreground/70">
+                {state.stage === "pose"
+                  ? "READING BODY"
+                  : state.stage === "cutout"
+                  ? "PREPARING GARMENT"
+                  : "BUILDING PREVIEW"}
               </p>
             </div>
-          </div>
-        ) : isInvalidBody ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-gradient-to-b from-background/80 to-background/40 px-6 text-center">
-            <Camera className="h-10 w-10 text-accent/70" strokeWidth={1.4} />
-            <p className="max-w-[260px] text-[12px] font-semibold leading-snug text-foreground/85">
-              Upload a full-body front photo for a personalized try-on
-            </p>
-            <p className="max-w-[240px] text-[10px] leading-relaxed text-foreground/45">
-              We&apos;ll show a style preview meanwhile.
-            </p>
-            {onRescanBody && (
-              <button
-                onClick={onRescanBody}
-                className="rounded-full bg-accent px-5 py-2 text-[10px] font-bold tracking-[0.18em] text-accent-foreground transition-colors hover:bg-accent/90"
-              >
-                SCAN BODY
-              </button>
-            )}
-          </div>
-        ) : (
-          // Single unified fallback for: missing-image / generic fallback / error / idle.
-          // Keeps the surface stable so fit breakdown below carries the value.
-          <div className="relative h-full w-full">
-            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
-            {isMissing && (
-              <div className="absolute bottom-4 left-0 right-0 px-6 text-center">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-foreground/[0.06] px-3 py-1 text-[10px] text-foreground/60">
-                  <ImageOff className="h-3 w-3" /> Product image missing
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {hasReal && (
-          <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
-            <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">{providerLabel}</span>
           </div>
         )}
       </div>
 
+      {/* Pose-degraded warning banner */}
+      {state.poseDegraded && hasImage && (
+        <div className="flex items-start gap-2 rounded-xl border border-orange-500/20 bg-orange-500/[0.06] px-3 py-2">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-500" />
+          <div className="flex-1 space-y-1">
+            <p className="text-[11px] font-semibold leading-tight text-foreground/85">
+              Approximate fit preview
+            </p>
+            <p className="text-[10px] leading-relaxed text-foreground/55">
+              Upload a clearer full-body front photo for a more personal try-on.
+            </p>
+          </div>
+          {onRescanBody && (
+            <button
+              onClick={onRescanBody}
+              className="shrink-0 rounded-full bg-foreground/10 px-3 py-1 text-[9px] font-bold tracking-[0.18em] text-foreground/85 transition-colors hover:bg-foreground/15"
+            >
+              UPLOAD
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Per-region fit chips — visible size differences */}
+      {state.fitChips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-1">
+          {state.fitChips.map((chip) => {
+            const tone = TONE_STYLE[chip.tone] ?? TONE_STYLE.regular;
+            return (
+              <div
+                key={chip.region}
+                className="flex items-center gap-1.5 rounded-full border border-foreground/10 bg-background/50 px-2.5 py-1"
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+                <span className="text-[9px] font-semibold tracking-[0.14em] text-foreground/70">
+                  {chip.region.toUpperCase()}
+                </span>
+                <span className="text-[9px] font-bold tracking-[0.14em] text-foreground/90">
+                  {tone.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
-        {hasReal
-          ? tryOnMode === "photo"
-            ? "Generated from your body photo"
-            : "Style preview · upload a body photo for personal try-on"
-          : isLoading
-          ? "Usually ready in a few seconds"
-          : "Fit breakdown stays available even if preview fails"}
+        {state.source === "ai"
+          ? "AI-refined preview"
+          : state.poseDegraded
+          ? "Style preview based on your measurements"
+          : "Style preview built from your body photo"}
       </p>
     </div>
   );
