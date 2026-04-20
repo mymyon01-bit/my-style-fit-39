@@ -36,7 +36,9 @@ const APIFY_ENABLED = (Deno.env.get("APIFY_ENABLED") || "false").toLowerCase() =
 // ── SOURCE LOCK ────────────────────────────────────────────────────────────
 // Comma-separated list of allowed source labels. Defaults to KR-only ScrapingBee.
 // To re-enable an Apify source, set APIFY_ENABLED=true AND list the label here.
-const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver";
+// KR routes via ScrapingBee + Global routes (ASOS / Zalando / SSENSE) via direct ScrapingBee.
+// Global labels share the apify_* prefix for legacy compatibility but actually run via ScrapingBee.
+const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver,sb_asos,sb_zalando,sb_ssense";
 const ENABLED_SOURCES = new Set(
   (Deno.env.get("ENABLED_SOURCES") || DEFAULT_ENABLED)
     .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
@@ -625,6 +627,9 @@ async function scrapingBeeFallbackFor(label: string, query: string, max: number)
     apify_zalando: `https://www.zalando.de/catalog/?q=${encodeURIComponent(query)}`,
     apify_coupang: `https://www.coupang.com/np/search?q=${encodeURIComponent(query)}`,
     apify_gshopping: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(query)}`,
+    sb_asos: `https://www.asos.com/search/?q=${encodeURIComponent(query)}`,
+    sb_zalando: `https://www.zalando.com/catalog/?q=${encodeURIComponent(query)}`,
+    sb_ssense: `https://www.ssense.com/en-us/search?q=${encodeURIComponent(query)}`,
   };
   const url = fallbackUrls[label];
   if (!url) return [];
@@ -832,12 +837,17 @@ serve(async (req) => {
       sourceEnabled("apify_wconcept") ? fetchScrapingBeeKR("wconcept", query, krCap) : skip(),
       sourceEnabled("apify_ssg") ? fetchScrapingBeeKR("ssg", query, krCap) : skip(),
       sourceEnabled("apify_naver") ? fetchScrapingBeeKR("naver", query, krCap) : skip(),
+      // Global retailers via direct ScrapingBee (independent of Apify gate).
+      sourceEnabled("sb_asos") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_asos", query, krCap) : skip(),
+      sourceEnabled("sb_zalando") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_zalando", query, krCap) : skip(),
+      sourceEnabled("sb_ssense") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_ssense", query, krCap) : skip(),
     ]);
 
     const labels = [
       "apify_asos", "apify_zalando", "apify_coupang", "apify_gshopping",
       "crawlbase_farfetch",
       "apify_musinsa", "apify_29cm", "apify_wconcept", "apify_ssg", "apify_naver",
+      "sb_asos", "sb_zalando", "sb_ssense",
     ];
     const perSource: Record<string, number> = {};
     const fallbackUsed: string[] = [];
