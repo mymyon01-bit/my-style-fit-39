@@ -676,6 +676,88 @@ async function fetchFromMultiSource(query: string, timeoutMs = 9_000): Promise<a
   }
 }
 
+
+// ─── Google Shopping (SerpAPI) — first-class discovery source ───
+// Calls the existing google-shopping edge function which already upserts
+// into product_cache. Returns normalized rows for the caller to merge.
+async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, timeoutMs = 9_000): Promise<any[]> {
+  const sanitized = sanitizeSearchQuery(query);
+  if (!sanitized) return [];
+  try {
+    const baseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!baseUrl || !serviceKey) return [];
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl}/functions/v1/google-shopping`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+      body: JSON.stringify({ query: sanitized, limit: Math.min(limit, 60), hl }),
+      signal: ctrl.signal,
+    }).finally(() => clearTimeout(t));
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    const products = Array.isArray(data?.products) ? data.products : [];
+    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({ stage: "GOOGLE_SHOPPING", query: sanitized, returned: products.length, inserted: data?.inserted ?? 0 })}`);
+    return products
+      .filter((p: any) => imageQualityCheck(p.image_url).ok && p.name && p.source_url?.startsWith("http") && isFashionProduct(p.name))
+      .map((p: any) => autoTagProduct({
+        ...p,
+        image_valid: true,
+        is_active: true,
+        // Synthetic created_at so freshness ranks them highly in this request.
+        created_at: new Date().toISOString(),
+        _is_fresh: true,
+      }));
+  } catch (e) {
+    console.warn("[google-shopping] fetch skipped:", (e as Error).message);
+    return [];
+  }
+}
+
+// ─── Google CSE — URL-only discovery, then hand to search-discovery ───
+// CSE returns URLs only. We send them to search-discovery as candidate URLs
+// (search-discovery will extract og:image/title and write to cache).
+async function triggerCseExpansion(query: string, hl?: string, timeoutMs = 6_000): Promise<number> {
+  const sanitized = sanitizeSearchQuery(query);
+  if (!sanitized) return 0;
+  try {
+    const baseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!baseUrl || !serviceKey) return 0;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl}/functions/v1/google-cse`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+      body: JSON.stringify({ query: sanitized, num: 20, hl }),
+      signal: ctrl.signal,
+    }).finally(() => clearTimeout(t));
+    if (!res.ok) return 0;
+    const data = await res.json().catch(() => null);
+    const count = Array.isArray(data?.candidates) ? data.candidates.length : 0;
+    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({ stage: "GOOGLE_CSE", query: sanitized, candidates: count })}`);
+    return count;
+  } catch (e) {
+    console.warn("[google-cse] fetch skipped:", (e as Error).message);
+    return 0;
+  }
+}
+
+// ─── Freshness scoring (used to re-rank merged pool) ───
+function freshnessScore(p: any): number {
+  if (p._is_fresh) return 100;
+  const created = p.created_at ? new Date(p.created_at).getTime() : 0;
+  if (!created) return 0;
+  const ageHours = (Date.now() - created) / 3_600_000;
+  if (ageHours < 1)   return 95;
+  if (ageHours < 6)   return 80;
+  if (ageHours < 24)  return 60;
+  if (ageHours < 72)  return 40;
+  if (ageHours < 168) return 20; // a week
+  return 5;
+}
+
 // ─── Input validation ───
 function validateInput(body: any): { valid: boolean; error?: string } {
   if (body.query && typeof body.query !== "string") return { valid: false, error: "query must be a string" };
