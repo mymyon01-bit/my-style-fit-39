@@ -368,7 +368,7 @@ export default function FitResults({
         activeSize={activeSize}
         tryOnImageUrl={tryOn.imageUrl}
         tryOnStatus={tryOn.status}
-        tryOnProvider={tryOn.provider}
+        tryOnProvider={tryOn.provider as "replicate" | "perplexity" | "replicate-text" | null}
         tryOnMode={tryOn.mode}
         cacheHit={tryOn.cacheHit}
         visualState={tryOn.visualState}

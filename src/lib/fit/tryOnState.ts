@@ -50,9 +50,15 @@ export const normalizeTryOnSource = (
   return fallback;
 };
 
-export const makeIdleState = (): FitVisualState => ({ kind: "idle" });
+export type IdleState = Extract<FitVisualState, { kind: "idle" }>;
+export type LoadingState = Extract<FitVisualState, { kind: "loading" }>;
+export type SuccessState = Extract<FitVisualState, { kind: "success" }>;
+export type FallbackState = Extract<FitVisualState, { kind: "fallback" }>;
+export type ErrorState = Extract<FitVisualState, { kind: "error" }>;
 
-export const makeLoadingState = (selectedSize: string): FitVisualState => ({
+export const makeIdleState = (): IdleState => ({ kind: "idle" });
+
+export const makeLoadingState = (selectedSize: string): LoadingState => ({
   kind: "loading",
   selectedSize,
   startedAt: Date.now(),
@@ -62,17 +68,17 @@ export const makeSuccessState = (
   selectedSize: string,
   imageUrl: string,
   source: TryOnVisualSource
-): FitVisualState => ({ kind: "success", selectedSize, imageUrl, source });
+): SuccessState => ({ kind: "success", selectedSize, imageUrl, source });
 
 export const makeFallbackState = (
   selectedSize: string,
   reason: string
-): FitVisualState => ({ kind: "fallback", selectedSize, reason });
+): FallbackState => ({ kind: "fallback", selectedSize, reason });
 
 export const makeErrorState = (
   selectedSize: string,
   message: string
-): FitVisualState => ({ kind: "error", selectedSize, message });
+): ErrorState => ({ kind: "error", selectedSize, message });
 
 export const logTryOnClient = (
   event: string,
