@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User, XCircle, Sparkles, Lock } from "lucide-react";
+import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User, XCircle, Sparkles, Lock, FolderOpen, X, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import type { FitMode } from "@/pages/FitPage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import BodyPhotoPicker from "@/components/fit/BodyPhotoPicker";
+import type { UserBodyImage } from "@/lib/fit/userBodyImages";
 
 interface ScanStatus {
   frontUploaded: boolean;
