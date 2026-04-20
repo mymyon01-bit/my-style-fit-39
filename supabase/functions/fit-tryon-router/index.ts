@@ -78,10 +78,29 @@ function failure(code: FailureResponse["code"], error: string, selectedSize?: st
 
 function sizeFitBehavior(size: string) {
   const s = (size || "M").toUpperCase();
-  if (s === "XS" || s === "S") return { ease: "tight, body-skimming with minimal ease (about 2cm)", silhouette: "fitted close to the torso, sleeves taut, hem sits high", drape: "fabric stretches across chest and shoulders, no excess folds" };
-  if (s === "L") return { ease: "relaxed with generous ease (about 8cm)", silhouette: "loose through chest and waist, sleeves slightly long", drape: "soft folds at the waist and under the arms, hem drops naturally" };
-  if (s === "XL" || s === "XXL") return { ease: "oversized with very generous ease (about 12cm or more)", silhouette: "dropped shoulders, boxy through the body, long sleeves", drape: "deep folds across the chest, billowing hem, fabric hangs away from body" };
-  return { ease: "true-to-size with natural ease (about 5cm)", silhouette: "follows body lines with comfortable room", drape: "natural folds, sleeves hit the wrist, hem at the hip" };
+  if (s === "XS" || s === "S")
+    return {
+      ease: "tight body-hugging fit, almost no ease, cuffs and hem sit high",
+      silhouette: "slim and structured, sleeves taut against the arms, shoulder seam pulled exactly to the joint, hem clearly above the hip",
+      drape: "fabric stretches flat across chest and shoulders, no folds, no bunching, garment skims every body line",
+    };
+  if (s === "L")
+    return {
+      ease: "relaxed and roomy with generous ease (~8cm), longer body, wider sleeves",
+      silhouette: "loose through chest and waist, shoulder seam slightly past the joint, sleeves clearly long, hem drops below the hip",
+      drape: "soft visible folds at the waist and under the arms, fabric falls away from the torso, hem swings naturally",
+    };
+  if (s === "XL" || s === "XXL")
+    return {
+      ease: "clearly oversized with very generous ease (12cm or more), dropped shoulders, very long body and sleeves",
+      silhouette: "boxy and dramatically oversized, shoulder seam visibly dropped onto the upper arm, sleeves falling near the wrist or past, hem near mid-thigh",
+      drape: "deep cascading folds across the chest and back, billowing hem, fabric hangs noticeably away from the body in every direction",
+    };
+  return {
+    ease: "true-to-size with natural ease (~5cm)",
+    silhouette: "follows the body with comfortable room, shoulder seam at the joint, sleeves end at the wrist, hem at the hip",
+    drape: "natural soft folds, balanced volume, fabric neither tight nor loose",
+  };
 }
 
 function buildFitDescription(category: string | undefined, size: string, fitDescriptor: string | undefined, regions: RegionFitLite[] | undefined) {
