@@ -95,16 +95,32 @@ export function useAiTryOn(args: Args) {
     }
     if (!args.productKey || !args.selectedSize) return;
 
-    const product: TryOnProductInfo = {
+    const bodyProfile = buildBodyProfile({
+      heightCm: args.body.heightCm ?? null,
+      weightKg: args.body.weightKg ?? null,
+      shoulderCm: args.body.shoulderWidthCm ?? null,
+      chestCm: args.body.chestCm ?? null,
+      waistCm: args.body.waistCm ?? null,
+    });
+    const fitMap = buildGarmentFitMap({
+      category: args.productCategory ?? null,
+      selectedSize: args.selectedSize,
+      fitType: args.productFitType ?? null,
+      body: bodyProfile,
+    });
+    const visual = buildProductVisualDescriptor({
       title: args.productName,
       category: args.productCategory ?? null,
+      brand: undefined,
       fitType: args.productFitType ?? null,
-    };
-    const prompt = buildTryOnPrompt({
-      user: args.body,
-      product,
+    });
+    const prompt = buildFitGenerationPrompt({
+      body: bodyProfile,
+      fit: fitMap,
+      product: visual,
       selectedSize: args.selectedSize,
-      recommendedSize: args.prewarmSize ?? undefined,
+      hasBodyImage: !!args.userImageUrl,
+      gender: args.body.gender ?? null,
     });
 
     const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
