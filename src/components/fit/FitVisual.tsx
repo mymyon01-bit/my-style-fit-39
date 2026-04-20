@@ -72,12 +72,14 @@ export default function FitVisual({
 
   const providerLabel =
     tryOnProvider === "replicate"
-      ? "AI · PHOTO TRY-ON"
+      ? "AI TRY-ON"
       : tryOnProvider === "perplexity"
-      ? "AI · REFERENCE LOOK"
+      ? "STYLE PREVIEW"
       : tryOnProvider === "replicate-text"
-      ? "AI · STYLE PREVIEW"
-      : "AI TRY-ON";
+      ? "STYLE PREVIEW"
+      : tryOnMode === "photo"
+      ? "AI TRY-ON"
+      : "STYLE PREVIEW";
 
   return (
     <div className="rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4 space-y-3 overflow-hidden">
