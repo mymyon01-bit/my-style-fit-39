@@ -104,14 +104,41 @@ export default function FitBodyScan({ onScanComplete, canUsePremium, onSelectSav
     if (data && data.length > 0) setExistingScans(data);
   };
 
-  const handleUpload = (side: "front" | "side" | "back") => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const setSidePreview = (side: Side, file: File, previewUrl: string) => {
+    setStatus(s => ({ ...s, [`${side}Uploaded`]: true, [`${side}Preview`]: previewUrl, [`${side}File`]: file }));
+  };
+
+  const handleUpload = (side: Side) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     const validation = validateImageBasic(file);
     if (!validation.valid) { toast.error(validation.issues.join(". ")); return; }
-    const url = URL.createObjectURL(file);
-    setStatus(s => ({ ...s, [`${side}Uploaded`]: true, [`${side}Preview`]: url, [`${side}File`]: file }));
+    setSidePreview(side, file, URL.createObjectURL(file));
+    setSheetSide(null);
   };
+
+  const handlePickSaved = async (image: UserBodyImage, url: string) => {
+    const targetSide = savedPickerSide;
+    setSavedPickerSide(null);
+    if (!targetSide) return;
+    setPickingSavedFor(targetSide);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
+      const file = new File([blob], `saved-${targetSide}.${ext}`, { type: blob.type || "image/jpeg" });
+      setSidePreview(targetSide, file, url);
+      onSelectSavedImage?.(image, url);
+      toast.success(`Saved photo set as ${targetSide.toUpperCase()}`);
+    } catch (err) {
+      console.error("[FitBodyScan] saved pick failed", err);
+      toast.error("Couldn't load saved photo");
+    } finally {
+      setPickingSavedFor(null);
+    }
+  };
+
 
   const uploadToStorage = async (file: File, imageType: string): Promise<string | null> => {
     if (!user) return null;
