@@ -904,6 +904,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          bonus_stars: number
           created_at: string
           date_of_birth: string | null
           display_name: string | null
@@ -927,6 +928,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          bonus_stars?: number
           created_at?: string
           date_of_birth?: string | null
           display_name?: string | null
@@ -950,6 +952,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          bonus_stars?: number
           created_at?: string
           date_of_birth?: string | null
           display_name?: string | null
@@ -1014,6 +1017,71 @@ export type Database = {
           tags?: string[]
           updated_at?: string
           usage_count?: number
+        }
+        Relationships: []
+      }
+      referral_grants: {
+        Row: {
+          created_at: string
+          id: string
+          referral_id: string
+          role: string
+          stars_awarded: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_id: string
+          role: string
+          stars_awarded: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_id?: string
+          role?: string
+          stars_awarded?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_grants_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          code: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          referred_id: string | null
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          code: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referred_id?: string | null
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          code?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referred_id?: string | null
+          referrer_id?: string
+          status?: string
         }
         Relationships: []
       }
@@ -1391,6 +1459,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_referral: { Args: { _code: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
