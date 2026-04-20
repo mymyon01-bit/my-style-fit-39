@@ -297,6 +297,11 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
 
     (async () => {
       try {
+        console.log("[FIT_AI] start", {
+          productKey: args.productKey,
+          size: args.selectedSize,
+          hasUserImage: !!args.userImageUrl,
+        });
         const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
           body: {
             userImageUrl: args.userImageUrl,
@@ -310,24 +315,33 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           },
         });
         const elapsed = Date.now() - startedAt;
+        console.log("[FIT_AI] response", {
+          elapsedMs: elapsed,
+          hasError: !!error,
+          ok: data?.ok,
+          imageUrl: data?.imageUrl ? `${String(data.imageUrl).slice(0, 80)}…` : null,
+          provider: data?.provider,
+        });
         if (cancelled) return;
-        if (elapsed > AI_SWAP_WINDOW_MS) {
-          setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
-          return;
-        }
         if (!error && data?.ok && data?.imageUrl) {
+          console.log("[FIT_AI] SWAP → AI result applied");
+          // CRITICAL: force-swap regardless of current stage. The AI hero
+          // always wins over the canvas fallback once it lands.
           setState((s) => ({
             ...s,
             stage: "ready",
             imageUrl: data.imageUrl,
             source: "ai",
+            error: null,
           }));
           return;
         }
         // Failed or non-ok — keep whatever the canvas produced.
+        console.warn("[FIT_AI] no AI image, keeping canvas fallback", { error, data });
         setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
-      } catch {
+      } catch (err) {
         if (cancelled) return;
+        console.warn("[FIT_AI] invoke threw, keeping canvas fallback", err);
         setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
       }
     })();
