@@ -127,12 +127,7 @@ function getServiceClient() {
   );
 }
 
-function getServiceClient() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-}
+// (duplicate getServiceClient removed)
 
 // ─── DB-first: load cached products with strict text matching ───
 async function loadFromDB(supabase: any, opts: {
