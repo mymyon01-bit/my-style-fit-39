@@ -1,10 +1,11 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Heart, Share2, ExternalLink, X, Tag, Sparkles } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Heart, Share2, ExternalLink, X, Tag, Sparkles, Camera } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SafeImage from "@/components/SafeImage";
-import ShareButton from "@/components/ShareButton";
 import { AuthGate } from "@/components/AuthGate";
+import ShareProductDialog from "@/components/ShareProductDialog";
+import PostProductToOOTDSheet from "@/components/profile/PostProductToOOTDSheet";
 
 interface ProductDetailItem {
   id: string;
@@ -41,6 +42,8 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: ProductDetailSheetProps) => {
   const navigate = useNavigate();
+  const [shareOpen, setShareOpen] = useState(false);
+  const [postOpen, setPostOpen] = useState(false);
   if (!product) return null;
 
   const handleTryOn = () => {
