@@ -787,7 +787,7 @@ serve(async (req) => {
       // (commerce-scraper / multi-source) + DB. CSE removed — bee+google now
       // carry the discovery load directly.
       const [gShop, externalResult, dbResult] = await Promise.all([
-        fetchFromGoogleShopping(normalizedQuery, Math.min(clampedLimit, 30), hl)
+        fetchFromGoogleShopping(normalizedQuery, 100, hl)
           .catch((e) => { console.error("Google Shopping failed:", e); return [] as any[]; }),
         fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
           .then(products => products.map(autoTagProduct))
@@ -945,7 +945,7 @@ serve(async (req) => {
           ? fetchFromMultiSource(sanitizedQuery, 9_000)
           : Promise.resolve([] as any[]),
         sanitizedQuery
-          ? fetchFromGoogleShopping(sanitizedQuery, Math.min(clampedLimit, 30), hl)
+          ? fetchFromGoogleShopping(sanitizedQuery, 100, hl)
           : Promise.resolve([] as any[]),
       ]);
 
