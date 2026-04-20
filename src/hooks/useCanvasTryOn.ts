@@ -64,11 +64,13 @@ interface Args {
   enableAiSwap?: boolean;
 }
 
-const HARD_TIMEOUT_MS = 10_000;
-// AI swap window: keep polling for the AI try-on result for up to 25s after
-// the canvas fallback renders. The fallback shows immediately so the UI never
-// hangs, but the moment the AI result arrives we swap it in as the hero.
-const AI_SWAP_WINDOW_MS = 25_000;
+// Force the canvas fallback to commit within 8s no matter what — the UI must
+// never stay on "BUILDING PREVIEW" after this point.
+const HARD_TIMEOUT_MS = 8_000;
+// AI swap window: keep polling for the AI try-on result for up to 45s after
+// the canvas fallback renders. Fallback shows immediately so the UI never
+// hangs, and the moment the AI result arrives we swap it in as the hero.
+const AI_SWAP_WINDOW_MS = 45_000;
 
 const toneOf = (region: string, fit: string): "tight" | "regular" | "loose" => {
   if (/(tight|snug|pulled|trim|short)/i.test(fit)) return "tight";
