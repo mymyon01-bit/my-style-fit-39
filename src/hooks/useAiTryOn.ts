@@ -82,7 +82,8 @@ const toStatus = (state: FitVisualState): TryOnStatus => {
 };
 
 async function runTextTryOn(args: Args, prompt: string): Promise<TextRunResult> {
-  const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+  const hashSegment = args.bodyImageHash ? args.bodyImageHash.slice(0, 12) : "nohash";
+  const cacheKey = `${args.productKey}::${args.selectedSize}::${hashSegment}::text`;
   const startedAt = Date.now();
   const stored = readStoredTryOnSuccess(args.productKey, args.selectedSize);
   if (stored?.kind === "success") {
@@ -331,7 +332,8 @@ export function useAiTryOn(args: Args) {
       solverHints: solver.visualPromptHints,
     });
 
-    const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+    const hashSegment = args.bodyImageHash ? args.bodyImageHash.slice(0, 12) : "nohash";
+    const cacheKey = `${args.productKey}::${args.selectedSize}::${hashSegment}::text`;
     const stored = readStoredTryOnSuccess(args.productKey, args.selectedSize);
     if (stored?.kind === "success") {
       transition({
