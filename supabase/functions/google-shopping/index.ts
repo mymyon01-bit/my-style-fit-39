@@ -71,7 +71,7 @@ serve(async (req) => {
     const { gl: defaultGl, hl: defaultHl } = langToLocale(body?.hl);
     const gl = (body?.gl || defaultGl).toString();
     const hl = (body?.hl || defaultHl).toString();
-    const limit = Math.min(Math.max(Number(body?.limit) || 60, 10), 100);
+    const limit = Math.min(Math.max(Number(body?.limit) || 100, 10), 100);
     const liveOnly = !!body?.liveOnly;
 
     const url = new URL("https://serpapi.com/search.json");
@@ -125,10 +125,10 @@ serve(async (req) => {
     let inserted = 0;
     if (!liveOnly && products.length && SUPABASE_URL && SERVICE_ROLE) {
       const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
-      // Upsert by external_id to dedupe across runs
+      // Dedupe by (platform, external_id) — the actual unique index in product_cache.
       const { error, count } = await sb
         .from("product_cache")
-        .upsert(products as never, { onConflict: "external_id", ignoreDuplicates: false, count: "exact" });
+        .upsert(products as never, { onConflict: "platform,external_id", ignoreDuplicates: false, count: "exact" });
       if (error) {
         console.log("[google-shopping] upsert_error", error.message);
       } else {
