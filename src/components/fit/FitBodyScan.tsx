@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User, XCircle, Sparkles, Lock } from "lucide-react";
+import { Camera, RotateCcw, CheckCircle2, AlertTriangle, Upload, Loader2, User, XCircle, Sparkles, Lock, FolderOpen, X, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import type { FitMode } from "@/pages/FitPage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import BodyPhotoPicker from "@/components/fit/BodyPhotoPicker";
+import type { UserBodyImage } from "@/lib/fit/userBodyImages";
 
 interface ScanStatus {
   frontUploaded: boolean;
@@ -28,7 +31,12 @@ interface ScanStatus {
 interface Props {
   onScanComplete: (quality: number, measurements?: Record<string, number>, mode?: FitMode) => void;
   canUsePremium?: boolean;
+  /** Called when user picks a saved photo so the FitPage can wire it into try-on */
+  onSelectSavedImage?: (image: UserBodyImage, url: string) => void;
+  selectedSavedImageId?: string | null;
 }
+
+type Side = "front" | "side" | "back";
 
 const GUIDELINES = [
   "Stand straight, arms slightly away from body",
@@ -65,7 +73,7 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
+export default function FitBodyScan({ onScanComplete, canUsePremium, onSelectSavedImage, selectedSavedImageId }: Props) {
   const { user } = useAuth();
   const [status, setStatus] = useState<ScanStatus>({
     frontUploaded: false, sideUploaded: false, backUploaded: false,
@@ -76,9 +84,13 @@ export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
     scanMode: "free",
   });
   const [existingScans, setExistingScans] = useState<any[]>([]);
+  const [sheetSide, setSheetSide] = useState<Side | null>(null);
+  const [savedPickerSide, setSavedPickerSide] = useState<Side | null>(null);
+  const [pickingSavedFor, setPickingSavedFor] = useState<Side | null>(null);
   const frontRef = useRef<HTMLInputElement>(null);
   const sideRef = useRef<HTMLInputElement>(null);
   const backRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (user) loadExistingScans(); }, [user]);
 
@@ -92,14 +104,41 @@ export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
     if (data && data.length > 0) setExistingScans(data);
   };
 
-  const handleUpload = (side: "front" | "side" | "back") => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const setSidePreview = (side: Side, file: File, previewUrl: string) => {
+    setStatus(s => ({ ...s, [`${side}Uploaded`]: true, [`${side}Preview`]: previewUrl, [`${side}File`]: file }));
+  };
+
+  const handleUpload = (side: Side) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     const validation = validateImageBasic(file);
     if (!validation.valid) { toast.error(validation.issues.join(". ")); return; }
-    const url = URL.createObjectURL(file);
-    setStatus(s => ({ ...s, [`${side}Uploaded`]: true, [`${side}Preview`]: url, [`${side}File`]: file }));
+    setSidePreview(side, file, URL.createObjectURL(file));
+    setSheetSide(null);
   };
+
+  const handlePickSaved = async (image: UserBodyImage, url: string) => {
+    const targetSide = savedPickerSide;
+    setSavedPickerSide(null);
+    if (!targetSide) return;
+    setPickingSavedFor(targetSide);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
+      const file = new File([blob], `saved-${targetSide}.${ext}`, { type: blob.type || "image/jpeg" });
+      setSidePreview(targetSide, file, url);
+      onSelectSavedImage?.(image, url);
+      toast.success(`Saved photo set as ${targetSide.toUpperCase()}`);
+    } catch (err) {
+      console.error("[FitBodyScan] saved pick failed", err);
+      toast.error("Couldn't load saved photo");
+    } finally {
+      setPickingSavedFor(null);
+    }
+  };
+
 
   const uploadToStorage = async (file: File, imageType: string): Promise<string | null> => {
     if (!user) return null;
@@ -260,18 +299,22 @@ export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
 
       <div className="grid grid-cols-3 gap-2">
         {(["front", "side", "back"] as const).map(side => {
-          const uploaded = status[`${side}Uploaded`];
           const preview = status[`${side}Preview`];
           const ref = side === "front" ? frontRef : side === "side" ? sideRef : backRef;
           const isOptional = side === "back";
+          const isBusy = pickingSavedFor === side;
           return (
             <motion.button
               key={side}
-              onClick={() => ref.current?.click()}
-              className="relative flex aspect-[3/4] flex-col items-center justify-center rounded-2xl border border-dashed border-foreground/10 bg-card/30 overflow-hidden transition-colors hover:border-accent/30"
+              type="button"
+              onClick={() => setSheetSide(side)}
+              disabled={isBusy}
+              className="relative flex aspect-[3/4] flex-col items-center justify-center rounded-2xl border border-dashed border-foreground/10 bg-card/30 overflow-hidden transition-colors hover:border-accent/30 disabled:opacity-60"
               whileTap={{ scale: 0.97 }}
             >
-              {preview ? (
+              {isBusy ? (
+                <Loader2 className="h-5 w-5 animate-spin text-accent" />
+              ) : preview ? (
                 <>
                   <img src={preview} alt={side} className="absolute inset-0 h-full w-full object-cover opacity-80" />
                   <div className="absolute inset-0 bg-background/40" />
@@ -288,6 +331,16 @@ export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
                 </>
               )}
               <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleUpload(side)} />
+              {side === sheetSide && (
+                <input
+                  ref={cameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleUpload(side)}
+                />
+              )}
             </motion.button>
           );
         })}
@@ -398,6 +451,118 @@ export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── PER-SIDE ACTION SHEET ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {sheetSide && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSheetSide(null)}
+              className="fixed inset-0 z-[80] bg-background/70 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              className="fixed inset-x-0 bottom-0 z-[81] mx-auto w-full max-w-md rounded-t-3xl border border-foreground/10 bg-background p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:bottom-1/2 sm:translate-y-1/2 sm:rounded-3xl"
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/55">
+                  {sheetSide.toUpperCase()} PHOTO
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSheetSide(null)}
+                  className="rounded-full p-1 text-foreground/55 hover:bg-foreground/[0.06] hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mb-5 text-[11px] text-foreground/55">
+                Stand straight, full body visible — head to feet.
+              </p>
+
+              <div className="space-y-2">
+                <SheetAction
+                  icon={<Camera className="h-4 w-4" />}
+                  label="Take photo"
+                  hint="Use your camera"
+                  onClick={() => cameraRef.current?.click()}
+                />
+                <SheetAction
+                  icon={<Upload className="h-4 w-4" />}
+                  label="Upload from device"
+                  hint="Choose an image file"
+                  onClick={() => {
+                    const ref = sheetSide === "front" ? frontRef : sheetSide === "side" ? sideRef : backRef;
+                    ref.current?.click();
+                  }}
+                />
+                <SheetAction
+                  icon={<FolderOpen className="h-4 w-4" />}
+                  label="Choose from saved"
+                  hint="Your previously uploaded photos"
+                  onClick={() => {
+                    const target = sheetSide;
+                    setSheetSide(null);
+                    setSavedPickerSide(target);
+                  }}
+                  emphasis
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── SAVED PHOTO LIBRARY DIALOG ────────────────────────────────────── */}
+      <Dialog open={!!savedPickerSide} onOpenChange={(o) => { if (!o) setSavedPickerSide(null); }}>
+        <DialogContent className="max-w-lg p-6">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">
+              Choose a saved photo {savedPickerSide ? `for ${savedPickerSide.toUpperCase()}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <BodyPhotoPicker
+            className="mt-2"
+            selectedImageId={selectedSavedImageId ?? null}
+            onSelect={handlePickSaved}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function SheetAction({
+  icon, label, hint, onClick, emphasis,
+}: {
+  icon: React.ReactNode; label: string; hint?: string;
+  onClick: () => void; emphasis?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-all ${
+        emphasis
+          ? "border-accent/30 bg-accent/[0.06] hover:border-accent/55"
+          : "border-foreground/10 bg-card/40 hover:border-foreground/25 hover:bg-card/70"
+      }`}
+    >
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+        emphasis ? "bg-accent text-background" : "bg-foreground text-background"
+      }`}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-foreground">{label}</p>
+        {hint && <p className="mt-0.5 text-[11px] text-foreground/55">{hint}</p>}
+      </div>
+      <ImageIcon className="h-3.5 w-3.5 text-foreground/30" />
+    </button>
   );
 }
