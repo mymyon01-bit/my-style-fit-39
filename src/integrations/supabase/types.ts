@@ -337,6 +337,7 @@ export type Database = {
       }
       fit_tryons: {
         Row: {
+          body_image_hash: string | null
           created_at: string
           error_message: string | null
           id: string
@@ -354,6 +355,7 @@ export type Database = {
           user_image_url: string | null
         }
         Insert: {
+          body_image_hash?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -371,6 +373,7 @@ export type Database = {
           user_image_url?: string | null
         }
         Update: {
+          body_image_hash?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -1409,6 +1412,57 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weather_snapshot?: Json | null
+        }
+        Relationships: []
+      }
+      user_body_images: {
+        Row: {
+          created_at: string
+          height: number | null
+          id: string
+          image_hash: string
+          is_active: boolean
+          label: string | null
+          metadata: Json
+          public_url: string | null
+          source: string
+          storage_bucket: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          image_hash: string
+          is_active?: boolean
+          label?: string | null
+          metadata?: Json
+          public_url?: string | null
+          source?: string
+          storage_bucket?: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          image_hash?: string
+          is_active?: boolean
+          label?: string | null
+          metadata?: Json
+          public_url?: string | null
+          source?: string
+          storage_bucket?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+          width?: number | null
         }
         Relationships: []
       }

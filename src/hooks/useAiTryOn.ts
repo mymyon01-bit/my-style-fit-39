@@ -37,6 +37,10 @@ interface Args {
   productFitType?: string | null;
   selectedSize: string;
   body: TryOnUserBody;
+  /** SHA-256 of the user's body image, when picked from the user_body_images
+   *  library. Used as part of the cache key so the same body+product+size
+   *  reuses an existing try-on instead of re-generating. */
+  bodyImageHash?: string | null;
   fitDescriptor?: string;
   regions?: { region: string; fit: string }[];
   productUrl?: string | null;
@@ -78,7 +82,8 @@ const toStatus = (state: FitVisualState): TryOnStatus => {
 };
 
 async function runTextTryOn(args: Args, prompt: string): Promise<TextRunResult> {
-  const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+  const hashSegment = args.bodyImageHash ? args.bodyImageHash.slice(0, 12) : "nohash";
+  const cacheKey = `${args.productKey}::${args.selectedSize}::${hashSegment}::text`;
   const startedAt = Date.now();
   const stored = readStoredTryOnSuccess(args.productKey, args.selectedSize);
   if (stored?.kind === "success") {
@@ -286,7 +291,8 @@ export function useAiTryOn(args: Args) {
 
     // Force-reload: clear text caches for this key when reloadToken bumps
     if (args.reloadToken && args.reloadToken > 0) {
-      const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+      const reloadHashSeg = args.bodyImageHash ? args.bodyImageHash.slice(0, 12) : "nohash";
+      const cacheKey = `${args.productKey}::${args.selectedSize}::${reloadHashSeg}::text`;
       clearStoredTryOn(args.productKey, args.selectedSize);
       TEXT_CACHE.delete(cacheKey);
       activeTextRequests.delete(cacheKey);
@@ -327,7 +333,8 @@ export function useAiTryOn(args: Args) {
       solverHints: solver.visualPromptHints,
     });
 
-    const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+    const hashSegment = args.bodyImageHash ? args.bodyImageHash.slice(0, 12) : "nohash";
+    const cacheKey = `${args.productKey}::${args.selectedSize}::${hashSegment}::text`;
     const stored = readStoredTryOnSuccess(args.productKey, args.selectedSize);
     if (stored?.kind === "success") {
       transition({
@@ -495,6 +502,7 @@ export function useAiTryOn(args: Args) {
     args.productName,
     args.reloadToken,
     args.selectedSize,
+    args.bodyImageHash,
     hasPhoto,
   ]);
 

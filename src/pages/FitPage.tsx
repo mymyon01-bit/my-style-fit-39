@@ -14,6 +14,8 @@ import FitMeasurements from "@/components/fit/FitMeasurements";
 import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
 import FitTryOnTrigger from "@/components/fit/FitTryOnTrigger";
+import UserBodyImageLibrary from "@/components/fit/UserBodyImageLibrary";
+import type { UserBodyImage } from "@/lib/fit/userBodyImages";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
@@ -100,8 +102,19 @@ const FitPage = () => {
   const [weightKg, setWeightKg] = useState<number | null>(null);
   const [activeSize, setActiveSize] = useState<string | null>(null);
   const [userBodyImageUrl, setUserBodyImageUrl] = useState<string | null>(null);
+  const [selectedBodyImage, setSelectedBodyImage] = useState<UserBodyImage | null>(null);
   // Simple shape inputs — refine fit accuracy without raw cm.
   const [bodyShape, setBodyShape] = useState<import("@/lib/fit/bodyShape").BodyShapeInput>({});
+
+  const handleSelectBodyImage = useCallback((image: UserBodyImage, url: string) => {
+    setSelectedBodyImage(image);
+    setUserBodyImageUrl(url);
+  }, []);
+
+  const handleClearBodyImage = useCallback(() => {
+    setSelectedBodyImage(null);
+    setUserBodyImageUrl(null);
+  }, []);
 
   // Default activeSize to the recommended size whenever a new fit result lands.
   useEffect(() => {
@@ -444,6 +457,7 @@ const FitPage = () => {
           productUrl={selectedProduct.url}
           selectedSize={activeSize}
           userImageUrl={userBodyImageUrl}
+          bodyImageHash={selectedBodyImage?.image_hash ?? null}
           body={{
             heightCm: measurements.heightCm.value,
             weightKg: weightKg ?? null,
@@ -460,6 +474,12 @@ const FitPage = () => {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && (
               <>
+                <UserBodyImageLibrary
+                  className="mb-8"
+                  selectedImageId={selectedBodyImage?.id ?? null}
+                  onSelect={handleSelectBodyImage}
+                  onClear={handleClearBodyImage}
+                />
                 <FitBodyScan
                   onScanComplete={handleScanComplete}
                   canUsePremium={canUsePremium}

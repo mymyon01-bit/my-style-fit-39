@@ -18,13 +18,14 @@ interface Props {
   productUrl?: string | null;
   selectedSize: string;
   userImageUrl: string | null;
+  bodyImageHash?: string | null;
   body: TryOnUserBody;
 }
 
 export default function FitTryOnTrigger(props: Props) {
   // Mounting useAiTryOn with enabled=true is the trigger — its internal
-  // effect runs on (productKey, selectedSize) change and posts to the router
-  // / fit-tryon-text edge function immediately.
+  // effect runs on (productKey, selectedSize, bodyImageHash) change and
+  // posts to the router / fit-tryon-text edge function immediately.
   const tryOn = useAiTryOn({
     enabled: true,
     userImageUrl: props.userImageUrl,
@@ -34,6 +35,7 @@ export default function FitTryOnTrigger(props: Props) {
     productName: props.productName,
     productFitType: props.productFitType ?? null,
     selectedSize: props.selectedSize,
+    bodyImageHash: props.bodyImageHash ?? null,
     body: props.body,
     productUrl: props.productUrl ?? null,
   });
