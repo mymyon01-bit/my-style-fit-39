@@ -131,7 +131,7 @@ export default function FitVisual({
                   ? "READING BODY"
                   : state.stage === "cutout"
                   ? "PREPARING GARMENT"
-                  : "BUILDING PREVIEW"}
+                  : "PREPARING PREVIEW"}
               </p>
             </div>
           </div>
