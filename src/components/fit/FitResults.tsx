@@ -16,6 +16,8 @@ import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
 import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
 import { buildBodyShapeScales, type BodyShapeInput } from "@/lib/fit/bodyShape";
 import { buildFitExplanation as buildSizeExplanation, buildFitBreakdown } from "@/lib/fit/buildFitExplanation";
+import { solveFit, FIT_TYPE_LABEL } from "@/lib/fit/fitSolver";
+import FitBreakdown from "@/components/fit/FitBreakdown";
 
 interface FitProduct {
   id: string;
@@ -176,6 +178,17 @@ export default function FitResults({
     [garmentFit, newBodyProfile, activeSize],
   );
   const breakdown = useMemo(() => buildFitBreakdown(garmentFit), [garmentFit]);
+
+  // ── FIT SOLVER — deterministic source of truth (score / labels / hints) ──
+  const solver = useMemo(
+    () => solveFit({
+      body: newBodyProfile,
+      fit: garmentFit,
+      category: garmentFit.category,
+      selectedSize: activeSize,
+    }),
+    [newBodyProfile, garmentFit, activeSize],
+  );
 
   // ── Global size fallback card (only when truly missing brand data) ───────
   const profile = bodyHeightCm
@@ -370,29 +383,19 @@ export default function FitResults({
           Body image needs a full-body front shot for an accurate try-on.
         </p>
       )}
-      {/* ══ NEW: SILHOUETTE + FIT BREAKDOWN (size-aware, deterministic) ══ */}
+      {/* ══ SILHOUETTE + FIT BREAKDOWN — driven by FitSolver ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">SILHOUETTE</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">SILHOUETTE</p>
+            <span className="text-[10px] text-foreground/40">· {FIT_TYPE_LABEL[solver.fitType]}</span>
+          </div>
           <span className="rounded-full bg-accent/10 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-accent">
-            {sizeExplanation.silhouetteLabel}
+            {solver.silhouette.toUpperCase()}
           </span>
         </div>
-        <p className="text-[13px] leading-relaxed text-foreground/80">{sizeExplanation.paragraph}</p>
-        <div className="grid grid-cols-5 gap-2 pt-1">
-          {[
-            { label: "CHEST",    value: breakdown.chest },
-            { label: "WAIST",    value: breakdown.waist },
-            { label: "SHOULDER", value: breakdown.shoulder },
-            { label: "LENGTH",   value: breakdown.length },
-            { label: "SLEEVE",   value: breakdown.sleeve },
-          ].map((m) => (
-            <div key={m.label} className="rounded-lg border border-foreground/[0.05] bg-background/40 py-2 text-center">
-              <p className="text-[8px] font-bold tracking-[0.15em] text-foreground/40">{m.label}</p>
-              <p className="text-[11px] font-semibold text-foreground mt-0.5">{m.value}</p>
-            </div>
-          ))}
-        </div>
+        <p className="text-[13px] leading-relaxed text-foreground/80">{solver.summary}</p>
+        <FitBreakdown solver={solver} isBottom={garmentFit.category === "bottom"} />
       </div>
 
       {/* ══ 4. EXPLANATION — main trust layer ══ */}
