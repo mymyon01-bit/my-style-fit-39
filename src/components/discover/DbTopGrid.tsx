@@ -48,23 +48,26 @@ function DbTopGridSlot({ product, loading, onSelect }: SlotProps) {
       </div>
     );
   }
+  const src = product.imageUrl && product.imageUrl.startsWith("http") ? product.imageUrl : null;
+  if (!src && typeof window !== "undefined") {
+    console.log("PRODUCT IMAGE:", product.id, product.imageUrl);
+  }
   return (
     <button
       type="button"
       onClick={() => onSelect(product)}
       className="group relative block w-full text-left"
     >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.04]">
-        {product.imageUrl && (
-          <img
-            src={product.imageUrl}
-            alt={product.title}
-            loading="lazy"
-            decoding="async"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
-          />
-        )}
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted/40">
+        <img
+          src={src || "/placeholder.svg"}
+          alt={product.title}
+          loading="lazy"
+          decoding="async"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+          onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
+        />
         <div className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5 text-[9px] font-semibold tracking-[0.12em] text-foreground/75 backdrop-blur-sm">
           {(product.source || "store").toUpperCase()}
         </div>

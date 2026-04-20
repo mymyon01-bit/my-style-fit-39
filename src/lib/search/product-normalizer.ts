@@ -16,8 +16,20 @@ export function normalizeFromCache(raw: unknown): Product | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   const title = (r.name || r.title || "") as string;
-  const imageUrl = (r.image_url || r.imageUrl || null) as string | null;
+  // STRICT IMAGE PRIORITY: image_url > imageUrl > image > thumbnail > images[0]
+  const imagesArr = Array.isArray(r.images) ? (r.images as unknown[]) : [];
+  const firstFromArray = imagesArr.find((v) => typeof v === "string" && v) as string | undefined;
+  const imageUrl =
+    (r.image_url as string) ||
+    (r.imageUrl as string) ||
+    (r.image as string) ||
+    (r.thumbnail as string) ||
+    firstFromArray ||
+    null;
   const externalUrl = (r.source_url || r.externalUrl || null) as string | null;
+  if (typeof window !== "undefined" && !imageUrl) {
+    console.log("PRODUCT IMAGE:", r.id, imageUrl);
+  }
   if (!title) return null;
   const category = (r.category as string) || inferCategory(title);
   return {
