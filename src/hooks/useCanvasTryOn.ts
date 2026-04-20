@@ -65,7 +65,10 @@ interface Args {
 }
 
 const HARD_TIMEOUT_MS = 10_000;
-const AI_SWAP_WINDOW_MS = 8_000;
+// AI swap window: keep polling for the AI try-on result for up to 25s after
+// the canvas fallback renders. The fallback shows immediately so the UI never
+// hangs, but the moment the AI result arrives we swap it in as the hero.
+const AI_SWAP_WINDOW_MS = 25_000;
 
 const toneOf = (region: string, fit: string): "tight" | "regular" | "loose" => {
   if (/(tight|snug|pulled|trim|short)/i.test(fit)) return "tight";
@@ -263,43 +266,67 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     bodyProfile.chestRatio,
   ]);
 
-  // ── OPTIONAL AI swap-in (background, max 8s window) ─────────────────────
+  // ── PRIMARY AI try-on (photo path) — runs IN PARALLEL with the canvas ───
+  // When the user has a body photo, this is the HERO output. We kick it off
+  // immediately on mount/size-change and swap as soon as it lands, even if
+  // the canvas has already rendered. Window is generous (25s) so realistic
+  // IDM-VTON cold starts still win the swap.
   useEffect(() => {
     if (!args.enableAiSwap) return;
     if (!args.enabled || !args.productImageUrl || !args.selectedSize) return;
-    if (state.stage !== "ready") return;
-    if (state.source === "ai") return; // already swapped
+    if (!args.userImageUrl) return; // no photo → AI path skipped, canvas stays
+    if (state.source === "ai") return; // already have AI result for this size
 
     let cancelled = false;
     const startedAt = Date.now();
-    setState((s) => ({ ...s, stage: "refining" }));
+    // Mark as refining so the UI shows the "ENHANCING" pill the moment the
+    // canvas is up. If the canvas isn't ready yet, the skeleton already covers.
+    setState((s) =>
+      s.stage === "ready" ? { ...s, stage: "refining" } : s
+    );
+
+    const regions = [
+      { region: "Chest", fit: solver.regions.chest.fit },
+      { region: "Waist", fit: solver.regions.waist.fit },
+      { region: "Shoulder", fit: solver.regions.shoulder.fit },
+      { region: "Length", fit: solver.regions.length.fit },
+      { region: "Sleeve", fit: solver.regions.sleeve.fit },
+    ];
 
     (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("fit-tryon-text", {
+        const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
           body: {
-            prompt: solver.summary,
-            productKey: args.productKey,
-            selectedSize: args.selectedSize,
+            userImageUrl: args.userImageUrl,
             productImageUrl: args.productImageUrl,
+            productKey: args.productKey,
+            productCategory: args.productCategory ?? undefined,
+            selectedSize: args.selectedSize,
+            fitDescriptor: solver.fitType,
+            regions,
+            mode: "high",
           },
         });
         const elapsed = Date.now() - startedAt;
         if (cancelled) return;
-        if (!error && data?.resultImageUrl && elapsed <= AI_SWAP_WINDOW_MS) {
+        if (elapsed > AI_SWAP_WINDOW_MS) {
+          setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
+          return;
+        }
+        if (!error && data?.ok && data?.imageUrl) {
           setState((s) => ({
             ...s,
             stage: "ready",
-            imageUrl: data.resultImageUrl,
+            imageUrl: data.imageUrl,
             source: "ai",
           }));
           return;
         }
-        // Either too late or failed — keep canvas image, just exit refining.
-        setState((s) => ({ ...s, stage: "ready" }));
+        // Failed or non-ok — keep whatever the canvas produced.
+        setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
       } catch {
         if (cancelled) return;
-        setState((s) => ({ ...s, stage: "ready" }));
+        setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
       }
     })();
 
@@ -315,9 +342,11 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     args.enableAiSwap,
+    args.enabled,
     args.productKey,
     args.selectedSize,
-    state.imageUrl, // re-run after each canvas render
+    args.userImageUrl,
+    args.reloadToken,
   ]);
 
   return state;
