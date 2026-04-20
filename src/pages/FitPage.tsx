@@ -14,7 +14,7 @@ import FitMeasurements from "@/components/fit/FitMeasurements";
 import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
 import FitTryOnTrigger from "@/components/fit/FitTryOnTrigger";
-import UserBodyImageLibrary from "@/components/fit/UserBodyImageLibrary";
+import BodyPhotoPicker from "@/components/fit/BodyPhotoPicker";
 import type { UserBodyImage } from "@/lib/fit/userBodyImages";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
@@ -474,9 +474,10 @@ const FitPage = () => {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && (
               <>
-                <UserBodyImageLibrary
+                <BodyPhotoPicker
                   className="mb-8"
                   selectedImageId={selectedBodyImage?.id ?? null}
+                  selectedImageUrl={userBodyImageUrl}
                   onSelect={handleSelectBodyImage}
                   onClear={handleClearBodyImage}
                 />
