@@ -139,6 +139,15 @@ export function storeTryOnSuccess(
   }
 }
 
+export function clearStoredTryOn(productKey: string, selectedSize: string) {
+  if (!storageAvailable()) return;
+  try {
+    window.localStorage.removeItem(snapshotKey(productKey, selectedSize));
+  } catch {
+    // ignore
+  }
+}
+
 export async function readTryOnCacheRecord(args: {
   productKey: string;
   selectedSize: string;

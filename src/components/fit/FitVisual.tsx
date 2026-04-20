@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Sparkles, Camera, ImageOff, User } from "lucide-react";
+import { Sparkles, Camera, ImageOff, User, RefreshCw, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import SafeImage from "@/components/SafeImage";
 import type { FitVisualState } from "@/lib/fit/tryOnState";
 
@@ -25,6 +26,7 @@ interface Props {
   cacheHit?: boolean;
   visualState?: FitVisualState;
   onRescanBody?: () => void;
+  onReload?: () => void;
 }
 
 function FallbackSilhouette({ label }: { label: string }) {
@@ -67,6 +69,7 @@ export default function FitVisual({
   cacheHit = false,
   visualState,
   onRescanBody,
+  onReload,
 }: Props) {
   const state = visualState ?? mapLegacyState(tryOnStatus, activeSize, tryOnImageUrl, tryOnProvider);
   const hasReal = state.kind === "success" && !!state.imageUrl;
@@ -85,14 +88,58 @@ export default function FitVisual({
       ? "AI TRY-ON"
       : "STYLE PREVIEW";
 
+  const handleShareImage = async () => {
+    if (state.kind !== "success" || !state.imageUrl) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${productName} — try-on size ${activeSize}`,
+          url: state.imageUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(state.imageUrl);
+        toast.success("Try-on image link copied");
+      }
+    } catch {
+      // user cancelled or share failed — try clipboard fallback silently
+      try {
+        await navigator.clipboard.writeText(state.imageUrl);
+        toast.success("Try-on image link copied");
+      } catch {
+        toast.error("Couldn't share image");
+      }
+    }
+  };
+
   return (
     <div className="space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4">
       <div className="flex items-center justify-between px-1">
         <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">VISUAL FIT</p>
-        <span className="flex items-center gap-1 text-[9px] font-semibold tracking-[0.18em] text-accent">
-          <Sparkles className="h-2.5 w-2.5" /> SIZE {activeSize}
-          {cacheHit && <span className="text-foreground/35"> · CACHED</span>}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 text-[9px] font-semibold tracking-[0.18em] text-accent">
+            <Sparkles className="h-2.5 w-2.5" /> SIZE {activeSize}
+            {cacheHit && <span className="text-foreground/35"> · CACHED</span>}
+          </span>
+          {onReload && (
+            <button
+              onClick={onReload}
+              disabled={state.kind === "loading"}
+              aria-label="Reload try-on"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-foreground/10 text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground disabled:opacity-40"
+            >
+              <RefreshCw className={`h-3 w-3 ${state.kind === "loading" ? "animate-spin" : ""}`} />
+            </button>
+          )}
+          {state.kind === "success" && state.imageUrl && (
+            <button
+              onClick={handleShareImage}
+              aria-label="Share try-on image"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-foreground/10 text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground"
+            >
+              <Share2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06]" style={{ aspectRatio: "3 / 4", maxHeight: 560 }}>

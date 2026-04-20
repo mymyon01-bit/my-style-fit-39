@@ -238,6 +238,9 @@ export default function FitResults({
       }
     : null;
 
+  // ── Reload token: bump to force-clear all try-on caches and regenerate ──
+  const [reloadToken, setReloadToken] = useState(0);
+
   // ── PRIMARY visual: hybrid AI try-on (photo → text fallback) ──
   const tryOn = useAiTryOn({
     enabled: !!product.image,
@@ -259,6 +262,7 @@ export default function FitResults({
     productUrl: product.url,
     // PATCH 4 — prewarm the recommended size so it's instant when user picks it
     prewarmSize: result.recommendedSize,
+    reloadToken,
   });
 
   return (
@@ -373,6 +377,7 @@ export default function FitResults({
         cacheHit={tryOn.cacheHit}
         visualState={tryOn.visualState}
         onRescanBody={onRescan}
+        onReload={() => setReloadToken((n) => n + 1)}
       />
       {tryOn.status === "error" && (
         <p className="text-[10px] text-center text-orange-400/75 -mt-3">

@@ -15,6 +15,7 @@ import { useSavedFolders } from "@/hooks/useSavedFolders";
 import { useAdmin } from "@/hooks/useAdmin";
 import PremiumBanner from "@/components/PremiumBanner";
 import TodayPicks from "@/components/today/TodayPicks";
+import SavedProductsTab from "@/components/profile/SavedProductsTab";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
@@ -340,14 +341,16 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
-        {/* Saved Folders */}
+        {/* Saved Products — items saved from Discover, postable as OOTD */}
         <div className="space-y-5">
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("saved").toUpperCase()}</p>
-          {foldersLoading ? (
-            <Loader2 className="h-3 w-3 animate-spin text-foreground/70" />
-          ) : folders.length === 0 ? (
-            <p className="text-[12px] text-foreground/75">{t("noSavedYet")}</p>
-          ) : (
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("saved").toUpperCase()}</p>
+            <button onClick={() => navigate("/discover")} className="text-[11px] font-medium text-accent/70 hover:text-accent">
+              DISCOVER
+            </button>
+          </div>
+          <SavedProductsTab />
+          {folders.length > 0 && (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {folders.map(folder => (
                 <button key={folder.id} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 p-3 text-left transition-colors hover:bg-card/50">
