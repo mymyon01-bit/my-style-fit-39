@@ -403,9 +403,107 @@ const OOTDPage = () => {
 
       <div className="mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         <AnimatePresence mode="wait">
-          {activeTab === "crowned" ? (
-            <motion.div key="crowned" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          {activeTab === "ranking" ? (
+            <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <CrownedBoard />
+            </motion.div>
+          ) : activeTab === "community" ? (
+            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+              {/* User Search */}
+              <div className="space-y-2.5">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search @user or #hashtag"
+                    className="w-full rounded-full border border-border/40 bg-card/50 pl-9 pr-9 py-2.5 text-[12px] text-foreground placeholder:text-foreground/35 outline-none focus:border-accent/40 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground/70">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {searchQuery.trim().length >= 2 && (
+                  <div className="rounded-xl border border-border/30 bg-card/30 overflow-hidden">
+                    {searchLoading ? (
+                      <div className="py-4 flex items-center justify-center"><Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/40" /></div>
+                    ) : searchUsers.length === 0 && searchTopics.length === 0 ? (
+                      <div className="py-4 text-center text-[11px] text-foreground/40">No matches</div>
+                    ) : (
+                      <div className="divide-y divide-border/20">
+                        {searchUsers.length > 0 && (
+                          <div>
+                            <div className="px-3 pt-2.5 pb-1 text-[9px] font-medium tracking-[0.2em] text-foreground/40">USERS</div>
+                            <ul>
+                              {searchUsers.map((u) => (
+                                <li key={u.user_id}>
+                                  <button onClick={() => navigate(`/u/${u.user_id}`)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left">
+                                    {u.avatar_url ? (
+                                      <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
+                                    ) : (
+                                      <div className="h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-medium text-foreground/60">
+                                        {(u.username || u.display_name || "?").charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[12px] font-medium text-foreground truncate">@{u.username}</div>
+                                      {u.display_name && <div className="text-[10px] text-foreground/50 truncate">{u.display_name}</div>}
+                                    </div>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {searchTopics.length > 0 && (
+                          <div>
+                            <div className="px-3 pt-2.5 pb-1 text-[9px] font-medium tracking-[0.2em] text-foreground/40">HASHTAGS</div>
+                            <ul>
+                              {searchTopics.map((t) => (
+                                <li key={t.id}>
+                                  <button onClick={() => { setActiveTopic(t.name); setSearchQuery(""); setActiveTab("feed"); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left">
+                                    <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center text-[12px] font-medium text-accent/80">#</div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[12px] font-medium text-foreground truncate">#{t.name}</div>
+                                      <div className="text-[10px] text-foreground/50">{t.post_count} {t.post_count === 1 ? "post" : "posts"}</div>
+                                    </div>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Trending Topics */}
+              {trendingTopics.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3 text-accent/60" />
+                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">TRENDING TOPICS</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {trendingTopics.map(topic => (
+                      <button key={topic.id} onClick={() => { setActiveTopic(topic.name); setActiveTab("feed"); }} className="rounded-full border border-border/30 bg-card/40 px-3 py-1.5 text-[10px] font-medium text-foreground/70 hover:border-accent/40 hover:text-accent transition-all">
+                        #{topic.name}
+                        <span className="ml-1.5 text-foreground/35">{topic.post_count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-12 text-center space-y-2">
+                  <p className="text-[12px] text-foreground/50">No topics yet</p>
+                  <p className="text-[10px] text-foreground/35">Be the first to start a hashtag conversation</p>
+                </div>
+              )}
             </motion.div>
           ) : activeTab === "mypage" ? (
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
