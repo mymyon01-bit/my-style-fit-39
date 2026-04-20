@@ -143,6 +143,45 @@ async function runTextTryOn(args: Args, prompt: string): Promise<TextRunResult> 
         : cacheRecord.kind,
   });
 
+  // ── PRIMARY PATH: two-image coordinate composite ───────────────────────
+  try {
+    const bodyProfile = buildBodyProfile({
+      heightCm: args.body.heightCm ?? null,
+      weightKg: args.body.weightKg ?? null,
+      shoulderCm: args.body.shoulderWidthCm ?? null,
+      chestCm: args.body.chestCm ?? null,
+      waistCm: args.body.waistCm ?? null,
+    });
+    const fitMap = buildGarmentFitMap({
+      category: args.productCategory ?? null,
+      selectedSize: args.selectedSize,
+      fitType: args.productFitType ?? null,
+      body: bodyProfile,
+    });
+    const solver = solveFit({ body: bodyProfile, fit: fitMap, category: fitMap.category, selectedSize: args.selectedSize });
+    const frame = buildBodyFrame(bodyProfile);
+    const overlay = buildGarmentOverlayMap({ frame, fit: fitMap, solver, selectedSize: args.selectedSize });
+
+    const composite = await runCompositeFitTryOn({
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      productImageUrl: args.productImageUrl,
+      productName: args.productName,
+      productCategory: args.productCategory,
+      gender: args.body.gender ?? null,
+      bodyFrame: frame,
+      overlay,
+    });
+    if (composite.ok) {
+      logTryOnClient("COMPOSITE_SUCCESS", { productKey: args.productKey, selectedSize: args.selectedSize, startedAt, provider: "fit-composite", status: "success", cacheHit: composite.cacheHit });
+      return { visualState: makeSuccessState(args.selectedSize, composite.compositeUrl, "replicate-text"), cacheHit: composite.cacheHit };
+    }
+    logTryOnClient("COMPOSITE_FALLBACK", { productKey: args.productKey, selectedSize: args.selectedSize, startedAt, provider: "fit-composite", status: "fallback", reason: composite.error });
+  } catch (err) {
+    logTryOnClient("COMPOSITE_ERROR", { productKey: args.productKey, selectedSize: args.selectedSize, startedAt, provider: "fit-composite", status: "error", reason: err instanceof Error ? err.message : "unknown" });
+  }
+
+  // ── FALLBACK PATH: existing single-pass text generation ─────────────────
   const { data, error } = await supabase.functions.invoke("fit-tryon-text", {
     body: {
       prompt,
