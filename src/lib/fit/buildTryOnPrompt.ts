@@ -38,6 +38,28 @@ function shoulderDescriptor(shoulderCm?: number | null): string {
   return "average shoulders";
 }
 
+/** Natural-language body summary derived from raw metrics. */
+function buildBodySummary(u: TryOnUserBody): string {
+  const h = u.heightCm ?? null;
+  const w = u.weightKg ?? null;
+  const bmi = h && w ? w / Math.pow(h / 100, 2) : null;
+  const parts: string[] = [];
+  if (h) {
+    if (h >= 180) parts.push("tall");
+    else if (h <= 165) parts.push("compact");
+    else parts.push("average height");
+  }
+  if (bmi != null) {
+    if (bmi < 21) parts.push("lean build");
+    else if (bmi < 25) parts.push("athletic build");
+    else if (bmi < 28) parts.push("solid build");
+    else parts.push("fuller build");
+  }
+  if (u.shoulderWidthCm && u.shoulderWidthCm >= 48) parts.push("slightly broad shoulders");
+  if (u.chestCm && u.waistCm && u.chestCm - u.waistCm >= 14) parts.push("tapered upper body");
+  return parts.length ? parts.join(", ") : "natural adult proportions";
+}
+
 function buildDescriptor(p: TryOnProductInfo): string {
   // Strip brand-y cruft, keep visual descriptors only.
   const t = p.title.replace(/\s*[-–|]\s*.+$/g, "").trim();
@@ -78,34 +100,34 @@ export function buildTryOnPrompt(args: {
   });
   const productAnchor = buildProductAnchor(product);
 
+  const bodySummary = buildBodySummary(user);
+
   const lines = [
-    `A realistic ${persona.description} wearing ${productAnchor || desc}.`,
-    `Use a consistent model identity across generations — do not randomize face, hair, or body. Persona: ${persona.id}.`,
-    ``,
-    `Body proportions:`,
-    user.heightCm ? `- height: ${Math.round(user.heightCm)} cm` : `- height: average adult`,
-    user.weightKg ? `- build: natural human proportions for ${Math.round(user.weightKg)} kg` : `- build: natural human proportions`,
-    `- shoulders: ${shoulderDescriptor(user.shoulderWidthCm)}`,
-    user.chestCm ? `- chest: ${Math.round(user.chestCm)} cm` : `- chest: proportional to body`,
-    user.waistCm ? `- waist: ${Math.round(user.waistCm)} cm` : `- waist: proportional to body`,
+    `A premium fashion e-commerce photo of a ${persona.description} wearing the garment.`,
+    `Persona identity: ${persona.id} (keep face, hair, body consistent — do not randomize).`,
     ``,
     `Garment:`,
     `- type: ${cat}`,
     `- description: ${desc}`,
-    productAnchor ? `- visual: ${productAnchor}` : null,
-    product.fitType ? `- fit: ${product.fitType}` : `- fit: as designed`,
-    `- size: ${selectedSize}`,
-    `- behavior: ${behavior}`,
+    productAnchor ? `- visual cues: ${productAnchor}` : null,
+    product.fitType ? `- designed fit: ${product.fitType}` : null,
+    `- selected size: ${selectedSize}`,
+    `- size-specific fit behavior: ${behavior}`,
+    `Reference product image must be respected as closely as possible (color, pattern, silhouette, fabric).`,
     ``,
-    `Visual:`,
-    `- natural fabric drape with realistic wrinkles and folds`,
-    `- correct garment scaling to body — size ${selectedSize} must be visibly distinct`,
-    `- front-facing pose, full upper body visible`,
-    `- neutral light studio background, soft fashion lighting`,
+    `Body:`,
+    `- ${bodySummary}`,
+    user.heightCm ? `- height ~${Math.round(user.heightCm)} cm` : null,
+    user.weightKg ? `- weight ~${Math.round(user.weightKg)} kg` : null,
+    `- shoulders: ${shoulderDescriptor(user.shoulderWidthCm)}`,
     ``,
-    `Style: premium e-commerce look, photographic, no distortion.`,
+    `Style:`,
+    `- clean neutral studio background`,
+    `- soft fashion lighting, natural fabric drape and realistic folds`,
+    `- front-facing or 3/4 standing pose, full upper body visible`,
+    `- editorial but commercial, premium e-commerce look`,
     ``,
-    `Negative: floating clothes, mannequin, headless body, duplicate limbs, warped body, random face change, fake logos, text artifacts, watermark, deformed hands.`,
+    `Do NOT generate: mannequin, floating clothes, headless body, duplicate limbs, warped torso, random face change, fake logos, text artifacts, watermark, deformed hands, flat product card overlay.`,
   ];
   return lines.filter(Boolean).join("\n");
 }
