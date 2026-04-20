@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Playfair Display", "Georgia", "serif"],
-        body: ["Inter", "-apple-system", "sans-serif"],
+        display: ["Inter", "Neue Haas Grotesk Text", "Helvetica Neue", "Arial", "sans-serif"],
+        body: ["Inter", "Neue Haas Grotesk Text", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: ["Inter", "Neue Haas Grotesk Text", "Helvetica Neue", "Arial", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

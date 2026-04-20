@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,23 +6,24 @@
 
 @layer base {
   :root {
-    --background: 240 3% 97%;
-    --foreground: 240 10% 5%;
+    /* ── LIGHT THEME (default) — premium editorial commerce ─────────────── */
+    --background: 24 30% 98%;          /* #fbf8f6 warm off-white */
+    --foreground: 0 0% 9%;             /* #171717 near-black */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 5%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 5%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 240 10% 5%;
-    --primary-foreground: 240 3% 97%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 24 30% 98%;
 
-    --secondary: 240 2% 94%;
-    --secondary-foreground: 240 10% 5%;
+    --secondary: 24 14% 94%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 240 2% 92%;
-    --muted-foreground: 240 4% 38%;
+    --muted: 24 10% 92%;
+    --muted-foreground: 0 0% 38%;
 
     --accent: 351 60% 30%;
     --accent-foreground: 0 0% 100%;
@@ -32,25 +33,25 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5% 90%;
-    --input: 240 5% 91%;
+    --border: 24 8% 88%;
+    --input: 24 8% 90%;
     --ring: 351 60% 30%;
 
     --radius: 0.75rem;
 
-    --neutral: 240 3% 50%;
+    --neutral: 0 0% 50%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 240 3% 95%;
+    --surface-sunken: 24 14% 95%;
     --star: 45 93% 58%;
 
-    --font-display: 'Playfair Display', Georgia, serif;
-    --font-body: 'Inter', -apple-system, sans-serif;
+    /* Single global font system — Inter only */
+    --font-display: 'Inter', 'Neue Haas Grotesk Text', 'Helvetica Neue', Arial, sans-serif;
+    --font-body: 'Inter', 'Neue Haas Grotesk Text', 'Helvetica Neue', Arial, sans-serif;
 
-    /* Depth system — 3 levels: surface → card → lifted */
-    --shadow-1: 0 1px 2px hsl(240 6% 10% / 0.04);
-    --shadow-2: 0 2px 8px -2px hsl(240 6% 10% / 0.06), 0 1px 3px hsl(240 6% 10% / 0.04);
-    --shadow-3: 0 12px 32px -8px hsl(240 6% 10% / 0.14), 0 4px 12px -4px hsl(240 6% 10% / 0.08);
-    /* Legacy aliases (kept for existing usages) */
+    /* Depth system — soft, premium */
+    --shadow-1: 0 1px 2px hsl(0 0% 9% / 0.04);
+    --shadow-2: 0 2px 8px -2px hsl(0 0% 9% / 0.06), 0 1px 3px hsl(0 0% 9% / 0.04);
+    --shadow-3: 0 12px 32px -8px hsl(0 0% 9% / 0.14), 0 4px 12px -4px hsl(0 0% 9% / 0.08);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
   }
@@ -109,19 +110,24 @@
     font-family: var(--font-body);
     font-size: 15px;
     line-height: 1.55;
+    font-weight: 400;
+    color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11";
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
-    line-height: 1.15;
+    line-height: 1.12;
     color: hsl(var(--foreground));
+    font-weight: 600;
   }
-  h1 { font-weight: 600; }
-  h2, h3 { font-weight: 600; }
+  h1 { font-weight: 700; letter-spacing: -0.025em; }
+  h2 { font-weight: 600; }
+  h3, h4 { font-weight: 600; }
   p { color: hsl(var(--foreground) / 0.78); }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
