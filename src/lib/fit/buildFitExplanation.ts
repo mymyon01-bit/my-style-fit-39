@@ -1,16 +1,17 @@
 // ─── BUILD FIT EXPLANATION ──────────────────────────────────────────────────
 // Size-aware, deterministic, human-readable. Different per size.
 //
-// Returns a short headline + one-paragraph explanation that visibly
-// changes between S / M / L / XL based on the GarmentFitMap silhouette
-// and ease coordinates.
+// Now sourced from SolverResult region labels so the text NEVER contradicts
+// the visual: if the canvas shows a dropped shoulder + long hem, the copy
+// says "dropped shoulder + longer body".
 
 import type { GarmentFitMap } from "./buildGarmentFitMap";
 import type { BodyProfile } from "./buildBodyProfile";
+import type { SolverResult } from "./fitSolver";
 
 export interface FitExplanationOut {
-  headline: string;        // e.g. "Trim fit through chest and waist"
-  paragraph: string;       // 1–2 sentences, size-explicit
+  headline: string;
+  paragraph: string;
   silhouetteLabel: string; // TRIM | FITTED | REGULAR | RELAXED | OVERSIZED
 }
 
@@ -30,72 +31,113 @@ const HEADLINES: Record<string, string> = {
   oversized: "Oversized drop-shoulder silhouette",
 };
 
-function chestPhrase(e: number, isBottom: boolean) {
+// ── Region → phrase (sourced from solver labels, not raw eases) ───────────
+
+function chestPhrase(fit: SolverResult["regions"]["chest"]["fit"], isBottom: boolean) {
   if (isBottom) return "";
-  if (e <= 0.03) return "closer through the chest";
-  if (e <= 0.07) return "natural room through the chest";
-  if (e <= 0.12) return "visible chest room";
-  return "generous chest volume";
+  switch (fit) {
+    case "tight":     return "tighter through the chest";
+    case "snug":      return "a closer chest line";
+    case "balanced":  return "natural room through the chest";
+    case "roomy":     return "visible chest room";
+    case "oversized": return "generous chest volume";
+  }
 }
 
-function waistPhrase(e: number) {
-  if (e <= 0.03) return "tighter at the waist";
-  if (e <= 0.07) return "clean waist line";
-  if (e <= 0.12) return "softer waist line";
-  return "loose, flowing waist";
+function waistPhrase(fit: SolverResult["regions"]["waist"]["fit"]) {
+  switch (fit) {
+    case "tight":    return "a tighter waist line";
+    case "clean":    return "a clean waist line";
+    case "balanced": return "a natural waist line";
+    case "relaxed":  return "a softer waist line";
+    case "loose":    return "a loose, flowing waist";
+  }
 }
 
-function shoulderPhrase(d: number, isBottom: boolean) {
+function shoulderPhrase(fit: SolverResult["regions"]["shoulder"]["fit"], isBottom: boolean) {
   if (isBottom) return "";
-  if (d <= 0.01) return "structured shoulders";
-  if (d <= 0.04) return "slight shoulder drop";
-  return "pronounced shoulder drop";
+  switch (fit) {
+    case "pulled":     return "shoulders pulled tight";
+    case "structured": return "structured shoulders";
+    case "natural":    return "a natural shoulder line";
+    case "dropped":    return "a dropped shoulder line";
+  }
 }
 
-function lengthPhrase(d: number) {
-  if (d <= -0.02) return "shorter hem";
-  if (d >= 0.04) return "longer hem";
-  if (d >= 0.02) return "slightly longer hem";
-  return "regular hem length";
+function lengthPhrase(fit: SolverResult["regions"]["length"]["fit"]) {
+  switch (fit) {
+    case "short":          return "a noticeably shorter body";
+    case "slightly_short": return "a slightly shorter body";
+    case "regular":        return "regular hem length";
+    case "slightly_long":  return "a slightly longer hem";
+    case "long":           return "a longer hem";
+  }
 }
 
-function sleevePhrase(v: number, d: number, isBottom: boolean) {
+function sleevePhrase(fit: SolverResult["regions"]["sleeve"]["fit"], isBottom: boolean) {
   if (isBottom) return "";
-  if (v <= 0.03) return "tighter sleeves";
-  if (v >= 0.10) return "looser, dropped sleeves";
-  if (d >= 0.02) return "slightly longer sleeves";
-  return "natural sleeve volume";
+  switch (fit) {
+    case "tight":   return "tighter sleeves";
+    case "trim":    return "trim sleeves";
+    case "regular": return "natural sleeve volume";
+    case "loose":   return "looser, dropped sleeves";
+  }
 }
 
 export function buildFitExplanation(args: {
   fit: GarmentFitMap;
   body: BodyProfile;
   size: string;
+  /** Solver result is the source of truth — pass it whenever available. */
+  solver?: SolverResult;
 }): FitExplanationOut {
-  const { fit, size } = args;
+  const { fit, size, solver } = args;
   const isBottom = fit.category === "bottom";
 
-  const parts = [
-    chestPhrase(fit.chestEase, isBottom),
-    waistPhrase(fit.waistEase),
-    shoulderPhrase(fit.shoulderDrop, isBottom),
-    lengthPhrase(fit.bodyLengthDelta),
-    sleevePhrase(fit.sleeveVolume, fit.sleeveLengthDelta, isBottom),
-  ].filter(Boolean);
+  // Prefer solver labels for stability with the visual.
+  const parts: string[] = [];
+  if (solver) {
+    const r = solver.regions;
+    parts.push(
+      chestPhrase(r.chest.fit, isBottom),
+      waistPhrase(r.waist.fit),
+      shoulderPhrase(r.shoulder.fit, isBottom),
+      lengthPhrase(r.length.fit),
+      sleevePhrase(r.sleeve.fit, isBottom),
+    );
+  } else {
+    // Legacy fallback (eases) — kept for callers that haven't migrated.
+    if (!isBottom) parts.push(fit.chestEase <= 0.04 ? "a closer chest line" : "natural chest room");
+    parts.push(fit.waistEase <= 0.04 ? "a clean waist line" : "a softer waist line");
+    if (!isBottom) parts.push(fit.shoulderDrop >= 0.04 ? "a dropped shoulder line" : "structured shoulders");
+    parts.push(fit.bodyLengthDelta >= 0.025 ? "a longer hem" : "regular hem length");
+    if (!isBottom) parts.push(fit.sleeveVolume >= 0.09 ? "looser sleeves" : "natural sleeve volume");
+  }
+
+  const cleaned = parts.filter((p) => p && p.length > 0);
 
   const head = HEADLINES[fit.silhouetteType] ?? "Balanced fit";
-  const paragraph =
-    `Size ${size} creates a ${fit.silhouetteType} silhouette — ${parts.slice(0, 3).join(", ")}` +
-    (parts.length > 3 ? `, with ${parts.slice(3).join(" and ")}.` : ".");
+  const lead =
+    fit.silhouetteType === "trim"      ? `Size ${size} runs cleaner`
+    : fit.silhouetteType === "fitted"  ? `Size ${size} keeps a clean line`
+    : fit.silhouetteType === "relaxed" ? `Size ${size} adds visible room`
+    : fit.silhouetteType === "oversized" ? `Size ${size} reads clearly oversized`
+    : `Size ${size} keeps a balanced silhouette`;
+
+  const joined =
+    cleaned.length === 0 ? "with a clean overall line."
+    : cleaned.length === 1 ? `with ${cleaned[0]}.`
+    : cleaned.length === 2 ? `with ${cleaned[0]} and ${cleaned[1]}.`
+    : `with ${cleaned.slice(0, -1).join(", ")} and ${cleaned.slice(-1)}.`;
 
   return {
     headline: head,
-    paragraph,
+    paragraph: `${lead} ${joined}`,
     silhouetteLabel: SILHOUETTE_LABEL[fit.silhouetteType] ?? "REGULAR",
   };
 }
 
-// ── Friendly per-region labels for the breakdown card ─────────────────────
+// ── Friendly per-region labels for the breakdown card (legacy export) ─────
 
 export type RegionLabel = "Snug" | "Balanced" | "Roomy" | "Structured" | "Dropped"
   | "Short" | "Regular" | "Long" | "Tight" | "Natural" | "Loose" | "Clean" | "Relaxed";

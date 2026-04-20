@@ -173,10 +173,6 @@ export default function FitResults({
     fitType: null,
     body: newBodyProfile,
   }), [product.category, activeSize, newBodyProfile]);
-  const sizeExplanation = useMemo(
-    () => buildSizeExplanation({ fit: garmentFit, body: newBodyProfile, size: activeSize }),
-    [garmentFit, newBodyProfile, activeSize],
-  );
   const breakdown = useMemo(() => buildFitBreakdown(garmentFit), [garmentFit]);
 
   // ── FIT SOLVER — deterministic source of truth (score / labels / hints) ──
@@ -188,6 +184,12 @@ export default function FitResults({
       selectedSize: activeSize,
     }),
     [newBodyProfile, garmentFit, activeSize],
+  );
+
+  // Explanation reads solver labels so the copy always matches the visual.
+  const sizeExplanation = useMemo(
+    () => buildSizeExplanation({ fit: garmentFit, body: newBodyProfile, size: activeSize, solver }),
+    [garmentFit, newBodyProfile, activeSize, solver],
   );
 
   // ── Global size fallback card (only when truly missing brand data) ───────
