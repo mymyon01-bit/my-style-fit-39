@@ -434,20 +434,23 @@ const FitPage = () => {
               </>
             )}
             {activeTab === "results" && fitResult && fitResultProduct ? (
-              <FitResults
-                result={fitResult}
-                product={fitResultProduct}
-                explanation={explanation}
-                loadingExplanation={loadingExplanation}
-                fitMode={fitMode}
-                canUsePremium={canUsePremium}
-                refining={refining}
-                bodyHeightCm={measurements.heightCm.value}
-                bodyWeightKg={weightKg}
-                onRefineFit={handleRefineFit}
-                onRescan={() => setActiveTab("scan")}
-                onEditMeasurements={() => setActiveTab("measurements")}
-              />
+              <>
+                <FitResults
+                  result={fitResult}
+                  product={fitResultProduct}
+                  explanation={explanation}
+                  loadingExplanation={loadingExplanation}
+                  fitMode={fitMode}
+                  canUsePremium={canUsePremium}
+                  refining={refining}
+                  bodyHeightCm={measurements.heightCm.value}
+                  bodyWeightKg={weightKg}
+                  onRefineFit={handleRefineFit}
+                  onRescan={() => setActiveTab("scan")}
+                  onEditMeasurements={() => setActiveTab("measurements")}
+                />
+                <NextButton onClick={() => setActiveTab("scan")} label="Try Another · Restart" />
+              </>
             ) : activeTab === "results" && (
               <div className="py-24 text-center space-y-4 md:py-28 lg:py-32">
                 <p className="text-[14px] text-foreground/80">Select a product first</p>
