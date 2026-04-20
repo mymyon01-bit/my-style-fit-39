@@ -25,7 +25,8 @@ export type CanvasTryOnStage =
   | "cutout"
   | "composite"
   | "ready"
-  | "refining";
+  | "refining"
+  | "ai_ready";
 
 export interface CanvasTryOnState {
   stage: CanvasTryOnStage;
@@ -152,15 +153,17 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
   });
 
   const runIdRef = useRef(0);
+  const aiLockedRef = useRef(false);
 
   // ── PRIMARY canvas pipeline ─────────────────────────────────────────────
   useEffect(() => {
     if (!args.enabled || !args.productImageUrl || !args.selectedSize) return;
     const runId = ++runIdRef.current;
     let cancelled = false;
+    aiLockedRef.current = false;
 
     const hardTimer = window.setTimeout(() => {
-      if (cancelled || runIdRef.current !== runId) return;
+      if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
       // Force-finish: at the very least surface raw garment + silhouette.
       console.warn("[useCanvasTryOn] HARD_TIMEOUT — forcing fallback render");
       void renderFallback();
@@ -176,7 +179,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           solver,
           productCategory: args.productCategory ?? null,
         });
-        if (cancelled || runIdRef.current !== runId) return;
+        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
         setState({
           stage: "ready",
           imageUrl: composite.dataUrl,
@@ -188,11 +191,11 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           error: null,
         });
       } catch (err) {
-        if (cancelled || runIdRef.current !== runId) return;
+        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
         setState((s) => ({
           ...s,
           stage: "ready",
-          imageUrl: args.productImageUrl, // last-ditch
+          imageUrl: args.productImageUrl,
           source: "canvas",
           error: err instanceof Error ? err.message : "composite_failed",
           solver,
@@ -205,21 +208,25 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
 
     (async () => {
       try {
-        setState((s) => ({
-          ...s,
-          stage: "pose",
-          poseDegraded,
-          poseSource,
-          solver,
-          fitChips,
-        }));
+        if (!aiLockedRef.current) {
+          setState((s) => ({
+            ...s,
+            stage: "pose",
+            poseDegraded,
+            poseSource,
+            solver,
+            fitChips,
+          }));
+        }
 
-        // ── CUTOUT ────────────────────────────────────────────────────────
-        setState((s) => ({ ...s, stage: "cutout" }));
+        if (!aiLockedRef.current) {
+          setState((s) => ({ ...s, stage: "cutout" }));
+        }
         const cutoutUrl = await getGarmentCutout(args.productImageUrl, args.productName);
 
-        // ── COMPOSITE ─────────────────────────────────────────────────────
-        setState((s) => ({ ...s, stage: "composite" }));
+        if (!aiLockedRef.current) {
+          setState((s) => ({ ...s, stage: "composite" }));
+        }
         const composite = await composeFitImage({
           bodyImageUrl: args.userImageUrl ?? null,
           garmentImageUrl: cutoutUrl,
@@ -229,7 +236,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           productCategory: args.productCategory ?? null,
         });
 
-        if (cancelled || runIdRef.current !== runId) return;
+        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
         setState({
           stage: "ready",
           imageUrl: composite.dataUrl,
@@ -241,7 +248,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           error: null,
         });
       } catch (err) {
-        if (cancelled || runIdRef.current !== runId) return;
+        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
         console.warn("[useCanvasTryOn] pipeline error → fallback", err);
         await renderFallback();
       } finally {
@@ -270,22 +277,16 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
 
   // ── PRIMARY AI try-on (photo path) — runs IN PARALLEL with the canvas ───
   // When the user has a body photo, this is the HERO output. We kick it off
-  // immediately on mount/size-change and swap as soon as it lands, even if
-  // the canvas has already rendered. Window is generous (25s) so realistic
-  // IDM-VTON cold starts still win the swap.
+  // immediately on mount/size-change and swap as soon as it lands.
   useEffect(() => {
     if (!args.enableAiSwap) return;
     if (!args.enabled || !args.productImageUrl || !args.selectedSize) return;
-    if (!args.userImageUrl) return; // no photo → AI path skipped, canvas stays
-    if (state.source === "ai") return; // already have AI result for this size
+    if (!args.userImageUrl) return;
 
     let cancelled = false;
     const startedAt = Date.now();
-    // Mark as refining so the UI shows the "ENHANCING" pill the moment the
-    // canvas is up. If the canvas isn't ready yet, the skeleton already covers.
-    setState((s) =>
-      s.stage === "ready" ? { ...s, stage: "refining" } : s
-    );
+
+    setState((s) => (s.imageUrl ? { ...s, stage: "refining" } : s));
 
     const regions = [
       { region: "Chest", fit: solver.regions.chest.fit },
@@ -324,19 +325,17 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
         });
         if (cancelled) return;
         if (!error && data?.ok && data?.imageUrl) {
-          console.log("[FIT_AI] SWAP → AI result applied");
-          // CRITICAL: force-swap regardless of current stage. The AI hero
-          // always wins over the canvas fallback once it lands.
+          console.log("[FIT_AI] SWAP → AI result applied", data.imageUrl);
+          aiLockedRef.current = true;
           setState((s) => ({
             ...s,
-            stage: "ready",
+            stage: "ai_ready",
             imageUrl: data.imageUrl,
             source: "ai",
             error: null,
           }));
           return;
         }
-        // Failed or non-ok — keep whatever the canvas produced.
         console.warn("[FIT_AI] no AI image, keeping canvas fallback", { error, data });
         setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
       } catch (err) {
@@ -347,7 +346,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     })();
 
     const swapTimer = window.setTimeout(() => {
-      if (cancelled) return;
+      if (cancelled || aiLockedRef.current) return;
       setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
     }, AI_SWAP_WINDOW_MS);
 

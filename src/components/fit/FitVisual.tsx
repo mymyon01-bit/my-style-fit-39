@@ -25,7 +25,7 @@ export default function FitVisual({
   onRescanBody,
   onReload,
 }: Props) {
-  const isLoading = state.stage !== "ready" && state.stage !== "refining" && !state.imageUrl;
+  const isLoading = !state.imageUrl;
   const isRefining = state.stage === "refining";
   const hasImage = !!state.imageUrl;
 
@@ -56,7 +56,6 @@ export default function FitVisual({
 
   return (
     <div className="space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4">
-      {/* Header */}
       <div className="flex items-center justify-between px-1">
         <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">VISUAL FIT</p>
         <div className="flex items-center gap-2">
@@ -86,7 +85,6 @@ export default function FitVisual({
         </div>
       </div>
 
-      {/* Canvas / image surface */}
       <div
         className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06] bg-muted/20"
         style={{ aspectRatio: "3 / 4", maxHeight: 560 }}
@@ -115,7 +113,6 @@ export default function FitVisual({
             )}
           </>
         ) : (
-          // Skeleton — only shown for the first ~2s while pose+cutout resolve
           <div className="relative h-full w-full">
             <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]" />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
@@ -138,7 +135,6 @@ export default function FitVisual({
         )}
       </div>
 
-      {/* Pose-degraded warning banner */}
       {state.poseDegraded && hasImage && (
         <div className="flex items-start gap-2 rounded-xl border border-orange-500/20 bg-orange-500/[0.06] px-3 py-2">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-500" />
@@ -161,7 +157,6 @@ export default function FitVisual({
         </div>
       )}
 
-      {/* Per-region fit chips — visible size differences */}
       {state.fitChips.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-1">
           {state.fitChips.map((chip) => {
