@@ -13,6 +13,47 @@ const BLOCKED_IMAGE_DOMAINS = [
   "dummyimage.com", "fakeimg.pl", "picsum.photos", "lorempixel.com",
 ];
 
+// ─── HARD-REJECT image signals (logos, favicons, sprites, banners) ───
+// Any of these in the URL path/filename → image is dropped (drop-on-hard).
+const HARD_REJECT_IMAGE_RE =
+  /(^|[\/_\-.])(logo|logos|brand[-_]?logo|favicon|sprite|sprites|icon[-_]?set|navbar|header[-_]?(logo|banner)|site[-_]?logo|app[-_]?icon|apple[-_]?touch[-_]?icon|placeholder|placehold|noimage|no[-_]?image|default[-_]?image|coming[-_]?soon)([\/_\-.]|$)/i;
+
+// Soft signals — image kept but flagged as low-quality (image_missing=true downstream).
+const SOFT_REJECT_IMAGE_RE =
+  /(^|[\/_\-.])(banner|hero|cover[-_]?image|category[-_]?(banner|hero)|promo|campaign|lookbook[-_]?cover|landing)([\/_\-.]|$)/i;
+
+/**
+ * Hybrid image quality gate.
+ *  - returns { ok: true }                → image is fine
+ *  - returns { ok: true, soft: true }    → keep product, mark as low-quality
+ *  - returns { ok: false, reason }       → drop the image (caller decides whether
+ *                                          to drop the product or render fallback)
+ */
+function imageQualityCheck(url: unknown, ctx?: { title?: string }): { ok: boolean; soft?: boolean; reason?: string } {
+  if (!url || typeof url !== "string") return { ok: false, reason: "empty" };
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") return { ok: false, reason: "empty" };
+  let u: URL;
+  try { u = new URL(trimmed); } catch { return { ok: false, reason: "invalid_url" }; }
+  if (u.protocol !== "https:") return { ok: false, reason: "not_https" };
+  if (BLOCKED_IMAGE_DOMAINS.some((d) => u.hostname.includes(d))) return { ok: false, reason: "blocked_domain" };
+  if (trimmed.length > 2000) return { ok: false, reason: "url_too_long" };
+
+  const path = (u.pathname + u.search).toLowerCase();
+  if (HARD_REJECT_IMAGE_RE.test(path)) return { ok: false, reason: "rejected_logo_or_sprite" };
+  // Favicon / apple-touch-icon by exact name
+  if (/\/favicon\.ico(\?|$)/i.test(path)) return { ok: false, reason: "rejected_favicon" };
+  // Tiny suffix hint (e.g. _16x16, _32x32, _48.png)
+  if (/[_-](16|24|32|48|64)x?(16|24|32|48|64)?\.(png|jpe?g|webp|svg)(\?|$)/i.test(path)) {
+    return { ok: false, reason: "rejected_tiny_icon" };
+  }
+  // Title context — if title is literally the brand/store name only, don't reject
+  // image based on that alone, but flag as soft.
+  if (SOFT_REJECT_IMAGE_RE.test(path)) return { ok: true, soft: true, reason: "soft_banner" };
+
+  return { ok: true };
+}
+
 // ─── Fashion product title validator ───
 const FASHION_TITLE_RE = /\b(jacket|coat|blazer|shirt|hoodie|sweater|cardigan|vest|top|tee|t-shirt|polo|pants|trousers|jeans|shorts|skirt|dress|sneakers?|boots?|shoes?|loafers?|sandals?|bag|tote|backpack|purse|wallet|hat|cap|beanie|watch|belt|scarf|gloves?|socks?|bomber|parka|pullover|sweatshirt|chinos?|joggers?|blouse|knit|denim|leather|suede|canvas|necklace|bracelet|earring|ring|sunglasses|tie|cufflinks|headband|bandana|beret|mules?|oxfords?|derby|brogues?|espadrilles?|pumps?|heels?|flats?|clutch|satchel|duffle|messenger|crossbody|jumpsuit|romper|overalls?|flannel|henley|anorak|trench|gilet|poncho|cape|leggings?|culottes|slacks|windbreaker|camisole|tunic|tank|fedora|frame|hoops)\b/i;
 const NON_FASHION_RE = /\b(banana|food|fruit|tofu|두부|바나나|grocery|snack|vitamin|supplement|gift\s*card|상품\s*권|교환권|charger|cable|phone|laptop|tablet|kitchen|cook|recipe|drink|beverage|coffee|tea|milk|cream|soap|detergent|shampoo|tissue|diaper|pet\s*food|toy|game|book|movie|music|electronics?)\b/i;
@@ -76,18 +117,7 @@ function categoryMatches(intentCategory: string, productCategory: string | null 
 }
 
 function isImageUrlSafe(url: unknown): boolean {
-  if (!url || typeof url !== "string") return false;
-  const trimmed = url.trim();
-  if (!trimmed || trimmed === "null" || trimmed === "undefined") return false;
-  try {
-    const u = new URL(trimmed);
-    if (u.protocol !== "https:") return false;
-    if (BLOCKED_IMAGE_DOMAINS.some(d => u.hostname.includes(d))) return false;
-    if (trimmed.length > 2000) return false;
-    return true;
-  } catch {
-    return false;
-  }
+  return imageQualityCheck(url).ok;
 }
 
 function getServiceClient() {
@@ -96,6 +126,8 @@ function getServiceClient() {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 }
+
+// (duplicate getServiceClient removed)
 
 // ─── DB-first: load cached products with strict text matching ───
 async function loadFromDB(supabase: any, opts: {
@@ -644,6 +676,88 @@ async function fetchFromMultiSource(query: string, timeoutMs = 9_000): Promise<a
   }
 }
 
+
+// ─── Google Shopping (SerpAPI) — first-class discovery source ───
+// Calls the existing google-shopping edge function which already upserts
+// into product_cache. Returns normalized rows for the caller to merge.
+async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, timeoutMs = 9_000): Promise<any[]> {
+  const sanitized = sanitizeSearchQuery(query);
+  if (!sanitized) return [];
+  try {
+    const baseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!baseUrl || !serviceKey) return [];
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl}/functions/v1/google-shopping`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+      body: JSON.stringify({ query: sanitized, limit: Math.min(limit, 60), hl }),
+      signal: ctrl.signal,
+    }).finally(() => clearTimeout(t));
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    const products = Array.isArray(data?.products) ? data.products : [];
+    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({ stage: "GOOGLE_SHOPPING", query: sanitized, returned: products.length, inserted: data?.inserted ?? 0 })}`);
+    return products
+      .filter((p: any) => imageQualityCheck(p.image_url).ok && p.name && p.source_url?.startsWith("http") && isFashionProduct(p.name))
+      .map((p: any) => autoTagProduct({
+        ...p,
+        image_valid: true,
+        is_active: true,
+        // Synthetic created_at so freshness ranks them highly in this request.
+        created_at: new Date().toISOString(),
+        _is_fresh: true,
+      }));
+  } catch (e) {
+    console.warn("[google-shopping] fetch skipped:", (e as Error).message);
+    return [];
+  }
+}
+
+// ─── Google CSE — URL-only discovery, then hand to search-discovery ───
+// CSE returns URLs only. We send them to search-discovery as candidate URLs
+// (search-discovery will extract og:image/title and write to cache).
+async function triggerCseExpansion(query: string, hl?: string, timeoutMs = 6_000): Promise<number> {
+  const sanitized = sanitizeSearchQuery(query);
+  if (!sanitized) return 0;
+  try {
+    const baseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!baseUrl || !serviceKey) return 0;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl}/functions/v1/google-cse`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+      body: JSON.stringify({ query: sanitized, num: 20, hl }),
+      signal: ctrl.signal,
+    }).finally(() => clearTimeout(t));
+    if (!res.ok) return 0;
+    const data = await res.json().catch(() => null);
+    const count = Array.isArray(data?.candidates) ? data.candidates.length : 0;
+    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({ stage: "GOOGLE_CSE", query: sanitized, candidates: count })}`);
+    return count;
+  } catch (e) {
+    console.warn("[google-cse] fetch skipped:", (e as Error).message);
+    return 0;
+  }
+}
+
+// ─── Freshness scoring (used to re-rank merged pool) ───
+function freshnessScore(p: any): number {
+  if (p._is_fresh) return 100;
+  const created = p.created_at ? new Date(p.created_at).getTime() : 0;
+  if (!created) return 0;
+  const ageHours = (Date.now() - created) / 3_600_000;
+  if (ageHours < 1)   return 95;
+  if (ageHours < 6)   return 80;
+  if (ageHours < 24)  return 60;
+  if (ageHours < 72)  return 40;
+  if (ageHours < 168) return 20; // a week
+  return 5;
+}
+
 // ─── Input validation ───
 function validateInput(body: any): { valid: boolean; error?: string } {
   if (body.query && typeof body.query !== "string") return { valid: false, error: "query must be a string" };
@@ -692,9 +806,17 @@ serve(async (req) => {
 
     if (freshSearch && query) {
       const normalizedQuery = sanitizeSearchQuery(query);
-      const minTarget = Math.min(clampedLimit, 12);
+      // Healthy minimum target — was 12, raised so we don't stop at 3-5 items.
+      const minTarget = Math.min(clampedLimit, 18);
+      const hl = (body.hl || "").toString() || undefined;
 
-      const [externalResult, dbResult] = await Promise.all([
+      // PARALLEL: SerpAPI Google Shopping + commerce-scraper + DB.
+      // Google Shopping is a first-class source — runs every freshSearch.
+      // Also fire CSE in the background to seed search-discovery for next time.
+      const cseTrigger = triggerCseExpansion(normalizedQuery, hl).catch(() => 0);
+      const [gShop, externalResult, dbResult] = await Promise.all([
+        fetchFromGoogleShopping(normalizedQuery, Math.min(clampedLimit, 30), hl)
+          .catch((e) => { console.error("Google Shopping failed:", e); return [] as any[]; }),
         fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
           .then(products => products.map(autoTagProduct))
           .catch(e => { console.error("External search failed:", e); return [] as any[]; }),
@@ -703,17 +825,19 @@ serve(async (req) => {
           category,
           styles,
           fit,
-          limit: Math.min(clampedLimit, 24),
+          limit: Math.min(clampedLimit, 30),
           excludeIds,
           randomize: false,
         }),
       ]);
 
-      externalProducts = externalResult;
+      // gShop already lives in product_cache (google-shopping upserts directly).
+      // Commerce-scraper results still need caching.
+      externalProducts = mergeUniqueProducts(gShop, externalResult);
       dbProducts = dbResult;
 
-      const storedCount = externalProducts.length > 0
-        ? await cacheToDB(supabase, externalProducts, normalizedQuery)
+      const storedCount = externalResult.length > 0
+        ? await cacheToDB(supabase, externalResult, normalizedQuery)
         : 0;
 
       let discoveryProducts: any[] = [];
@@ -748,6 +872,16 @@ serve(async (req) => {
         });
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
+
+      // Re-rank: freshness-boost merged pool. Pure DB items with high relevance
+      // still beat fresh-but-irrelevant items because relevance was already
+      // baked into the order returned by loadFromDB.
+      allProducts = allProducts
+        .map((p) => ({ ...p, _freshness: freshnessScore(p) }))
+        .sort((a, b) => (b._freshness || 0) - (a._freshness || 0));
+
+      // Don't await CSE — it just seeds discovery for next request.
+      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
       // Inference from the query text takes priority over the (often generic
@@ -821,12 +955,17 @@ serve(async (req) => {
       });
 
     } else {
-      const minTarget = Math.min(clampedLimit, 12);
+      const minTarget = Math.min(clampedLimit, 18);
       const sanitizedQuery = query ? sanitizeSearchQuery(query) : "";
+      const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL: DB load + Apify multi-source fetch run together. This is the
-      // "always run Apify, never treat it as fallback only" guarantee.
-      const [dbInitial, multiSourceFresh] = await Promise.all([
+      // PARALLEL: DB + Apify multi-source + Google Shopping (SerpAPI) all fire
+      // together. Google Shopping is now first-class on the db-first path too.
+      // CSE is fired in the background to seed search-discovery for next call.
+      const cseTrigger = sanitizedQuery
+        ? triggerCseExpansion(sanitizedQuery, hl).catch(() => 0)
+        : Promise.resolve(0);
+      const [dbInitial, multiSourceFresh, gShop] = await Promise.all([
         loadFromDB(supabase, {
           query: query || undefined,
           category,
@@ -839,12 +978,15 @@ serve(async (req) => {
         sanitizedQuery
           ? fetchFromMultiSource(sanitizedQuery, 9_000)
           : Promise.resolve([] as any[]),
+        sanitizedQuery
+          ? fetchFromGoogleShopping(sanitizedQuery, Math.min(clampedLimit, 30), hl)
+          : Promise.resolve([] as any[]),
       ]);
 
       dbProducts = dbInitial;
-      // Treat multi-source results as "fresh" external. They were just
-      // upserted to product_cache by the scraper itself.
-      externalProducts = multiSourceFresh;
+      // Multi-source + Google Shopping = fresh externals (already cached upstream).
+      externalProducts = mergeUniqueProducts(multiSourceFresh, gShop);
+      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       const needsExpansion = expandExternal || dbProducts.length < minTarget;
       let discoveryProducts: any[] = [];
