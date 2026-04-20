@@ -16,6 +16,8 @@ export interface FitGenerationPromptArgs {
   gender?: Gender;
   /** Region-level imperative phrases from FitSolver.visualPromptHints. */
   solverHints?: string[];
+  /** Deterministic FitDetailMap description — refiner must preserve, not invent. */
+  detailDescription?: string;
 }
 
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
@@ -58,6 +60,17 @@ export function buildFitGenerationPrompt(args: FitGenerationPromptArgs): string 
         ].join("\n")
       : "";
 
+  const detailBlock = args.detailDescription
+    ? [
+        ``,
+        `DETERMINISTIC DETAIL MAP (PRESERVE EXACTLY — do not randomize):`,
+        `- ${args.detailDescription}`,
+        `- Refine fabric realism, lighting, and skin/face only.`,
+        `- Do NOT change garment geometry, silhouette width, hem position, shoulder drop, or sleeve volume.`,
+        `- Do NOT change the gender or body proportions inferred upstream.`,
+      ].join("\n")
+    : "";
+
   const lines = [
     `A premium fashion image of a model wearing the selected garment in size ${selectedSize}.`,
     `Persona: ${persona.description} (id ${persona.id} — keep face/hair/body consistent across renders).`,
@@ -65,6 +78,7 @@ export function buildFitGenerationPrompt(args: FitGenerationPromptArgs): string 
     `SIZE INTENT (${selectedSize} → ${fit.silhouetteType.toUpperCase()}):`,
     sizeDirective,
     solverBlock,
+    detailBlock,
     ``,
     `Body:`,
     `- ${body.bodySummary}`,
