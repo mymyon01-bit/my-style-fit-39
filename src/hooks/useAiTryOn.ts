@@ -85,6 +85,16 @@ export function useAiTryOn(args: Args) {
     hasPhoto && (photo.status === "invalid_body" || photo.status === "error" || photo.status === "missing_image");
   const shouldRunText = args.enabled && (!hasPhoto || photoFailed);
 
+  console.log("[useAiTryOn] gate", {
+    enabled: args.enabled,
+    hasPhoto,
+    photoStatus: photo.status,
+    photoFailed,
+    shouldRunText,
+    productKey: args.productKey,
+    selectedSize: args.selectedSize,
+  });
+
   useEffect(() => {
     cancelRef.current = false;
     if (!shouldRunText) {
@@ -140,17 +150,22 @@ export function useAiTryOn(args: Args) {
     }
 
     setTextState((s) => ({ ...s, status: "generating", prompt, error: null }));
+    console.log("[useAiTryOn] → invoking fit-tryon-text", {
+      productKey: args.productKey,
+      size: args.selectedSize,
+      hasProductImage: !!args.productImageUrl,
+    });
     const startedAt = performance.now();
 
-    // Client-side hard guard — must exceed server poll budget (25s) + slack.
+    // 12s timeout fallback per spec — flips state to fallback so UI can't stick on PREPARING.
     const guardTimer = setTimeout(() => {
       if (cancelRef.current) return;
       setTextState((s) => {
         if (s.status !== "generating") return s;
-        console.warn("[useAiTryOn] client guard: 30s exceeded, falling back");
-        return { ...s, status: "fallback", error: "timeout_30s" };
+        console.warn("[useAiTryOn] 12s timeout reached → fallback");
+        return { ...s, status: "fallback", error: "timeout_12s" };
       });
-    }, 30_000);
+    }, 12_000);
 
     (async () => {
       try {
@@ -166,6 +181,29 @@ export function useAiTryOn(args: Args) {
         if (cancelRef.current) return;
         const elapsed = Math.round(performance.now() - startedAt);
 
+        console.log("[useAiTryOn] ← fit-tryon-text response", {
+          elapsed,
+          hasError: !!error,
+          errorMsg: error?.message,
+          dataKeys: data ? Object.keys(data) : null,
+          status: (data as any)?.status,
+          resultImageUrl: (data as any)?.resultImageUrl ? "present" : "missing",
+          dataError: (data as any)?.error,
+        });
+
+        // Detect 402 / billing / payment errors explicitly.
+        const errStr = String(error?.message || (data as any)?.error || "").toLowerCase();
+        const is402 =
+          errStr.includes("402") ||
+          errStr.includes("payment") ||
+          errStr.includes("billing") ||
+          errStr.includes("quota");
+        if (is402) {
+          console.error("[useAiTryOn] 402 / billing error from Replicate — leaving loading state", {
+            error: error?.message || (data as any)?.error,
+          });
+        }
+
         if (error || !data?.resultImageUrl) {
           console.warn("[useAiTryOn]", {
             mode: "text",
@@ -174,10 +212,10 @@ export function useAiTryOn(args: Args) {
             elapsed,
           });
           setTextState({
-            status: "error",
+            status: is402 ? "fallback" : "error",
             imageUrl: null,
             provider: "replicate-text",
-            error: error?.message || data?.error || "generation_failed",
+            error: error?.message || (data as any)?.error || "generation_failed",
             cacheHit: false,
             prompt,
             mode: "text",
