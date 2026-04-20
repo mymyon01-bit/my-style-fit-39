@@ -103,9 +103,29 @@ Deno.serve(async (req) => {
     seed,
   };
   // Pass product image as visual reference (FLUX 1.1 Pro supports `image_prompt`).
+  // CRITICAL: pre-validate URL — if Replicate can't fetch it, the WHOLE prediction
+  // fails (404). Many cached product URLs are broken/placeholder, so we must
+  // gracefully degrade to prompt-only generation when the image isn't reachable.
   if (body.productImageUrl && /^https?:\/\//i.test(body.productImageUrl)) {
-    input.image_prompt = body.productImageUrl;
-    input.image_prompt_strength = 0.35;
+    let imageReachable = false;
+    try {
+      const head = await fetch(body.productImageUrl, {
+        method: "HEAD",
+        redirect: "follow",
+        signal: AbortSignal.timeout(3500),
+      });
+      const ct = head.headers.get("content-type") || "";
+      imageReachable = head.ok && ct.startsWith("image/");
+      if (!imageReachable) {
+        console.warn("[fit-tryon-text] image_prompt rejected", { status: head.status, ct });
+      }
+    } catch (e) {
+      console.warn("[fit-tryon-text] image_prompt HEAD failed", e instanceof Error ? e.message : e);
+    }
+    if (imageReachable) {
+      input.image_prompt = body.productImageUrl;
+      input.image_prompt_strength = 0.35;
+    }
   }
 
   const createRes = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_TEXT_MODEL}/predictions`, {
