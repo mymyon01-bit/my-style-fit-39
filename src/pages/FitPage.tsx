@@ -13,6 +13,7 @@ import FitBodyScan from "@/components/fit/FitBodyScan";
 import FitMeasurements from "@/components/fit/FitMeasurements";
 import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
+import FitTryOnTrigger from "@/components/fit/FitTryOnTrigger";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
@@ -97,6 +98,31 @@ const FitPage = () => {
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [refining, setRefining] = useState(false);
   const [weightKg, setWeightKg] = useState<number | null>(null);
+  const [activeSize, setActiveSize] = useState<string | null>(null);
+  const [userBodyImageUrl, setUserBodyImageUrl] = useState<string | null>(null);
+
+  // Default activeSize to the recommended size whenever a new fit result lands.
+  useEffect(() => {
+    if (fitResult?.recommendedSize) setActiveSize(fitResult.recommendedSize);
+  }, [fitResult?.recommendedSize]);
+
+  // Load latest body scan front photo so the photo-based try-on path can fire.
+  useEffect(() => {
+    if (!user) { setUserBodyImageUrl(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("body_scan_images")
+        .select("public_url")
+        .eq("user_id", user.id)
+        .eq("image_type", "front")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setUserBodyImageUrl(data?.public_url ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const canUsePremium = subscription.isPremium;
 
@@ -395,6 +421,31 @@ const FitPage = () => {
         </div>
         <div className="h-px bg-accent/[0.14]" />
       </div>
+
+      {/* ── HEADLESS TRY-ON TRIGGER ──────────────────────────────────────────
+          Mounts the moment a product + size are selected, regardless of which
+          tab the user is on. Generation kicks off immediately so the hero is
+          ready (or in flight) by the time RESULTS opens. */}
+      {selectedProduct && activeSize && (
+        <FitTryOnTrigger
+          productKey={`${selectedProduct.url || selectedProduct.name}::${selectedProduct.brand || ""}`.toLowerCase().slice(0, 200)}
+          productImageUrl={selectedProduct.image}
+          productName={selectedProduct.name}
+          productCategory={selectedProduct.category}
+          productFitType={selectedProduct.fitType}
+          productUrl={selectedProduct.url}
+          selectedSize={activeSize}
+          userImageUrl={userBodyImageUrl}
+          body={{
+            heightCm: measurements.heightCm.value,
+            weightKg: weightKg ?? null,
+            shoulderWidthCm: measurements.shoulderWidthCm.value,
+            chestCm: measurements.chestCm?.value ?? null,
+            waistCm: measurements.waistCm.value,
+            gender: null,
+          }}
+        />
+      )}
 
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-12">
         <AnimatePresence mode="wait">
