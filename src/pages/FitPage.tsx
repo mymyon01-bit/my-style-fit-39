@@ -587,7 +587,11 @@ const FitPage = () => {
             )}
             {activeTab === "check" && (
               <>
-                <FitProductCheck onSelectProduct={handleSelectProduct} />
+                <FitProductCheck
+                  onSelectProduct={handleSelectProduct}
+                  selectedProduct={selectedProduct}
+                  onClearSelected={() => setSelectedProduct(null)}
+                />
                 <NextButton onClick={() => setActiveTab("results")} label="Next: Results" />
               </>
             )}
