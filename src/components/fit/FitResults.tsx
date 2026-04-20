@@ -156,7 +156,26 @@ export default function FitResults({
   const heroRing = heroScore >= 80 ? "ring-green-500/30" : heroScore >= 65 ? "ring-accent/30" : heroScore >= 50 ? "ring-orange-400/30" : "ring-orange-500/30";
 
   // ── Deterministic explanation (always available; AI text overrides if present) ──
-  const builtExplanation = buildFitExplanation(result, confTier, usedGlobalFallback);
+  const builtExplanation = buildLegacyExplanation(result, confTier, usedGlobalFallback);
+
+  // ── NEW: size-aware silhouette explanation + breakdown ──
+  const shapeScales = useMemo(() => buildBodyShapeScales(bodyShape ?? null), [bodyShape]);
+  const newBodyProfile = useMemo(() => buildBodyProfile({
+    heightCm: bodyHeightCm ?? null,
+    weightKg: bodyWeightKg ?? null,
+    shapeScales,
+  }), [bodyHeightCm, bodyWeightKg, shapeScales]);
+  const garmentFit = useMemo(() => buildGarmentFitMap({
+    category: product.category,
+    selectedSize: activeSize,
+    fitType: null,
+    body: newBodyProfile,
+  }), [product.category, activeSize, newBodyProfile]);
+  const sizeExplanation = useMemo(
+    () => buildSizeExplanation({ fit: garmentFit, body: newBodyProfile, size: activeSize }),
+    [garmentFit, newBodyProfile, activeSize],
+  );
+  const breakdown = useMemo(() => buildFitBreakdown(garmentFit), [garmentFit]);
 
   // ── Global size fallback card (only when truly missing brand data) ───────
   const profile = bodyHeightCm
