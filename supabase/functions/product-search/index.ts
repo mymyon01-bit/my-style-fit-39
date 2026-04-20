@@ -806,9 +806,17 @@ serve(async (req) => {
 
     if (freshSearch && query) {
       const normalizedQuery = sanitizeSearchQuery(query);
-      const minTarget = Math.min(clampedLimit, 12);
+      // Healthy minimum target — was 12, raised so we don't stop at 3-5 items.
+      const minTarget = Math.min(clampedLimit, 18);
+      const hl = (body.hl || "").toString() || undefined;
 
-      const [externalResult, dbResult] = await Promise.all([
+      // PARALLEL: SerpAPI Google Shopping + commerce-scraper + DB.
+      // Google Shopping is a first-class source — runs every freshSearch.
+      // Also fire CSE in the background to seed search-discovery for next time.
+      const cseTrigger = triggerCseExpansion(normalizedQuery, hl).catch(() => 0);
+      const [gShop, externalResult, dbResult] = await Promise.all([
+        fetchFromGoogleShopping(normalizedQuery, Math.min(clampedLimit, 30), hl)
+          .catch((e) => { console.error("Google Shopping failed:", e); return [] as any[]; }),
         fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
           .then(products => products.map(autoTagProduct))
           .catch(e => { console.error("External search failed:", e); return [] as any[]; }),
@@ -817,17 +825,19 @@ serve(async (req) => {
           category,
           styles,
           fit,
-          limit: Math.min(clampedLimit, 24),
+          limit: Math.min(clampedLimit, 30),
           excludeIds,
           randomize: false,
         }),
       ]);
 
-      externalProducts = externalResult;
+      // gShop already lives in product_cache (google-shopping upserts directly).
+      // Commerce-scraper results still need caching.
+      externalProducts = mergeUniqueProducts(gShop, externalResult);
       dbProducts = dbResult;
 
-      const storedCount = externalProducts.length > 0
-        ? await cacheToDB(supabase, externalProducts, normalizedQuery)
+      const storedCount = externalResult.length > 0
+        ? await cacheToDB(supabase, externalResult, normalizedQuery)
         : 0;
 
       let discoveryProducts: any[] = [];
@@ -862,6 +872,16 @@ serve(async (req) => {
         });
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
+
+      // Re-rank: freshness-boost merged pool. Pure DB items with high relevance
+      // still beat fresh-but-irrelevant items because relevance was already
+      // baked into the order returned by loadFromDB.
+      allProducts = allProducts
+        .map((p) => ({ ...p, _freshness: freshnessScore(p) }))
+        .sort((a, b) => (b._freshness || 0) - (a._freshness || 0));
+
+      // Don't await CSE — it just seeds discovery for next request.
+      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
       // Inference from the query text takes priority over the (often generic
