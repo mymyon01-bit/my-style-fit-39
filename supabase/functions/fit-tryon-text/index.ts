@@ -27,9 +27,11 @@ interface Body {
   forceRegenerate?: boolean;
 }
 
+// FLUX 1.1 Pro — official Replicate model (no version pin needed),
+// strong photoreal human renders, supports `image_prompt` for product
+// visual reference (acts like a soft IP-Adapter / Kontext-lite).
 const REPLICATE_TEXT_MODEL =
-  // Flux schnell — fast, ~1-2s, good photoreal humans
-  "black-forest-labs/flux-schnell";
+  Deno.env.get("REPLICATE_TEXT_MODEL") || "black-forest-labs/flux-1.1-pro";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -86,24 +88,34 @@ Deno.serve(async (req) => {
 
   // ── 2. CREATE PREDICTION ─────────────────────────────────────────────────
   const startedAt = Date.now();
+  // Stable seed per (product+size) so S/M/L diverge by prompt, not noise.
+  const seedBase = body.productKey.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const sizeBump: Record<string, number> = { XS: 11, S: 23, M: 0, L: 71, XL: 97, XXL: 113 };
+  const seed = (seedBase + (sizeBump[body.selectedSize.toUpperCase()] ?? 0)) % 10000;
+
+  const input: Record<string, unknown> = {
+    prompt: body.prompt,
+    aspect_ratio: "3:4",
+    output_format: "webp",
+    output_quality: 90,
+    safety_tolerance: 5,
+    prompt_upsampling: false,
+    seed,
+  };
+  // Pass product image as visual reference (FLUX 1.1 Pro supports `image_prompt`).
+  if (body.productImageUrl && /^https?:\/\//i.test(body.productImageUrl)) {
+    input.image_prompt = body.productImageUrl;
+    input.image_prompt_strength = 0.35;
+  }
+
   const createRes = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_TEXT_MODEL}/predictions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${REPLICATE_TOKEN}`,
       "Content-Type": "application/json",
-      Prefer: "wait=10",
+      Prefer: "wait=20",
     },
-    body: JSON.stringify({
-      input: {
-        prompt: body.prompt,
-        aspect_ratio: "3:4",
-        num_outputs: 1,
-        output_format: "webp",
-        output_quality: 88,
-        go_fast: true,
-        megapixels: "1",
-      },
-    }),
+    body: JSON.stringify({ input }),
   });
 
   if (!createRes.ok) {
@@ -115,8 +127,8 @@ Deno.serve(async (req) => {
   const created = await createRes.json();
   let prediction = created;
 
-  // ── 3. POLL (max 8s — PATCH 7 perf guard) ───────────────────────────────
-  const maxMs = 8_000;
+  // ── 3. POLL (max 25s — FLUX 1.1 Pro typical 6-15s) ──────────────────────
+  const maxMs = 25_000;
   while (
     prediction.status !== "succeeded" &&
     prediction.status !== "failed" &&

@@ -122,15 +122,15 @@ export function useAiTryOn(args: Args) {
     setTextState((s) => ({ ...s, status: "generating", prompt, error: null }));
     const startedAt = performance.now();
 
-    // PATCH 7 — client-side 8s hard guard.
+    // Client-side hard guard — must exceed server poll budget (25s) + slack.
     const guardTimer = setTimeout(() => {
       if (cancelRef.current) return;
       setTextState((s) => {
         if (s.status !== "generating") return s;
-        console.warn("[useAiTryOn] client guard: 8s exceeded, falling back");
-        return { ...s, status: "fallback", error: "timeout_8s" };
+        console.warn("[useAiTryOn] client guard: 30s exceeded, falling back");
+        return { ...s, status: "fallback", error: "timeout_30s" };
       });
-    }, 8_000);
+    }, 30_000);
 
     (async () => {
       try {
