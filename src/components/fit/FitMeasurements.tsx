@@ -285,8 +285,12 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
               )}
             </motion.button>
           ))}
-        </div>
       </div>
+
+      {/* Body Shape (simple selectors → 0.85–1.15 scales) */}
+      {onBodyShapeChange && (
+        <BodyShapeInputs value={bodyShape ?? {}} onChange={onBodyShapeChange} />
+      )}
 
       {/* Body Hints */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">

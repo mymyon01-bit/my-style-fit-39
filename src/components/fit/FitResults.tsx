@@ -1,17 +1,21 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, RotateCcw, Pencil, Sparkles, Loader2, Lock, Wand2, Globe2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import TryOnPreviewModal, { TryOnContext } from "@/components/fit/TryOnPreviewModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import type { FitMode } from "@/pages/FitPage";
-import { buildFitExplanation, confidenceTier } from "@/lib/fit/explain";
+import { buildFitExplanation as buildLegacyExplanation, confidenceTier } from "@/lib/fit/explain";
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
 import FitVisual from "@/components/fit/FitVisual";
 import { useAiTryOn } from "@/hooks/useAiTryOn";
+import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
+import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
+import { buildBodyShapeScales, type BodyShapeInput } from "@/lib/fit/bodyShape";
+import { buildFitExplanation as buildSizeExplanation, buildFitBreakdown } from "@/lib/fit/buildFitExplanation";
 
 interface FitProduct {
   id: string;
@@ -33,6 +37,7 @@ interface Props {
   refining: boolean;
   bodyHeightCm?: number;
   bodyWeightKg?: number | null;
+  bodyShape?: BodyShapeInput;
   onRefineFit?: () => void;
   onRescan?: () => void;
   onEditMeasurements?: () => void;
@@ -122,7 +127,7 @@ function SizeComparisonCard({ result, isRecommended, isAlternate }: {
 /* ── Main Component ── */
 export default function FitResults({
   result, product, explanation, loadingExplanation,
-  fitMode, canUsePremium, refining, bodyHeightCm, bodyWeightKg,
+  fitMode, canUsePremium, refining, bodyHeightCm, bodyWeightKg, bodyShape,
   onRefineFit, onRescan, onEditMeasurements,
 }: Props) {
   const { user } = useAuth();
