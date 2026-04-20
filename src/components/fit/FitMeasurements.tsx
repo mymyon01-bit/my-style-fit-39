@@ -285,6 +285,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
               )}
             </motion.button>
           ))}
+        </div>
       </div>
 
       {/* Body Shape (simple selectors → 0.85–1.15 scales) */}
