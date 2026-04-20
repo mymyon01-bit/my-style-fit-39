@@ -191,15 +191,22 @@ export function useAiTryOn(args: Args) {
           dataError: (data as any)?.error,
         });
 
-        // Detect 402 / billing / payment errors explicitly.
+        // Detect 402 / 429 / billing / payment / rate-limit errors explicitly.
         const errStr = String(error?.message || (data as any)?.error || "").toLowerCase();
+        const isRateLimited =
+          (data as any)?.status === "rate_limited" ||
+          (data as any)?.error === "rate_limited" ||
+          (data as any)?.fallback === true ||
+          errStr.includes("429") ||
+          errStr.includes("rate_limit") ||
+          errStr.includes("throttled");
         const is402 =
           errStr.includes("402") ||
           errStr.includes("payment") ||
           errStr.includes("billing") ||
           errStr.includes("quota");
-        if (is402) {
-          console.error("[useAiTryOn] 402 / billing error from Replicate — leaving loading state", {
+        if (is402 || isRateLimited) {
+          console.warn("[useAiTryOn] replicate unavailable (rate-limited / billing) → fallback", {
             error: error?.message || (data as any)?.error,
           });
         }
@@ -212,10 +219,10 @@ export function useAiTryOn(args: Args) {
             elapsed,
           });
           setTextState({
-            status: is402 ? "fallback" : "error",
+            status: (is402 || isRateLimited) ? "fallback" : "error",
             imageUrl: null,
             provider: "replicate-text",
-            error: error?.message || (data as any)?.error || "generation_failed",
+            error: isRateLimited ? "rate_limited" : (error?.message || (data as any)?.error || "generation_failed"),
             cacheHit: false,
             prompt,
             mode: "text",
