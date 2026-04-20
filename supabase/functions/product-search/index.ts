@@ -715,34 +715,7 @@ async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, t
   }
 }
 
-// ─── Google CSE — URL-only discovery, then hand to search-discovery ───
-// CSE returns URLs only. We send them to search-discovery as candidate URLs
-// (search-discovery will extract og:image/title and write to cache).
-async function triggerCseExpansion(query: string, hl?: string, timeoutMs = 6_000): Promise<number> {
-  const sanitized = sanitizeSearchQuery(query);
-  if (!sanitized) return 0;
-  try {
-    const baseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!baseUrl || !serviceKey) return 0;
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    const res = await fetch(`${baseUrl}/functions/v1/google-cse`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
-      body: JSON.stringify({ query: sanitized, num: 20, hl }),
-      signal: ctrl.signal,
-    }).finally(() => clearTimeout(t));
-    if (!res.ok) return 0;
-    const data = await res.json().catch(() => null);
-    const count = Array.isArray(data?.candidates) ? data.candidates.length : 0;
-    console.log(`[SEARCH_SUPPLY] ${JSON.stringify({ stage: "GOOGLE_CSE", query: sanitized, candidates: count })}`);
-    return count;
-  } catch (e) {
-    console.warn("[google-cse] fetch skipped:", (e as Error).message);
-    return 0;
-  }
-}
+
 
 // ─── Freshness scoring (used to re-rank merged pool) ───
 function freshnessScore(p: any): number {
