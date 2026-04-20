@@ -120,31 +120,23 @@ export default function FitVisual({
             loading="lazy"
           />
         ) : isGenerating ? (
-          <div className="relative h-full w-full bg-gradient-to-b from-background/80 to-background/40">
-            {/* faint preview using product image */}
-            {productImage && (
-              <div className="absolute inset-0 opacity-[0.12]">
-                <SafeImage
-                  src={productImage}
-                  alt=""
-                  className="h-full w-full object-contain"
-                  fallbackClassName="h-full w-full"
-                />
-              </div>
-            )}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
-              <div className="h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
+          <div className="relative h-full w-full bg-gradient-to-b from-muted/40 to-muted/20">
+            {/* Clean neutral skeleton — NO product overlay, NO silhouette.
+                The previous faint product image (opacity 0.12) created the
+                "fake mannequin + pasted product card" look. Removed. */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-6">
+              <div className="h-1 w-40 overflow-hidden rounded-full bg-foreground/10">
                 <motion.div
                   className="h-full w-1/3 rounded-full bg-accent"
                   animate={{ x: ["-100%", "300%"] }}
                   transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
                 />
               </div>
-              <p className="text-[10px] font-semibold tracking-[0.24em] text-foreground/75">
-                GENERATING TRY-ON…
+              <p className="text-[11px] font-semibold tracking-[0.22em] text-foreground/70">
+                GENERATING TRY-ON
               </p>
-              <p className="text-[10px] text-foreground/45 max-w-[260px] text-center leading-relaxed">
-                Building a realistic preview at size <strong>{activeSize}</strong>
+              <p className="text-[12px] text-foreground/55 max-w-[280px] text-center leading-relaxed">
+                Building a realistic preview at size <strong className="text-foreground/80">{activeSize}</strong>
               </p>
             </div>
           </div>
