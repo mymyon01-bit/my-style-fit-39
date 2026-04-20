@@ -10,7 +10,11 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useReplicateTryOn, type TryOnStatus, type TryOnProvider } from "@/hooks/useReplicateTryOn";
-import { buildTryOnPrompt, type TryOnUserBody, type TryOnProductInfo } from "@/lib/fit/buildTryOnPrompt";
+import { type TryOnUserBody } from "@/lib/fit/buildTryOnPrompt";
+import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
+import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
+import { buildProductVisualDescriptor } from "@/lib/fit/buildProductVisualDescriptor";
+import { buildFitGenerationPrompt } from "@/lib/fit/buildFitGenerationPrompt";
 
 interface Args {
   enabled: boolean;
