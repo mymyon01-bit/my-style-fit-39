@@ -422,6 +422,31 @@ const FitPage = () => {
         <div className="h-px bg-accent/[0.14]" />
       </div>
 
+      {/* ── HEADLESS TRY-ON TRIGGER ──────────────────────────────────────────
+          Mounts the moment a product + size are selected, regardless of which
+          tab the user is on. Generation kicks off immediately so the hero is
+          ready (or in flight) by the time RESULTS opens. */}
+      {selectedProduct && activeSize && (
+        <FitTryOnTrigger
+          productKey={`${selectedProduct.url || selectedProduct.name}::${selectedProduct.brand || ""}`.toLowerCase().slice(0, 200)}
+          productImageUrl={selectedProduct.image}
+          productName={selectedProduct.name}
+          productCategory={selectedProduct.category}
+          productFitType={selectedProduct.fitType}
+          productUrl={selectedProduct.url}
+          selectedSize={activeSize}
+          userImageUrl={userBodyImageUrl}
+          body={{
+            heightCm: measurements.heightCm.value,
+            weightKg: weightKg ?? null,
+            shoulderWidthCm: measurements.shoulderWidthCm.value,
+            chestCm: measurements.chestCm?.value ?? null,
+            waistCm: measurements.waistCm.value,
+            gender: null,
+          }}
+        />
+      )}
+
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-12">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
