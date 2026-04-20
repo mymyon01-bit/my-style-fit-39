@@ -173,9 +173,12 @@ export default function FitResults({
     fitType: null,
     body: newBodyProfile,
   }), [product.category, activeSize, newBodyProfile]);
+  // NOTE: `solver` is declared just below and used here via closure — useMemo
+  // resolves at call-time so this works as long as the deps include solver.
   const sizeExplanation = useMemo(
-    () => buildSizeExplanation({ fit: garmentFit, body: newBodyProfile, size: activeSize }),
-    [garmentFit, newBodyProfile, activeSize],
+    () => buildSizeExplanation({ fit: garmentFit, body: newBodyProfile, size: activeSize, solver }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [garmentFit, newBodyProfile, activeSize, solver],
   );
   const breakdown = useMemo(() => buildFitBreakdown(garmentFit), [garmentFit]);
 
