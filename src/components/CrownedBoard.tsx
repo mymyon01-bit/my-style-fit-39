@@ -132,23 +132,16 @@ export default function CrownedBoard() {
 
   return (
     <div className="space-y-8">
-      {/* CROWNED Header */}
-      <div className="text-center space-y-3">
-        <div className="flex items-center justify-center gap-2">
-          <Crown className="h-6 w-6 text-yellow-400" />
-          <h2
-            className="text-2xl font-black tracking-[0.08em] text-foreground/90 uppercase"
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              textShadow: "0 0 30px hsl(var(--accent) / 0.15)",
-            }}
-          >
-            CROWNED
-          </h2>
-          <Crown className="h-6 w-6 text-yellow-400" />
-        </div>
+      {/* RANKING Header */}
+      <div className="text-center space-y-2">
+        <h2
+          className="text-[28px] font-semibold tracking-[0.02em] text-foreground/95"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Ranking
+        </h2>
         <p className="text-[10px] tracking-[0.3em] text-foreground/40 uppercase">
-          Top Styles · Updated Live
+          This week's top looks
         </p>
       </div>
 
