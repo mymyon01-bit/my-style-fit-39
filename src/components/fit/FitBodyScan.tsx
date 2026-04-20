@@ -451,6 +451,118 @@ export default function FitBodyScan({ onScanComplete, canUsePremium, onSelectSav
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── PER-SIDE ACTION SHEET ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {sheetSide && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSheetSide(null)}
+              className="fixed inset-0 z-[80] bg-background/70 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              className="fixed inset-x-0 bottom-0 z-[81] mx-auto w-full max-w-md rounded-t-3xl border border-foreground/10 bg-background p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:bottom-1/2 sm:translate-y-1/2 sm:rounded-3xl"
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/55">
+                  {sheetSide.toUpperCase()} PHOTO
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSheetSide(null)}
+                  className="rounded-full p-1 text-foreground/55 hover:bg-foreground/[0.06] hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mb-5 text-[11px] text-foreground/55">
+                Stand straight, full body visible — head to feet.
+              </p>
+
+              <div className="space-y-2">
+                <SheetAction
+                  icon={<Camera className="h-4 w-4" />}
+                  label="Take photo"
+                  hint="Use your camera"
+                  onClick={() => cameraRef.current?.click()}
+                />
+                <SheetAction
+                  icon={<Upload className="h-4 w-4" />}
+                  label="Upload from device"
+                  hint="Choose an image file"
+                  onClick={() => {
+                    const ref = sheetSide === "front" ? frontRef : sheetSide === "side" ? sideRef : backRef;
+                    ref.current?.click();
+                  }}
+                />
+                <SheetAction
+                  icon={<FolderOpen className="h-4 w-4" />}
+                  label="Choose from saved"
+                  hint="Your previously uploaded photos"
+                  onClick={() => {
+                    const target = sheetSide;
+                    setSheetSide(null);
+                    setSavedPickerSide(target);
+                  }}
+                  emphasis
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── SAVED PHOTO LIBRARY DIALOG ────────────────────────────────────── */}
+      <Dialog open={!!savedPickerSide} onOpenChange={(o) => { if (!o) setSavedPickerSide(null); }}>
+        <DialogContent className="max-w-lg p-6">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">
+              Choose a saved photo {savedPickerSide ? `for ${savedPickerSide.toUpperCase()}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <BodyPhotoPicker
+            className="mt-2"
+            selectedImageId={selectedSavedImageId ?? null}
+            onSelect={handlePickSaved}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function SheetAction({
+  icon, label, hint, onClick, emphasis,
+}: {
+  icon: React.ReactNode; label: string; hint?: string;
+  onClick: () => void; emphasis?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-all ${
+        emphasis
+          ? "border-accent/30 bg-accent/[0.06] hover:border-accent/55"
+          : "border-foreground/10 bg-card/40 hover:border-foreground/25 hover:bg-card/70"
+      }`}
+    >
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+        emphasis ? "bg-accent text-background" : "bg-foreground text-background"
+      }`}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-foreground">{label}</p>
+        {hint && <p className="mt-0.5 text-[11px] text-foreground/55">{hint}</p>}
+      </div>
+      <ImageIcon className="h-3.5 w-3.5 text-foreground/30" />
+    </button>
   );
 }
