@@ -145,6 +145,40 @@ Deno.serve(async (req) => {
   if (!createRes.ok) {
     const errText = await createRes.text();
     console.error("[fit-tryon-text] replicate create failed", createRes.status, errText);
+
+    // ── 429 RATE LIMIT — try nearest cached size, else return soft fallback ──
+    if (createRes.status === 429 || createRes.status === 402) {
+      const { data: nearby } = await admin
+        .from("fit_tryons")
+        .select("result_image_url, selected_size")
+        .eq("user_id", user.id)
+        .eq("product_key", body.productKey)
+        .eq("status", "succeeded")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (nearby?.result_image_url) {
+        return json({
+          status: "succeeded",
+          resultImageUrl: nearby.result_image_url,
+          provider: "replicate-text",
+          cacheHit: true,
+          nearestSize: nearby.selected_size,
+          rateLimited: true,
+        });
+      }
+      // Soft 200 so client flips to fallback instead of throwing 502
+      return json({
+        status: "rate_limited",
+        error: createRes.status === 429 ? "rate_limited" : "payment_required",
+        fallback: true,
+        provider: null,
+        resultImageUrl: null,
+        retryAfter: createRes.headers.get("retry-after") ?? null,
+      }, 200);
+    }
+
     return json({ error: `replicate_${createRes.status}`, details: errText.slice(0, 200) }, 502);
   }
 
