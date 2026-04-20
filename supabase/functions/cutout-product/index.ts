@@ -59,22 +59,16 @@ Deno.serve(async (req: Request) => {
     if (!aiRes.ok) {
       const text = await aiRes.text();
       console.error("AI gateway error", aiRes.status, text);
-      if (aiRes.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiRes.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // Return 200 with fallback signal so the client uses the original image
+      // without surfacing a 500 in the browser console.
+      return new Response(
+        JSON.stringify({
+          error: aiRes.status === 429 ? "RATE_LIMITED" : aiRes.status === 402 ? "CREDITS_EXHAUSTED" : "AI_GATEWAY_ERROR",
+          fallback: true,
+          cutoutUrl: imageUrl,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await aiRes.json();
@@ -83,10 +77,10 @@ Deno.serve(async (req: Request) => {
 
     if (!cutoutUrl) {
       console.error("No image in AI response", JSON.stringify(data).slice(0, 500));
-      return new Response(JSON.stringify({ error: "No image generated" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "NO_IMAGE_GENERATED", fallback: true, cutoutUrl: imageUrl }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(JSON.stringify({ cutoutUrl }), {
@@ -95,8 +89,11 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     console.error("cutout-product error", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+        fallback: true,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
