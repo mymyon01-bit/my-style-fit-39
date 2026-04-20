@@ -955,12 +955,17 @@ serve(async (req) => {
       });
 
     } else {
-      const minTarget = Math.min(clampedLimit, 12);
+      const minTarget = Math.min(clampedLimit, 18);
       const sanitizedQuery = query ? sanitizeSearchQuery(query) : "";
+      const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL: DB load + Apify multi-source fetch run together. This is the
-      // "always run Apify, never treat it as fallback only" guarantee.
-      const [dbInitial, multiSourceFresh] = await Promise.all([
+      // PARALLEL: DB + Apify multi-source + Google Shopping (SerpAPI) all fire
+      // together. Google Shopping is now first-class on the db-first path too.
+      // CSE is fired in the background to seed search-discovery for next call.
+      const cseTrigger = sanitizedQuery
+        ? triggerCseExpansion(sanitizedQuery, hl).catch(() => 0)
+        : Promise.resolve(0);
+      const [dbInitial, multiSourceFresh, gShop] = await Promise.all([
         loadFromDB(supabase, {
           query: query || undefined,
           category,
@@ -973,12 +978,15 @@ serve(async (req) => {
         sanitizedQuery
           ? fetchFromMultiSource(sanitizedQuery, 9_000)
           : Promise.resolve([] as any[]),
+        sanitizedQuery
+          ? fetchFromGoogleShopping(sanitizedQuery, Math.min(clampedLimit, 30), hl)
+          : Promise.resolve([] as any[]),
       ]);
 
       dbProducts = dbInitial;
-      // Treat multi-source results as "fresh" external. They were just
-      // upserted to product_cache by the scraper itself.
-      externalProducts = multiSourceFresh;
+      // Multi-source + Google Shopping = fresh externals (already cached upstream).
+      externalProducts = mergeUniqueProducts(multiSourceFresh, gShop);
+      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       const needsExpansion = expandExternal || dbProducts.length < minTarget;
       let discoveryProducts: any[] = [];
