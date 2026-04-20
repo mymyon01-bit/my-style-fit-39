@@ -1,17 +1,7 @@
-// ─── FIT VISUAL ─────────────────────────────────────────────────────────────
-// HERO: AI-generated try-on image (edge-to-edge). The previous 3D viewer
-// has been demoted to legacy code (Fit3DViewer.tsx still exists but is no
-// longer rendered). Silhouette is shown ONLY as final fallback.
-//
-// States rendered:
-//   1. generating      → clean overlay with thin progress bar
-//   2. ready/fallback  → full image, edge-to-edge
-//   3. invalid_body    → CTA to upload body photo (text-prompt path still works)
-//   4. error / missing → silhouette + "Preview unavailable"
-
 import { motion } from "framer-motion";
 import { Sparkles, Camera, ImageOff, User } from "lucide-react";
 import SafeImage from "@/components/SafeImage";
+import type { FitVisualState } from "@/lib/fit/tryOnState";
 
 export type TryOnUiStatus =
   | "idle"
@@ -28,14 +18,12 @@ interface Props {
   productName: string;
   category: string;
   activeSize: string;
-
-  /** AI try-on result (primary visual) */
   tryOnImageUrl?: string | null;
   tryOnStatus?: TryOnUiStatus;
   tryOnProvider?: "replicate" | "perplexity" | "replicate-text" | null;
   tryOnMode?: "photo" | "text";
   cacheHit?: boolean;
-
+  visualState?: FitVisualState;
   onRescanBody?: () => void;
 }
 
@@ -43,15 +31,33 @@ function FallbackSilhouette({ label }: { label: string }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]">
       <User className="h-20 w-20 text-foreground/15" strokeWidth={1} />
-      <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/45">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold tracking-[0.22em] text-foreground/45">{label}</p>
     </div>
   );
 }
 
+const mapLegacyState = (
+  status: TryOnUiStatus,
+  selectedSize: string,
+  imageUrl?: string | null,
+  provider?: "replicate" | "perplexity" | "replicate-text" | null
+): FitVisualState => {
+  if ((status === "ready" || status === "fallback") && imageUrl) {
+    return { kind: "success", selectedSize, imageUrl, source: provider ?? "replicate-text" };
+  }
+  if (status === "generating" || status === "resolving_image") {
+    return { kind: "loading", selectedSize, startedAt: Date.now() };
+  }
+  if (status === "missing_image" || status === "invalid_body" || status === "fallback") {
+    return { kind: "fallback", selectedSize, reason: status };
+  }
+  if (status === "error") {
+    return { kind: "error", selectedSize, message: "generation_failed" };
+  }
+  return { kind: "idle" };
+};
+
 export default function FitVisual({
-  productImage,
   productName,
   activeSize,
   tryOnImageUrl,
@@ -59,71 +65,47 @@ export default function FitVisual({
   tryOnProvider,
   tryOnMode = "text",
   cacheHit = false,
+  visualState,
   onRescanBody,
 }: Props) {
-  const hasReal =
-    !!tryOnImageUrl &&
-    (tryOnStatus === "ready" || tryOnStatus === "fallback");
-  // Treat idle as generating so the UI never shows a stuck "PREPARING…" label.
-  const isGenerating =
-    tryOnStatus === "generating" ||
-    tryOnStatus === "resolving_image" ||
-    tryOnStatus === "idle";
-  const isInvalidBody = tryOnStatus === "invalid_body";
-  const isMissing = tryOnStatus === "missing_image";
-  const isError = tryOnStatus === "error";
-
-  console.log("[FitVisual] render", {
-    tryOnStatus,
-    hasImage: !!tryOnImageUrl,
-    hasReal,
-    isGenerating,
-    provider: tryOnProvider,
-    activeSize,
-  });
+  const state = visualState ?? mapLegacyState(tryOnStatus, activeSize, tryOnImageUrl, tryOnProvider);
+  const hasReal = state.kind === "success" && !!state.imageUrl;
+  const isLoading = state.kind === "loading" && Date.now() - state.startedAt < 12_000;
+  const isFallback = state.kind === "fallback";
+  const isError = state.kind === "error";
+  const isInvalidBody = isFallback && state.reason === "invalid_body";
+  const isMissing = isFallback && state.reason === "missing_image";
 
   const providerLabel =
-    tryOnProvider === "replicate"
-      ? "AI TRY-ON"
-      : tryOnProvider === "perplexity"
-      ? "STYLE PREVIEW"
-      : tryOnProvider === "replicate-text"
-      ? "STYLE PREVIEW"
+    state.kind === "success"
+      ? state.source === "replicate"
+        ? "AI TRY-ON"
+        : "STYLE PREVIEW"
       : tryOnMode === "photo"
       ? "AI TRY-ON"
       : "STYLE PREVIEW";
 
   return (
-    <div className="rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4 space-y-3 overflow-hidden">
-      {/* header */}
+    <div className="space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4">
       <div className="flex items-center justify-between px-1">
-        <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">
-          VISUAL FIT
-        </p>
+        <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">VISUAL FIT</p>
         <span className="flex items-center gap-1 text-[9px] font-semibold tracking-[0.18em] text-accent">
           <Sparkles className="h-2.5 w-2.5" /> SIZE {activeSize}
           {cacheHit && <span className="text-foreground/35"> · CACHED</span>}
         </span>
       </div>
 
-      {/* ── HERO IMAGE — edge-to-edge ── */}
-      <div
-        className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06]"
-        style={{ aspectRatio: "3 / 4", maxHeight: 560 }}
-      >
+      <div className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06]" style={{ aspectRatio: "3 / 4", maxHeight: 560 }}>
         {hasReal ? (
           <SafeImage
-            src={tryOnImageUrl!}
+            src={state.imageUrl}
             alt={`${productName} try-on, size ${activeSize}`}
             className="h-full w-full object-cover"
             fallbackClassName="h-full w-full"
             loading="lazy"
           />
-        ) : isGenerating ? (
+        ) : isLoading ? (
           <div className="relative h-full w-full bg-gradient-to-b from-muted/40 to-muted/20">
-            {/* Clean neutral skeleton — NO product overlay, NO silhouette.
-                The previous faint product image (opacity 0.12) created the
-                "fake mannequin + pasted product card" look. Removed. */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-6">
               <div className="h-1 w-40 overflow-hidden rounded-full bg-foreground/10">
                 <motion.div
@@ -132,27 +114,25 @@ export default function FitVisual({
                   transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
                 />
               </div>
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-foreground/70">
-                GENERATING TRY-ON
-              </p>
-              <p className="text-[12px] text-foreground/55 max-w-[280px] text-center leading-relaxed">
+              <p className="text-[11px] font-semibold tracking-[0.22em] text-foreground/70">GENERATING TRY-ON</p>
+              <p className="max-w-[280px] text-center text-[12px] leading-relaxed text-foreground/55">
                 Building a realistic preview at size <strong className="text-foreground/80">{activeSize}</strong>
               </p>
             </div>
           </div>
         ) : isInvalidBody ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center bg-gradient-to-b from-background/80 to-background/40">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-gradient-to-b from-background/80 to-background/40 px-6 text-center">
             <Camera className="h-10 w-10 text-accent/70" strokeWidth={1.4} />
-            <p className="text-[12px] font-semibold leading-snug text-foreground/85 max-w-[260px]">
+            <p className="max-w-[260px] text-[12px] font-semibold leading-snug text-foreground/85">
               Upload a full-body front photo for a personalized try-on
             </p>
-            <p className="text-[10px] text-foreground/45 max-w-[240px] leading-relaxed">
-              We'll show a style preview meanwhile.
+            <p className="max-w-[240px] text-[10px] leading-relaxed text-foreground/45">
+              We&apos;ll show a style preview meanwhile.
             </p>
             {onRescanBody && (
               <button
                 onClick={onRescanBody}
-                className="rounded-full bg-accent px-5 py-2 text-[10px] font-bold tracking-[0.18em] text-accent-foreground hover:bg-accent/90 transition-colors"
+                className="rounded-full bg-accent px-5 py-2 text-[10px] font-bold tracking-[0.18em] text-accent-foreground transition-colors hover:bg-accent/90"
               >
                 SCAN BODY
               </button>
@@ -160,41 +140,42 @@ export default function FitVisual({
           </div>
         ) : isMissing ? (
           <div className="relative h-full w-full">
-            <FallbackSilhouette label="AI PREVIEW UNAVAILABLE — SHOWING ESTIMATED FIT" />
+            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
             <div className="absolute bottom-4 left-0 right-0 px-6 text-center">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] text-amber-400/90">
                 <ImageOff className="h-3 w-3" /> Product image missing
               </div>
             </div>
           </div>
+        ) : isFallback ? (
+          <div className="relative h-full w-full">
+            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
+          </div>
         ) : isError ? (
           <div className="relative h-full w-full">
-            <FallbackSilhouette label="AI PREVIEW UNAVAILABLE — SHOWING ESTIMATED FIT" />
+            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
           </div>
         ) : (
-          // idle
-          <FallbackSilhouette label="PREPARING…" />
+          <div className="relative h-full w-full">
+            <FallbackSilhouette label="PREVIEW UNAVAILABLE" />
+          </div>
         )}
 
-        {/* provider chip overlay (only when image is shown) */}
         {hasReal && (
           <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
-            <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
-              {providerLabel}
-            </span>
+            <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">{providerLabel}</span>
           </div>
         )}
       </div>
 
-      {/* tiny footer */}
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
         {hasReal
           ? tryOnMode === "photo"
             ? "Generated from your body photo"
             : "Style preview · upload a body photo for personal try-on"
-          : isGenerating
+          : isLoading
           ? "Usually ready in a few seconds"
-          : "Switch sizes to compare fit"}
+          : "Fit breakdown stays available even if preview fails"}
       </p>
     </div>
   );

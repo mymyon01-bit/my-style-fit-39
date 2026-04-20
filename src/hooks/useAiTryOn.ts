@@ -1,13 +1,4 @@
-// ─── useAiTryOn — HYBRID AI TRY-ON HOOK ─────────────────────────────────────
-// Strategy:
-//   • If user has a body photo → call fit-tryon-router (Replicate IDM-VTON,
-//     Perplexity fallback). This is the "real you wearing it" path.
-//   • If no body photo → call fit-tryon-text with a prompt built from body
-//     metrics + product data. Generic realistic model, but visibly responds
-//     to size.
-// Both paths cache by (user_id + product_key + selected_size) in fit_tryons.
-
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useReplicateTryOn, type TryOnStatus, type TryOnProvider } from "@/hooks/useReplicateTryOn";
 import { type TryOnUserBody } from "@/lib/fit/buildTryOnPrompt";
@@ -16,10 +7,24 @@ import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
 import { buildProductVisualDescriptor } from "@/lib/fit/buildProductVisualDescriptor";
 import { buildFitGenerationPrompt } from "@/lib/fit/buildFitGenerationPrompt";
 import { solveFit } from "@/lib/fit/fitSolver";
+import {
+  type FitVisualState,
+  TRYON_ACTIVE_REQUEST_MS,
+  TRYON_CLIENT_TIMEOUT_MS,
+  isActiveTryOnAge,
+  logTryOnClient,
+  makeErrorState,
+  makeFallbackState,
+  makeIdleState,
+  makeLoadingState,
+  makeSuccessState,
+  readStoredTryOnSuccess,
+  readTryOnCacheRecord,
+  storeTryOnSuccess,
+} from "@/lib/fit/tryOnState";
 
 interface Args {
   enabled: boolean;
-  /** Optional body photo URL — when present we use the photo-based pipeline. */
   userImageUrl: string | null;
   productImageUrl: string;
   productKey: string;
@@ -27,20 +32,16 @@ interface Args {
   productName: string;
   productFitType?: string | null;
   selectedSize: string;
-  /** Body metrics for the text-prompt fallback. */
   body: TryOnUserBody;
-  /** Optional context fed to the photo-based router. */
   fitDescriptor?: string;
   regions?: { region: string; fit: string }[];
   productUrl?: string | null;
   productImagesFallback?: (string | null | undefined)[];
-  /** PATCH 4 — when set, also prewarm this size in the background on mount. */
   prewarmSize?: string | null;
 }
 
 interface State {
-  status: TryOnStatus;
-  imageUrl: string | null;
+  visualState: FitVisualState;
   provider: TryOnProvider | "replicate-text";
   error: string | null;
   cacheHit: boolean;
@@ -48,12 +49,136 @@ interface State {
   mode: "photo" | "text";
 }
 
+interface TextRunResult {
+  visualState: FitVisualState;
+  cacheHit: boolean;
+}
+
 const TEXT_CACHE = new Map<string, { url: string; cacheHit: boolean }>();
+const activeTextRequests = new Map<string, { startedAt: number; promise: Promise<TextRunResult> }>();
+
+const toStatus = (state: FitVisualState): TryOnStatus => {
+  switch (state.kind) {
+    case "loading":
+      return "generating";
+    case "success":
+      return "ready";
+    case "fallback":
+      return "fallback";
+    case "error":
+      return "error";
+    default:
+      return "idle";
+  }
+};
+
+async function runTextTryOn(args: Args, prompt: string): Promise<TextRunResult> {
+  const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+  const startedAt = Date.now();
+  const stored = readStoredTryOnSuccess(args.productKey, args.selectedSize);
+  if (stored?.kind === "success") {
+    logTryOnClient("CACHE_HIT", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: stored.source,
+      status: "stored_success",
+      cacheLayer: "local_storage",
+    });
+    return { visualState: stored, cacheHit: true };
+  }
+
+  const memory = TEXT_CACHE.get(cacheKey);
+  if (memory?.url) {
+    logTryOnClient("CACHE_HIT", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: "replicate-text",
+      status: "memory_success",
+      cacheLayer: "memory",
+    });
+    return {
+      visualState: makeSuccessState(args.selectedSize, memory.url, "replicate-text"),
+      cacheHit: true,
+    };
+  }
+
+  const cacheRecord = await readTryOnCacheRecord({
+    productKey: args.productKey,
+    selectedSize: args.selectedSize,
+    successFallbackSource: "replicate-text",
+  });
+
+  if (cacheRecord.kind === "success") {
+    logTryOnClient("CACHE_HIT", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: cacheRecord.provider,
+      status: "db_success",
+      cacheLayer: "database",
+    });
+    return {
+      visualState: makeSuccessState(args.selectedSize, cacheRecord.imageUrl, cacheRecord.provider),
+      cacheHit: true,
+    };
+  }
+
+  logTryOnClient("CACHE_MISS", {
+    productKey: args.productKey,
+    selectedSize: args.selectedSize,
+    startedAt,
+    status: cacheRecord.kind === "pending" ? cacheRecord.status : cacheRecord.kind,
+    reason:
+      cacheRecord.kind === "pending"
+        ? isActiveTryOnAge(cacheRecord.ageMs)
+          ? "active_pending_found"
+          : "retry_after_pending"
+        : cacheRecord.kind,
+  });
+
+  const { data, error } = await supabase.functions.invoke("fit-tryon-text", {
+    body: {
+      prompt,
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      productImageUrl: args.productImageUrl,
+    },
+  });
+
+  if (error) {
+    return {
+      visualState: makeErrorState(args.selectedSize, error.message || "generation_failed"),
+      cacheHit: false,
+    };
+  }
+
+  if (data?.resultImageUrl) {
+    return {
+      visualState: makeSuccessState(args.selectedSize, data.resultImageUrl, "replicate-text"),
+      cacheHit: !!data.cacheHit,
+    };
+  }
+
+  const errStr = String(data?.error || "").toLowerCase();
+  const fallbackReason =
+    data?.status === "rate_limited" ||
+    data?.fallback === true ||
+    errStr.includes("rate") ||
+    errStr.includes("429") ||
+    errStr.includes("payment")
+      ? "timeout"
+      : data?.error || "generation_failed";
+
+  return {
+    visualState: makeFallbackState(args.selectedSize, fallbackReason),
+    cacheHit: false,
+  };
+}
 
 export function useAiTryOn(args: Args) {
   const hasPhoto = !!args.userImageUrl;
-
-  // ── PATH A: photo-based (delegate to existing hook) ──────────────────────
   const photo = useReplicateTryOn({
     enabled: args.enabled && hasPhoto,
     userImageUrl: args.userImageUrl,
@@ -67,44 +192,51 @@ export function useAiTryOn(args: Args) {
     productImagesFallback: args.productImagesFallback,
   });
 
-  // ── PATH B: text-prompt fallback ─────────────────────────────────────────
   const [textState, setTextState] = useState<State>({
-    status: "idle",
-    imageUrl: null,
+    visualState: makeIdleState(),
     provider: null,
     error: null,
     cacheHit: false,
     prompt: null,
     mode: "text",
   });
-  const cancelRef = useRef(false);
-
-  // Run text path when:
-  //   • no photo, OR
-  //   • photo path failed (invalid_body / error / missing_image)
-  const photoFailed =
-    hasPhoto && (photo.status === "invalid_body" || photo.status === "error" || photo.status === "missing_image");
-  const shouldRunText = args.enabled && (!hasPhoto || photoFailed);
-
-  console.log("[useAiTryOn] gate", {
-    enabled: args.enabled,
-    hasPhoto,
-    photoStatus: photo.status,
-    photoFailed,
-    shouldRunText,
-    productKey: args.productKey,
-    selectedSize: args.selectedSize,
-  });
 
   useEffect(() => {
-    cancelRef.current = false;
-    if (!shouldRunText) {
-      if (!args.enabled) {
-        setTextState((s) => ({ ...s, status: "idle", imageUrl: null, error: null }));
-      }
-      return;
+    let active = true;
+    let timedOut = false;
+
+    const transition = (next: State, meta?: Record<string, unknown>) => {
+      if (!active) return;
+      setTextState(next);
+      logTryOnClient("STATE_TRANSITION", {
+        productKey: args.productKey,
+        selectedSize: args.selectedSize,
+        startedAt: next.visualState.kind === "loading" ? next.visualState.startedAt : undefined,
+        provider: next.visualState.kind === "success" ? next.visualState.source : next.provider,
+        status: next.visualState.kind,
+        ...meta,
+      });
+    };
+
+    if (!args.enabled || hasPhoto) {
+      transition({
+        visualState: makeIdleState(),
+        provider: null,
+        error: null,
+        cacheHit: false,
+        prompt: null,
+        mode: "text",
+      }, { reason: hasPhoto ? "photo_path_active" : "disabled" });
+      return () => {
+        active = false;
+      };
     }
-    if (!args.productKey || !args.selectedSize) return;
+
+    if (!args.productKey || !args.selectedSize) {
+      return () => {
+        active = false;
+      };
+    }
 
     const bodyProfile = buildBodyProfile({
       heightCm: args.body.heightCm ?? null,
@@ -136,161 +268,187 @@ export function useAiTryOn(args: Args) {
       fit: fitMap,
       product: visual,
       selectedSize: args.selectedSize,
-      hasBodyImage: !!args.userImageUrl,
+      hasBodyImage: false,
       gender: args.body.gender ?? null,
       solverHints: solver.visualPromptHints,
     });
 
     const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
-    const mem = TEXT_CACHE.get(cacheKey);
-    if (mem) {
-      setTextState({
-        status: "ready",
-        imageUrl: mem.url,
+    const stored = readStoredTryOnSuccess(args.productKey, args.selectedSize);
+    if (stored?.kind === "success") {
+      transition({
+        visualState: stored,
         provider: "replicate-text",
         error: null,
         cacheHit: true,
         prompt,
         mode: "text",
-      });
-      console.log("[useAiTryOn]", { mode: "text", cacheHit: true, key: cacheKey });
-      return;
+      }, { reason: "stored_success" });
+      return () => {
+        active = false;
+      };
     }
 
-    setTextState((s) => ({ ...s, status: "generating", prompt, error: null }));
-    console.log("[useAiTryOn] → invoking fit-tryon-text", {
+    const memory = TEXT_CACHE.get(cacheKey);
+    if (memory?.url) {
+      transition({
+        visualState: makeSuccessState(args.selectedSize, memory.url, "replicate-text"),
+        provider: "replicate-text",
+        error: null,
+        cacheHit: true,
+        prompt,
+        mode: "text",
+      }, { reason: "memory_success" });
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadingState = makeLoadingState(args.selectedSize);
+    transition({
+      visualState: loadingState,
+      provider: "replicate-text",
+      error: null,
+      cacheHit: false,
+      prompt,
+      mode: "text",
+    }, { reason: "TRYON_START" });
+    logTryOnClient("TRYON_START", {
       productKey: args.productKey,
-      size: args.selectedSize,
-      hasProductImage: !!args.productImageUrl,
+      selectedSize: args.selectedSize,
+      startedAt: loadingState.startedAt,
+      provider: "replicate-text",
+      status: "loading",
     });
-    const startedAt = performance.now();
 
-    // 12s timeout fallback per spec — flips state to fallback so UI can't stick on PREPARING.
-    const guardTimer = setTimeout(() => {
-      if (cancelRef.current) return;
-      setTextState((s) => {
-        if (s.status !== "generating") return s;
-        console.warn("[useAiTryOn] 12s timeout reached → fallback");
-        return { ...s, status: "fallback", error: "timeout_12s" };
+    const guardTimer = window.setTimeout(() => {
+      if (!active || timedOut) return;
+      timedOut = true;
+      logTryOnClient("CLIENT_TIMEOUT", {
+        productKey: args.productKey,
+        selectedSize: args.selectedSize,
+        startedAt: loadingState.startedAt,
+        provider: "replicate-text",
+        status: "timeout",
       });
-    }, 12_000);
+      transition({
+        visualState: makeFallbackState(args.selectedSize, "timeout"),
+        provider: "replicate-text",
+        error: "timeout",
+        cacheHit: false,
+        prompt,
+        mode: "text",
+      });
+    }, TRYON_CLIENT_TIMEOUT_MS);
 
-    (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("fit-tryon-text", {
-          body: {
-            prompt,
+    const existing = activeTextRequests.get(cacheKey);
+    const promise = existing && Date.now() - existing.startedAt < TRYON_ACTIVE_REQUEST_MS
+      ? existing.promise
+      : (() => {
+          const nextPromise = runTextTryOn(args, prompt);
+          activeTextRequests.set(cacheKey, { startedAt: Date.now(), promise: nextPromise });
+          nextPromise.finally(() => {
+            const current = activeTextRequests.get(cacheKey);
+            if (current?.promise === nextPromise) activeTextRequests.delete(cacheKey);
+          });
+          return nextPromise;
+        })();
+
+    promise
+      .then((result) => {
+        if (!active) return;
+        if (result.visualState.kind === "success") {
+          TEXT_CACHE.set(cacheKey, { url: result.visualState.imageUrl, cacheHit: result.cacheHit });
+          storeTryOnSuccess(args.productKey, args.selectedSize, result.visualState.imageUrl, "replicate-text");
+          logTryOnClient("ROUTER_SUCCESS", {
             productKey: args.productKey,
             selectedSize: args.selectedSize,
-            productImageUrl: args.productImageUrl,
-          },
-        });
-        clearTimeout(guardTimer);
-        if (cancelRef.current) return;
-        const elapsed = Math.round(performance.now() - startedAt);
-
-        console.log("[useAiTryOn] ← fit-tryon-text response", {
-          elapsed,
-          hasError: !!error,
-          errorMsg: error?.message,
-          dataKeys: data ? Object.keys(data) : null,
-          status: (data as any)?.status,
-          resultImageUrl: (data as any)?.resultImageUrl ? "present" : "missing",
-          dataError: (data as any)?.error,
-        });
-
-        // Detect 402 / 429 / billing / payment / rate-limit errors explicitly.
-        const errStr = String(error?.message || (data as any)?.error || "").toLowerCase();
-        const isRateLimited =
-          (data as any)?.status === "rate_limited" ||
-          (data as any)?.error === "rate_limited" ||
-          (data as any)?.fallback === true ||
-          errStr.includes("429") ||
-          errStr.includes("rate_limit") ||
-          errStr.includes("throttled");
-        const is402 =
-          errStr.includes("402") ||
-          errStr.includes("payment") ||
-          errStr.includes("billing") ||
-          errStr.includes("quota");
-        if (is402 || isRateLimited) {
-          console.warn("[useAiTryOn] replicate unavailable (rate-limited / billing) → fallback", {
-            error: error?.message || (data as any)?.error,
-          });
-        }
-
-        if (error || !data?.resultImageUrl) {
-          console.warn("[useAiTryOn]", {
-            mode: "text",
-            success: false,
-            error: error?.message || data?.error || "unknown",
-            elapsed,
-          });
-          setTextState({
-            status: (is402 || isRateLimited) ? "fallback" : "error",
-            imageUrl: null,
+            startedAt: loadingState.startedAt,
             provider: "replicate-text",
-            error: isRateLimited ? "rate_limited" : (error?.message || (data as any)?.error || "generation_failed"),
-            cacheHit: false,
-            prompt,
-            mode: "text",
+            status: "success",
+            cacheHit: result.cacheHit,
           });
-          return;
+        } else {
+          logTryOnClient("ROUTER_FAIL", {
+            productKey: args.productKey,
+            selectedSize: args.selectedSize,
+            startedAt: loadingState.startedAt,
+            provider: "replicate-text",
+            status: result.visualState.kind,
+            reason:
+              result.visualState.kind === "fallback"
+                ? result.visualState.reason
+                : result.visualState.kind === "error"
+                ? result.visualState.message
+                : "unknown",
+          });
         }
 
-        TEXT_CACHE.set(cacheKey, { url: data.resultImageUrl, cacheHit: !!data.cacheHit });
-        console.log("[useAiTryOn]", {
-          mode: "text",
-          success: true,
-          cacheHit: !!data.cacheHit,
-          elapsed,
-          size: args.selectedSize,
-          nearestSize: data.nearestSize ?? null,
-        });
-        setTextState({
-          status: "ready",
-          imageUrl: data.resultImageUrl,
+        if (timedOut) return;
+        window.clearTimeout(guardTimer);
+        transition({
+          visualState: result.visualState,
           provider: "replicate-text",
-          error: null,
-          cacheHit: !!data.cacheHit,
+          error:
+            result.visualState.kind === "error"
+              ? result.visualState.message
+              : result.visualState.kind === "fallback"
+              ? result.visualState.reason
+              : null,
+          cacheHit: result.cacheHit,
           prompt,
           mode: "text",
         });
-      } catch (e) {
-        clearTimeout(guardTimer);
-        if (cancelRef.current) return;
-        console.error("[useAiTryOn] text path crash", e);
-        setTextState({
-          status: "error",
-          imageUrl: null,
+      })
+      .catch((err) => {
+        if (!active || timedOut) return;
+        window.clearTimeout(guardTimer);
+        const message = err instanceof Error ? err.message : "unknown_error";
+        logTryOnClient("ROUTER_FAIL", {
+          productKey: args.productKey,
+          selectedSize: args.selectedSize,
+          startedAt: loadingState.startedAt,
           provider: "replicate-text",
-          error: e instanceof Error ? e.message : "unknown",
+          status: "error",
+          reason: message,
+        });
+        transition({
+          visualState: makeErrorState(args.selectedSize, message),
+          provider: "replicate-text",
+          error: message,
           cacheHit: false,
           prompt,
           mode: "text",
         });
-      }
-    })();
+      });
 
     return () => {
-      cancelRef.current = true;
-      clearTimeout(guardTimer);
+      active = false;
+      window.clearTimeout(guardTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldRunText, args.productKey, args.selectedSize]);
+  }, [
+    args.body.chestCm,
+    args.body.gender,
+    args.body.heightCm,
+    args.body.shoulderWidthCm,
+    args.body.waistCm,
+    args.body.weightKg,
+    args.enabled,
+    args.productCategory,
+    args.productFitType,
+    args.productImageUrl,
+    args.productKey,
+    args.productName,
+    args.selectedSize,
+    hasPhoto,
+  ]);
 
-  // ── PATCH 4 — BACKGROUND PREWARM ─────────────────────────────────────────
-  // Fire-and-forget generation for a default/recommended size so that when
-  // the user clicks it, the cache already has it.
   useEffect(() => {
-    if (!args.enabled) return;
-    // Skip prewarm only when photo path is clearly working
-    if (hasPhoto && !photoFailed && photo.status !== "idle") return;
+    if (!args.enabled || hasPhoto) return;
     const warm = args.prewarmSize;
-    if (!warm || warm === args.selectedSize) return;
-    if (!args.productKey) return;
+    if (!warm || warm === args.selectedSize || !args.productKey) return;
     const warmKey = `${args.productKey}::${warm}::text`;
-    if (TEXT_CACHE.has(warmKey)) return;
+    if (TEXT_CACHE.has(warmKey) || readStoredTryOnSuccess(args.productKey, warm)) return;
 
     const warmBodyProfile = buildBodyProfile({
       heightCm: args.body.heightCm ?? null,
@@ -321,49 +479,46 @@ export function useAiTryOn(args: Args) {
       fit: warmFitMap,
       product: warmVisual,
       selectedSize: warm,
-      hasBodyImage: !!args.userImageUrl,
+      hasBodyImage: false,
       gender: args.body.gender ?? null,
       solverHints: warmSolver.visualPromptHints,
     });
 
     const run = () => {
-      supabase.functions
-        .invoke("fit-tryon-text", {
-          body: {
-            prompt,
-            productKey: args.productKey,
-            selectedSize: warm,
-            productImageUrl: args.productImageUrl,
-          },
+      runTextTryOn({ ...args, selectedSize: warm }, prompt)
+        .then((result) => {
+          if (result.visualState.kind !== "success") return;
+          TEXT_CACHE.set(warmKey, { url: result.visualState.imageUrl, cacheHit: result.cacheHit });
+          storeTryOnSuccess(args.productKey, warm, result.visualState.imageUrl, "replicate-text");
         })
-        .then(({ data }) => {
-          if (data?.resultImageUrl) {
-            TEXT_CACHE.set(warmKey, { url: data.resultImageUrl, cacheHit: !!data.cacheHit });
-            console.log("[useAiTryOn] prewarm ok", { size: warm });
-          }
-        })
-        .catch((e) => console.warn("[useAiTryOn] prewarm fail", e));
+        .catch(() => undefined);
     };
-    const ric = (globalThis as any).requestIdleCallback;
+
+    const ric = (globalThis as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback;
     if (typeof ric === "function") ric(run, { timeout: 2000 });
-    else setTimeout(run, 600);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [args.enabled, hasPhoto, args.productKey, args.prewarmSize]);
+    else window.setTimeout(run, 600);
+  }, [
+    args,
+    args.body.chestCm,
+    args.body.gender,
+    args.body.heightCm,
+    args.body.shoulderWidthCm,
+    args.body.waistCm,
+    args.body.weightKg,
+    args.enabled,
+    args.prewarmSize,
+    args.productCategory,
+    args.productFitType,
+    args.productKey,
+    args.productName,
+    args.selectedSize,
+    hasPhoto,
+  ]);
 
-  // ── Output selection ──────────────────────────────────────────────────
-  // If photo path is actively producing/produced something usable, return it.
-  // Otherwise (idle, invalid_body, error, missing_image), fall back to the
-  // text path so the VISUAL FIT block is never blank.
-  const photoUsable =
-    hasPhoto &&
-    (photo.status === "ready" ||
-      photo.status === "fallback" ||
-      photo.status === "generating" ||
-      photo.status === "resolving_image");
-
-  if (photoUsable) {
+  if (hasPhoto) {
     return {
       status: photo.status,
+      visualState: photo.visualState,
       imageUrl: photo.imageUrl,
       provider: photo.provider,
       error: photo.error,
@@ -373,12 +528,16 @@ export function useAiTryOn(args: Args) {
     };
   }
 
-  // text-state may still be `idle` if effect hasn't fired — surface as generating
-  // so the UI shows the loading skeleton rather than a blank.
-  if (hasPhoto && textState.status === "idle") {
-    console.log("[useAiTryOn] photo path unusable, deferring to text", { photoStatus: photo.status });
-  }
-  return textState;
+  return {
+    status: toStatus(textState.visualState),
+    visualState: textState.visualState,
+    imageUrl: textState.visualState.kind === "success" ? textState.visualState.imageUrl : null,
+    provider: textState.visualState.kind === "success" ? ("replicate-text" as const) : textState.provider,
+    error: textState.error,
+    cacheHit: textState.cacheHit,
+    prompt: textState.prompt,
+    mode: "text" as const,
+  };
 }
 
 export type { TryOnStatus };

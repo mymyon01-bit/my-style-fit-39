@@ -1,18 +1,24 @@
-// ─── REPLICATE TRY-ON HOOK ──────────────────────────────────────────────────
-// End-to-end pipeline:
-//   1. Body quality gate  (preprocessBodyImage — local + AI bbox)
-//   2. Garment classification (preprocessGarment — AI type)
-//   3. Replicate via fit-tryon-router
-//   4. Output validation  (validateTryOnOutput — AI vision)
-//   5. One retry with stricter prompt + forceRegenerate if step 4 fails
-// All steps log a single structured line so we can audit the funnel.
-
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { preprocessBodyImage } from "@/lib/fit/preprocessBodyImage";
 import { preprocessGarment, garmentTypeFromCategory, type GarmentType } from "@/lib/fit/preprocessGarment";
-import { validateTryOnOutput } from "@/lib/fit/validateOutput";
 import { resolveProductImage } from "@/lib/discover/resolveProductImage";
+import {
+  type FitVisualState,
+  TRYON_CLIENT_TIMEOUT_MS,
+  TRYON_ACTIVE_REQUEST_MS,
+  isActiveTryOnAge,
+  logTryOnClient,
+  makeErrorState,
+  makeFallbackState,
+  makeIdleState,
+  makeLoadingState,
+  makeSuccessState,
+  normalizeTryOnSource,
+  readStoredTryOnSuccess,
+  readTryOnCacheRecord,
+  storeTryOnSuccess,
+} from "@/lib/fit/tryOnState";
 
 export type TryOnStatus =
   | "idle"
@@ -33,7 +39,6 @@ interface Args {
   selectedSize: string;
   fitDescriptor?: string;
   regions?: { region: string; fit: string }[];
-  /** Optional context used to auto-recover a missing product image */
   productUrl?: string | null;
   productImagesFallback?: (string | null | undefined)[];
 }
@@ -41,243 +46,372 @@ interface Args {
 export type TryOnProvider = "replicate" | "perplexity" | null;
 
 interface CacheEntry {
-  url: string | null;
+  url: string;
   provider: TryOnProvider;
-  fallback: boolean;
+}
+
+interface RequestResult {
+  visualState: FitVisualState;
+  resolvedProductImage: string | null;
 }
 
 const memoryCache = new Map<string, CacheEntry>();
-const POLL_INTERVAL_MS = 2500;
-const POLL_MAX_ATTEMPTS = 40;
+const activePhotoRequests = new Map<string, { startedAt: number; promise: Promise<RequestResult> }>();
+
+const toStatus = (state: FitVisualState): TryOnStatus => {
+  switch (state.kind) {
+    case "loading":
+      return "generating";
+    case "success":
+      return "ready";
+    case "fallback":
+      return "fallback";
+    case "error":
+      return "error";
+    default:
+      return "idle";
+  }
+};
+
+async function runPhotoTryOnRequest(args: Args): Promise<RequestResult> {
+  const startedAt = Date.now();
+  const stored = readStoredTryOnSuccess(args.productKey, args.selectedSize);
+  if (stored?.kind === "success") {
+    logTryOnClient("CACHE_HIT", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: stored.source,
+      status: "stored_success",
+      cacheLayer: "local_storage",
+    });
+    return { visualState: stored, resolvedProductImage: null };
+  }
+
+  const cached = memoryCache.get(`${args.productKey}::${args.selectedSize}`);
+  if (cached?.url) {
+    logTryOnClient("CACHE_HIT", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: cached.provider,
+      status: "memory_success",
+      cacheLayer: "memory",
+    });
+    return {
+      visualState: makeSuccessState(
+        args.selectedSize,
+        cached.url,
+        normalizeTryOnSource(cached.provider, "replicate")
+      ),
+      resolvedProductImage: null,
+    };
+  }
+
+  const cacheRecord = await readTryOnCacheRecord({
+    productKey: args.productKey,
+    selectedSize: args.selectedSize,
+    successFallbackSource: "replicate",
+  });
+
+  if (cacheRecord.kind === "success") {
+    logTryOnClient("CACHE_HIT", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: cacheRecord.provider,
+      status: "db_success",
+      cacheLayer: "database",
+    });
+    return {
+      visualState: makeSuccessState(args.selectedSize, cacheRecord.imageUrl, cacheRecord.provider),
+      resolvedProductImage: null,
+    };
+  }
+
+  if (cacheRecord.kind === "stale") {
+    logTryOnClient("CACHE_MISS", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: cacheRecord.provider,
+      status: cacheRecord.status,
+      reason: "stale_pending_ignored",
+      ageMs: cacheRecord.ageMs,
+    });
+  } else if (cacheRecord.kind === "pending") {
+    logTryOnClient("CACHE_MISS", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      provider: cacheRecord.provider,
+      status: cacheRecord.status,
+      reason: isActiveTryOnAge(cacheRecord.ageMs) ? "active_pending_found" : "retry_after_pending",
+      ageMs: cacheRecord.ageMs,
+    });
+  } else {
+    logTryOnClient("CACHE_MISS", {
+      productKey: args.productKey,
+      selectedSize: args.selectedSize,
+      startedAt,
+      status: cacheRecord.kind === "failed" ? cacheRecord.status : "miss",
+      reason: cacheRecord.kind,
+    });
+  }
+
+  let workingProductImage = args.productImageUrl;
+  let resolvedProductImage: string | null = null;
+  const looksUsable = (u: string | null | undefined) =>
+    !!u && /^(https?:\/\/|data:image\/)/i.test(String(u).trim()) &&
+    String(u).trim() !== "null" && String(u).trim() !== "undefined";
+
+  if (!looksUsable(workingProductImage)) {
+    const resolved = await resolveProductImage({
+      id: args.productKey,
+      image: args.productImageUrl,
+      images: args.productImagesFallback,
+      url: args.productUrl,
+      category: args.productCategory,
+    });
+    if (!resolved) {
+      return {
+        visualState: makeFallbackState(args.selectedSize, "missing_image"),
+        resolvedProductImage: null,
+      };
+    }
+    workingProductImage = resolved.url;
+    resolvedProductImage = resolved.url;
+  }
+
+  const body = await preprocessBodyImage(args.userImageUrl!);
+  if (!body.valid) {
+    return {
+      visualState: makeFallbackState(args.selectedSize, body.reason || "invalid_body"),
+      resolvedProductImage,
+    };
+  }
+
+  const garment = await preprocessGarment(workingProductImage, args.productCategory);
+  const garmentType: GarmentType =
+    garment.type !== "unknown" ? garment.type : garmentTypeFromCategory(args.productCategory);
+
+  const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
+    body: {
+      userImageUrl: body.croppedImageUrl,
+      productImageUrl: workingProductImage,
+      productKey: args.productKey,
+      productCategory:
+        garmentType === "lower"
+          ? `${args.productCategory || ""} pants`.trim()
+          : garmentType === "full"
+          ? `${args.productCategory || ""} dress`.trim()
+          : args.productCategory,
+      selectedSize: args.selectedSize,
+      fitDescriptor: args.fitDescriptor,
+      regions: args.regions || [],
+      mode: "high",
+    },
+  });
+
+  if (error) {
+    return {
+      visualState: makeErrorState(args.selectedSize, error.message || "router_failed"),
+      resolvedProductImage,
+    };
+  }
+
+  if (data?.ok && data?.imageUrl) {
+    const source = normalizeTryOnSource(data.provider, "replicate");
+    return {
+      visualState: makeSuccessState(args.selectedSize, data.imageUrl, source),
+      resolvedProductImage,
+    };
+  }
+
+  if (data?.ok === false) {
+    return {
+      visualState: makeFallbackState(args.selectedSize, data.code || data.error || "generation_failed"),
+      resolvedProductImage,
+    };
+  }
+
+  return {
+    visualState: makeErrorState(args.selectedSize, "invalid_router_contract"),
+    resolvedProductImage,
+  };
+}
 
 export function useReplicateTryOn(args: Args) {
-  const { enabled, userImageUrl, productImageUrl, productKey, productCategory, selectedSize, fitDescriptor, regions, productUrl, productImagesFallback } = args;
-
-  const [status, setStatus] = useState<TryOnStatus>("idle");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [provider, setProvider] = useState<TryOnProvider>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { enabled, userImageUrl, productKey, selectedSize } = args;
+  const [visualState, setVisualState] = useState<FitVisualState>(makeIdleState());
   const [resolvedProductImage, setResolvedProductImage] = useState<string | null>(null);
-  const cancelRef = useRef(false);
-
-  const cacheKey = `${productKey}::${selectedSize}`;
+  const requestKeyRef = useRef<string>("");
 
   useEffect(() => {
-    cancelRef.current = false;
+    let active = true;
+    let timedOut = false;
+
+    const transition = (next: FitVisualState, meta?: Record<string, unknown>) => {
+      if (!active) return;
+      setVisualState(next);
+      logTryOnClient("STATE_TRANSITION", {
+        productKey,
+        selectedSize,
+        startedAt: next.kind === "loading" ? next.startedAt : undefined,
+        provider: next.kind === "success" ? next.source : null,
+        status: next.kind,
+        ...meta,
+      });
+    };
 
     if (!enabled || !userImageUrl || !productKey || !selectedSize) {
-      setStatus("idle");
-      setImageUrl(null);
-      setProvider(null);
-      return;
+      transition(makeIdleState(), { reason: "disabled" });
+      setResolvedProductImage(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    const cacheKey = `${productKey}::${selectedSize}`;
+    requestKeyRef.current = cacheKey;
+
+    const local = readStoredTryOnSuccess(productKey, selectedSize);
+    if (local?.kind === "success") {
+      transition(local, { reason: "stored_success" });
+      return () => {
+        active = false;
+      };
     }
 
     const cached = memoryCache.get(cacheKey);
     if (cached?.url) {
-      setImageUrl(cached.url);
-      setProvider(cached.provider);
-      setStatus(cached.fallback ? "fallback" : "ready");
-      return;
+      transition(
+        makeSuccessState(selectedSize, cached.url, normalizeTryOnSource(cached.provider, "replicate")),
+        { reason: "memory_success" }
+      );
+      return () => {
+        active = false;
+      };
     }
 
-    setStatus("generating");
-    setImageUrl(null);
-    setError(null);
+    const loadingState = makeLoadingState(selectedSize);
+    transition(loadingState, { reason: "TRYON_START" });
+    logTryOnClient("TRYON_START", {
+      productKey,
+      selectedSize,
+      startedAt: loadingState.startedAt,
+      status: "loading",
+    });
 
-    (async () => {
-      // ── 0. PRODUCT IMAGE GUARD + RECOVERY ───────────────────────
-      let workingProductImage = productImageUrl;
-      const looksUsable = (u: string | null | undefined) =>
-        !!u && /^(https?:\/\/|data:image\/)/i.test(String(u).trim()) &&
-        String(u).trim() !== "null" && String(u).trim() !== "undefined";
+    const guardTimer = window.setTimeout(() => {
+      if (!active || timedOut || requestKeyRef.current !== cacheKey) return;
+      timedOut = true;
+      logTryOnClient("CLIENT_TIMEOUT", {
+        productKey,
+        selectedSize,
+        startedAt: loadingState.startedAt,
+        status: "timeout",
+      });
+      transition(makeFallbackState(selectedSize, "timeout"), { reason: "timeout" });
+    }, TRYON_CLIENT_TIMEOUT_MS);
 
-      if (!looksUsable(workingProductImage)) {
-        setStatus("resolving_image");
-        console.log("[tryon-pipeline]", { stage: "image_guard", product_image_missing: true });
-        const resolved = await resolveProductImage({
-          id: productKey,
-          image: productImageUrl,
-          images: productImagesFallback,
-          url: productUrl,
-          category: productCategory,
-        });
-        if (cancelRef.current) return;
-        if (!resolved) {
-          console.warn("[tryon-pipeline]", { stage: "image_guard", recovered: false, replicate_called: false });
-          setStatus("missing_image");
-          setError("missing_image");
-          return;
-        }
-        workingProductImage = resolved.url;
-        setResolvedProductImage(resolved.url);
-        console.log("[tryon-pipeline]", { stage: "image_guard", recovered: true, source: resolved.source });
-        setStatus("generating");
-      }
-      try {
-        // ── 1. BODY GATE ────────────────────────────────────────────
-        const body = await preprocessBodyImage(userImageUrl);
-        if (!body.valid) {
-          console.log("[tryon-pipeline]", {
-            stage: "body",
-            body_valid: false,
-            reason: body.reason,
-            replicate_called: false,
-            fallback_triggered: true,
+    const existing = activePhotoRequests.get(cacheKey);
+    const promise = existing && Date.now() - existing.startedAt < TRYON_ACTIVE_REQUEST_MS
+      ? existing.promise
+      : (() => {
+          const nextPromise = runPhotoTryOnRequest(args);
+          activePhotoRequests.set(cacheKey, { startedAt: Date.now(), promise: nextPromise });
+          nextPromise.finally(() => {
+            const current = activePhotoRequests.get(cacheKey);
+            if (current?.promise === nextPromise) activePhotoRequests.delete(cacheKey);
           });
-          setStatus("invalid_body");
-          setError(body.reason || "body_image_invalid");
-          return;
-        }
+          return nextPromise;
+        })();
 
-        // ── 2. GARMENT CLASSIFICATION ───────────────────────────────
-        const garment = await preprocessGarment(workingProductImage, productCategory);
-        const garmentType: GarmentType = garment.type !== "unknown"
-          ? garment.type
-          : garmentTypeFromCategory(productCategory);
+    promise
+      .then((result) => {
+        if (!active || requestKeyRef.current !== cacheKey) return;
+        setResolvedProductImage(result.resolvedProductImage);
 
-        console.log("[tryon-pipeline]", {
-          stage: "preprocess",
-          body_valid: true,
-          bbox_size: body.bbox ? Number((body.bbox.w * body.bbox.h).toFixed(2)) : null,
-          pose_quality: body.confidence ?? null,
-          framing: body.framing,
-          garment_type: garmentType,
-          garment_on_model: garment.onModel,
-        });
-
-        // ── 3. REPLICATE (with built-in retry on validation failure) ─
-        const runReplicate = async (force: boolean, strict: boolean) => {
-          const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
-            body: {
-              userImageUrl: body.croppedImageUrl,
-              productImageUrl: workingProductImage,
-              productKey,
-              productCategory: garmentType === "lower" ? `${productCategory || ""} pants`.trim()
-                              : garmentType === "full" ? `${productCategory || ""} dress`.trim()
-                              : productCategory,
-              selectedSize,
-              fitDescriptor: strict ? `${fitDescriptor || "regular"} (strict alignment)` : fitDescriptor,
-              regions: regions || [],
-              mode: "high",
-              forceRegenerate: force,
-            },
+        if (result.visualState.kind === "success") {
+          const provider: TryOnProvider = result.visualState.source === "perplexity" ? "perplexity" : "replicate";
+          memoryCache.set(cacheKey, { url: result.visualState.imageUrl, provider });
+          storeTryOnSuccess(productKey, selectedSize, result.visualState.imageUrl, provider);
+          logTryOnClient("ROUTER_SUCCESS", {
+            productKey,
+            selectedSize,
+            startedAt: loadingState.startedAt,
+            provider,
+            status: "success",
           });
-          return { data, invokeErr };
-        };
-
-        const finalize = async (resultUrl: string, _providerName: TryOnProvider) => {
-          // ── 4. OUTPUT VALIDATION ────────────────────────────────
-          const validation = await validateTryOnOutput(resultUrl, workingProductImage);
-          console.log("[tryon-pipeline]", {
-            stage: "validate",
-            replicate_success: true,
-            validation_passed: validation.passed,
-            quality_score: validation.qualityScore,
-            reasons: validation.reasons,
-          });
-          return validation;
-        };
-
-        const handleResult = async (
-          data: any,
-          attempt: 1 | 2
-        ): Promise<{ done: boolean; resultUrl?: string; provider?: TryOnProvider }> => {
-          if (data?.error && !data?.resultImageUrl) {
-            return { done: true };
-          }
-
-          let resultUrl: string | null = null;
-          let providerName: TryOnProvider = (data?.provider as TryOnProvider) || "replicate";
-
-          if (data?.status === "succeeded" && data?.resultImageUrl) {
-            resultUrl = data.resultImageUrl;
-          } else if (data?.predictionId) {
-            for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
-              if (cancelRef.current) return { done: true };
-              await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-              const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fit-tryon-router?id=${encodeURIComponent(data.predictionId)}`;
-              const { data: { session } } = await supabase.auth.getSession();
-              const headers: Record<string, string> = { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY };
-              if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-              const r = await fetch(baseUrl, { headers });
-              const polled = await r.json().catch(() => ({}));
-              if (polled?.status === "succeeded" && polled?.resultImageUrl) {
-                resultUrl = polled.resultImageUrl;
-                providerName = polled.provider || providerName;
-                break;
-              }
-              if (polled?.status === "failed") return { done: true };
-            }
-          }
-
-          if (!resultUrl) return { done: true };
-
-          const validation = await finalize(resultUrl, providerName);
-          if (validation.passed || attempt === 2) {
-            return { done: true, resultUrl, provider: providerName };
-          }
-          return { done: false }; // retry
-        };
-
-        // First pass
-        const first = await runReplicate(false, false);
-        if (cancelRef.current) return;
-        if (first.invokeErr) {
-          setStatus("error");
-          setError(first.invokeErr.message || "try-on request failed");
-          return;
-        }
-        let outcome = await handleResult(first.data, 1);
-
-        // Retry with stricter prompt + forced regeneration if validation failed
-        if (!outcome.done || (!outcome.resultUrl && !cancelRef.current)) {
-          if (!outcome.resultUrl) {
-            console.log("[tryon-pipeline]", { stage: "retry", retry_used: true, reason: "validation_failed" });
-            const second = await runReplicate(true, true);
-            if (cancelRef.current) return;
-            if (second.invokeErr) {
-              setStatus("error");
-              setError(second.invokeErr.message || "retry failed");
-              return;
-            }
-            outcome = await handleResult(second.data, 2);
-          }
-        }
-
-        if (cancelRef.current) return;
-
-        if (outcome.resultUrl) {
-          const isFallback = outcome.provider === "perplexity";
-          memoryCache.set(cacheKey, {
-            url: outcome.resultUrl,
-            provider: outcome.provider || "replicate",
-            fallback: isFallback,
-          });
-          console.log("[tryon-pipeline]", {
-            stage: "final",
-            final_provider: outcome.provider,
-            fallback_used: isFallback,
-          });
-          setImageUrl(outcome.resultUrl);
-          setProvider(outcome.provider || "replicate");
-          setStatus(isFallback ? "fallback" : "ready");
         } else {
-          setStatus("error");
-          setError("generation failed");
+          logTryOnClient("ROUTER_FAIL", {
+            productKey,
+            selectedSize,
+            startedAt: loadingState.startedAt,
+            status: result.visualState.kind,
+            reason:
+              result.visualState.kind === "fallback"
+                ? result.visualState.reason
+                : result.visualState.kind === "error"
+                ? result.visualState.message
+                : "unknown",
+          });
         }
-      } catch (e) {
-        if (cancelRef.current) return;
-        console.error("[useReplicateTryOn] unexpected", e);
-        setStatus("error");
-        setError(e instanceof Error ? e.message : "unknown error");
-      }
-    })();
+
+        if (timedOut) return;
+        window.clearTimeout(guardTimer);
+        transition(result.visualState);
+      })
+      .catch((err) => {
+        if (!active || timedOut || requestKeyRef.current !== cacheKey) return;
+        window.clearTimeout(guardTimer);
+        const message = err instanceof Error ? err.message : "unknown_error";
+        logTryOnClient("ROUTER_FAIL", {
+          productKey,
+          selectedSize,
+          startedAt: loadingState.startedAt,
+          status: "error",
+          reason: message,
+        });
+        transition(makeErrorState(selectedSize, message));
+      });
 
     return () => {
-      cancelRef.current = true;
+      active = false;
+      window.clearTimeout(guardTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, userImageUrl, productImageUrl, productKey, selectedSize]);
+  }, [
+    args.fitDescriptor,
+    args.productCategory,
+    args.productImageUrl,
+    args.productImagesFallback,
+    args.productUrl,
+    args.regions,
+    enabled,
+    userImageUrl,
+    productKey,
+    selectedSize,
+  ]);
 
-  return { status, imageUrl, provider, error, resolvedProductImage };
+  const imageUrl = visualState.kind === "success" ? visualState.imageUrl : null;
+  const provider =
+    visualState.kind === "success"
+      ? (visualState.source === "perplexity" ? "perplexity" : "replicate")
+      : null;
+  const error =
+    visualState.kind === "error"
+      ? visualState.message
+      : visualState.kind === "fallback"
+      ? visualState.reason
+      : null;
+
+  return {
+    status: toStatus(visualState),
+    visualState,
+    imageUrl,
+    provider,
+    error,
+    resolvedProductImage,
+  };
 }

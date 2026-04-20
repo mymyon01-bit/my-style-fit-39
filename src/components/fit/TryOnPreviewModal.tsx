@@ -205,14 +205,11 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         },
       });
       if (error) throw error;
-      if (data?.error && data?.status !== "starting" && data?.status !== "processing") {
-        throw new Error(data.error);
-      }
 
       console.log("[TryOn] created", data);
       if (data?.provider) setProvider(data.provider);
-      if (data?.status === "succeeded" && data?.resultImageUrl) {
-        setResultUrl(data.resultImageUrl);
+      if (data?.ok && data?.imageUrl) {
+        setResultUrl(data.imageUrl);
         setStatus("ready");
         return;
       }
@@ -220,6 +217,9 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         setPredictionId(data.predictionId);
         pollUntilDone(data.predictionId);
         return;
+      }
+      if (data?.ok === false) {
+        throw new Error(data.error || data.code || "Preview unavailable right now");
       }
       throw new Error("No prediction returned");
     } catch (e: any) {
