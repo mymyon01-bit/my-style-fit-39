@@ -291,7 +291,8 @@ export function useAiTryOn(args: Args) {
 
     // Force-reload: clear text caches for this key when reloadToken bumps
     if (args.reloadToken && args.reloadToken > 0) {
-      const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+      const reloadHashSeg = args.bodyImageHash ? args.bodyImageHash.slice(0, 12) : "nohash";
+      const cacheKey = `${args.productKey}::${args.selectedSize}::${reloadHashSeg}::text`;
       clearStoredTryOn(args.productKey, args.selectedSize);
       TEXT_CACHE.delete(cacheKey);
       activeTextRequests.delete(cacheKey);
