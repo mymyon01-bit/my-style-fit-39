@@ -117,18 +117,14 @@ function categoryMatches(intentCategory: string, productCategory: string | null 
 }
 
 function isImageUrlSafe(url: unknown): boolean {
-  if (!url || typeof url !== "string") return false;
-  const trimmed = url.trim();
-  if (!trimmed || trimmed === "null" || trimmed === "undefined") return false;
-  try {
-    const u = new URL(trimmed);
-    if (u.protocol !== "https:") return false;
-    if (BLOCKED_IMAGE_DOMAINS.some(d => u.hostname.includes(d))) return false;
-    if (trimmed.length > 2000) return false;
-    return true;
-  } catch {
-    return false;
-  }
+  return imageQualityCheck(url).ok;
+}
+
+function getServiceClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 }
 
 function getServiceClient() {
