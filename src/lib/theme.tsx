@@ -11,9 +11,11 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Default to light — premium editorial commerce direction.
+  // Users can still flip to dark/system in settings; the saved value wins.
   const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem("wardrobe-theme");
-    return (saved as Theme) || "system";
+    return (saved as Theme) || "light";
   });
 
   const getSystemTheme = (): "light" | "dark" =>
