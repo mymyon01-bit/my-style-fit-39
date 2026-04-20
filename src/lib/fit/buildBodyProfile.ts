@@ -2,6 +2,8 @@
 // Convert raw user measurements into normalized body proportions + a
 // human-readable summary. Used by the garment fit map and prompt builder.
 
+import type { BodyShapeScales } from "./bodyShape";
+
 export interface RawBody {
   heightCm?: number | null;
   weightKg?: number | null;
@@ -11,6 +13,8 @@ export interface RawBody {
   hipCm?: number | null;
   inseamCm?: number | null;
   bodyType?: string | null;
+  /** Optional shape scales from simple selectors. Multiplied into ratios. */
+  shapeScales?: BodyShapeScales | null;
 }
 
 export type BuildKind =
@@ -30,6 +34,8 @@ export interface BodyProfile {
   hipRatio: number;        // hip vs reference 94cm
   legRatio: number;        // inseam vs reference 78cm
   torsoRatio: number;      // derived: torso vs legs
+  /** Arm thickness scale (1.0 neutral, 0.85–1.15) — drives sleeve volume. */
+  armScale: number;
   bmi: number | null;
   bodySummary: string;
 }
@@ -80,15 +86,20 @@ export function buildBodyProfile(raw: RawBody): BodyProfile {
 
   const bmi = h && w ? w / Math.pow(h / 100, 2) : null;
 
+  // Apply shape-scale multipliers if provided (clamped to keep things sane).
+  const s = raw.shapeScales;
+  const sMul = (base: number, scale?: number) => clamp((scale ?? 1) * base, 0.82, 1.3);
+
   const profile: BodyProfile = {
     overallHeight: Math.round(h),
-    build: inferBuild(bmi, shoulder),
-    shoulderRatio: clamp(shoulder / REF.shoulder, 0.85, 1.2),
-    chestRatio: clamp(chest / REF.chest, 0.85, 1.25),
-    waistRatio: clamp(waist / REF.waist, 0.82, 1.3),
-    hipRatio: clamp(hip / REF.hip, 0.85, 1.28),
-    legRatio: clamp(inseam / REF.inseam, 0.9, 1.12),
+    build: inferBuild(bmi, shoulder * (s?.shoulderWidthScale ?? 1)),
+    shoulderRatio: sMul(shoulder / REF.shoulder, s?.shoulderWidthScale),
+    chestRatio:    sMul(chest / REF.chest,       s?.chestScale),
+    waistRatio:    sMul(waist / REF.waist,       s?.waistScale),
+    hipRatio:      sMul(hip / REF.hip,           s?.legScale),
+    legRatio:      clamp((inseam / REF.inseam) * (s?.legScale ?? 1), 0.9, 1.15),
     torsoRatio: 1, // filled below
+    armScale:      clamp(s?.armScale ?? 1, 0.85, 1.15),
     bmi: bmi != null ? Math.round(bmi * 10) / 10 : null,
     bodySummary: "",
   };

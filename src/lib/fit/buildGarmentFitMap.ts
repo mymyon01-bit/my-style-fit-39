@@ -109,14 +109,24 @@ function fitTypeBias(fitType?: string | null): Partial<GarmentFitMap> {
   return {};
 }
 
-// Body bias — broader shoulders consume some chest ease, fuller waist tightens.
+// Body bias — broader shoulders/chest consume ease; fuller waist tightens;
+// thicker arms consume sleeve volume; thicker legs consume hem ease (bottoms).
 function bodyBias(body: BodyProfile, base: GarmentFitMap): Partial<GarmentFitMap> {
   const out: Partial<GarmentFitMap> = {};
   const shoulderExtra = body.shoulderRatio - 1;
-  const waistExtra = body.waistRatio - 1;
-  out.chestEase = Math.max(-0.02, base.chestEase - shoulderExtra * 0.6);
-  out.waistEase = Math.max(-0.02, base.waistEase - waistExtra * 0.5);
-  out.shoulderDrop = Math.max(0, base.shoulderDrop - Math.max(0, shoulderExtra) * 0.5);
+  const chestExtra    = body.chestRatio - 1;
+  const waistExtra    = body.waistRatio - 1;
+  const armExtra      = (body.armScale ?? 1) - 1;
+  const legExtra      = body.legRatio - 1;
+
+  out.chestEase    = Math.max(-0.02, base.chestEase - shoulderExtra * 0.6 - chestExtra * 0.5);
+  out.waistEase    = Math.max(-0.02, base.waistEase - waistExtra * 0.5);
+  out.shoulderDrop = Math.max(0,     base.shoulderDrop - Math.max(0, shoulderExtra) * 0.5);
+  out.sleeveVolume = Math.max(0,     base.sleeveVolume - Math.max(0, armExtra) * 0.5);
+  // Bottoms: fuller legs reduce hem ease.
+  if (base.category === "bottom") {
+    out.hemEase = Math.max(-0.02, base.hemEase - Math.max(0, legExtra) * 0.4);
+  }
   return out;
 }
 
