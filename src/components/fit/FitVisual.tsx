@@ -64,11 +64,23 @@ export default function FitVisual({
   const hasReal =
     !!tryOnImageUrl &&
     (tryOnStatus === "ready" || tryOnStatus === "fallback");
+  // Treat idle as generating so the UI never shows a stuck "PREPARING…" label.
   const isGenerating =
-    tryOnStatus === "generating" || tryOnStatus === "resolving_image";
+    tryOnStatus === "generating" ||
+    tryOnStatus === "resolving_image" ||
+    tryOnStatus === "idle";
   const isInvalidBody = tryOnStatus === "invalid_body";
   const isMissing = tryOnStatus === "missing_image";
   const isError = tryOnStatus === "error";
+
+  console.log("[FitVisual] render", {
+    tryOnStatus,
+    hasImage: !!tryOnImageUrl,
+    hasReal,
+    isGenerating,
+    provider: tryOnProvider,
+    activeSize,
+  });
 
   const providerLabel =
     tryOnProvider === "replicate"
