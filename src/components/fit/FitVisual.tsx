@@ -73,7 +73,9 @@ export default function FitVisual({
 }: Props) {
   const state = visualState ?? mapLegacyState(tryOnStatus, activeSize, tryOnImageUrl, tryOnProvider);
   const hasReal = state.kind === "success" && !!state.imageUrl;
-  const isLoading = state.kind === "loading" && Date.now() - state.startedAt < 12_000;
+  // Loading state: trust the state machine. The hook owns the 12s timeout
+  // and will transition to "fallback" itself — don't second-guess here.
+  const isLoading = state.kind === "loading";
   const isFallback = state.kind === "fallback";
   const isError = state.kind === "error";
   const isInvalidBody = isFallback && state.reason === "invalid_body";
