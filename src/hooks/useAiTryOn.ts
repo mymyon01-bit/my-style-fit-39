@@ -502,6 +502,7 @@ export function useAiTryOn(args: Args) {
     args.productName,
     args.reloadToken,
     args.selectedSize,
+    args.bodyImageHash,
     hasPhoto,
   ]);
 
