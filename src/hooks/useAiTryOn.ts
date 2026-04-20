@@ -176,7 +176,7 @@ async function runTextTryOn(args: Args, prompt: string): Promise<TextRunResult> 
       logTryOnClient("COMPOSITE_SUCCESS", { productKey: args.productKey, selectedSize: args.selectedSize, startedAt, provider: "fit-composite", status: "success", cacheHit: composite.cacheHit });
       return { visualState: makeSuccessState(args.selectedSize, composite.compositeUrl, "replicate-text"), cacheHit: composite.cacheHit };
     }
-    logTryOnClient("COMPOSITE_FALLBACK", { productKey: args.productKey, selectedSize: args.selectedSize, startedAt, provider: "fit-composite", status: "fallback", reason: composite.error });
+    logTryOnClient("COMPOSITE_FALLBACK", { productKey: args.productKey, selectedSize: args.selectedSize, startedAt, provider: "fit-composite", status: "fallback", reason: composite.ok ? "unknown" : composite.error });
   } catch (err) {
     logTryOnClient("COMPOSITE_ERROR", { productKey: args.productKey, selectedSize: args.selectedSize, startedAt, provider: "fit-composite", status: "error", reason: err instanceof Error ? err.message : "unknown" });
   }
