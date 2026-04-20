@@ -810,10 +810,9 @@ serve(async (req) => {
       const minTarget = Math.min(clampedLimit, 18);
       const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL: SerpAPI Google Shopping + commerce-scraper + DB.
-      // Google Shopping is a first-class source — runs every freshSearch.
-      // Also fire CSE in the background to seed search-discovery for next time.
-      const cseTrigger = triggerCseExpansion(normalizedQuery, hl).catch(() => 0);
+      // PARALLEL MAIN SOURCES: Google (SerpAPI Shopping) + ScrapingBee
+      // (commerce-scraper / multi-source) + DB. CSE removed — bee+google now
+      // carry the discovery load directly.
       const [gShop, externalResult, dbResult] = await Promise.all([
         fetchFromGoogleShopping(normalizedQuery, Math.min(clampedLimit, 30), hl)
           .catch((e) => { console.error("Google Shopping failed:", e); return [] as any[]; }),
