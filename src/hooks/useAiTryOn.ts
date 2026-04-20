@@ -192,6 +192,7 @@ export function useAiTryOn(args: Args) {
     regions: args.regions,
     productUrl: args.productUrl,
     productImagesFallback: args.productImagesFallback,
+    reloadToken: args.reloadToken,
   });
 
   const [textState, setTextState] = useState<State>({
