@@ -852,8 +852,6 @@ serve(async (req) => {
         .map((p) => ({ ...p, _freshness: freshnessScore(p) }))
         .sort((a, b) => (b._freshness || 0) - (a._freshness || 0));
 
-      // Don't await CSE — it just seeds discovery for next request.
-      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       // ─── Category intent enforcement (HARD when query is product-typed) ───
       // Inference from the query text takes priority over the (often generic
@@ -931,12 +929,8 @@ serve(async (req) => {
       const sanitizedQuery = query ? sanitizeSearchQuery(query) : "";
       const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL: DB + Apify multi-source + Google Shopping (SerpAPI) all fire
-      // together. Google Shopping is now first-class on the db-first path too.
-      // CSE is fired in the background to seed search-discovery for next call.
-      const cseTrigger = sanitizedQuery
-        ? triggerCseExpansion(sanitizedQuery, hl).catch(() => 0)
-        : Promise.resolve(0);
+      // PARALLEL MAIN SOURCES: DB + ScrapingBee multi-source + Google (SerpAPI).
+      // Bee + Google now carry discovery directly. CSE removed.
       const [dbInitial, multiSourceFresh, gShop] = await Promise.all([
         loadFromDB(supabase, {
           query: query || undefined,
@@ -956,9 +950,8 @@ serve(async (req) => {
       ]);
 
       dbProducts = dbInitial;
-      // Multi-source + Google Shopping = fresh externals (already cached upstream).
+      // Multi-source (ScrapingBee) + Google Shopping = fresh externals (cached upstream).
       externalProducts = mergeUniqueProducts(multiSourceFresh, gShop);
-      cseTrigger.then((n) => n && console.log(`[SEARCH_SUPPLY] CSE_BACKGROUND candidates=${n}`));
 
       const needsExpansion = expandExternal || dbProducts.length < minTarget;
       let discoveryProducts: any[] = [];
