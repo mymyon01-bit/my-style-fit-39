@@ -110,19 +110,24 @@
     font-family: var(--font-body);
     font-size: 15px;
     line-height: 1.55;
+    font-weight: 400;
+    color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11";
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
-    line-height: 1.15;
+    line-height: 1.12;
     color: hsl(var(--foreground));
+    font-weight: 600;
   }
-  h1 { font-weight: 600; }
-  h2, h3 { font-weight: 600; }
+  h1 { font-weight: 700; letter-spacing: -0.025em; }
+  h2 { font-weight: 600; }
+  h3, h4 { font-weight: 600; }
   p { color: hsl(var(--foreground) / 0.78); }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
