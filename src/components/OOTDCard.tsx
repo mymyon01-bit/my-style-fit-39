@@ -112,17 +112,15 @@ function OOTDCardImpl({
             )}
 
             {/* Bottom-right: comment + counters */}
-            <div className="flex items-center gap-2 shrink-0">
-              {likes > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <Heart className="h-2.5 w-2.5 text-white/70" />
-                  <span className="text-[8px] text-white/70">{likes}</span>
-                </span>
-              )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="flex items-center gap-1 rounded-full bg-black/35 backdrop-blur-md px-1.5 py-0.5 ring-1 ring-white/10">
+                <Heart className={`h-3 w-3 ${likes > 0 ? "fill-rose-400 text-rose-400" : "text-white/80"}`} />
+                <span className="text-[9px] font-semibold text-white tabular-nums">{likes}</span>
+              </span>
               {stars > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[8px] text-white/80">{stars}</span>
+                <span className="flex items-center gap-1 rounded-full bg-black/35 backdrop-blur-md px-1.5 py-0.5 ring-1 ring-white/10">
+                  <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                  <span className="text-[9px] font-semibold text-white tabular-nums">{stars}</span>
                 </span>
               )}
               <button
