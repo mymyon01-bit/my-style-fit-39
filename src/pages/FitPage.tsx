@@ -118,19 +118,28 @@ const FitPage = () => {
   }, [fitResult?.recommendedSize]);
 
   // Load latest body scan front photo so the photo-based try-on path can fire.
+  // body-scans bucket is private, so we fall back to a signed URL when public_url is null.
   useEffect(() => {
     if (!user) { setUserBodyImageUrl(null); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("body_scan_images")
-        .select("public_url")
+        .select("public_url, storage_path")
         .eq("user_id", user.id)
         .eq("image_type", "front")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!cancelled) setUserBodyImageUrl(data?.public_url ?? null);
+      if (cancelled) return;
+      let url = data?.public_url ?? null;
+      if (!url && data?.storage_path) {
+        const { data: signed } = await supabase.storage
+          .from("body-scans")
+          .createSignedUrl(data.storage_path, 60 * 60 * 6);
+        url = signed?.signedUrl ?? null;
+      }
+      if (!cancelled) setUserBodyImageUrl(url);
     })();
     return () => { cancelled = true; };
   }, [user]);

@@ -212,13 +212,21 @@ export default function FitResults({
     (async () => {
       const { data } = await supabase
         .from("body_scan_images")
-        .select("public_url, image_type, created_at")
+        .select("public_url, storage_path, image_type, created_at")
         .eq("user_id", user.id)
         .eq("image_type", "front")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!cancelled && data?.public_url) setUserImageUrl(data.public_url);
+      if (cancelled || !data) return;
+      let url = data.public_url ?? null;
+      if (!url && data.storage_path) {
+        const { data: signed } = await supabase.storage
+          .from("body-scans")
+          .createSignedUrl(data.storage_path, 60 * 60 * 6);
+        url = signed?.signedUrl ?? null;
+      }
+      if (!cancelled && url) setUserImageUrl(url);
     })();
     return () => { cancelled = true; };
   }, [user]);
