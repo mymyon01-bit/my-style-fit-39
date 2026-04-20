@@ -21,6 +21,7 @@ import {
   readStoredTryOnSuccess,
   readTryOnCacheRecord,
   storeTryOnSuccess,
+  clearStoredTryOn,
 } from "@/lib/fit/tryOnState";
 
 interface Args {
@@ -38,6 +39,7 @@ interface Args {
   productUrl?: string | null;
   productImagesFallback?: (string | null | undefined)[];
   prewarmSize?: string | null;
+  reloadToken?: number;
 }
 
 interface State {
@@ -236,6 +238,14 @@ export function useAiTryOn(args: Args) {
       return () => {
         active = false;
       };
+    }
+
+    // Force-reload: clear text caches for this key when reloadToken bumps
+    if (args.reloadToken && args.reloadToken > 0) {
+      const cacheKey = `${args.productKey}::${args.selectedSize}::text`;
+      clearStoredTryOn(args.productKey, args.selectedSize);
+      TEXT_CACHE.delete(cacheKey);
+      activeTextRequests.delete(cacheKey);
     }
 
     const bodyProfile = buildBodyProfile({
@@ -439,6 +449,7 @@ export function useAiTryOn(args: Args) {
     args.productImageUrl,
     args.productKey,
     args.productName,
+    args.reloadToken,
     args.selectedSize,
     hasPhoto,
   ]);
