@@ -692,7 +692,7 @@ async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, t
     const res = await fetch(`${baseUrl}/functions/v1/google-shopping`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
-      body: JSON.stringify({ query: sanitized, limit: Math.min(limit, 60), hl }),
+      body: JSON.stringify({ query: sanitized, limit: Math.min(Math.max(limit, 60), 100), hl }),
       signal: ctrl.signal,
     }).finally(() => clearTimeout(t));
     if (!res.ok) return [];
