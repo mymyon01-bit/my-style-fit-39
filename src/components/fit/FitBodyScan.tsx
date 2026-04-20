@@ -73,7 +73,7 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
+export default function FitBodyScan({ onScanComplete, canUsePremium, onSelectSavedImage, selectedSavedImageId }: Props) {
   const { user } = useAuth();
   const [status, setStatus] = useState<ScanStatus>({
     frontUploaded: false, sideUploaded: false, backUploaded: false,
@@ -84,9 +84,13 @@ export default function FitBodyScan({ onScanComplete, canUsePremium }: Props) {
     scanMode: "free",
   });
   const [existingScans, setExistingScans] = useState<any[]>([]);
+  const [sheetSide, setSheetSide] = useState<Side | null>(null);
+  const [savedPickerSide, setSavedPickerSide] = useState<Side | null>(null);
+  const [pickingSavedFor, setPickingSavedFor] = useState<Side | null>(null);
   const frontRef = useRef<HTMLInputElement>(null);
   const sideRef = useRef<HTMLInputElement>(null);
   const backRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (user) loadExistingScans(); }, [user]);
 
