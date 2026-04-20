@@ -15,7 +15,13 @@ import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
 import FitTryOnTrigger from "@/components/fit/FitTryOnTrigger";
 import BodyPhotoPicker from "@/components/fit/BodyPhotoPicker";
-import type { UserBodyImage } from "@/lib/fit/userBodyImages";
+import ScanEntry from "@/components/fit/ScanEntry";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  type UserBodyImage,
+  uploadOrReuseBodyImage,
+  listUserBodyImages,
+} from "@/lib/fit/userBodyImages";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
