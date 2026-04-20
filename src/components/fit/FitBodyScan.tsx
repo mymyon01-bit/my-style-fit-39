@@ -31,7 +31,12 @@ interface ScanStatus {
 interface Props {
   onScanComplete: (quality: number, measurements?: Record<string, number>, mode?: FitMode) => void;
   canUsePremium?: boolean;
+  /** Called when user picks a saved photo so the FitPage can wire it into try-on */
+  onSelectSavedImage?: (image: UserBodyImage, url: string) => void;
+  selectedSavedImageId?: string | null;
 }
+
+type Side = "front" | "side" | "back";
 
 const GUIDELINES = [
   "Stand straight, arms slightly away from body",
