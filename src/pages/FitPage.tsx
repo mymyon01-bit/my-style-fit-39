@@ -257,16 +257,16 @@ const FitPage = () => {
   }, []);
 
   const handleSelectProduct = useCallback((product: SelectedProduct, opts?: { silent?: boolean }) => {
-    const effectiveWeight = weightKg ?? 70; // graceful default for deep-link / guest
-    if (effectiveWeight < 40 || effectiveWeight > 120) {
-      if (!opts?.silent) {
-        toast.error("Please enter weight to improve fit accuracy", {
-          description: "Go to BODY tab and set your weight (40–120 kg).",
-        });
-      }
-      setActiveTab("measurements");
-      return;
-    }
+    // ── INSTANT-DEMO MODE ────────────────────────────────────────────────
+    // FIT must run the moment a product is selected. Inject safe defaults
+    // for any missing body data so we never block on onboarding.
+    const SAFE_DEFAULTS = {
+      heightCm: 175, weightKg: 70, shoulderWidthCm: 45,
+      chestCm: 96, waistCm: 80, hipCm: 96, inseamCm: 80,
+    };
+    const effectiveWeight = (weightKg && weightKg >= 40 && weightKg <= 120) ? weightKg : SAFE_DEFAULTS.weightKg;
+    if (!weightKg) setWeightKg(SAFE_DEFAULTS.weightKg);
+
     const startedAt = performance.now();
     let fitData: ProductFitData;
     if (product.source === "mock" && mockProductFitData[product.id]) {
@@ -275,8 +275,13 @@ const FitPage = () => {
       fitData = generateApproximateFitData(product);
     }
 
+    // Build a complete body — fill any missing measurement with defaults.
     const body: BodyMeasurements = {} as any;
-    for (const [k, v] of Object.entries(measurements)) (body as any)[k] = v.value;
+    for (const [k, v] of Object.entries(measurements)) {
+      const val = (v as { value: number }).value;
+      const fallback = (SAFE_DEFAULTS as any)[k];
+      (body as any)[k] = (val && val > 0) ? val : (fallback ?? val);
+    }
     let result: FitResult | null = null;
     try {
       result = computeFit(body, fitData, scanQuality || 75);
@@ -295,10 +300,10 @@ const FitPage = () => {
           fit_score: recommended?.fitScore ?? null,
           confidence_modifier: result.confidenceModifier,
           recommended_size: result.recommendedSize,
-          weight_kg: weightKg,
+          weight_kg: effectiveWeight,
+          used_defaults: !weightKg,
         },
       });
-      // Only fetch AI explanation in free mode (lightweight); premium gets deeper explanation on refine
       fetchExplanation(result, product, fitMode);
     } catch (err) {
       recordEvent({
@@ -307,7 +312,8 @@ const FitPage = () => {
         duration_ms: performance.now() - startedAt,
         metadata: { error: (err as Error)?.message?.slice(0, 200) || "unknown", source: product.source },
       });
-      throw err;
+      // Never throw — surface a friendly toast and keep the user in flow.
+      if (!opts?.silent) toast.error("Couldn't compute fit — try a different product");
     }
   }, [measurements, scanQuality, fitMode, weightKg]);
 
