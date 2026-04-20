@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { captureReferralFromUrl } from "@/hooks/useReferralCode";
 
 const AuthPage = () => {
   const { t } = useI18n();
@@ -17,6 +18,9 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Capture ?ref=CODE from URL on mount so we can claim it after signup
+  useEffect(() => { captureReferralFromUrl(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

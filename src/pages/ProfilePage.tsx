@@ -80,7 +80,9 @@ const ProfilePage = () => {
     setSavedCount(savedRes.count || 0);
     const posts = postsRes.data || [];
     setPostCount(posts.length);
-    setTotalStars(posts.reduce((sum: number, pt: any) => sum + (pt.star_count || 0), 0));
+    const postStars = posts.reduce((sum: number, pt: any) => sum + (pt.star_count || 0), 0);
+    const bonus = (p as any)?.bonus_stars ?? 0;
+    setTotalStars(postStars + bonus);
     setMyOotds(ootdsRes.data || []);
     if (p) {
       setEditName(p.display_name || "");

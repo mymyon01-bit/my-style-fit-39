@@ -6,6 +6,7 @@ import { ChevronRight, Camera, User, Loader2, Upload, CheckCircle2 } from "lucid
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { claimReferralIfAny } from "@/hooks/useReferralCode";
 
 const styleOptions = ["minimal", "streetwear", "classic", "oldMoney", "chic", "cleanFit", "sporty"] as const;
 const fitOptions = ["slim", "regular", "relaxed2", "oversized"] as const;
@@ -242,6 +243,13 @@ const OnboardingPage = () => {
 
   const handleNext = async () => {
     if (isLast) {
+      // Try to redeem any referral code captured at signup
+      try {
+        const result = await claimReferralIfAny();
+        if (result?.ok) {
+          toast.success(`Welcome bonus: +${result.stars ?? 3} ★`);
+        }
+      } catch { /* ignore */ }
       navigate("/", { replace: true });
     } else if (step === steps.length - 2) {
       setStep(step + 1);
