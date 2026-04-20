@@ -112,15 +112,50 @@ const FitPage = () => {
   // Simple shape inputs — refine fit accuracy without raw cm.
   const [bodyShape, setBodyShape] = useState<import("@/lib/fit/bodyShape").BodyShapeInput>({});
 
+  const [savedCount, setSavedCount] = useState(0);
+  const [savedDialogOpen, setSavedDialogOpen] = useState(false);
+  const [entryBusy, setEntryBusy] = useState(false);
+
+  const refreshSavedCount = useCallback(async () => {
+    if (!user) { setSavedCount(0); return; }
+    const rows = await listUserBodyImages(user.id);
+    setSavedCount(rows.length);
+  }, [user]);
+
+  useEffect(() => { refreshSavedCount(); }, [refreshSavedCount]);
+
   const handleSelectBodyImage = useCallback((image: UserBodyImage, url: string) => {
     setSelectedBodyImage(image);
     setUserBodyImageUrl(url);
+    setSavedDialogOpen(false);
   }, []);
 
   const handleClearBodyImage = useCallback(() => {
     setSelectedBodyImage(null);
     setUserBodyImageUrl(null);
   }, []);
+
+  const handleScanEntryFile = useCallback(async (file: File) => {
+    if (!user) { toast.error("Please sign in first"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("Please pick an image"); return; }
+    if (file.size > 15 * 1024 * 1024) { toast.error("Image too large (max 15MB)"); return; }
+    setEntryBusy(true);
+    try {
+      const res = await uploadOrReuseBodyImage(user.id, file);
+      if (res.reused) toast.success("Using your existing photo");
+      else toast.success("Photo added to your library");
+      if (res.url) {
+        setSelectedBodyImage(res.image);
+        setUserBodyImageUrl(res.url);
+      }
+      await refreshSavedCount();
+    } catch (err) {
+      console.error("[FitPage] scan entry upload failed", err);
+      toast.error("Upload failed");
+    } finally {
+      setEntryBusy(false);
+    }
+  }, [user, refreshSavedCount]);
 
   // Default activeSize to the recommended size whenever a new fit result lands.
   useEffect(() => {
