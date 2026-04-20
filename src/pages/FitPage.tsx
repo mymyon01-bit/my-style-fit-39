@@ -13,6 +13,7 @@ import FitBodyScan from "@/components/fit/FitBodyScan";
 import FitMeasurements from "@/components/fit/FitMeasurements";
 import FitProductCheck from "@/components/fit/FitProductCheck";
 import FitResults from "@/components/fit/FitResults";
+import FitTryOnTrigger from "@/components/fit/FitTryOnTrigger";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
