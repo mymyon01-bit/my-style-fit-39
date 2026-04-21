@@ -1,5 +1,6 @@
 import { useCallback } from "react";
-import { FunctionsHttpError, supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 type ProviderName = "replicate";
 
