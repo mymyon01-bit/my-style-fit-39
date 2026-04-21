@@ -154,6 +154,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       setRequestId(null);
       setProvider(null);
       setShowOverlay(false);
+      setRetryAt(null);
     }
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
