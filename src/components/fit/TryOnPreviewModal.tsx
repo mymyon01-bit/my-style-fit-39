@@ -319,13 +319,28 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
             {/* MAIN */}
             <div className="flex-1 overflow-y-auto">
               <div className="relative w-full aspect-[3/4] bg-foreground/[0.03]">
-                {status === "generating" && (
+                {(status === "generating" || status === "pending") && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-accent" />
                     <p className="text-[11px] tracking-[0.2em] text-foreground/60">
-                      GENERATING PREVIEW…
+                      {status === "pending" ? "STILL GENERATING…" : "GENERATING PREVIEW…"}
                     </p>
                     <p className="text-[10px] text-foreground/40">This usually takes 20–60 seconds.</p>
+                  </div>
+                )}
+                {status === "rate_limited" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                    <AlertTriangle className="h-7 w-7 text-accent" />
+                    <p className="text-[12px] text-foreground/80 font-semibold">Provider is busy</p>
+                    {error && <p className="text-[10px] text-foreground/50 max-w-[260px]">{error}</p>}
+                    <button
+                      onClick={() => generate(false)}
+                      disabled={!canRetryNow}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-[11px] font-bold tracking-[0.15em] uppercase text-background hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      {canRetryNow ? "TRY AGAIN" : `TRY AGAIN IN ${retrySecondsLeft}s`}
+                    </button>
                   </div>
                 )}
                 {status === "ready" && resultUrl && (
