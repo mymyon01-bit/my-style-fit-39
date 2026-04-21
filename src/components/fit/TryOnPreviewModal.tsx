@@ -1,9 +1,9 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles, Upload, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import SafeImage from "@/components/SafeImage";
 import { RegionFit } from "@/lib/fitEngine";
+import { useReplicateTryOn } from "@/hooks/useReplicateTryOn";
 // Inlined from former BodySilhouette helpers — 4-bucket color rule for fit annotation overlay.
 const fitBucket = (fit: string): "tight" | "slightly" | "balanced" | "loose" => {
   if (fit === "too-tight" || fit === "too-short") return "tight";
@@ -109,6 +109,7 @@ const POLL_MAX_ATTEMPTS = 48; // ~2 minutes
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
+  const { createTryOn, pollTryOnStatus } = useReplicateTryOn();
   const [status, setStatus] = useState<Status>("idle");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -152,26 +153,27 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     pollRef.current = window.setInterval(async () => {
       attempts++;
       try {
-        const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
-          body: { action: "status", requestId: ids.requestId ?? undefined, predictionId: ids.predictionId ?? undefined, selectedSize: context?.recommendedSize },
-        });
+        const { data, error: invokeErr } = await pollTryOnStatus({ requestId: ids.requestId ?? undefined, predictionId: ids.predictionId ?? undefined, selectedSize: context?.recommendedSize });
         if (invokeErr) throw invokeErr;
+        const successData = data?.ok ? data : null;
+        const asyncData = data && !data.ok && (data.code === "pending" || data.code === "rate_limited") ? data : null;
+        const failureData = data && !data.ok && !asyncData ? data : null;
         console.log("[TryOn] poll", ids, data?.status, data?.provider);
         if (data?.provider) setProvider(data.provider);
-        if (data?.status === "succeeded" && data?.imageUrl) {
+        if (successData?.imageUrl) {
           stopPolling();
-          setResultUrl(data.imageUrl);
+          setResultUrl(successData.imageUrl);
           setStatus("ready");
           return;
         }
-        if (data?.status === "failed" || data?.status === "canceled") {
+        if (failureData?.status === "failed") {
           stopPolling();
-          setError(data?.error || "Preview unavailable right now");
+          setError(failureData.error || "Preview unavailable right now");
           setStatus("failed");
           return;
         }
-        if (data?.code === "throttled") {
-          setError(data?.error || null);
+        if (asyncData?.code === "rate_limited") {
+          setError(asyncData.error || null);
         }
         if (attempts >= POLL_MAX_ATTEMPTS) {
           stopPolling();
@@ -196,39 +198,41 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     setProvider(null);
     try {
       console.log("[TryOn] start", { productKey: context.productKey, size: context.recommendedSize, force: forceRegenerate });
-      const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
-        body: {
-          userImageUrl: overrideUserImage || context.userImageUrl,
-          productImageUrl: context.productImageUrl,
-          productKey: context.productKey,
-          productCategory: context.category,
-          selectedSize: context.recommendedSize,
-          fitDescriptor: context.fitDescriptor,
-          regions: context.regions?.map((r) => ({ region: r.region, fit: r.fit })) ?? [],
-          forceRegenerate,
-          mode: "high", // Replicate first, Gemini fallback
-        },
+      const { data, error } = await createTryOn({
+        userImageUrl: overrideUserImage || context.userImageUrl,
+        productImageUrl: context.productImageUrl,
+        productKey: context.productKey,
+        productCategory: context.category,
+        selectedSize: context.recommendedSize,
+        fitDescriptor: context.fitDescriptor,
+        regions: context.regions?.map((r) => ({ region: r.region, fit: r.fit })) ?? [],
+        forceRegenerate,
+        mode: "high",
       });
       if (error) throw error;
+      const successData = data?.ok ? data : null;
+      const asyncData = data && !data.ok && (data.code === "pending" || data.code === "rate_limited") ? data : null;
+      const failureData = data && !data.ok && !asyncData ? data : null;
 
       console.log("[TryOn] created", data);
       if (data?.provider) setProvider(data.provider);
-      if (data?.ok && data?.imageUrl) {
-        setResultUrl(data.imageUrl);
+      if (successData?.imageUrl) {
+        setResultUrl(successData.imageUrl);
         setStatus("ready");
         return;
       }
-      if (data?.requestId || data?.predictionId || ["processing", "queued", "throttled"].includes(data?.code)) {
-        if (data?.requestId) setRequestId(data.requestId);
-        if (data?.predictionId) setPredictionId(data.predictionId);
-        if (data?.code === "throttled" && data?.retryAfterMs) {
-          await wait(Math.min(data.retryAfterMs, 15000));
+      if (asyncData) {
+        if (asyncData.requestId) setRequestId(asyncData.requestId);
+        if (asyncData.predictionId) setPredictionId(asyncData.predictionId);
+        if (asyncData.code === "rate_limited" && asyncData.retryAfterMs) {
+          setError(asyncData.error || "Rate limited. Retrying shortly.");
+          await wait(Math.min(asyncData.retryAfterMs, 15000));
         }
-        pollUntilDone({ requestId: data?.requestId ?? null, predictionId: data?.predictionId ?? null });
+        pollUntilDone({ requestId: asyncData.requestId ?? null, predictionId: asyncData.predictionId ?? null });
         return;
       }
-      if (data?.ok === false) {
-        throw new Error(data.error || data.code || "Preview unavailable right now");
+      if (failureData) {
+        throw new Error(failureData.error || failureData.code || "Preview unavailable right now");
       }
       throw new Error("No prediction returned");
     } catch (e: any) {
