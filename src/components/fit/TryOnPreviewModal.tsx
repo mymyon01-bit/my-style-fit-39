@@ -106,6 +106,7 @@ function FitOverlay({ regions }: { regions: RegionFit[] }) {
 
 const POLL_INTERVAL_MS = 2500;
 const POLL_MAX_ATTEMPTS = 48; // ~2 minutes
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [status, setStatus] = useState<Status>("idle");
@@ -149,10 +150,9 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     pollRef.current = window.setInterval(async () => {
       attempts++;
       try {
-        const { data, error: invokeErr } = await supabase.functions.invoke(
-          `fit-tryon-router?id=${encodeURIComponent(id)}`,
-          { method: "GET" }
-        );
+        const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
+          body: { action: "status", requestId: predictionId ?? undefined, predictionId: id, selectedSize: context?.recommendedSize },
+        });
         if (invokeErr) throw invokeErr;
         console.log("[TryOn] poll", id, data?.status, data?.provider);
         if (data?.provider) setProvider(data.provider);
@@ -167,6 +167,9 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
           setError(data?.error || "Preview unavailable right now");
           setStatus("failed");
           return;
+        }
+        if (data?.code === "throttled") {
+          setError(data?.error || null);
         }
         if (attempts >= POLL_MAX_ATTEMPTS) {
           stopPolling();
@@ -213,9 +216,12 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         setStatus("ready");
         return;
       }
-      if (data?.predictionId) {
-        setPredictionId(data.predictionId);
-        pollUntilDone(data.predictionId);
+      if (data?.requestId || data?.predictionId || ["processing", "queued", "throttled"].includes(data?.code)) {
+        if (data?.requestId) setPredictionId(data.requestId);
+        if (data?.code === "throttled" && data?.retryAfterMs) {
+          await wait(Math.min(data.retryAfterMs, 15000));
+        }
+        pollUntilDone(data?.predictionId ?? data?.requestId ?? "");
         return;
       }
       if (data?.ok === false) {
