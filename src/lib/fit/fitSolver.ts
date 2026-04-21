@@ -23,6 +23,7 @@ export type SleeveFit =
 
 export type FitTypeLabel = "trim" | "regular" | "relaxed" | "oversized";
 export type Recommendation = "best" | "good" | "acceptable" | "not_recommended";
+export type FitConfidence = "high" | "medium" | "low";
 
 export interface SolverRegion<F extends string> {
   /** unitless delta — positive = more room than body, negative = tighter */
@@ -45,6 +46,12 @@ export interface SolverResult {
   summary: string;
   /** Short imperative phrases injected into the image-generation prompt. */
   visualPromptHints: string[];
+  /** high = full real measurements, medium = partial, low = mostly defaults. */
+  confidence: FitConfidence;
+  /** True when any region falls back to reference defaults. */
+  approximation: boolean;
+  /** Body fields that came from the user (vs reference defaults). */
+  fieldsUsed: string[];
 }
 
 // ── Region classifiers ─────────────────────────────────────────────────────
