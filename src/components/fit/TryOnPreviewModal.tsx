@@ -46,7 +46,7 @@ interface Props {
   context: TryOnContext | null;
 }
 
-type Status = "idle" | "generating" | "ready" | "failed";
+type Status = "idle" | "generating" | "pending" | "rate_limited" | "ready" | "failed";
 
 // Anchor points (% of image) for region pills overlaid on the try-on image
 const REGION_ANCHORS: Record<string, { top: number; side: "left" | "right" }> = {
@@ -118,8 +118,20 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [showOverlay, setShowOverlay] = useState<boolean>(false); // default clean image
   const [provider, setProvider] = useState<string | null>(null);
+  const [retryAt, setRetryAt] = useState<number | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
   const fileRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<number | null>(null);
+
+  // Countdown ticker — only runs when retryAt is set
+  useEffect(() => {
+    if (!retryAt) return;
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [retryAt]);
+
+  const retrySecondsLeft = retryAt ? Math.max(0, Math.ceil((retryAt - now) / 1000)) : 0;
+  const canRetryNow = !retryAt || retrySecondsLeft === 0;
 
   const stopPolling = () => {
     if (pollRef.current) {
@@ -142,6 +154,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       setRequestId(null);
       setProvider(null);
       setShowOverlay(false);
+      setRetryAt(null);
     }
     return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -173,7 +186,15 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
           return;
         }
         if (asyncData?.code === "rate_limited") {
-          setError(asyncData.error || null);
+          stopPolling();
+          setError(asyncData.error || "Rate limited by provider.");
+          setStatus("rate_limited");
+          setRetryAt(Date.now() + Math.min(asyncData.retryAfterMs ?? 8000, 60000));
+          return;
+        }
+        if (asyncData?.code === "pending") {
+          setStatus("pending");
+          setRetryAt(null);
         }
         if (attempts >= POLL_MAX_ATTEMPTS) {
           stopPolling();
@@ -196,6 +217,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     setError(null);
     setResultUrl(null);
     setProvider(null);
+    setRetryAt(null);
     try {
       console.log("[TryOn] start", { productKey: context.productKey, size: context.recommendedSize, force: forceRegenerate });
       const { data, error } = await createTryOn({
@@ -224,10 +246,13 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       if (asyncData) {
         if (asyncData.requestId) setRequestId(asyncData.requestId);
         if (asyncData.predictionId) setPredictionId(asyncData.predictionId);
-        if (asyncData.code === "rate_limited" && asyncData.retryAfterMs) {
-          setError(asyncData.error || "Rate limited. Retrying shortly.");
-          await wait(Math.min(asyncData.retryAfterMs, 15000));
+        if (asyncData.code === "rate_limited") {
+          setError(asyncData.error || "Rate limited by provider.");
+          setStatus("rate_limited");
+          setRetryAt(Date.now() + Math.min(asyncData.retryAfterMs ?? 8000, 60000));
+          return;
         }
+        setStatus("pending");
         pollUntilDone({ requestId: asyncData.requestId ?? null, predictionId: asyncData.predictionId ?? null });
         return;
       }
@@ -294,13 +319,28 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
             {/* MAIN */}
             <div className="flex-1 overflow-y-auto">
               <div className="relative w-full aspect-[3/4] bg-foreground/[0.03]">
-                {status === "generating" && (
+                {(status === "generating" || status === "pending") && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-accent" />
                     <p className="text-[11px] tracking-[0.2em] text-foreground/60">
-                      GENERATING PREVIEW…
+                      {status === "pending" ? "STILL GENERATING…" : "GENERATING PREVIEW…"}
                     </p>
                     <p className="text-[10px] text-foreground/40">This usually takes 20–60 seconds.</p>
+                  </div>
+                )}
+                {status === "rate_limited" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                    <AlertTriangle className="h-7 w-7 text-accent" />
+                    <p className="text-[12px] text-foreground/80 font-semibold">Provider is busy</p>
+                    {error && <p className="text-[10px] text-foreground/50 max-w-[260px]">{error}</p>}
+                    <button
+                      onClick={() => generate(false)}
+                      disabled={!canRetryNow}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-[11px] font-bold tracking-[0.15em] uppercase text-background hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      {canRetryNow ? "TRY AGAIN" : `TRY AGAIN IN ${retrySecondsLeft}s`}
+                    </button>
                   </div>
                 )}
                 {status === "ready" && resultUrl && (
@@ -387,7 +427,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                   />
                   <button
                     onClick={() => fileRef.current?.click()}
-                    disabled={status === "generating"}
+                    disabled={status === "generating" || status === "pending"}
                     className="flex items-center justify-center gap-1.5 rounded-xl border border-foreground/10 bg-foreground/[0.03] px-3 py-2.5 text-[11px] font-semibold text-foreground/70 hover:bg-foreground/[0.06] disabled:opacity-40 transition-colors"
                     title="Upload your own photo"
                   >
@@ -395,11 +435,13 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                   </button>
                   <button
                     onClick={() => generate(true)}
-                    disabled={status === "generating"}
+                    disabled={status === "generating" || status === "pending" || (status === "rate_limited" && !canRetryNow)}
                     className="flex items-center justify-center gap-1.5 rounded-xl border border-foreground/10 bg-foreground/[0.03] px-3 py-2.5 text-[11px] font-semibold text-foreground/70 hover:bg-foreground/[0.06] disabled:opacity-40 transition-colors"
                   >
-                    <RefreshCw className={`h-3.5 w-3.5 ${status === "generating" ? "animate-spin" : ""}`} />
-                    {status === "failed" ? "RETRY" : "REGENERATE"}
+                    <RefreshCw className={`h-3.5 w-3.5 ${status === "generating" || status === "pending" ? "animate-spin" : ""}`} />
+                    {status === "rate_limited" && !canRetryNow
+                      ? `WAIT ${retrySecondsLeft}s`
+                      : status === "failed" ? "RETRY" : "REGENERATE"}
                   </button>
                   {context.productUrl && context.productUrl !== "#" && (
                     <a
