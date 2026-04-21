@@ -131,9 +131,20 @@ function SizeComparisonCard({ result, isRecommended, isAlternate }: {
 
 /* ── Main Component ── */
 export default function FitResults({
-  result, product, explanation, loadingExplanation,
-  fitMode, canUsePremium, refining, bodyHeightCm, bodyWeightKg, bodyShape,
-  onRefineFit, onRescan, onEditMeasurements,
+  result,
+  product,
+  explanation,
+  loadingExplanation,
+  fitMode,
+  canUsePremium,
+  refining,
+  bodyHeightCm,
+  bodyWeightKg,
+  bodyShape,
+  userBodyImageUrl,
+  onRefineFit,
+  onRescan,
+  onEditMeasurements,
 }: Props) {
   const { user } = useAuth();
   const isRefined = fitMode === "premium";
@@ -207,8 +218,12 @@ export default function FitResults({
 
   // ── Try-on availability ─────────────────────────────────────────────────
   const [tryOnOpen, setTryOnOpen] = useState(false);
-  const [userImageUrl, setUserImageUrl] = useState<string | null>(null);
+  const [dbUserImageUrl, setDbUserImageUrl] = useState<string | null>(null);
   useEffect(() => {
+    if (userBodyImageUrl) {
+      setDbUserImageUrl(null);
+      return;
+    }
     if (!user) return;
     let cancelled = false;
     (async () => {
@@ -228,16 +243,29 @@ export default function FitResults({
           .createSignedUrl(data.storage_path, 60 * 60 * 6);
         url = signed?.signedUrl ?? null;
       }
-      if (!cancelled && url) setUserImageUrl(url);
+      if (!cancelled && url) setDbUserImageUrl(url);
     })();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, userBodyImageUrl]);
 
-  const tryOnReady = !!userImageUrl && !!product.image;
+  const resolvedUserImageUrl = userBodyImageUrl ?? dbUserImageUrl ?? null;
+
+  useEffect(() => {
+    console.log("[FIT_PREVIEW]", {
+      event: "fit_results_image_source",
+      hasPropImage: !!userBodyImageUrl,
+      hasDbImage: !!dbUserImageUrl,
+      resolvedUserImageUrl: resolvedUserImageUrl ? "present" : "missing",
+      productImageUrl: product.image ? "present" : "missing",
+      productKey: `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 200),
+    });
+  }, [userBodyImageUrl, dbUserImageUrl, resolvedUserImageUrl, product.image, product.url, product.name, product.brand]);
+
+  const tryOnReady = !!resolvedUserImageUrl && !!product.image;
   const productKey = `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 200);
   const tryOnContext: TryOnContext | null = tryOnReady
     ? {
-        userImageUrl: userImageUrl!,
+        userImageUrl: resolvedUserImageUrl!,
         productImageUrl: product.image,
         productName: product.name,
         productBrand: product.brand,
@@ -262,7 +290,7 @@ export default function FitResults({
     productName: product.name,
     productCategory: product.category,
     selectedSize: activeSize,
-    userImageUrl,
+    userImageUrl: resolvedUserImageUrl,
     body: {
       heightCm: bodyHeightCm ?? null,
       weightKg: bodyWeightKg ?? null,
