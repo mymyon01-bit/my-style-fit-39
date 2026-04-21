@@ -38,6 +38,8 @@ export interface BodyProfile {
   armScale: number;
   bmi: number | null;
   bodySummary: string;
+  /** Names of body fields the user actually provided (non-null). */
+  providedFields: string[];
 }
 
 const REF = {
@@ -84,6 +86,15 @@ export function buildBodyProfile(raw: RawBody): BodyProfile {
   const hip = raw.hipCm ?? REF.hip;
   const inseam = raw.inseamCm ?? REF.inseam;
 
+  const providedFields: string[] = [];
+  if (raw.heightCm != null) providedFields.push("height");
+  if (raw.weightKg != null) providedFields.push("weight");
+  if (raw.shoulderCm != null) providedFields.push("shoulder");
+  if (raw.chestCm != null) providedFields.push("chest");
+  if (raw.waistCm != null) providedFields.push("waist");
+  if (raw.hipCm != null) providedFields.push("hip");
+  if (raw.inseamCm != null) providedFields.push("inseam");
+
   const bmi = h && w ? w / Math.pow(h / 100, 2) : null;
 
   // Apply shape-scale multipliers if provided (clamped to keep things sane).
@@ -102,6 +113,7 @@ export function buildBodyProfile(raw: RawBody): BodyProfile {
     armScale:      clamp(s?.armScale ?? 1, 0.85, 1.15),
     bmi: bmi != null ? Math.round(bmi * 10) / 10 : null,
     bodySummary: "",
+    providedFields,
   };
   // Torso ratio = (height - inseam) / inseam, normalized to a reference of ~1.20
   const torso = (h - inseam) / inseam / 1.2;

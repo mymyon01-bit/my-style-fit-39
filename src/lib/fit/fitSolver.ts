@@ -23,6 +23,7 @@ export type SleeveFit =
 
 export type FitTypeLabel = "trim" | "regular" | "relaxed" | "oversized";
 export type Recommendation = "best" | "good" | "acceptable" | "not_recommended";
+export type FitConfidence = "high" | "medium" | "low";
 
 export interface SolverRegion<F extends string> {
   /** unitless delta — positive = more room than body, negative = tighter */
@@ -45,6 +46,12 @@ export interface SolverResult {
   summary: string;
   /** Short imperative phrases injected into the image-generation prompt. */
   visualPromptHints: string[];
+  /** high = full real measurements, medium = partial, low = mostly defaults. */
+  confidence: FitConfidence;
+  /** True when any region falls back to reference defaults. */
+  approximation: boolean;
+  /** Body fields that came from the user (vs reference defaults). */
+  fieldsUsed: string[];
 }
 
 // ── Region classifiers ─────────────────────────────────────────────────────
@@ -222,6 +229,17 @@ export function solveFit(args: {
     size: selectedSize, fitType, chestFit, waistFit, shoulderFit, lengthFit, sleeveFit, isBottom,
   });
 
+  // Confidence is driven by how many real body fields the user provided.
+  // Required fields differ by category so we don't penalize bottoms for missing chest.
+  const required = isBottom
+    ? ["height", "waist", "hip", "inseam"]
+    : ["height", "shoulder", "chest", "waist"];
+  const fieldsUsed = required.filter((f) => body.providedFields.includes(f));
+  const ratio = fieldsUsed.length / required.length;
+  const confidence: FitConfidence =
+    ratio >= 0.9 ? "high" : ratio >= 0.5 ? "medium" : "low";
+  const approximation = ratio < 1;
+
   return {
     overallScore,
     fitType,
@@ -236,6 +254,9 @@ export function solveFit(args: {
     },
     summary,
     visualPromptHints: hints,
+    confidence,
+    approximation,
+    fieldsUsed,
   };
 }
 

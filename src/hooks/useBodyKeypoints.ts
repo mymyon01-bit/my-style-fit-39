@@ -13,9 +13,34 @@ import {
   projectFrameAsPose,
   projectPoseToCanvas,
   type ProjectedPose,
+  type PoseKeypoints,
 } from "@/lib/fit/poseKeypoints";
 import { buildBodyFrame, type BodyFrame } from "@/lib/fit/buildBodyFrame";
 import type { BodyProfile } from "@/lib/fit/buildBodyProfile";
+
+// Module-level pose cache — keyed by image URL so re-mounts/size changes
+// reuse the MediaPipe result instead of re-running detection (~600ms saved).
+const POSE_CACHE = new Map<string, PoseKeypoints | null>();
+const POSE_INFLIGHT = new Map<string, Promise<PoseKeypoints | null>>();
+
+async function getPoseForUrl(url: string): Promise<PoseKeypoints | null> {
+  if (POSE_CACHE.has(url)) return POSE_CACHE.get(url) ?? null;
+  const inflight = POSE_INFLIGHT.get(url);
+  if (inflight) return inflight;
+  const promise = detectPoseFromUrl(url)
+    .then((pose) => {
+      POSE_CACHE.set(url, pose);
+      POSE_INFLIGHT.delete(url);
+      return pose;
+    })
+    .catch((err) => {
+      POSE_CACHE.set(url, null);
+      POSE_INFLIGHT.delete(url);
+      throw err;
+    });
+  POSE_INFLIGHT.set(url, promise);
+  return promise;
+}
 
 interface Args {
   userImageUrl?: string | null;
@@ -63,7 +88,7 @@ export function useBodyKeypoints({ userImageUrl, body }: Args): BodyKeypointsSta
     lastUrlRef.current = url;
 
     setState((s) => ({ ...s, loading: true }));
-    detectPoseFromUrl(url)
+    getPoseForUrl(url)
       .then((pose) => {
         if (cancelled) return;
         if (!pose) {
