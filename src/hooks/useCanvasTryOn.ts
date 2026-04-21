@@ -479,16 +479,18 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           hasUserImage: !!args.userImageUrl,
         });
         const { data, error } = await createTryOn({
-            action: "create",
-            userImageUrl: args.userImageUrl,
-            productImageUrl: args.productImageUrl,
-            productKey: args.productKey,
-            productCategory: args.productCategory ?? undefined,
-            selectedSize: args.selectedSize,
-            fitDescriptor: solver.fitType,
-            regions,
-            mode: "high",
+          userImageUrl: args.userImageUrl,
+          productImageUrl: args.productImageUrl,
+          productKey: args.productKey,
+          productCategory: args.productCategory ?? undefined,
+          selectedSize: args.selectedSize,
+          fitDescriptor: solver.fitType,
+          regions,
+          mode: "high",
         });
+        const successData = data?.ok ? data : null;
+        const asyncData = data && !data.ok && (data.code === "pending" || data.code === "rate_limited") ? data : null;
+        const failureData = data && !data.ok && !asyncData ? data : null;
         const elapsed = Date.now() - startedAt;
         console.log("[FIT_PREVIEW]", {
           event: "ai_response",
@@ -496,18 +498,18 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           elapsedMs: elapsed,
           hasError: !!error,
           ok: data?.ok,
-          imageUrl: summarizeUrl(data?.imageUrl ?? null),
+          imageUrl: summarizeUrl(successData?.imageUrl ?? null),
           provider: data?.provider,
         });
         if (cancelled || activeRequestRef.current !== requestId) return;
-        if (!error && data?.ok && data?.imageUrl) {
+        if (!error && successData?.imageUrl) {
           aiLockedRef.current = true;
           setState((prev) => {
             if (prev.requestId !== requestId) return prev;
             const next = derivePreviewState({
               ...prev,
               stage: "ai_ready",
-              aiImageUrl: data.imageUrl,
+              aiImageUrl: successData.imageUrl,
               error: null,
             });
             logFitPreview("ai_ready", next);
@@ -515,10 +517,10 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           });
           return;
         }
-        if (!error && (data?.code === "pending" || data?.code === "rate_limited" || data?.requestId || data?.predictionId)) {
-          const pollRequestId = data?.requestId ?? null;
-          const predictionId = data?.predictionId ?? null;
-          const initialDelay = typeof data?.retryAfterMs === "number" && data.retryAfterMs > 0 ? Math.min(data.retryAfterMs, 15_000) : AI_STATUS_POLL_MS;
+        if (!error && asyncData) {
+          const pollRequestId = asyncData.requestId ?? null;
+          const predictionId = asyncData.predictionId ?? null;
+          const initialDelay = typeof asyncData.retryAfterMs === "number" && asyncData.retryAfterMs > 0 ? Math.min(asyncData.retryAfterMs, 15_000) : AI_STATUS_POLL_MS;
 
           for (let attempt = 0; attempt < AI_STATUS_MAX_POLLS; attempt++) {
             if (cancelled || activeRequestRef.current !== requestId) return;
@@ -531,26 +533,28 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
               selectedSize: args.selectedSize,
             });
 
+            const statusSuccess = statusData?.ok ? statusData : null;
+            const statusAsync = statusData && !statusData.ok && (statusData.code === "pending" || statusData.code === "rate_limited") ? statusData : null;
             console.log("[FIT_PREVIEW]", {
               event: "ai_status_response",
               requestId,
               attempt,
               hasError: !!statusError,
-              code: statusData?.code,
+              code: statusAsync?.code,
               status: statusData?.status,
-              imageUrl: summarizeUrl(statusData?.imageUrl ?? null),
+              imageUrl: summarizeUrl(statusSuccess?.imageUrl ?? null),
             });
 
             if (cancelled || activeRequestRef.current !== requestId) return;
 
-            if (!statusError && statusData?.ok && statusData?.imageUrl) {
+            if (!statusError && statusSuccess?.imageUrl) {
               aiLockedRef.current = true;
               setState((prev) => {
                 if (prev.requestId !== requestId) return prev;
                 const next = derivePreviewState({
                   ...prev,
                   stage: "ai_ready",
-                  aiImageUrl: statusData.imageUrl,
+                  aiImageUrl: statusSuccess.imageUrl,
                   error: null,
                 });
                 logFitPreview("ai_ready_after_poll", next);
@@ -559,7 +563,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
               return;
             }
 
-            const statusCode = statusData?.code;
+            const statusCode = statusAsync?.code;
             if (statusError || (statusCode && !["pending", "rate_limited"].includes(statusCode))) {
               break;
             }
@@ -570,7 +574,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           const next = derivePreviewState({
             ...prev,
             stage: prev.previewSrc ? "fallback_ready" : "error",
-            error: prev.previewSrc ? prev.error : error?.message ?? data?.error ?? "ai_unavailable",
+            error: prev.previewSrc ? prev.error : error?.message ?? failureData?.error ?? asyncData?.error ?? "ai_unavailable",
           });
           logFitPreview("ai_unavailable_keep_best_preview", next);
           return next;
