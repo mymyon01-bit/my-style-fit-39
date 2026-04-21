@@ -335,6 +335,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fit_generations_v2: {
+        Row: {
+          body_signature: string
+          cache_key: string
+          created_at: string
+          error_message: string | null
+          fit_summary: Json
+          id: string
+          image_url: string | null
+          product_key: string
+          prompt: string
+          size_label: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_signature: string
+          cache_key: string
+          created_at?: string
+          error_message?: string | null
+          fit_summary?: Json
+          id?: string
+          image_url?: string | null
+          product_key: string
+          prompt: string
+          size_label: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_signature?: string
+          cache_key?: string
+          created_at?: string
+          error_message?: string | null
+          fit_summary?: Json
+          id?: string
+          image_url?: string | null
+          product_key?: string
+          prompt?: string
+          size_label?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fit_tryons: {
         Row: {
           body_image_hash: string | null
@@ -389,6 +437,81 @@ export type Database = {
           updated_at?: string
           user_id?: string
           user_image_url?: string | null
+        }
+        Relationships: []
+      }
+      garment_measurements: {
+        Row: {
+          category: string
+          chest_cm: number | null
+          confidence: string
+          created_at: string
+          fit_type: string | null
+          hip_cm: number | null
+          id: string
+          inseam_cm: number | null
+          product_id: string | null
+          product_key: string
+          raw_extraction: Json
+          rise_cm: number | null
+          shoulder_cm: number | null
+          size_label: string
+          sleeve_cm: number | null
+          source: string
+          source_url: string | null
+          stretch_factor: number | null
+          thigh_cm: number | null
+          total_length_cm: number | null
+          updated_at: string
+          waist_cm: number | null
+        }
+        Insert: {
+          category: string
+          chest_cm?: number | null
+          confidence?: string
+          created_at?: string
+          fit_type?: string | null
+          hip_cm?: number | null
+          id?: string
+          inseam_cm?: number | null
+          product_id?: string | null
+          product_key: string
+          raw_extraction?: Json
+          rise_cm?: number | null
+          shoulder_cm?: number | null
+          size_label: string
+          sleeve_cm?: number | null
+          source?: string
+          source_url?: string | null
+          stretch_factor?: number | null
+          thigh_cm?: number | null
+          total_length_cm?: number | null
+          updated_at?: string
+          waist_cm?: number | null
+        }
+        Update: {
+          category?: string
+          chest_cm?: number | null
+          confidence?: string
+          created_at?: string
+          fit_type?: string | null
+          hip_cm?: number | null
+          id?: string
+          inseam_cm?: number | null
+          product_id?: string | null
+          product_key?: string
+          raw_extraction?: Json
+          rise_cm?: number | null
+          shoulder_cm?: number | null
+          size_label?: string
+          sleeve_cm?: number | null
+          source?: string
+          source_url?: string | null
+          stretch_factor?: number | null
+          thigh_cm?: number | null
+          total_length_cm?: number | null
+          updated_at?: string
+          waist_cm?: number | null
         }
         Relationships: []
       }
