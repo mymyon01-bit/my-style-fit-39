@@ -368,6 +368,7 @@ export default function FitResults({
         productName={product.name}
         activeSize={activeSize}
         state={tryOn}
+        productImageUrl={product.image}
         onRescanBody={onRescan}
         onReload={() => setReloadToken((n) => n + 1)}
       />

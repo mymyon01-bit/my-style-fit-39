@@ -8,6 +8,8 @@ interface Props {
   productName: string;
   activeSize: string;
   state: CanvasTryOnState;
+  /** Raw product image — final fallback so the preview is NEVER blank. */
+  productImageUrl?: string | null;
   onRescanBody?: () => void;
   onReload?: () => void;
 }
@@ -22,9 +24,14 @@ export default function FitVisual({
   productName,
   activeSize,
   state,
+  productImageUrl,
   onRescanBody,
   onReload,
 }: Props) {
+  // Preview source priority — ALWAYS include productImageUrl as the last
+  // resort so the preview is never blank. The SVG placeholder cannot fail
+  // to load (data URI), but if every other source breaks we still render
+  // the real product image rather than a skeleton.
   const previewCandidates = useMemo(
     () =>
       [
@@ -34,6 +41,7 @@ export default function FitVisual({
         state.localPlaceholderUrl,
         state.previewSrc,
         state.imageUrl,
+        productImageUrl ?? null,
       ].filter((value, index, all): value is string => Boolean(value) && all.indexOf(value) === index),
     [
       state.aiImageUrl,
@@ -42,6 +50,7 @@ export default function FitVisual({
       state.localPlaceholderUrl,
       state.previewSrc,
       state.imageUrl,
+      productImageUrl,
     ]
   );
 
@@ -51,7 +60,7 @@ export default function FitVisual({
   useEffect(() => {
     setFailedSrcs([]);
     setLoadedSrc(null);
-  }, [state.requestId, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, state.localPlaceholderUrl]);
+  }, [state.requestId, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, state.localPlaceholderUrl, productImageUrl]);
 
   const previewSrc = useMemo(
     () => previewCandidates.find((src) => !failedSrcs.includes(src)) ?? null,
