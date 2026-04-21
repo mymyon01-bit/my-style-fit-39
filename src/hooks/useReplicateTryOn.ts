@@ -20,6 +20,9 @@ export interface TryOnSuccessResponse {
   status: "succeeded";
   predictionId?: string | null;
   requestId?: string | null;
+  code?: undefined;
+  error?: undefined;
+  retryAfterMs?: undefined;
 }
 
 export interface TryOnAsyncResponse {
@@ -43,6 +46,7 @@ export interface TryOnFailureResponse {
   status?: "failed";
   predictionId?: string | null;
   requestId?: string | null;
+  retryAfterMs?: number | null;
 }
 
 export type TryOnResponse = TryOnSuccessResponse | TryOnAsyncResponse | TryOnFailureResponse;
