@@ -19,6 +19,7 @@ import { buildBodyShapeScales, type BodyShapeInput } from "@/lib/fit/bodyShape";
 import { buildFitExplanation as buildSizeExplanation, buildFitBreakdown } from "@/lib/fit/buildFitExplanation";
 import { solveFit, FIT_TYPE_LABEL } from "@/lib/fit/fitSolver";
 import FitBreakdown from "@/components/fit/FitBreakdown";
+import FitSummaryPanel from "@/components/fit/FitSummaryPanel";
 
 interface FitProduct {
   id: string;
