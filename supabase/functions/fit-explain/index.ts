@@ -1,3 +1,7 @@
+// ─── FIT EXPLAIN — Lovable AI (no Perplexity) ───────────────────────────────
+// Generates a short shopper-friendly fit explanation using Lovable AI Gateway.
+// Perplexity has been removed from all FIT flows.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,9 +16,9 @@ serve(async (req) => {
   }
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error("PERPLEXITY_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     const body = await req.json();
@@ -39,26 +43,26 @@ Algorithm Summary: ${summary}
 
 Write a natural, helpful explanation. If confidence is low, mention it. Keep it under 60 words.`;
 
-    const response = await fetch("https://api.perplexity.ai/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "sonar",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: "You are a concise fashion fit advisor. Never invent data. Only explain what you're given." },
           { role: "user", content: prompt },
         ],
-        max_tokens: 150,
+        max_tokens: 200,
         temperature: 0.3,
       }),
     });
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`Perplexity API error [${response.status}]: ${err}`);
+      throw new Error(`Lovable AI error [${response.status}]: ${err}`);
     }
 
     const data = await response.json();

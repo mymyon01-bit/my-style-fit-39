@@ -1,3 +1,8 @@
+// ─── FIT TRY-ON ROUTER — REPLICATE-ONLY ─────────────────────────────────────
+// Perplexity has been fully removed from the FIT pipeline. Replicate (IDM-VTON)
+// is the sole AI provider. On failure we return a normalized error and the
+// client falls back to its deterministic local preview — never blank.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -10,7 +15,7 @@ const corsHeaders = {
 const SERVER_TIMEOUT_MS = 10_000;
 const STALE_PENDING_MS = 120_000;
 
-type ProviderName = "replicate" | "perplexity";
+type ProviderName = "replicate";
 
 interface RegionFitLite {
   region: string;
@@ -53,7 +58,7 @@ function json(body: unknown, status = 200) {
 }
 
 function logRouter(event: string, details: Record<string, unknown>) {
-  console.log("[TRYON_ROUTER]", { event, ...details });
+  console.log("[FIT][ROUTER]", { event, ...details });
 }
 
 function parseOutput(output: unknown): string | null {
@@ -72,7 +77,12 @@ function parseOutput(output: unknown): string | null {
   return null;
 }
 
-function failure(code: FailureResponse["code"], error: string, selectedSize?: string, provider?: ProviderName | null): FailureResponse {
+function failure(
+  code: FailureResponse["code"],
+  error: string,
+  selectedSize?: string,
+  provider: ProviderName | null = "replicate",
+): FailureResponse {
   return { ok: false, code, error, selectedSize, provider };
 }
 
@@ -164,64 +174,25 @@ async function tryReplicate(token: string, body: CreateBody): Promise<SuccessRes
   }
 }
 
-async function tryPerplexity(body: CreateBody): Promise<SuccessResponse | FailureResponse> {
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
-  try {
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/fit-tryon-perplexity`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        apikey: SUPABASE_ANON_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        productImageUrl: body.productImageUrl,
-        productCategory: body.productCategory,
-        selectedSize: body.selectedSize,
-        fitDescriptor: body.fitDescriptor,
-        garmentDescription: buildFitDescription(body.productCategory, body.selectedSize, body.fitDescriptor, body.regions),
-      }),
-      signal: controller.signal,
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!data?.ok || !data?.imageUrl) {
-      return failure("provider_error", String(data?.error || "perplexity_failed"), body.selectedSize, "perplexity");
-    }
-    return { ok: true, imageUrl: data.imageUrl, provider: "perplexity", selectedSize: body.selectedSize };
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      return failure("timeout", "generation_timeout", body.selectedSize, "perplexity");
-    }
-    return failure("provider_error", error instanceof Error ? error.message : "perplexity_failed", body.selectedSize, "perplexity");
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
-  const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const authHeader = req.headers.get("Authorization") || "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id || null;
-  const url = new URL(req.url);
   const requestStartedAt = Date.now();
 
   try {
     if (req.method === "GET") {
-      return json(failure("timeout", "polling_disabled_use_post", undefined, null), 410);
+      return json(failure("provider_error", "polling_disabled_use_post", undefined, null), 410);
     }
 
     const body = (await req.json()) as CreateBody;
-    logRouter("REQUEST_IN", { productKey: body?.productKey, selectedSize: body?.selectedSize, elapsedMs: 0, provider: null, status: "start" });
+    logRouter("REQUEST_IN", { productKey: body?.productKey, selectedSize: body?.selectedSize });
 
     if (!body?.productImageUrl || !body?.selectedSize || !body?.productKey) {
       return json(failure("provider_error", "productImageUrl, productKey, selectedSize required", body?.selectedSize), 400);
@@ -231,7 +202,7 @@ Deno.serve(async (req) => {
     const usable = !!img && img !== "null" && img !== "undefined" && /^(https?:\/\/|data:image\/)/i.test(img);
     if (!usable) {
       const out = failure("missing_output", "missing_image", body.selectedSize);
-      logRouter("RESPONSE_OUT", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider: null, status: out.code });
+      logRouter("RESPONSE_OUT", { status: out.code, elapsedMs: Date.now() - requestStartedAt });
       return json(out, 422);
     }
 
@@ -246,18 +217,16 @@ Deno.serve(async (req) => {
 
       if (cached) {
         const ageMs = cached.updated_at ? Date.now() - new Date(cached.updated_at).getTime() : 0;
-        logRouter("CACHE_RESULT", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: ageMs, provider: cached.provider, status: cached.status });
         if (cached.status === "succeeded" && cached.result_image_url) {
-          const out: SuccessResponse = { ok: true, imageUrl: cached.result_image_url, provider: (cached.provider as ProviderName) || "replicate", selectedSize: body.selectedSize };
-          logRouter("RESPONSE_OUT", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider: out.provider, status: "cache_hit" });
+          const out: SuccessResponse = { ok: true, imageUrl: cached.result_image_url, provider: "replicate", selectedSize: body.selectedSize };
+          logRouter("CACHE_HIT", { ageMs, elapsedMs: Date.now() - requestStartedAt });
           return json(out);
         }
         if (["pending", "starting", "processing", "generating"].includes(cached.status || "")) {
           if (ageMs > STALE_PENDING_MS) {
             await markStaleFailed(supabase, cached.id);
           } else {
-            const out = failure("timeout", "generation_timeout", body.selectedSize, (cached.provider as ProviderName) || null);
-            logRouter("RESPONSE_OUT", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider: cached.provider, status: out.code });
+            const out = failure("timeout", "generation_timeout", body.selectedSize, "replicate");
             return json(out, 504);
           }
         }
@@ -266,47 +235,37 @@ Deno.serve(async (req) => {
 
     if (!body.userImageUrl) {
       const out = failure("provider_error", "userImageUrl required for try-on", body.selectedSize);
-      logRouter("RESPONSE_OUT", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider: null, status: out.code });
       return json(out, 400);
     }
 
-    const order: ProviderName[] = body.mode === "quick" ? ["perplexity"] : ["replicate", "perplexity"];
-    let lastFailure: FailureResponse = failure("generation_failed", "all providers failed", body.selectedSize, null);
+    if (!REPLICATE_API_TOKEN) {
+      const out = failure("provider_error", "REPLICATE_API_TOKEN missing", body.selectedSize, "replicate");
+      logRouter("RESPONSE_OUT", { status: out.code, elapsedMs: Date.now() - requestStartedAt });
+      return json(out, 500);
+    }
 
-    for (const provider of order) {
-      logRouter("PROVIDER_START", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider, status: "starting" });
-      const result = provider === "replicate"
-        ? REPLICATE_API_TOKEN
-          ? await tryReplicate(REPLICATE_API_TOKEN, body)
-          : failure("provider_error", "REPLICATE_API_TOKEN missing", body.selectedSize, "replicate")
-        : PERPLEXITY_API_KEY
-        ? await tryPerplexity(body)
-        : failure("provider_error", "PERPLEXITY_API_KEY missing", body.selectedSize, "perplexity");
+    logRouter("REPLICATE_START", { productKey: body.productKey, selectedSize: body.selectedSize });
+    const result = await tryReplicate(REPLICATE_API_TOKEN, body);
 
-      if (result.ok) {
-        if (userId) {
-          await supabase.from("fit_tryons").upsert({
-            user_id: userId,
-            product_key: body.productKey,
-            selected_size: body.selectedSize,
-            provider: result.provider,
-            model_id: result.provider === "replicate" ? (Deno.env.get("REPLICATE_TRYON_MODEL") || "cuuupid/idm-vton") : "perplexity/sonar",
-            prediction_id: null,
-            status: "succeeded",
-            user_image_url: body.userImageUrl,
-            product_image_url: body.productImageUrl,
-            result_image_url: result.imageUrl,
-            error_message: null,
-            metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], sizeBehavior: sizeFitBehavior(body.selectedSize) },
-          }, { onConflict: "user_id,product_key,selected_size" });
-        }
-        logRouter("PROVIDER_SUCCESS", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider: result.provider, status: "succeeded" });
-        logRouter("RESPONSE_OUT", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider: result.provider, status: "success" });
-        return json(result);
+    if (result.ok) {
+      if (userId) {
+        await supabase.from("fit_tryons").upsert({
+          user_id: userId,
+          product_key: body.productKey,
+          selected_size: body.selectedSize,
+          provider: "replicate",
+          model_id: Deno.env.get("REPLICATE_TRYON_MODEL") || "cuuupid/idm-vton",
+          prediction_id: null,
+          status: "succeeded",
+          user_image_url: body.userImageUrl,
+          product_image_url: body.productImageUrl,
+          result_image_url: result.imageUrl,
+          error_message: null,
+          metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], sizeBehavior: sizeFitBehavior(body.selectedSize) },
+        }, { onConflict: "user_id,product_key,selected_size" });
       }
-
-      lastFailure = result;
-      logRouter(result.code === "timeout" ? "SERVER_TIMEOUT" : "PROVIDER_FAIL", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider, status: result.code, error: result.error });
+      logRouter("REPLICATE_SUCCESS", { elapsedMs: Date.now() - requestStartedAt });
+      return json(result);
     }
 
     if (userId) {
@@ -314,23 +273,23 @@ Deno.serve(async (req) => {
         user_id: userId,
         product_key: body.productKey,
         selected_size: body.selectedSize,
-        provider: lastFailure.provider,
+        provider: "replicate",
         model_id: null,
         prediction_id: null,
         status: "failed",
         user_image_url: body.userImageUrl,
         product_image_url: body.productImageUrl,
         result_image_url: null,
-        error_message: lastFailure.error,
-        metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], failedCode: lastFailure.code },
+        error_message: result.error,
+        metadata: { fitDescriptor: body.fitDescriptor, regions: body.regions || [], failedCode: result.code },
       }, { onConflict: "user_id,product_key,selected_size" });
     }
 
-    logRouter("RESPONSE_OUT", { productKey: body.productKey, selectedSize: body.selectedSize, elapsedMs: Date.now() - requestStartedAt, provider: lastFailure.provider, status: lastFailure.code });
-    return json(lastFailure, lastFailure.code === "timeout" ? 504 : 502);
+    logRouter("REPLICATE_FAIL", { code: result.code, elapsedMs: Date.now() - requestStartedAt });
+    return json(result, result.code === "timeout" ? 504 : 502);
   } catch (error) {
-    const out = failure("provider_error", error instanceof Error ? error.message : "Unknown error");
-    logRouter("RESPONSE_OUT", { productKey: null, selectedSize: null, elapsedMs: Date.now() - requestStartedAt, provider: null, status: out.code });
+    const out = failure("provider_error", error instanceof Error ? error.message : "Unknown error", undefined, null);
+    logRouter("CRASH", { error: out.error, elapsedMs: Date.now() - requestStartedAt });
     return json(out, 500);
   }
 });
