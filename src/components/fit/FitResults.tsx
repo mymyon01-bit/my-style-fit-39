@@ -42,6 +42,7 @@ interface Props {
   bodyHeightCm?: number;
   bodyWeightKg?: number | null;
   bodyShape?: BodyShapeInput;
+  userBodyImageUrl?: string | null;
   onRefineFit?: () => void;
   onRescan?: () => void;
   onEditMeasurements?: () => void;

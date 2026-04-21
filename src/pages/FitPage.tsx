@@ -536,6 +536,7 @@ const FitPage = () => {
                   bodyHeightCm={measurements.heightCm.value}
                   bodyWeightKg={weightKg}
                   bodyShape={bodyShape}
+                  userBodyImageUrl={userBodyImageUrl}
                   onRefineFit={handleRefineFit}
                   onRescan={() => setActiveTab("scan")}
                   onEditMeasurements={() => setActiveTab("measurements")}
