@@ -1,14 +1,9 @@
 // ─── useCanvasTryOn — DETERMINISTIC FIT STATE MACHINE ──────────────────────
-// Pipeline:
-//   IDLE → POSE → CUTOUT → COMPOSITE → READY
-//        \___ on any failure ___ READY (silhouette + raw garment)
+// Preview priority:
+//   AI result → composite canvas → fallback canvas → local placeholder → loading
 //
-// After the canvas READY state lands (always within ~2s), an OPTIONAL AI
-// refiner fires in the background. If it returns within 8s → we swap the
-// imageUrl. If not, the canvas image stays — the user is never stuck.
-//
-// Inputs are intentionally narrow so we can call this hook from one place
-// and not worry about the legacy try-on plumbing.
+// The UI must never gate image rendering on a single terminal stage. Any valid
+// preview source should render immediately, with AI swapping in later.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBodyKeypoints } from "@/hooks/useBodyKeypoints";
@@ -21,23 +16,30 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type CanvasTryOnStage =
   | "idle"
-  | "pose"
-  | "cutout"
-  | "composite"
-  | "ready"
-  | "refining"
-  | "ai_ready";
+  | "preparing"
+  | "compositing"
+  | "polling_ai"
+  | "fallback_ready"
+  | "ai_ready"
+  | "error";
 
 export interface CanvasTryOnState {
   stage: CanvasTryOnStage;
   imageUrl: string | null;
-  source: "canvas" | "ai" | null;
+  previewSrc: string | null;
+  shouldRenderPreview: boolean;
+  aiImageUrl: string | null;
+  compositeImageUrl: string | null;
+  fallbackImageUrl: string | null;
+  localPlaceholderUrl: string | null;
+  source: "canvas" | "ai" | "placeholder" | null;
   poseDegraded: boolean;
   poseSource: "mediapipe" | "synthetic";
   solver: SolverResult | null;
   /** Per-region fit chips for the UI. */
   fitChips: Array<{ region: string; fit: string; tone: "tight" | "regular" | "loose" }>;
   error: string | null;
+  requestId: string | null;
 }
 
 interface Args {
@@ -59,18 +61,11 @@ interface Args {
     inseamCm?: number | null;
     gender?: string | null;
   };
-  /** Bump to force re-composite (e.g. user pressed reload). */
   reloadToken?: number;
-  /** When true, also fire an AI refiner in the background. */
   enableAiSwap?: boolean;
 }
 
-// Force the canvas fallback to commit within 2.5s no matter what — the UI must
-// never stay on "PREPARING PREVIEW" after this point.
 const HARD_TIMEOUT_MS = 2_500;
-// AI swap window: keep polling for the AI try-on result for up to 45s after
-// the canvas fallback renders. Fallback shows immediately so the UI never
-// hangs, and the moment the AI result arrives we swap it in as the hero.
 const AI_SWAP_WINDOW_MS = 45_000;
 
 const toneOf = (region: string, fit: string): "tight" | "regular" | "loose" => {
@@ -81,6 +76,53 @@ const toneOf = (region: string, fit: string): "tight" | "regular" | "loose" => {
 
 const escapeSvgText = (value: string) =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+
+const summarizeUrl = (value: string | null | undefined) => {
+  if (!value) return null;
+  if (value.startsWith("data:")) return `${value.slice(0, 36)}…`;
+  if (value.startsWith("blob:")) return `${value.slice(0, 36)}…`;
+  return value.length > 120 ? `${value.slice(0, 120)}…` : value;
+};
+
+function derivePreviewState(state: CanvasTryOnState): CanvasTryOnState {
+  const previewSrc =
+    state.aiImageUrl ||
+    state.compositeImageUrl ||
+    state.fallbackImageUrl ||
+    state.localPlaceholderUrl ||
+    null;
+
+  const source = state.aiImageUrl
+    ? "ai"
+    : state.compositeImageUrl || state.fallbackImageUrl
+    ? "canvas"
+    : state.localPlaceholderUrl
+    ? "placeholder"
+    : null;
+
+  return {
+    ...state,
+    previewSrc,
+    shouldRenderPreview: Boolean(previewSrc),
+    imageUrl: previewSrc,
+    source,
+  };
+}
+
+function logFitPreview(event: string, state: CanvasTryOnState) {
+  console.log("[FIT_PREVIEW]", {
+    event,
+    requestId: state.requestId,
+    stage: state.stage,
+    aiImageUrl: summarizeUrl(state.aiImageUrl),
+    compositeImageUrl: summarizeUrl(state.compositeImageUrl),
+    fallbackImageUrl: summarizeUrl(state.fallbackImageUrl),
+    localPlaceholderUrl: summarizeUrl(state.localPlaceholderUrl),
+    previewSrc: summarizeUrl(state.previewSrc),
+    shouldRenderPreview: state.shouldRenderPreview,
+    source: state.source,
+  });
+}
 
 function buildInstantPlaceholder(args: {
   activeSize: string;
@@ -200,26 +242,84 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     return all.map((r) => ({ ...r, tone: toneOf(r.region, r.fit) }));
   }, [solver, fitMap.category]);
 
-  const [state, setState] = useState<CanvasTryOnState>({
-    stage: "idle",
-    imageUrl: null,
-    source: null,
-    poseDegraded,
-    poseSource,
-    solver,
-    fitChips,
-    error: null,
-  });
+  const [state, setState] = useState<CanvasTryOnState>(() =>
+    derivePreviewState({
+      stage: "idle",
+      imageUrl: null,
+      previewSrc: null,
+      shouldRenderPreview: false,
+      aiImageUrl: null,
+      compositeImageUrl: null,
+      fallbackImageUrl: null,
+      localPlaceholderUrl: null,
+      source: null,
+      poseDegraded,
+      poseSource,
+      solver,
+      fitChips,
+      error: null,
+      requestId: null,
+    })
+  );
 
   const runIdRef = useRef(0);
   const aiLockedRef = useRef(false);
+  const activeRequestRef = useRef<string | null>(null);
 
-  // ── PRIMARY canvas pipeline ─────────────────────────────────────────────
   useEffect(() => {
-    if (!args.enabled || !args.productImageUrl || !args.selectedSize) return;
+    if (!args.enabled || !args.productImageUrl || !args.selectedSize) {
+      setState((prev) =>
+        derivePreviewState({
+          ...prev,
+          stage: "idle",
+          aiImageUrl: null,
+          compositeImageUrl: null,
+          fallbackImageUrl: null,
+          localPlaceholderUrl: null,
+          error: null,
+          requestId: null,
+          poseDegraded,
+          poseSource,
+          solver,
+          fitChips,
+        })
+      );
+      return;
+    }
+
     const runId = ++runIdRef.current;
-    let cancelled = false;
+    const requestId = `${runId}:${args.productKey}:${args.selectedSize}:${args.reloadToken ?? 0}:${args.userImageUrl ?? "no-body"}`;
+    activeRequestRef.current = requestId;
     aiLockedRef.current = false;
+    let cancelled = false;
+
+    const commitState = (event: string, partial: Partial<CanvasTryOnState>) => {
+      if (cancelled || activeRequestRef.current !== requestId) return;
+      setState((prev) => {
+        const merged = derivePreviewState({
+          ...prev,
+          ...partial,
+          poseDegraded,
+          poseSource,
+          solver,
+          fitChips,
+          requestId,
+        } as CanvasTryOnState);
+
+        const next = !merged.previewSrc && prev.requestId === requestId && prev.previewSrc
+          ? derivePreviewState({
+              ...merged,
+              aiImageUrl: merged.aiImageUrl ?? prev.aiImageUrl,
+              compositeImageUrl: merged.compositeImageUrl ?? prev.compositeImageUrl,
+              fallbackImageUrl: merged.fallbackImageUrl ?? prev.fallbackImageUrl,
+              localPlaceholderUrl: merged.localPlaceholderUrl ?? prev.localPlaceholderUrl,
+            })
+          : merged;
+
+        logFitPreview(event, next);
+        return next;
+      });
+    };
 
     const immediatePlaceholder = buildInstantPlaceholder({
       activeSize: args.selectedSize,
@@ -227,25 +327,17 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
       poseDegraded,
     });
 
-    setState({
-      stage: "ready",
-      imageUrl: immediatePlaceholder,
-      source: "canvas",
-      poseDegraded,
-      poseSource,
-      solver,
-      fitChips,
+    commitState("selection_change", {
+      stage: "preparing",
+      aiImageUrl: null,
+      compositeImageUrl: null,
+      fallbackImageUrl: null,
+      localPlaceholderUrl: immediatePlaceholder,
       error: null,
     });
 
-    const hardTimer = window.setTimeout(() => {
-      if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
-      // Force-finish: at the very least surface raw garment + silhouette.
-      console.warn("[useCanvasTryOn] HARD_TIMEOUT — forcing fallback render");
-      void renderFallback();
-    }, HARD_TIMEOUT_MS);
-
     const renderFallback = async () => {
+      commitState("fallback_compositing_start", { stage: "compositing" });
       try {
         const composite = await composeFitImage({
           bodyImageUrl: args.userImageUrl ?? null,
@@ -255,41 +347,33 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           solver,
           productCategory: args.productCategory ?? null,
         });
-        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
-        setState({
-          stage: "ready",
-          imageUrl: composite.dataUrl,
-          source: "canvas",
-          poseDegraded,
-          poseSource,
-          solver,
-          fitChips,
+        if (cancelled || activeRequestRef.current !== requestId || aiLockedRef.current) return;
+        commitState("fallback_ready", {
+          stage: "fallback_ready",
+          fallbackImageUrl: composite.dataUrl,
           error: null,
         });
       } catch (err) {
-        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
-        setState((s) => ({
-          ...s,
-          stage: "ready",
-          imageUrl: args.productImageUrl,
-          source: "canvas",
+        if (cancelled || activeRequestRef.current !== requestId || aiLockedRef.current) return;
+        commitState("fallback_failed_keep_garment", {
+          stage: "fallback_ready",
+          fallbackImageUrl: args.productImageUrl,
           error: err instanceof Error ? err.message : "composite_failed",
-          solver,
-          fitChips,
-          poseDegraded,
-          poseSource,
-        }));
+        });
       }
     };
 
-    // ── INSTANT FALLBACK ─────────────────────────────────────────────────
-    // Render the silhouette + raw garment immediately so the user is NEVER
-    // stuck on "PREPARING PREVIEW". The richer cutout pipeline runs after
-    // and replaces the image when ready.
+    const hardTimer = window.setTimeout(() => {
+      if (cancelled || activeRequestRef.current !== requestId || aiLockedRef.current) return;
+      console.warn("[useCanvasTryOn] HARD_TIMEOUT — forcing fallback render", { requestId });
+      void renderFallback();
+    }, HARD_TIMEOUT_MS);
+
     void renderFallback();
 
     (async () => {
       try {
+        commitState("cutout_pipeline_start", { stage: "compositing" });
         const cutoutUrl = await getGarmentCutout(args.productImageUrl, args.productName);
         const composite = await composeFitImage({
           bodyImageUrl: args.userImageUrl ?? null,
@@ -300,20 +384,19 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           productCategory: args.productCategory ?? null,
         });
 
-        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
-        setState({
-          stage: "ready",
-          imageUrl: composite.dataUrl,
-          source: "canvas",
-          poseDegraded,
-          poseSource,
-          solver,
-          fitChips,
+        if (cancelled || activeRequestRef.current !== requestId || aiLockedRef.current) return;
+        commitState("composite_ready", {
+          stage: "fallback_ready",
+          compositeImageUrl: composite.dataUrl,
           error: null,
         });
       } catch (err) {
-        if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
-        console.warn("[useCanvasTryOn] pipeline error → fallback already shown", err);
+        if (cancelled || activeRequestRef.current !== requestId || aiLockedRef.current) return;
+        console.warn("[useCanvasTryOn] cutout/composite pipeline error — keeping available preview", err);
+        commitState("composite_failed_keep_best_available", {
+          stage: state.previewSrc ? "fallback_ready" : "error",
+          error: err instanceof Error ? err.message : "composite_pipeline_failed",
+        });
       } finally {
         window.clearTimeout(hardTimer);
       }
@@ -323,12 +406,13 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
       cancelled = true;
       window.clearTimeout(hardTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     args.enabled,
     args.productKey,
     args.selectedSize,
     args.productImageUrl,
+    args.productName,
+    args.productCategory,
     args.userImageUrl,
     args.reloadToken,
     pose.leftShoulder.x,
@@ -336,20 +420,34 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     pose.leftHip.y,
     bodyProfile.shoulderRatio,
     bodyProfile.chestRatio,
+    frame,
+    poseDegraded,
+    poseSource,
+    solver,
+    fitChips,
+    state.previewSrc,
   ]);
 
-  // ── PRIMARY AI try-on (photo path) — runs IN PARALLEL with the canvas ───
-  // When the user has a body photo, this is the HERO output. We kick it off
-  // immediately on mount/size-change and swap as soon as it lands.
   useEffect(() => {
     if (!args.enableAiSwap) return;
     if (!args.enabled || !args.productImageUrl || !args.selectedSize) return;
     if (!args.userImageUrl) return;
 
+    const requestId = activeRequestRef.current;
+    if (!requestId) return;
+
     let cancelled = false;
     const startedAt = Date.now();
 
-    setState((s) => (s.imageUrl ? { ...s, stage: "refining" } : s));
+    setState((prev) => {
+      if (prev.requestId !== requestId) return prev;
+      const next = derivePreviewState({
+        ...prev,
+        stage: prev.previewSrc ? "polling_ai" : "preparing",
+      });
+      logFitPreview("ai_polling_start", next);
+      return next;
+    });
 
     const regions = [
       { region: "Chest", fit: solver.regions.chest.fit },
@@ -361,7 +459,9 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
 
     (async () => {
       try {
-        console.log("[FIT_AI] start", {
+        console.log("[FIT_PREVIEW]", {
+          event: "ai_request_start",
+          requestId,
           productKey: args.productKey,
           size: args.selectedSize,
           hasUserImage: !!args.userImageUrl,
@@ -379,52 +479,83 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           },
         });
         const elapsed = Date.now() - startedAt;
-        console.log("[FIT_AI] response", {
+        console.log("[FIT_PREVIEW]", {
+          event: "ai_response",
+          requestId,
           elapsedMs: elapsed,
           hasError: !!error,
           ok: data?.ok,
-          imageUrl: data?.imageUrl ? `${String(data.imageUrl).slice(0, 80)}…` : null,
+          imageUrl: summarizeUrl(data?.imageUrl ?? null),
           provider: data?.provider,
         });
-        if (cancelled) return;
+        if (cancelled || activeRequestRef.current !== requestId) return;
         if (!error && data?.ok && data?.imageUrl) {
-          console.log("[FIT_AI] SWAP → AI result applied", data.imageUrl);
           aiLockedRef.current = true;
-          setState((s) => ({
-            ...s,
-            stage: "ai_ready",
-            imageUrl: data.imageUrl,
-            source: "ai",
-            error: null,
-          }));
+          setState((prev) => {
+            if (prev.requestId !== requestId) return prev;
+            const next = derivePreviewState({
+              ...prev,
+              stage: "ai_ready",
+              aiImageUrl: data.imageUrl,
+              error: null,
+            });
+            logFitPreview("ai_ready", next);
+            return next;
+          });
           return;
         }
-        console.warn("[FIT_AI] no AI image, keeping canvas fallback", { error, data });
-        setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
+        setState((prev) => {
+          if (prev.requestId !== requestId) return prev;
+          const next = derivePreviewState({
+            ...prev,
+            stage: prev.previewSrc ? "fallback_ready" : "error",
+            error: prev.previewSrc ? prev.error : error?.message ?? data?.error ?? "ai_unavailable",
+          });
+          logFitPreview("ai_unavailable_keep_best_preview", next);
+          return next;
+        });
       } catch (err) {
-        if (cancelled) return;
-        console.warn("[FIT_AI] invoke threw, keeping canvas fallback", err);
-        setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
+        if (cancelled || activeRequestRef.current !== requestId) return;
+        setState((prev) => {
+          if (prev.requestId !== requestId) return prev;
+          const next = derivePreviewState({
+            ...prev,
+            stage: prev.previewSrc ? "fallback_ready" : "error",
+            error: prev.previewSrc ? prev.error : err instanceof Error ? err.message : "ai_unavailable",
+          });
+          logFitPreview("ai_error_keep_best_preview", next);
+          return next;
+        });
       }
     })();
 
     const swapTimer = window.setTimeout(() => {
-      if (cancelled || aiLockedRef.current) return;
-      setState((s) => (s.stage === "refining" ? { ...s, stage: "ready" } : s));
+      if (cancelled || aiLockedRef.current || activeRequestRef.current !== requestId) return;
+      setState((prev) => {
+        if (prev.requestId !== requestId) return prev;
+        const next = derivePreviewState({
+          ...prev,
+          stage: prev.previewSrc ? "fallback_ready" : "error",
+        });
+        logFitPreview("ai_swap_window_expired_keep_best_preview", next);
+        return next;
+      });
     }, AI_SWAP_WINDOW_MS);
 
     return () => {
       cancelled = true;
       window.clearTimeout(swapTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     args.enableAiSwap,
     args.enabled,
     args.productKey,
+    args.productImageUrl,
+    args.productCategory,
     args.selectedSize,
     args.userImageUrl,
     args.reloadToken,
+    solver,
   ]);
 
   return state;
