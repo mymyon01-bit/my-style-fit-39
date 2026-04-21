@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,95 +6,100 @@
 
 @layer base {
   :root {
-    /* ── LIGHT THEME (default) — premium editorial commerce ─────────────── */
-    --background: 24 30% 98%;          /* #fbf8f6 warm off-white */
-    --foreground: 0 0% 9%;             /* #171717 near-black */
+    /* ── LIGHT THEME — soft pastel fashion (mymyon reskin) ───────────────
+       Background  #F6F2F0   Surface #FFFFFF   Text #2F2F2F / #7A7A7A
+       Primary     #E8B7B7   Secondary #A8BCA1 Accent  #D98F8F
+       Border      #E5E2E0
+       Layout untouched — only color, radius, shadow, weight tokens. */
+    --background: 20 18% 95%;          /* #F6F2F0 warm off-white */
+    --foreground: 0 0% 18%;            /* #2F2F2F dark gray */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card: 0 0% 100%;                 /* #FFFFFF pure white */
+    --card-foreground: 0 0% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 0 0% 18%;
 
-    --primary: 0 0% 9%;
-    --primary-foreground: 24 30% 98%;
+    --primary: 0 54% 81%;              /* #E8B7B7 muted blush */
+    --primary-foreground: 0 0% 18%;
 
-    --secondary: 24 14% 94%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 105 14% 69%;          /* #A8BCA1 soft sage */
+    --secondary-foreground: 0 0% 18%;
 
-    --muted: 24 10% 92%;
-    --muted-foreground: 0 0% 38%;
+    --muted: 22 14% 92%;               /* warm pastel sand */
+    --muted-foreground: 0 0% 48%;      /* #7A7A7A */
 
-    --accent: 351 60% 30%;
+    --accent: 0 53% 71%;               /* #D98F8F deeper blush CTA */
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 351 50% 38%;
-    --accent-highlight: 351 42% 50%;
+    --accent-muted: 0 50% 78%;
+    --accent-highlight: 0 60% 84%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 4 60% 66%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 24 8% 88%;
-    --input: 24 8% 90%;
-    --ring: 351 60% 30%;
+    --border: 22 8% 89%;               /* #E5E2E0 very light gray */
+    --input: 22 14% 96%;               /* soft input surface */
+    --ring: 0 53% 71%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;                    /* 16px — sits inside 12–20px range */
 
-    --neutral: 0 0% 50%;
+    --neutral: 0 0% 48%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 24 14% 95%;
-    --star: 45 93% 58%;
+    --surface-sunken: 22 14% 93%;
+    --star: 35 75% 70%;                /* warmer pastel gold */
 
     /* Single global font system — Inter only */
-    --font-display: 'Inter', 'Neue Haas Grotesk Text', 'Helvetica Neue', Arial, sans-serif;
-    --font-body: 'Inter', 'Neue Haas Grotesk Text', 'Helvetica Neue', Arial, sans-serif;
+    --font-display: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
 
-    /* Depth system — soft, premium */
-    --shadow-1: 0 1px 2px hsl(0 0% 9% / 0.04);
-    --shadow-2: 0 2px 8px -2px hsl(0 0% 9% / 0.06), 0 1px 3px hsl(0 0% 9% / 0.04);
-    --shadow-3: 0 12px 32px -8px hsl(0 0% 9% / 0.14), 0 4px 12px -4px hsl(0 0% 9% / 0.08);
+    /* Depth system — very soft, low opacity (replaces hard borders) */
+    --shadow-1: 0 1px 2px hsl(20 14% 30% / 0.04);
+    --shadow-2: 0 4px 16px -6px hsl(20 14% 30% / 0.08), 0 1px 3px hsl(20 14% 30% / 0.04);
+    --shadow-3: 0 18px 40px -14px hsl(20 14% 30% / 0.14), 0 6px 16px -8px hsl(20 14% 30% / 0.08);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
   }
 
   .dark {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 96%;
+    /* Dark variant of the same pastel system — softer, never harsh black */
+    --background: 20 10% 11%;
+    --foreground: 22 14% 94%;
 
-    --card: 240 8% 7%;
-    --card-foreground: 0 0% 96%;
+    --card: 20 9% 14%;
+    --card-foreground: 22 14% 94%;
 
-    --popover: 240 8% 7%;
-    --popover-foreground: 0 0% 96%;
+    --popover: 20 9% 14%;
+    --popover-foreground: 22 14% 94%;
 
-    --primary: 0 0% 96%;
-    --primary-foreground: 240 10% 4%;
+    --primary: 0 40% 72%;
+    --primary-foreground: 20 10% 11%;
 
-    --secondary: 240 6% 11%;
-    --secondary-foreground: 0 0% 85%;
+    --secondary: 105 12% 58%;
+    --secondary-foreground: 20 10% 11%;
 
-    --muted: 240 5% 14%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 20 8% 18%;
+    --muted-foreground: 22 10% 70%;
 
-    --accent: 351 55% 50%;
-    --accent-foreground: 0 0% 100%;
-    --accent-muted: 351 48% 56%;
-    --accent-highlight: 351 42% 64%;
+    --accent: 0 48% 70%;
+    --accent-foreground: 20 10% 11%;
+    --accent-muted: 0 38% 62%;
+    --accent-highlight: 0 50% 78%;
 
-    --destructive: 0 65% 52%;
+    --destructive: 4 55% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 18%;
-    --input: 240 5% 18%;
-    --ring: 351 55% 50%;
+    --border: 20 8% 22%;
+    --input: 20 8% 20%;
+    --ring: 0 48% 70%;
 
-    --neutral: 0 0% 60%;
-    --surface-elevated: 240 6% 9%;
-    --surface-sunken: 240 8% 5%;
-    --star: 45 93% 58%;
+    --neutral: 22 8% 64%;
+    --surface-elevated: 20 9% 16%;
+    --surface-sunken: 20 10% 9%;
+    --star: 35 60% 70%;
 
-    --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.3);
-    --shadow-2: 0 2px 10px -2px hsl(0 0% 0% / 0.45), 0 1px 3px hsl(0 0% 0% / 0.3);
-    --shadow-3: 0 16px 40px -8px hsl(0 0% 0% / 0.6), 0 4px 14px -4px hsl(0 0% 0% / 0.4);
+    --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.32);
+    --shadow-2: 0 4px 16px -6px hsl(0 0% 0% / 0.42), 0 1px 3px hsl(0 0% 0% / 0.3);
+    --shadow-3: 0 18px 44px -12px hsl(0 0% 0% / 0.55), 0 6px 16px -8px hsl(0 0% 0% / 0.36);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
   }
@@ -120,15 +125,15 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
-    line-height: 1.12;
+    letter-spacing: -0.012em;
+    line-height: 1.18;
     color: hsl(var(--foreground));
-    font-weight: 600;
+    font-weight: 500;
   }
-  h1 { font-weight: 700; letter-spacing: -0.025em; }
-  h2 { font-weight: 600; }
-  h3, h4 { font-weight: 600; }
-  p { color: hsl(var(--foreground) / 0.78); }
+  h1 { font-weight: 600; letter-spacing: -0.018em; }
+  h2 { font-weight: 500; }
+  h3, h4 { font-weight: 500; }
+  p { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
      with a slightly larger base + heavier weight for crisp legibility. */
