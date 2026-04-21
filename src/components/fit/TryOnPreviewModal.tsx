@@ -186,7 +186,15 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
           return;
         }
         if (asyncData?.code === "rate_limited") {
-          setError(asyncData.error || null);
+          stopPolling();
+          setError(asyncData.error || "Rate limited by provider.");
+          setStatus("rate_limited");
+          setRetryAt(Date.now() + Math.min(asyncData.retryAfterMs ?? 8000, 60000));
+          return;
+        }
+        if (asyncData?.code === "pending") {
+          setStatus("pending");
+          setRetryAt(null);
         }
         if (attempts >= POLL_MAX_ATTEMPTS) {
           stopPolling();
