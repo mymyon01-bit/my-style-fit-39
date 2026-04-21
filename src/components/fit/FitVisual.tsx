@@ -1,7 +1,7 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, AlertTriangle, RefreshCw, Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import SafeImage from "@/components/SafeImage";
 import type { CanvasTryOnState } from "@/hooks/useCanvasTryOn";
 
 interface Props {
@@ -25,33 +25,125 @@ export default function FitVisual({
   onRescanBody,
   onReload,
 }: Props) {
-  const isLoading = !state.imageUrl;
-  const isRefining = state.stage === "refining";
-  const hasImage = !!state.imageUrl;
+  const previewCandidates = useMemo(
+    () =>
+      [
+        state.aiImageUrl,
+        state.compositeImageUrl,
+        state.fallbackImageUrl,
+        state.localPlaceholderUrl,
+        state.previewSrc,
+        state.imageUrl,
+      ].filter((value, index, all): value is string => Boolean(value) && all.indexOf(value) === index),
+    [
+      state.aiImageUrl,
+      state.compositeImageUrl,
+      state.fallbackImageUrl,
+      state.localPlaceholderUrl,
+      state.previewSrc,
+      state.imageUrl,
+    ]
+  );
+
+  const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFailedSrcs([]);
+    setLoadedSrc(null);
+  }, [state.requestId, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, state.localPlaceholderUrl]);
+
+  const previewSrc = useMemo(
+    () => previewCandidates.find((src) => !failedSrcs.includes(src)) ?? null,
+    [previewCandidates, failedSrcs]
+  );
+
+  const shouldRenderPreview = Boolean(previewSrc);
+  const isLoading = !shouldRenderPreview;
+  const isRefining = state.stage === "polling_ai";
+  const hasImage = shouldRenderPreview;
+
+  useEffect(() => {
+    setLoadedSrc(null);
+  }, [previewSrc]);
+
+  useEffect(() => {
+    console.log("[FIT_PREVIEW]", {
+      event: "preview_render",
+      requestId: state.requestId,
+      stage: state.stage,
+      aiImageUrl: state.aiImageUrl,
+      compositeImageUrl: state.compositeImageUrl,
+      fallbackImageUrl: state.fallbackImageUrl,
+      localPlaceholderUrl: state.localPlaceholderUrl,
+      previewSrc,
+      shouldRenderPreview,
+    });
+  }, [
+    state.requestId,
+    state.stage,
+    state.aiImageUrl,
+    state.compositeImageUrl,
+    state.fallbackImageUrl,
+    state.localPlaceholderUrl,
+    previewSrc,
+    shouldRenderPreview,
+  ]);
 
   const sourceLabel =
-    state.source === "ai" ? "AI TRY-ON" : "STYLE PREVIEW";
+    previewSrc && previewSrc === state.aiImageUrl
+      ? "AI TRY-ON"
+      : previewSrc && previewSrc === state.localPlaceholderUrl
+      ? "PLACEHOLDER"
+      : "STYLE PREVIEW";
 
   const handleShare = async () => {
-    if (!state.imageUrl) return;
+    if (!previewSrc) return;
     try {
       if (navigator.share) {
         await navigator.share({
           title: `${productName} — try-on size ${activeSize}`,
-          url: state.imageUrl,
+          url: previewSrc,
         });
       } else {
-        await navigator.clipboard.writeText(state.imageUrl);
+        await navigator.clipboard.writeText(previewSrc);
         toast.success("Try-on image link copied");
       }
     } catch {
       try {
-        await navigator.clipboard.writeText(state.imageUrl);
+        await navigator.clipboard.writeText(previewSrc);
         toast.success("Try-on image link copied");
       } catch {
         toast.error("Couldn't share image");
       }
     }
+  };
+
+  const handleImageLoad = () => {
+    if (!previewSrc) return;
+    setLoadedSrc(previewSrc);
+    console.log("[FIT_PREVIEW]", {
+      event: "preview_image_loaded",
+      requestId: state.requestId,
+      stage: state.stage,
+      previewSrc,
+      shouldRenderPreview,
+    });
+  };
+
+  const handleImageError = () => {
+    if (!previewSrc) return;
+    console.warn("[FIT_PREVIEW]", {
+      event: "preview_image_error_try_next",
+      requestId: state.requestId,
+      stage: state.stage,
+      failedSrc: previewSrc,
+      aiImageUrl: state.aiImageUrl,
+      compositeImageUrl: state.compositeImageUrl,
+      fallbackImageUrl: state.fallbackImageUrl,
+      localPlaceholderUrl: state.localPlaceholderUrl,
+    });
+    setFailedSrcs((prev) => (prev.includes(previewSrc) ? prev : [...prev, previewSrc]));
   };
 
   return (
@@ -89,15 +181,23 @@ export default function FitVisual({
         className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06] bg-muted/20"
         style={{ aspectRatio: "3 / 4", maxHeight: 560 }}
       >
-        {hasImage ? (
+        {shouldRenderPreview ? (
           <>
-            <SafeImage
-              src={state.imageUrl!}
-              alt={`${productName} try-on, size ${activeSize}`}
-              className="h-full w-full object-cover"
-              fallbackClassName="h-full w-full"
-              loading="lazy"
-            />
+            <div className="relative h-full w-full">
+              {loadedSrc !== previewSrc && (
+                <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]" />
+              )}
+              <img
+                key={previewSrc}
+                src={previewSrc!}
+                alt={`${productName} try-on, size ${activeSize}`}
+                className={`h-full w-full object-cover transition-opacity duration-200 ${loadedSrc === previewSrc ? "opacity-100" : "opacity-0"}`}
+                loading="eager"
+                decoding="async"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+              />
+            </div>
             <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
               <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
                 {sourceLabel}
@@ -124,11 +224,11 @@ export default function FitVisual({
                 />
               </div>
               <p className="text-[11px] font-semibold tracking-[0.22em] text-foreground/70">
-                {state.stage === "pose"
-                  ? "READING BODY"
-                  : state.stage === "cutout"
-                  ? "PREPARING GARMENT"
-                  : "PREPARING PREVIEW"}
+                {state.stage === "compositing"
+                  ? "PREPARING PREVIEW"
+                  : state.stage === "polling_ai"
+                  ? "REFINING PREVIEW"
+                  : "LOADING PREVIEW"}
               </p>
             </div>
           </div>
@@ -180,7 +280,7 @@ export default function FitVisual({
       )}
 
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
-        {state.source === "ai"
+        {previewSrc === state.aiImageUrl
           ? "AI-refined preview"
           : state.poseDegraded
           ? "Style preview based on your measurements"
