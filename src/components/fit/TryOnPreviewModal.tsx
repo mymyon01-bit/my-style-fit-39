@@ -217,6 +217,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     setError(null);
     setResultUrl(null);
     setProvider(null);
+    setRetryAt(null);
     try {
       console.log("[TryOn] start", { productKey: context.productKey, size: context.recommendedSize, force: forceRegenerate });
       const { data, error } = await createTryOn({
@@ -245,10 +246,13 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       if (asyncData) {
         if (asyncData.requestId) setRequestId(asyncData.requestId);
         if (asyncData.predictionId) setPredictionId(asyncData.predictionId);
-        if (asyncData.code === "rate_limited" && asyncData.retryAfterMs) {
-          setError(asyncData.error || "Rate limited. Retrying shortly.");
-          await wait(Math.min(asyncData.retryAfterMs, 15000));
+        if (asyncData.code === "rate_limited") {
+          setError(asyncData.error || "Rate limited by provider.");
+          setStatus("rate_limited");
+          setRetryAt(Date.now() + Math.min(asyncData.retryAfterMs ?? 8000, 60000));
+          return;
         }
+        setStatus("pending");
         pollUntilDone({ requestId: asyncData.requestId ?? null, predictionId: asyncData.predictionId ?? null });
         return;
       }
