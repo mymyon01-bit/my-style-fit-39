@@ -474,7 +474,11 @@ const FitPage = () => {
         />
       )}
 
-      <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12 lg:pt-12">
+      <div className={`mx-auto px-8 pt-10 md:px-10 lg:px-12 lg:pt-12 ${
+        activeTab === "results"
+          ? "max-w-lg md:max-w-2xl lg:max-w-6xl"
+          : "max-w-lg md:max-w-2xl lg:max-w-3xl"
+      }`}>
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
             {activeTab === "scan" && (
