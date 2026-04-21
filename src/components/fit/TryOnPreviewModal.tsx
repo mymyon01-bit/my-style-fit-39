@@ -46,7 +46,7 @@ interface Props {
   context: TryOnContext | null;
 }
 
-type Status = "idle" | "generating" | "ready" | "failed";
+type Status = "idle" | "generating" | "pending" | "rate_limited" | "ready" | "failed";
 
 // Anchor points (% of image) for region pills overlaid on the try-on image
 const REGION_ANCHORS: Record<string, { top: number; side: "left" | "right" }> = {
