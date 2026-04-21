@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Sparkles, AlertTriangle, RefreshCw, Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { CanvasTryOnState } from "@/hooks/useCanvasTryOn";
+import { getBestTryOnImageSource, describeKind } from "@/lib/fit/getBestTryOnImageSource";
 
 interface Props {
   productName: string;
@@ -28,32 +29,10 @@ export default function FitVisual({
   onRescanBody,
   onReload,
 }: Props) {
-  // Preview source priority — ALWAYS include productImageUrl as the last
-  // resort so the preview is never blank. The SVG placeholder cannot fail
-  // to load (data URI), but if every other source breaks we still render
-  // the real product image rather than a skeleton.
-  const previewCandidates = useMemo(
-    () =>
-      [
-        state.aiImageUrl,
-        state.compositeImageUrl,
-        state.fallbackImageUrl,
-        state.localPlaceholderUrl,
-        state.previewSrc,
-        state.imageUrl,
-        productImageUrl ?? null,
-      ].filter((value, index, all): value is string => Boolean(value) && all.indexOf(value) === index),
-    [
-      state.aiImageUrl,
-      state.compositeImageUrl,
-      state.fallbackImageUrl,
-      state.localPlaceholderUrl,
-      state.previewSrc,
-      state.imageUrl,
-      productImageUrl,
-    ]
-  );
-
+  // ── UNIFIED IMAGE PRIORITY ────────────────────────────────────────────
+  // Delegates to the shared selector so inline preview and modal stay in sync.
+  // Generated AI image ALWAYS wins. Failed sources are excluded but the AI
+  // URL is never excluded — we keep it even if a transient load error fires.
   const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
 
@@ -62,14 +41,15 @@ export default function FitVisual({
     setLoadedSrc(null);
   }, [state.requestId, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, state.localPlaceholderUrl, productImageUrl]);
 
-  const previewSrc = useMemo(
-    () => previewCandidates.find((src) => !failedSrcs.includes(src)) ?? null,
-    [previewCandidates, failedSrcs]
+  const best = useMemo(
+    () => getBestTryOnImageSource(state, productImageUrl ?? null, failedSrcs),
+    [state, productImageUrl, failedSrcs]
   );
+  const previewSrc = best.src;
 
   const shouldRenderPreview = Boolean(previewSrc);
   const isLoading = !shouldRenderPreview;
-  const isRefining = state.stage === "polling_ai";
+  const isRefining = state.stage === "polling_ai" && !best.isFinal;
   const hasImage = shouldRenderPreview;
 
   useEffect(() => {
@@ -77,34 +57,19 @@ export default function FitVisual({
   }, [previewSrc]);
 
   useEffect(() => {
-    console.log("[FIT_PREVIEW]", {
-      event: "preview_render",
-      requestId: state.requestId,
-      stage: state.stage,
-      aiImageUrl: state.aiImageUrl,
-      compositeImageUrl: state.compositeImageUrl,
-      fallbackImageUrl: state.fallbackImageUrl,
-      localPlaceholderUrl: state.localPlaceholderUrl,
-      previewSrc,
-      shouldRenderPreview,
-    });
-  }, [
-    state.requestId,
-    state.stage,
-    state.aiImageUrl,
-    state.compositeImageUrl,
-    state.fallbackImageUrl,
-    state.localPlaceholderUrl,
-    previewSrc,
-    shouldRenderPreview,
-  ]);
+    if (typeof window !== "undefined" && (window as unknown as { __FIT_DEBUG__?: boolean }).__FIT_DEBUG__) {
+      console.log("[FIT_PREVIEW]", {
+        event: "preview_render",
+        requestId: state.requestId,
+        stage: state.stage,
+        kind: best.kind,
+        isFinal: best.isFinal,
+        previewSrc: previewSrc ? `${previewSrc.slice(0, 60)}…` : null,
+      });
+    }
+  }, [state.requestId, state.stage, previewSrc, best.kind, best.isFinal]);
 
-  const sourceLabel =
-    previewSrc && previewSrc === state.aiImageUrl
-      ? "AI TRY-ON"
-      : previewSrc && previewSrc === state.localPlaceholderUrl
-      ? "PLACEHOLDER"
-      : "STYLE PREVIEW";
+  const sourceLabel = describeKind(best.kind);
 
   const handleShare = async () => {
     if (!previewSrc) return;
@@ -131,28 +96,22 @@ export default function FitVisual({
   const handleImageLoad = () => {
     if (!previewSrc) return;
     setLoadedSrc(previewSrc);
-    console.log("[FIT_PREVIEW]", {
-      event: "preview_image_loaded",
-      requestId: state.requestId,
-      stage: state.stage,
-      previewSrc,
-      shouldRenderPreview,
-    });
   };
 
   const handleImageError = () => {
     if (!previewSrc) return;
-    // Never blacklist the raw productImageUrl — it's our last-resort guarantee.
-    if (previewSrc === productImageUrl) {
-      console.warn("[FIT_PREVIEW]", { event: "product_image_failed_keeping_anyway", previewSrc });
+    // NEVER blacklist a final AI image or the raw product image — both are
+    // last-resort guarantees that the preview will not go blank. The AI image
+    // sometimes fires onError on first paint due to CORS but loads fine on
+    // retry; demoting it would let a stale composite win incorrectly.
+    if (previewSrc === state.aiImageUrl) {
+      console.warn("[FIT_PREVIEW]", { event: "ai_image_load_error_keeping", previewSrc: previewSrc.slice(0, 60) });
       return;
     }
-    console.warn("[FIT_PREVIEW]", {
-      event: "preview_image_error_try_next",
-      requestId: state.requestId,
-      stage: state.stage,
-      failedSrc: previewSrc,
-    });
+    if (previewSrc === productImageUrl) {
+      console.warn("[FIT_PREVIEW]", { event: "product_image_failed_keeping_anyway" });
+      return;
+    }
     setFailedSrcs((prev) => (prev.includes(previewSrc) ? prev : [...prev, previewSrc]));
   };
 
@@ -349,7 +308,7 @@ export default function FitVisual({
       )}
 
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
-        {previewSrc === state.aiImageUrl
+        {best.isFinal
           ? "AI-refined preview"
           : state.poseDegraded
           ? "Style preview based on your measurements"
