@@ -118,8 +118,20 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [showOverlay, setShowOverlay] = useState<boolean>(false); // default clean image
   const [provider, setProvider] = useState<string | null>(null);
+  const [retryAt, setRetryAt] = useState<number | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
   const fileRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<number | null>(null);
+
+  // Countdown ticker — only runs when retryAt is set
+  useEffect(() => {
+    if (!retryAt) return;
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [retryAt]);
+
+  const retrySecondsLeft = retryAt ? Math.max(0, Math.ceil((retryAt - now) / 1000)) : 0;
+  const canRetryNow = !retryAt || retrySecondsLeft === 0;
 
   const stopPolling = () => {
     if (pollRef.current) {
