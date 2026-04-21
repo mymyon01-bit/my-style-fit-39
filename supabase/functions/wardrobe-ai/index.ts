@@ -1354,9 +1354,21 @@ PREMIUM MODE — Additional requirements:
   } catch (e) {
     console.error("wardrobe-ai error:", e);
     const msg = e instanceof Error ? e.message : "Unknown error";
-    const status = msg.includes("Rate limited") ? 429 : msg.includes("credits") ? 402 : 500;
-    return new Response(JSON.stringify({ error: msg }), {
-      status,
+    const isCredits = msg.includes("credits");
+    const isRate = msg.includes("Rate limited");
+    // Soft-fail on credit/rate errors so clients don't crash; signal fallback.
+    if (isCredits || isRate) {
+      return new Response(
+        JSON.stringify({
+          error: isCredits ? "credits_exhausted" : "rate_limited",
+          message: msg,
+          fallback: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    return new Response(JSON.stringify({ error: msg, fallback: true }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
