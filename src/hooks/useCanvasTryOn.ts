@@ -393,9 +393,15 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
       } catch (err) {
         if (cancelled || activeRequestRef.current !== requestId || aiLockedRef.current) return;
         console.warn("[useCanvasTryOn] cutout/composite pipeline error — keeping available preview", err);
-        commitState("composite_failed_keep_best_available", {
-          stage: state.previewSrc ? "fallback_ready" : "error",
-          error: err instanceof Error ? err.message : "composite_pipeline_failed",
+        setState((prev) => {
+          if (prev.requestId !== requestId) return prev;
+          const next = derivePreviewState({
+            ...prev,
+            stage: prev.previewSrc ? "fallback_ready" : "error",
+            error: err instanceof Error ? err.message : "composite_pipeline_failed",
+          });
+          logFitPreview("composite_failed_keep_best_available", next);
+          return next;
         });
       } finally {
         window.clearTimeout(hardTimer);
@@ -425,7 +431,6 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     poseSource,
     solver,
     fitChips,
-    state.previewSrc,
   ]);
 
   useEffect(() => {
