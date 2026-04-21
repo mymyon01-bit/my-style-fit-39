@@ -14,7 +14,7 @@ const PROCESSING_STATUSES = new Set(["queued", "pending", "starting", "processin
 
 type ProviderName = "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output";
-type PendingCode = "queued" | "processing" | "throttled";
+type PendingCode = "pending" | "rate_limited";
 
 interface RegionFitLite {
   region: string;
@@ -64,7 +64,7 @@ interface PendingResponse {
   error: string | null;
   provider: ProviderName;
   selectedSize?: string;
-  status: "queued" | "starting" | "processing" | "throttled";
+  status: "queued" | "starting" | "processing" | "generating" | "throttled";
   predictionId?: string | null;
   requestId?: string | null;
   retryAfterMs?: number | null;
@@ -481,7 +481,7 @@ async function createOrResumePrediction(
       return toSuccess(existing, existing.result_image_url);
     }
     if (PROCESSING_STATUSES.has(existing.status) && !isStale(existing)) {
-      return pending(existing.status === "throttled" ? "throttled" : "processing", {
+      return pending(existing.status === "throttled" ? "rate_limited" : "pending", {
         error: existing.status === "throttled" ? existing.error_message : null,
         selectedSize: existing.selected_size,
         status: (existing.status === "queued" || existing.status === "throttled" || existing.status === "starting" ? existing.status : "processing") as PendingResponse["status"],
@@ -540,7 +540,7 @@ async function createOrResumePrediction(
         error_message: null,
         metadata: { ...(record.metadata || {}), retryAfterUntil: null },
       });
-      return pending("processing", {
+      return pending("pending", {
         error: null,
         selectedSize: body.selectedSize,
         status: result.status,
@@ -549,7 +549,7 @@ async function createOrResumePrediction(
       });
     }
 
-    return pending("processing", {
+    return pending("pending", {
       error: null,
       selectedSize: body.selectedSize,
       status: result.status,
@@ -566,7 +566,7 @@ async function createOrResumePrediction(
         error_message: result.error,
         metadata: { ...(record.metadata || {}), retryAfterUntil },
       });
-      return pending("throttled", {
+      return pending("rate_limited", {
         error: result.error,
         selectedSize: body.selectedSize,
         status: "throttled",
@@ -575,7 +575,7 @@ async function createOrResumePrediction(
       });
     }
 
-    return pending("throttled", {
+    return pending("rate_limited", {
       error: result.error,
       selectedSize: body.selectedSize,
       status: "throttled",
@@ -615,7 +615,7 @@ async function handleStatus(
   if (row?.status === "throttled") {
     const retryAfterUntil = getRetryUntil(row.metadata);
     if (retryAfterUntil && retryAfterUntil > Date.now()) {
-      return pending("throttled", {
+      return pending("rate_limited", {
         error: row.error_message,
         selectedSize: row.selected_size,
         status: "throttled",
@@ -649,7 +649,7 @@ async function handleStatus(
     }
     if (poll.kind === "pending") {
       await updateTryOnRecord(admin, row.id, { status: poll.status, error_message: null });
-      return pending("processing", {
+      return pending("pending", {
         error: null,
         selectedSize: row.selected_size,
         status: poll.status,
@@ -664,7 +664,7 @@ async function handleStatus(
         error_message: poll.error,
         metadata: { ...(row.metadata || {}), retryAfterUntil },
       });
-      return pending("throttled", {
+      return pending("rate_limited", {
         error: poll.error,
         selectedSize: row.selected_size,
         status: "throttled",
@@ -694,7 +694,7 @@ async function handleStatus(
       const recreate = await createOrResumePrediction(admin, token, row, userId, buildCreateBodyFromRow(row), true);
       return recreate;
     }
-    return pending(row.status === "queued" ? "queued" : "processing", {
+    return pending("pending", {
       error: null,
       selectedSize: row.selected_size,
       status: row.status === "queued" ? "queued" : "processing",
@@ -716,7 +716,7 @@ async function handleStatus(
       };
     }
     if (poll.kind === "pending") {
-      return pending("processing", {
+      return pending("pending", {
         error: null,
         selectedSize: body.selectedSize,
         status: poll.status,
@@ -724,7 +724,7 @@ async function handleStatus(
       });
     }
     if (poll.kind === "throttled") {
-      return pending("throttled", {
+      return pending("rate_limited", {
         error: poll.error,
         selectedSize: body.selectedSize,
         status: "throttled",
@@ -777,7 +777,8 @@ Deno.serve(async (req) => {
         predictionId: response.predictionId,
         elapsedMs: Date.now() - requestStartedAt,
       });
-      return json(response);
+      const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "missing_output" ? 422 : response.code === "provider_error" ? 502 : response.code === "timeout" ? 504 : 500;
+      return json(response, statusCode);
     }
 
     const createBody = body as CreateBody;
@@ -808,7 +809,8 @@ Deno.serve(async (req) => {
       elapsedMs: Date.now() - requestStartedAt,
     });
 
-    return json(response);
+    const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "missing_output" ? 422 : response.code === "provider_error" ? 502 : response.code === "timeout" ? 504 : 500;
+    return json(response, statusCode);
   } catch (error) {
     const out = failure("provider_error", error instanceof Error ? error.message : "Unknown error", undefined, null);
     logRouter("CRASH", { error: out.error, elapsedMs: Date.now() - requestStartedAt });

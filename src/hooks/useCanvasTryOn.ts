@@ -12,7 +12,7 @@ import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
 import { solveFit, type SolverResult } from "@/lib/fit/fitSolver";
 import { getGarmentCutout } from "@/lib/fit/garmentCutoutCache";
 import { composeFitImage } from "@/lib/fit/canvasFitCompositor";
-import { supabase } from "@/integrations/supabase/client";
+import { useReplicateTryOn } from "@/hooks/useReplicateTryOn";
 
 export type CanvasTryOnStage =
   | "idle"
@@ -247,6 +247,8 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     return all.map((r) => ({ ...r, tone: toneOf(r.region, r.fit) }));
   }, [solver, fitMap.category]);
 
+  const { createTryOn, pollTryOnStatus } = useReplicateTryOn();
+
   const [state, setState] = useState<CanvasTryOnState>(() =>
     derivePreviewState({
       stage: "idle",
@@ -476,8 +478,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           size: args.selectedSize,
           hasUserImage: !!args.userImageUrl,
         });
-        const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
-          body: {
+        const { data, error } = await createTryOn({
             action: "create",
             userImageUrl: args.userImageUrl,
             productImageUrl: args.productImageUrl,
@@ -487,7 +488,6 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
             fitDescriptor: solver.fitType,
             regions,
             mode: "high",
-          },
         });
         const elapsed = Date.now() - startedAt;
         console.log("[FIT_PREVIEW]", {
@@ -515,7 +515,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           });
           return;
         }
-        if (!error && (data?.code === "processing" || data?.code === "queued" || data?.code === "throttled" || data?.requestId || data?.predictionId)) {
+        if (!error && (data?.code === "pending" || data?.code === "rate_limited" || data?.requestId || data?.predictionId)) {
           const pollRequestId = data?.requestId ?? null;
           const predictionId = data?.predictionId ?? null;
           const initialDelay = typeof data?.retryAfterMs === "number" && data.retryAfterMs > 0 ? Math.min(data.retryAfterMs, 15_000) : AI_STATUS_POLL_MS;
@@ -525,13 +525,10 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
             await wait(attempt === 0 ? initialDelay : AI_STATUS_POLL_MS);
             if (cancelled || activeRequestRef.current !== requestId) return;
 
-            const { data: statusData, error: statusError } = await supabase.functions.invoke("fit-tryon-router", {
-              body: {
-                action: "status",
-                requestId: pollRequestId,
-                predictionId,
-                selectedSize: args.selectedSize,
-              },
+            const { data: statusData, error: statusError } = await pollTryOnStatus({
+              requestId: pollRequestId,
+              predictionId,
+              selectedSize: args.selectedSize,
             });
 
             console.log("[FIT_PREVIEW]", {
@@ -563,7 +560,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
             }
 
             const statusCode = statusData?.code;
-            if (statusError || (statusCode && !["processing", "queued", "throttled"].includes(statusCode))) {
+            if (statusError || (statusCode && !["pending", "rate_limited"].includes(statusCode))) {
               break;
             }
           }
