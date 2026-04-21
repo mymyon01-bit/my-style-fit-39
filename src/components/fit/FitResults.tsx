@@ -274,7 +274,7 @@ export default function FitResults({
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Mode + Confidence row */}
       <div className="flex items-center justify-between">
         {isRefined ? (
@@ -289,90 +289,112 @@ export default function FitResults({
         </span>
       </div>
 
-      {/* Product header — premium selected card carried from Discover */}
-      <SelectedProductCard
-        brand={product.brand}
-        name={product.name}
-        price={product.price}
-        image={product.image}
-        url={product.url}
-        category={product.category}
-        dataQuality={result.productDataQuality}
-        onChange={onRescan ? undefined : undefined /* change handled in CHECK */}
-        compact
-      />
-      <p className="-mt-2 px-1 text-[10px] text-foreground/45">
-        Brand data {result.productDataQuality}/100 · Scan {result.scanQuality}/100
-      </p>
+      {/* ══ 2-COLUMN GRID — left: input/score/summary · right: visual ══
+          Stacks on mobile, side-by-side on lg+ to make the input → result
+          relationship feel connected. */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start">
+        {/* ── LEFT COLUMN ───────────────────────────────────────── */}
+        <div className="space-y-5">
+          {/* Product header — premium selected card carried from Discover */}
+          <SelectedProductCard
+            brand={product.brand}
+            name={product.name}
+            price={product.price}
+            image={product.image}
+            url={product.url}
+            category={product.category}
+            dataQuality={result.productDataQuality}
+            onChange={onRescan ? undefined : undefined /* change handled in CHECK */}
+            compact
+          />
+          <p className="-mt-2 px-1 text-[10px] text-foreground/45">
+            Brand data {result.productDataQuality}/100 · Scan {result.scanQuality}/100
+          </p>
 
-      {/* Limited confidence warning */}
-      {confTier === "limited" && (
-        <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
-          <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
-          <span className="text-[11px] text-orange-400/80">
-            Limited confidence — brand size chart or scan quality is below ideal. Treat as approximate.
-          </span>
-        </div>
-      )}
-
-      {/* ══ 1. SCORE + 3. SIZE — hero card ══ */}
-      <div className="rounded-3xl border border-accent/20 bg-gradient-to-br from-accent/[0.06] to-accent/[0.02] p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className={`relative flex h-24 w-24 items-center justify-center rounded-full ring-2 ${heroRing} bg-background/40`}>
-              <motion.span key={heroScore} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 220, damping: 18 }}
-                className={`font-display text-4xl font-bold ${heroColor}`}>
-                {heroScore}
-              </motion.span>
-              <span className="absolute bottom-1.5 text-[8px] font-bold tracking-[0.2em] text-foreground/40">/100</span>
+          {/* Limited confidence warning */}
+          {confTier === "limited" && (
+            <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
+              <span className="text-[11px] text-orange-400/80">
+                Limited confidence — brand size chart or scan quality is below ideal. Treat as approximate.
+              </span>
             </div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50">FIT SCORE</p>
-              <p className={`text-sm font-semibold ${heroColor}`}>{heroFitType}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] font-bold tracking-[0.2em] text-foreground/50 mb-1">SIZE</p>
-            <p className="font-display text-5xl font-bold text-foreground leading-none">{activeSize}</p>
-            {result.alternateSize !== "N/A" && activeSize !== result.alternateSize && (
-              <p className="text-[10px] text-foreground/40 mt-1">alt: {result.alternateSize}</p>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* Size switcher */}
-        <div className="mt-5 flex flex-wrap gap-2">
-          {result.sizeResults.map((sr) => {
-            const isActive = sr.size === activeSize;
-            return (
-              <button key={sr.size} onClick={() => setActiveSize(sr.size)}
-                className={`relative flex flex-col items-center justify-center rounded-xl border px-3 py-2 transition-all ${
-                  isActive ? "border-accent/50 bg-accent/15 text-foreground"
-                    : "border-foreground/10 bg-background/40 text-foreground/60 hover:bg-foreground/[0.04]"
-                }`}>
-                <span className="font-display text-sm font-bold leading-none">{sr.size}</span>
-                <span className={`text-[9px] font-bold tracking-wider mt-0.5 ${
-                  sr.fitScore >= 80 ? "text-green-500" : sr.fitScore >= 65 ? "text-accent" : "text-orange-500"
-                }`}>{sr.fitScore}</span>
-                {sr.recommended && (
-                  <span className="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-accent ring-2 ring-background" />
+          {/* ══ SCORE + SIZE — hero card ══ */}
+          <div className="rounded-3xl border border-accent/20 bg-gradient-to-br from-accent/[0.06] to-accent/[0.02] p-6 shadow-[0_4px_24px_-12px_hsl(var(--accent)/0.18)]">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className={`relative flex h-24 w-24 items-center justify-center rounded-full ring-2 ${heroRing} bg-background/40`}>
+                  <motion.span key={heroScore} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                    className={`font-display text-4xl font-bold ${heroColor}`}>
+                    {heroScore}
+                  </motion.span>
+                  <span className="absolute bottom-1.5 text-[8px] font-bold tracking-[0.2em] text-foreground/40">/100</span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50">FIT SCORE</p>
+                  <p className={`text-sm font-semibold ${heroColor}`}>{heroFitType}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold tracking-[0.2em] text-foreground/50 mb-1">SIZE</p>
+                <p className="font-display text-5xl font-bold text-foreground leading-none">{activeSize}</p>
+                {result.alternateSize !== "N/A" && activeSize !== result.alternateSize && (
+                  <p className="text-[10px] text-foreground/40 mt-1">alt: {result.alternateSize}</p>
                 )}
-              </button>
-            );
-          })}
+              </div>
+            </div>
+
+            {/* Size switcher */}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {result.sizeResults.map((sr) => {
+                const isActive = sr.size === activeSize;
+                return (
+                  <button key={sr.size} onClick={() => setActiveSize(sr.size)}
+                    className={`relative flex flex-col items-center justify-center rounded-xl border px-3 py-2 transition-all duration-200 hover:-translate-y-0.5 ${
+                      isActive ? "border-accent/50 bg-accent/15 text-foreground shadow-[0_4px_16px_-8px_hsl(var(--accent)/0.4)]"
+                        : "border-foreground/10 bg-background/40 text-foreground/60 hover:bg-foreground/[0.04]"
+                    }`}>
+                    <span className="font-display text-sm font-bold leading-none">{sr.size}</span>
+                    <span className={`text-[9px] font-bold tracking-wider mt-0.5 ${
+                      sr.fitScore >= 80 ? "text-green-500" : sr.fitScore >= 65 ? "text-accent" : "text-orange-500"
+                    }`}>{sr.fitScore}</span>
+                    {sr.recommended && (
+                      <span className="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-accent ring-2 ring-background" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ══ FIT RESULT SUMMARY — visible BEFORE image generates ══ */}
+          <FitSummaryPanel
+            size={activeSize}
+            score={heroScore}
+            fitTypeLabel={heroFitType}
+            silhouette={solver.silhouette}
+            confidence={confLabel as "HIGH" | "MEDIUM" | "LIMITED"}
+            regions={activeSizeResult?.regions ?? []}
+          />
+        </div>
+
+        {/* ── RIGHT COLUMN ───────────────────────────────────────── */}
+        <div className="space-y-5 lg:sticky lg:top-24">
+          {/* ══ VISUAL FIT — canvas compositor (instant) + optional AI swap ══ */}
+          <FitVisual
+            productName={product.name}
+            activeSize={activeSize}
+            state={tryOn}
+            productImageUrl={product.image}
+            onRescanBody={onRescan}
+            onReload={() => setReloadToken((n) => n + 1)}
+          />
         </div>
       </div>
 
-      {/* ══ VISUAL FIT — canvas compositor (instant) + optional AI swap ══ */}
-      <FitVisual
-        productName={product.name}
-        activeSize={activeSize}
-        state={tryOn}
-        productImageUrl={product.image}
-        onRescanBody={onRescan}
-        onReload={() => setReloadToken((n) => n + 1)}
-      />
       {/* ══ SILHOUETTE + FIT BREAKDOWN — driven by FitSolver ══ */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
         <div className="flex items-center justify-between">
