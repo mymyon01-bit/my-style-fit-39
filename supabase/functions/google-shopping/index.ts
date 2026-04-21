@@ -87,6 +87,16 @@ serve(async (req) => {
     if (!resp.ok) {
       const txt = await resp.text().catch(() => "");
       console.log("[google-shopping] serpapi_error", resp.status, txt.slice(0, 300));
+      // Quota exhausted / rate limited / auth error: degrade gracefully so the
+      // search ladder upstream can keep using DB + other sources instead of
+      // surfacing a 5xx to the client.
+      const quotaExhausted = resp.status === 429 || /run out of searches|quota|hourly searches/i.test(txt);
+      if (quotaExhausted || resp.status === 401 || resp.status === 403) {
+        return new Response(
+          JSON.stringify({ ok: true, products: [], degraded: true, reason: `serpapi_${resp.status}` }),
+          { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
       return new Response(JSON.stringify({ ok: false, error: `serpapi ${resp.status}`, body: txt.slice(0, 300) }), {
         status: 502, headers: { ...cors, "Content-Type": "application/json" },
       });
