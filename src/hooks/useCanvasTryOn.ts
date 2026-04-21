@@ -66,7 +66,8 @@ interface Args {
 }
 
 const HARD_TIMEOUT_MS = 2_500;
-const AI_SWAP_WINDOW_MS = 45_000;
+// 50s — must exceed router SERVER_TIMEOUT_MS (35s) plus network round-trip.
+const AI_SWAP_WINDOW_MS = 50_000;
 
 const toneOf = (region: string, fit: string): "tight" | "regular" | "loose" => {
   if (/(tight|snug|pulled|trim|short)/i.test(fit)) return "tight";
