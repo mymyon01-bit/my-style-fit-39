@@ -110,22 +110,21 @@ serve(async (req) => {
     });
     clearTimeout(timer);
 
-    if (resp.status === 429) {
-      return new Response(JSON.stringify({ error: "rate_limited" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (resp.status === 402) {
-      return new Response(JSON.stringify({ error: "credits_exhausted" }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (!resp.ok) {
-      const txt = await resp.text();
-      console.error("[discover-intent-expand] gateway error", resp.status, txt.slice(0, 300));
-      return new Response(JSON.stringify({ error: "gateway_error", status: resp.status }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Soft-fail on rate limit / credits / gateway errors — client falls back to deterministic baseline.
+    if (resp.status === 429 || resp.status === 402 || !resp.ok) {
+      const reason =
+        resp.status === 402 ? "credits_exhausted" :
+        resp.status === 429 ? "rate_limited" : "gateway_error";
+      if (!resp.ok && resp.status !== 402 && resp.status !== 429) {
+        const txt = await resp.text().catch(() => "");
+        console.error("[discover-intent-expand] gateway error", resp.status, txt.slice(0, 300));
+      } else {
+        console.warn("[discover-intent-expand]", reason);
+      }
+      return new Response(
+        JSON.stringify({ ok: false, reason, intent: null, durationMs: Date.now() - t0 }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const data = await resp.json();
