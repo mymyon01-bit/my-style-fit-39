@@ -106,6 +106,7 @@ function FitOverlay({ regions }: { regions: RegionFit[] }) {
 
 const POLL_INTERVAL_MS = 2500;
 const POLL_MAX_ATTEMPTS = 48; // ~2 minutes
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [status, setStatus] = useState<Status>("idle");
@@ -113,6 +114,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [overrideUserImage, setOverrideUserImage] = useState<string | null>(null);
   const [predictionId, setPredictionId] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [showOverlay, setShowOverlay] = useState<boolean>(false); // default clean image
   const [provider, setProvider] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -136,6 +138,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       setError(null);
       setOverrideUserImage(null);
       setPredictionId(null);
+      setRequestId(null);
       setProvider(null);
       setShowOverlay(false);
     }
@@ -143,22 +146,21 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const pollUntilDone = (id: string) => {
+  const pollUntilDone = (ids: { requestId?: string | null; predictionId?: string | null }) => {
     stopPolling();
     let attempts = 0;
     pollRef.current = window.setInterval(async () => {
       attempts++;
       try {
-        const { data, error: invokeErr } = await supabase.functions.invoke(
-          `fit-tryon-router?id=${encodeURIComponent(id)}`,
-          { method: "GET" }
-        );
+        const { data, error: invokeErr } = await supabase.functions.invoke("fit-tryon-router", {
+          body: { action: "status", requestId: ids.requestId ?? undefined, predictionId: ids.predictionId ?? undefined, selectedSize: context?.recommendedSize },
+        });
         if (invokeErr) throw invokeErr;
-        console.log("[TryOn] poll", id, data?.status, data?.provider);
+        console.log("[TryOn] poll", ids, data?.status, data?.provider);
         if (data?.provider) setProvider(data.provider);
-        if (data?.status === "succeeded" && data?.resultImageUrl) {
+        if (data?.status === "succeeded" && data?.imageUrl) {
           stopPolling();
-          setResultUrl(data.resultImageUrl);
+          setResultUrl(data.imageUrl);
           setStatus("ready");
           return;
         }
@@ -167,6 +169,9 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
           setError(data?.error || "Preview unavailable right now");
           setStatus("failed");
           return;
+        }
+        if (data?.code === "throttled") {
+          setError(data?.error || null);
         }
         if (attempts >= POLL_MAX_ATTEMPTS) {
           stopPolling();
@@ -213,9 +218,13 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         setStatus("ready");
         return;
       }
-      if (data?.predictionId) {
-        setPredictionId(data.predictionId);
-        pollUntilDone(data.predictionId);
+      if (data?.requestId || data?.predictionId || ["processing", "queued", "throttled"].includes(data?.code)) {
+        if (data?.requestId) setRequestId(data.requestId);
+        if (data?.predictionId) setPredictionId(data.predictionId);
+        if (data?.code === "throttled" && data?.retryAfterMs) {
+          await wait(Math.min(data.retryAfterMs, 15000));
+        }
+        pollUntilDone({ requestId: data?.requestId ?? null, predictionId: data?.predictionId ?? null });
         return;
       }
       if (data?.ok === false) {

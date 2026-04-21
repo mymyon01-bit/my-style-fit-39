@@ -68,6 +68,8 @@ interface Args {
 const HARD_TIMEOUT_MS = 2_500;
 // 50s — must exceed router SERVER_TIMEOUT_MS (35s) plus network round-trip.
 const AI_SWAP_WINDOW_MS = 50_000;
+const AI_STATUS_POLL_MS = 2_500;
+const AI_STATUS_MAX_POLLS = 24;
 
 const toneOf = (region: string, fit: string): "tight" | "regular" | "loose" => {
   if (/(tight|snug|pulled|trim|short)/i.test(fit)) return "tight";
@@ -84,6 +86,8 @@ const summarizeUrl = (value: string | null | undefined) => {
   if (value.startsWith("blob:")) return `${value.slice(0, 36)}…`;
   return value.length > 120 ? `${value.slice(0, 120)}…` : value;
 };
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 function derivePreviewState(state: CanvasTryOnState): CanvasTryOnState {
   const previewSrc =
@@ -474,6 +478,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
         });
         const { data, error } = await supabase.functions.invoke("fit-tryon-router", {
           body: {
+            action: "create",
             userImageUrl: args.userImageUrl,
             productImageUrl: args.productImageUrl,
             productKey: args.productKey,
@@ -509,6 +514,59 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
             return next;
           });
           return;
+        }
+        if (!error && (data?.code === "processing" || data?.code === "queued" || data?.code === "throttled" || data?.requestId || data?.predictionId)) {
+          const pollRequestId = data?.requestId ?? null;
+          const predictionId = data?.predictionId ?? null;
+          const initialDelay = typeof data?.retryAfterMs === "number" && data.retryAfterMs > 0 ? Math.min(data.retryAfterMs, 15_000) : AI_STATUS_POLL_MS;
+
+          for (let attempt = 0; attempt < AI_STATUS_MAX_POLLS; attempt++) {
+            if (cancelled || activeRequestRef.current !== requestId) return;
+            await wait(attempt === 0 ? initialDelay : AI_STATUS_POLL_MS);
+            if (cancelled || activeRequestRef.current !== requestId) return;
+
+            const { data: statusData, error: statusError } = await supabase.functions.invoke("fit-tryon-router", {
+              body: {
+                action: "status",
+                requestId: pollRequestId,
+                predictionId,
+                selectedSize: args.selectedSize,
+              },
+            });
+
+            console.log("[FIT_PREVIEW]", {
+              event: "ai_status_response",
+              requestId,
+              attempt,
+              hasError: !!statusError,
+              code: statusData?.code,
+              status: statusData?.status,
+              imageUrl: summarizeUrl(statusData?.imageUrl ?? null),
+            });
+
+            if (cancelled || activeRequestRef.current !== requestId) return;
+
+            if (!statusError && statusData?.ok && statusData?.imageUrl) {
+              aiLockedRef.current = true;
+              setState((prev) => {
+                if (prev.requestId !== requestId) return prev;
+                const next = derivePreviewState({
+                  ...prev,
+                  stage: "ai_ready",
+                  aiImageUrl: statusData.imageUrl,
+                  error: null,
+                });
+                logFitPreview("ai_ready_after_poll", next);
+                return next;
+              });
+              return;
+            }
+
+            const statusCode = statusData?.code;
+            if (statusError || (statusCode && !["processing", "queued", "throttled"].includes(statusCode))) {
+              break;
+            }
+          }
         }
         setState((prev) => {
           if (prev.requestId !== requestId) return prev;
