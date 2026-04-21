@@ -142,15 +142,16 @@ export default function FitVisual({
 
   const handleImageError = () => {
     if (!previewSrc) return;
+    // Never blacklist the raw productImageUrl — it's our last-resort guarantee.
+    if (previewSrc === productImageUrl) {
+      console.warn("[FIT_PREVIEW]", { event: "product_image_failed_keeping_anyway", previewSrc });
+      return;
+    }
     console.warn("[FIT_PREVIEW]", {
       event: "preview_image_error_try_next",
       requestId: state.requestId,
       stage: state.stage,
       failedSrc: previewSrc,
-      aiImageUrl: state.aiImageUrl,
-      compositeImageUrl: state.compositeImageUrl,
-      fallbackImageUrl: state.fallbackImageUrl,
-      localPlaceholderUrl: state.localPlaceholderUrl,
     });
     setFailedSrcs((prev) => (prev.includes(previewSrc) ? prev : [...prev, previewSrc]));
   };
@@ -193,14 +194,17 @@ export default function FitVisual({
         {shouldRenderPreview ? (
           <>
             <div className="relative h-full w-full">
+              {/* Skeleton sits BEHIND the image — never blocks/replaces it.
+                  Image is always opacity-100 so cached images & SVG data URIs
+                  show even if onLoad never fires (StrictMode, prefetched). */}
               {loadedSrc !== previewSrc && (
-                <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]" />
+                <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]" aria-hidden />
               )}
               <img
                 key={previewSrc}
                 src={previewSrc!}
                 alt={`${productName} try-on, size ${activeSize}`}
-                className={`h-full w-full object-cover transition-opacity duration-200 ${loadedSrc === previewSrc ? "opacity-100" : "opacity-0"}`}
+                className="relative h-full w-full object-cover"
                 loading="eager"
                 decoding="async"
                 onLoad={handleImageLoad}
@@ -221,6 +225,24 @@ export default function FitVisual({
               </div>
             )}
           </>
+        ) : productImageUrl ? (
+          // Hard fallback — if the cascade somehow yields nothing (every
+          // candidate marked failed, or state not yet committed), STILL show
+          // the raw product image rather than a gray box.
+          <div className="relative h-full w-full">
+            <img
+              src={productImageUrl}
+              alt={`${productName} (preview unavailable)`}
+              className="h-full w-full object-cover opacity-90"
+              loading="eager"
+              decoding="async"
+            />
+            <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
+              <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
+                PRODUCT
+              </span>
+            </div>
+          </div>
         ) : (
           <div className="relative h-full w-full">
             <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]" />
