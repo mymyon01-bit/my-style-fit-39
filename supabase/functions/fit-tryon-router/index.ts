@@ -12,7 +12,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const SERVER_TIMEOUT_MS = 10_000;
+// 35s — Replicate IDM-VTON cold-start + 40 steps regularly takes 18-28s.
+// Anything below 25s caused most legit generations to abort as "timeout".
+const SERVER_TIMEOUT_MS = 35_000;
 const STALE_PENDING_MS = 120_000;
 
 type ProviderName = "replicate";
