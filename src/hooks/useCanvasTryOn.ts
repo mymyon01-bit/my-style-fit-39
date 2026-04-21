@@ -79,6 +79,65 @@ const toneOf = (region: string, fit: string): "tight" | "regular" | "loose" => {
   return "regular";
 };
 
+const escapeSvgText = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+
+function buildInstantPlaceholder(args: {
+  activeSize: string;
+  frame: ReturnType<typeof useBodyKeypoints>["frame"];
+  poseDegraded: boolean;
+}) {
+  const { activeSize, frame, poseDegraded } = args;
+  const shoulderMidX = (frame.leftShoulderX + frame.rightShoulderX) / 2;
+  const garmentTopY = frame.shoulderLineY - 18;
+  const garmentHemY = frame.hemLineY + 52;
+  const garmentLeftX = frame.torsoLeftX - 28;
+  const garmentRightX = frame.torsoRightX + 28;
+  const garmentWaistLeftX = frame.waistLeftX - 18;
+  const garmentWaistRightX = frame.waistRightX + 18;
+  const title = poseDegraded ? "Approximate preview" : "Preview ready";
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${frame.canvasWidth} ${frame.canvasHeight}">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="hsl(30 18% 96%)" />
+          <stop offset="100%" stop-color="hsl(34 16% 91%)" />
+        </linearGradient>
+        <linearGradient id="garment" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="hsl(262 34% 56%)" />
+          <stop offset="100%" stop-color="hsl(252 28% 42%)" />
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bg)" />
+      <ellipse cx="${shoulderMidX}" cy="${frame.shoulderLineY - 128}" rx="68" ry="88" fill="hsla(34 18% 76% / 0.9)" />
+      <path d="M ${frame.leftShoulderX} ${frame.shoulderLineY}
+               L ${frame.armLeftBox.x} ${frame.armLeftBox.y + frame.armLeftBox.h}
+               L ${frame.armLeftBox.x + frame.armLeftBox.w} ${frame.armLeftBox.y + frame.armLeftBox.h}
+               L ${frame.waistLeftX} ${frame.hipLineY + 182}
+               L ${frame.waistRightX} ${frame.hipLineY + 182}
+               L ${frame.armRightBox.x + frame.armRightBox.w} ${frame.armRightBox.y + frame.armRightBox.h}
+               L ${frame.armRightBox.x} ${frame.armRightBox.y + frame.armRightBox.h}
+               L ${frame.rightShoulderX} ${frame.shoulderLineY} Z"
+            fill="hsla(32 12% 68% / 0.68)" />
+      <path d="M ${garmentLeftX} ${garmentTopY}
+               Q ${shoulderMidX} ${garmentTopY - 18} ${garmentRightX} ${garmentTopY}
+               L ${garmentRightX - 12} ${frame.chestLineY + 26}
+               L ${garmentWaistRightX} ${frame.waistLineY + 28}
+               L ${garmentRightX - 34} ${garmentHemY}
+               Q ${shoulderMidX} ${garmentHemY + 24} ${garmentLeftX + 34} ${garmentHemY}
+               L ${garmentWaistLeftX} ${frame.waistLineY + 28}
+               L ${garmentLeftX + 12} ${frame.chestLineY + 26} Z"
+            fill="url(#garment)" opacity="0.92" />
+      <path d="M ${garmentLeftX + 44} ${frame.chestLineY + 40} Q ${shoulderMidX} ${frame.waistLineY} ${garmentRightX - 44} ${frame.chestLineY + 40}"
+            stroke="hsla(0 0% 100% / 0.18)" stroke-width="10" fill="none" stroke-linecap="round" />
+      <rect x="34" y="36" width="220" height="70" rx="35" fill="hsla(0 0% 100% / 0.62)" />
+      <text x="62" y="64" font-size="18" font-family="Arial, sans-serif" font-weight="700" letter-spacing="3" fill="hsl(252 18% 28%)">SIZE ${escapeSvgText(activeSize.toUpperCase())}</text>
+      <text x="62" y="89" font-size="16" font-family="Arial, sans-serif" fill="hsla(252 18% 28% / 0.72)">${escapeSvgText(title)}</text>
+    </svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 export function useCanvasTryOn(args: Args): CanvasTryOnState {
   const bodyProfile = useMemo(
     () =>
@@ -161,6 +220,23 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     const runId = ++runIdRef.current;
     let cancelled = false;
     aiLockedRef.current = false;
+
+    const immediatePlaceholder = buildInstantPlaceholder({
+      activeSize: args.selectedSize,
+      frame,
+      poseDegraded,
+    });
+
+    setState({
+      stage: "ready",
+      imageUrl: immediatePlaceholder,
+      source: "canvas",
+      poseDegraded,
+      poseSource,
+      solver,
+      fitChips,
+      error: null,
+    });
 
     const hardTimer = window.setTimeout(() => {
       if (cancelled || runIdRef.current !== runId || aiLockedRef.current) return;
