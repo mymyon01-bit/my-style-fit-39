@@ -156,10 +156,22 @@ export default function FitVisual({
     setFailedSrcs((prev) => (prev.includes(previewSrc) ? prev : [...prev, previewSrc]));
   };
 
+  // Stage messaging — what to show in the loading state.
+  const stageMessage =
+    state.stage === "compositing" ? "Generating fit preview…"
+    : state.stage === "polling_ai" ? "Refining your preview…"
+    : "Preparing your preview…";
+
   return (
-    <div className="space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-b from-card/60 to-card/20 p-3 sm:p-4">
+    <div className="group/visual space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-br from-card/80 via-card/50 to-card/20 p-3 shadow-[0_8px_40px_-16px_hsl(var(--accent)/0.18)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.28)] sm:p-4">
       <div className="flex items-center justify-between px-1">
-        <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">VISUAL FIT</p>
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className={`absolute inline-flex h-full w-full rounded-full ${isLoading || isRefining ? "animate-ping bg-accent/60" : "bg-emerald-500/60"}`} />
+            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${isLoading || isRefining ? "bg-accent" : "bg-emerald-500"}`} />
+          </span>
+          <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">VISUAL FIT</p>
+        </div>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-[9px] font-semibold tracking-[0.18em] text-accent">
             <Sparkles className="h-2.5 w-2.5" /> SIZE {activeSize}
@@ -244,23 +256,49 @@ export default function FitVisual({
             </div>
           </div>
         ) : (
-          <div className="relative h-full w-full">
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-foreground/[0.04] to-foreground/[0.02]" />
+          // STATE 1 — LOADING (no image, no fallback): rich skeleton with
+          // animated silhouette so the area never feels dead.
+          <div className="relative h-full w-full overflow-hidden">
+            {/* Soft animated gradient backdrop */}
+            <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.05] via-accent/[0.04] to-foreground/[0.02]" />
+            <motion.div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/[0.08] to-transparent"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            {/* Blurred silhouette placeholder */}
+            <div className="absolute inset-0 flex items-end justify-center">
+              <svg
+                viewBox="0 0 200 280"
+                className="h-[78%] w-auto opacity-[0.18]"
+                fill="currentColor"
+                aria-hidden
+              >
+                <ellipse cx="100" cy="44" rx="22" ry="26" />
+                <path d="M52 110 Q100 80 148 110 L160 220 Q100 240 40 220 Z" />
+                <rect x="60" y="200" width="32" height="78" rx="8" />
+                <rect x="108" y="200" width="32" height="78" rx="8" />
+              </svg>
+            </div>
+            {/* Status overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
-              <div className="h-1 w-40 overflow-hidden rounded-full bg-foreground/10">
-                <motion.div
-                  className="h-full w-1/3 rounded-full bg-accent"
-                  animate={{ x: ["-100%", "300%"] }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-                />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/60 backdrop-blur-md ring-1 ring-foreground/10">
+                <Loader2 className="h-4 w-4 animate-spin text-accent" />
               </div>
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-foreground/70">
-                {state.stage === "compositing"
-                  ? "PREPARING PREVIEW"
-                  : state.stage === "polling_ai"
-                  ? "REFINING PREVIEW"
-                  : "LOADING PREVIEW"}
-              </p>
+              <div className="space-y-2 text-center">
+                <p className="text-[12px] font-semibold text-foreground/80">{stageMessage}</p>
+                <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
+                  <motion.div
+                    className="h-full w-1/3 rounded-full bg-accent"
+                    animate={{ x: ["-100%", "300%"] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+                <p className="text-[10px] tracking-[0.18em] text-foreground/45">
+                  Fit summary already shown — image follows
+                </p>
+              </div>
             </div>
           </div>
         )}
