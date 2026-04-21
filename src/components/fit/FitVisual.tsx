@@ -142,15 +142,16 @@ export default function FitVisual({
 
   const handleImageError = () => {
     if (!previewSrc) return;
+    // Never blacklist the raw productImageUrl — it's our last-resort guarantee.
+    if (previewSrc === productImageUrl) {
+      console.warn("[FIT_PREVIEW]", { event: "product_image_failed_keeping_anyway", previewSrc });
+      return;
+    }
     console.warn("[FIT_PREVIEW]", {
       event: "preview_image_error_try_next",
       requestId: state.requestId,
       stage: state.stage,
       failedSrc: previewSrc,
-      aiImageUrl: state.aiImageUrl,
-      compositeImageUrl: state.compositeImageUrl,
-      fallbackImageUrl: state.fallbackImageUrl,
-      localPlaceholderUrl: state.localPlaceholderUrl,
     });
     setFailedSrcs((prev) => (prev.includes(previewSrc) ? prev : [...prev, previewSrc]));
   };
