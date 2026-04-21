@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,102 +6,111 @@
 
 @layer base {
   :root {
-    /* ── LIGHT THEME — soft pastel fashion (mymyon reskin) ───────────────
-       Background  #F6F2F0   Surface #FFFFFF   Text #2F2F2F / #7A7A7A
-       Primary     #E8B7B7   Secondary #A8BCA1 Accent  #D98F8F
-       Border      #E5E2E0
-       Layout untouched — only color, radius, shadow, weight tokens. */
-    --background: 20 18% 95%;          /* #F6F2F0 warm off-white */
-    --foreground: 0 0% 18%;            /* #2F2F2F dark gray */
+    /* ── LIGHT — luxury editorial: warm off-white + silver-blue accents ──
+       Premium fashion-tech, Apple-clean, soft contrast, art-directed.
+       Layout untouched — only colour, radius, shadow, type tokens. */
+    --background: 30 20% 97.5%;        /* #FBF8F5 warm porcelain */
+    --foreground: 220 14% 11%;         /* #181B22 graphite ink */
 
-    --card: 0 0% 100%;                 /* #FFFFFF pure white */
-    --card-foreground: 0 0% 18%;
+    --card: 0 0% 100%;                 /* pure white surfaces */
+    --card-foreground: 220 14% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 18%;
+    --popover-foreground: 220 14% 11%;
 
-    --primary: 0 54% 81%;              /* #E8B7B7 muted blush */
-    --primary-foreground: 0 0% 18%;
+    --primary: 220 14% 14%;            /* graphite — premium CTAs */
+    --primary-foreground: 30 20% 97.5%;
 
-    --secondary: 105 14% 69%;          /* #A8BCA1 soft sage */
-    --secondary-foreground: 0 0% 18%;
+    --secondary: 30 14% 93%;           /* warm pale stone */
+    --secondary-foreground: 220 14% 11%;
 
-    --muted: 22 14% 92%;               /* warm pastel sand */
-    --muted-foreground: 0 0% 48%;      /* #7A7A7A */
+    --muted: 30 14% 94.5%;             /* warm sand */
+    --muted-foreground: 220 8% 42%;    /* #5F6573 refined gray */
 
-    --accent: 0 53% 71%;               /* #D98F8F deeper blush CTA */
+    /* Accent — silver-blue, calm and intelligent (not techy neon) */
+    --accent: 215 38% 48%;             /* #4B6E96 silver-blue */
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 0 50% 78%;
-    --accent-highlight: 0 60% 84%;
+    --accent-muted: 215 30% 72%;
+    --accent-highlight: 215 50% 86%;
 
-    --destructive: 4 60% 66%;
+    --destructive: 4 60% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 22 8% 89%;               /* #E5E2E0 very light gray */
-    --input: 22 14% 96%;               /* soft input surface */
-    --ring: 0 53% 71%;
+    --border: 30 10% 88%;              /* soft warm hairline */
+    --input: 30 16% 96%;               /* polished input surface */
+    --ring: 215 38% 48%;
 
-    --radius: 1rem;                    /* 16px — sits inside 12–20px range */
+    --radius: 1rem;
 
-    --neutral: 0 0% 48%;
+    --neutral: 220 8% 42%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 22 14% 93%;
-    --star: 35 75% 70%;                /* warmer pastel gold */
+    --surface-sunken: 30 14% 93%;
+    --star: 38 78% 62%;                /* refined champagne gold */
 
-    /* Single global font system — Inter only */
-    --font-display: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    /* Typography — Fraunces (editorial display) + Inter (body) */
+    --font-display: 'Fraunces', 'Inter', 'Helvetica Neue', serif;
     --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
 
-    /* Depth system — very soft, low opacity (replaces hard borders) */
-    --shadow-1: 0 1px 2px hsl(20 14% 30% / 0.04);
-    --shadow-2: 0 4px 16px -6px hsl(20 14% 30% / 0.08), 0 1px 3px hsl(20 14% 30% / 0.04);
-    --shadow-3: 0 18px 40px -14px hsl(20 14% 30% / 0.14), 0 6px 16px -8px hsl(20 14% 30% / 0.08);
+    /* Depth — soft, layered, never harsh */
+    --shadow-1: 0 1px 2px hsl(220 14% 14% / 0.04);
+    --shadow-2: 0 6px 20px -8px hsl(220 14% 14% / 0.10), 0 1px 3px hsl(220 14% 14% / 0.04);
+    --shadow-3: 0 22px 50px -16px hsl(220 14% 14% / 0.16), 0 8px 18px -10px hsl(220 14% 14% / 0.08);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
+
+    /* Premium gradients — used by hero / input glow */
+    --gradient-surface: linear-gradient(180deg, hsl(30 20% 98.5%) 0%, hsl(30 18% 96%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(215 42% 56% / 0.16) 0%, hsl(215 30% 86% / 0.10) 100%);
+    --glow-accent: 0 0 0 1px hsl(215 38% 48% / 0.18), 0 8px 32px -12px hsl(215 38% 48% / 0.32);
   }
 
   .dark {
-    /* Dark variant of the same pastel system — softer, never harsh black */
-    --background: 20 10% 11%;
-    --foreground: 22 14% 94%;
+    /* ── DARK — cinematic graphite + icy-blue, art-directed not inverted ── */
+    --background: 220 16% 7%;          /* #0F1217 deep graphite */
+    --foreground: 210 20% 95%;         /* #EEF1F5 soft white */
 
-    --card: 20 9% 14%;
-    --card-foreground: 22 14% 94%;
+    --card: 220 14% 11%;               /* #181B22 panel */
+    --card-foreground: 210 20% 95%;
 
-    --popover: 20 9% 14%;
-    --popover-foreground: 22 14% 94%;
+    --popover: 220 14% 11%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 0 40% 72%;
-    --primary-foreground: 20 10% 11%;
+    --primary: 210 20% 95%;            /* white CTAs on dark */
+    --primary-foreground: 220 16% 9%;
 
-    --secondary: 105 12% 58%;
-    --secondary-foreground: 20 10% 11%;
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 210 20% 95%;
 
-    --muted: 20 8% 18%;
-    --muted-foreground: 22 10% 70%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 215 12% 68%;
 
-    --accent: 0 48% 70%;
-    --accent-foreground: 20 10% 11%;
-    --accent-muted: 0 38% 62%;
-    --accent-highlight: 0 50% 78%;
+    /* Icy cool-blue accent — calm, premium, never neon */
+    --accent: 205 70% 70%;             /* #7CB6E0 icy blue */
+    --accent-foreground: 220 16% 9%;
+    --accent-muted: 205 40% 50%;
+    --accent-highlight: 205 80% 78%;
 
-    --destructive: 4 55% 60%;
+    --destructive: 4 60% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 20 8% 22%;
-    --input: 20 8% 20%;
-    --ring: 0 48% 70%;
+    --border: 220 12% 20%;
+    --input: 220 12% 14%;
+    --ring: 205 70% 70%;
 
-    --neutral: 22 8% 64%;
-    --surface-elevated: 20 9% 16%;
-    --surface-sunken: 20 10% 9%;
-    --star: 35 60% 70%;
+    --neutral: 215 12% 68%;
+    --surface-elevated: 220 14% 13%;
+    --surface-sunken: 220 16% 6%;
+    --star: 38 65% 68%;
 
-    --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.32);
-    --shadow-2: 0 4px 16px -6px hsl(0 0% 0% / 0.42), 0 1px 3px hsl(0 0% 0% / 0.3);
-    --shadow-3: 0 18px 44px -12px hsl(0 0% 0% / 0.55), 0 6px 16px -8px hsl(0 0% 0% / 0.36);
+    --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.40);
+    --shadow-2: 0 6px 22px -8px hsl(0 0% 0% / 0.55), 0 1px 3px hsl(0 0% 0% / 0.36);
+    --shadow-3: 0 28px 60px -16px hsl(0 0% 0% / 0.72), 0 10px 22px -10px hsl(0 0% 0% / 0.48);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
+
+    --gradient-surface: linear-gradient(180deg, hsl(220 16% 8%) 0%, hsl(220 18% 6%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(205 70% 70% / 0.18) 0%, hsl(205 50% 40% / 0.08) 100%);
+    --glow-accent: 0 0 0 1px hsl(205 70% 70% / 0.22), 0 10px 36px -12px hsl(205 70% 70% / 0.38);
   }
 }
 
@@ -125,14 +134,15 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.012em;
-    line-height: 1.18;
+    letter-spacing: -0.022em;
+    line-height: 1.12;
     color: hsl(var(--foreground));
-    font-weight: 500;
+    font-weight: 400;
+    font-feature-settings: "ss01", "cv11", "liga";
   }
-  h1 { font-weight: 600; letter-spacing: -0.018em; }
-  h2 { font-weight: 500; }
-  h3, h4 { font-weight: 500; }
+  h1 { font-weight: 400; letter-spacing: -0.032em; }
+  h2 { font-weight: 400; letter-spacing: -0.026em; }
+  h3, h4 { font-weight: 500; letter-spacing: -0.018em; }
   p { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
@@ -238,6 +248,42 @@
   .hover-burgundy-icon:hover {
     color: hsl(var(--accent));
     filter: drop-shadow(0 0 6px hsl(var(--accent) / 0.2));
+  }
+
+  /* ── Luxury command bar ───────────────────────────────────────────────
+     Premium prompt input surface — frosted, subtle border, focus glow.
+     Used by the Discover search input. Pure visual, no layout impact. */
+  .luxe-command {
+    background: linear-gradient(180deg,
+      hsl(var(--card) / 0.85) 0%,
+      hsl(var(--card) / 0.65) 100%);
+    backdrop-filter: blur(18px) saturate(1.2);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    border: 1px solid hsl(var(--border) / 0.7);
+    border-radius: calc(var(--radius) + 4px);
+    box-shadow: var(--shadow-2);
+    transition: box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .luxe-command:hover {
+    border-color: hsl(var(--border));
+    box-shadow: var(--shadow-3);
+  }
+  .luxe-command:focus-within {
+    border-color: hsl(var(--accent) / 0.55);
+    box-shadow: var(--glow-accent), var(--shadow-3);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .luxe-command { transition: none; }
+  }
+
+  /* Editorial heading utility */
+  .text-editorial {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.028em;
+    font-feature-settings: "ss01", "liga";
   }
 
   /* Page transitions */
