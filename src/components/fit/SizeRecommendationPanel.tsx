@@ -7,7 +7,7 @@
 //   • Honest banner when measurements are inferred / chart used defaults
 
 import { useState } from "react";
-import { ChevronDown, ShieldCheck, AlertTriangle, Sparkles } from "lucide-react";
+import { ChevronDown, ShieldCheck, AlertTriangle, Sparkles, User } from "lucide-react";
 import {
   REGION_STATUS_LABEL,
   overallLabelText,
