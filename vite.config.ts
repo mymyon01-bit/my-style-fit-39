@@ -17,10 +17,10 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query"],
   },
   optimizeDeps: {
-    include: ["@tanstack/query-core", "@tanstack/react-query"],
+    include: ["@tanstack/react-query"],
   },
   build: {
     rollupOptions: {
