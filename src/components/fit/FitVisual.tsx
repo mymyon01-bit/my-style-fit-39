@@ -116,16 +116,18 @@ export default function FitVisual({
   };
 
   // Stage messaging — what to show in the loading state.
-  // When there is no product image at all, the AI pipeline cannot run.
-  // Surface that explicitly instead of spinning on "Preparing…" forever.
-  const hasNoProductImage = !productImageUrl;
-  const stageMessage = hasNoProductImage
+  // "No product image available" is the TRUE hard-failure case: we have
+  // no AI image, no composite, no fallback, no placeholder, AND the raw
+  // product image is missing. Anything else means the pipeline is still
+  // alive and we should reflect that in the message.
+  const trulyNoImage = !shouldRenderPreview && !productImageUrl;
+  const stageMessage = trulyNoImage
     ? "No product image available"
     : state.stage === "compositing" ? "Generating fit preview…"
     : state.stage === "polling_ai" ? "Refining your preview…"
     : "Preparing your preview…";
 
-  const stageHint = hasNoProductImage
+  const stageHint = trulyNoImage
     ? "Pick a product with a photo to generate a fit visual."
     : "Fit summary already shown — image follows";
 
