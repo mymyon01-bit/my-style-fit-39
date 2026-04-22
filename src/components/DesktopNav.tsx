@@ -38,15 +38,10 @@ const DesktopNav = () => {
           {/* Wordmark — italic display */}
           <button
             onClick={() => navigate("/")}
-            aria-label="mymyon — home"
-            className="group flex items-baseline font-mono text-[16px] font-medium uppercase leading-none text-foreground transition-colors"
+            aria-label="my'myon — home"
+            className="group transition-opacity hover:opacity-80"
           >
-            <span className="tracking-[0.22em] transition-colors group-hover:text-accent">MY</span>
-            <span
-              aria-hidden
-              className="mx-[0.28em] inline-block h-[5px] w-[5px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent transition-all group-hover:scale-150"
-            />
-            <span className="tracking-[0.22em] transition-colors group-hover:text-accent">MYON</span>
+            <Brandmark variant="compact" className="text-[20px]" />
           </button>
 
           {/* Center nav */}
