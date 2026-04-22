@@ -268,7 +268,7 @@ export default function FitResults({
   const builtExplanation = buildLegacyExplanation(result, confTier, usedGlobalFallback);
 
   // ── NEW: size-aware silhouette explanation + breakdown ──
-  const shapeScales = useMemo(() => buildBodyShapeScales(bodyShape ?? null), [bodyShape]);
+  // (shapeScales is declared earlier so the new sizing hook can read it.)
   const newBodyProfile = useMemo(() => buildBodyProfile({
     heightCm: bodyHeightCm ?? null,
     weightKg: bodyWeightKg ?? null,
