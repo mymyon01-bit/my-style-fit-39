@@ -550,7 +550,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
             weightKg: args.body.weightKg ?? null,
             gender: args.body.gender ?? null,
           },
-          mode: "high",
+          mode: "studio",
         });
         const successData = data?.ok ? data : null;
         const asyncData = data && !data.ok && (data.code === "pending" || data.code === "rate_limited") ? data : null;

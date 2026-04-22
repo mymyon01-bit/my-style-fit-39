@@ -63,7 +63,13 @@ interface CreateBody {
     gender?: string | null;
   };
   forceRegenerate?: boolean;
-  mode?: "quick" | "high";
+  /**
+   * "studio" (DEFAULT) — clean newly-generated text-to-image render reflecting
+   *   the body model + region fit deltas. NEVER reuses the original user
+   *   photo as a canvas. This is the purchase-decision-grade preview.
+   * "vton" — legacy IDM-VTON virtual try-on (composites onto the user photo).
+   */
+  mode?: "studio" | "vton";
 }
 
 interface SuccessResponse {
@@ -315,7 +321,107 @@ async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<
   }
 }
 
-// ─── DB HELPERS ─────────────────────────────────────────────────────────────
+// ─── REPLICATE STUDIO TEXT-TO-IMAGE ─────────────────────────────────────────
+// Default FIT mode. Generates a brand-new clean studio fashion image driven by
+// (a) the user's body model summary and (b) region-by-region fit deltas — the
+// uploaded user photo is NEVER used as a canvas or background.
+async function generateStudioFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
+  logRouter("REPLICATE_STUDIO_START", {
+    productKey: body.productKey,
+    size: body.selectedSize,
+    model: STUDIO_MODEL_ID,
+  });
+
+  const prompt = buildCleanStudioPrompt(body);
+  const negativePrompt =
+    "bathroom, mirror, room interior, sink, household objects, handheld props, bag, phone, selfie framing, original photo background, copy-paste overlay, mannequin, floating clothes, duplicate limbs, text, watermark, low quality, blurry, deformed";
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
+
+  try {
+    // Flux Schnell uses the model-name endpoint (no version pin needed).
+    const endpoint = STUDIO_MODEL_VERSION
+      ? "https://api.replicate.com/v1/predictions"
+      : `https://api.replicate.com/v1/models/${STUDIO_MODEL_ID}/predictions`;
+    const payload: Record<string, unknown> = {
+      input: {
+        prompt,
+        negative_prompt: negativePrompt,
+        aspect_ratio: "3:4",
+        output_format: "webp",
+        output_quality: 90,
+        num_inference_steps: 4,
+      },
+    };
+    if (STUDIO_MODEL_VERSION) payload.version = STUDIO_MODEL_VERSION;
+
+    const createRes = await fetch(endpoint, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=5",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (createRes.status === 429) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "throttled", error: txt.slice(0, 220) || "rate_limited", retryAfterMs: 8_000 };
+    }
+    if (createRes.status === 402) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "Replicate credits exhausted" };
+    }
+    if (!createRes.ok) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "error", code: "provider_error", error: `replicate ${createRes.status}: ${txt.slice(0, 200)}` };
+    }
+
+    let prediction = await createRes.json().catch(() => ({} as any));
+    const predId: string | undefined = prediction?.id;
+
+    const deadline = Date.now() + SERVER_TIMEOUT_MS - 2000;
+    while (
+      prediction &&
+      prediction.status !== "succeeded" &&
+      prediction.status !== "failed" &&
+      prediction.status !== "canceled" &&
+      Date.now() < deadline
+    ) {
+      await new Promise((r) => setTimeout(r, REPLICATE_POLL_INTERVAL_MS));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predId}`, {
+        headers: { Authorization: `Token ${apiKey}` },
+        signal: controller.signal,
+      });
+      if (!pollRes.ok) {
+        const txt = await pollRes.text().catch(() => "");
+        return { kind: "error", code: "provider_error", error: `replicate poll ${pollRes.status}: ${txt.slice(0, 160)}` };
+      }
+      prediction = await pollRes.json().catch(() => ({}));
+    }
+
+    if (prediction?.status === "succeeded") {
+      const out = prediction.output;
+      const url = Array.isArray(out) ? out[0] : typeof out === "string" ? out : null;
+      if (!url) return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+      return { kind: "success", imageUrl: url };
+    }
+    if (prediction?.status === "failed" || prediction?.status === "canceled") {
+      return { kind: "error", code: "generation_failed", error: prediction?.error || "replicate_failed" };
+    }
+    return { kind: "error", code: "timeout", error: "replicate_timeout" };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      return { kind: "error", code: "timeout", error: "replicate_timeout" };
+    }
+    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "replicate_failed" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 async function getTryOnByIdentity(admin: ReturnType<typeof createClient>, userId: string, body: CreateBody) {
   const { data } = await admin
     .from("fit_tryons")
@@ -427,25 +533,33 @@ async function persistImageToStorage(
 
 // ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
 async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
-  const existing = userId ? await getTryOnByIdentity(admin, userId, body) : null;
+  const mode: "studio" | "vton" = body.mode === "vton" ? "vton" : "studio";
+  const generatorTag = mode === "vton" ? "replicate-idm-vton" : "replicate-flux-studio";
+  const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : STUDIO_MODEL_ID;
+
+  // Cache key includes mode so studio + vton results don't clobber each other.
+  const cacheKey = `${body.productKey}::${mode}`;
+  const existing = userId ? await getTryOnByIdentity(admin, userId, { ...body, productKey: cacheKey }) : null;
 
   if (existing && !body.forceRegenerate && existing.status === "succeeded" && existing.result_image_url) {
-    logRouter("CACHE_HIT", { id: existing.id });
+    logRouter("CACHE_HIT", { id: existing.id, mode });
     return toSuccess(existing, existing.result_image_url);
   }
 
   const record = userId
-    ? await upsertTryOnRecord(admin, userId, body, {
+    ? await upsertTryOnRecord(admin, userId, { ...body, productKey: cacheKey }, {
         status: "processing",
         prediction_id: null,
         result_image_url: null,
         error_message: null,
-        model_id: MODEL_ID,
-        metadata: { generator: "replicate-idm-vton", retryAfterUntil: null },
+        model_id: modelIdForRecord,
+        metadata: { generator: generatorTag, mode, retryAfterUntil: null },
       })
     : null;
 
-  const result = await generateCleanFitImage(apiKey, body);
+  const result = mode === "vton"
+    ? await generateCleanFitImage(apiKey, body)
+    : await generateStudioFitImage(apiKey, body);
 
   if (result.kind === "success") {
     // Persist immediately so the UI never depends on Replicate's expiring URL.

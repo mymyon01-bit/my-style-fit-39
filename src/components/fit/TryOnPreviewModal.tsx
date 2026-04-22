@@ -229,7 +229,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         fitDescriptor: context.fitDescriptor,
         regions: context.regions?.map((r) => ({ region: r.region, fit: r.fit })) ?? [],
         forceRegenerate,
-        mode: "high",
+        mode: "vton",
       });
       if (error) throw error;
       const successData = data?.ok ? data : null;

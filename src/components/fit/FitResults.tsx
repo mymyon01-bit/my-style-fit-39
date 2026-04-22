@@ -21,6 +21,9 @@ import { solveFit, FIT_TYPE_LABEL } from "@/lib/fit/fitSolver";
 import FitBreakdown from "@/components/fit/FitBreakdown";
 import FitSummaryPanel from "@/components/fit/FitSummaryPanel";
 import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
+import RegionFitTable from "@/components/fit/RegionFitTable";
+import { useResolvedGarmentSize } from "@/hooks/useResolvedGarmentSize";
+import { computeRegionFit } from "@/lib/fit/regionFitEngine";
 
 interface FitProduct {
   id: string;
@@ -214,6 +217,22 @@ export default function FitResults({
   const sizeExplanation = useMemo(
     () => buildSizeExplanation({ fit: garmentFit, body: newBodyProfile, size: activeSize, solver }),
     [garmentFit, newBodyProfile, activeSize, solver],
+  );
+
+  // ── REGION FIT (truthful, region-by-region, with on-demand size scrape) ──
+  const resolvedSize = useResolvedGarmentSize({
+    productUrl: product.url,
+    productName: product.name,
+    brand: product.brand,
+    category: product.category,
+    selectedSize: activeSize,
+  });
+  const regionFit = useMemo(
+    () =>
+      resolvedSize.resolved
+        ? computeRegionFit({ body: newBodyProfile, garment: resolvedSize.resolved })
+        : null,
+    [resolvedSize.resolved, newBodyProfile],
   );
 
   // ── Global size fallback card (only when truly missing brand data) ───────
@@ -418,6 +437,14 @@ export default function FitResults({
             silhouette={solver.silhouette}
             confidence={confLabel as "HIGH" | "MEDIUM" | "LIMITED"}
             regions={activeSizeResult?.regions ?? []}
+          />
+
+          {/* ══ REGION-BY-REGION FIT — measurement-driven, honest ══ */}
+          <RegionFitTable
+            fit={regionFit}
+            loading={resolvedSize.loading}
+            fetching={resolvedSize.fetching}
+            selectedSize={activeSize}
           />
         </div>
 

@@ -72,7 +72,11 @@ export interface CreateTryOnBody {
   bodyImageHash?: string | null;
   garmentImageHash?: string | null;
   forceRegenerate?: boolean;
-  mode?: "quick" | "high";
+  /**
+   * "studio" (default) = clean text-to-image render (no user photo as canvas).
+   * "vton" = legacy IDM-VTON composite onto user photo.
+   */
+  mode?: "studio" | "vton";
 }
 
 export interface TryOnInvokeResult {
