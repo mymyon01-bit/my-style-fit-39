@@ -509,10 +509,16 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           userImageUrl: args.userImageUrl,
           productImageUrl: args.productImageUrl,
           productKey: args.productKey,
+          productName: args.productName,
           productCategory: args.productCategory ?? undefined,
           selectedSize: args.selectedSize,
           fitDescriptor: currentSolver.fitType,
           regions,
+          bodyProfileSummary: {
+            heightCm: args.body.heightCm ?? null,
+            weightKg: args.body.weightKg ?? null,
+            gender: args.body.gender ?? null,
+          },
           mode: "high",
         });
         const successData = data?.ok ? data : null;

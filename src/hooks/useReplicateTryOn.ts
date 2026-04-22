@@ -58,10 +58,17 @@ export interface CreateTryOnBody {
   userImageUrl?: string;
   productImageUrl?: string;
   productKey?: string;
+  productName?: string;
   productCategory?: string;
   selectedSize?: string;
   fitDescriptor?: string;
   regions?: Array<{ region: string; fit: string }>;
+  bodyProfileSummary?: {
+    heightCm?: number | null;
+    weightKg?: number | null;
+    build?: string | null;
+    gender?: string | null;
+  };
   bodyImageHash?: string | null;
   garmentImageHash?: string | null;
   forceRegenerate?: boolean;
