@@ -412,7 +412,7 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
       });
       return toSuccess(record, result.imageUrl);
     }
-    return { ok: true, imageUrl: result.imageUrl, provider: "lovable-ai", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
+    return { ok: true, imageUrl: result.imageUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
   }
 
   if (result.kind === "throttled") {
