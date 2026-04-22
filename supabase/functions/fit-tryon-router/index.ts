@@ -504,7 +504,7 @@ Deno.serve(async (req) => {
       return json(failure("missing_output", "missing_image", createBody.selectedSize), 422);
     }
 
-    const response = await handleCreate(admin, LOVABLE_API_KEY, userId, createBody);
+    const response = await handleCreate(admin, REPLICATE_API_TOKEN, userId, createBody);
     logRouter("RESPONSE_OUT", { code: response.ok ? "ok" : response.code, requestId: response.requestId, elapsedMs: Date.now() - requestStartedAt });
 
     const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 200 : response.code === "missing_output" ? 422 : response.code === "timeout" ? 504 : 500;
