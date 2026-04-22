@@ -690,7 +690,7 @@ async function fetchFromMultiSource(query: string, timeoutMs = 9_000): Promise<a
 // ─── Google Shopping (SerpAPI) — first-class discovery source ───
 // Calls the existing google-shopping edge function which already upserts
 // into product_cache. Returns normalized rows for the caller to merge.
-async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, timeoutMs = 9_000): Promise<any[]> {
+async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, timeoutMs = 4_500): Promise<any[]> {
   const sanitized = sanitizeSearchQuery(query);
   if (!sanitized) return [];
   try {
