@@ -1,13 +1,20 @@
 // Robust media preparation for OOTD + Stories uploads.
 // - Tolerates HEIC/HEIF (re-encodes via canvas when possible)
 // - Compresses large images client-side
+// - Optional center-crop to a perfect square (used by OOTD + Stories so
+//   thumbnails/grids never break alignment)
 // - Returns a File ready for Supabase storage upload
 
 const MAX_DIMENSION = 1920;
 const TARGET_QUALITY = 0.85;
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB cap after compression
 
-export async function prepareImage(file: File): Promise<File> {
+export interface PrepareImageOptions {
+  /** Center-crop to a 1:1 square before resizing. */
+  square?: boolean;
+}
+
+export async function prepareImage(file: File, opts: PrepareImageOptions = {}): Promise<File> {
   // Videos pass through untouched
   if (file.type.startsWith("video/")) return file;
 
@@ -40,13 +47,24 @@ export async function prepareImage(file: File): Promise<File> {
     }
   }
 
-  const { width, height } = scale(bitmap.width, bitmap.height, MAX_DIMENSION);
+  // Optional center-crop to a square. We pick the larger of the two
+  // requested-side dimensions, capped by MAX_DIMENSION, to keep quality.
+  let srcX = 0, srcY = 0, srcW = bitmap.width, srcH = bitmap.height;
+  if (opts.square) {
+    const side = Math.min(bitmap.width, bitmap.height);
+    srcX = Math.round((bitmap.width - side) / 2);
+    srcY = Math.round((bitmap.height - side) / 2);
+    srcW = side;
+    srcH = side;
+  }
+
+  const { width, height } = scale(srcW, srcH, MAX_DIMENSION);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) return file;
-  ctx.drawImage(bitmap, 0, 0, width, height);
+  ctx.drawImage(bitmap, srcX, srcY, srcW, srcH, 0, 0, width, height);
 
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/jpeg", TARGET_QUALITY)
