@@ -165,6 +165,12 @@ export default function FitResults({
   bodyHeightCm,
   bodyWeightKg,
   bodyShape,
+  bodyGender,
+  bodyShoulderCm,
+  bodyChestCm,
+  bodyWaistCm,
+  bodyHipCm,
+  bodyInseamCm,
   userBodyImageUrl,
   onRefineFit,
   onRescan,
@@ -188,6 +194,44 @@ export default function FitResults({
   const activeSizeResult = result.sizeResults.find(s => s.size === activeSize)
     ?? result.sizeResults.find(s => s.recommended);
   const heroScore = activeSizeResult?.fitScore ?? 0;
+
+  // ══ NEW MEASUREMENT-DRIVEN SIZING PIPELINE ═══════════════════════════════
+  // Runs ALONGSIDE the legacy fitEngine (which stays the locked working model
+  // for the visual try-on prompt). The new panel + recommendation feeds back
+  // into `activeSize` and into the visual try-on `regions` payload so the AI
+  // image visualizes the CALCULATED fit (S=tight / M=fit / L=regular / XL=loose).
+  const [sizingPrefOverride, setSizingPrefOverride] = useState<FitPreference | null>(null);
+  const sizing = useSizeRecommendation({
+    productUrl: product.url,
+    productName: product.name,
+    brand: product.brand,
+    category: product.category,
+    body: {
+      gender: bodyGender ?? null,
+      heightCm: bodyHeightCm ?? null,
+      weightKg: bodyWeightKg ?? null,
+      shoulderCm: bodyShoulderCm ?? null,
+      chestCm: bodyChestCm ?? null,
+      waistCm: bodyWaistCm ?? null,
+      hipCm: bodyHipCm ?? null,
+      inseamCm: bodyInseamCm ?? null,
+    },
+    preferenceOverride: sizingPrefOverride,
+  });
+
+  // When the new engine produces a primary size that exists in the legacy
+  // size ladder, prefer it as the default active size. Never override a user
+  // pick — only sync once when the recommendation first arrives.
+  const syncedRecRef = useRef(false);
+  useEffect(() => {
+    if (syncedRecRef.current) return;
+    const rec = sizing.recommendation?.primarySize;
+    if (!rec) return;
+    if (result.sizeResults.some((s) => s.size === rec)) {
+      setActiveSize(rec);
+      syncedRecRef.current = true;
+    }
+  }, [sizing.recommendation?.primarySize, result.sizeResults]);
 
   // ── Global fallback + confidence (honest tiers) ──────────────────────────
   const usedGlobalFallback = shouldUseGlobalFallback(result.productDataQuality, true) || result.productDataQuality < 50;
