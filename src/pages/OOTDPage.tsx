@@ -93,6 +93,7 @@ const OOTDPage = () => {
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [notifsOpen, setNotifsOpen] = useState(false);
   const { notifUnread, totalUnread } = useNotifications();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
