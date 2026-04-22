@@ -239,25 +239,53 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
 
       {/* Catalog with refresh */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="label-mono text-foreground/70 flex items-center gap-2">
             <Sparkles className="h-3 w-3 text-primary" />
             {searchQuery ? "SEARCH RESULTS" : "RECOMMENDED FOR FIT"}
           </p>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing || loading}
-            className="group flex items-center gap-1.5 border-[1.5px] border-foreground/20 px-2.5 py-1.5 font-mono text-[10px] font-semibold tracking-[0.18em] text-foreground/70 transition-all duration-200 hover:border-foreground hover:bg-foreground hover:text-background disabled:opacity-50"
-            style={{ borderRadius: "var(--radius)" }}
-            aria-label="Refresh recommendations"
-          >
-            <RefreshCw
-              className={`h-3 w-3 transition-transform duration-500 ${
-                refreshing ? "animate-spin" : "group-hover:rotate-180"
-              }`}
-            />
-            REFRESH
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Gender toggle — defaults from profile, mirrors Discover behavior */}
+            <div
+              className="flex items-center overflow-hidden border-[1.5px] border-foreground/20"
+              style={{ borderRadius: "var(--radius)" }}
+              role="group"
+              aria-label="Filter products by gender"
+            >
+              {([
+                { v: "all" as const, label: "ALL" },
+                { v: "women" as const, label: "W" },
+                { v: "men" as const, label: "M" },
+              ]).map((opt) => (
+                <button
+                  key={opt.v}
+                  onClick={() => setGender(opt.v)}
+                  className={`px-2.5 py-1.5 font-mono text-[10px] font-semibold tracking-[0.18em] transition-colors ${
+                    gender === opt.v
+                      ? "bg-foreground text-background"
+                      : "text-foreground/60 hover:text-foreground"
+                  }`}
+                  aria-pressed={gender === opt.v}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="group flex items-center gap-1.5 border-[1.5px] border-foreground/20 px-2.5 py-1.5 font-mono text-[10px] font-semibold tracking-[0.18em] text-foreground/70 transition-all duration-200 hover:border-foreground hover:bg-foreground hover:text-background disabled:opacity-50"
+              style={{ borderRadius: "var(--radius)" }}
+              aria-label="Refresh recommendations"
+            >
+              <RefreshCw
+                className={`h-3 w-3 transition-transform duration-500 ${
+                  refreshing ? "animate-spin" : "group-hover:rotate-180"
+                }`}
+              />
+              REFRESH
+            </button>
+          </div>
         </div>
 
         {loading && !refreshing && (
