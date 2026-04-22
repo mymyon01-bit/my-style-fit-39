@@ -63,7 +63,13 @@ interface CreateBody {
     gender?: string | null;
   };
   forceRegenerate?: boolean;
-  mode?: "quick" | "high";
+  /**
+   * "studio" (DEFAULT) — clean newly-generated text-to-image render reflecting
+   *   the body model + region fit deltas. NEVER reuses the original user
+   *   photo as a canvas. This is the purchase-decision-grade preview.
+   * "vton" — legacy IDM-VTON virtual try-on (composites onto the user photo).
+   */
+  mode?: "studio" | "vton";
 }
 
 interface SuccessResponse {
