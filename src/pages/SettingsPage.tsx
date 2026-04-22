@@ -332,12 +332,22 @@ const SettingsPage = () => {
           </button>
         </div>
 
-        {/* Sign out */}
+        {/* Sign out + Delete account */}
         {user && (
-          <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
-            <LogOut className="h-4 w-4" />
-            {t("signOut")}
-          </button>
+          <div className="space-y-2 border-t border-border/30 pt-6">
+            <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
+              <LogOut className="h-4 w-4" />
+              {t("signOut")}
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount}
+              className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/60 transition-colors hover:text-destructive disabled:opacity-50"
+            >
+              {deletingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              DELETE ACCOUNT
+            </button>
+          </div>
         )}
       </div>
 
