@@ -397,15 +397,15 @@ const OOTDPage = () => {
               </div>
             )}
             <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">OOTD</span>
-            {user && totalUnread > 0 && (
+            {user && notifUnread > 0 && (
               <button
                 onClick={() => setNotifsOpen(true)}
                 className="relative text-foreground/75 hover:text-foreground transition-colors"
                 aria-label="Open notifications"
               >
                 <Bell className="h-4 w-4" />
-                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white">
-                  {totalUnread > 99 ? "99+" : totalUnread}
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                  {notifUnread > 99 ? "99+" : notifUnread}
                 </span>
               </button>
             )}
