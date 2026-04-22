@@ -846,21 +846,15 @@ serve(async (req) => {
       externalProducts = mergeUniqueProducts(gShop, externalResult);
       dbProducts = dbResult;
 
-      const storedCount = externalResult.length > 0
-        ? await cacheToDB(supabase, externalResult, normalizedQuery)
-        : 0;
+      const storedCount = 0; // background task handles caching now
 
       let discoveryProducts: any[] = [];
       let allProducts = enforceDiversity(mergeUniqueProducts(externalProducts, dbProducts));
 
-      if (allProducts.length < minTarget) {
-        discoveryProducts = await fetchFromDiscovery(supabase, normalizedQuery, minTarget);
-        allProducts = enforceDiversity(mergeUniqueProducts(allProducts, discoveryProducts));
-      }
-
+      // Single DB-broadening fallback if we're really short. No discovery call
+      // here — that 6s edge-function chain blocks the user response.
       if (allProducts.length < minTarget) {
         const broadenedDb = await loadFromDB(supabase, {
-          query: normalizedQuery,
           category,
           styles,
           fit,
@@ -869,18 +863,6 @@ serve(async (req) => {
           randomize: true,
         });
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, broadenedDb));
-      }
-
-      if (allProducts.length < minTarget) {
-        const fallbackDb = await loadFromDB(supabase, {
-          category,
-          styles,
-          fit,
-          limit: minTarget * 2,
-          excludeIds: allProducts.map((p: any) => p.external_id || p.id),
-          randomize: true,
-        });
-        allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
 
       // Re-rank: freshness-boost merged pool. Pure DB items with high relevance
