@@ -262,14 +262,21 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
 
         if (data && !data.ok && data.code === "rate_limited") {
           stopTimers();
-          log("create_rate_limited", { retryAfterMs: data.retryAfterMs });
+          const retryAfterMs = Math.min(Math.max(data.retryAfterMs ?? 6000, 4000), 12000);
+          log("create_rate_limited_auto_retry", { retryAfterMs });
+          // Auto-retry once after the provider's suggested cooldown so the
+          // user doesn't see a spurious failure when two windows / two clicks
+          // hit the provider at the same time.
           setState((prev) => ({
             ...prev,
-            stage: "failed",
-            error: data.error || "Provider busy. Please retry.",
+            stage: "polling",
             provider: data.provider ?? null,
-            retryAfterMs: data.retryAfterMs ?? null,
+            retryAfterMs,
           }));
+          window.setTimeout(() => {
+            if (isStale()) return;
+            setManualReload((n) => n + 1);
+          }, retryAfterMs);
           return;
         }
 
