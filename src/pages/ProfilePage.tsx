@@ -16,6 +16,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import PremiumBanner from "@/components/PremiumBanner";
 import TodayPicks from "@/components/today/TodayPicks";
 import SavedProductsTab from "@/components/profile/SavedProductsTab";
+import MessagesInbox from "@/components/messages/MessagesInbox";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
