@@ -192,14 +192,24 @@ function regionPhrase(regions?: RegionFitLite[]) {
 function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
-  const heightLine = body.bodyProfileSummary?.heightCm ? `, approximately ${body.bodyProfileSummary.heightCm} cm tall` : "";
-  const weightLine = body.bodyProfileSummary?.weightKg ? ` and approximately ${body.bodyProfileSummary.weightKg} kg` : "";
+  const h = body.bodyProfileSummary?.heightCm;
+  const w = body.bodyProfileSummary?.weightKg;
+  const heightLine = h ? `, approximately ${h} cm tall` : "";
+  const weightLine = w ? ` and approximately ${w} kg` : "";
+  const bmi = h && w ? Math.round((w / Math.pow(h / 100, 2)) * 10) / 10 : null;
   const garmentLabel = body.productName?.trim() || body.productCategory || "the garment";
   const silhouette = sizeSilhouette(body.selectedSize);
   const regions = regionPhrase(body.regions);
 
+  // Explicit, hard-locked physical specs so the model cannot default to a
+  // generic slim fashion-model body. e.g. 100 kg MUST look like 100 kg.
+  const physicalSpec = h && w
+    ? `STRICT PHYSICAL SPECS (NON-NEGOTIABLE): height = ${h} cm, weight = ${w} kg, BMI = ${bmi}. The rendered body MUST visually correspond to a real person of EXACTLY this height and weight. A ${w} kg person at ${h} cm has a clearly visible body mass — torso width, waist circumference, arm and leg thickness, and overall volume MUST match this weight. Do NOT render a slim or athletic fashion-model body unless the weight actually matches one. If weight is high, the body MUST look heavier (wider torso, fuller waist, thicker limbs). If weight is low, the body MUST look slimmer. Mismatched proportions are unacceptable.`
+    : `Render an average-proportioned body.`;
+
   return [
     `A premium realistic fashion photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
+    physicalSpec,
     `LOCKED BODY MODEL: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same person — only the GARMENT changes between sizes, the body NEVER changes. Do NOT slim, enlarge, restyle, or adjust the body in any way based on the garment size.`,
     `Body proportions must visibly match this exact height and weight — do NOT default to a slim model body, but also do NOT modify the body to compensate for a tighter or looser garment.`,
     `Preserve the EXACT style, color, print, and construction of the garment shown in the reference image.`,
