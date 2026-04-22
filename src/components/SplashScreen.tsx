@@ -104,7 +104,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
           }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          WARDROBE
+          mymyon
         </motion.span>
       </div>
 
