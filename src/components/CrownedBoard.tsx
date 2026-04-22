@@ -81,11 +81,11 @@ export default function CrownedBoard() {
         score: computeScore(p as any),
       }));
       scored.sort((a, b) => b.score - a.score);
-      const top5 = scored.slice(0, 5);
-      setRanked(top5);
+      const top10 = scored.slice(0, 10);
+      setRanked(top10);
 
       // Load profiles
-      const userIds = [...new Set(top5.map(p => p.user_id))];
+      const userIds = [...new Set(top10.map(p => p.user_id))];
       if (userIds.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
@@ -178,102 +178,159 @@ export default function CrownedBoard() {
           <p className="text-[10px] text-foreground/30">Post OOTDs and get likes to enter the rankings</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {ranked.map((post, i) => {
-            const profile = getProfile(post.user_id);
-            const rank = i + 1;
-
-            return (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className={`relative overflow-hidden rounded-2xl border ${
-                  rank === 1
-                    ? "border-yellow-400/30 bg-gradient-to-r from-yellow-400/[0.04] to-amber-500/[0.04]"
-                    : "border-border/15 bg-card/40"
-                }`}
+        <div className="space-y-10">
+          {/* TOP 5 */}
+          <section className="space-y-4">
+            <div className="flex items-baseline justify-between border-b border-border/15 pb-2">
+              <h3
+                className="text-[16px] font-semibold tracking-[0.02em] text-foreground/90"
+                style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                <div className="flex items-center gap-4 p-3">
-                  {/* Rank */}
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${CROWN_COLORS[i]} flex-shrink-0`}>
-                    <span className={`font-black text-white ${rank === 1 ? "text-lg" : "text-sm"}`}>
+                Top 5
+              </h3>
+              <p className="text-[9px] tracking-[0.3em] text-foreground/40 uppercase">
+                The crowned
+              </p>
+            </div>
+            {ranked.slice(0, 5).map((post, i) => {
+              const profile = getProfile(post.user_id);
+              const rank = i + 1;
+
+              return (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  className={`relative overflow-hidden rounded-2xl border ${
+                    rank === 1
+                      ? "border-yellow-400/30 bg-gradient-to-r from-yellow-400/[0.04] to-amber-500/[0.04]"
+                      : "border-border/15 bg-card/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-4 p-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${CROWN_COLORS[i]} flex-shrink-0`}>
+                      <span className={`font-black text-white ${rank === 1 ? "text-lg" : "text-sm"}`}>
+                        {rank}
+                      </span>
+                    </div>
+
+                    <div className="h-16 w-12 rounded-lg overflow-hidden flex-shrink-0">
+                      <img src={post.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <button onClick={() => navigate(`/user/${post.user_id}`)} className="flex items-center gap-2 group">
+                        <div className="h-5 w-5 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+                          {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-[8px] font-bold text-foreground/30">
+                              {(profile?.display_name || "?")[0].toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-semibold text-foreground/75 group-hover:text-foreground/90 transition-colors truncate">
+                          {profile?.display_name || "Anonymous"}
+                        </span>
+                      </button>
+
+                      {post.style_tags && post.style_tags.length > 0 && (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {post.style_tags.slice(0, 3).map(tag => (
+                            <span key={tag} className="text-[8px] text-accent/50 bg-accent/[0.06] rounded-full px-1.5 py-0.5">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-right flex-shrink-0">
+                      <p className={`text-sm font-bold ${rank === 1 ? "text-yellow-400" : "text-foreground/60"}`}>
+                        {Math.round(post.score)}
+                      </p>
+                      <p className="text-[8px] text-foreground/30 tracking-wider">PTS</p>
+                    </div>
+                  </div>
+
+                  {rank === 1 && (
+                    <div className="px-3 pb-3">
+                      <div className="rounded-xl overflow-hidden">
+                        <img
+                          src={post.image_url}
+                          alt={post.caption || ""}
+                          className="w-full object-cover"
+                          style={{ maxHeight: "300px" }}
+                          loading="lazy"
+                        />
+                      </div>
+                      {post.caption && (
+                        <p className="text-[11px] text-foreground/50 mt-2 line-clamp-2 px-1">{post.caption}</p>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </section>
+
+          {/* RISING STARS */}
+          {ranked.length > 5 && (
+            <section className="space-y-3">
+              <div className="flex items-baseline justify-between border-b border-border/15 pb-2">
+                <h3
+                  className="text-[16px] font-semibold tracking-[0.02em] text-foreground/90"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  Rising Stars
+                </h3>
+                <p className="text-[9px] tracking-[0.3em] text-foreground/40 uppercase">
+                  On the way up
+                </p>
+              </div>
+              {ranked.slice(5, 10).map((post, idx) => {
+                const profile = getProfile(post.user_id);
+                const rank = idx + 6;
+                return (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="flex items-center gap-3 rounded-xl border border-border/10 bg-card/30 p-2.5"
+                  >
+                    <span className="w-6 text-[11px] font-semibold text-foreground/40 tabular-nums text-center">
                       {rank}
                     </span>
-                  </div>
-
-                  {/* Thumbnail */}
-                  <div className="h-16 w-12 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={post.image_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <button
-                      onClick={() => navigate(`/user/${post.user_id}`)}
-                      className="flex items-center gap-2 group"
-                    >
-                      <div className="h-5 w-5 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
-                        {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-[8px] font-bold text-foreground/30">
-                            {(profile?.display_name || "?")[0].toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[11px] font-semibold text-foreground/75 group-hover:text-foreground/90 transition-colors truncate">
-                        {profile?.display_name || "Anonymous"}
-                      </span>
-                    </button>
-
-                    {/* Style tags */}
-                    {post.style_tags && post.style_tags.length > 0 && (
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {post.style_tags.slice(0, 3).map(tag => (
-                          <span key={tag} className="text-[8px] text-accent/50 bg-accent/[0.06] rounded-full px-1.5 py-0.5">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Score */}
-                  <div className="text-right flex-shrink-0">
-                    <p className={`text-sm font-bold ${rank === 1 ? "text-yellow-400" : "text-foreground/60"}`}>
-                      {Math.round(post.score)}
-                    </p>
-                    <p className="text-[8px] text-foreground/30 tracking-wider">PTS</p>
-                  </div>
-                </div>
-
-                {/* 1st place gets expanded view */}
-                {rank === 1 && (
-                  <div className="px-3 pb-3">
-                    <div className="rounded-xl overflow-hidden">
-                      <img
-                        src={post.image_url}
-                        alt={post.caption || ""}
-                        className="w-full object-cover"
-                        style={{ maxHeight: "300px" }}
-                        loading="lazy"
-                      />
+                    <div className="h-12 w-9 rounded-md overflow-hidden flex-shrink-0">
+                      <img src={post.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
                     </div>
-                    {post.caption && (
-                      <p className="text-[11px] text-foreground/50 mt-2 line-clamp-2 px-1">{post.caption}</p>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
+                    <div className="flex-1 min-w-0">
+                      <button onClick={() => navigate(`/user/${post.user_id}`)} className="flex items-center gap-2 group">
+                        <div className="h-4 w-4 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+                          {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-[7px] font-bold text-foreground/30">
+                              {(profile?.display_name || "?")[0].toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-medium text-foreground/70 group-hover:text-foreground/90 transition-colors truncate">
+                          {profile?.display_name || "Anonymous"}
+                        </span>
+                      </button>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[12px] font-semibold text-foreground/55">{Math.round(post.score)}</p>
+                      <p className="text-[8px] text-foreground/30 tracking-wider">PTS</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </section>
+          )}
         </div>
       )}
     </div>
