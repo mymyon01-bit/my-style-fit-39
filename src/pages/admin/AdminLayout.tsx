@@ -39,7 +39,11 @@ const AdminLayout = () => {
       <aside className="hidden md:flex w-56 flex-col border-r border-border/30 bg-card/30 p-4">
         <button onClick={() => navigate("/")} className="mb-8 flex items-center gap-2 px-3 py-2 text-foreground/75 hover:text-foreground/80 transition-colors">
           <Home className="h-4 w-4" />
-          <span className="text-[11px] tracking-[0.15em] font-medium">WARDROBE</span>
+          <span className="flex items-baseline font-display text-[13px] font-light leading-none">
+            <span className="tracking-[0.05em]">my</span>
+            <span aria-hidden className="mx-[0.16em] inline-block h-[2px] w-[2px] translate-y-[-0.5em] rounded-full bg-accent/70" />
+            <span className="tracking-[0.05em]">myon</span>
+          </span>
         </button>
         <p className="px-3 mb-4 text-[11px] font-semibold tracking-[0.2em] text-accent/60 uppercase">Admin</p>
         <nav className="space-y-0.5">

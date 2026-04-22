@@ -56,9 +56,16 @@ const HeroTransformation = () => {
         {/* Editorial overlay text */}
         <div className="absolute inset-0 flex flex-col items-start justify-end px-8 pb-12 md:px-16 md:pb-20 lg:px-24 lg:pb-28">
           <div className="max-w-xl animate-[heroIn_0.9s_cubic-bezier(0.22,1,0.36,1)_both]">
-            <p className="font-display text-[11px] font-semibold tracking-[0.4em] text-foreground/85">
-              WARDROBE
-            </p>
+            <div className="flex items-baseline gap-3">
+              <span className="flex items-baseline font-display text-[18px] font-light leading-none text-foreground md:text-[20px]">
+                <span className="tracking-[0.05em]">my</span>
+                <span aria-hidden className="mx-[0.18em] inline-block h-[3px] w-[3px] translate-y-[-0.55em] rounded-full bg-accent/80" />
+                <span className="tracking-[0.05em]">myon</span>
+              </span>
+              <span className="text-[9px] font-medium uppercase tracking-[0.4em] text-foreground/55">
+                est. 2026
+              </span>
+            </div>
             <h1 className="mt-5 font-display text-[28px] font-semibold leading-[1.1] text-foreground md:text-[44px] lg:text-[56px]">
               {t("heroLine1")}
               <br />

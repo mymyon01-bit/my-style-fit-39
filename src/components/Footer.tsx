@@ -8,8 +8,10 @@ const Footer = () => {
   return (
     <footer className="hidden md:block border-t border-border/30 bg-background">
       <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-1 px-6 py-3 text-[10px] text-foreground/55 md:flex-row md:gap-4">
-        <p className="font-display font-semibold tracking-[0.3em] text-foreground/75">
-          mymyon
+        <p className="flex items-baseline font-display text-[13px] font-light leading-none text-foreground/75">
+          <span className="tracking-[0.05em]">my</span>
+          <span aria-hidden className="mx-[0.16em] inline-block h-[2px] w-[2px] translate-y-[-0.5em] rounded-full bg-accent/70" />
+          <span className="tracking-[0.05em]">myon</span>
         </p>
         <p className="text-foreground/50">© 2026 PND INC.</p>
         <a

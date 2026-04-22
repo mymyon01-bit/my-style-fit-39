@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
+import Brandmark from "@/components/Brandmark";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 
 const DesktopNav = () => {
@@ -34,9 +35,10 @@ const DesktopNav = () => {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-12 py-5">
           <button
             onClick={() => navigate("/")}
-            className="hover-burgundy font-display text-[12px] font-semibold tracking-[0.4em] text-foreground/70"
+            aria-label="mymyon — home"
+            className="hover-burgundy"
           >
-            WARDROBE
+            <Brandmark variant="compact" />
           </button>
 
           <div className="flex items-center gap-6">

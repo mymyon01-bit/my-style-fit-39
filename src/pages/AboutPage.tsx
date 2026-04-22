@@ -53,14 +53,21 @@ const AboutPage = () => {
       {/* Hero */}
       <section className="mx-auto max-w-3xl px-8 pt-16 pb-20 lg:pt-24 lg:pb-28">
         <SectionReveal>
-          <p className="font-display text-[12px] font-semibold tracking-[0.45em] text-accent/70">
-            WARDROBE
-          </p>
+          <div className="flex items-baseline gap-4">
+            <span className="flex items-baseline font-display text-[20px] font-light leading-none text-foreground md:text-[22px]">
+              <span className="tracking-[0.04em]">my</span>
+              <span aria-hidden className="mx-[0.18em] inline-block h-[3px] w-[3px] translate-y-[-0.55em] rounded-full bg-accent/75" />
+              <span className="tracking-[0.04em]">myon</span>
+            </span>
+            <span className="text-[9px] font-medium uppercase tracking-[0.4em] text-foreground/50">
+              est. 2026
+            </span>
+          </div>
           <h1 className="mt-5 font-display text-[32px] font-semibold leading-[1.1] text-foreground md:text-[48px] lg:text-[60px]">
             Discover. Fit. Wear.
           </h1>
           <p className="mt-8 max-w-xl text-[14px] leading-[1.85] text-foreground/75 md:text-[15px]">
-            WARDROBE is an AI-powered fashion discovery platform built to solve
+            mymyon is an AI-powered fashion discovery platform built to solve
             a simple problem: finding what actually fits you — not just what
             looks good.
           </p>
@@ -70,7 +77,7 @@ const AboutPage = () => {
             evaluate, and wear clothes with confidence.
           </p>
           <p className="mt-5 max-w-xl text-[14px] leading-[1.85] text-foreground/70 md:text-[15px]">
-            Instead of browsing endless items, WARDROBE understands intent,
+            Instead of browsing endless items, mymyon understands intent,
             filters noise, and delivers results that match both style and body.
           </p>
           <p className="mt-8 max-w-xl text-[14px] leading-[1.85] text-foreground md:text-[15px]">

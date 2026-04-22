@@ -58,7 +58,11 @@ const AuthPage = () => {
       {/* Desktop: left editorial panel */}
       <div className="hidden lg:flex lg:w-1/2 lg:flex-col lg:items-center lg:justify-center lg:bg-foreground/[0.02]">
         <div className="max-w-sm text-center space-y-8">
-          <h1 className="font-display text-4xl font-light tracking-[0.2em] text-foreground/80">WARDROBE</h1>
+          <h1 className="flex items-baseline justify-center font-display text-5xl font-light leading-none text-foreground">
+            <span className="tracking-[0.04em]">my</span>
+            <span aria-hidden className="mx-[0.18em] inline-block h-[5px] w-[5px] translate-y-[-0.55em] rounded-full bg-accent/75" />
+            <span className="tracking-[0.04em]">myon</span>
+          </h1>
           <p className="text-[14px] leading-[2] text-foreground/80">
             Your personal AI stylist.<br />
             Weather-aware. Body-conscious. Always relevant.
@@ -81,9 +85,13 @@ const AuthPage = () => {
         <div className="flex flex-1 flex-col items-center justify-center px-8 md:px-12 lg:px-16">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-sm md:max-w-md">
             <div className="text-center mb-14 md:mb-16">
-              <h1 className="font-display text-[26px] font-light tracking-[0.25em] text-foreground/80 md:text-3xl lg:text-3xl">
-                <span className="lg:hidden">WARDROBE</span>
-                <span className="hidden lg:inline">
+              <h1 className="font-display text-[26px] font-light leading-none text-foreground md:text-3xl lg:text-3xl">
+                <span className="flex items-baseline justify-center lg:hidden">
+                  <span className="tracking-[0.04em]">my</span>
+                  <span aria-hidden className="mx-[0.18em] inline-block h-[3px] w-[3px] translate-y-[-0.55em] rounded-full bg-accent/75" />
+                  <span className="tracking-[0.04em]">myon</span>
+                </span>
+                <span className="hidden tracking-[0.02em] lg:inline">
                   {mode === "login" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
                 </span>
               </h1>
