@@ -14,7 +14,7 @@ import { useState, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Sparkles, Share2, Download, LogIn, User as UserIcon } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Download, LogIn, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
@@ -22,6 +22,7 @@ import LanguageSelector from "@/components/LanguageSelector";
 import Footer from "@/components/Footer";
 import Brandmark from "@/components/Brandmark";
 import MoodTicker from "@/components/MoodTicker";
+import ShareButton from "@/components/ShareButton";
 import { useAuth } from "@/lib/auth";
 
 const HomePage = () => {
@@ -46,23 +47,6 @@ const HomePage = () => {
     if (e.key === "Enter") handleSubmit();
   };
 
-  const handleShareApp = useCallback(async () => {
-    const shareData = {
-      title: "mymyon — AI fashion stylist",
-      text: "Discover your style on mymyon",
-      url: typeof window !== "undefined" ? window.location.origin : "https://mymyon.com",
-    };
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share(shareData);
-      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(shareData.url);
-        toast.success("Link copied — share with friends");
-      }
-    } catch {
-      // user cancelled
-    }
-  }, []);
 
   const weatherLabel = weather.condition
     .replace(/-/g, " ")
@@ -185,13 +169,11 @@ const HomePage = () => {
             >
               {t("about")}
             </button>
-            <button
-              onClick={handleShareApp}
-              aria-label="Share mymyon with friends"
-              className="flex items-center gap-1.5 rounded-full border border-foreground/20 px-4 py-2.5 text-[12px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-accent hover:text-accent whitespace-nowrap"
-            >
-              <Share2 className="h-3 w-3" />
-            </button>
+            <ShareButton
+              title="mymyon — AI fashion stylist"
+              url={typeof window !== "undefined" ? window.location.origin : "https://mymyon.com"}
+              className="self-center"
+            />
           </motion.div>
 
           {/* Weather meta */}
