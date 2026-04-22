@@ -690,7 +690,7 @@ async function fetchFromMultiSource(query: string, timeoutMs = 9_000): Promise<a
 // ─── Google Shopping (SerpAPI) — first-class discovery source ───
 // Calls the existing google-shopping edge function which already upserts
 // into product_cache. Returns normalized rows for the caller to merge.
-async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, timeoutMs = 9_000): Promise<any[]> {
+async function fetchFromGoogleShopping(query: string, limit = 30, hl?: string, timeoutMs = 4_500): Promise<any[]> {
   const sanitized = sanitizeSearchQuery(query);
   if (!sanitized) return [];
   try {
@@ -793,46 +793,68 @@ serve(async (req) => {
       const minTarget = Math.min(clampedLimit, 18);
       const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL MAIN SOURCES: Google (SerpAPI Shopping) + ScrapingBee
-      // (commerce-scraper / multi-source) + DB. CSE removed — bee+google now
-      // carry the discovery load directly.
-      const [gShop, externalResult, dbResult] = await Promise.all([
-        fetchFromGoogleShopping(normalizedQuery, 100, hl)
-          .catch((e) => { console.error("Google Shopping failed:", e); return [] as any[]; }),
-        fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
-          .then(products => products.map(autoTagProduct))
-          .catch(e => { console.error("External search failed:", e); return [] as any[]; }),
-        loadFromDB(supabase, {
-          query: normalizedQuery,
-          category,
-          styles,
-          fit,
-          limit: Math.min(clampedLimit, 30),
-          excludeIds,
-          randomize: false,
-        }),
+      // FAST PATH: DB first (sub-second), with a TIGHT 3.5s budget for one
+      // external source (Google Shopping) so the user gets fresh items only
+      // when they're ready quickly. Heavier sources (commerce-scraper,
+      // multi-source) run in the background via waitUntil to enrich the
+      // cache for the next request.
+      const dbResult = await loadFromDB(supabase, {
+        query: normalizedQuery,
+        category,
+        styles,
+        fit,
+        limit: Math.min(clampedLimit, 30),
+        excludeIds,
+        randomize: false,
+      });
+
+      // Race Google Shopping against a 3.5s budget — return whatever's ready.
+      const gShop = await Promise.race([
+        fetchFromGoogleShopping(normalizedQuery, 60, hl, 3_500)
+          .catch(() => [] as any[]),
+        new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 3_500)),
       ]);
+
+      // Background enrichment — does NOT block response.
+      const bgTasks = (async () => {
+        try {
+          const [cs, ms] = await Promise.all([
+            fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
+              .catch(() => [] as any[]),
+            fetchFromMultiSource(normalizedQuery, 12_000)
+              .catch(() => [] as any[]),
+          ]);
+          const merged = mergeUniqueProducts(cs.map(autoTagProduct), ms);
+          if (merged.length > 0) {
+            await cacheToDB(supabase, merged, normalizedQuery);
+          }
+        } catch (e) {
+          console.warn("[bg-enrich] failed:", (e as Error).message);
+        }
+      })();
+      try {
+        // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
+        EdgeRuntime.waitUntil(bgTasks);
+      } catch {
+        /* not in edge runtime — let it dangle */
+      }
+
+      const externalResult: any[] = [];
 
       // gShop already lives in product_cache (google-shopping upserts directly).
       // Commerce-scraper results still need caching.
       externalProducts = mergeUniqueProducts(gShop, externalResult);
       dbProducts = dbResult;
 
-      const storedCount = externalResult.length > 0
-        ? await cacheToDB(supabase, externalResult, normalizedQuery)
-        : 0;
+      const storedCount = 0; // background task handles caching now
 
       let discoveryProducts: any[] = [];
       let allProducts = enforceDiversity(mergeUniqueProducts(externalProducts, dbProducts));
 
-      if (allProducts.length < minTarget) {
-        discoveryProducts = await fetchFromDiscovery(supabase, normalizedQuery, minTarget);
-        allProducts = enforceDiversity(mergeUniqueProducts(allProducts, discoveryProducts));
-      }
-
+      // Single DB-broadening fallback if we're really short. No discovery call
+      // here — that 6s edge-function chain blocks the user response.
       if (allProducts.length < minTarget) {
         const broadenedDb = await loadFromDB(supabase, {
-          query: normalizedQuery,
           category,
           styles,
           fit,
@@ -841,18 +863,6 @@ serve(async (req) => {
           randomize: true,
         });
         allProducts = enforceDiversity(mergeUniqueProducts(allProducts, broadenedDb));
-      }
-
-      if (allProducts.length < minTarget) {
-        const fallbackDb = await loadFromDB(supabase, {
-          category,
-          styles,
-          fit,
-          limit: minTarget * 2,
-          excludeIds: allProducts.map((p: any) => p.external_id || p.id),
-          randomize: true,
-        });
-        allProducts = enforceDiversity(mergeUniqueProducts(allProducts, fallbackDb));
       }
 
       // Re-rank: freshness-boost merged pool. Pure DB items with high relevance
@@ -939,64 +949,57 @@ serve(async (req) => {
       const sanitizedQuery = query ? sanitizeSearchQuery(query) : "";
       const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL MAIN SOURCES: DB + ScrapingBee multi-source + Google (SerpAPI).
-      // Bee + Google now carry discovery directly. CSE removed.
-      const [dbInitial, multiSourceFresh, gShop] = await Promise.all([
-        loadFromDB(supabase, {
-          query: query || undefined,
-          category,
-          styles,
-          fit,
-          limit: Math.min(clampedLimit, 30),
-          excludeIds,
-          randomize,
-        }),
-        sanitizedQuery
-          ? fetchFromMultiSource(sanitizedQuery, 9_000)
-          : Promise.resolve([] as any[]),
-        sanitizedQuery
-          ? fetchFromGoogleShopping(sanitizedQuery, 100, hl)
-          : Promise.resolve([] as any[]),
-      ]);
-
+      // FAST PATH: load DB pool first. Then race ONE external (Google
+      // Shopping) against a 3.5s budget so the user always gets a response
+      // in well under 5s. Heavier sources (multi-source/ScrapingBee,
+      // commerce-scraper) run in the background to enrich the cache for
+      // subsequent requests.
+      const dbInitial = await loadFromDB(supabase, {
+        query: query || undefined,
+        category,
+        styles,
+        fit,
+        limit: Math.min(clampedLimit, 30),
+        excludeIds,
+        randomize,
+      });
       dbProducts = dbInitial;
-      // Multi-source (ScrapingBee) + Google Shopping = fresh externals (cached upstream).
-      externalProducts = mergeUniqueProducts(multiSourceFresh, gShop);
 
-      const needsExpansion = expandExternal || dbProducts.length < minTarget;
-      let discoveryProducts: any[] = [];
+      const gShop = sanitizedQuery
+        ? await Promise.race([
+            fetchFromGoogleShopping(sanitizedQuery, 60, hl, 3_500).catch(() => [] as any[]),
+            new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 3_500)),
+          ])
+        : [];
+      externalProducts = gShop;
 
-      if (needsExpansion && (query || category)) {
-        const searchTerm = sanitizedQuery || sanitizeSearchQuery(`trending ${category || "fashion"}`);
-        // commerce-scraper kept as supplemental — only fires if the parallel
-        // path under-delivered.
-        if (externalProducts.length < 8) {
-          const cs = await fetchFromCommerceScraper(searchTerm, Math.min(clampedLimit, 18));
-          externalProducts = mergeUniqueProducts(externalProducts, cs.map(autoTagProduct));
-        }
-
-        if (externalProducts.length > 0) {
-          await cacheToDB(supabase, externalProducts, searchTerm);
-        }
-
-        let mergedForThreshold = mergeUniqueProducts(externalProducts, dbProducts);
-        if (mergedForThreshold.length < minTarget) {
-          discoveryProducts = await fetchFromDiscovery(supabase, searchTerm, minTarget, 8_000);
-          mergedForThreshold = mergeUniqueProducts(mergedForThreshold, discoveryProducts);
-        }
-
-        if (mergedForThreshold.length < minTarget) {
-          const broadenedDb = await loadFromDB(supabase, {
-            category,
-            styles,
-            fit,
-            limit: minTarget * 2,
-            excludeIds: [...excludeIds, ...mergedForThreshold.map((p: any) => p.external_id || p.id)],
-            randomize: true,
-          });
-          dbProducts = mergeUniqueProducts(dbProducts, broadenedDb);
-        }
+      // Fire-and-forget background enrichment (multi-source + commerce-scraper).
+      if (sanitizedQuery) {
+        const bgTasks = (async () => {
+          try {
+            const [ms, cs] = await Promise.all([
+              fetchFromMultiSource(sanitizedQuery, 12_000).catch(() => [] as any[]),
+              dbProducts.length < 8
+                ? fetchFromCommerceScraper(sanitizedQuery, Math.min(clampedLimit, 18))
+                    .then((p) => p.map(autoTagProduct))
+                    .catch(() => [] as any[])
+                : Promise.resolve([] as any[]),
+            ]);
+            const merged = mergeUniqueProducts(ms, cs);
+            if (merged.length > 0) await cacheToDB(supabase, merged, sanitizedQuery);
+          } catch (e) {
+            console.warn("[bg-enrich db-first] failed:", (e as Error).message);
+          }
+        })();
+        try {
+          // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
+          EdgeRuntime.waitUntil(bgTasks);
+        } catch { /* dangle */ }
       }
+
+      const needsExpansion = false; // now handled by background tasks
+      let discoveryProducts: any[] = [];
+      void needsExpansion;
 
       // ─── FRESH-FIRST MERGE + new-batch injection ───
       // 1. Externals (Apify + commerce-scraper) come first — they are the
@@ -1088,7 +1091,7 @@ serve(async (req) => {
         query: query || "",
         category: category || "",
         db_count: dbProducts.length,
-        multi_source_fresh: multiSourceFresh.length,
+        multi_source_fresh: 0,
         external_count: externalProducts.length,
         discovery_count: discoveryProducts.length,
         final_count: normalized.length,
