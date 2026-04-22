@@ -81,7 +81,7 @@ function OOTDCardImpl({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/u/${post.user_id}`);
+                  navigate(`/user/${post.user_id}`);
                 }}
                 className="flex items-center gap-1.5 min-w-0"
                 aria-label={profile?.display_name || "View profile"}

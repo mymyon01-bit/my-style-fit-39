@@ -16,7 +16,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import PremiumBanner from "@/components/PremiumBanner";
 import TodayPicks from "@/components/today/TodayPicks";
 import SavedProductsTab from "@/components/profile/SavedProductsTab";
-import MessagesInbox from "@/components/messages/MessagesInbox";
+// MessagesInbox moved to OOTD My Page (full-screen sheet)
 import { toast } from "sonner";
 
 const ProfilePage = () => {
@@ -345,11 +345,6 @@ const ProfilePage = () => {
 
         {/* Today's 5 Looks — quiz-driven */}
         <TodayPicks />
-
-        <div className="h-px bg-accent/[0.12]" />
-
-        {/* Direct Messages — inbox + threads with @ tagging */}
-        <MessagesInbox />
 
         <div className="h-px bg-accent/[0.12]" />
 

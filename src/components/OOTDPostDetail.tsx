@@ -371,7 +371,7 @@ export default function OOTDPostDetail({
             {!(post.topics || []).includes("__noshare") && (
               <button
                 onClick={async () => {
-                  const url = `${window.location.origin}/u/${post.user_id}?post=${post.id}`;
+                  const url = `${window.location.origin}/user/${post.user_id}?post=${post.id}`;
                   try {
                     if (navigator.share) {
                       await navigator.share({ title: post.caption || "OOTD", url });

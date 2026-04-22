@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Check, Moon, Sun, Monitor, RotateCcw, Shield, Layers,
   User, Globe, Palette, Bell, Lock, Crown, HelpCircle, LogOut,
-  CheckCircle, XCircle, Mail, Loader2
+  CheckCircle, XCircle, Mail, Loader2, Trash2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -32,6 +32,39 @@ const SettingsPage = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    const confirmed = confirm(
+      "Permanently delete your account?\n\nThis will remove your profile, posts, messages, and all data. This action cannot be undone.",
+    );
+    if (!confirmed) return;
+    const typed = prompt('Type "DELETE" to confirm');
+    if (typed !== "DELETE") {
+      toast.error("Account deletion cancelled");
+      return;
+    }
+    setDeletingAccount(true);
+    try {
+      const { error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { user_id: user.id },
+      });
+      // The edge function requires admin role; fall back to RPC for self-delete.
+      if (error) {
+        const { error: rpcErr } = await supabase.rpc("delete_my_account" as any);
+        if (rpcErr) throw rpcErr;
+      }
+      toast.success("Account deleted");
+      await signOut();
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      console.error("[delete-account]", err);
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   const emailVerified = user?.email_confirmed_at != null;
 
@@ -299,12 +332,22 @@ const SettingsPage = () => {
           </button>
         </div>
 
-        {/* Sign out */}
+        {/* Sign out + Delete account */}
         {user && (
-          <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
-            <LogOut className="h-4 w-4" />
-            {t("signOut")}
-          </button>
+          <div className="space-y-2 border-t border-border/30 pt-6">
+            <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
+              <LogOut className="h-4 w-4" />
+              {t("signOut")}
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount}
+              className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/60 transition-colors hover:text-destructive disabled:opacity-50"
+            >
+              {deletingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              DELETE ACCOUNT
+            </button>
+          </div>
         )}
       </div>
 

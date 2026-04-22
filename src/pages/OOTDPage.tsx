@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,11 @@ import StoriesRow, { type UserStories } from "@/components/StoriesRow";
 import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
 import MyPageProfileHeader from "@/components/MyPageProfileHeader";
+import MyPageInboxCard from "@/components/ootd/MyPageInboxCard";
+import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
+import NotificationsSheet from "@/components/NotificationsSheet";
+import FeedTopRow from "@/components/ootd/FeedTopRow";
+import { useNotifications } from "@/hooks/useNotifications";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 
@@ -84,6 +89,10 @@ const OOTDPage = () => {
     index: 0,
     users: [],
   });
+  // Inbox/notifications sheets opened from My Page
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [notifsOpen, setNotifsOpen] = useState(false);
+  const { totalUnread } = useNotifications();
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
@@ -388,6 +397,18 @@ const OOTDPage = () => {
               </div>
             )}
             <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">OOTD</span>
+            {user && totalUnread > 0 && (
+              <button
+                onClick={() => setNotifsOpen(true)}
+                className="relative text-foreground/75 hover:text-foreground transition-colors"
+                aria-label="Open notifications"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -483,7 +504,7 @@ const OOTDPage = () => {
                             <ul>
                               {searchUsers.map((u) => (
                                 <li key={u.user_id}>
-                                  <button onClick={() => navigate(`/u/${u.user_id}`)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left">
+                                  <button onClick={() => navigate(`/user/${u.user_id}`)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left">
                                     {u.avatar_url ? (
                                       <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
                                     ) : (
@@ -579,6 +600,11 @@ const OOTDPage = () => {
                 </div>
               ) : (
                 <>
+                  <MyPageInboxCard
+                    onOpenMessages={() => setMessagesOpen(true)}
+                    onOpenNotifications={() => setNotifsOpen(true)}
+                  />
+
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
                     <Camera className="h-5 w-5" />
                     <span className="text-[10px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
@@ -601,6 +627,11 @@ const OOTDPage = () => {
             </motion.div>
           ) : (
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* Top promo strip — Saved + AI AD slots */}
+              {!activeTopic && (
+                <FeedTopRow styleHints={userPrefs?.styles} />
+              )}
+
               {/* Preference banner — explains why these looks are surfacing */}
               {user && userPrefs && (userPrefs.styles.length > 0 || userPrefs.occasions.length > 0) && !activeTopic && (
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/15 bg-accent/[0.04] px-3.5 py-2.5">
@@ -816,6 +847,9 @@ const OOTDPage = () => {
         onClose={() => setViewerState(s => ({ ...s, open: false }))}
         onDeleted={() => setStoriesRefreshKey(k => k + 1)}
       />
+
+      <MessagesFullSheet open={messagesOpen} onClose={() => setMessagesOpen(false)} />
+      <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
     </div>
   );
 };
