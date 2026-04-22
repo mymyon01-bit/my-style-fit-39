@@ -14,9 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Fraunces", "Inter", "Helvetica Neue", "Arial", "serif"],
-        body: ["Inter", "Helvetica Neue", "Arial", "sans-serif"],
-        sans: ["Inter", "Helvetica Neue", "Arial", "sans-serif"],
+        display: ["Fraunces", "DM Sans", "Inter", "Helvetica Neue", "Arial", "serif"],
+        body: ["DM Sans", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: ["DM Sans", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
