@@ -38,13 +38,16 @@ function interpretFit(r: ReturnType<typeof calculateFit>) {
 
 function describeBuild(b: BodyMeasurements) {
   const bmi = b.weight / Math.pow(b.height / 100, 2);
-  if (bmi < 18.5) return "very slim, narrow-framed";
-  if (bmi < 22)   return "slim, lean-framed";
-  if (bmi < 25)   return "average-built";
-  if (bmi < 28)   return "solid, slightly wider-framed";
-  if (bmi < 32)   return "heavier-built, wider torso and fuller midsection";
-  if (bmi < 36)   return "plus-size, broad torso, wide waist and hips";
-  return "very plus-size, very broad torso, large midsection, thick limbs";
+  if (bmi < 22) return "slim";
+  if (bmi < 28) return "athletic";
+  return "heavy";
+}
+
+function overallToFitType(overall: string): "TIGHT" | "PERFECT" | "LOOSE" | "OVERSIZED" {
+  if (overall === "tight") return "TIGHT";
+  if (overall === "regular") return "PERFECT";
+  if (overall === "relaxed") return "LOOSE";
+  return "OVERSIZED";
 }
 
 function buildPrompt(args: {
@@ -52,28 +55,29 @@ function buildPrompt(args: {
   analysis: ReturnType<typeof interpretFit>;
   garmentLabel: string;
   genderPresentation?: string;
+  selectedSize: string;
 }) {
-  const subject = args.genderPresentation === "feminine" ? "female" : args.genderPresentation === "masculine" ? "male" : "person";
-  const build = describeBuild(args.body);
-  const chest = args.analysis.chestFit === "tight" ? "The chest area is slightly tight."
-    : args.analysis.chestFit === "loose" ? "The chest area sits relaxed with extra room."
-    : "The chest fits naturally.";
-  const sleeve = args.analysis.sleeveFit === "short" ? "The sleeves end above the wrist."
-    : args.analysis.sleeveFit === "long" ? "The sleeves cover past the wrist."
-    : "The sleeves end at the wrist.";
-  const shoulder = args.analysis.shoulderFit === "tight" ? "The shoulder seam sits slightly inward."
-    : args.analysis.shoulderFit === "dropped" ? "The shoulder seam drops past the natural shoulder."
-    : "The shoulder seam sits at the natural shoulder line.";
-  const length = args.analysis.lengthFit === "short" ? "The garment length is shorter than ideal."
-    : args.analysis.lengthFit === "long" ? "The garment length is longer than ideal."
-    : "The garment length sits at an ideal hem position.";
+  const bodyType = args.genderPresentation === "feminine" ? "female"
+    : args.genderPresentation === "masculine" ? "male"
+    : "gender-neutral";
+  const build = describeBuild(args.body); // slim | athletic | heavy
+  const fitType = overallToFitType(args.analysis.overall);
+
+  const fitRules: Record<typeof fitType, string> = {
+    TIGHT: "Visible fabric tension and pulling around shoulders, chest, arms and waist. Fabric is stretched against the body with subtle stress lines. Slightly compressed silhouette. NO body resizing.",
+    PERFECT: "Clean natural drape, correct proportions, balanced fit. Fabric sits smoothly with no tension and no excess volume. No distortion.",
+    LOOSE: "Clear extra space between body and fabric. Relaxed draping with soft folds at the waist, sleeves and hem. Visibly roomier than the body.",
+    OVERSIZED: "Exaggerated looseness. Dropped shoulders past the natural shoulder line, extended sleeve length covering the hands, hem extended well past the hip. Silhouette visibly much larger than the body.",
+  };
+
   return [
-    `A ${build} ${subject}, ${args.body.height}cm, ${args.body.weight}kg, wearing a ${args.garmentLabel}.`,
-    `LOCKED BODY: torso width, waist, hips, arms, legs, posture and silhouette MUST stay IDENTICAL across every size variation. Only the GARMENT changes between sizes — the body NEVER changes.`,
-    `Body proportions must visibly reflect this height and weight, but do NOT slim or enlarge the body to compensate for tighter or looser garments.`,
-    chest, sleeve, shoulder, length,
-    `Translate fit purely into FABRIC behavior on the unchanged body: tight = tension lines and pulled seams; loose = volume, folds and draping; short = higher hem; long = extended hem.`,
-    "Realistic fashion photography, clean studio background, neutral lighting, full-body front view.",
+    `Clean, high-clarity clothing FIT VISUALIZATION on a neutral mannequin-style body.`,
+    `Subject: a ${bodyType} ${build}-build mannequin / fitting dummy. NOT a real person. No visible face, no facial features, no identity — smooth featureless head. No skin texture, no realism, no fashion-model styling. Neutral posture: standing straight, front-facing, arms relaxed at the sides.`,
+    `Garment: wear the provided ${args.garmentLabel}. Preserve the garment's original color, structure, pattern and material EXACTLY as shown in the reference image. Do NOT redesign or restyle the garment. Ensure strong visual contrast between the clothing and the mannequin body.`,
+    `FIT CONDITION = ${fitType} (size ${args.selectedSize}). ${fitRules[fitType]}`,
+    `CRITICAL: The body MUST stay identical regardless of size. Do NOT resize, slim or enlarge the body to fit the clothing. The clothing adapts to the body, never the reverse.`,
+    `Composition: plain bright studio background (white or light gray), soft even lighting with minimal shadows, full body visible, centered framing.`,
+    `Goal: the fit difference (TIGHT vs PERFECT vs LOOSE vs OVERSIZED) must be instantly recognizable at a glance. Communicate size and fit clearly — not fashion, not aesthetics. Avoid artistic effects, realism noise and unnecessary detail.`,
   ].join(" ");
 }
 
