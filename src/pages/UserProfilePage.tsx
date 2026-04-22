@@ -331,6 +331,14 @@ const UserProfilePage = () => {
           </>
         )}
       </div>
+
+      {/* Direct-to-thread messages sheet — opens when MESSAGE is tapped */}
+      <MessagesFullSheet
+        open={messageSheet.open}
+        onClose={() => setMessageSheet({ open: false, conversationId: null })}
+        initialConversationId={messageSheet.conversationId}
+        initialOtherUserId={userId || null}
+      />
     </div>
   );
 };
