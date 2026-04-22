@@ -18,3 +18,4 @@ FIT: FitSolver (src/lib/fit/fitSolver.ts) is the deterministic source of truth �
 - [FIT engine](mem://features/fit-engine) — Hybrid deterministic + AI vision body scan, free/premium tiers
 - [FIT solver](mem://features/fit-solver) — Deterministic core; SolverResult drives UI + AI prompt hints
 - [product-search fast path](mem://features/product-search-fastpath) — DB + 3.5s gShop on hot path; multi-source/commerce-scraper via waitUntil
+- [FIT working model](mem://features/fit-working-model) — LOCKED baseline for FIT pipeline. Roll back here on "go back to working model".
