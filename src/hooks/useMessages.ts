@@ -182,7 +182,7 @@ export function useThread(conversationId: string | null) {
   useEffect(() => {
     if (!conversationId) return;
     const channel = supabase
-      .channel(`thread-${conversationId}`)
+      .channel(`thread-${conversationId}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {
