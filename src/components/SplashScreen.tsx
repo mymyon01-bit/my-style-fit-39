@@ -1,126 +1,82 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
+const TICKER = ["mood", "weather", "moment", "story", "mood"];
+
+/**
+ * SplashScreen — matches the landing page aesthetic.
+ * Vibrant blobs, oversized italic display headline with rotating word,
+ * rounded pill tag underneath. Clean and quick (~1.6s).
+ */
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
-  const [phase, setPhase] = useState<"idle" | "open" | "reveal" | "done">("idle");
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
-    // Skip on slow devices or if already seen this session
     if (sessionStorage.getItem("wardrobe-splash")) {
       onComplete();
       return;
     }
-
-    const t1 = setTimeout(() => setPhase("open"), 300);
-    const t2 = setTimeout(() => setPhase("reveal"), 1000);
-    const t3 = setTimeout(() => {
-      setPhase("done");
+    const tExit = setTimeout(() => setExiting(true), 1400);
+    const tDone = setTimeout(() => {
       sessionStorage.setItem("wardrobe-splash", "1");
-    }, 1600);
-    const t4 = setTimeout(onComplete, 2000);
-
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+      onComplete();
+    }, 1900);
+    return () => {
+      clearTimeout(tExit);
+      clearTimeout(tDone);
+    };
   }, [onComplete]);
 
-  if (phase === "done") {
-    return (
-      <motion.div
-        className="fixed inset-0 z-[9999] bg-background"
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
-      />
-    );
-  }
-
-  const doorOpen = phase === "open" || phase === "reveal";
-  const lightReveal = phase === "reveal";
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[hsl(20,10%,4%)]">
-      {/* Ambient glow from inside */}
-      <motion.div
-        className="absolute inset-0 flex items-center justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: lightReveal ? 1 : 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
-        <div
-          className="h-[60vh] w-[40vw] rounded-full blur-[80px]"
-          style={{
-            background: "radial-gradient(ellipse, hsl(252 30% 30% / 0.3), hsl(20 10% 8% / 0) 70%)",
-          }}
-        />
-      </motion.div>
-
-      {/* Wardrobe frame */}
-      <div className="relative flex h-[45vh] w-[50vw] max-w-[220px] items-center justify-center lg:max-w-[280px]">
-        {/* Left door */}
-        <motion.div
-          className="absolute left-0 top-0 h-full w-1/2 origin-left border-r border-foreground/[0.06]"
-          style={{ backgroundColor: "hsl(20 10% 6%)" }}
-          initial={{ rotateY: 0 }}
-          animate={{ rotateY: doorOpen ? -65 : 0 }}
-          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          {/* Handle */}
-          <div className="absolute right-3 top-1/2 h-6 w-px -translate-y-1/2 bg-foreground/[0.08]" />
-        </motion.div>
-
-        {/* Right door */}
-        <motion.div
-          className="absolute right-0 top-0 h-full w-1/2 origin-right border-l border-foreground/[0.06]"
-          style={{ backgroundColor: "hsl(20 10% 6%)" }}
-          initial={{ rotateY: 0 }}
-          animate={{ rotateY: doorOpen ? 65 : 0 }}
-          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          {/* Handle */}
-          <div className="absolute left-3 top-1/2 h-6 w-px -translate-y-1/2 bg-foreground/[0.08]" />
-        </motion.div>
-
-        {/* Inner glow (burgundy-tinted light) */}
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: lightReveal ? 1 : 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <div
-            className="h-full w-full rounded-sm"
-            style={{
-              background: "radial-gradient(ellipse at center 40%, hsl(252 25% 25% / 0.15), transparent 60%)",
-            }}
-          />
-        </motion.div>
-
-        {/* Logo inside */}
-        <motion.span
-          className="relative z-10 flex items-baseline font-display text-[18px] font-light leading-none text-foreground/75"
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{
-            opacity: lightReveal ? 0.85 : phase === "idle" ? 0.2 : 0.4,
-            scale: lightReveal ? 1 : 0.97,
-          }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          <span className="tracking-[0.05em]">my</span>
-          <span aria-hidden className="mx-[0.18em] inline-block h-[3px] w-[3px] translate-y-[-0.55em] rounded-full bg-accent/80" />
-          <span className="tracking-[0.05em]">myon</span>
-        </motion.span>
+    <motion.div
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-background"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: exiting ? 0 : 1 }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
+    >
+      {/* Animated color blobs */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="blob bg-primary -top-32 -left-20 h-[420px] w-[420px]" style={{ animationDelay: "0s" }} />
+        <div className="blob bg-accent -bottom-40 -right-24 h-[480px] w-[480px]" style={{ animationDelay: "-6s" }} />
       </div>
 
-      {/* Forward motion overlay */}
-      <motion.div
-        className="absolute inset-0 bg-background"
-        initial={{ opacity: 0, scale: 1.1 }}
-        animate={{
-          opacity: lightReveal ? 0.7 : 0,
-          scale: lightReveal ? 1 : 1.1,
-        }}
-        transition={{ duration: 0.5, delay: 0.3, ease: "easeIn" }}
-      />
-    </div>
+      {/* Center stack */}
+      <div className="relative z-10 flex flex-col items-center px-6">
+        <motion.h1
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center font-display text-[44px] font-medium italic leading-[0.92] tracking-[-0.05em] text-foreground sm:text-[58px]"
+        >
+          <span className="block">wear your</span>
+          <span
+            className="relative inline-block h-[1em] overflow-hidden align-bottom"
+            style={{ width: "4.2ch" }}
+            aria-label="mood"
+          >
+            <span className="ticker-track text-gradient">
+              {TICKER.map((w, i) => (
+                <span key={i} className="block leading-[1em]">
+                  {w}
+                </span>
+              ))}
+            </span>
+          </span>
+        </motion.h1>
+
+        {/* Rounded brand pill */}
+        <motion.span
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mt-8 flex items-baseline rounded-full border border-foreground/15 bg-background/70 px-4 py-1.5 font-mono text-[11px] font-medium uppercase leading-none text-foreground/80 backdrop-blur-md"
+        >
+          <span className="tracking-[0.22em]">MY</span>
+          <span aria-hidden className="mx-[0.28em] inline-block h-[4px] w-[4px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent" />
+          <span className="tracking-[0.22em]">MYON</span>
+        </motion.span>
+      </div>
+    </motion.div>
   );
 };
 
