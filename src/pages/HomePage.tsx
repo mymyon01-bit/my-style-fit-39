@@ -95,28 +95,13 @@ const HomePage = () => {
         </motion.div>
 
         {/* Main column */}
-        <div className="relative z-10 mx-auto w-full max-w-[640px] px-6 pt-20 lg:pt-0">
-          {/* Top label — mono tag */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-8 flex items-center justify-center gap-3"
-          >
-            <span className="h-px w-8 bg-foreground/40" />
-            <span className="label-mono text-foreground/70">
-              <Zap className="mr-1 inline h-3 w-3" />
-              AI STYLIST · EST. 2026
-            </span>
-            <span className="h-px w-8 bg-foreground/40" />
-          </motion.div>
-
-          {/* Oversized italic display headline with rotating ticker */}
+        <div className="relative z-10 mx-auto w-full max-w-[600px] px-6">
+          {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center font-display text-[44px] font-medium italic leading-[0.92] tracking-[-0.05em] text-foreground sm:text-[58px] md:text-[78px] lg:text-[94px]"
+            className="text-center font-display text-[44px] font-medium italic leading-[0.92] tracking-[-0.05em] text-foreground sm:text-[58px] md:text-[78px]"
           >
             <span className="block">wear your</span>
             <span
@@ -134,31 +119,17 @@ const HomePage = () => {
             </span>
           </motion.h1>
 
-          {/* Sub */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="mx-auto mt-6 max-w-md text-center text-[14px] font-medium leading-relaxed text-foreground/70 md:text-[15px]"
-          >
-            Type how you feel. We turn it into outfits — fitted, sized, ready.
-          </motion.p>
-
-          {/* Brutalist command bar */}
+          {/* Rounded command bar */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="mt-10"
           >
-            <div
-              className={`luxe-command group flex items-center gap-3 px-5 py-3 ${
-                isFocused ? "" : ""
-              }`}
-            >
+            <div className="flex items-center gap-2 rounded-full border border-foreground/15 bg-background/80 px-5 py-2 shadow-sm backdrop-blur-md focus-within:border-foreground/50 transition-colors">
               <Sparkles
-                className={`h-4 w-4 shrink-0 transition-all duration-300 ${
-                  isFocused ? "text-primary scale-110" : "text-foreground/50"
+                className={`h-4 w-4 shrink-0 transition-colors ${
+                  isFocused ? "text-primary" : "text-foreground/50"
                 }`}
               />
               <input
@@ -170,14 +141,13 @@ const HomePage = () => {
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
                 placeholder={t("howAreYouFeeling")}
-                className="flex-1 bg-transparent py-2 font-display text-[18px] font-medium tracking-tight text-foreground outline-none placeholder:text-foreground/35 placeholder:italic placeholder:font-light md:text-[22px]"
+                className="flex-1 bg-transparent py-2 font-display text-[16px] font-medium tracking-tight text-foreground outline-none placeholder:text-foreground/35 placeholder:italic placeholder:font-light md:text-[18px]"
               />
               <button
                 onClick={handleSubmit}
                 disabled={!query.trim() || isLoading}
                 aria-label={t("enter")}
-                className="flex h-10 w-10 shrink-0 items-center justify-center border-[1.5px] border-foreground bg-foreground text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:border-foreground/15 disabled:bg-transparent disabled:text-foreground/30"
-                style={{ borderRadius: "var(--radius)" }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:bg-foreground/15 disabled:text-foreground/40"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -186,78 +156,50 @@ const HomePage = () => {
                 )}
               </button>
             </div>
-
-            {/* Weather meta */}
-            {!weather.loading && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.8 }}
-                className="mt-4 text-center label-mono text-foreground/65"
-              >
-                <span className="inline-block h-1.5 w-1.5 translate-y-[-1px] rounded-full bg-primary mr-2 animate-pulse" />
-                {weather.temp}° · {weatherLabel.toUpperCase()}
-                {weather.location && !weather.error ? ` · ${weather.location.toUpperCase()}` : ""}
-              </motion.p>
-            )}
           </motion.div>
 
-          {/* Quick action pill row */}
+          {/* Single-line round button row */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="mt-12 flex flex-wrap items-center justify-center gap-3"
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="mt-6 flex items-center justify-center gap-2.5 flex-nowrap"
           >
             <button
               onClick={() => navigate("/discover")}
-              className="btn-brutalist"
+              className="rounded-full bg-foreground px-5 py-2.5 text-[12px] font-semibold tracking-wide text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
             >
               {t("exploreStyles")}
-              <ArrowRight className="h-3 w-3" />
             </button>
             <button
               onClick={() => navigate("/about")}
-              className="border-[1.5px] border-foreground/20 px-5 py-3 label-mono text-foreground/75 transition-all duration-200 hover:border-foreground hover:bg-foreground hover:text-background"
-              style={{ borderRadius: "var(--radius)" }}
+              className="rounded-full border border-foreground/20 px-5 py-2.5 text-[12px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap"
             >
               {t("about")}
             </button>
             <button
               onClick={handleShareApp}
               aria-label="Share mymyon with friends"
-              className="flex items-center gap-2 border-[1.5px] border-foreground/20 px-5 py-3 label-mono text-foreground/75 transition-all duration-200 hover:border-accent hover:bg-accent hover:text-accent-foreground"
-              style={{ borderRadius: "var(--radius)" }}
+              className="flex items-center gap-1.5 rounded-full border border-foreground/20 px-4 py-2.5 text-[12px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-accent hover:text-accent whitespace-nowrap"
             >
-              <Share2 className="h-3 w-3" /> SHARE
+              <Share2 className="h-3 w-3" />
             </button>
           </motion.div>
-        </div>
 
-        {/* Bottom marquee — manifesto */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.8 }}
-          className="absolute bottom-6 left-0 right-0 z-10 lg:bottom-10"
-        >
-          <div className="marquee py-3 border-y border-foreground/10 bg-background/30 backdrop-blur-sm">
-            {[0, 1].map((dup) => (
-              <div key={dup} className="marquee-track" aria-hidden={dup === 1}>
-                {MARQUEE_WORDS.map((word, i) => (
-                  <span
-                    key={i}
-                    className={`label-mono whitespace-nowrap ${
-                      word === "★" ? "text-accent" : "text-foreground/70"
-                    }`}
-                  >
-                    {word}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </motion.div>
+          {/* Weather meta */}
+          {!weather.loading && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.8 }}
+              className="mt-8 text-center label-mono text-foreground/60"
+            >
+              <span className="inline-block h-1.5 w-1.5 translate-y-[-1px] rounded-full bg-primary mr-2 animate-pulse" />
+              {weather.temp}° · {weatherLabel.toUpperCase()}
+              {weather.location && !weather.error ? ` · ${weather.location.toUpperCase()}` : ""}
+            </motion.p>
+          )}
+        </div>
       </section>
 
       <Footer />
