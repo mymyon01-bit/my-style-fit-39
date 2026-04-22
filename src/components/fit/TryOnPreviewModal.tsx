@@ -218,6 +218,15 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
     setResultUrl(null);
     setProvider(null);
     setRetryAt(null);
+    // Hard client-side timeout — never let the modal hang forever even if the
+    // edge invoke never resolves (network drop, cold-start, browser tab
+    // backgrounded, etc.). 90s covers worst-case Replicate generation.
+    const hardTimeout = window.setTimeout(() => {
+      console.warn("[TryOn] hard client timeout — aborting generating state");
+      stopPolling();
+      setError("Preview is taking too long. Please try again.");
+      setStatus("failed");
+    }, 90_000);
     try {
       console.log("[TryOn] start", { productKey: context.productKey, size: context.recommendedSize, force: forceRegenerate });
       const { data, error } = await createTryOn({
@@ -229,7 +238,10 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         fitDescriptor: context.fitDescriptor,
         regions: context.regions?.map((r) => ({ region: r.region, fit: r.fit })) ?? [],
         forceRegenerate,
-        mode: "vton",
+        // Studio (Flux Schnell) is the fast, reliable path — recent logs show
+        // it completes in ~2–3s. IDM-VTON ("vton") regularly exceeds the
+        // 55s server timeout and leaves the UI hanging.
+        mode: "studio",
       });
       if (error) throw error;
       const successData = data?.ok ? data : null;
@@ -239,6 +251,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       console.log("[TryOn] created", data);
       if (data?.provider) setProvider(data.provider);
       if (successData?.imageUrl) {
+        window.clearTimeout(hardTimeout);
         setResultUrl(successData.imageUrl);
         setStatus("ready");
         return;
@@ -247,6 +260,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         if (asyncData.requestId) setRequestId(asyncData.requestId);
         if (asyncData.predictionId) setPredictionId(asyncData.predictionId);
         if (asyncData.code === "rate_limited") {
+          window.clearTimeout(hardTimeout);
           setError(asyncData.error || "Rate limited by provider.");
           setStatus("rate_limited");
           setRetryAt(Date.now() + Math.min(asyncData.retryAfterMs ?? 8000, 60000));
@@ -254,6 +268,8 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
         }
         setStatus("pending");
         pollUntilDone({ requestId: asyncData.requestId ?? null, predictionId: asyncData.predictionId ?? null });
+        // pollUntilDone has its own POLL_MAX_ATTEMPTS guard; clear hard timer.
+        window.clearTimeout(hardTimeout);
         return;
       }
       if (failureData) {
@@ -262,6 +278,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
       throw new Error("No prediction returned");
     } catch (e: any) {
       console.error("[TryOn] error", e);
+      window.clearTimeout(hardTimeout);
       setError(e?.message || "Preview unavailable right now");
       setStatus("failed");
     }
