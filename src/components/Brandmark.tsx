@@ -1,9 +1,9 @@
 /**
- * Brandmark — refined mymyon wordmark.
+ * Brandmark — my'myon wordmark.
  *
- * Identity: lowercase mono, wide tracking, gradient accent dot.
- * Inspired by Off-White, Acne Studios, A24 — luxury tech editorial.
- * NOT italic. Confident, geometric, modern.
+ * Matches the landing page aesthetic: italic display type, with the second
+ * "myon" rendered in the primary→accent gradient (`text-gradient`) — the same
+ * treatment used for the rotating ticker word on the homepage.
  */
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,19 @@ interface BrandmarkProps {
   asHeading?: boolean;
 }
 
+const Wordmark = ({ className }: { className?: string }) => (
+  <span
+    className={cn(
+      "font-display italic font-medium tracking-[-0.04em] leading-none text-foreground",
+      className
+    )}
+  >
+    my
+    <span aria-hidden className="mx-[0.02em] text-foreground/40">’</span>
+    <span className="text-gradient not-italic font-semibold italic">myon</span>
+  </span>
+);
+
 const Brandmark = ({
   variant = "compact",
   className,
@@ -26,14 +39,7 @@ const Brandmark = ({
     const Tag = asHeading ? "h1" : "div";
     return (
       <Tag className={cn("flex flex-col items-center gap-3", className)}>
-        <span className="flex items-baseline font-mono text-[24px] font-medium uppercase leading-none text-foreground md:text-[28px] lg:text-[32px]">
-          <span className="tracking-[0.18em]">MY</span>
-          <span
-            aria-hidden
-            className="mx-[0.28em] inline-block h-[6px] w-[6px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent"
-          />
-          <span className="tracking-[0.18em]">MYON</span>
-        </span>
+        <Wordmark className="text-[34px] md:text-[42px] lg:text-[52px]" />
         {tagline ? (
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.42em] text-foreground/50">
             {tagline}
@@ -44,39 +50,11 @@ const Brandmark = ({
   }
 
   if (variant === "inline") {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-baseline font-mono text-[11px] font-medium uppercase leading-none text-foreground/80",
-          className
-        )}
-      >
-        <span className="tracking-[0.22em]">MY</span>
-        <span
-          aria-hidden
-          className="mx-[0.26em] inline-block h-[3px] w-[3px] translate-y-[-0.45em] rounded-full bg-accent"
-        />
-        <span className="tracking-[0.22em]">MYON</span>
-      </span>
-    );
+    return <Wordmark className={cn("text-[15px]", className)} />;
   }
 
   // compact (default)
-  return (
-    <span
-      className={cn(
-        "inline-flex items-baseline font-mono text-[13px] font-medium uppercase leading-none text-foreground md:text-[14px]",
-        className
-      )}
-    >
-      <span className="tracking-[0.22em]">MY</span>
-      <span
-        aria-hidden
-        className="mx-[0.28em] inline-block h-[4px] w-[4px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent"
-      />
-      <span className="tracking-[0.22em]">MYON</span>
-    </span>
-  );
+  return <Wordmark className={cn("text-[18px] md:text-[20px]", className)} />;
 };
 
 export default Brandmark;
