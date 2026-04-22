@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Crown, Loader2, TrendingUp } from "lucide-react";
+import { Crown, Loader2, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface RankedPost {
@@ -31,32 +31,27 @@ interface DailyWinner {
   profile?: ProfileInfo;
 }
 
-const RANK_STYLES = [
-  {
-    frame: "border-accent/40 bg-accent/[0.08]",
-    badge: "bg-foreground text-background",
-    points: "text-foreground",
-  },
-  {
-    frame: "border-border/20 bg-card/60",
-    badge: "bg-foreground/90 text-background",
-    points: "text-foreground/80",
-  },
-  {
-    frame: "border-border/15 bg-card/45",
-    badge: "bg-foreground/75 text-background",
-    points: "text-foreground/70",
-  },
-  {
-    frame: "border-border/10 bg-card/30",
-    badge: "bg-muted text-foreground/80",
-    points: "text-foreground/60",
-  },
-  {
-    frame: "border-border/10 bg-card/30",
-    badge: "bg-muted text-foreground/80",
-    points: "text-foreground/60",
-  },
+interface AdProduct {
+  id: string;
+  name: string;
+  brand: string | null;
+  image_url: string | null;
+  source_url: string | null;
+}
+
+interface CrownedBoardProps {
+  /** When provided, clicking a ranking card opens this post in detail. */
+  onPostClick?: (post: RankedPost) => void;
+  /** Optional style preferences used to personalize the AI AD strip. */
+  styleHints?: string[];
+}
+
+const RANK_BADGE = [
+  "bg-foreground text-background",
+  "bg-foreground/90 text-background",
+  "bg-foreground/75 text-background",
+  "bg-muted text-foreground/80",
+  "bg-muted text-foreground/80",
 ];
 
 function getAgeHours(createdAt: string) {
@@ -86,18 +81,35 @@ function formatPoints(score: number) {
   return Math.max(0, Math.round(score));
 }
 
-export default function CrownedBoard() {
+export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardProps = {}) {
   const navigate = useNavigate();
   const [topRanked, setTopRanked] = useState<RankedPost[]>([]);
   const [risingStars, setRisingStars] = useState<RankedPost[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [dailyWinner, setDailyWinner] = useState<DailyWinner | null>(null);
+  const [ads, setAds] = useState<AdProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadRankings();
     loadDailyWinner();
   }, []);
+
+  // AI AD strip — personalized when style hints are present.
+  useEffect(() => {
+    (async () => {
+      const tags = (styleHints || []).filter(Boolean).slice(0, 3);
+      let q = supabase
+        .from("product_cache")
+        .select("id, name, brand, image_url, source_url")
+        .not("image_url", "is", null)
+        .order("trend_score", { ascending: false })
+        .limit(8);
+      if (tags.length > 0) q = q.overlaps("style_tags", tags);
+      const { data } = await q;
+      setAds(((data || []) as AdProduct[]).slice(0, 6));
+    })();
+  }, [styleHints?.join(",")]);
 
   const loadRankings = async () => {
     setLoading(true);
@@ -123,17 +135,12 @@ export default function CrownedBoard() {
       const topFive = scored.slice(0, 5);
       const topIds = new Set(topFive.map((post) => post.id));
 
-      // Rising = anything not already in top 5, sorted by freshness-boosted
-      // score. Widen window to 7 days when nothing is fresh enough so the
-      // section never collapses silently.
       const fresh = scored
         .filter((post) => !topIds.has(post.id) && getAgeHours(post.created_at) <= 72)
         .sort((a, b) => computeRisingScore(b) - computeRisingScore(a));
-
       const wider = scored
         .filter((post) => !topIds.has(post.id))
         .sort((a, b) => computeRisingScore(b) - computeRisingScore(a));
-
       const rising = (fresh.length >= 3 ? fresh : wider).slice(0, 6);
 
       setTopRanked(topFive);
@@ -145,7 +152,6 @@ export default function CrownedBoard() {
           .from("profiles")
           .select("user_id, display_name, avatar_url")
           .in("user_id", userIds);
-
         if (profs) {
           const profileMap: Record<string, ProfileInfo> = {};
           for (const profile of profs) profileMap[profile.user_id] = profile;
@@ -165,7 +171,6 @@ export default function CrownedBoard() {
       .gte("award_date", yesterday)
       .order("award_date", { ascending: false })
       .limit(1);
-
     if (data && data.length > 0) {
       const winner = data[0] as DailyWinner;
       const { data: profile } = await supabase
@@ -173,12 +178,16 @@ export default function CrownedBoard() {
         .select("user_id, display_name, avatar_url")
         .eq("user_id", winner.user_id)
         .maybeSingle();
-
       setDailyWinner({ ...winner, profile: profile || undefined });
     }
   };
 
   const getProfile = (userId: string) => profiles[userId];
+
+  const handleCardClick = (post: RankedPost) => {
+    if (onPostClick) onPostClick(post);
+    else navigate(`/ootd?post=${post.id}`);
+  };
 
   if (loading) {
     return (
@@ -187,6 +196,10 @@ export default function CrownedBoard() {
       </div>
     );
   }
+
+  // Split top 5 → hero (#1) + others (#2-5)
+  const hero = topRanked[0];
+  const others = topRanked.slice(1, 5);
 
   return (
     <div className="space-y-8">
@@ -231,6 +244,7 @@ export default function CrownedBoard() {
         </div>
       ) : (
         <div className="space-y-10">
+          {/* TOP 5 — Layout:  hero #1 (left, tall) + 2x2 grid (right) */}
           <section className="space-y-4">
             <div className="flex items-end justify-between border-b border-border/15 pb-2">
               <div>
@@ -239,114 +253,165 @@ export default function CrownedBoard() {
               </div>
             </div>
 
-            {/* Layout: rank #1 is the hero (large square), ranks 2-5 sit
-                in a compact 2x2 grid. Mobile: 2 cols, hero spans both.
-                Desktop: 3 cols, hero spans 2x2. */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-              {topRanked.map((post, index) => {
-                const profile = getProfile(post.user_id);
-                const rank = index + 1;
-                const rankStyle = RANK_STYLES[index] || RANK_STYLES[4];
-                const isFirst = rank === 1;
-                const cellClass = isFirst
-                  ? "col-span-2 md:col-span-2 md:row-span-2"
-                  : "col-span-1";
+            <div className="grid grid-cols-2 gap-3">
+              {/* Hero — #1 */}
+              {hero && (
+                <motion.button
+                  type="button"
+                  onClick={() => handleCardClick(hero)}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="group relative aspect-[3/4] overflow-hidden rounded-[1.25rem] border border-accent/40 bg-accent/[0.08] text-left"
+                >
+                  <img
+                    src={hero.image_url}
+                    alt={hero.caption || `${getProfile(hero.user_id)?.display_name || "Anonymous"} OOTD`}
+                    className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/0 to-background/85" />
 
-                return (
-                  <motion.article
-                    key={post.id}
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={`${cellClass} group relative aspect-square overflow-hidden rounded-[1.25rem] border ${rankStyle.frame}`}
-                  >
-                    <img
-                      src={post.image_url}
-                      alt={post.caption || `${profile?.display_name || "Anonymous"} OOTD`}
-                      className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/0 to-background/85" />
-
-                    <div className="absolute left-2 top-2 flex items-center gap-1.5 md:left-3 md:top-3 md:gap-2">
-                      <div className={`flex ${isFirst ? "h-8 min-w-8 text-[12px]" : "h-6 min-w-6 text-[10px]"} items-center justify-center rounded-full px-1.5 font-semibold ${rankStyle.badge}`}>
-                        {rank}
-                      </div>
-                      {isFirst && (
-                        <button
-                          onClick={() => navigate(`/user/${post.user_id}`)}
-                          className="flex max-w-[60vw] items-center gap-2 rounded-full bg-background/72 px-2.5 py-1 backdrop-blur-sm transition-colors hover:bg-background/88"
-                        >
-                          <div className="h-5 w-5 overflow-hidden rounded-full bg-muted">
-                            {profile?.avatar_url ? (
-                              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[8px] font-bold text-foreground/45">
-                                {(profile?.display_name || "?")[0].toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <span className="truncate text-[10px] font-medium text-foreground/88">
-                            {profile?.display_name || "Anonymous"}
+                  <div className="absolute left-2 top-2 flex items-center gap-2">
+                    <div className="flex h-8 min-w-8 items-center justify-center rounded-full bg-foreground px-1.5 text-[12px] font-semibold text-background">
+                      1
+                    </div>
+                    <span
+                      onClick={(e) => { e.stopPropagation(); navigate(`/user/${hero.user_id}`); }}
+                      className="flex max-w-[55%] items-center gap-2 rounded-full bg-background/72 px-2.5 py-1 backdrop-blur-sm transition-colors hover:bg-background/88 cursor-pointer"
+                    >
+                      <span className="h-5 w-5 overflow-hidden rounded-full bg-muted">
+                        {getProfile(hero.user_id)?.avatar_url ? (
+                          <img src={getProfile(hero.user_id)?.avatar_url || ""} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-[8px] font-bold text-foreground/45">
+                            {(getProfile(hero.user_id)?.display_name || "?")[0].toUpperCase()}
                           </span>
-                        </button>
-                      )}
-                    </div>
+                        )}
+                      </span>
+                      <span className="truncate text-[10px] font-medium text-foreground/88">
+                        {getProfile(hero.user_id)?.display_name || "Anonymous"}
+                      </span>
+                    </span>
+                  </div>
 
-                    <div className={`absolute ${isFirst ? "right-3 top-3 px-2.5 py-1" : "right-2 top-2 px-1.5 py-0.5"} rounded-full bg-background/72 text-right backdrop-blur-sm`}>
-                      <p className={`${isFirst ? "text-[13px]" : "text-[10px]"} font-semibold ${rankStyle.points}`}>{formatPoints(post.score)}</p>
-                      {isFirst && <p className="text-[8px] uppercase tracking-[0.22em] text-foreground/38">PTS</p>}
-                    </div>
+                  <div className="absolute right-3 top-3 rounded-full bg-background/72 px-2.5 py-1 text-right backdrop-blur-sm">
+                    <p className="text-[13px] font-semibold text-foreground">{formatPoints(hero.score)}</p>
+                    <p className="text-[8px] uppercase tracking-[0.22em] text-foreground/38">PTS</p>
+                  </div>
 
-                    {!isFirst && (
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    {hero.style_tags && hero.style_tags.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {hero.style_tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full border border-background/15 bg-background/70 px-2 py-1 text-[8px] uppercase tracking-[0.18em] text-foreground/62 backdrop-blur-sm"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {hero.caption && (
+                      <p className="text-[12px] line-clamp-2 max-w-[92%] text-foreground/86">{hero.caption}</p>
+                    )}
+                  </div>
+                </motion.button>
+              )}
+
+              {/* 2x2 grid — ranks 2..5 */}
+              <div className="grid grid-cols-2 grid-rows-2 gap-3">
+                {others.map((post, idx) => {
+                  const rank = idx + 2;
+                  const profile = getProfile(post.user_id);
+                  return (
+                    <motion.button
+                      key={post.id}
+                      type="button"
+                      onClick={() => handleCardClick(post)}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="group relative aspect-square overflow-hidden rounded-xl border border-border/15 bg-card/45 text-left"
+                    >
+                      <img
+                        src={post.image_url}
+                        alt={post.caption || `${profile?.display_name || "Anonymous"} OOTD`}
+                        className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/0 to-background/85" />
+
+                      <div className="absolute left-1.5 top-1.5">
+                        <div className={`flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${RANK_BADGE[idx + 1]}`}>
+                          {rank}
+                        </div>
+                      </div>
+
+                      <div className="absolute right-1.5 top-1.5 rounded-full bg-background/72 px-1.5 py-0.5 text-right backdrop-blur-sm">
+                        <p className="text-[10px] font-semibold text-foreground/80">{formatPoints(post.score)}</p>
+                      </div>
+
                       <div className="absolute inset-x-0 bottom-0 px-2 pb-1.5 pt-6 bg-gradient-to-t from-background/90 to-transparent">
-                        <button
-                          onClick={() => navigate(`/user/${post.user_id}`)}
-                          className="flex w-full items-center gap-1.5 text-left"
+                        <span
+                          onClick={(e) => { e.stopPropagation(); navigate(`/user/${post.user_id}`); }}
+                          className="flex w-full items-center gap-1.5 text-left cursor-pointer"
                         >
-                          <div className="h-4 w-4 overflow-hidden rounded-full bg-muted shrink-0">
+                          <span className="h-4 w-4 overflow-hidden rounded-full bg-muted shrink-0">
                             {profile?.avatar_url ? (
                               <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[7px] font-bold text-foreground/45">
+                              <span className="flex h-full w-full items-center justify-center text-[7px] font-bold text-foreground/45">
                                 {(profile?.display_name || "?")[0].toUpperCase()}
-                              </div>
+                              </span>
                             )}
-                          </div>
+                          </span>
                           <span className="truncate text-[9px] font-medium text-foreground/85">
                             {profile?.display_name || "Anonymous"}
                           </span>
-                        </button>
+                        </span>
                       </div>
-                    )}
-
-                    {isFirst && (
-                      <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
-                        {post.style_tags && post.style_tags.length > 0 && (
-                          <div className="mb-2 flex flex-wrap gap-1.5">
-                            {post.style_tags.slice(0, 3).map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-full border border-background/15 bg-background/70 px-2 py-1 text-[8px] uppercase tracking-[0.18em] text-foreground/62 backdrop-blur-sm"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {post.caption && (
-                          <p className="text-[13px] line-clamp-2 max-w-[92%] text-foreground/86">
-                            {post.caption}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </motion.article>
-                );
-              })}
+                    </motion.button>
+                  );
+                })}
+              </div>
             </div>
           </section>
 
+          {/* AI AD — between Top 5 and Rising Stars */}
+          {ads.length > 0 && (
+            <section className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3 text-accent/70" />
+                  <span className="text-[9px] font-semibold tracking-[0.22em] text-foreground/55">FOR YOU</span>
+                  <span className="rounded-full bg-accent/15 px-1.5 py-px text-[8px] font-bold tracking-[0.15em] text-accent">
+                    AI AD
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {ads.map((p) => (
+                  <a
+                    key={p.id}
+                    href={p.source_url || "#"}
+                    target={p.source_url ? "_blank" : undefined}
+                    rel="noopener noreferrer"
+                    className="flex w-20 shrink-0 flex-col gap-1"
+                  >
+                    <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+                      ) : null}
+                    </div>
+                    <p className="line-clamp-1 text-[9px] text-foreground/60">{p.brand || p.name}</p>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* RISING STARS */}
           <section className="space-y-4">
             <div className="flex items-end justify-between border-b border-border/15 pb-2">
               <div>
@@ -365,44 +430,45 @@ export default function CrownedBoard() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {risingStars.map((post, index) => {
                   const profile = getProfile(post.user_id);
-
                   return (
-                    <motion.article
+                    <motion.button
                       key={post.id}
+                      type="button"
+                      onClick={() => handleCardClick(post)}
                       initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.04 }}
-                      className="flex items-center gap-3 rounded-2xl border border-border/12 bg-card/35 p-3"
+                      className="flex items-center gap-3 rounded-2xl border border-border/12 bg-card/35 p-3 text-left transition-colors hover:border-border/30"
                     >
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border/10 bg-muted/40">
+                      <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border/10 bg-muted/40">
                         <img src={post.image_url} alt={post.caption || "Rising star OOTD"} className="h-full w-full object-cover object-top" loading="lazy" />
-                      </div>
+                      </span>
 
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <div className="flex items-center justify-between gap-3">
-                          <button
-                            onClick={() => navigate(`/user/${post.user_id}`)}
-                            className="truncate text-left text-[12px] font-medium text-foreground/84 transition-colors hover:text-foreground"
+                      <span className="min-w-0 flex-1 space-y-1.5">
+                        <span className="flex items-center justify-between gap-3">
+                          <span
+                            onClick={(e) => { e.stopPropagation(); navigate(`/user/${post.user_id}`); }}
+                            className="truncate text-left text-[12px] font-medium text-foreground/84 transition-colors hover:text-foreground cursor-pointer"
                           >
                             {profile?.display_name || "Anonymous"}
-                          </button>
-                          <div className="shrink-0 text-right">
-                            <p className="text-[14px] font-semibold text-foreground/88">{formatPoints(post.score)}</p>
-                            <p className="text-[8px] uppercase tracking-[0.22em] text-foreground/36">PTS</p>
-                          </div>
-                        </div>
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className="block text-[14px] font-semibold text-foreground/88">{formatPoints(post.score)}</span>
+                            <span className="block text-[8px] uppercase tracking-[0.22em] text-foreground/36">PTS</span>
+                          </span>
+                        </span>
 
                         {post.caption && (
-                          <p className="line-clamp-2 text-[11px] leading-relaxed text-foreground/56">{post.caption}</p>
+                          <span className="line-clamp-2 text-[11px] leading-relaxed text-foreground/56 block">{post.caption}</span>
                         )}
 
-                        <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.2em] text-foreground/34">
+                        <span className="flex items-center gap-2 text-[9px] uppercase tracking-[0.2em] text-foreground/34">
                           <span>{post.like_count} likes</span>
                           <span>•</span>
                           <span>{post.star_count} stars</span>
-                        </div>
-                      </div>
-                    </motion.article>
+                        </span>
+                      </span>
+                    </motion.button>
                   );
                 })}
               </div>
