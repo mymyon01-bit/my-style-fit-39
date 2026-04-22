@@ -374,8 +374,8 @@ export default function CrownedBoard() {
                       transition={{ delay: index * 0.04 }}
                       className="flex items-center gap-3 rounded-2xl border border-border/12 bg-card/35 p-3"
                     >
-                      <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-xl border border-border/10 bg-muted/40">
-                        <img src={post.image_url} alt={post.caption || "Rising star OOTD"} className="h-full w-full object-cover" loading="lazy" />
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border/10 bg-muted/40">
+                        <img src={post.image_url} alt={post.caption || "Rising star OOTD"} className="h-full w-full object-cover object-top" loading="lazy" />
                       </div>
 
                       <div className="min-w-0 flex-1 space-y-1.5">
