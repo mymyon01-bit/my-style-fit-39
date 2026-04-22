@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
@@ -92,7 +92,8 @@ const OOTDPage = () => {
   // Inbox/notifications sheets opened from My Page
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [notifsOpen, setNotifsOpen] = useState(false);
-  const { totalUnread } = useNotifications();
+  const { notifUnread, totalUnread } = useNotifications();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,6 +112,34 @@ const OOTDPage = () => {
   }, [user]);
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
+
+  // Deep-link: /ootd?post=<id> opens that post's detail (used by notifications
+  // and the ranking board).
+  useEffect(() => {
+    const postId = searchParams.get("post");
+    if (!postId) return;
+    let cancelled = false;
+    (async () => {
+      // Try in-memory first to avoid a roundtrip.
+      const inMemory = posts.find((p) => p.id === postId) || myPosts.find((p) => p.id === postId);
+      if (inMemory) { setSelectedPost(inMemory as OOTDPost); }
+      else {
+        const { data } = await supabase
+          .from("ootd_posts")
+          .select("*")
+          .eq("id", postId)
+          .maybeSingle();
+        if (!cancelled && data) setSelectedPost(data as OOTDPost);
+      }
+      // Clear the query param so re-opens work.
+      const next = new URLSearchParams(searchParams);
+      next.delete("post");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("post")]);
+
 
   // Debounced combined search (users + hashtags)
   useEffect(() => {
@@ -397,15 +426,15 @@ const OOTDPage = () => {
               </div>
             )}
             <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">OOTD</span>
-            {user && totalUnread > 0 && (
+            {user && notifUnread > 0 && (
               <button
                 onClick={() => setNotifsOpen(true)}
                 className="relative text-foreground/75 hover:text-foreground transition-colors"
                 aria-label="Open notifications"
               >
                 <Bell className="h-4 w-4" />
-                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white">
-                  {totalUnread > 99 ? "99+" : totalUnread}
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                  {notifUnread > 99 ? "99+" : notifUnread}
                 </span>
               </button>
             )}
@@ -475,7 +504,10 @@ const OOTDPage = () => {
         <AnimatePresence mode="wait">
           {activeTab === "ranking" ? (
             <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <CrownedBoard />
+              <CrownedBoard
+                styleHints={userPrefs?.styles}
+                onPostClick={(p) => setSelectedPost(p as unknown as OOTDPost)}
+              />
             </motion.div>
           ) : activeTab === "community" ? (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
