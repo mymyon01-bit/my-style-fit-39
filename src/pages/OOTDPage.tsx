@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
@@ -475,7 +475,10 @@ const OOTDPage = () => {
         <AnimatePresence mode="wait">
           {activeTab === "ranking" ? (
             <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <CrownedBoard />
+              <CrownedBoard
+                styleHints={userPrefs?.styles}
+                onPostClick={(p) => setSelectedPost(p as OOTDPost)}
+              />
             </motion.div>
           ) : activeTab === "community" ? (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
