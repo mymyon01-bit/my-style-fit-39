@@ -27,6 +27,7 @@ const TICKER_WORDS = ["mood", "weather", "moment", "story", "mood"];
 
 const HomePage = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
