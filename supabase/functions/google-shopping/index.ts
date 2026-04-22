@@ -148,7 +148,7 @@ serve(async (req) => {
     const json = await resp.json();
     const items: SerpShoppingItem[] = Array.isArray(json?.shopping_results) ? json.shopping_results : [];
 
-    const products = items
+    const productsRaw = items
       .map((it) => {
         const title = (it.title || "").trim();
         const image = it.thumbnail || (Array.isArray(it.thumbnails) ? it.thumbnails[0] : "") || "";
@@ -180,6 +180,27 @@ serve(async (req) => {
         };
       })
       .filter(Boolean) as Array<Record<string, unknown>>;
+
+    // ── IMAGE PROXY PASS ─────────────────────────────────────────────────
+    // For fragile hosts (gstatic, encrypted-tbn, etc.) re-host the image
+    // through our storage so the UI never serves a hotlink-blocked URL.
+    // Bounded concurrency (8) and best-effort: if proxy fails, drop the row.
+    const products: Array<Record<string, unknown>> = [];
+    const queue = productsRaw.slice();
+    async function worker() {
+      while (queue.length) {
+        const p = queue.shift();
+        if (!p) return;
+        const original = String(p.image_url || "");
+        if (isFragileHost(original)) {
+          const proxied = await proxyImage(original);
+          if (!proxied) continue; // drop unrenderable item — quality > quantity
+          p.image_url = proxied;
+        }
+        products.push(p);
+      }
+    }
+    await Promise.all(Array.from({ length: 8 }, () => worker()));
 
     let inserted = 0;
     if (!liveOnly && products.length && SUPABASE_URL && SERVICE_ROLE) {
