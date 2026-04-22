@@ -14,18 +14,20 @@ import { useState, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Sparkles, Share2 } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Share2, Download, LogIn, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
 import Footer from "@/components/Footer";
 import Brandmark from "@/components/Brandmark";
+import { useAuth } from "@/lib/auth";
 
 const TICKER_WORDS = ["mood", "weather", "moment", "story", "mood"];
 
 const HomePage = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -85,10 +87,28 @@ const HomePage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="absolute top-6 z-20 flex w-full items-center justify-between px-6 lg:hidden"
+          className="absolute top-5 z-20 flex w-full items-center justify-between gap-2 px-5 lg:hidden"
         >
           <Brandmark variant="inline" />
-          <LanguageSelector />
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => navigate("/install")}
+              aria-label="Download app"
+              className="flex h-8 items-center gap-1.5 rounded-full border border-foreground/20 bg-background/70 px-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground"
+            >
+              <Download className="h-3 w-3" />
+              <span>Get app</span>
+            </button>
+            <button
+              onClick={() => navigate(user ? "/profile" : "/auth")}
+              aria-label={user ? "Profile" : "Sign in"}
+              className="flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-[10px] font-semibold uppercase tracking-wider text-background transition-all hover:bg-primary hover:text-primary-foreground"
+            >
+              {user ? <UserIcon className="h-3 w-3" /> : <LogIn className="h-3 w-3" />}
+              <span>{user ? "Me" : "Sign in"}</span>
+            </button>
+            <LanguageSelector />
+          </div>
         </motion.div>
 
         {/* Main column */}
