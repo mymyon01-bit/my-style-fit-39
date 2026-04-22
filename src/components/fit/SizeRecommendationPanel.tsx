@@ -154,13 +154,22 @@ export default function SizeRecommendationPanel({
 
   return (
     <div className="space-y-4">
-      {/* Header: confidence + preference toggle */}
+      {/* Header: confidence + gender + preference toggle */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <ShieldCheck className="h-3.5 w-3.5 text-foreground/45" />
           <span className={`text-[10px] font-bold tracking-[0.15em] px-2.5 py-1 rounded-full ${conf.bg} ${conf.color}`}>
             {conf.label}
           </span>
+          {recommendation.bodyGender && recommendation.bodyGender !== "neutral" && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-[0.15em] px-2.5 py-1 rounded-full bg-foreground/[0.06] text-foreground/70">
+              <User className="h-3 w-3" />
+              {recommendation.bodyGender === "female" ? "WOMEN" : "MEN"}
+              {recommendation.productGender && recommendation.productGender !== "neutral" && recommendation.productGender !== recommendation.bodyGender && (
+                <span className="ml-1 text-foreground/40">→ {recommendation.productGender === "female" ? "W" : "M"}</span>
+              )}
+            </span>
+          )}
         </div>
         <div className="inline-flex rounded-full border border-foreground/10 p-0.5 bg-card/40">
           {PREF_OPTIONS.map((o) => (
@@ -178,6 +187,16 @@ export default function SizeRecommendationPanel({
           ))}
         </div>
       </div>
+
+      {/* Gender mismatch warning */}
+      {recommendation.genderMismatchWarning && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-3 flex items-start gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+          <span className="text-[11px] text-amber-400/90 leading-relaxed">
+            {recommendation.genderMismatchWarning}
+          </span>
+        </div>
+      )}
 
       {/* Inferred measurements warning */}
       <InferredMeasurementsBanner inferredFields={inferredFields} onAddMeasurements={onAddMeasurements} />
