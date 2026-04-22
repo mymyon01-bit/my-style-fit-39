@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, Messag
 import { motion } from "framer-motion";
 import { AuthGate } from "@/components/AuthGate";
 import { openConversationWith } from "@/hooks/useMessages";
+import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 import { toast } from "sonner";
 
 interface UserProfileData {
