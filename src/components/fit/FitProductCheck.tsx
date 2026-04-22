@@ -2,10 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Link2, Search, Info, Loader2, ShieldCheck, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { mockProductFitData } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import SelectedProductCard from "@/components/fit/SelectedProductCard";
 import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
+import {
+  passesGenderFilter,
+  genderPreferenceToFilter,
+  type GenderFilter,
+} from "@/lib/discover/genderFilter";
 
 interface FitProduct {
   id: string;
