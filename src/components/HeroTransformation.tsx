@@ -44,10 +44,10 @@ const HeroTransformation = () => {
         <div className="absolute inset-0 flex flex-col items-start justify-end px-8 pb-12 md:px-16 md:pb-20 lg:px-24 lg:pb-28">
           <div className="max-w-2xl animate-[heroIn_0.9s_cubic-bezier(0.22,1,0.36,1)_both]">
             <div className="flex items-center gap-3">
-              <span className="flex items-baseline font-display italic text-[20px] font-medium leading-none text-foreground md:text-[24px]">
-                <span className="tracking-[-0.04em]">my</span>
-                <span aria-hidden className="mx-[0.18em] inline-block h-[4px] w-[4px] translate-y-[-0.55em] rounded-full bg-accent" />
-                <span className="tracking-[-0.04em]">myon</span>
+              <span className="flex items-baseline font-mono text-[16px] font-medium uppercase leading-none text-foreground md:text-[18px]">
+                <span className="tracking-[0.22em]">MY</span>
+                <span aria-hidden className="mx-[0.28em] inline-block h-[5px] w-[5px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent" />
+                <span className="tracking-[0.22em]">MYON</span>
               </span>
               <span className="label-mono text-foreground/65">EST. 2026</span>
             </div>

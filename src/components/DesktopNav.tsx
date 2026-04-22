@@ -39,14 +39,14 @@ const DesktopNav = () => {
           <button
             onClick={() => navigate("/")}
             aria-label="mymyon — home"
-            className="group flex items-baseline font-display italic text-[24px] font-medium leading-none text-foreground transition-colors hover:text-accent"
+            className="group flex items-baseline font-mono text-[16px] font-medium uppercase leading-none text-foreground transition-colors"
           >
-            <span className="tracking-[-0.04em]">my</span>
+            <span className="tracking-[0.22em] transition-colors group-hover:text-accent">MY</span>
             <span
               aria-hidden
-              className="mx-[0.18em] inline-block h-[5px] w-[5px] translate-y-[-0.55em] rounded-full bg-accent transition-all group-hover:bg-primary group-hover:scale-150"
+              className="mx-[0.28em] inline-block h-[5px] w-[5px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent transition-all group-hover:scale-150"
             />
-            <span className="tracking-[-0.04em]">myon</span>
+            <span className="tracking-[0.22em] transition-colors group-hover:text-accent">MYON</span>
           </button>
 
           {/* Center nav */}
