@@ -54,7 +54,7 @@ export function classifyGarment(title: string | null | undefined): string | null
  * sprites, favicons, logos, placeholders.
  */
 const HARD_REJECT_URL_RE =
-  /(^|[/_-.])(logo|logos|brand[-_]?logo|favicon|sprite|sprites|icon[-_]?set|navbar|header[-_]?(logo|banner)|site[-_]?logo|app[-_]?icon|apple[-_]?touch[-_]?icon|placeholder|placehold|noimage|no[-_]?image|default[-_]?image|coming[-_]?soon)([/_-.]|$)/i;
+  /(^|[-/_.])(logo|logos|brand[-_]?logo|favicon|sprite|sprites|icon[-_]?set|navbar|header[-_]?(logo|banner)|site[-_]?logo|app[-_]?icon|apple[-_]?touch[-_]?icon|placeholder|placehold|noimage|no[-_]?image|default[-_]?image|coming[-_]?soon)([-/_.]|$)/i;
 
 export function isPlausibleImageUrl(u: string | null | undefined): boolean {
   if (!u) return false;
