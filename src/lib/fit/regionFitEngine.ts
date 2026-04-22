@@ -41,9 +41,13 @@ export interface RegionFitComputation {
   warnings: string[];
 }
 
+type BodyKey =
+  | "shoulderCm" | "chestCm" | "waistCm" | "hipCm"
+  | "inseamCm" | "sleeveLengthCm" | "torsoLengthCm";
+
 interface RegionRule {
   region: string;
-  body: keyof BodyProfile | "shoulderCm" | "chestCm" | "waistCm" | "hipCm" | "inseamCm";
+  body: BodyKey;
   garment: keyof ResolvedGarmentSize["measurements"];
   /** Bands (in cm of delta) for tight → loose interpretation. */
   bands: { tight: number; ideal: number; loose: number };
