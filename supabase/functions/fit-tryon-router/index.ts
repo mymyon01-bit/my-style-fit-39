@@ -1,20 +1,15 @@
-// ─── FIT TRY-ON ROUTER (CLEAN STUDIO GENERATION via Lovable AI) ─────────────
-// IMPORTANT: This router NO LONGER overlays the garment onto the user's
-// uploaded photo. The previous IDM-VTON pipeline was preserving the user's
-// original background (mirrors, bathrooms, rooms, hands, props), producing
-// crude composite-looking results. That is now removed.
+// ─── FIT TRY-ON ROUTER (REPLICATE IDM-VTON) ────────────────────────────────
+// Final image generation runs on Replicate IDM-VTON. Local code (in
+// `fit-generate-v2` and `src/lib/fit/*`) handles fit calculation, region
+// interpretation, and prompt assembly — no Gemini dependency in this path.
+// Optional lightweight assist (e.g. body bbox) lives in `fit-vision-analyze`
+// and uses gemini-2.5-flash-lite (free-tier friendly), and is OPTIONAL.
 //
-// New flow:
-//   - Body image is NOT used as a canvas. Only body measurements + region fit
-//     descriptors are fed into the prompt.
-//   - Product image is sent as a visual reference only (so style/color/print
-//     are preserved).
-//   - Lovable AI Gateway (google/gemini-3-pro-image-preview a.k.a. Nano-Banana
-//     Pro) generates a brand-new clean studio fashion image — neutral
-//     background, premium ecommerce/editorial look, no environmental artifacts.
-//
-// Persistence + caching contract (fit_tryons table) is preserved so the inline
-// useCanvasTryOn hook + TryOnPreviewModal continue to work without changes.
+// Flow:
+//   1. local fit calc + prompt (handled by caller / fit-generate-v2)
+//   2. Replicate IDM-VTON renders the final try-on image
+//   3. result is persisted to the `fit-composites` storage bucket
+//   4. persistent URL is stored in `fit_tryons` and returned to the UI
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -380,6 +375,45 @@ function toSuccess(row: TryOnRow, imageUrl: string): SuccessResponse {
   };
 }
 
+// ─── PERSIST GENERATED IMAGE TO STORAGE ─────────────────────────────────────
+// Replicate output URLs expire. Copy the asset into our public `fit-composites`
+// bucket so the saved try-on stays valid long-term.
+async function persistImageToStorage(
+  admin: ReturnType<typeof createClient>,
+  sourceUrl: string,
+  userId: string | null,
+  productKey: string,
+  selectedSize: string,
+): Promise<string> {
+  try {
+    const res = await fetch(sourceUrl);
+    if (!res.ok) {
+      logRouter("PERSIST_FETCH_FAILED", { status: res.status, sourceUrl: sourceUrl.slice(0, 80) });
+      return sourceUrl;
+    }
+    const contentType = res.headers.get("content-type") || "image/png";
+    const ext = contentType.includes("webp") ? "webp" : contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : "png";
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const safeKey = productKey.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 80);
+    const safeSize = selectedSize.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 16);
+    const folder = userId || "anon";
+    const path = `${folder}/${safeKey}_${safeSize}_${Date.now()}.${ext}`;
+    const { error } = await admin.storage.from("fit-composites").upload(path, bytes, {
+      contentType, upsert: true, cacheControl: "31536000",
+    });
+    if (error) {
+      logRouter("PERSIST_UPLOAD_FAILED", { error: error.message });
+      return sourceUrl;
+    }
+    const { data: pub } = admin.storage.from("fit-composites").getPublicUrl(path);
+    logRouter("PERSIST_OK", { path });
+    return pub?.publicUrl || sourceUrl;
+  } catch (e) {
+    logRouter("PERSIST_EXCEPTION", { error: e instanceof Error ? e.message : String(e) });
+    return sourceUrl;
+  }
+}
+
 // ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
 async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
   const existing = userId ? await getTryOnByIdentity(admin, userId, body) : null;
@@ -403,16 +437,18 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
   const result = await generateCleanFitImage(apiKey, body);
 
   if (result.kind === "success") {
+    // Persist immediately so the UI never depends on Replicate's expiring URL.
+    const persistedUrl = await persistImageToStorage(admin, result.imageUrl, userId, body.productKey, body.selectedSize);
     if (record) {
       await updateTryOnRecord(admin, record.id, {
         status: "succeeded",
-        result_image_url: result.imageUrl,
+        result_image_url: persistedUrl,
         error_message: null,
-        metadata: { ...(record.metadata || {}), retryAfterUntil: null },
+        metadata: { ...(record.metadata || {}), retryAfterUntil: null, sourceUrl: result.imageUrl },
       });
-      return toSuccess(record, result.imageUrl);
+      return toSuccess(record, persistedUrl);
     }
-    return { ok: true, imageUrl: result.imageUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
+    return { ok: true, imageUrl: persistedUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
   }
 
   if (result.kind === "throttled") {
