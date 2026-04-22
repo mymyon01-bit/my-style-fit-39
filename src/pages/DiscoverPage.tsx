@@ -21,6 +21,7 @@ import StyledLooksRow from "@/components/discover/StyledLooksRow";
 import LiveResultsSection from "@/components/discover/LiveResultsSection";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
 import { genderPreferenceToFilter, type GenderFilter } from "@/lib/discover/genderFilter";
+import Brandmark from "@/components/Brandmark";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
