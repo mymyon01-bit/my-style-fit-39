@@ -136,6 +136,18 @@ export function useDbTopGrid(query: string, limit = 12, gender: GenderFilter = "
           .map((row) => normalizeFromCache(row))
           .filter((item): item is Product => Boolean(item && item.imageUrl));
 
+        // FASHION-ONLY UI GATE: belt-and-braces filter to drop legacy non-fashion
+        // rows (golf clubs etc.) that may still be in product_cache from before
+        // the ingestion guard was added.
+        const { isRenderableProduct } = await import("@/lib/search/fashionGuard");
+        normalized = normalized.filter((item) =>
+          isRenderableProduct({
+            name: item.title,
+            image_url: item.imageUrl,
+            source_url: item.externalUrl,
+          }),
+        );
+
         if (lock) {
           const matches = normalized.filter((item) => productMatchesCategory(item, lock));
           if (matches.length >= Math.min(limit / 2, 6)) normalized = matches;

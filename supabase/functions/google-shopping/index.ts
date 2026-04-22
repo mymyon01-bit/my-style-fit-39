@@ -130,6 +130,11 @@ serve(async (req) => {
         const image = it.thumbnail || (Array.isArray(it.thumbnails) ? it.thumbnails[0] : "") || "";
         const link = it.product_link || it.link || "";
         if (!title || !image || !link) return null;
+        // STRICT FASHION-ONLY GATE: reject golf clubs, yard games, electronics, etc.
+        if (!isFashionTitle(title)) return null;
+        const category = classifyGarment(title);
+        // If we can't classify it confidently into a garment bucket, drop it.
+        if (!category) return null;
         return {
           external_id: it.product_id ? `gshop:${it.product_id}` : `gshop:${link}`,
           name: title,
@@ -142,7 +147,7 @@ serve(async (req) => {
           platform: "google_shopping",
           source_type: "serpapi",
           source_trust_level: "high",
-          category: inferCategory(title),
+          category,
           search_query: query,
           image_valid: true,
           is_active: true,
