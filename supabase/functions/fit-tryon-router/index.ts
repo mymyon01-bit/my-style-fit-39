@@ -427,7 +427,9 @@ Deno.serve(async (req) => {
         selectedSize: body.selectedSize || url.searchParams.get("selectedSize") || undefined,
       });
       logRouter("STATUS_OUT", { code: response.ok ? "ok" : response.code, requestId: response.requestId, elapsedMs: Date.now() - requestStartedAt });
-      const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 402 : 500;
+    // NOTE: credits_exhausted returns 200 so client SDK can read the body
+    // (supabase.functions.invoke discards bodies on non-2xx).
+    const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 200 : 500;
       return json(response, statusCode);
     }
 
