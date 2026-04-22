@@ -17,6 +17,7 @@ export default {
         display: ["Fraunces", "DM Sans", "Inter", "Helvetica Neue", "Arial", "serif"],
         body: ["DM Sans", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
         sans: ["DM Sans", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -63,6 +64,8 @@ export default {
           lime: "hsl(var(--edge-lime))",
           pink: "hsl(var(--edge-pink))",
           beige: "hsl(var(--edge-beige))",
+          cyan: "hsl(var(--edge-cyan))",
+          violet: "hsl(var(--edge-violet))",
         },
         star: "hsl(var(--star))",
       },
