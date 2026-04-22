@@ -565,11 +565,17 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           imageUrl: summarizeUrl(successData?.imageUrl ?? null),
           provider: data?.provider,
         });
-        if (cancelled || activeRequestRef.current !== requestId) return;
+        if (cancelled || activeRequestRef.current !== requestId) {
+          console.log("[FIT_PREVIEW]", { event: "ignored_ai_response_stale", requestId, activeRequestId: activeRequestRef.current });
+          return;
+        }
         if (!error && successData?.imageUrl) {
           aiLockedRef.current = requestId;
           setState((prev) => {
-            if (prev.requestId !== requestId) return prev;
+            if (prev.requestId !== requestId || activeRequestRef.current !== requestId) {
+              console.log("[FIT_PREVIEW]", { event: "ignored_ai_state_write", requestId, prevRequestId: prev.requestId });
+              return prev;
+            }
             const next = derivePreviewState({
               ...prev,
               stage: "ai_ready",
