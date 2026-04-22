@@ -201,6 +201,9 @@ export default function FitResults({
   // into `activeSize` and into the visual try-on `regions` payload so the AI
   // image visualizes the CALCULATED fit (S=tight / M=fit / L=regular / XL=loose).
   const [sizingPrefOverride, setSizingPrefOverride] = useState<FitPreference | null>(null);
+  // Per-region body-type scales — computed early so the sizing hook can use
+  // them. (Legacy uses are below; this memo replaces the duplicate at line 265.)
+  const shapeScales = useMemo(() => buildBodyShapeScales(bodyShape ?? null), [bodyShape]);
   const sizing = useSizeRecommendation({
     productUrl: product.url,
     productName: product.name,
