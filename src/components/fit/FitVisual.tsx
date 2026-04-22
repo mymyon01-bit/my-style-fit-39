@@ -107,13 +107,7 @@ export default function FitVisual({
     }
   }, [state.requestId, state.stage, previewSrc, best.kind, best.isFinal, hardFailed]);
 
-  const sourceLabel = best.kind === "ai"
-    ? "AI STUDIO PREVIEW"
-    : best.kind === "composite"
-    ? "STYLED PREVIEW"
-    : best.kind === "fallback"
-    ? "QUICK PREVIEW"
-    : "GENERATING";
+  const sourceLabel = "AI STUDIO PREVIEW";
 
   const handleShare = async () => {
     if (!previewSrc) return;
