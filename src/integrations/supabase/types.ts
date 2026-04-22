@@ -723,6 +723,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          read_at: string | null
+          recipient_id: string
+          target_id: string | null
+          type: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          recipient_id: string
+          target_id?: string | null
+          type: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          recipient_id?: string
+          target_id?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       ootd_comments: {
         Row: {
           content: string
@@ -1744,6 +1777,7 @@ export type Database = {
     }
     Functions: {
       claim_referral: { Args: { _code: string }; Returns: Json }
+      delete_my_account: { Args: never; Returns: undefined }
       get_or_create_conversation: {
         Args: { _other_user: string }
         Returns: string
