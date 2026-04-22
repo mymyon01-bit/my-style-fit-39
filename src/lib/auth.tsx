@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import {
+  signInWithAppleNative,
+  signInWithGoogleNative,
+} from "@/lib/native/nativeAuth";
+import { isNativeApp } from "@/lib/native/platform";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -10,6 +15,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithApple: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
@@ -52,14 +58,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
+    if (isNativeApp()) {
+      const native = await signInWithGoogleNative();
+      if (native?.ok) return { error: null };
+      if (native && !native.ok) return { error: new Error(native.error || "google_failed") };
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
       return { error: result.error instanceof Error ? result.error : new Error(String(result.error)) };
     }
-    if (result.redirected) {
-      return { error: null };
+    return { error: null };
+  };
+
+  const signInWithApple = async () => {
+    if (isNativeApp()) {
+      const native = await signInWithAppleNative();
+      if (native?.ok) return { error: null };
+      if (native && !native.ok) return { error: new Error(native.error || "apple_failed") };
+    }
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      return { error: result.error instanceof Error ? result.error : new Error(String(result.error)) };
     }
     return { error: null };
   };
@@ -76,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signInWithApple, signOut, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

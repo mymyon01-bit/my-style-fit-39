@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
 import { recordEvent } from "@/lib/diagnostics";
+import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import { toast } from "sonner";
 
 // Sentinel topic — when present in a post's `topics` array it signals that
@@ -90,13 +91,10 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setHashtags(prev => prev.filter(t => t !== tag));
   };
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const ingestFile = async (f: File) => {
     try {
       validateMedia(f, { allowVideo: false, maxBytes: 50 * 1024 * 1024 });
       setError(null);
-      // Robust prep: HEIC tolerance + compression
       const prepared = await prepareImage(f);
       setFile(prepared);
       setPreview(URL.createObjectURL(prepared));
@@ -105,8 +103,23 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
       const msg = err?.message || "Couldn't read that photo";
       setError(msg);
       toast.error(msg);
-    } finally {
-      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    await ingestFile(f);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handlePickPhoto = async () => {
+    // Native iOS/Android: open OS sheet (camera + library); web: <input>.
+    const native = await pickPhotoFile({ source: "prompt" });
+    if (native) {
+      await ingestFile(native);
+    } else {
+      fileRef.current?.click();
     }
   };
 
@@ -252,7 +265,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                   </div>
                 ) : (
                   <button
-                    onClick={() => fileRef.current?.click()}
+                    onClick={handlePickPhoto}
                     className="mb-4 flex w-full aspect-[3/4] max-h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-foreground/10 bg-foreground/[0.02] transition-colors hover:border-accent/30"
                   >
                     <Camera className="h-8 w-8 text-foreground/15 mb-2" />

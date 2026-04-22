@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Upload, FolderOpen, Sparkles, Loader2, X, Image as ImageIcon,
 } from "lucide-react";
+import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 
 interface Props {
   /** number of previously saved body photos (0 = no status card shown) */
@@ -41,6 +42,26 @@ export default function ScanEntry({
     if (file) {
       setOpen(false);
       onPickFile(file);
+    }
+  };
+
+  const openCamera = async () => {
+    const native = await pickPhotoFile({ source: "camera" });
+    if (native) {
+      setOpen(false);
+      onPickFile(native);
+    } else {
+      cameraRef.current?.click();
+    }
+  };
+
+  const openLibrary = async () => {
+    const native = await pickPhotoFile({ source: "library" });
+    if (native) {
+      setOpen(false);
+      onPickFile(native);
+    } else {
+      fileRef.current?.click();
     }
   };
 
@@ -130,13 +151,13 @@ export default function ScanEntry({
                   icon={<Camera className="h-4 w-4" />}
                   label="Take photo"
                   hint="Use your camera"
-                  onClick={() => cameraRef.current?.click()}
+                  onClick={openCamera}
                 />
                 <SheetAction
                   icon={<Upload className="h-4 w-4" />}
                   label="Upload from device"
                   hint="Choose an image file"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={openLibrary}
                 />
                 <SheetAction
                   icon={<FolderOpen className="h-4 w-4" />}

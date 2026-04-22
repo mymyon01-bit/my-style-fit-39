@@ -10,6 +10,7 @@ import { Upload, Loader2, Check, Trash2, ImagePlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import {
   listUserBodyImages,
   resolveBodyImageUrl,
@@ -58,10 +59,8 @@ export default function UserBodyImageLibrary({ selectedImageId, onSelect, onClea
     refresh();
   }, [refresh]);
 
-  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !user) return;
+  const ingest = (file: File) => {
+    if (!user) return;
     if (!file.type.startsWith("image/")) {
       toast.error("Please pick an image");
       return;
@@ -83,6 +82,18 @@ export default function UserBodyImageLibrary({ selectedImageId, onSelect, onClea
         toast.error("Upload failed");
       })
       .finally(() => setUploading(false));
+  };
+
+  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) ingest(file);
+  };
+
+  const openPicker = async () => {
+    const native = await pickPhotoFile({ source: "prompt" });
+    if (native) ingest(native);
+    else fileRef.current?.click();
   };
 
   const handleDelete = async (image: UserBodyImage) => {
@@ -113,7 +124,7 @@ export default function UserBodyImageLibrary({ selectedImageId, onSelect, onClea
         {/* Upload tile */}
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={openPicker}
           disabled={uploading}
           className="relative flex aspect-[3/4] flex-col items-center justify-center rounded-2xl border border-dashed border-foreground/15 bg-card/30 transition-colors hover:border-accent/40 disabled:opacity-50"
         >

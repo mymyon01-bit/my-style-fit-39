@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { captureReferralFromUrl } from "@/hooks/useReferralCode";
+import { isNativeApp, nativePlatform } from "@/lib/native/platform";
 
 const AuthPage = () => {
   const { t } = useI18n();
-  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
+  const { signIn, signUp, signInWithGoogle, signInWithApple, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -52,6 +53,18 @@ const AuthPage = () => {
     if (error) setError(error.message);
     setLoading(false);
   };
+
+  const handleApple = async () => {
+    setError(null);
+    setLoading(true);
+    const { error } = await signInWithApple();
+    if (error) setError(error.message);
+    setLoading(false);
+  };
+
+  // Apple is shown on iOS (native shell) where the system sheet is best,
+  // and we always allow it on web for parity.
+  const showApple = !isNativeApp() || nativePlatform() === "ios";
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
@@ -116,6 +129,19 @@ const AuthPage = () => {
                   </svg>
                   Continue with Google
                 </button>
+
+                {showApple && (
+                  <button
+                    onClick={handleApple}
+                    disabled={loading}
+                    className="mt-2 flex w-full items-center justify-center gap-3 py-4.5 text-[12px] font-medium text-foreground/80 transition-colors hover:text-foreground/85 disabled:opacity-50 md:text-[13px]"
+                  >
+                    <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.05 12.04c-.03-2.78 2.27-4.12 2.37-4.18-1.29-1.89-3.3-2.15-4.02-2.18-1.71-.17-3.34 1.01-4.21 1.01-.87 0-2.21-.99-3.64-.96-1.87.03-3.6 1.09-4.56 2.76-1.95 3.37-.5 8.36 1.4 11.1.93 1.34 2.03 2.85 3.47 2.79 1.4-.06 1.93-.9 3.62-.9 1.69 0 2.17.9 3.64.87 1.5-.03 2.45-1.36 3.37-2.71 1.06-1.55 1.5-3.05 1.52-3.13-.03-.01-2.92-1.12-2.96-4.47zM14.27 4.27c.77-.94 1.29-2.23 1.15-3.52-1.11.05-2.45.74-3.25 1.67-.72.83-1.35 2.16-1.18 3.42 1.24.1 2.5-.63 3.28-1.57z" />
+                    </svg>
+                    Continue with Apple
+                  </button>
+                )}
 
                 <div className="my-10 flex items-center gap-4">
                   <div className="h-px flex-1 bg-accent/[0.12]" />
