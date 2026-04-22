@@ -227,7 +227,7 @@ const UserProfilePage = () => {
                       onClick={async () => {
                         const cid = await openConversationWith(userId!);
                         if (cid) {
-                          navigate(`/profile?openConversation=${cid}`);
+                          setMessageSheet({ open: true, conversationId: cid });
                         } else {
                           toast.error("Could not open chat");
                         }
