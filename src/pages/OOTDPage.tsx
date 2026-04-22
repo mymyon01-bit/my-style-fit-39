@@ -421,6 +421,7 @@ const OOTDPage = () => {
             hasStory={hasOwnStory}
             hasUnseenStory={hasOwnUnseen}
             onUploadStory={() => setStoryUploadOpen(true)}
+            onOpenMessages={() => setMessagesOpen(true)}
             onViewMyStory={() => {
               const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
               if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
