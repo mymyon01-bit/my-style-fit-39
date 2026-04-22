@@ -51,7 +51,7 @@ export default function FitVisual({
   }, [state.requestId]);
 
   useEffect(() => {
-    if (state.aiImageUrl || state.compositeImageUrl || state.fallbackImageUrl) {
+    if (state.aiImageUrl) {
       setHardFailed(false);
       return;
     }
@@ -59,9 +59,10 @@ export default function FitVisual({
       setHardFailed(true);
       return;
     }
-    const t = window.setTimeout(() => setHardFailed(true), 60_000);
+    // Give the AI generator more time — it's the only image we display.
+    const t = window.setTimeout(() => setHardFailed(true), 90_000);
     return () => window.clearTimeout(t);
-  }, [state.requestId, state.stage, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl]);
+  }, [state.requestId, state.stage, state.aiImageUrl]);
 
   /** Validates the URL is something the browser can actually render. */
   const isRenderable = (url: string | null | undefined): url is string => {
