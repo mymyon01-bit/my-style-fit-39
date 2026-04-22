@@ -167,7 +167,7 @@ export function calculateAllSizes(input: CalcInput): SizeOutcome[] {
       ),
     );
 
-    const overall = pickOverall(regions);
+    const overall = pickOverall(regions, rule.weights);
     let score = 0;
     let weightSum = 0;
     for (const r of regions) {
