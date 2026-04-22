@@ -162,7 +162,9 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
   const allProducts = [...dbProducts, ...MOCK_CATALOG].filter((p) => {
     const hasImage = !!p.image && /^(https?:\/\/|data:image\/)/i.test(p.image);
     const hasCategory = !!p.category && p.category !== "other";
-    return hasImage && hasCategory;
+    if (!hasImage || !hasCategory) return false;
+    // Gender filter — mirror Discover so a male profile doesn't see women's items.
+    return passesGenderFilter(p as any, gender);
   });
 
   return (
