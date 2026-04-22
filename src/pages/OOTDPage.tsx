@@ -583,6 +583,40 @@ const OOTDPage = () => {
             </motion.div>
           ) : (
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* Preference banner — explains why these looks are surfacing */}
+              {user && userPrefs && (userPrefs.styles.length > 0 || userPrefs.occasions.length > 0) && !activeTopic && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/15 bg-accent/[0.04] px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent/75">For You</p>
+                    <p className="mt-0.5 truncate text-[11px] text-foreground/65">
+                      Tuned to {[...userPrefs.styles, ...userPrefs.occasions].slice(0, 4).join(" · ")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/settings")}
+                    className="shrink-0 text-[9px] font-medium tracking-[0.18em] text-accent/70 hover:text-accent"
+                  >
+                    EDIT
+                  </button>
+                </div>
+              )}
+              {user && (!userPrefs || (userPrefs.styles.length === 0 && userPrefs.occasions.length === 0)) && !activeTopic && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-foreground/55">Personalize feed</p>
+                    <p className="mt-0.5 truncate text-[11px] text-foreground/55">
+                      Set your styles to surface looks you'll love.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/onboarding")}
+                    className="shrink-0 rounded-full border border-accent/25 px-2.5 py-1 text-[9px] font-medium tracking-[0.18em] text-accent/80 hover:bg-accent/10"
+                  >
+                    SET
+                  </button>
+                </div>
+              )}
+
               {/* Active topic filter pill */}
               {activeTopic && (
                 <div className="flex items-center gap-2">
@@ -616,7 +650,8 @@ const OOTDPage = () => {
                   )}
                 </div>
               ) : (() => {
-                const { featured, rest } = getFeaturedPosts();
+                const feedSource = getFeedPosts();
+                const { featured, rest } = getFeaturedPosts(feedSource);
                 return (
                   <div className="space-y-5">
                     {featured.length > 0 && (
