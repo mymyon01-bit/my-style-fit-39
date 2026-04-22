@@ -533,25 +533,33 @@ async function persistImageToStorage(
 
 // ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
 async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
-  const existing = userId ? await getTryOnByIdentity(admin, userId, body) : null;
+  const mode: "studio" | "vton" = body.mode === "vton" ? "vton" : "studio";
+  const generatorTag = mode === "vton" ? "replicate-idm-vton" : "replicate-flux-studio";
+  const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : STUDIO_MODEL_ID;
+
+  // Cache key includes mode so studio + vton results don't clobber each other.
+  const cacheKey = `${body.productKey}::${mode}`;
+  const existing = userId ? await getTryOnByIdentity(admin, userId, { ...body, productKey: cacheKey }) : null;
 
   if (existing && !body.forceRegenerate && existing.status === "succeeded" && existing.result_image_url) {
-    logRouter("CACHE_HIT", { id: existing.id });
+    logRouter("CACHE_HIT", { id: existing.id, mode });
     return toSuccess(existing, existing.result_image_url);
   }
 
   const record = userId
-    ? await upsertTryOnRecord(admin, userId, body, {
+    ? await upsertTryOnRecord(admin, userId, { ...body, productKey: cacheKey }, {
         status: "processing",
         prediction_id: null,
         result_image_url: null,
         error_message: null,
-        model_id: MODEL_ID,
-        metadata: { generator: "replicate-idm-vton", retryAfterUntil: null },
+        model_id: modelIdForRecord,
+        metadata: { generator: generatorTag, mode, retryAfterUntil: null },
       })
     : null;
 
-  const result = await generateCleanFitImage(apiKey, body);
+  const result = mode === "vton"
+    ? await generateCleanFitImage(apiKey, body)
+    : await generateStudioFitImage(apiKey, body);
 
   if (result.kind === "success") {
     // Persist immediately so the UI never depends on Replicate's expiring URL.
