@@ -41,7 +41,19 @@ const AuthPage = () => {
       if (mode === "signup") setMessage("Check your email to confirm your account.");
       else navigate("/onboarding", { replace: true });
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      const raw = (err?.message || "").toLowerCase();
+      let friendly = err?.message || "An error occurred";
+      if (raw.includes("invalid login credentials")) {
+        friendly =
+          "Email or password is incorrect. If you originally signed up with Google or Apple, use that button above instead.";
+      } else if (raw.includes("email not confirmed") || raw.includes("not confirmed")) {
+        friendly = "Please confirm your email first — check your inbox for the verification link.";
+      } else if (raw.includes("user already registered") || raw.includes("already registered")) {
+        friendly = "An account with this email already exists. Try signing in instead.";
+      } else if (raw.includes("rate limit") || raw.includes("too many")) {
+        friendly = "Too many attempts. Please wait a moment and try again.";
+      }
+      setError(friendly);
     }
     setLoading(false);
   };
