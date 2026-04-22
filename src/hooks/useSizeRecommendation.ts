@@ -1,9 +1,9 @@
 // ─── useSizeRecommendation ──────────────────────────────────────────────────
 // Orchestrates the new measurement-driven sizing pipeline:
-//   1. resolve body (user-provided + inferred)
+//   1. resolve body (user-provided + inferred + profile gender fallback)
 //   2. load garment chart (DB rows → category default fallback, optional scrape)
 //   3. calculate all sizes for current preference
-//   4. build recommendation + confidence
+//   4. build recommendation + confidence + gender mismatch check
 //
 // Reactively recomputes on preference change without re-fetching the chart.
 
@@ -15,6 +15,7 @@ import {
   loadGarmentChart,
   calculateAllSizes,
   buildRecommendation,
+  inferProductGender,
   type FitPreference,
   type GarmentChart,
   type ResolvedBody,
@@ -26,6 +27,10 @@ interface Args {
   productName?: string | null;
   brand?: string | null;
   category?: string | null;
+  /** Free-text gender hint already known about the product (e.g. "women"). */
+  productGender?: string | null;
+  /** Breadcrumb path from the listing/source — improves audience inference. */
+  productBreadcrumb?: string | string[] | null;
   /** User body inputs — pass whatever you have. */
   body: {
     gender?: string | null;
@@ -65,11 +70,12 @@ function normalizePref(raw?: string | null): FitPreference {
 export function useSizeRecommendation(args: Args): State {
   const { user } = useAuth();
   const [globalPreference, setGlobalPreference] = useState<FitPreference>(DEFAULT_PREFERENCE);
+  const [profileGender, setProfileGender] = useState<string | null>(null);
   const [chart, setChart] = useState<GarmentChart | null>(null);
   const [loadingChart, setLoadingChart] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. Load global preferred_fit from style_profiles (one-shot per user).
+  // 1a. Load global preferred_fit from style_profiles (one-shot per user).
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -88,16 +94,37 @@ export function useSizeRecommendation(args: Args): State {
     return () => { cancelled = true; };
   }, [user]);
 
+  // 1b. Load gender_preference from profiles as a fallback when caller didn't
+  //     pass body.gender. This guarantees recommendations are always gendered.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("gender_preference")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!cancelled && data?.gender_preference) {
+          setProfileGender(data.gender_preference);
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const preference: FitPreference = args.preferenceOverride ?? globalPreference;
 
-  // 2. Resolve body (synchronous — no IO).
+  // 2. Resolve body — gender falls back to profile when caller didn't supply one.
+  const effectiveBodyGender = args.body.gender ?? profileGender ?? null;
   const body = useMemo<ResolvedBody | null>(() => {
     if (args.enabled === false) return null;
-    return resolveBody(args.body);
+    return resolveBody({ ...args.body, gender: effectiveBodyGender });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     args.enabled,
-    args.body.gender,
+    effectiveBodyGender,
     args.body.heightCm,
     args.body.weightKg,
     args.body.shoulderCm,
@@ -132,12 +159,24 @@ export function useSizeRecommendation(args: Args): State {
     return () => { cancelled = true; };
   }, [args.enabled, args.productUrl, args.productName, args.brand, args.category]);
 
-  // 4. Calculate + recommend (synchronous; recomputes on preference change).
+  // 4. Infer product gender once (depends only on product strings).
+  const productGender = useMemo(
+    () => inferProductGender({
+      explicit: args.productGender ?? null,
+      category: args.category ?? null,
+      name: args.productName ?? null,
+      brand: args.brand ?? null,
+      breadcrumb: args.productBreadcrumb ?? null,
+    }),
+    [args.productGender, args.category, args.productName, args.brand, args.productBreadcrumb],
+  );
+
+  // 5. Calculate + recommend (synchronous; recomputes on preference change).
   const recommendation = useMemo<SizeRecommendation | null>(() => {
     if (!body || !chart) return null;
     const outcomes = calculateAllSizes({ body, chart, preference });
-    return buildRecommendation({ body, chart, preference, outcomes });
-  }, [body, chart, preference]);
+    return buildRecommendation({ body, chart, preference, outcomes, productGender });
+  }, [body, chart, preference, productGender]);
 
   return {
     body,
