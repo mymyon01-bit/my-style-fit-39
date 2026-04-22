@@ -192,63 +192,118 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   ].filter(Boolean).join(" ");
 }
 
-// ─── LOVABLE AI GATEWAY CALL ────────────────────────────────────────────────
+// ─── REPLICATE IDM-VTON CALL ────────────────────────────────────────────────
 type GenResult =
   | { kind: "success"; imageUrl: string }
   | { kind: "throttled"; error: string; retryAfterMs: number }
   | { kind: "credits_exhausted"; error: string }
   | { kind: "error"; code: FailureCode; error: string };
 
-async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
-  const prompt = buildCleanStudioPrompt(body);
-  logRouter("AI_PROMPT", { productKey: body.productKey, size: body.selectedSize, model: MODEL_ID, promptPreview: prompt.slice(0, 220) });
+function buildGarmentDescription(body: CreateBody): string {
+  const label = body.productName?.trim() || body.productCategory || "garment";
+  return `${label} in size ${body.selectedSize}`;
+}
 
-  const content: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
-  // Pass product image as visual style reference. Body image is intentionally
-  // OMITTED — we do not want the model anchoring to the user's environment.
-  if (body.productImageUrl) {
-    content.push({ type: "image_url", image_url: { url: body.productImageUrl } });
+function inferCategory(body: CreateBody): "upper_body" | "lower_body" | "dresses" {
+  const c = (body.productCategory || "").toLowerCase();
+  if (/(pant|trouser|jean|short|skirt|legging)/.test(c)) return "lower_body";
+  if (/(dress|gown|jumpsuit)/.test(c)) return "dresses";
+  return "upper_body";
+}
+
+async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
+  if (!body.userImageUrl) {
+    return { kind: "error", code: "missing_output", error: "user_body_image_required_for_tryon" };
   }
+
+  logRouter("REPLICATE_START", {
+    productKey: body.productKey,
+    size: body.selectedSize,
+    model: MODEL_ID,
+    category: inferCategory(body),
+  });
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // 1) Create prediction
+    const createRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       signal: controller.signal,
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=5",
+      },
       body: JSON.stringify({
-        model: MODEL_ID,
-        messages: [{ role: "user", content }],
-        modalities: ["image", "text"],
+        version: MODEL_VERSION,
+        input: {
+          human_img: body.userImageUrl,
+          garm_img: body.productImageUrl,
+          garment_des: buildGarmentDescription(body),
+          category: inferCategory(body),
+          crop: false,
+          seed: 42,
+          steps: 30,
+        },
       }),
     });
 
-    if (response.status === 429) {
-      const txt = await response.text().catch(() => "");
+    if (createRes.status === 429) {
+      const txt = await createRes.text().catch(() => "");
       return { kind: "throttled", error: txt.slice(0, 220) || "rate_limited", retryAfterMs: 8_000 };
     }
-    if (response.status === 402) {
-      const txt = await response.text().catch(() => "");
-      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "AI credits exhausted" };
+    if (createRes.status === 402) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "Replicate credits exhausted" };
     }
-    if (!response.ok) {
-      const txt = await response.text().catch(() => "");
-      return { kind: "error", code: "provider_error", error: `gateway ${response.status}: ${txt.slice(0, 200)}` };
+    if (!createRes.ok) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "error", code: "provider_error", error: `replicate ${createRes.status}: ${txt.slice(0, 200)}` };
     }
 
-    const data = await response.json().catch(() => ({}));
-    const url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
-    if (!url || typeof url !== "string") {
-      return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+    let prediction = await createRes.json().catch(() => ({} as any));
+    const predId: string | undefined = prediction?.id;
+
+    // 2) Poll until terminal state or timeout
+    const deadline = Date.now() + SERVER_TIMEOUT_MS - 2000;
+    while (
+      prediction &&
+      prediction.status !== "succeeded" &&
+      prediction.status !== "failed" &&
+      prediction.status !== "canceled" &&
+      Date.now() < deadline
+    ) {
+      await new Promise((r) => setTimeout(r, REPLICATE_POLL_INTERVAL_MS));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predId}`, {
+        headers: { Authorization: `Token ${apiKey}` },
+        signal: controller.signal,
+      });
+      if (!pollRes.ok) {
+        const txt = await pollRes.text().catch(() => "");
+        return { kind: "error", code: "provider_error", error: `replicate poll ${pollRes.status}: ${txt.slice(0, 160)}` };
+      }
+      prediction = await pollRes.json().catch(() => ({}));
     }
-    return { kind: "success", imageUrl: url };
+
+    if (prediction?.status === "succeeded") {
+      const out = prediction.output;
+      const url = Array.isArray(out) ? out[0] : typeof out === "string" ? out : null;
+      if (!url) return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+      return { kind: "success", imageUrl: url };
+    }
+
+    if (prediction?.status === "failed" || prediction?.status === "canceled") {
+      return { kind: "error", code: "generation_failed", error: prediction?.error || "replicate_failed" };
+    }
+
+    return { kind: "error", code: "timeout", error: "replicate_timeout" };
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
-      return { kind: "error", code: "timeout", error: "ai_gateway_timeout" };
+      return { kind: "error", code: "timeout", error: "replicate_timeout" };
     }
-    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "ai_gateway_failed" };
+    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "replicate_failed" };
   } finally {
     clearTimeout(timer);
   }
