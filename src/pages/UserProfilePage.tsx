@@ -46,6 +46,11 @@ const UserProfilePage = () => {
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [postCount, setPostCount] = useState(0);
+  // Inline messages sheet — opens directly into the chat with this user.
+  const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null }>({
+    open: false,
+    conversationId: null,
+  });
 
   useEffect(() => {
     if (!userId) return;
