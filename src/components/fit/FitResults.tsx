@@ -425,9 +425,7 @@ export default function FitResults({
     reloadToken,
   });
 
-  // Active size outcome from the new measurement-driven engine (if available).
-  // Defined AFTER `useFitTryOn` is hooked but used inside it via closure — so
-  // we compute it via a memo placed earlier. Move the memo above this hook:
+  // (sizingActiveOutcome memo is declared earlier so useFitTryOn can read it.)
 
   // Per-region fit chips computed from the deterministic solver.
   const fitChipsForVisual = useMemo(() => {
