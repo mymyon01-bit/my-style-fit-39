@@ -1,12 +1,17 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, MapPin, Tag, Hash, Plus } from "lucide-react";
+import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
+
+// Sentinel topic — when present in a post's `topics` array it signals that
+// the author has disabled sharing. Stored in `topics` to avoid a schema
+// migration; hidden from any UI that lists topics.
+export const NO_SHARE_FLAG = "__noshare";
 
 interface Props {
   open: boolean;
@@ -42,9 +47,10 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [allowShares, setAllowShares] = useState(true);
 
   useEffect(() => {
-    if (open) { loadTopics(); setStep(1); }
+    if (open) { loadTopics(); setStep(1); setAllowShares(true); }
   }, [open]);
 
   const loadTopics = async () => {
