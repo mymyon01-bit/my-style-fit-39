@@ -214,24 +214,6 @@ export default function FitVisual({
               </div>
             )}
           </>
-        ) : productImageUrl ? (
-          // Hard fallback — if the cascade somehow yields nothing (every
-          // candidate marked failed, or state not yet committed), STILL show
-          // the raw product image rather than a gray box.
-          <div className="relative h-full w-full">
-            <img
-              src={productImageUrl}
-              alt={`${productName} (preview unavailable)`}
-              className="h-full w-full object-cover opacity-90"
-              loading="eager"
-              decoding="async"
-            />
-            <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
-              <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
-                PRODUCT
-              </span>
-            </div>
-          </div>
         ) : (
           // STATE 1 — LOADING (no image, no fallback): rich skeleton with
           // animated silhouette so the area never feels dead.
