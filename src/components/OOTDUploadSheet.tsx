@@ -1,12 +1,17 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, MapPin, Tag, Hash, Plus } from "lucide-react";
+import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
+
+// Sentinel topic — when present in a post's `topics` array it signals that
+// the author has disabled sharing. Stored in `topics` to avoid a schema
+// migration; hidden from any UI that lists topics.
+export const NO_SHARE_FLAG = "__noshare";
 
 interface Props {
   open: boolean;
@@ -42,9 +47,10 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [allowShares, setAllowShares] = useState(true);
 
   useEffect(() => {
-    if (open) { loadTopics(); setStep(1); }
+    if (open) { loadTopics(); setStep(1); setAllowShares(true); }
   }, [open]);
 
   const loadTopics = async () => {
@@ -123,7 +129,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
         .from("ootd-photos")
         .getPublicUrl(path);
 
-      const allTopics = [...new Set([...selectedTopics, ...hashtags])];
+      const baseTopics = [...new Set([...selectedTopics, ...hashtags])];
+      const allTopics = allowShares ? baseTopics : [...baseTopics, NO_SHARE_FLAG];
 
       const { error: insertError } = await supabase.from("ootd_posts").insert({
         user_id: user.id,
@@ -189,6 +196,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setNewTopic("");
     setError(null);
     setStep(1);
+    setAllowShares(true);
   };
 
   const canProceed = (s: number) => {
@@ -448,6 +456,34 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                     ))}
                   </div>
                 </div>
+
+                {/* Sharing toggle — author can disable shares for this post */}
+                <button
+                  type="button"
+                  onClick={() => setAllowShares((v) => !v)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/40 bg-background/60 px-3.5 py-3 text-left transition-colors hover:border-accent/30"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Share2 className="h-3.5 w-3.5 shrink-0 text-foreground/60" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold text-foreground/85">Allow others to share</p>
+                      <p className="mt-0.5 text-[10px] text-foreground/50">
+                        {allowShares ? "Anyone can share this look" : "Sharing is blocked for this post"}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                      allowShares ? "bg-accent/70" : "bg-foreground/15"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform ${
+                        allowShares ? "translate-x-4" : "translate-x-0.5"
+                      }`}
+                    />
+                  </span>
+                </button>
 
                 {/* Weather */}
                 {!weather.loading && !weather.error && (

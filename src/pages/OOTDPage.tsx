@@ -65,6 +65,8 @@ const OOTDPage = () => {
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const [selectedPost, setSelectedPost] = useState<OOTDPost | null>(null);
+  // User style preferences — used to personalize the FEED tab.
+  const [userPrefs, setUserPrefs] = useState<{ styles: string[]; occasions: string[] } | null>(null);
   // Edit state
   const [editingPost, setEditingPost] = useState<OOTDPost | null>(null);
   const [editCaption, setEditCaption] = useState("");
@@ -95,7 +97,7 @@ const OOTDPage = () => {
   useEffect(() => {
     loadPosts();
     loadTopics();
-    if (user) { loadMyPosts(); loadTodayStars(); loadUserReactions(); loadSavedPosts(); }
+    if (user) { loadMyPosts(); loadTodayStars(); loadUserReactions(); loadSavedPosts(); loadUserPrefs(); }
   }, [user]);
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
@@ -197,6 +199,23 @@ const OOTDPage = () => {
     if (!user) return;
     const { data } = await supabase.from("saved_posts").select("post_id").eq("user_id", user.id);
     if (data) setSavedPosts(new Set(data.map((d: any) => d.post_id)));
+  };
+
+  // Pulls preferred styles + occasions from style_profiles. Used to filter
+  // the FEED tab so users see looks aligned with their taste.
+  const loadUserPrefs = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("style_profiles")
+      .select("preferred_styles, occasions")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (data) {
+      setUserPrefs({
+        styles: (data.preferred_styles || []).map((s: string) => s.toLowerCase()),
+        occasions: (data.occasions || []).map((s: string) => s.toLowerCase()),
+      });
+    }
   };
 
   const handleSavePost = async (postId: string) => {
@@ -308,9 +327,32 @@ const OOTDPage = () => {
   const handlePosted = () => { loadPosts(); loadMyPosts(); loadTopics(); };
   const getProfile = (userId: string) => profileMap[userId] || null;
 
-  const getFeaturedPosts = () => {
-    if (posts.length < 4) return { featured: [], rest: posts };
-    const scored = [...posts].sort((a, b) => {
+  // FEED tab — preference-aware ranking. Posts that match the user's preferred
+  // styles or occasions surface first; everything else falls through in the
+  // original chronological order. When the user has no preferences (or no
+  // matches) we keep the chronological order so the feed never looks empty.
+  const getFeedPosts = (): OOTDPost[] => {
+    if (!userPrefs || (userPrefs.styles.length === 0 && userPrefs.occasions.length === 0)) {
+      return posts;
+    }
+    const styleSet = new Set(userPrefs.styles);
+    const occasionSet = new Set(userPrefs.occasions);
+    const scoreOf = (p: OOTDPost) => {
+      const styleHits = (p.style_tags || []).reduce((n, t) => n + (styleSet.has(t.toLowerCase()) ? 1 : 0), 0);
+      const occHits = (p.occasion_tags || []).reduce((n, t) => n + (occasionSet.has(t.toLowerCase()) ? 1 : 0), 0);
+      const topicHits = (p.topics || []).reduce((n, t) => n + (styleSet.has(t.toLowerCase()) ? 1 : 0), 0);
+      return styleHits * 3 + occHits * 2 + topicHits;
+    };
+    const matched = posts.map(p => ({ p, s: scoreOf(p) })).filter(x => x.s > 0);
+    if (matched.length === 0) return posts;
+    matched.sort((a, b) => b.s - a.s);
+    const matchedIds = new Set(matched.map(x => x.p.id));
+    return [...matched.map(x => x.p), ...posts.filter(p => !matchedIds.has(p.id))];
+  };
+
+  const getFeaturedPosts = (source: OOTDPost[] = posts) => {
+    if (source.length < 4) return { featured: [], rest: source };
+    const scored = [...source].sort((a, b) => {
       const scoreA = (a.like_count || 0) * 3 + (a.star_count || 0) * 5 - (a.dislike_count || 0) * 2;
       const scoreB = (b.like_count || 0) * 3 + (b.star_count || 0) * 5 - (b.dislike_count || 0) * 2;
       return scoreB - scoreA;
@@ -487,7 +529,7 @@ const OOTDPage = () => {
               </div>
 
               {/* Trending Topics */}
-              {trendingTopics.length > 0 ? (
+              {trendingTopics.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5">
                     <TrendingUp className="h-3 w-3 text-accent/60" />
@@ -502,12 +544,33 @@ const OOTDPage = () => {
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="py-12 text-center space-y-2">
-                  <p className="text-[12px] text-foreground/50">No topics yet</p>
-                  <p className="text-[10px] text-foreground/35">Be the first to start a hashtag conversation</p>
-                </div>
               )}
+
+              {/* Latest from the community — chronological grid of all new posts */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">LATEST POSTS</span>
+                  <span className="text-[9px] tracking-[0.18em] text-foreground/35">NEWEST FIRST</span>
+                </div>
+                {isLoading ? (
+                  <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+                    {Array.from({ length: 9 }).map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="rounded-lg bg-foreground/[0.04] aspect-[3/4]" />
+                      </div>
+                    ))}
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="py-12 text-center space-y-2">
+                    <p className="text-[12px] text-foreground/50">No posts yet</p>
+                    <p className="text-[10px] text-foreground/35">Be the first to share an outfit</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+                    {posts.map((post, i) => renderPostCard(post, i, true))}
+                  </div>
+                )}
+              </div>
             </motion.div>
           ) : activeTab === "mypage" ? (
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
@@ -541,6 +604,40 @@ const OOTDPage = () => {
             </motion.div>
           ) : (
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* Preference banner — explains why these looks are surfacing */}
+              {user && userPrefs && (userPrefs.styles.length > 0 || userPrefs.occasions.length > 0) && !activeTopic && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/15 bg-accent/[0.04] px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent/75">For You</p>
+                    <p className="mt-0.5 truncate text-[11px] text-foreground/65">
+                      Tuned to {[...userPrefs.styles, ...userPrefs.occasions].slice(0, 4).join(" · ")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/settings")}
+                    className="shrink-0 text-[9px] font-medium tracking-[0.18em] text-accent/70 hover:text-accent"
+                  >
+                    EDIT
+                  </button>
+                </div>
+              )}
+              {user && (!userPrefs || (userPrefs.styles.length === 0 && userPrefs.occasions.length === 0)) && !activeTopic && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-foreground/55">Personalize feed</p>
+                    <p className="mt-0.5 truncate text-[11px] text-foreground/55">
+                      Set your styles to surface looks you'll love.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/onboarding")}
+                    className="shrink-0 rounded-full border border-accent/25 px-2.5 py-1 text-[9px] font-medium tracking-[0.18em] text-accent/80 hover:bg-accent/10"
+                  >
+                    SET
+                  </button>
+                </div>
+              )}
+
               {/* Active topic filter pill */}
               {activeTopic && (
                 <div className="flex items-center gap-2">
@@ -574,7 +671,8 @@ const OOTDPage = () => {
                   )}
                 </div>
               ) : (() => {
-                const { featured, rest } = getFeaturedPosts();
+                const feedSource = getFeedPosts();
+                const { featured, rest } = getFeaturedPosts(feedSource);
                 return (
                   <div className="space-y-5">
                     {featured.length > 0 && (
