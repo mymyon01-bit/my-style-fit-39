@@ -41,6 +41,18 @@ interface Args {
     waistCm?: number | null;
     hipCm?: number | null;
     inseamCm?: number | null;
+    /**
+     * Per-region body-type scales derived from the user's stated build
+     * (slim / regular / solid / heavy → shoulder/chest/waist/hip/leg).
+     * Without this two users of the same H/W collapse into identical bodies.
+     */
+    shapeScales?: {
+      shoulderWidthScale?: number;
+      chestScale?: number;
+      waistScale?: number;
+      hipScale?: number;
+      legScale?: number;
+    } | null;
   };
   /** Per-product override of the global preferred_fit. */
   preferenceOverride?: FitPreference | null;
@@ -118,9 +130,13 @@ export function useSizeRecommendation(args: Args): State {
 
   // 2. Resolve body — gender falls back to profile when caller didn't supply one.
   const effectiveBodyGender = args.body.gender ?? profileGender ?? null;
+  // Stable key so memo doesn't churn on every render of an inline scales object.
+  const shapeScalesKey = args.body.shapeScales
+    ? JSON.stringify(args.body.shapeScales)
+    : "";
   const body = useMemo<ResolvedBody | null>(() => {
     if (args.enabled === false) return null;
-    return resolveBody({ ...args.body, gender: effectiveBodyGender });
+    return resolveBody({ ...args.body, gender: effectiveBodyGender, shapeScales: args.body.shapeScales ?? null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     args.enabled,
@@ -132,6 +148,7 @@ export function useSizeRecommendation(args: Args): State {
     args.body.waistCm,
     args.body.hipCm,
     args.body.inseamCm,
+    shapeScalesKey,
   ]);
 
   // 3. Load chart (async; depends only on product identity, not preference).

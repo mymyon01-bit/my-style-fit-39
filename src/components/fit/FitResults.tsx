@@ -217,6 +217,9 @@ export default function FitResults({
       waistCm: bodyWaistCm ?? null,
       hipCm: bodyHipCm ?? null,
       inseamCm: bodyInseamCm ?? null,
+      // Pass per-region body-type scales so slim/regular/solid/heavy users
+      // with the same H/W don't collapse into identical estimated bodies.
+      shapeScales: shapeScales ?? null,
     },
     preferenceOverride: sizingPrefOverride,
   });
