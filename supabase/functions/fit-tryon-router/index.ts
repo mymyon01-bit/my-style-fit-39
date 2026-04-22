@@ -26,9 +26,13 @@ const corsHeaders = {
 };
 
 const SERVER_TIMEOUT_MS = 55_000; // image gen needs more headroom than vton
-const MODEL_ID = Deno.env.get("LOVABLE_FIT_IMAGE_MODEL") || "google/gemini-3-pro-image-preview";
+// Replicate IDM-VTON: real virtual try-on (garment composited onto user body).
+// Used while Lovable AI image credits are being topped up.
+const MODEL_ID = Deno.env.get("REPLICATE_FIT_MODEL") || "cuuupid/idm-vton";
+const MODEL_VERSION = Deno.env.get("REPLICATE_FIT_MODEL_VERSION") || "c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4";
+const REPLICATE_POLL_INTERVAL_MS = 1500;
 
-type ProviderName = "lovable-ai";
+type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
 type PendingCode = "pending" | "rate_limited";
 
