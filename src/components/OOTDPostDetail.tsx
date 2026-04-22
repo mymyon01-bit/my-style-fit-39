@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   X, Heart, HeartOff, MessageCircle, Star, Send, Bookmark, BookmarkCheck,
-  Loader2, Trash2, Flag, ChevronDown, ChevronUp, MoreHorizontal, Edit3
+  Loader2, Trash2, Flag, ChevronDown, ChevronUp, MoreHorizontal, Edit3, Share2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -368,6 +368,27 @@ export default function OOTDPostDetail({
                 {isSaved ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
               </button>
             </AuthGate>
+            {!(post.topics || []).includes("__noshare") && (
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/u/${post.user_id}?post=${post.id}`;
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({ title: post.caption || "OOTD", url });
+                    } else {
+                      await navigator.clipboard.writeText(url);
+                      toast.success("Link copied");
+                    }
+                  } catch {
+                    try { await navigator.clipboard.writeText(url); toast.success("Link copied"); } catch { /* noop */ }
+                  }
+                }}
+                className="text-foreground/50 transition-colors hover:text-foreground/80"
+                aria-label="Share post"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+            )}
             <AuthGate action="give stars">
               <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/50 hover:text-foreground/80"}`}>
                 <Star className={`h-4 w-4 ${isStarred ? "fill-current" : ""}`} />
