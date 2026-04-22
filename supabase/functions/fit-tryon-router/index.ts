@@ -460,7 +460,7 @@ async function handleStatus(admin: ReturnType<typeof createClient>, userId: stri
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -472,8 +472,8 @@ Deno.serve(async (req) => {
   const requestStartedAt = Date.now();
 
   try {
-    if (!LOVABLE_API_KEY) {
-      return json(failure("provider_error", "LOVABLE_API_KEY missing"), 500);
+    if (!REPLICATE_API_TOKEN) {
+      return json(failure("provider_error", "REPLICATE_API_TOKEN missing"), 500);
     }
 
     const url = new URL(req.url);
