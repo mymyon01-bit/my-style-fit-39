@@ -20,6 +20,7 @@ import { buildFitExplanation as buildSizeExplanation, buildFitBreakdown } from "
 import { solveFit, FIT_TYPE_LABEL } from "@/lib/fit/fitSolver";
 import FitBreakdown from "@/components/fit/FitBreakdown";
 import FitSummaryPanel from "@/components/fit/FitSummaryPanel";
+import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 
 interface FitProduct {
   id: string;
