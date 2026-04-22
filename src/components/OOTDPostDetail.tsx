@@ -297,9 +297,14 @@ export default function OOTDPostDetail({
           </div>
         )}
 
-        {/* Image */}
-        <div className="relative flex-shrink-0 md:w-[55%] md:h-[85vh] md:bg-black/40">
-          <img src={post.image_url} alt="" className="w-full aspect-[3/4] md:aspect-auto md:h-full object-cover md:object-contain" />
+        {/* Image — adapts to natural aspect ratio of the photo */}
+        <div className="relative flex-shrink-0 md:w-[55%] md:h-[85vh] bg-black/40 flex items-center justify-center">
+          <img
+            src={post.image_url}
+            alt=""
+            className="w-full h-auto max-h-[60vh] md:max-h-[85vh] md:w-auto md:h-full object-contain"
+          />
+
           {/* Post menu for owner */}
           {(isOwner || onEdit || onDelete) && (
             <div className="absolute top-3 left-3">
