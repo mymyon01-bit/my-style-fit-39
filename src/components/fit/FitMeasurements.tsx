@@ -203,6 +203,11 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-[11px] leading-snug text-foreground/55">
+              {gender
+                ? `Note: the character in your fit image will be ${gender}.`
+                : "Note: this choice decides whether the character in your fit image is male or female."}
+            </p>
           </div>
 
           <div>
