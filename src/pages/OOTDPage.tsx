@@ -529,7 +529,7 @@ const OOTDPage = () => {
               </div>
 
               {/* Trending Topics */}
-              {trendingTopics.length > 0 ? (
+              {trendingTopics.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5">
                     <TrendingUp className="h-3 w-3 text-accent/60" />
@@ -544,12 +544,33 @@ const OOTDPage = () => {
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="py-12 text-center space-y-2">
-                  <p className="text-[12px] text-foreground/50">No topics yet</p>
-                  <p className="text-[10px] text-foreground/35">Be the first to start a hashtag conversation</p>
-                </div>
               )}
+
+              {/* Latest from the community — chronological grid of all new posts */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">LATEST POSTS</span>
+                  <span className="text-[9px] tracking-[0.18em] text-foreground/35">NEWEST FIRST</span>
+                </div>
+                {isLoading ? (
+                  <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+                    {Array.from({ length: 9 }).map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="rounded-lg bg-foreground/[0.04] aspect-[3/4]" />
+                      </div>
+                    ))}
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="py-12 text-center space-y-2">
+                    <p className="text-[12px] text-foreground/50">No posts yet</p>
+                    <p className="text-[10px] text-foreground/35">Be the first to share an outfit</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+                    {posts.map((post, i) => renderPostCard(post, i, true))}
+                  </div>
+                )}
+              </div>
             </motion.div>
           ) : activeTab === "mypage" ? (
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
