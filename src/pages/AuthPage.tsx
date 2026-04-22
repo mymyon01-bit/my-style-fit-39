@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { captureReferralFromUrl } from "@/hooks/useReferralCode";
+import { isNativeApp, nativePlatform } from "@/lib/native/platform";
 
 const AuthPage = () => {
   const { t } = useI18n();
-  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
+  const { signIn, signUp, signInWithGoogle, signInWithApple, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -52,6 +53,18 @@ const AuthPage = () => {
     if (error) setError(error.message);
     setLoading(false);
   };
+
+  const handleApple = async () => {
+    setError(null);
+    setLoading(true);
+    const { error } = await signInWithApple();
+    if (error) setError(error.message);
+    setLoading(false);
+  };
+
+  // Apple is shown on iOS (native shell) where the system sheet is best,
+  // and we always allow it on web for parity.
+  const showApple = !isNativeApp() || nativePlatform() === "ios";
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
