@@ -269,12 +269,27 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     })
   );
 
+  // ── Deterministic request identity ──────────────────────────────────────
+  // BOTH effects (composite + AI swap) compute the same requestId from the
+  // same args. Previously the AI effect captured `activeRequestRef.current`
+  // at fire-time, which could be stale or differ from the composite effect's
+  // id, causing all later state commits to be silently dropped by the
+  // `prev.requestId !== requestId` guard — the "works once only" bug.
+  const requestId = useMemo(
+    () =>
+      args.enabled && args.productImageUrl && args.selectedSize
+        ? `${args.productKey}::${args.selectedSize}::${args.reloadToken ?? 0}::${args.userImageUrl ?? "no-body"}`
+        : null,
+    [args.enabled, args.productKey, args.selectedSize, args.productImageUrl, args.userImageUrl, args.reloadToken]
+  );
+
   const runIdRef = useRef(0);
-  const aiLockedRef = useRef(false);
+  const aiLockedRef = useRef<string | null>(null); // requestId for which AI succeeded
   const activeRequestRef = useRef<string | null>(null);
+  const aiInFlightRef = useRef<string | null>(null); // requestId currently being AI-requested
 
   useEffect(() => {
-    if (!args.enabled || !args.productImageUrl || !args.selectedSize) {
+    if (!args.enabled || !args.productImageUrl || !args.selectedSize || !requestId) {
       setState((prev) =>
         derivePreviewState({
           ...prev,
@@ -295,9 +310,13 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     }
 
     const runId = ++runIdRef.current;
-    const requestId = `${runId}:${args.productKey}:${args.selectedSize}:${args.reloadToken ?? 0}:${args.userImageUrl ?? "no-body"}`;
+    const previousRequestId = activeRequestRef.current;
     activeRequestRef.current = requestId;
-    aiLockedRef.current = false;
+    // Only reset the AI lock if requestId actually changed (new product/size/body).
+    // This prevents losing a valid AI image when solver/frame recompute.
+    if (previousRequestId !== requestId) {
+      aiLockedRef.current = null;
+    }
     let cancelled = false;
 
     const commitState = (event: string, partial: Partial<CanvasTryOnState>) => {
@@ -419,37 +438,45 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
       cancelled = true;
       window.clearTimeout(hardTimer);
     };
-  }, [
-    args.enabled,
-    args.productKey,
-    args.selectedSize,
-    args.productImageUrl,
-    args.productName,
-    args.productCategory,
-    args.userImageUrl,
-    args.reloadToken,
-    pose.leftShoulder.x,
-    pose.rightShoulder.x,
-    pose.leftHip.y,
-    bodyProfile.shoulderRatio,
-    bodyProfile.chestRatio,
-    frame,
-    poseDegraded,
-    poseSource,
-    solver,
-    fitChips,
-  ]);
+    // Composite effect keys ONLY on requestId + product name. Volatile
+    // recomputed objects (pose/frame/solver/fitChips) are captured at
+    // fire-time via closure. Including them in deps caused the effect to
+    // re-fire on every body recompute, which ran `selection_change` and
+    // wiped `aiImageUrl: null` — the root of the "works once" bug.
+  }, [requestId, args.productName]);
+
+  // Keep pose/solver/fitChips visible in state without re-running the
+  // composite pipeline. Pure passthrough — does not touch image URLs.
+  useEffect(() => {
+    setState((prev) => derivePreviewState({ ...prev, poseDegraded, poseSource, solver, fitChips }));
+  }, [poseDegraded, poseSource, solver, fitChips]);
+
+  // Capture latest solver/regions in a ref so we can read them inside the AI
+  // effect WITHOUT putting `solver` in the deps. Solver is recomputed on
+  // every body/fit recalc (new object reference) and re-firing the AI effect
+  // on every recompute is what caused duplicate AI calls + the
+  // "works once only" race where stale requestId state writes were dropped.
+  const solverRef = useRef(solver);
+  useEffect(() => {
+    solverRef.current = solver;
+  }, [solver]);
 
   useEffect(() => {
     if (!args.enableAiSwap) return;
     if (!args.enabled || !args.productImageUrl || !args.selectedSize) return;
     if (!args.userImageUrl) return;
-
-    const requestId = activeRequestRef.current;
     if (!requestId) return;
+
+    // Skip if AI already succeeded for this exact requestId, OR if there is
+    // already an in-flight request for the same id (defensive against
+    // double-mount in StrictMode / accidental re-renders).
+    if (aiLockedRef.current === requestId) return;
+    if (aiInFlightRef.current === requestId) return;
+    aiInFlightRef.current = requestId;
 
     let cancelled = false;
     const startedAt = Date.now();
+    const currentSolver = solverRef.current;
 
     setState((prev) => {
       if (prev.requestId !== requestId) return prev;
@@ -462,11 +489,11 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     });
 
     const regions = [
-      { region: "Chest", fit: solver.regions.chest.fit },
-      { region: "Waist", fit: solver.regions.waist.fit },
-      { region: "Shoulder", fit: solver.regions.shoulder.fit },
-      { region: "Length", fit: solver.regions.length.fit },
-      { region: "Sleeve", fit: solver.regions.sleeve.fit },
+      { region: "Chest", fit: currentSolver.regions.chest.fit },
+      { region: "Waist", fit: currentSolver.regions.waist.fit },
+      { region: "Shoulder", fit: currentSolver.regions.shoulder.fit },
+      { region: "Length", fit: currentSolver.regions.length.fit },
+      { region: "Sleeve", fit: currentSolver.regions.sleeve.fit },
     ];
 
     (async () => {
@@ -484,7 +511,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           productKey: args.productKey,
           productCategory: args.productCategory ?? undefined,
           selectedSize: args.selectedSize,
-          fitDescriptor: solver.fitType,
+          fitDescriptor: currentSolver.fitType,
           regions,
           mode: "high",
         });
@@ -503,7 +530,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
         });
         if (cancelled || activeRequestRef.current !== requestId) return;
         if (!error && successData?.imageUrl) {
-          aiLockedRef.current = true;
+          aiLockedRef.current = requestId;
           setState((prev) => {
             if (prev.requestId !== requestId) return prev;
             const next = derivePreviewState({
@@ -548,7 +575,7 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
             if (cancelled || activeRequestRef.current !== requestId) return;
 
             if (!statusError && statusSuccess?.imageUrl) {
-              aiLockedRef.current = true;
+              aiLockedRef.current = requestId;
               setState((prev) => {
                 if (prev.requestId !== requestId) return prev;
                 const next = derivePreviewState({
@@ -591,11 +618,15 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           logFitPreview("ai_error_keep_best_preview", next);
           return next;
         });
+      } finally {
+        if (aiInFlightRef.current === requestId) {
+          aiInFlightRef.current = null;
+        }
       }
     })();
 
     const swapTimer = window.setTimeout(() => {
-      if (cancelled || aiLockedRef.current || activeRequestRef.current !== requestId) return;
+      if (cancelled || aiLockedRef.current === requestId || activeRequestRef.current !== requestId) return;
       setState((prev) => {
         if (prev.requestId !== requestId) return prev;
         const next = derivePreviewState({
@@ -610,18 +641,16 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     return () => {
       cancelled = true;
       window.clearTimeout(swapTimer);
+      if (aiInFlightRef.current === requestId) {
+        aiInFlightRef.current = null;
+      }
     };
-  }, [
-    args.enableAiSwap,
-    args.enabled,
-    args.productKey,
-    args.productImageUrl,
-    args.productCategory,
-    args.selectedSize,
-    args.userImageUrl,
-    args.reloadToken,
-    solver,
-  ]);
+    // IMPORTANT: deps are intentionally minimal. `solver`, `fitChips`, `frame`,
+    // pose, etc. are NOT here — they're captured via solverRef and recompute
+    // on every body change, which would re-fire the AI effect and either
+    // duplicate the request or invalidate the requestId mid-poll.
+  }, [requestId, args.enableAiSwap, createTryOn, pollTryOnStatus]);
+
 
   return state;
 }
