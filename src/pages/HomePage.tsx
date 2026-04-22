@@ -186,13 +186,11 @@ const HomePage = () => {
             >
               {t("about")}
             </button>
-            <button
-              onClick={handleShareApp}
-              aria-label="Share mymyon with friends"
-              className="flex items-center gap-1.5 rounded-full border border-foreground/20 px-4 py-2.5 text-[12px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-accent hover:text-accent whitespace-nowrap"
-            >
-              <Share2 className="h-3 w-3" />
-            </button>
+            <ShareButton
+              title="mymyon — AI fashion stylist"
+              url={typeof window !== "undefined" ? window.location.origin : "https://mymyon.com"}
+              className="self-center"
+            />
           </motion.div>
 
           {/* Weather meta */}
