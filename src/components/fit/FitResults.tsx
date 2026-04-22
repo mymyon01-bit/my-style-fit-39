@@ -21,6 +21,9 @@ import { solveFit, FIT_TYPE_LABEL } from "@/lib/fit/fitSolver";
 import FitBreakdown from "@/components/fit/FitBreakdown";
 import FitSummaryPanel from "@/components/fit/FitSummaryPanel";
 import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
+import RegionFitTable from "@/components/fit/RegionFitTable";
+import { useResolvedGarmentSize } from "@/hooks/useResolvedGarmentSize";
+import { computeRegionFit } from "@/lib/fit/regionFitEngine";
 
 interface FitProduct {
   id: string;
