@@ -1091,7 +1091,7 @@ serve(async (req) => {
         query: query || "",
         category: category || "",
         db_count: dbProducts.length,
-        multi_source_fresh: multiSourceFresh.length,
+        multi_source_fresh: 0,
         external_count: externalProducts.length,
         discovery_count: discoveryProducts.length,
         final_count: normalized.length,
