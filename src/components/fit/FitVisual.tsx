@@ -126,16 +126,18 @@ export default function FitVisual({
   // no AI image, no composite, no fallback, no placeholder, AND the raw
   // product image is missing. Anything else means the pipeline is still
   // alive and we should reflect that in the message.
-  const trulyNoImage = !shouldRenderPreview && !productImageUrl;
+  // Hard-failure: pipeline explicitly failed AND no AI image. Otherwise
+  // (idle, compositing, polling_ai) keep the loading animation alive.
+  const trulyNoImage = !shouldRenderPreview && state.stage === "failed";
   const stageMessage = trulyNoImage
-    ? "No product image available"
-    : state.stage === "compositing" ? "Generating fit preview…"
-    : state.stage === "polling_ai" ? "Refining your preview…"
-    : "Preparing your preview…";
+    ? "Couldn't generate fit preview"
+    : state.stage === "polling_ai" ? "Generating your try-on…"
+    : state.stage === "compositing" ? "Preparing your try-on…"
+    : "Generating your try-on…";
 
   const stageHint = trulyNoImage
-    ? "Pick a product with a photo to generate a fit visual."
-    : "Fit summary already shown — image follows";
+    ? "Try a different product or rescan your body."
+    : "AI is rendering you in this garment";
 
   return (
     <div className="group/visual space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-br from-card/80 via-card/50 to-card/20 p-3 shadow-[0_8px_40px_-16px_hsl(var(--accent)/0.18)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.28)] sm:p-4">
