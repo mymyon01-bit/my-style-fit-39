@@ -86,7 +86,6 @@ const HomePage = () => {
           transition={{ duration: 0.8 }}
           className="absolute top-6 z-20 flex w-full items-center justify-between px-6 lg:hidden"
         >
-          <span className="flex items-baseline font-mono text-[13px] font-medium uppercase leading-none text-foreground">
           <Brandmark variant="inline" />
           <LanguageSelector />
         </motion.div>
