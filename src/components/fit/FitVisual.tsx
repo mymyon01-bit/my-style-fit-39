@@ -51,7 +51,7 @@ export default function FitVisual({
   }, [state.requestId]);
 
   useEffect(() => {
-    if (state.aiImageUrl || state.compositeImageUrl || state.fallbackImageUrl) {
+    if (state.aiImageUrl) {
       setHardFailed(false);
       return;
     }
@@ -59,9 +59,10 @@ export default function FitVisual({
       setHardFailed(true);
       return;
     }
-    const t = window.setTimeout(() => setHardFailed(true), 60_000);
+    // Give the AI generator more time — it's the only image we display.
+    const t = window.setTimeout(() => setHardFailed(true), 90_000);
     return () => window.clearTimeout(t);
-  }, [state.requestId, state.stage, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl]);
+  }, [state.requestId, state.stage, state.aiImageUrl]);
 
   /** Validates the URL is something the browser can actually render. */
   const isRenderable = (url: string | null | undefined): url is string => {
@@ -71,20 +72,17 @@ export default function FitVisual({
     return /^(https?:\/\/|data:image\/|blob:)/i.test(trimmed);
   };
 
-  // STRICT preview source selection — never falls through to user's raw photo.
+  // STRICT preview source selection — ONLY the AI studio image is shown.
+  // Composite/fallback are intentionally hidden so the user never sees a
+  // half-baked styled preview; instead they see the loading animation until
+  // the real AI render is ready. This prevents the perceived "size changing"
+  // between the styled preview and the final AI image.
   const best = useMemo(() => {
-    const candidates: Array<{ src: string | null | undefined; kind: "ai" | "composite" | "fallback"; isFinal: boolean }> = [
-      { src: state.aiImageUrl, kind: "ai", isFinal: true },
-      { src: state.compositeImageUrl, kind: "composite", isFinal: false },
-      { src: state.fallbackImageUrl, kind: "fallback", isFinal: false },
-    ];
-    for (const c of candidates) {
-      if (isRenderable(c.src) && !failedSrcs.includes(c.src)) {
-        return { src: c.src, kind: c.kind, isFinal: c.isFinal };
-      }
+    if (isRenderable(state.aiImageUrl) && !failedSrcs.includes(state.aiImageUrl)) {
+      return { src: state.aiImageUrl, kind: "ai" as const, isFinal: true };
     }
-    return { src: null as string | null, kind: null as null | "ai" | "composite" | "fallback", isFinal: false };
-  }, [state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, failedSrcs]);
+    return { src: null as string | null, kind: null as null | "ai", isFinal: false };
+  }, [state.aiImageUrl, failedSrcs]);
   const previewSrc = best.src;
 
   const shouldRenderPreview = Boolean(previewSrc);
@@ -110,13 +108,7 @@ export default function FitVisual({
     }
   }, [state.requestId, state.stage, previewSrc, best.kind, best.isFinal, hardFailed]);
 
-  const sourceLabel = best.kind === "ai"
-    ? "AI STUDIO PREVIEW"
-    : best.kind === "composite"
-    ? "STYLED PREVIEW"
-    : best.kind === "fallback"
-    ? "QUICK PREVIEW"
-    : "GENERATING";
+  const sourceLabel = "AI STUDIO PREVIEW";
 
   const handleShare = async () => {
     if (!previewSrc) return;
@@ -349,11 +341,9 @@ export default function FitVisual({
       )}
 
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
-        {best.isFinal
-          ? "AI-refined preview"
-          : state.poseDegraded
-          ? "Style preview based on your measurements"
-          : "Style preview built from your body photo"}
+        {hasImage
+          ? "AI-refined preview based on your measurements"
+          : "Generating your personalized AI preview…"}
       </p>
     </div>
   );
