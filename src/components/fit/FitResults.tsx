@@ -233,6 +233,14 @@ export default function FitResults({
     }
   }, [sizing.recommendation?.primarySize, result.sizeResults]);
 
+  // Active size outcome from the new measurement-driven engine.
+  // Used to feed the visual try-on with calculated per-region fit so the AI
+  // image visualizes the computed result instead of guessing.
+  const sizingActiveOutcome = useMemo(
+    () => sizing.recommendation?.sizes.find((s) => s.size === activeSize) ?? null,
+    [sizing.recommendation, activeSize],
+  );
+
   // ── Global fallback + confidence (honest tiers) ──────────────────────────
   const usedGlobalFallback = shouldUseGlobalFallback(result.productDataQuality, true) || result.productDataQuality < 50;
   const confTier = confidenceTier(result.confidenceModifier, usedGlobalFallback);
@@ -400,8 +408,7 @@ export default function FitResults({
     // engine hasn't resolved yet.
     fitDescriptor:
       sizingActiveOutcome?.overall ??
-      activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() ||
-      "regular",
+      (activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() || "regular"),
     regions:
       sizingActiveOutcome
         ? sizingActiveOutcome.regions.map((r) => ({
