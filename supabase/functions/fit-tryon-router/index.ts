@@ -380,6 +380,45 @@ function toSuccess(row: TryOnRow, imageUrl: string): SuccessResponse {
   };
 }
 
+// ─── PERSIST GENERATED IMAGE TO STORAGE ─────────────────────────────────────
+// Replicate output URLs expire. Copy the asset into our public `fit-composites`
+// bucket so the saved try-on stays valid long-term.
+async function persistImageToStorage(
+  admin: ReturnType<typeof createClient>,
+  sourceUrl: string,
+  userId: string | null,
+  productKey: string,
+  selectedSize: string,
+): Promise<string> {
+  try {
+    const res = await fetch(sourceUrl);
+    if (!res.ok) {
+      logRouter("PERSIST_FETCH_FAILED", { status: res.status, sourceUrl: sourceUrl.slice(0, 80) });
+      return sourceUrl;
+    }
+    const contentType = res.headers.get("content-type") || "image/png";
+    const ext = contentType.includes("webp") ? "webp" : contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : "png";
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const safeKey = productKey.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 80);
+    const safeSize = selectedSize.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 16);
+    const folder = userId || "anon";
+    const path = `${folder}/${safeKey}_${safeSize}_${Date.now()}.${ext}`;
+    const { error } = await admin.storage.from("fit-composites").upload(path, bytes, {
+      contentType, upsert: true, cacheControl: "31536000",
+    });
+    if (error) {
+      logRouter("PERSIST_UPLOAD_FAILED", { error: error.message });
+      return sourceUrl;
+    }
+    const { data: pub } = admin.storage.from("fit-composites").getPublicUrl(path);
+    logRouter("PERSIST_OK", { path });
+    return pub?.publicUrl || sourceUrl;
+  } catch (e) {
+    logRouter("PERSIST_EXCEPTION", { error: e instanceof Error ? e.message : String(e) });
+    return sourceUrl;
+  }
+}
+
 // ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
 async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
   const existing = userId ? await getTryOnByIdentity(admin, userId, body) : null;
@@ -403,16 +442,18 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
   const result = await generateCleanFitImage(apiKey, body);
 
   if (result.kind === "success") {
+    // Persist immediately so the UI never depends on Replicate's expiring URL.
+    const persistedUrl = await persistImageToStorage(admin, result.imageUrl, userId, body.productKey, body.selectedSize);
     if (record) {
       await updateTryOnRecord(admin, record.id, {
         status: "succeeded",
-        result_image_url: result.imageUrl,
+        result_image_url: persistedUrl,
         error_message: null,
-        metadata: { ...(record.metadata || {}), retryAfterUntil: null },
+        metadata: { ...(record.metadata || {}), retryAfterUntil: null, sourceUrl: result.imageUrl },
       });
-      return toSuccess(record, result.imageUrl);
+      return toSuccess(record, persistedUrl);
     }
-    return { ok: true, imageUrl: result.imageUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
+    return { ok: true, imageUrl: persistedUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
   }
 
   if (result.kind === "throttled") {
