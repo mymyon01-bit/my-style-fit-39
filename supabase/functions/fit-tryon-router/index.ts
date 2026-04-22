@@ -26,9 +26,13 @@ const corsHeaders = {
 };
 
 const SERVER_TIMEOUT_MS = 55_000; // image gen needs more headroom than vton
-const MODEL_ID = Deno.env.get("LOVABLE_FIT_IMAGE_MODEL") || "google/gemini-3-pro-image-preview";
+// Replicate IDM-VTON: real virtual try-on (garment composited onto user body).
+// Used while Lovable AI image credits are being topped up.
+const MODEL_ID = Deno.env.get("REPLICATE_FIT_MODEL") || "cuuupid/idm-vton";
+const MODEL_VERSION = Deno.env.get("REPLICATE_FIT_MODEL_VERSION") || "c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4";
+const REPLICATE_POLL_INTERVAL_MS = 1500;
 
-type ProviderName = "lovable-ai";
+type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
 type PendingCode = "pending" | "rate_limited";
 
@@ -118,14 +122,14 @@ function logRouter(event: string, details: Record<string, unknown>) {
 }
 
 function failure(code: FailureCode, error: string, selectedSize?: string, requestId?: string | null): FailureResponse {
-  return { ok: false, code, error, selectedSize, provider: "lovable-ai", status: "failed", requestId, predictionId: null };
+  return { ok: false, code, error, selectedSize, provider: "replicate", status: "failed", requestId, predictionId: null };
 }
 
 function pending(code: PendingCode, params: { error?: string | null; selectedSize?: string; status: PendingResponse["status"]; requestId?: string | null; retryAfterMs?: number | null; }): PendingResponse {
   return {
     ok: false, code,
     error: params.error ?? null,
-    provider: "lovable-ai",
+    provider: "replicate",
     selectedSize: params.selectedSize,
     status: params.status,
     requestId: params.requestId ?? null,
@@ -188,63 +192,118 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   ].filter(Boolean).join(" ");
 }
 
-// ─── LOVABLE AI GATEWAY CALL ────────────────────────────────────────────────
+// ─── REPLICATE IDM-VTON CALL ────────────────────────────────────────────────
 type GenResult =
   | { kind: "success"; imageUrl: string }
   | { kind: "throttled"; error: string; retryAfterMs: number }
   | { kind: "credits_exhausted"; error: string }
   | { kind: "error"; code: FailureCode; error: string };
 
-async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
-  const prompt = buildCleanStudioPrompt(body);
-  logRouter("AI_PROMPT", { productKey: body.productKey, size: body.selectedSize, model: MODEL_ID, promptPreview: prompt.slice(0, 220) });
+function buildGarmentDescription(body: CreateBody): string {
+  const label = body.productName?.trim() || body.productCategory || "garment";
+  return `${label} in size ${body.selectedSize}`;
+}
 
-  const content: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
-  // Pass product image as visual style reference. Body image is intentionally
-  // OMITTED — we do not want the model anchoring to the user's environment.
-  if (body.productImageUrl) {
-    content.push({ type: "image_url", image_url: { url: body.productImageUrl } });
+function inferCategory(body: CreateBody): "upper_body" | "lower_body" | "dresses" {
+  const c = (body.productCategory || "").toLowerCase();
+  if (/(pant|trouser|jean|short|skirt|legging)/.test(c)) return "lower_body";
+  if (/(dress|gown|jumpsuit)/.test(c)) return "dresses";
+  return "upper_body";
+}
+
+async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
+  if (!body.userImageUrl) {
+    return { kind: "error", code: "missing_output", error: "user_body_image_required_for_tryon" };
   }
+
+  logRouter("REPLICATE_START", {
+    productKey: body.productKey,
+    size: body.selectedSize,
+    model: MODEL_ID,
+    category: inferCategory(body),
+  });
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // 1) Create prediction
+    const createRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       signal: controller.signal,
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=5",
+      },
       body: JSON.stringify({
-        model: MODEL_ID,
-        messages: [{ role: "user", content }],
-        modalities: ["image", "text"],
+        version: MODEL_VERSION,
+        input: {
+          human_img: body.userImageUrl,
+          garm_img: body.productImageUrl,
+          garment_des: buildGarmentDescription(body),
+          category: inferCategory(body),
+          crop: false,
+          seed: 42,
+          steps: 30,
+        },
       }),
     });
 
-    if (response.status === 429) {
-      const txt = await response.text().catch(() => "");
+    if (createRes.status === 429) {
+      const txt = await createRes.text().catch(() => "");
       return { kind: "throttled", error: txt.slice(0, 220) || "rate_limited", retryAfterMs: 8_000 };
     }
-    if (response.status === 402) {
-      const txt = await response.text().catch(() => "");
-      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "AI credits exhausted" };
+    if (createRes.status === 402) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "Replicate credits exhausted" };
     }
-    if (!response.ok) {
-      const txt = await response.text().catch(() => "");
-      return { kind: "error", code: "provider_error", error: `gateway ${response.status}: ${txt.slice(0, 200)}` };
+    if (!createRes.ok) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "error", code: "provider_error", error: `replicate ${createRes.status}: ${txt.slice(0, 200)}` };
     }
 
-    const data = await response.json().catch(() => ({}));
-    const url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
-    if (!url || typeof url !== "string") {
-      return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+    let prediction = await createRes.json().catch(() => ({} as any));
+    const predId: string | undefined = prediction?.id;
+
+    // 2) Poll until terminal state or timeout
+    const deadline = Date.now() + SERVER_TIMEOUT_MS - 2000;
+    while (
+      prediction &&
+      prediction.status !== "succeeded" &&
+      prediction.status !== "failed" &&
+      prediction.status !== "canceled" &&
+      Date.now() < deadline
+    ) {
+      await new Promise((r) => setTimeout(r, REPLICATE_POLL_INTERVAL_MS));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predId}`, {
+        headers: { Authorization: `Token ${apiKey}` },
+        signal: controller.signal,
+      });
+      if (!pollRes.ok) {
+        const txt = await pollRes.text().catch(() => "");
+        return { kind: "error", code: "provider_error", error: `replicate poll ${pollRes.status}: ${txt.slice(0, 160)}` };
+      }
+      prediction = await pollRes.json().catch(() => ({}));
     }
-    return { kind: "success", imageUrl: url };
+
+    if (prediction?.status === "succeeded") {
+      const out = prediction.output;
+      const url = Array.isArray(out) ? out[0] : typeof out === "string" ? out : null;
+      if (!url) return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+      return { kind: "success", imageUrl: url };
+    }
+
+    if (prediction?.status === "failed" || prediction?.status === "canceled") {
+      return { kind: "error", code: "generation_failed", error: prediction?.error || "replicate_failed" };
+    }
+
+    return { kind: "error", code: "timeout", error: "replicate_timeout" };
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
-      return { kind: "error", code: "timeout", error: "ai_gateway_timeout" };
+      return { kind: "error", code: "timeout", error: "replicate_timeout" };
     }
-    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "ai_gateway_failed" };
+    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "replicate_failed" };
   } finally {
     clearTimeout(timer);
   }
@@ -280,7 +339,7 @@ async function upsertTryOnRecord(admin: ReturnType<typeof createClient>, userId:
       user_id: userId,
       product_key: body.productKey,
       selected_size: body.selectedSize,
-      provider: "lovable-ai",
+      provider: "replicate",
       user_image_url: body.userImageUrl ?? null,
       product_image_url: body.productImageUrl,
       metadata: {
@@ -315,7 +374,7 @@ async function updateTryOnRecord(admin: ReturnType<typeof createClient>, request
 
 function toSuccess(row: TryOnRow, imageUrl: string): SuccessResponse {
   return {
-    ok: true, imageUrl, provider: "lovable-ai",
+    ok: true, imageUrl, provider: "replicate",
     selectedSize: row.selected_size, status: "succeeded",
     predictionId: null, requestId: row.id,
   };
@@ -337,7 +396,7 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
         result_image_url: null,
         error_message: null,
         model_id: MODEL_ID,
-        metadata: { generator: "lovable-ai-clean-studio", retryAfterUntil: null },
+        metadata: { generator: "replicate-idm-vton", retryAfterUntil: null },
       })
     : null;
 
@@ -353,7 +412,7 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
       });
       return toSuccess(record, result.imageUrl);
     }
-    return { ok: true, imageUrl: result.imageUrl, provider: "lovable-ai", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
+    return { ok: true, imageUrl: result.imageUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
   }
 
   if (result.kind === "throttled") {
@@ -401,7 +460,7 @@ async function handleStatus(admin: ReturnType<typeof createClient>, userId: stri
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -413,8 +472,8 @@ Deno.serve(async (req) => {
   const requestStartedAt = Date.now();
 
   try {
-    if (!LOVABLE_API_KEY) {
-      return json(failure("provider_error", "LOVABLE_API_KEY missing"), 500);
+    if (!REPLICATE_API_TOKEN) {
+      return json(failure("provider_error", "REPLICATE_API_TOKEN missing"), 500);
     }
 
     const url = new URL(req.url);
@@ -445,7 +504,7 @@ Deno.serve(async (req) => {
       return json(failure("missing_output", "missing_image", createBody.selectedSize), 422);
     }
 
-    const response = await handleCreate(admin, LOVABLE_API_KEY, userId, createBody);
+    const response = await handleCreate(admin, REPLICATE_API_TOKEN, userId, createBody);
     logRouter("RESPONSE_OUT", { code: response.ok ? "ok" : response.code, requestId: response.requestId, elapsedMs: Date.now() - requestStartedAt });
 
     const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 200 : response.code === "missing_output" ? 422 : response.code === "timeout" ? 504 : 500;
