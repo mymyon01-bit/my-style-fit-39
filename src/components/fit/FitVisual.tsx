@@ -157,13 +157,13 @@ export default function FitVisual({
 
   // Stage messaging
   const stageMessage = hardFailed
-    ? "Preview unavailable"
+    ? "Image unavailable"
     : state.stage === "polling_ai" ? "Generating your try-on…"
     : state.stage === "compositing" ? "Preparing your try-on…"
     : "Generating your try-on…";
 
   const stageHint = hardFailed
-    ? "We couldn't render this preview. Tap reload to try again."
+    ? "We couldn't render this preview. Tap retry to try again — we never show broken images."
     : "AI is rendering you in this garment";
 
   return (
