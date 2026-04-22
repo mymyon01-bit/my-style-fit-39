@@ -92,7 +92,7 @@ const OOTDPage = () => {
   // Inbox/notifications sheets opened from My Page
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [notifsOpen, setNotifsOpen] = useState(false);
-  const { totalUnread } = useNotifications();
+  const { notifUnread, totalUnread } = useNotifications();
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
