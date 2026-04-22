@@ -42,12 +42,12 @@ const InstallPage = () => {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
 
-  // Auto-built by GitHub Actions on every push (.github/workflows/android-build.yml)
-  // and published to a stable "latest-apk" release tag.
-  // Replace OWNER/REPO once the project is exported to GitHub.
+  // APK is hosted on Lovable Cloud Storage (public bucket: app-downloads).
+  // Upload the .apk file via Cloud dashboard → Storage → app-downloads → file name "mymyon.apk".
+  // Override with VITE_APK_URL env var if hosted elsewhere.
   const APK_URL =
     (import.meta.env.VITE_APK_URL as string | undefined) ??
-    "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk";
+    `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/app-downloads/mymyon.apk`;
 
   const handleApkDownload = () => {
     window.open(APK_URL, "_blank", "noopener,noreferrer");
