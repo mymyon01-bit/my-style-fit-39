@@ -152,12 +152,17 @@ function pending(code: PendingCode, params: { error?: string | null; selectedSiz
 
 // ─── PROMPT BUILDING ────────────────────────────────────────────────────────
 function describeBuild(b?: CreateBody["bodyProfileSummary"]) {
-  if (!b?.heightCm || !b?.weightKg) return "average build";
+  if (!b?.heightCm || !b?.weightKg) return "average build, average body width";
   const bmi = b.weightKg / Math.pow(b.heightCm / 100, 2);
-  if (bmi < 19) return "slim build";
-  if (bmi < 24) return "regular athletic build";
-  if (bmi < 28) return "athletic build";
-  return "broader build";
+  // Body width MUST scale with weight, not just BMI tier label.
+  // The downstream image model needs explicit width cues to render a heavier body.
+  if (bmi < 18.5) return "very slim build, narrow shoulders, slim torso, slim waist, slim arms and legs";
+  if (bmi < 22)   return "slim build, lean torso, slim waist, lean arms and legs";
+  if (bmi < 25)   return "average build, balanced torso width, natural waist, average arms and legs";
+  if (bmi < 28)   return "solid build, slightly wider torso, fuller waist, slightly thicker arms and legs";
+  if (bmi < 32)   return "heavier build, visibly wider torso and shoulders, fuller waist and midsection, thicker arms and legs, soft body contours";
+  if (bmi < 36)   return "plus-size build, broad torso, wide waist and hips, full midsection, thick arms and legs, rounded body shape";
+  return "very plus-size build, very broad torso and shoulders, very wide waist and hips, large midsection, thick limbs, rounded full-bodied shape";
 }
 
 function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
@@ -188,12 +193,14 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
   const heightLine = body.bodyProfileSummary?.heightCm ? `, approximately ${body.bodyProfileSummary.heightCm} cm tall` : "";
+  const weightLine = body.bodyProfileSummary?.weightKg ? ` and approximately ${body.bodyProfileSummary.weightKg} kg` : "";
   const garmentLabel = body.productName?.trim() || body.productCategory || "the garment";
   const silhouette = sizeSilhouette(body.selectedSize);
   const regions = regionPhrase(body.regions);
 
   return [
-    `A premium realistic fashion photograph of a ${build} ${subject}${heightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
+    `A premium realistic fashion photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
+    `IMPORTANT: the body proportions (torso width, waist, hips, arm and leg thickness) MUST visibly match this exact height and weight — do NOT default to a slim model body.`,
     `Preserve the EXACT style, color, print, and construction of the garment shown in the reference image.`,
     `Render the garment with a ${silhouette}.`,
     regions,

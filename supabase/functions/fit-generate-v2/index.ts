@@ -38,10 +38,13 @@ function interpretFit(r: ReturnType<typeof calculateFit>) {
 
 function describeBuild(b: BodyMeasurements) {
   const bmi = b.weight / Math.pow(b.height / 100, 2);
-  if (bmi < 19) return "slim";
-  if (bmi < 24) return "regular";
-  if (bmi < 28) return "athletic";
-  return "broad";
+  if (bmi < 18.5) return "very slim, narrow-framed";
+  if (bmi < 22)   return "slim, lean-framed";
+  if (bmi < 25)   return "average-built";
+  if (bmi < 28)   return "solid, slightly wider-framed";
+  if (bmi < 32)   return "heavier-built, wider torso and fuller midsection";
+  if (bmi < 36)   return "plus-size, broad torso, wide waist and hips";
+  return "very plus-size, very broad torso, large midsection, thick limbs";
 }
 
 function buildPrompt(args: {
@@ -65,7 +68,8 @@ function buildPrompt(args: {
     : args.analysis.lengthFit === "long" ? "The garment length is longer than ideal."
     : "The garment length sits at an ideal hem position.";
   return [
-    `A ${build} ${subject}, ${args.body.height}cm, wearing a ${args.garmentLabel}.`,
+    `A ${build} ${subject}, ${args.body.height}cm, ${args.body.weight}kg, wearing a ${args.garmentLabel}.`,
+    `Body proportions must visibly reflect this height and weight — torso width, waist, arms and legs scaled accordingly.`,
     chest, sleeve, shoulder, length,
     "Realistic fashion photography, clean studio background, neutral lighting, full-body front view.",
   ].join(" ");
