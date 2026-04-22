@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock } from "lucide-react";
+import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { AuthGate } from "@/components/AuthGate";
+import { openConversationWith } from "@/hooks/useMessages";
 import { toast } from "sonner";
 
 interface UserProfileData {
