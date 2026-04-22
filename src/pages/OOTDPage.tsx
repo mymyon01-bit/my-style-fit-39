@@ -483,7 +483,7 @@ const OOTDPage = () => {
                             <ul>
                               {searchUsers.map((u) => (
                                 <li key={u.user_id}>
-                                  <button onClick={() => navigate(`/u/${u.user_id}`)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left">
+                                  <button onClick={() => navigate(`/user/${u.user_id}`)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/5 transition-colors text-left">
                                     {u.avatar_url ? (
                                       <img src={u.avatar_url} alt={u.username || ""} className="h-8 w-8 rounded-full object-cover" />
                                     ) : (

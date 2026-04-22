@@ -39,7 +39,7 @@ export default function MessageBubble({ content, isMine, createdAt }: Props) {
                   key={i}
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/u/${handle}`);
+                    navigate(`/user/${handle}`);
                   }}
                   className={`font-semibold underline-offset-2 hover:underline ${
                     isMine ? "text-primary-foreground" : "text-accent"
