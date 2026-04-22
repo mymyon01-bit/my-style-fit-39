@@ -1,3 +1,21 @@
+// ─── FIT TRY-ON ROUTER (CLEAN STUDIO GENERATION via Lovable AI) ─────────────
+// IMPORTANT: This router NO LONGER overlays the garment onto the user's
+// uploaded photo. The previous IDM-VTON pipeline was preserving the user's
+// original background (mirrors, bathrooms, rooms, hands, props), producing
+// crude composite-looking results. That is now removed.
+//
+// New flow:
+//   - Body image is NOT used as a canvas. Only body measurements + region fit
+//     descriptors are fed into the prompt.
+//   - Product image is sent as a visual reference only (so style/color/print
+//     are preserved).
+//   - Lovable AI Gateway (google/gemini-3-pro-image-preview a.k.a. Nano-Banana
+//     Pro) generates a brand-new clean studio fashion image — neutral
+//     background, premium ecommerce/editorial look, no environmental artifacts.
+//
+// Persistence + caching contract (fit_tryons table) is preserved so the inline
+// useCanvasTryOn hook + TryOnPreviewModal continue to work without changes.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -7,32 +25,33 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const SERVER_TIMEOUT_MS = 15_000;
-const STALE_PENDING_MS = 10 * 60_000;
-const DEFAULT_RETRY_AFTER_MS = 8_000;
-const PROCESSING_STATUSES = new Set(["queued", "pending", "starting", "processing", "generating", "throttled"]);
+const SERVER_TIMEOUT_MS = 55_000; // image gen needs more headroom than vton
+const MODEL_ID = Deno.env.get("LOVABLE_FIT_IMAGE_MODEL") || "google/gemini-3-pro-image-preview";
 
-type ProviderName = "replicate";
-type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output";
+type ProviderName = "lovable-ai";
+type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
 type PendingCode = "pending" | "rate_limited";
 
-interface RegionFitLite {
-  region: string;
-  fit: string;
-}
+interface RegionFitLite { region: string; fit: string; }
 
 interface CreateBody {
   action?: "create" | "status";
   requestId?: string;
   predictionId?: string;
-  userImageUrl?: string;
+  userImageUrl?: string;       // accepted but only used as identity hint
   productImageUrl: string;
   productKey: string;
+  productName?: string;
   productCategory?: string;
   selectedSize: string;
   fitDescriptor?: string;
   regions?: RegionFitLite[];
-  bodyProfileSummary?: Record<string, unknown>;
+  bodyProfileSummary?: {
+    heightCm?: number | null;
+    weightKg?: number | null;
+    build?: string | null;
+    gender?: string | null;
+  };
   forceRegenerate?: boolean;
   mode?: "quick" | "high";
 }
@@ -64,7 +83,7 @@ interface PendingResponse {
   error: string | null;
   provider: ProviderName;
   selectedSize?: string;
-  status: "queued" | "starting" | "processing" | "generating" | "throttled";
+  status: "queued" | "processing" | "throttled";
   predictionId?: string | null;
   requestId?: string | null;
   retryAfterMs?: number | null;
@@ -98,142 +117,140 @@ function logRouter(event: string, details: Record<string, unknown>) {
   console.log("[FIT][ROUTER]", { event, ...details });
 }
 
-function parseOutput(output: unknown): string | null {
-  if (!output) return null;
-  if (typeof output === "string") return output;
-  if (Array.isArray(output) && output.length > 0) {
-    const first = output[0];
-    if (typeof first === "string") return first;
-    if (first && typeof first === "object" && "url" in (first as Record<string, unknown>)) {
-      return String((first as Record<string, unknown>).url ?? "") || null;
-    }
-  }
-  if (typeof output === "object" && output !== null && "url" in (output as Record<string, unknown>)) {
-    return String((output as Record<string, unknown>).url ?? "") || null;
-  }
-  return null;
+function failure(code: FailureCode, error: string, selectedSize?: string, requestId?: string | null): FailureResponse {
+  return { ok: false, code, error, selectedSize, provider: "lovable-ai", status: "failed", requestId, predictionId: null };
 }
 
-function failure(
-  code: FailureCode,
-  error: string,
-  selectedSize?: string,
-  provider: ProviderName | null = "replicate",
-  requestId?: string | null,
-  predictionId?: string | null,
-): FailureResponse {
-  return { ok: false, code, error, selectedSize, provider, status: "failed", requestId, predictionId };
-}
-
-function pending(
-  code: PendingCode,
-  params: {
-    error?: string | null;
-    selectedSize?: string;
-    status: PendingResponse["status"];
-    requestId?: string | null;
-    predictionId?: string | null;
-    retryAfterMs?: number | null;
-  },
-): PendingResponse {
+function pending(code: PendingCode, params: { error?: string | null; selectedSize?: string; status: PendingResponse["status"]; requestId?: string | null; retryAfterMs?: number | null; }): PendingResponse {
   return {
-    ok: false,
-    code,
+    ok: false, code,
     error: params.error ?? null,
-    provider: "replicate",
+    provider: "lovable-ai",
     selectedSize: params.selectedSize,
     status: params.status,
     requestId: params.requestId ?? null,
-    predictionId: params.predictionId ?? null,
+    predictionId: null,
     retryAfterMs: params.retryAfterMs ?? null,
   };
 }
 
-function sizeFitBehavior(size: string) {
+// ─── PROMPT BUILDING ────────────────────────────────────────────────────────
+function describeBuild(b?: CreateBody["bodyProfileSummary"]) {
+  if (!b?.heightCm || !b?.weightKg) return "average build";
+  const bmi = b.weightKg / Math.pow(b.heightCm / 100, 2);
+  if (bmi < 19) return "slim build";
+  if (bmi < 24) return "regular athletic build";
+  if (bmi < 28) return "athletic build";
+  return "broader build";
+}
+
+function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
+  const g = (b?.gender || "").toLowerCase();
+  if (g === "female" || g === "feminine" || g === "woman") return "female model";
+  if (g === "male" || g === "masculine" || g === "man") return "male model";
+  return "model";
+}
+
+function sizeSilhouette(size: string) {
   const s = (size || "M").toUpperCase();
-  if (s === "XS" || s === "S") {
-    return {
-      ease: "tight body-hugging fit, almost no ease, cuffs and hem sit high",
-      silhouette: "slim and structured, sleeves taut against the arms, shoulder seam pulled exactly to the joint, hem clearly above the hip",
-      drape: "fabric stretches flat across chest and shoulders, no folds, no bunching, garment skims every body line",
-    };
-  }
-  if (s === "L") {
-    return {
-      ease: "relaxed and roomy with generous ease (~8cm), longer body, wider sleeves",
-      silhouette: "loose through chest and waist, shoulder seam slightly past the joint, sleeves clearly long, hem drops below the hip",
-      drape: "soft visible folds at the waist and under the arms, fabric falls away from the torso, hem swings naturally",
-    };
-  }
-  if (s === "XL" || s === "XXL") {
-    return {
-      ease: "clearly oversized with very generous ease (12cm or more), dropped shoulders, very long body and sleeves",
-      silhouette: "boxy and dramatically oversized, shoulder seam visibly dropped onto the upper arm, sleeves falling near the wrist or past, hem near mid-thigh",
-      drape: "deep cascading folds across the chest and back, billowing hem, fabric hangs noticeably away from the body in every direction",
-    };
-  }
-  return {
-    ease: "true-to-size with natural ease (~5cm)",
-    silhouette: "follows the body with comfortable room, shoulder seam at the joint, sleeves end at the wrist, hem at the hip",
-    drape: "natural soft folds, balanced volume, fabric neither tight nor loose",
-  };
+  if (s === "XS" || s === "S") return "trim body-skimming silhouette, sleeves close to the arm, hem sits high on the hip, minimal fabric ease";
+  if (s === "L") return "relaxed silhouette with visible chest room, softer waist, slightly longer hem, soft drape";
+  if (s === "XL" || s === "XXL") return "oversized silhouette with dropped shoulders, generous chest and waist volume, hem near mid-thigh, deep folds";
+  return "regular fitted silhouette with natural ease, shoulder seam at the joint, hem at the hip";
 }
 
-function buildFitDescription(
-  category: string | undefined,
-  size: string,
-  fitDescriptor: string | undefined,
-  regions: RegionFitLite[] | undefined,
-) {
-  const cat = (category || "garment").toLowerCase();
-  const fit = fitDescriptor || "true-to-size";
-  const behavior = sizeFitBehavior(size);
-  const regionPhrases = (regions || [])
+function regionPhrase(regions?: RegionFitLite[]) {
+  if (!regions?.length) return "";
+  const parts = regions
     .filter((r) => r?.region && r?.fit)
-    .slice(0, 5)
-    .map((r) => `${r.region.toLowerCase()} ${r.fit.replace(/-/g, " ")}`)
-    .join(", ");
-  const base = `${cat} in size ${size} (${fit} fit, ${behavior.ease}); ${behavior.silhouette}; ${behavior.drape}`;
-  return regionPhrases ? `${base} — region notes: ${regionPhrases}` : base;
+    .slice(0, 6)
+    .map((r) => `${r.region.toLowerCase()} ${r.fit.replace(/-/g, " ")}`);
+  return parts.length ? `Region-by-region fit: ${parts.join("; ")}.` : "";
 }
 
-function extractRetryAfterMs(message: string | null | undefined) {
-  if (!message) return DEFAULT_RETRY_AFTER_MS;
-  const secondsMatch = message.match(/resets in\s*~?(\d+)s/i);
-  if (secondsMatch) {
-    return Math.max(Number(secondsMatch[1]) * 1000, 1_500);
+function buildCleanStudioPrompt(body: CreateBody): string {
+  const subject = describeSubject(body.bodyProfileSummary);
+  const build = describeBuild(body.bodyProfileSummary);
+  const heightLine = body.bodyProfileSummary?.heightCm ? `, approximately ${body.bodyProfileSummary.heightCm} cm tall` : "";
+  const garmentLabel = body.productName?.trim() || body.productCategory || "the garment";
+  const silhouette = sizeSilhouette(body.selectedSize);
+  const regions = regionPhrase(body.regions);
+
+  return [
+    `A premium realistic fashion photograph of a ${build} ${subject}${heightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
+    `Preserve the EXACT style, color, print, and construction of the garment shown in the reference image.`,
+    `Render the garment with a ${silhouette}.`,
+    regions,
+    `Full-body or 3/4 body front-facing standing fashion pose. Realistic fabric drape, natural folds, accurate proportions.`,
+    `Background: clean seamless light-gray studio backdrop with soft directional fashion lighting and a subtle floor shadow for grounding. Editorial / premium ecommerce quality.`,
+    `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag, NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO mannequin, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment.`,
+    `Output must look like a brand-new generated studio fashion image — never like an edit of an existing snapshot.`,
+  ].filter(Boolean).join(" ");
+}
+
+// ─── LOVABLE AI GATEWAY CALL ────────────────────────────────────────────────
+type GenResult =
+  | { kind: "success"; imageUrl: string }
+  | { kind: "throttled"; error: string; retryAfterMs: number }
+  | { kind: "credits_exhausted"; error: string }
+  | { kind: "error"; code: FailureCode; error: string };
+
+async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
+  const prompt = buildCleanStudioPrompt(body);
+  logRouter("AI_PROMPT", { productKey: body.productKey, size: body.selectedSize, model: MODEL_ID, promptPreview: prompt.slice(0, 220) });
+
+  const content: Array<Record<string, unknown>> = [{ type: "text", text: prompt }];
+  // Pass product image as visual style reference. Body image is intentionally
+  // OMITTED — we do not want the model anchoring to the user's environment.
+  if (body.productImageUrl) {
+    content.push({ type: "image_url", image_url: { url: body.productImageUrl } });
   }
-  const minuteMatch = message.match(/resets in\s*~?(\d+)m/i);
-  if (minuteMatch) {
-    return Math.max(Number(minuteMatch[1]) * 60_000, DEFAULT_RETRY_AFTER_MS);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL_ID,
+        messages: [{ role: "user", content }],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (response.status === 429) {
+      const txt = await response.text().catch(() => "");
+      return { kind: "throttled", error: txt.slice(0, 220) || "rate_limited", retryAfterMs: 8_000 };
+    }
+    if (response.status === 402) {
+      const txt = await response.text().catch(() => "");
+      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "AI credits exhausted" };
+    }
+    if (!response.ok) {
+      const txt = await response.text().catch(() => "");
+      return { kind: "error", code: "provider_error", error: `gateway ${response.status}: ${txt.slice(0, 200)}` };
+    }
+
+    const data = await response.json().catch(() => ({}));
+    const url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
+    if (!url || typeof url !== "string") {
+      return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+    }
+    return { kind: "success", imageUrl: url };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      return { kind: "error", code: "timeout", error: "ai_gateway_timeout" };
+    }
+    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "ai_gateway_failed" };
+  } finally {
+    clearTimeout(timer);
   }
-  return DEFAULT_RETRY_AFTER_MS;
 }
 
-function getRetryUntil(metadata: Record<string, unknown> | null) {
-  const value = metadata?.retryAfterUntil;
-  return typeof value === "number" ? value : null;
-}
-
-function isStale(row: Pick<TryOnRow, "updated_at">) {
-  if (!row.updated_at) return false;
-  return Date.now() - new Date(row.updated_at).getTime() > STALE_PENDING_MS;
-}
-
-function buildCreateBodyFromRow(row: TryOnRow): CreateBody {
-  const metadata = row.metadata || {};
-  return {
-    userImageUrl: row.user_image_url ?? undefined,
-    productImageUrl: row.product_image_url ?? "",
-    productKey: row.product_key,
-    productCategory: typeof metadata.productCategory === "string" ? metadata.productCategory : undefined,
-    selectedSize: row.selected_size,
-    fitDescriptor: typeof metadata.fitDescriptor === "string" ? metadata.fitDescriptor : undefined,
-    regions: Array.isArray(metadata.regions) ? (metadata.regions as RegionFitLite[]) : [],
-    mode: "high",
-  };
-}
-
+// ─── DB HELPERS ─────────────────────────────────────────────────────────────
 async function getTryOnByIdentity(admin: ReturnType<typeof createClient>, userId: string, body: CreateBody) {
   const { data } = await admin
     .from("fit_tryons")
@@ -245,54 +262,37 @@ async function getTryOnByIdentity(admin: ReturnType<typeof createClient>, userId
   return (data as TryOnRow | null) ?? null;
 }
 
-async function getTryOnByRequest(admin: ReturnType<typeof createClient>, userId: string | null, requestId?: string | null, predictionId?: string | null) {
-  if (requestId) {
-    let query = admin
-      .from("fit_tryons")
-      .select("id, status, provider, prediction_id, result_image_url, updated_at, error_message, user_image_url, product_image_url, product_key, selected_size, metadata")
-      .eq("id", requestId);
-    if (userId) query = query.eq("user_id", userId);
-    const { data } = await query.maybeSingle();
-    if (data) return data as TryOnRow;
-  }
-  if (predictionId) {
-    let query = admin
-      .from("fit_tryons")
-      .select("id, status, provider, prediction_id, result_image_url, updated_at, error_message, user_image_url, product_image_url, product_key, selected_size, metadata")
-      .eq("prediction_id", predictionId);
-    if (userId) query = query.eq("user_id", userId);
-    const { data } = await query.maybeSingle();
-    return (data as TryOnRow | null) ?? null;
-  }
-  return null;
+async function getTryOnByRequest(admin: ReturnType<typeof createClient>, userId: string | null, requestId?: string | null) {
+  if (!requestId) return null;
+  let query = admin
+    .from("fit_tryons")
+    .select("id, status, provider, prediction_id, result_image_url, updated_at, error_message, user_image_url, product_image_url, product_key, selected_size, metadata")
+    .eq("id", requestId);
+  if (userId) query = query.eq("user_id", userId);
+  const { data } = await query.maybeSingle();
+  return (data as TryOnRow | null) ?? null;
 }
 
-async function upsertTryOnRecord(
-  admin: ReturnType<typeof createClient>,
-  userId: string,
-  body: CreateBody,
-  values: Record<string, unknown>,
-) {
+async function upsertTryOnRecord(admin: ReturnType<typeof createClient>, userId: string, body: CreateBody, values: Record<string, unknown>) {
   const { data, error } = await admin
     .from("fit_tryons")
-    .upsert(
-      {
-        user_id: userId,
-        product_key: body.productKey,
-        selected_size: body.selectedSize,
-        provider: "replicate",
-        user_image_url: body.userImageUrl ?? null,
-        product_image_url: body.productImageUrl,
-        metadata: {
-          fitDescriptor: body.fitDescriptor,
-          regions: body.regions || [],
-          productCategory: body.productCategory ?? null,
-          ...((values.metadata as Record<string, unknown> | undefined) ?? {}),
-        },
-        ...values,
+    .upsert({
+      user_id: userId,
+      product_key: body.productKey,
+      selected_size: body.selectedSize,
+      provider: "lovable-ai",
+      user_image_url: body.userImageUrl ?? null,
+      product_image_url: body.productImageUrl,
+      metadata: {
+        fitDescriptor: body.fitDescriptor,
+        regions: body.regions || [],
+        productCategory: body.productCategory ?? null,
+        productName: body.productName ?? null,
+        bodyProfileSummary: body.bodyProfileSummary ?? null,
+        ...((values.metadata as Record<string, unknown> | undefined) ?? {}),
       },
-      { onConflict: "user_id,product_key,selected_size" },
-    )
+      ...values,
+    }, { onConflict: "user_id,product_key,selected_size" })
     .select("id, status, provider, prediction_id, result_image_url, updated_at, error_message, user_image_url, product_image_url, product_key, selected_size, metadata")
     .single();
 
@@ -300,15 +300,10 @@ async function upsertTryOnRecord(
     logRouter("DB_UPSERT_FAILED", { error: error.message, productKey: body.productKey, selectedSize: body.selectedSize });
     return null;
   }
-
   return data as TryOnRow;
 }
 
-async function updateTryOnRecord(
-  admin: ReturnType<typeof createClient>,
-  requestId: string,
-  values: Record<string, unknown>,
-) {
+async function updateTryOnRecord(admin: ReturnType<typeof createClient>, requestId: string, values: Record<string, unknown>) {
   const { data } = await admin
     .from("fit_tryons")
     .update(values)
@@ -318,433 +313,95 @@ async function updateTryOnRecord(
   return (data as TryOnRow | null) ?? null;
 }
 
-type ReplicateCreateResult =
-  | { kind: "success"; imageUrl: string }
-  | { kind: "pending"; predictionId: string; status: PendingResponse["status"] }
-  | { kind: "throttled"; error: string; retryAfterMs: number }
-  | { kind: "error"; code: FailureCode; error: string };
-
-async function createReplicatePrediction(token: string, body: CreateBody): Promise<ReplicateCreateResult> {
-  const model = Deno.env.get("REPLICATE_TRYON_MODEL") || "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985";
-  const category = (() => {
-    const c = (body.productCategory || "").toLowerCase();
-    if (c.includes("pant") || c.includes("jean") || c.includes("trouser") || c.includes("skirt") || c.includes("short")) return "lower_body";
-    if (c.includes("dress") || c.includes("jumpsuit") || c.includes("overall")) return "dresses";
-    return "upper_body";
-  })();
-  const garment_des = buildFitDescription(body.productCategory, body.selectedSize, body.fitDescriptor, body.regions);
-  const sizeSeed: Record<string, number> = { XS: 11, S: 23, M: 42, L: 71, XL: 97, XXL: 113 };
-  const seed = sizeSeed[(body.selectedSize || "M").toUpperCase()] ?? 42;
-  const url = model.includes(":") ? "https://api.replicate.com/v1/predictions" : `https://api.replicate.com/v1/models/${model}/predictions`;
-  const payload = model.includes(":")
-    ? {
-        version: model.split(":")[1],
-        input: { human_img: body.userImageUrl, garm_img: body.productImageUrl, garment_des, category, crop: false, force_dc: false, mask_only: false, seed, steps: 40 },
-      }
-    : {
-        input: { human_img: body.userImageUrl, garm_img: body.productImageUrl, garment_des, category, crop: false, force_dc: false, mask_only: false, seed, steps: 40 },
-      };
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Prefer: "wait=8",
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    const data = await response.json().catch(() => ({}));
-    const detail = String(data?.detail || data?.error || data?.message || "").trim();
-
-    if (response.status === 429) {
-      return {
-        kind: "throttled",
-        error: detail || "replicate_throttled",
-        retryAfterMs: extractRetryAfterMs(detail),
-      };
-    }
-
-    if (!response.ok) {
-      return {
-        kind: "error",
-        code: "provider_error",
-        error: detail || `replicate http ${response.status}`,
-      };
-    }
-
-    const imageUrl = parseOutput(data?.output);
-    if (imageUrl) {
-      return { kind: "success", imageUrl };
-    }
-
-    if (data?.id && ["starting", "processing"].includes(String(data?.status))) {
-      return { kind: "pending", predictionId: String(data.id), status: String(data.status) as PendingResponse["status"] };
-    }
-
-    return {
-      kind: "error",
-      code: data?.status === "processing" || data?.status === "starting" ? "timeout" : "missing_output",
-      error: data?.status === "processing" || data?.status === "starting" ? "generation_timeout" : "missing_output",
-    };
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      return { kind: "pending", predictionId: "", status: "processing" };
-    }
-    return {
-      kind: "error",
-      code: "provider_error",
-      error: error instanceof Error ? error.message : "replicate_failed",
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-type ReplicatePollResult =
-  | { kind: "success"; imageUrl: string }
-  | { kind: "pending"; status: PendingResponse["status"] }
-  | { kind: "failed"; error: string }
-  | { kind: "throttled"; error: string; retryAfterMs: number }
-  | { kind: "error"; error: string };
-
-async function pollReplicatePrediction(token: string, predictionId: string): Promise<ReplicatePollResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
-    const data = await response.json().catch(() => ({}));
-    const detail = String(data?.detail || data?.error || data?.message || "").trim();
-
-    if (response.status === 429) {
-      return { kind: "throttled", error: detail || "replicate_throttled", retryAfterMs: extractRetryAfterMs(detail) };
-    }
-    if (!response.ok) {
-      return { kind: "error", error: detail || `replicate http ${response.status}` };
-    }
-
-    const imageUrl = parseOutput(data?.output);
-    if (imageUrl) return { kind: "success", imageUrl };
-
-    const status = String(data?.status || "processing");
-    if (["starting", "processing"].includes(status)) {
-      return { kind: "pending", status: status as PendingResponse["status"] };
-    }
-    if (["failed", "canceled"].includes(status)) {
-      return { kind: "failed", error: detail || status };
-    }
-    return { kind: "error", error: detail || "missing_output" };
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      return { kind: "pending", status: "processing" };
-    }
-    return { kind: "error", error: error instanceof Error ? error.message : "replicate_poll_failed" };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 function toSuccess(row: TryOnRow, imageUrl: string): SuccessResponse {
   return {
-    ok: true,
-    imageUrl,
-    provider: "replicate",
-    selectedSize: row.selected_size,
-    status: "succeeded",
-    predictionId: row.prediction_id,
-    requestId: row.id,
+    ok: true, imageUrl, provider: "lovable-ai",
+    selectedSize: row.selected_size, status: "succeeded",
+    predictionId: null, requestId: row.id,
   };
 }
 
-async function createOrResumePrediction(
-  admin: ReturnType<typeof createClient>,
-  token: string,
-  row: TryOnRow | null,
-  userId: string | null,
-  body: CreateBody,
-  forceRegenerate = false,
-): Promise<TryOnResponse> {
-  const existing = row;
+// ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
+async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
+  const existing = userId ? await getTryOnByIdentity(admin, userId, body) : null;
 
-  if (existing && !forceRegenerate) {
-    if (existing.status === "succeeded" && existing.result_image_url) {
-      return toSuccess(existing, existing.result_image_url);
-    }
-    if (PROCESSING_STATUSES.has(existing.status) && !isStale(existing)) {
-      return pending(existing.status === "throttled" ? "rate_limited" : "pending", {
-        error: existing.status === "throttled" ? existing.error_message : null,
-        selectedSize: existing.selected_size,
-        status: (existing.status === "queued" || existing.status === "throttled" || existing.status === "starting" ? existing.status : "processing") as PendingResponse["status"],
-        requestId: existing.id,
-        predictionId: existing.prediction_id,
-        retryAfterMs: Math.max((getRetryUntil(existing.metadata) ?? Date.now()) - Date.now(), 0) || null,
-      });
-    }
+  if (existing && !body.forceRegenerate && existing.status === "succeeded" && existing.result_image_url) {
+    logRouter("CACHE_HIT", { id: existing.id });
+    return toSuccess(existing, existing.result_image_url);
   }
 
   const record = userId
     ? await upsertTryOnRecord(admin, userId, body, {
-        status: "queued",
+        status: "processing",
         prediction_id: null,
         result_image_url: null,
         error_message: null,
-        model_id: Deno.env.get("REPLICATE_TRYON_MODEL") || "cuuupid/idm-vton",
-        metadata: { retryAfterUntil: null },
+        model_id: MODEL_ID,
+        metadata: { generator: "lovable-ai-clean-studio", retryAfterUntil: null },
       })
     : null;
 
-  const result = await createReplicatePrediction(token, body);
+  const result = await generateCleanFitImage(apiKey, body);
 
   if (result.kind === "success") {
     if (record) {
       await updateTryOnRecord(admin, record.id, {
         status: "succeeded",
-        prediction_id: null,
         result_image_url: result.imageUrl,
         error_message: null,
         metadata: { ...(record.metadata || {}), retryAfterUntil: null },
       });
-      return {
-        ok: true,
-        imageUrl: result.imageUrl,
-        provider: "replicate",
-        selectedSize: body.selectedSize,
-        status: "succeeded",
-        requestId: record.id,
-      };
+      return toSuccess(record, result.imageUrl);
     }
-    return {
-      ok: true,
-      imageUrl: result.imageUrl,
-      provider: "replicate",
-      selectedSize: body.selectedSize,
-      status: "succeeded",
-    };
-  }
-
-  if (result.kind === "pending") {
-    if (record) {
-      await updateTryOnRecord(admin, record.id, {
-        status: result.status,
-        prediction_id: result.predictionId || null,
-        error_message: null,
-        metadata: { ...(record.metadata || {}), retryAfterUntil: null },
-      });
-      return pending("pending", {
-        error: null,
-        selectedSize: body.selectedSize,
-        status: result.status,
-        requestId: record.id,
-        predictionId: result.predictionId || null,
-      });
-    }
-
-    return pending("pending", {
-      error: null,
-      selectedSize: body.selectedSize,
-      status: result.status,
-      predictionId: result.predictionId || null,
-    });
+    return { ok: true, imageUrl: result.imageUrl, provider: "lovable-ai", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
   }
 
   if (result.kind === "throttled") {
-    const retryAfterUntil = Date.now() + result.retryAfterMs;
     if (record) {
       await updateTryOnRecord(admin, record.id, {
         status: "throttled",
-        prediction_id: null,
         error_message: result.error,
-        metadata: { ...(record.metadata || {}), retryAfterUntil },
-      });
-      return pending("rate_limited", {
-        error: result.error,
-        selectedSize: body.selectedSize,
-        status: "throttled",
-        requestId: record.id,
-        retryAfterMs: result.retryAfterMs,
+        metadata: { ...(record.metadata || {}), retryAfterUntil: Date.now() + result.retryAfterMs },
       });
     }
-
-    return pending("rate_limited", {
-      error: result.error,
-      selectedSize: body.selectedSize,
-      status: "throttled",
-      retryAfterMs: result.retryAfterMs,
-    });
+    return pending("rate_limited", { error: result.error, selectedSize: body.selectedSize, status: "throttled", requestId: record?.id ?? null, retryAfterMs: result.retryAfterMs });
   }
 
-  if (record) {
-    await updateTryOnRecord(admin, record.id, {
-      status: "failed",
-      prediction_id: null,
-      error_message: result.error,
-      metadata: { ...(record.metadata || {}), retryAfterUntil: null },
-    });
-    return failure(result.code, result.error, body.selectedSize, "replicate", record.id, null);
+  if (result.kind === "credits_exhausted") {
+    if (record) await updateTryOnRecord(admin, record.id, { status: "failed", error_message: result.error });
+    return failure("credits_exhausted", result.error, body.selectedSize, record?.id ?? null);
   }
 
-  return failure(result.code, result.error, body.selectedSize, "replicate");
+  if (record) await updateTryOnRecord(admin, record.id, { status: "failed", error_message: result.error });
+  return failure(result.code, result.error, body.selectedSize, record?.id ?? null);
 }
 
-async function handleStatus(
-  admin: ReturnType<typeof createClient>,
-  token: string,
-  userId: string | null,
-  body: Partial<CreateBody>,
-): Promise<TryOnResponse> {
-  const row = await getTryOnByRequest(admin, userId, body.requestId, body.predictionId);
+async function handleStatus(admin: ReturnType<typeof createClient>, userId: string | null, body: Partial<CreateBody>): Promise<TryOnResponse> {
+  const row = await getTryOnByRequest(admin, userId, body.requestId);
+  if (!row) return failure("provider_error", "try_on_request_not_found", body.selectedSize, body.requestId ?? null);
 
-  if (row?.status === "succeeded" && row.result_image_url) {
-    return toSuccess(row, row.result_image_url);
-  }
+  if (row.status === "succeeded" && row.result_image_url) return toSuccess(row, row.result_image_url);
+  if (row.status === "failed") return failure("generation_failed", row.error_message || "generation_failed", row.selected_size, row.id);
 
-  if (row?.status === "failed") {
-    return failure("generation_failed", row.error_message || "generation_failed", row.selected_size, "replicate", row.id, row.prediction_id);
-  }
-
-  if (row?.status === "throttled") {
-    const retryAfterUntil = getRetryUntil(row.metadata);
-    if (retryAfterUntil && retryAfterUntil > Date.now()) {
-      return pending("rate_limited", {
-        error: row.error_message,
-        selectedSize: row.selected_size,
-        status: "throttled",
-        requestId: row.id,
-        predictionId: row.prediction_id,
-        retryAfterMs: retryAfterUntil - Date.now(),
-      });
-    }
-    const recreate = await createOrResumePrediction(admin, token, row, userId, buildCreateBodyFromRow(row), true);
-    return recreate;
-  }
-
-  if (row?.prediction_id) {
-    const poll = await pollReplicatePrediction(token, row.prediction_id);
-    if (poll.kind === "success") {
-      await updateTryOnRecord(admin, row.id, {
-        status: "succeeded",
-        result_image_url: poll.imageUrl,
-        error_message: null,
-        metadata: { ...(row.metadata || {}), retryAfterUntil: null },
-      });
-      return {
-        ok: true,
-        imageUrl: poll.imageUrl,
-        provider: "replicate",
-        selectedSize: row.selected_size,
-        status: "succeeded",
-        predictionId: row.prediction_id,
-        requestId: row.id,
-      };
-    }
-    if (poll.kind === "pending") {
-      await updateTryOnRecord(admin, row.id, { status: poll.status, error_message: null });
-      return pending("pending", {
-        error: null,
-        selectedSize: row.selected_size,
-        status: poll.status,
-        requestId: row.id,
-        predictionId: row.prediction_id,
-      });
-    }
-    if (poll.kind === "throttled") {
-      const retryAfterUntil = Date.now() + poll.retryAfterMs;
-      await updateTryOnRecord(admin, row.id, {
-        status: "throttled",
-        error_message: poll.error,
-        metadata: { ...(row.metadata || {}), retryAfterUntil },
-      });
-      return pending("rate_limited", {
-        error: poll.error,
-        selectedSize: row.selected_size,
-        status: "throttled",
-        requestId: row.id,
-        predictionId: row.prediction_id,
-        retryAfterMs: poll.retryAfterMs,
-      });
-    }
-    if (poll.kind === "failed") {
-      await updateTryOnRecord(admin, row.id, {
-        status: "failed",
-        error_message: poll.error,
-        metadata: { ...(row.metadata || {}), retryAfterUntil: null },
-      });
-      return failure("generation_failed", poll.error, row.selected_size, "replicate", row.id, row.prediction_id);
-    }
-    await updateTryOnRecord(admin, row.id, {
-      status: "failed",
-      error_message: poll.error,
-      metadata: { ...(row.metadata || {}), retryAfterUntil: null },
-    });
-    return failure("provider_error", poll.error, row.selected_size, "replicate", row.id, row.prediction_id);
-  }
-
-  if (row && PROCESSING_STATUSES.has(row.status)) {
-    if (isStale(row)) {
-      const recreate = await createOrResumePrediction(admin, token, row, userId, buildCreateBodyFromRow(row), true);
-      return recreate;
-    }
-    return pending("pending", {
-      error: null,
+  if (row.status === "throttled") {
+    const meta = (row.metadata || {}) as Record<string, unknown>;
+    const until = typeof meta.retryAfterUntil === "number" ? meta.retryAfterUntil : null;
+    return pending("rate_limited", {
+      error: row.error_message,
       selectedSize: row.selected_size,
-      status: row.status === "queued" ? "queued" : "processing",
+      status: "throttled",
       requestId: row.id,
-      predictionId: null,
+      retryAfterMs: until ? Math.max(until - Date.now(), 0) : 8_000,
     });
   }
 
-  if (!row && body.predictionId) {
-    const poll = await pollReplicatePrediction(token, body.predictionId);
-    if (poll.kind === "success") {
-      return {
-        ok: true,
-        imageUrl: poll.imageUrl,
-        provider: "replicate",
-        selectedSize: body.selectedSize || "M",
-        status: "succeeded",
-        predictionId: body.predictionId,
-      };
-    }
-    if (poll.kind === "pending") {
-      return pending("pending", {
-        error: null,
-        selectedSize: body.selectedSize,
-        status: poll.status,
-        predictionId: body.predictionId,
-      });
-    }
-    if (poll.kind === "throttled") {
-      return pending("rate_limited", {
-        error: poll.error,
-        selectedSize: body.selectedSize,
-        status: "throttled",
-        predictionId: body.predictionId,
-        retryAfterMs: poll.retryAfterMs,
-      });
-    }
-    if (poll.kind === "failed") {
-      return failure("generation_failed", poll.error, body.selectedSize, "replicate", null, body.predictionId);
-    }
-    return failure("provider_error", poll.error, body.selectedSize, "replicate", null, body.predictionId);
-  }
-
-  return failure("provider_error", "try_on_request_not_found", body.selectedSize, "replicate", body.requestId ?? null, body.predictionId ?? null);
+  return pending("pending", { selectedSize: row.selected_size, status: "processing", requestId: row.id });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -756,28 +413,21 @@ Deno.serve(async (req) => {
   const requestStartedAt = Date.now();
 
   try {
+    if (!LOVABLE_API_KEY) {
+      return json(failure("provider_error", "LOVABLE_API_KEY missing"), 500);
+    }
+
     const url = new URL(req.url);
     const body = req.method === "POST" ? ((await req.json()) as Partial<CreateBody>) : {};
     const action = req.method === "GET" || body.action === "status" ? "status" : "create";
 
-    if (!REPLICATE_API_TOKEN) {
-      return json(failure("provider_error", "REPLICATE_API_TOKEN missing", body.selectedSize, "replicate"), 500);
-    }
-
     if (action === "status") {
-      const response = await handleStatus(admin, REPLICATE_API_TOKEN, userId, {
+      const response = await handleStatus(admin, userId, {
         requestId: body.requestId || url.searchParams.get("requestId") || url.searchParams.get("id") || undefined,
-        predictionId: body.predictionId || url.searchParams.get("predictionId") || undefined,
         selectedSize: body.selectedSize || url.searchParams.get("selectedSize") || undefined,
       });
-      logRouter("STATUS_OUT", {
-        status: response.status,
-        code: response.ok ? "ok" : response.code,
-        requestId: response.requestId,
-        predictionId: response.predictionId,
-        elapsedMs: Date.now() - requestStartedAt,
-      });
-      const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "missing_output" ? 422 : response.code === "provider_error" ? 502 : response.code === "timeout" ? 504 : 500;
+      logRouter("STATUS_OUT", { code: response.ok ? "ok" : response.code, requestId: response.requestId, elapsedMs: Date.now() - requestStartedAt });
+      const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 402 : 500;
       return json(response, statusCode);
     }
 
@@ -789,30 +439,17 @@ Deno.serve(async (req) => {
     }
 
     const img = String(createBody.productImageUrl || "").trim();
-    const usable = !!img && img !== "null" && img !== "undefined" && /^(https?:\/\/|data:image\/)/i.test(img);
-    if (!usable) {
+    if (!/^(https?:\/\/|data:image\/)/i.test(img)) {
       return json(failure("missing_output", "missing_image", createBody.selectedSize), 422);
     }
 
-    if (!createBody.userImageUrl) {
-      return json(failure("provider_error", "userImageUrl required for try-on", createBody.selectedSize), 400);
-    }
+    const response = await handleCreate(admin, LOVABLE_API_KEY, userId, createBody);
+    logRouter("RESPONSE_OUT", { code: response.ok ? "ok" : response.code, requestId: response.requestId, elapsedMs: Date.now() - requestStartedAt });
 
-    const existing = userId ? await getTryOnByIdentity(admin, userId, createBody) : null;
-    const response = await createOrResumePrediction(admin, REPLICATE_API_TOKEN, existing, userId, createBody, !!createBody.forceRegenerate);
-
-    logRouter("RESPONSE_OUT", {
-      status: response.status,
-      code: response.ok ? "ok" : response.code,
-      requestId: response.requestId,
-      predictionId: response.predictionId,
-      elapsedMs: Date.now() - requestStartedAt,
-    });
-
-    const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "missing_output" ? 422 : response.code === "provider_error" ? 502 : response.code === "timeout" ? 504 : 500;
+    const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 402 : response.code === "missing_output" ? 422 : response.code === "timeout" ? 504 : 500;
     return json(response, statusCode);
   } catch (error) {
-    const out = failure("provider_error", error instanceof Error ? error.message : "Unknown error", undefined, null);
+    const out = failure("provider_error", error instanceof Error ? error.message : "Unknown error");
     logRouter("CRASH", { error: out.error, elapsedMs: Date.now() - requestStartedAt });
     return json(out, 500);
   }

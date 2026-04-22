@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useCallback, type ComponentType } from "react";
+import { lazy, Suspense, useState, useCallback, useEffect, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -75,6 +75,38 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+/**
+ * UrlMasker — keeps the visible browser address bar at "/" regardless of the
+ * actual route. React Router still tracks the real path internally so all
+ * navigation and rendering work normally.
+ *
+ * Trade-offs (user explicitly accepted):
+ *  - Refresh always lands on /
+ *  - Deep-link bookmarks not preserved
+ *  - Browser back-button history is collapsed
+ *
+ * Auth-related routes (/auth, /reset-password) and admin routes are exempt
+ * so OAuth callbacks and admin tooling continue to work.
+ */
+const UrlMasker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const path = location.pathname;
+    // Exempt routes where the URL must remain visible/usable.
+    const exempt =
+      path.startsWith("/auth") ||
+      path.startsWith("/reset-password") ||
+      path.startsWith("/admin") ||
+      path.startsWith("/onboarding");
+    if (exempt) return;
+    if (window.location.pathname !== "/" || window.location.search || window.location.hash) {
+      window.history.replaceState(null, "", "/");
+    }
+  }, [location.pathname]);
+  return null;
+};
+
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
@@ -82,7 +114,7 @@ const AppRoutes = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <h1 className="font-display text-2xl font-bold tracking-[0.2em] text-foreground">WARDROBE</h1>
+          <h1 className="font-display text-2xl font-bold tracking-[0.2em] text-foreground">mymyon</h1>
           <Loader2 className="mx-auto mt-4 h-5 w-5 animate-spin text-accent" />
         </div>
       </div>
@@ -94,6 +126,7 @@ const AppRoutes = () => {
 
   return (
     <>
+      <UrlMasker />
       {!isAdmin && <DesktopNav />}
       <Suspense fallback={<PageLoader />}>
         <Routes>
