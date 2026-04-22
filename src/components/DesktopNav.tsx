@@ -6,12 +6,14 @@ import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const DesktopNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
+  const { ootdUnread } = useNotifications();
 
   useEffect(() => {
     prefetchAllTabs();
