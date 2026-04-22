@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, MessageCircle, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -8,14 +8,26 @@ import MessageThread from "./MessageThread";
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Optional: open straight into a specific conversation (used by UserProfile message button) */
+  initialConversationId?: string | null;
+  initialOtherUserId?: string | null;
 }
 
 /**
  * Full-screen Messages inbox sheet — opened from the OOTD My Page card.
+ * When `initialConversationId` is provided, opens directly into that thread.
  */
-export default function MessagesFullSheet({ open, onClose }: Props) {
+export default function MessagesFullSheet({ open, onClose, initialConversationId, initialOtherUserId }: Props) {
   const { conversations, loading, totalUnread } = useConversations();
   const [active, setActive] = useState<{ id: string; otherUserId: string } | null>(null);
+
+  // Sync external "open into this thread" requests
+  useEffect(() => {
+    if (open && initialConversationId && initialOtherUserId) {
+      setActive({ id: initialConversationId, otherUserId: initialOtherUserId });
+    }
+    if (!open) setActive(null);
+  }, [open, initialConversationId, initialOtherUserId]);
 
   return (
     <AnimatePresence>

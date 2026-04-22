@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, Messag
 import { motion } from "framer-motion";
 import { AuthGate } from "@/components/AuthGate";
 import { openConversationWith } from "@/hooks/useMessages";
+import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 import { toast } from "sonner";
 
 interface UserProfileData {
@@ -45,6 +46,11 @@ const UserProfilePage = () => {
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [postCount, setPostCount] = useState(0);
+  // Inline messages sheet — opens directly into the chat with this user.
+  const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null }>({
+    open: false,
+    conversationId: null,
+  });
 
   useEffect(() => {
     if (!userId) return;
@@ -221,7 +227,7 @@ const UserProfilePage = () => {
                       onClick={async () => {
                         const cid = await openConversationWith(userId!);
                         if (cid) {
-                          navigate(`/profile?openConversation=${cid}`);
+                          setMessageSheet({ open: true, conversationId: cid });
                         } else {
                           toast.error("Could not open chat");
                         }
@@ -325,6 +331,14 @@ const UserProfilePage = () => {
           </>
         )}
       </div>
+
+      {/* Direct-to-thread messages sheet — opens when MESSAGE is tapped */}
+      <MessagesFullSheet
+        open={messageSheet.open}
+        onClose={() => setMessageSheet({ open: false, conversationId: null })}
+        initialConversationId={messageSheet.conversationId}
+        initialOtherUserId={userId || null}
+      />
     </div>
   );
 };
