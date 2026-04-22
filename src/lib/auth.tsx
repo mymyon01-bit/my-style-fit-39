@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import {
+  signInWithAppleNative,
+  signInWithGoogleNative,
+} from "@/lib/native/nativeAuth";
+import { isNativeApp } from "@/lib/native/platform";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -10,6 +15,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithApple: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
