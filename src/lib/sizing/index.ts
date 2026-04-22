@@ -8,6 +8,7 @@ export { buildRecommendation } from "./recommend";
 export {
   CATEGORY_RULES,
   normalizeSizingCategory,
+  inferProductGender,
   classifyRegion,
   REGION_TOLERANCE,
 } from "./categoryRules";
