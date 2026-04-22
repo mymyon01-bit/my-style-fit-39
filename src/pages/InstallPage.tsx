@@ -106,15 +106,14 @@ const InstallPage = () => {
               Download for Android (APK)
             </button>
 
-            {/* iOS — sideloading not allowed, store release pending */}
+            {/* iOS — PWA install via Safari "Add to Home Screen" */}
             <button
               type="button"
-              disabled
-              aria-disabled="true"
-              className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full border border-foreground/15 bg-card/40 px-6 py-4 text-sm font-semibold tracking-wide text-foreground/50"
+              onClick={() => setActiveGuide("ios")}
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-foreground/20 bg-card/50 px-6 py-4 text-sm font-semibold tracking-wide text-foreground transition-colors hover:bg-card"
             >
               <Apple className="h-5 w-5" />
-              iOS — Coming soon
+              {isIOS ? "Install on iPhone" : "Install on iPhone (web app)"}
             </button>
 
             {/* Browser PWA install (Android Chrome / desktop) */}
@@ -129,9 +128,15 @@ const InstallPage = () => {
             )}
 
             <p className="px-2 pt-1 text-center text-[11px] leading-relaxed text-foreground/55">
-              Android: after download, open the APK and allow "Install from
-              unknown sources" if prompted. The app is unsigned beta — store
-              release coming soon.
+              <span className="block">
+                <strong className="text-foreground/75">Android:</strong> open the APK and allow
+                "Install from unknown sources" if prompted.
+              </span>
+              <span className="mt-1 block">
+                <strong className="text-foreground/75">iPhone:</strong> installs as a web app via
+                Safari → Share → Add to Home Screen. Full screen, offline-ready, looks like a
+                native app.
+              </span>
             </p>
           </motion.div>
         )}
