@@ -393,16 +393,34 @@ export default function FitResults({
     productCategory: product.category,
     selectedSize: activeSize,
     userImageUrl: resolvedUserImageUrl ?? null,
-    fitDescriptor: activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() || "regular",
-    regions: activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [],
+    // ── PRIMARY: feed the visual try-on the CALCULATED per-region fit from
+    // the new measurement-driven engine, so the AI image visualizes the
+    // computed fit (S=tight, M=fitted, L=regular, XL=oversized) instead of
+    // generating a generic fashion shot. Falls back to legacy regions if the
+    // engine hasn't resolved yet.
+    fitDescriptor:
+      sizingActiveOutcome?.overall ??
+      activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() ||
+      "regular",
+    regions:
+      sizingActiveOutcome
+        ? sizingActiveOutcome.regions.map((r) => ({
+            region: r.region,
+            fit: STATUS_TO_FIT_DESCRIPTOR[r.status],
+          }))
+        : activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [],
     bodyProfileSummary: {
       heightCm: bodyHeightCm ?? null,
       weightKg: bodyWeightKg ?? null,
       build: bodyShape ? String((bodyShape as any).build ?? "") : null,
-      gender: null,
+      gender: bodyGender ?? null,
     },
     reloadToken,
   });
+
+  // Active size outcome from the new measurement-driven engine (if available).
+  // Defined AFTER `useFitTryOn` is hooked but used inside it via closure — so
+  // we compute it via a memo placed earlier. Move the memo above this hook:
 
   // Per-region fit chips computed from the deterministic solver.
   const fitChipsForVisual = useMemo(() => {
