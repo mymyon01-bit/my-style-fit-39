@@ -14,7 +14,7 @@ import { useState, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Sparkles, Share2, Zap } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
