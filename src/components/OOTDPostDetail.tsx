@@ -259,6 +259,9 @@ export default function OOTDPostDetail({
         onClick={e => e.stopPropagation()}
         className="relative w-full max-w-md md:max-w-5xl max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col md:flex-row"
       >
+        {/* Decorative background theme — sits above bg, below content */}
+        <PostThemeBackground theme={postTheme} />
+
         {/* Always-visible close — floats above image AND details pane */}
         <button
           onClick={onClose}
@@ -267,6 +270,32 @@ export default function OOTDPostDetail({
         >
           <X className="h-4 w-4" />
         </button>
+
+        {/* Theme picker toggle */}
+        <button
+          onClick={() => setShowThemePicker((v) => !v)}
+          aria-label="Change background theme"
+          className="absolute top-3 right-14 z-30 rounded-full bg-black/65 p-2 text-white shadow-lg hover:bg-black/85 backdrop-blur-md transition-colors"
+        >
+          <Sparkles className="h-4 w-4" />
+        </button>
+        {showThemePicker && (
+          <div className="absolute top-14 right-3 z-30 w-44 rounded-xl bg-card/95 border border-border shadow-xl backdrop-blur-md p-1.5 space-y-0.5">
+            {POST_THEMES.map((th) => (
+              <button
+                key={th.id}
+                onClick={() => { setPostTheme(th.id); savePostTheme(th.id); setShowThemePicker(false); }}
+                className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[11px] text-foreground/80 hover:bg-accent/10 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-[13px] w-4 text-center">{th.emoji}</span>
+                  {th.label}
+                </span>
+                {postTheme === th.id && <Check className="h-3 w-3 text-accent" />}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Image */}
         <div className="relative flex-shrink-0 md:w-[55%] md:h-[85vh] md:bg-black/40">
