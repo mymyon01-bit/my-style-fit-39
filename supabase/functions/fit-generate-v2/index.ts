@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
 
     const fitResult = calculateFit(body, garment);
     const fitAnalysis = interpretFit(fitResult);
-    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation });
+    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize });
 
     const { url, error } = await generateImage({
       prompt, productImageUrl, userImageUrl, productKey,
