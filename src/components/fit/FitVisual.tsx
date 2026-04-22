@@ -116,10 +116,18 @@ export default function FitVisual({
   };
 
   // Stage messaging — what to show in the loading state.
-  const stageMessage =
-    state.stage === "compositing" ? "Generating fit preview…"
+  // When there is no product image at all, the AI pipeline cannot run.
+  // Surface that explicitly instead of spinning on "Preparing…" forever.
+  const hasNoProductImage = !productImageUrl;
+  const stageMessage = hasNoProductImage
+    ? "No product image available"
+    : state.stage === "compositing" ? "Generating fit preview…"
     : state.stage === "polling_ai" ? "Refining your preview…"
     : "Preparing your preview…";
+
+  const stageHint = hasNoProductImage
+    ? "Pick a product with a photo to generate a fit visual."
+    : "Fit summary already shown — image follows";
 
   return (
     <div className="group/visual space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-br from-card/80 via-card/50 to-card/20 p-3 shadow-[0_8px_40px_-16px_hsl(var(--accent)/0.18)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.28)] sm:p-4">
