@@ -297,12 +297,12 @@ export default function OOTDPostDetail({
           </div>
         )}
 
-        {/* Image — adapts to natural aspect ratio of the photo (no crop) */}
-        <div className="relative flex-shrink-0 md:w-[55%] md:h-[85vh] bg-black/40 flex items-center justify-center p-2 md:p-3">
+        {/* Image — adapts to natural aspect ratio of the photo (no crop, no letterbox) */}
+        <div className="relative flex-shrink-0 md:w-auto md:h-[85vh] flex items-center justify-center">
           <img
             src={post.image_url}
             alt=""
-            className="block max-w-full max-h-[60vh] md:max-h-[calc(85vh-1.5rem)] w-auto h-auto object-contain"
+            className="block max-w-full max-h-[60vh] md:max-h-[85vh] w-auto h-auto object-contain"
           />
 
           {/* Post menu for owner */}
