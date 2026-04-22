@@ -120,19 +120,11 @@ const HomePage = () => {
             className="text-center font-display text-[44px] font-medium italic leading-[0.92] tracking-[-0.05em] text-foreground sm:text-[58px] md:text-[78px]"
           >
             <span className="block">wear your</span>
-            <span
-              className="relative inline-block h-[1em] overflow-hidden align-bottom"
-              style={{ width: "4.2ch" }}
-              aria-label="mood, weather, moment, story"
-            >
-              <span className="ticker-track text-gradient">
-                {TICKER_WORDS.map((w, i) => (
-                  <span key={i} className="block leading-[1em]">
-                    {w}
-                  </span>
-                ))}
-              </span>
-            </span>
+            <MoodTicker
+              onPick={(word) =>
+                navigate(`/discover?mood=${encodeURIComponent(word)}&source=homepage`)
+              }
+            />
           </motion.h1>
 
           {/* Rounded command bar */}
