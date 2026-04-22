@@ -216,6 +216,22 @@ const UserProfilePage = () => {
                       {inCircle ? "IN CIRCLE" : "JOIN CIRCLE"}
                     </button>
                   </AuthGate>
+                  <AuthGate action="message">
+                    <button
+                      onClick={async () => {
+                        const cid = await openConversationWith(userId!);
+                        if (cid) {
+                          navigate(`/profile?openConversation=${cid}`);
+                        } else {
+                          toast.error("Could not open chat");
+                        }
+                      }}
+                      className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      MESSAGE
+                    </button>
+                  </AuthGate>
                   <button
                     onClick={toggleBlock}
                     className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-medium transition-all ${
