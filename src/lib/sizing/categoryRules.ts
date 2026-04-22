@@ -57,6 +57,37 @@ export function normalizeSizingCategory(raw?: string | null, name?: string | nul
   return "other";
 }
 
+/**
+ * Infer the audience gender of a product from free-text fields.
+ * Returns null when no strong signal — never guesses.
+ */
+export function inferProductGender(args: {
+  category?: string | null;
+  name?: string | null;
+  brand?: string | null;
+  breadcrumb?: string | string[] | null;
+  explicit?: string | null; // already-known value if any
+}): import("./types").Gender | null {
+  const explicit = (args.explicit || "").toLowerCase().trim();
+  if (explicit) {
+    if (/^(female|women|woman|wmn|ladies|girl|f|w)$/.test(explicit) || /\bwomen\b|\bfemale\b/.test(explicit)) return "female";
+    if (/^(male|men|man|mens|boy|guy|m)$/.test(explicit) || /\bmen\b|\bmale\b/.test(explicit)) return "male";
+    if (/(unisex|neutral|all)/.test(explicit)) return "neutral";
+  }
+  const bc = Array.isArray(args.breadcrumb) ? args.breadcrumb.join(" ") : (args.breadcrumb || "");
+  const text = `${args.category || ""} ${args.name || ""} ${args.brand || ""} ${bc}`.toLowerCase();
+  if (/\b(unisex|gender[- ]?neutral)\b/.test(text)) return "neutral";
+  const femaleHits =
+    /\b(women|woman|ladies|female|girl|womens)\b/.test(text) ||
+    /\b(dress|skirt|blouse|bra|leggings|tights|gown|bodycon|bodysuit)\b/.test(text);
+  const maleHits =
+    /\b(men|man|mens|male|boys|gentlemen)\b/.test(text);
+  if (femaleHits && !maleHits) return "female";
+  if (maleHits && !femaleHits) return "male";
+  if (femaleHits && maleHits) return "neutral";
+  return null;
+}
+
 /** Helper — common upper-body weight set. */
 const TOP_WEIGHTS = { shoulder: 0.40, chest: 0.30, waist: 0.15, sleeve: 0.075, length: 0.075 };
 const PANT_WEIGHTS = { waist: 0.35, hip: 0.25, thigh: 0.20, inseam: 0.15, length: 0.05 };
