@@ -71,35 +71,56 @@ function buildPrompt(args: {
   ].join(" ");
 }
 
-async function generateImage(prompt: string, productImageUrl: string | null): Promise<{ url: string | null; error?: string }> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) return { url: null, error: "LOVABLE_API_KEY missing" };
+// Final image generation is delegated to the fit-tryon-router edge function,
+// which uses Replicate IDM-VTON. Gemini is intentionally NOT used here so the
+// FIT path stays on a single, paid, image-capable provider (Replicate).
+async function generateImage(opts: {
+  prompt: string;
+  productImageUrl: string | null;
+  userImageUrl: string | null;
+  productKey: string;
+  productName?: string;
+  productCategory?: string;
+  selectedSize: string;
+  bodyProfileSummary?: Record<string, unknown>;
+  authHeader: string;
+}): Promise<{ url: string | null; error?: string }> {
+  if (!opts.productImageUrl) return { url: null, error: "missing_product_image" };
+  if (!opts.userImageUrl) return { url: null, error: "missing_user_body_image" };
 
-  const content: any[] = [{ type: "text", text: prompt }];
-  if (productImageUrl) content.push({ type: "image_url", image_url: { url: productImageUrl } });
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { url: null, error: "supabase_env_missing" };
 
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 45_000);
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const timer = setTimeout(() => controller.abort(), 55_000);
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/fit-tryon-router`, {
       method: "POST",
       signal: controller.signal,
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: opts.authHeader || `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content }],
-        modalities: ["image", "text"],
+        action: "create",
+        productImageUrl: opts.productImageUrl,
+        userImageUrl: opts.userImageUrl,
+        productKey: opts.productKey,
+        productName: opts.productName,
+        productCategory: opts.productCategory,
+        selectedSize: opts.selectedSize,
+        bodyProfileSummary: opts.bodyProfileSummary,
+        // The router builds its own concise prompt; ours is informational.
+        fitDescriptor: opts.prompt.slice(0, 500),
       }),
     });
     clearTimeout(timer);
 
-    if (!resp.ok) {
-      const txt = await resp.text();
-      return { url: null, error: `gateway ${resp.status}: ${txt.slice(0, 200)}` };
-    }
-    const data = await resp.json();
-    const url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
-    return { url };
+    const data = await resp.json().catch(() => ({} as any));
+    if (data?.ok && data?.imageUrl) return { url: data.imageUrl as string };
+    return { url: null, error: data?.error || `router_${resp.status}` };
   } catch (e) {
     return { url: null, error: e instanceof Error ? e.message : String(e) };
   }
