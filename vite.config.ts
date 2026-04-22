@@ -17,22 +17,40 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query"],
-  },
-  optimizeDeps: {
-    include: ["@tanstack/react-query"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "@tanstack/react-query",
+      "scheduler",
+    ],
   },
   build: {
     rollupOptions: {
       output: {
+        // IMPORTANT: keep React + scheduler in a single chunk that loads BEFORE
+        // any other vendor chunk. The previous matcher used substring `.includes("react")`
+        // which matched packages like `react-easy-crop`, `react-day-picker`,
+        // `@hookform/resolvers`, etc. and also pulled half of node_modules with
+        // "react" in the path into `react-vendor`, leaving consumer libs in
+        // `vendor` that referenced React before it was initialized
+        // (Cannot read properties of undefined (reading 'createContext')).
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
-          if (id.includes("react") || id.includes("scheduler")) return "react-vendor";
-          if (id.includes("@tanstack")) return "query-vendor";
-          if (id.includes("@radix-ui")) return "radix-vendor";
-          if (id.includes("lucide-react")) return "icons-vendor";
-          if (id.includes("framer-motion")) return "motion-vendor";
-          return "vendor";
+
+          // React core — must be its own chunk and resolved first.
+          if (
+            /[\\/]node_modules[\\/](react|react-dom|scheduler|use-sync-external-store)[\\/]/.test(id)
+          ) {
+            return "react-vendor";
+          }
+
+          // Let everything else fall into Rollup's default chunk graph so
+          // import-order and shared dependencies stay correct. We deliberately
+          // avoid further manual splits — they were the source of the
+          // production runtime crash.
+          return undefined;
         },
       },
     },
