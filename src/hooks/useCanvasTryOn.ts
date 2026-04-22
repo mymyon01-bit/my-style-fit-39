@@ -320,11 +320,42 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     let cancelled = false;
 
     const commitState = (event: string, partial: Partial<CanvasTryOnState>) => {
-      if (cancelled || activeRequestRef.current !== requestId) return;
+      if (cancelled || activeRequestRef.current !== requestId) {
+        console.log("[FIT_PREVIEW]", { event: "ignored_stale_response", reason: cancelled ? "cancelled" : "request_superseded", incomingRequestId: requestId, activeRequestId: activeRequestRef.current, blockedEvent: event });
+        return;
+      }
       setState((prev) => {
+        // Hard guard: never let a stale request mutate state that already
+        // belongs to a newer request.
+        if (prev.requestId && prev.requestId !== requestId && activeRequestRef.current !== requestId) {
+          console.log("[FIT_PREVIEW]", { event: "ignored_state_mismatch", incomingRequestId: requestId, currentStateRequestId: prev.requestId, blockedEvent: event });
+          return prev;
+        }
+
+        // Source-priority lock: once a higher-priority source has landed for
+        // THIS request, lower-priority intermediates cannot overwrite. AI is
+        // the canonical final; composite > fallback > placeholder.
+        const sameRequest = prev.requestId === requestId;
+        const aiLocked = sameRequest && !!prev.aiImageUrl;
+        const compositeLocked = sameRequest && !!prev.compositeImageUrl;
+
+        const filteredPartial: Partial<CanvasTryOnState> = { ...partial };
+        if (aiLocked) {
+          // Drop any attempt to overwrite once AI exists.
+          delete filteredPartial.compositeImageUrl;
+          delete filteredPartial.fallbackImageUrl;
+          delete filteredPartial.localPlaceholderUrl;
+          if (filteredPartial.stage === "compositing" || filteredPartial.stage === "fallback_ready" || filteredPartial.stage === "preparing") {
+            delete filteredPartial.stage;
+          }
+        } else if (compositeLocked) {
+          // Composite already won — fallback cannot demote it.
+          delete filteredPartial.fallbackImageUrl;
+        }
+
         const merged = derivePreviewState({
           ...prev,
-          ...partial,
+          ...filteredPartial,
           poseDegraded,
           poseSource,
           solver,
@@ -534,11 +565,17 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           imageUrl: summarizeUrl(successData?.imageUrl ?? null),
           provider: data?.provider,
         });
-        if (cancelled || activeRequestRef.current !== requestId) return;
+        if (cancelled || activeRequestRef.current !== requestId) {
+          console.log("[FIT_PREVIEW]", { event: "ignored_ai_response_stale", requestId, activeRequestId: activeRequestRef.current });
+          return;
+        }
         if (!error && successData?.imageUrl) {
           aiLockedRef.current = requestId;
           setState((prev) => {
-            if (prev.requestId !== requestId) return prev;
+            if (prev.requestId !== requestId || activeRequestRef.current !== requestId) {
+              console.log("[FIT_PREVIEW]", { event: "ignored_ai_state_write", requestId, prevRequestId: prev.requestId });
+              return prev;
+            }
             const next = derivePreviewState({
               ...prev,
               stage: "ai_ready",
