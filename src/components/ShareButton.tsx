@@ -1,4 +1,4 @@
-import { Share2, Link2, MessageCircle, Send, Inbox, Camera, Hash, Globe } from "lucide-react";
+import { Share2, Link2, MessageCircle, Send, Inbox, Camera, Hash, Globe, MessageSquare } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
