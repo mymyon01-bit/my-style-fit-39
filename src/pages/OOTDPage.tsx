@@ -65,6 +65,8 @@ const OOTDPage = () => {
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const [selectedPost, setSelectedPost] = useState<OOTDPost | null>(null);
+  // User style preferences — used to personalize the FEED tab.
+  const [userPrefs, setUserPrefs] = useState<{ styles: string[]; occasions: string[] } | null>(null);
   // Edit state
   const [editingPost, setEditingPost] = useState<OOTDPost | null>(null);
   const [editCaption, setEditCaption] = useState("");
@@ -95,7 +97,7 @@ const OOTDPage = () => {
   useEffect(() => {
     loadPosts();
     loadTopics();
-    if (user) { loadMyPosts(); loadTodayStars(); loadUserReactions(); loadSavedPosts(); }
+    if (user) { loadMyPosts(); loadTodayStars(); loadUserReactions(); loadSavedPosts(); loadUserPrefs(); }
   }, [user]);
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
