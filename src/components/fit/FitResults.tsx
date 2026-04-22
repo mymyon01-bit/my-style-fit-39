@@ -380,48 +380,66 @@ export default function FitResults({
             </div>
           )}
 
-          {/* ══ SCORE + SIZE — hero card ══ */}
-          <div className="rounded-3xl border border-accent/20 bg-gradient-to-br from-accent/[0.06] to-accent/[0.02] p-6 shadow-[0_4px_24px_-12px_hsl(var(--accent)/0.18)]">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className={`relative flex h-24 w-24 items-center justify-center rounded-full ring-2 ${heroRing} bg-background/40`}>
-                  <motion.span key={heroScore} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 220, damping: 18 }}
-                    className={`font-display text-4xl font-bold ${heroColor}`}>
-                    {heroScore}
-                  </motion.span>
-                  <span className="absolute bottom-1.5 text-[8px] font-bold tracking-[0.2em] text-foreground/40">/100</span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50">FIT SCORE</p>
-                  <p className={`text-sm font-semibold ${heroColor}`}>{heroFitType}</p>
+          {/* ══ EDITORIAL FIT SCORE — typography-driven, no chrome ══ */}
+          <div className="border-t border-b border-foreground/20 py-7">
+            <div className="flex items-end justify-between gap-6">
+              <div className="flex items-baseline gap-5">
+                <motion.span
+                  key={heroScore}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className="font-display text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground"
+                >
+                  {heroScore}
+                </motion.span>
+                <div className="space-y-1.5 pb-1">
+                  <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40">
+                    FIT&nbsp;/&nbsp;100
+                  </p>
+                  <p className={`text-[15px] font-medium tracking-tight ${heroColor}`}>
+                    {heroFitType}
+                  </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold tracking-[0.2em] text-foreground/50 mb-1">SIZE</p>
-                <p className="font-display text-5xl font-bold text-foreground leading-none">{activeSize}</p>
+                <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40 mb-1">
+                  SIZE
+                </p>
+                <p className="font-display text-[44px] font-medium leading-[0.9] tracking-[-0.04em] text-foreground">
+                  {activeSize}
+                </p>
                 {result.alternateSize !== "N/A" && activeSize !== result.alternateSize && (
-                  <p className="text-[10px] text-foreground/40 mt-1">alt: {result.alternateSize}</p>
+                  <p className="text-[10px] tracking-[0.18em] text-foreground/40 mt-1.5">
+                    ALT&nbsp;·&nbsp;{result.alternateSize}
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* Size switcher */}
-            <div className="mt-5 flex flex-wrap gap-2">
+            {/* Size switcher — minimal pills */}
+            <div className="mt-6 flex flex-wrap gap-1.5">
               {result.sizeResults.map((sr) => {
                 const isActive = sr.size === activeSize;
                 return (
-                  <button key={sr.size} onClick={() => setActiveSize(sr.size)}
-                    className={`relative flex flex-col items-center justify-center rounded-xl border px-3 py-2 transition-all duration-200 hover:-translate-y-0.5 ${
-                      isActive ? "border-accent/50 bg-accent/15 text-foreground shadow-[0_4px_16px_-8px_hsl(var(--accent)/0.4)]"
-                        : "border-foreground/10 bg-background/40 text-foreground/60 hover:bg-foreground/[0.04]"
-                    }`}>
-                    <span className="font-display text-sm font-bold leading-none">{sr.size}</span>
-                    <span className={`text-[9px] font-bold tracking-wider mt-0.5 ${
-                      sr.fitScore >= 80 ? "text-green-500" : sr.fitScore >= 65 ? "text-accent" : "text-orange-500"
+                  <button
+                    key={sr.size}
+                    onClick={() => setActiveSize(sr.size)}
+                    className={`relative flex min-w-[52px] flex-col items-center justify-center border px-3 py-2 transition-all duration-200 ${
+                      isActive
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-foreground/15 bg-transparent text-foreground/50 hover:border-foreground/50 hover:text-foreground"
+                    }`}
+                  >
+                    <span className="font-display text-[13px] font-medium leading-none tracking-tight">{sr.size}</span>
+                    <span className={`text-[9px] font-semibold tracking-[0.12em] mt-1 ${
+                      isActive ? "text-background/70"
+                      : sr.fitScore >= 80 ? "text-foreground/60"
+                      : sr.fitScore >= 65 ? "text-accent"
+                      : "text-foreground/35"
                     }`}>{sr.fitScore}</span>
-                    {sr.recommended && (
-                      <span className="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-accent ring-2 ring-background" />
+                    {sr.recommended && !isActive && (
+                      <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-accent" />
                     )}
                   </button>
                 );
