@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,111 +6,118 @@
 
 @layer base {
   :root {
-    /* ── LIGHT — luxury editorial: warm off-white + silver-blue accents ──
-       Premium fashion-tech, Apple-clean, soft contrast, art-directed.
+    /* ── LIGHT — soft pastel fashion-app aesthetic ──
+       Blush, mint, peach. Airy, elegant, lifestyle-mobile feel.
        Layout untouched — only colour, radius, shadow, type tokens. */
-    --background: 30 20% 97.5%;        /* #FBF8F5 warm porcelain */
-    --foreground: 220 14% 11%;         /* #181B22 graphite ink */
+    --background: 30 40% 98.5%;        /* #FCFAF7 warm off-white */
+    --foreground: 240 12% 18%;         /* #292B33 soft charcoal */
 
-    --card: 0 0% 100%;                 /* pure white surfaces */
-    --card-foreground: 220 14% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 12% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 14% 11%;
+    --popover-foreground: 240 12% 18%;
 
-    --primary: 220 14% 14%;            /* graphite — premium CTAs */
-    --primary-foreground: 30 20% 97.5%;
+    --primary: 350 55% 72%;            /* blush pink — soft CTA */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 14% 93%;           /* warm pale stone */
-    --secondary-foreground: 220 14% 11%;
+    --secondary: 150 40% 90%;          /* pale mint */
+    --secondary-foreground: 160 25% 24%;
 
-    --muted: 30 14% 94.5%;             /* warm sand */
-    --muted-foreground: 220 8% 42%;    /* #5F6573 refined gray */
+    --muted: 30 30% 95%;               /* warm cream */
+    --muted-foreground: 240 8% 48%;
 
-    /* Accent — silver-blue, calm and intelligent (not techy neon) */
-    --accent: 215 38% 48%;             /* #4B6E96 silver-blue */
+    /* Accent — muted coral/peach, warm and friendly */
+    --accent: 14 78% 72%;              /* soft coral peach */
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 215 30% 72%;
-    --accent-highlight: 215 50% 86%;
+    --accent-muted: 14 60% 86%;
+    --accent-highlight: 14 90% 92%;
 
-    --destructive: 4 60% 56%;
+    --destructive: 4 65% 68%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 10% 88%;              /* soft warm hairline */
-    --input: 30 16% 96%;               /* polished input surface */
-    --ring: 215 38% 48%;
+    --border: 30 25% 92%;
+    --input: 30 30% 96.5%;
+    --ring: 350 55% 72%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;                 /* larger pillow radius */
 
-    --neutral: 220 8% 42%;
+    --neutral: 240 8% 48%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 30 14% 93%;
-    --star: 38 78% 62%;                /* refined champagne gold */
+    --surface-sunken: 30 30% 95%;
+    --star: 38 90% 70%;
 
-    /* Typography — Fraunces (editorial display) + Inter (body) */
-    --font-display: 'Fraunces', 'Inter', 'Helvetica Neue', serif;
-    --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --gold: 38 80% 72%;
+    --gold-light: 38 90% 84%;
+    --gold-dark: 30 50% 56%;
 
-    /* Depth — soft, layered, never harsh */
-    --shadow-1: 0 1px 2px hsl(220 14% 14% / 0.04);
-    --shadow-2: 0 6px 20px -8px hsl(220 14% 14% / 0.10), 0 1px 3px hsl(220 14% 14% / 0.04);
-    --shadow-3: 0 22px 50px -16px hsl(220 14% 14% / 0.16), 0 8px 18px -10px hsl(220 14% 14% / 0.08);
+    /* Typography — DM Sans (clean modern) + Fraunces editorial display */
+    --font-display: 'Fraunces', 'DM Sans', 'Inter', serif;
+    --font-body: 'DM Sans', 'Inter', 'Helvetica Neue', sans-serif;
+
+    /* Depth — diffused, low-opacity, pillowy */
+    --shadow-1: 0 1px 2px hsl(350 30% 60% / 0.05);
+    --shadow-2: 0 8px 24px -10px hsl(350 40% 60% / 0.12), 0 2px 6px hsl(14 40% 60% / 0.05);
+    --shadow-3: 0 24px 56px -18px hsl(350 50% 60% / 0.18), 0 10px 22px -12px hsl(14 50% 60% / 0.10);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    /* Premium gradients — used by hero / input glow */
-    --gradient-surface: linear-gradient(180deg, hsl(30 20% 98.5%) 0%, hsl(30 18% 96%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(215 42% 56% / 0.16) 0%, hsl(215 30% 86% / 0.10) 100%);
-    --glow-accent: 0 0 0 1px hsl(215 38% 48% / 0.18), 0 8px 32px -12px hsl(215 38% 48% / 0.32);
+    /* Pastel gradients — soft hero washes */
+    --gradient-surface: linear-gradient(180deg, hsl(30 50% 99%) 0%, hsl(350 40% 97%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(350 70% 88% / 0.45) 0%, hsl(150 50% 88% / 0.35) 50%, hsl(14 80% 88% / 0.40) 100%);
+    --glow-accent: 0 0 0 1px hsl(350 55% 72% / 0.20), 0 10px 36px -12px hsl(14 78% 72% / 0.35);
   }
 
   .dark {
-    /* ── DARK — cinematic graphite + icy-blue, art-directed not inverted ── */
-    --background: 220 16% 7%;          /* #0F1217 deep graphite */
-    --foreground: 210 20% 95%;         /* #EEF1F5 soft white */
+    /* ── DARK — soft pastel translated to a dim, cocooning palette ── */
+    --background: 240 14% 10%;
+    --foreground: 30 20% 95%;
 
-    --card: 220 14% 11%;               /* #181B22 panel */
-    --card-foreground: 210 20% 95%;
+    --card: 240 12% 14%;
+    --card-foreground: 30 20% 95%;
 
-    --popover: 220 14% 11%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 240 12% 14%;
+    --popover-foreground: 30 20% 95%;
 
-    --primary: 210 20% 95%;            /* white CTAs on dark */
-    --primary-foreground: 220 16% 9%;
+    --primary: 350 60% 78%;
+    --primary-foreground: 240 14% 10%;
 
-    --secondary: 220 12% 16%;
-    --secondary-foreground: 210 20% 95%;
+    --secondary: 240 10% 18%;
+    --secondary-foreground: 30 20% 95%;
 
-    --muted: 220 12% 14%;
-    --muted-foreground: 215 12% 68%;
+    --muted: 240 10% 16%;
+    --muted-foreground: 30 12% 70%;
 
-    /* Icy cool-blue accent — calm, premium, never neon */
-    --accent: 205 70% 70%;             /* #7CB6E0 icy blue */
-    --accent-foreground: 220 16% 9%;
-    --accent-muted: 205 40% 50%;
-    --accent-highlight: 205 80% 78%;
+    --accent: 14 80% 76%;
+    --accent-foreground: 240 14% 10%;
+    --accent-muted: 14 50% 50%;
+    --accent-highlight: 14 70% 82%;
 
-    --destructive: 4 60% 60%;
+    --destructive: 4 65% 64%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 12% 20%;
-    --input: 220 12% 14%;
-    --ring: 205 70% 70%;
+    --border: 240 10% 22%;
+    --input: 240 10% 16%;
+    --ring: 350 60% 78%;
 
-    --neutral: 215 12% 68%;
-    --surface-elevated: 220 14% 13%;
-    --surface-sunken: 220 16% 6%;
-    --star: 38 65% 68%;
+    --neutral: 30 12% 70%;
+    --surface-elevated: 240 12% 16%;
+    --surface-sunken: 240 14% 8%;
+    --star: 38 80% 72%;
+
+    --gold: 38 75% 70%;
+    --gold-light: 38 85% 80%;
+    --gold-dark: 30 50% 50%;
 
     --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.40);
-    --shadow-2: 0 6px 22px -8px hsl(0 0% 0% / 0.55), 0 1px 3px hsl(0 0% 0% / 0.36);
-    --shadow-3: 0 28px 60px -16px hsl(0 0% 0% / 0.72), 0 10px 22px -10px hsl(0 0% 0% / 0.48);
+    --shadow-2: 0 8px 26px -10px hsl(0 0% 0% / 0.55), 0 2px 6px hsl(0 0% 0% / 0.32);
+    --shadow-3: 0 28px 64px -18px hsl(0 0% 0% / 0.70), 0 12px 26px -12px hsl(0 0% 0% / 0.46);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(220 16% 8%) 0%, hsl(220 18% 6%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(205 70% 70% / 0.18) 0%, hsl(205 50% 40% / 0.08) 100%);
-    --glow-accent: 0 0 0 1px hsl(205 70% 70% / 0.22), 0 10px 36px -12px hsl(205 70% 70% / 0.38);
+    --gradient-surface: linear-gradient(180deg, hsl(240 14% 11%) 0%, hsl(240 16% 8%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(350 60% 78% / 0.20) 0%, hsl(14 70% 60% / 0.12) 100%);
+    --glow-accent: 0 0 0 1px hsl(350 60% 78% / 0.22), 0 12px 38px -12px hsl(14 80% 76% / 0.38);
   }
 }
 
