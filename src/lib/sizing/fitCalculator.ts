@@ -185,7 +185,46 @@ export function calculateAllSizes(input: CalcInput): SizeOutcome[] {
       summary: summarize(regions),
     });
   }
-  return out;
+
+  // ── Sanity validation pass: enforce monotonic progression across adjacent
+  // sizes so we never jump (e.g.) verySmall → regularFit between S and M.
+  // Adjacent sizes can move at most ONE tier on the OVERALL_TIER ladder.
+  return smoothAdjacentSizes(out);
+}
+
+/** Ordered tier ladder used for monotonic smoothing. */
+const OVERALL_TIER: OverallFitLabel[] = [
+  "verySmall", "tightFit", "fitted", "regularFit", "relaxedFit", "oversizedFit", "tooLarge",
+];
+const TIER_INDEX: Record<OverallFitLabel, number> = OVERALL_TIER.reduce(
+  (acc, label, i) => { acc[label] = i; return acc; },
+  {} as Record<OverallFitLabel, number>,
+);
+
+/**
+ * Walk the size ladder twice (forward + backward) and clamp any single-step
+ * jump greater than one tier. Adjacent sizes physically can't leap multiple
+ * fit categories — when they appear to, the underlying numbers are noisy
+ * (mixed exact + categoryDefault rows), so we smooth toward the neighbour.
+ */
+function smoothAdjacentSizes(outcomes: SizeOutcome[]): SizeOutcome[] {
+  if (outcomes.length < 2) return outcomes;
+  const labels = outcomes.map((o) => TIER_INDEX[o.overall]);
+  // Forward pass — sizes get progressively LOOSER as we go up the ladder, so
+  // each tier index should be >= previous. Cap upward jumps at +2 tiers.
+  for (let i = 1; i < labels.length; i++) {
+    if (labels[i] < labels[i - 1] - 1) labels[i] = labels[i - 1] - 1;
+    if (labels[i] > labels[i - 1] + 2) labels[i] = labels[i - 1] + 2;
+  }
+  // Backward pass — same logic from the other direction.
+  for (let i = labels.length - 2; i >= 0; i--) {
+    if (labels[i] > labels[i + 1] + 1) labels[i] = labels[i + 1] + 1;
+    if (labels[i] < labels[i + 1] - 2) labels[i] = labels[i + 1] - 2;
+  }
+  return outcomes.map((o, i) => {
+    const smoothed = OVERALL_TIER[Math.max(0, Math.min(OVERALL_TIER.length - 1, labels[i]))];
+    return smoothed === o.overall ? o : { ...o, overall: smoothed };
+  });
 }
 
 /** Re-export label maps for the UI. */

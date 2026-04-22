@@ -201,6 +201,9 @@ export default function FitResults({
   // into `activeSize` and into the visual try-on `regions` payload so the AI
   // image visualizes the CALCULATED fit (S=tight / M=fit / L=regular / XL=loose).
   const [sizingPrefOverride, setSizingPrefOverride] = useState<FitPreference | null>(null);
+  // Per-region body-type scales — computed early so the sizing hook can use
+  // them. (Legacy uses are below; this memo replaces the duplicate at line 265.)
+  const shapeScales = useMemo(() => buildBodyShapeScales(bodyShape ?? null), [bodyShape]);
   const sizing = useSizeRecommendation({
     productUrl: product.url,
     productName: product.name,
@@ -217,6 +220,9 @@ export default function FitResults({
       waistCm: bodyWaistCm ?? null,
       hipCm: bodyHipCm ?? null,
       inseamCm: bodyInseamCm ?? null,
+      // Pass per-region body-type scales so slim/regular/solid/heavy users
+      // with the same H/W don't collapse into identical estimated bodies.
+      shapeScales: shapeScales ?? null,
     },
     preferenceOverride: sizingPrefOverride,
   });
@@ -262,7 +268,7 @@ export default function FitResults({
   const builtExplanation = buildLegacyExplanation(result, confTier, usedGlobalFallback);
 
   // ── NEW: size-aware silhouette explanation + breakdown ──
-  const shapeScales = useMemo(() => buildBodyShapeScales(bodyShape ?? null), [bodyShape]);
+  // (shapeScales is declared earlier so the new sizing hook can read it.)
   const newBodyProfile = useMemo(() => buildBodyProfile({
     heightCm: bodyHeightCm ?? null,
     weightKg: bodyWeightKg ?? null,

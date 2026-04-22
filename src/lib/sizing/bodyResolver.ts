@@ -22,6 +22,14 @@ export interface BodyResolverInput {
   inseamCm?: number | null;
   sleeveCm?: number | null;
   thighCm?: number | null;
+  /** Per-region body-type multipliers (slim/regular/solid/heavy etc.). */
+  shapeScales?: {
+    shoulderWidthScale?: number;
+    chestScale?: number;
+    waistScale?: number;
+    hipScale?: number;
+    legScale?: number;
+  } | null;
 }
 
 const DEFAULT_HEIGHT = 172;
@@ -52,11 +60,14 @@ export function resolveBody(input: BodyResolverInput): ResolvedBody {
     ? asExact(input.weightKg!)
     : null;
 
-  // Estimate every segment from height/weight as a ground-truth fallback.
+  // Estimate every segment from height/weight + body-type as a ground-truth fallback.
+  // Body-type shape scales prevent slim vs solid vs heavy from collapsing into
+  // identical proportions when only height/weight are known.
   const est = estimateAnthropometry({
     gender,
     heightCm: heightCm.cm,
     weightKg: weightCm?.cm ?? DEFAULT_WEIGHT,
+    shapeScales: input.shapeScales ?? null,
   });
 
   // For each region, prefer user-provided value, else mark inferred.
