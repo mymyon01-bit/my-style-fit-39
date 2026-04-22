@@ -69,8 +69,10 @@ function buildPrompt(args: {
     : "The garment length sits at an ideal hem position.";
   return [
     `A ${build} ${subject}, ${args.body.height}cm, ${args.body.weight}kg, wearing a ${args.garmentLabel}.`,
-    `Body proportions must visibly reflect this height and weight — torso width, waist, arms and legs scaled accordingly.`,
+    `LOCKED BODY: torso width, waist, hips, arms, legs, posture and silhouette MUST stay IDENTICAL across every size variation. Only the GARMENT changes between sizes — the body NEVER changes.`,
+    `Body proportions must visibly reflect this height and weight, but do NOT slim or enlarge the body to compensate for tighter or looser garments.`,
     chest, sleeve, shoulder, length,
+    `Translate fit purely into FABRIC behavior on the unchanged body: tight = tension lines and pulled seams; loose = volume, folds and draping; short = higher hem; long = extended hem.`,
     "Realistic fashion photography, clean studio background, neutral lighting, full-body front view.",
   ].join(" ");
 }
