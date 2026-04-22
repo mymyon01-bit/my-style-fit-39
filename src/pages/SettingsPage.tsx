@@ -25,6 +25,7 @@ const SettingsPage = () => {
   const { t, lang, setLang } = useI18n();
   const { theme, setTheme } = useTheme();
   const { transition, setTransition } = useTransition();
+  const { fontSize, setFontSize } = useFontSize();
   const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
   const navigate = useNavigate();
