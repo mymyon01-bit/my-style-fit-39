@@ -55,7 +55,8 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
         setPreview(URL.createObjectURL(f));
       } else {
         setProgress("Preparing photo…");
-        const prepared = await prepareImage(f);
+        // Square-crop keeps story thumbnails consistent with the OOTD feed.
+        const prepared = await prepareImage(f, { square: true });
         setMediaType("image");
         setFile(prepared);
         setPreview(URL.createObjectURL(prepared));

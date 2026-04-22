@@ -95,7 +95,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     try {
       validateMedia(f, { allowVideo: false, maxBytes: 50 * 1024 * 1024 });
       setError(null);
-      const prepared = await prepareImage(f);
+      // Square-crop ensures the OOTD grid + ranking board never tear.
+      const prepared = await prepareImage(f, { square: true });
       setFile(prepared);
       setPreview(URL.createObjectURL(prepared));
       setStep(2);
@@ -255,7 +256,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
               <>
                 {preview ? (
                   <div className="relative mb-4 rounded-2xl overflow-hidden">
-                    <img src={preview} alt="Preview" className="w-full aspect-[3/4] object-cover" />
+                    <img src={preview} alt="Preview" className="w-full aspect-square object-cover" />
                     <button
                       onClick={() => { setPreview(null); setFile(null); }}
                       className="absolute top-3 right-3 rounded-full bg-black/50 p-1.5 text-white/70 hover:text-white"
@@ -266,7 +267,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                 ) : (
                   <button
                     onClick={handlePickPhoto}
-                    className="mb-4 flex w-full aspect-[3/4] max-h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-foreground/10 bg-foreground/[0.02] transition-colors hover:border-accent/30"
+                    className="mb-4 flex w-full aspect-square max-h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-foreground/10 bg-foreground/[0.02] transition-colors hover:border-accent/30"
                   >
                     <Camera className="h-8 w-8 text-foreground/15 mb-2" />
                     <span className="text-xs font-semibold tracking-[0.1em] text-foreground/70">TAP TO ADD PHOTO</span>
