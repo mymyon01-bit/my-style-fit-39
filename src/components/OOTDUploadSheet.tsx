@@ -457,6 +457,34 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                   </div>
                 </div>
 
+                {/* Sharing toggle — author can disable shares for this post */}
+                <button
+                  type="button"
+                  onClick={() => setAllowShares((v) => !v)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/40 bg-background/60 px-3.5 py-3 text-left transition-colors hover:border-accent/30"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Share2 className="h-3.5 w-3.5 shrink-0 text-foreground/60" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold text-foreground/85">Allow others to share</p>
+                      <p className="mt-0.5 text-[10px] text-foreground/50">
+                        {allowShares ? "Anyone can share this look" : "Sharing is blocked for this post"}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                      allowShares ? "bg-accent/70" : "bg-foreground/15"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform ${
+                        allowShares ? "translate-x-4" : "translate-x-0.5"
+                      }`}
+                    />
+                  </span>
+                </button>
+
                 {/* Weather */}
                 {!weather.loading && !weather.error && (
                   <p className="text-[10px] text-foreground/70">
