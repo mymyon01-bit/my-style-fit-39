@@ -266,17 +266,18 @@ export default function FitResults({
       hasPropImage: !!userBodyImageUrl,
       hasDbImage: !!dbUserImageUrl,
       resolvedUserImageUrl: resolvedUserImageUrl ? "present" : "missing",
-      productImageUrl: product.image ? "present" : "missing",
+      productImageUrl: resolvedProductImage ? "present" : "missing",
+      productImageSource: resolveBestProductImage(product).source,
       productKey: `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 200),
     });
-  }, [userBodyImageUrl, dbUserImageUrl, resolvedUserImageUrl, product.image, product.url, product.name, product.brand]);
+  }, [userBodyImageUrl, dbUserImageUrl, resolvedUserImageUrl, resolvedProductImage, product]);
 
-  const tryOnReady = !!resolvedUserImageUrl && !!product.image;
+  const tryOnReady = !!resolvedUserImageUrl && !!resolvedProductImage;
   const productKey = `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 200);
   const tryOnContext: TryOnContext | null = tryOnReady
     ? {
         userImageUrl: resolvedUserImageUrl!,
-        productImageUrl: product.image,
+        productImageUrl: resolvedProductImage,
         productName: product.name,
         productBrand: product.brand,
         productUrl: product.url,
@@ -294,9 +295,9 @@ export default function FitResults({
 
   // ── PRIMARY visual: deterministic canvas compositor (+ optional AI swap) ──
   const tryOn = useCanvasTryOn({
-    enabled: !!product.image,
+    enabled: !!resolvedProductImage,
     productKey,
-    productImageUrl: product.image,
+    productImageUrl: resolvedProductImage,
     productName: product.name,
     productCategory: product.category,
     selectedSize: activeSize,
@@ -427,7 +428,7 @@ export default function FitResults({
             productName={product.name}
             activeSize={activeSize}
             state={tryOn}
-            productImageUrl={product.image}
+            productImageUrl={resolvedProductImage}
             onRescanBody={onRescan}
             onReload={() => setReloadToken((n) => n + 1)}
           />
