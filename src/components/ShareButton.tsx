@@ -83,9 +83,9 @@ const ShareButton = ({ title, url, className = "" }: ShareButtonProps) => {
     { key: "msg", label: "Send via Messages", icon: <Inbox className="h-3.5 w-3.5" />, onClick: shareToOOTDMessage },
     { key: "wa", label: "WhatsApp", icon: <MessageCircle className="h-3.5 w-3.5" />, onClick: () => openLink("https://wa.me/?text=", true) },
     { key: "tg", label: "Telegram", icon: <Send className="h-3.5 w-3.5" />, onClick: () => openLink(`https://t.me/share/url?text=${encodeURIComponent(title)}&url=`) },
-    { key: "fb", label: "Facebook", icon: <Facebook className="h-3.5 w-3.5" />, onClick: () => openLink("https://www.facebook.com/sharer/sharer.php?u=") },
-    { key: "tw", label: "X / Twitter", icon: <Twitter className="h-3.5 w-3.5" />, onClick: () => openLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=`) },
-    { key: "ig", label: "Instagram", icon: <Instagram className="h-3.5 w-3.5" />, onClick: shareToInstagram },
+    { key: "fb", label: "Facebook", icon: <Globe className="h-3.5 w-3.5" />, onClick: () => openLink("https://www.facebook.com/sharer/sharer.php?u=") },
+    { key: "tw", label: "X / Twitter", icon: <Hash className="h-3.5 w-3.5" />, onClick: () => openLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=`) },
+    { key: "ig", label: "Instagram", icon: <Camera className="h-3.5 w-3.5" />, onClick: shareToInstagram },
   ];
 
   return (
