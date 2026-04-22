@@ -11,6 +11,21 @@ export interface AnthropometryInput {
   heightCm: number;
   /** Optional — needed for chest/waist/hip estimates. */
   weightKg?: number | null;
+  /**
+   * Optional per-region multipliers from the user's stated body type
+   * (slim/regular/solid/heavy → shoulder/chest/waist/hip/thigh scales).
+   * When supplied, these are applied AFTER BMI-driven baselines so two users
+   * of the same height/weight but different body types do NOT collapse into
+   * identical proportions. Each scale is centered on 1.0.
+   */
+  shapeScales?: {
+    shoulderWidthScale?: number;
+    chestScale?: number;
+    waistScale?: number;
+    /** Optional hip scale; defaults to waist scale when omitted (typical pear/apple). */
+    hipScale?: number;
+    legScale?: number;
+  } | null;
 }
 
 export interface AnthropometryOutput {
@@ -54,13 +69,22 @@ export function estimateAnthropometry(input: AnthropometryInput): AnthropometryO
   // Chest/waist/hip: based on BMI deviation from reference + gender baseline
   const baseline = baselineCircumferences(input.gender);
 
-  const shoulderCm = h * shoulderRatio;
+  // Apply body-type scales so different builds don't collapse into the same shape.
+  // Each scale is centered on 1.0; defaults preserve legacy behaviour exactly.
+  const s = input.shapeScales ?? {};
+  const shoulderScale = clampScale(s.shoulderWidthScale, 0.85, 1.15);
+  const chestScale    = clampScale(s.chestScale,         0.85, 1.20);
+  const waistScale    = clampScale(s.waistScale,         0.80, 1.25);
+  const hipScale      = clampScale(s.hipScale ?? s.waistScale, 0.85, 1.20);
+  const legScale      = clampScale(s.legScale,           0.85, 1.20);
+
+  const shoulderCm = h * shoulderRatio * shoulderScale;
   const inseamCm = h * inseamRatio;
   const sleeveCm = h * sleeveRatio;
-  const chestCm = baseline.chest + bmiDelta * baseline.chestPerBmi;
-  const waistCm = baseline.waist + bmiDelta * baseline.waistPerBmi;
-  const hipCm = baseline.hip + bmiDelta * baseline.hipPerBmi;
-  const thighCm = baseline.thigh + bmiDelta * baseline.thighPerBmi;
+  const chestCm = (baseline.chest + bmiDelta * baseline.chestPerBmi) * chestScale;
+  const waistCm = (baseline.waist + bmiDelta * baseline.waistPerBmi) * waistScale;
+  const hipCm   = (baseline.hip   + bmiDelta * baseline.hipPerBmi)   * hipScale;
+  const thighCm = (baseline.thigh + bmiDelta * baseline.thighPerBmi) * legScale;
 
   return {
     shoulderCm: round1(shoulderCm),
@@ -71,6 +95,11 @@ export function estimateAnthropometry(input: AnthropometryInput): AnthropometryO
     sleeveCm: round1(sleeveCm),
     thighCm: round1(thighCm),
   };
+}
+
+function clampScale(v: number | null | undefined, min: number, max: number): number {
+  if (typeof v !== "number" || !isFinite(v) || v <= 0) return 1;
+  return Math.min(max, Math.max(min, v));
 }
 
 function baselineCircumferences(g: Gender) {
