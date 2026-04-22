@@ -118,7 +118,15 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
     }
   };
 
-  const allProducts = [...dbProducts, ...MOCK_CATALOG];
+  // ── FIT READINESS GATE ─────────────────────────────────────────────────
+  // Only allow products into the FIT entry list if they meet the production
+  // contract: usable image + classifiable category. Items that can't pass
+  // FIT are dropped here so the user never sees a try-on button that breaks.
+  const allProducts = [...dbProducts, ...MOCK_CATALOG].filter((p) => {
+    const hasImage = !!p.image && /^(https?:\/\/|data:image\/)/i.test(p.image);
+    const hasCategory = !!p.category && p.category !== "other";
+    return hasImage && hasCategory;
+  });
 
   return (
     <div className="space-y-6">
