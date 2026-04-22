@@ -378,11 +378,7 @@ const OOTDPage = () => {
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       <div className="mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         <div className="flex items-baseline justify-between mb-8">
-          <span className="flex items-baseline font-display text-[15px] font-light leading-none text-foreground lg:hidden">
-            <span className="tracking-[0.05em]">my</span>
-            <span aria-hidden className="mx-[0.18em] inline-block h-[2.5px] w-[2.5px] translate-y-[-0.55em] rounded-full bg-accent/70" />
-            <span className="tracking-[0.05em]">myon</span>
-          </span>
+          <div className="lg:hidden"><Brandmark variant="inline" /></div>
           <div className="flex items-center gap-4">
             {user && (
               <div className="flex items-center gap-1.5">
