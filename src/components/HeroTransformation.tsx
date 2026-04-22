@@ -5,6 +5,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import Brandmark from "@/components/Brandmark";
 import frame1 from "@/assets/hero-frame-1.jpg";
 import frame2 from "@/assets/hero-frame-2.jpg";
 import frame3 from "@/assets/hero-frame-3.jpg";
