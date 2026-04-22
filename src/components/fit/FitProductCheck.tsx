@@ -53,6 +53,7 @@ const MOCK_CATALOG: FitProduct[] = Object.entries(mockProductFitData).map(([id, 
 });
 
 export default function FitProductCheck({ onSelectProduct, selectedProduct, onClearSelected }: Props) {
+  const { user } = useAuth();
   const [url, setUrl] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [dbProducts, setDbProducts] = useState<FitProduct[]>([]);
@@ -60,6 +61,25 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
   const [refreshing, setRefreshing] = useState(false);
   const [searched, setSearched] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [gender, setGender] = useState<GenderFilter>("all");
+  const [genderInitialized, setGenderInitialized] = useState(false);
+
+  // Default gender filter from the user's profile (mirrors Discover behavior).
+  useEffect(() => {
+    if (!user) { setGenderInitialized(true); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("gender_preference")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setGender(genderPreferenceToFilter(data?.gender_preference));
+      setGenderInitialized(true);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Load products from DB on mount + on refresh
   useEffect(() => {
