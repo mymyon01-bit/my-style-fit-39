@@ -396,7 +396,7 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
         result_image_url: null,
         error_message: null,
         model_id: MODEL_ID,
-        metadata: { generator: "lovable-ai-clean-studio", retryAfterUntil: null },
+        metadata: { generator: "replicate-idm-vton", retryAfterUntil: null },
       })
     : null;
 
