@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { mockProductFitData } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import SelectedProductCard from "@/components/fit/SelectedProductCard";
+import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 
 interface FitProduct {
   id: string;
@@ -25,19 +26,25 @@ interface Props {
   onClearSelected?: () => void;
 }
 
-// Built-in demo products
-const MOCK_CATALOG: FitProduct[] = Object.entries(mockProductFitData).map(([id, data]) => ({
-  id,
-  name: id === "3" ? "Oversized Cotton Shirt" : id === "5" ? "Merino Crew Neck" : id === "2" ? "Straight Leg Trousers" : "Wide Leg Linen Pants",
-  brand: id === "3" ? "Lemaire" : id === "5" ? "AMI Paris" : id === "2" ? "ARKET" : "Our Legacy",
-  price: id === "3" ? 195 : id === "5" ? 220 : id === "2" ? 89 : 175,
-  image: "",
-  url: "#",
-  category: data.category,
-  fitType: data.fitType,
-  dataQuality: data.dataQualityScore,
-  source: "mock" as const,
-}));
+// Built-in demo products. Image is resolved through the canonical resolver so
+// every demo gets a renderable synthesized placeholder — the FIT visual
+// pipeline never receives an empty string.
+const MOCK_CATALOG: FitProduct[] = Object.entries(mockProductFitData).map(([id, data]) => {
+  const name = id === "3" ? "Oversized Cotton Shirt" : id === "5" ? "Merino Crew Neck" : id === "2" ? "Straight Leg Trousers" : "Wide Leg Linen Pants";
+  const brand = id === "3" ? "Lemaire" : id === "5" ? "AMI Paris" : id === "2" ? "ARKET" : "Our Legacy";
+  return {
+    id,
+    name,
+    brand,
+    price: id === "3" ? 195 : id === "5" ? 220 : id === "2" ? 89 : 175,
+    image: resolveBestProductImage({ id, name, brand, source: "mock" }).src ?? "",
+    url: "#",
+    category: data.category,
+    fitType: data.fitType,
+    dataQuality: data.dataQualityScore,
+    source: "mock" as const,
+  };
+});
 
 export default function FitProductCheck({ onSelectProduct, selectedProduct, onClearSelected }: Props) {
   const [url, setUrl] = useState("");
@@ -75,18 +82,25 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
           ))
           .map(p => {
             const parsed = p.price ? parseFloat(String(p.price).replace(/[^0-9.]/g, "")) : NaN;
+            const resolvedImage = resolveBestProductImage({
+              id: p.id,
+              name: p.name,
+              brand: p.brand,
+              image_url: p.image_url,
+              source: "db",
+            }).src ?? "";
             return ({
-            id: p.id,
-            name: p.name,
-            brand: p.brand || "Unknown",
-            price: Number.isFinite(parsed) ? parsed : null,
-            image: p.image_url || "",
-            url: p.source_url || "#",
-            category: inferCategory(p.category || ""),
-            fitType: p.fit || "regular",
-            dataQuality: estimateDataQuality(p),
-            source: "db" as const,
-          });
+              id: p.id,
+              name: p.name,
+              brand: p.brand || "Unknown",
+              price: Number.isFinite(parsed) ? parsed : null,
+              image: resolvedImage,
+              url: p.source_url || "#",
+              category: inferCategory(p.category || ""),
+              fitType: p.fit || "regular",
+              dataQuality: estimateDataQuality(p),
+              source: "db" as const,
+            });
         });
         setDbProducts(mapped);
       }

@@ -116,16 +116,18 @@ export default function FitVisual({
   };
 
   // Stage messaging — what to show in the loading state.
-  // When there is no product image at all, the AI pipeline cannot run.
-  // Surface that explicitly instead of spinning on "Preparing…" forever.
-  const hasNoProductImage = !productImageUrl;
-  const stageMessage = hasNoProductImage
+  // "No product image available" is the TRUE hard-failure case: we have
+  // no AI image, no composite, no fallback, no placeholder, AND the raw
+  // product image is missing. Anything else means the pipeline is still
+  // alive and we should reflect that in the message.
+  const trulyNoImage = !shouldRenderPreview && !productImageUrl;
+  const stageMessage = trulyNoImage
     ? "No product image available"
     : state.stage === "compositing" ? "Generating fit preview…"
     : state.stage === "polling_ai" ? "Refining your preview…"
     : "Preparing your preview…";
 
-  const stageHint = hasNoProductImage
+  const stageHint = trulyNoImage
     ? "Pick a product with a photo to generate a fit visual."
     : "Fit summary already shown — image follows";
 
@@ -251,7 +253,7 @@ export default function FitVisual({
             {/* Status overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/60 backdrop-blur-md ring-1 ring-foreground/10">
-                {hasNoProductImage ? (
+                {trulyNoImage ? (
                   <AlertTriangle className="h-4 w-4 text-foreground/60" />
                 ) : (
                   <Loader2 className="h-4 w-4 animate-spin text-accent" />
@@ -259,7 +261,7 @@ export default function FitVisual({
               </div>
               <div className="space-y-2 text-center">
                 <p className="text-[12px] font-semibold text-foreground/80">{stageMessage}</p>
-                {!hasNoProductImage && (
+                {!trulyNoImage && (
                   <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
                     <motion.div
                       className="h-full w-1/3 rounded-full bg-accent"
