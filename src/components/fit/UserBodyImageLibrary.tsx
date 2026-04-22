@@ -10,6 +10,7 @@ import { Upload, Loader2, Check, Trash2, ImagePlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import {
   listUserBodyImages,
   resolveBodyImageUrl,

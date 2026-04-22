@@ -128,10 +128,8 @@ export default function BodyPhotoPicker({
   useEffect(() => { refresh(); }, [refresh]);
 
   // ── Upload ───────────────────────────────────────────────────────────────
-  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !user) return;
+  const ingest = (file: File) => {
+    if (!user) return;
     if (!file.type.startsWith("image/")) {
       toast.error("Please pick an image");
       return;
@@ -153,6 +151,19 @@ export default function BodyPhotoPicker({
         toast.error("Upload failed");
       })
       .finally(() => setUploading(false));
+  };
+
+  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) ingest(file);
+  };
+
+  const openPicker = async () => {
+    // Native shell: open OS camera/library sheet for a real native experience.
+    const native = await pickPhotoFile({ source: "prompt" });
+    if (native) ingest(native);
+    else fileRef.current?.click();
   };
 
   // ── Delete ───────────────────────────────────────────────────────────────
@@ -221,7 +232,7 @@ export default function BodyPhotoPicker({
       <div className="mb-5 grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={openPicker}
           disabled={uploading}
           className="flex items-center justify-center gap-2 rounded-xl border border-foreground/10 bg-foreground py-3 text-xs font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
         >
