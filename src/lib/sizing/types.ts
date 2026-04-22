@@ -110,11 +110,17 @@ export interface SizeRecommendation {
   /** True if any category-default fallback was used. */
   usedCategoryDefaults: boolean;
   /**
-   * "tooSmall"  → user's body exceeds the largest size in the chart (e.g. 180/100kg picking S).
+   * "tooSmall"  → user's body exceeds the largest size in the chart.
    * "tooLarge"  → user's body is below the smallest size in the chart.
    * "ok"        → at least one size in the chart actually fits.
    */
   rangeStatus: "ok" | "tooSmall" | "tooLarge";
   /** Plain-English warning when rangeStatus !== "ok". */
   rangeWarning: string | null;
+  /** Resolved body gender used for this recommendation (always set). */
+  bodyGender: Gender;
+  /** Product audience gender if known. Null when undeterminable. */
+  productGender: Gender | null;
+  /** Set when product clearly targets a different gender than the user's body. */
+  genderMismatchWarning: string | null;
 }

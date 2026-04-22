@@ -8,6 +8,8 @@ type: feature
 
 Lives entirely under `src/lib/sizing/` + `useSizeRecommendation` hook + `SizeRecommendationPanel` UI. Parallel to (does NOT replace) the locked FIT visual try-on pipeline.
 
+**Gender flow**: `useSizeRecommendation` always feeds a gender into `resolveBody`. Priority is `args.body.gender` > `profiles.gender_preference` (auto-fetched) > `"neutral"`. The product gender is inferred via `inferProductGender({explicit, category, name, brand, breadcrumb})` in `categoryRules.ts` — explicit > breadcrumb/text signals > null. `recommend.ts` adds `bodyGender`, `productGender`, and `genderMismatchWarning` to every `SizeRecommendation`. `SizeRecommendationPanel` shows a `WOMEN`/`MEN` chip in the header and an amber warning banner when product targets a different gender.
+
 ## Pipeline
 1. `bodyResolver.ts` — merges user-provided body data with `anthropometry.ts` estimates (height/weight/gender → shoulder/chest/waist/hip/inseam). Every value tagged `exact | inferred | default`.
 2. `garmentChart.ts` — loads ALL sizes for a product from `garment_measurements` (DB). If empty AND we have URL, fires on-demand `garment-size-fetch` scraper, races 3s, then falls back to category defaults from `categoryRules.ts`.

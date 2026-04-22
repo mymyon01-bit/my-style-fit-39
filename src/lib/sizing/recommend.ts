@@ -21,6 +21,21 @@ interface RecommendInput {
   chart: GarmentChart;
   preference: FitPreference;
   outcomes: SizeOutcome[];
+  /** Inferred gender of the product (from category/title/breadcrumb). Null when unknown. */
+  productGender?: import("./types").Gender | null;
+}
+
+/** Detect a gender mismatch between user's body and the product audience. */
+function detectGenderMismatch(
+  bodyGender: import("./types").Gender,
+  productGender: import("./types").Gender | null | undefined,
+): string | null {
+  if (!productGender || productGender === "neutral") return null;
+  if (bodyGender === "neutral") return null;
+  if (bodyGender === productGender) return null;
+  const productLabel = productGender === "female" ? "women's" : "men's";
+  const bodyLabel = bodyGender === "female" ? "female" : "male";
+  return `This is a ${productLabel} item but your profile is set to ${bodyLabel}. Sizing may run differently — switch the product or update your profile if this is wrong.`;
 }
 
 /** Score multiplier per overall label, given the user's preference. */
@@ -195,6 +210,8 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
   }
 
   const { confidence, reason } = computeConfidence(input.body, input.chart, range.status);
+  const productGender = input.productGender ?? null;
+  const genderMismatchWarning = detectGenderMismatch(input.body.gender, productGender);
   return {
     category: input.chart.category,
     sizes: input.outcomes,
@@ -207,5 +224,8 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
     usedCategoryDefaults: input.chart.usedCategoryDefaults,
     rangeStatus: range.status,
     rangeWarning: range.warning,
+    bodyGender: input.body.gender,
+    productGender,
+    genderMismatchWarning,
   };
 }
