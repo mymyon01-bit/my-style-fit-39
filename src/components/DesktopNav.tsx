@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
+import Brandmark from "@/components/Brandmark";
 
 const DesktopNav = () => {
   const location = useLocation();
