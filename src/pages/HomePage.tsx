@@ -22,7 +22,6 @@ import LanguageSelector from "@/components/LanguageSelector";
 import Footer from "@/components/Footer";
 
 const TICKER_WORDS = ["mood", "weather", "moment", "story", "mood"];
-const MARQUEE_WORDS = ["WEAR YOUR MOOD", "★", "AI STYLIST", "★", "MADE IN 2026", "★", "MYMYON", "★", "TRY IT ON", "★", "FEEL FIRST"];
 
 const HomePage = () => {
   const { t } = useI18n();
