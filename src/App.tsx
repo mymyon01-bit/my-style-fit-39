@@ -113,6 +113,15 @@ const UrlMasker = () => {
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
+  // Init push notifications once a user is signed in (no-op on web).
+  useEffect(() => {
+    if (!user || !isNativeApp()) return;
+    initPushNotifications((token, platform) => {
+      console.log("[push] device token", { platform, token: token.slice(0, 12) + "…" });
+      // TODO: POST { user_id: user.id, token, platform } to a `register-device-token` edge function.
+    });
+  }, [user]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -130,6 +139,7 @@ const AppRoutes = () => {
   return (
     <>
       <UrlMasker />
+      <OpenInAppBanner />
       {!isAdmin && <DesktopNav />}
       <Suspense fallback={<PageLoader />}>
         <Routes>
