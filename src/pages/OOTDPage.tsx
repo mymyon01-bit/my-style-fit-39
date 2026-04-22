@@ -421,6 +421,7 @@ const OOTDPage = () => {
             hasStory={hasOwnStory}
             hasUnseenStory={hasOwnUnseen}
             onUploadStory={() => setStoryUploadOpen(true)}
+            onOpenMessages={() => setMessagesOpen(true)}
             onViewMyStory={() => {
               const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
               if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
@@ -442,28 +443,33 @@ const OOTDPage = () => {
             onLoaded={setAllStoryUsers}
           />
         )}
-        {/* Tabs — Ranking · Feed · Community · My Page */}
-        <div className="flex">
-          {([
-            { key: "ranking" as const, label: "RANKING" },
-            { key: "feed" as const, label: "FEED" },
-            { key: "community" as const, label: "COMMUNITY" },
-            { key: "mypage" as const, label: "MY PAGE" },
-          ]).map(({ key, label }) => (
-            <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 pb-5 text-center">
-              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 ${
-                activeTab === key ? "text-foreground/90" : "text-foreground/45"
-              }`}>
-                {label}
-              </span>
-              {activeTab === key && (
-                <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/60" />
-              )}
-            </button>
-          ))}
-        </div>
-        <div className="h-px bg-accent/[0.14]" />
       </div>
+
+      {/* Sticky tab line — stays pinned at the top while scrolling the tab content */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
+        <div className="mx-auto max-w-lg px-6 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+          <div className="flex">
+            {([
+              { key: "ranking" as const, label: "RANKING" },
+              { key: "feed" as const, label: "FEED" },
+              { key: "community" as const, label: "COMMUNITY" },
+              { key: "mypage" as const, label: "MY PAGE" },
+            ]).map(({ key, label }) => (
+              <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 py-4 text-center">
+                <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+                  activeTab === key ? "text-foreground/90" : "text-foreground/45"
+                }`}>
+                  {label}
+                </span>
+                {activeTab === key && (
+                  <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/60" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
 
       <div className="mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         <AnimatePresence mode="wait">

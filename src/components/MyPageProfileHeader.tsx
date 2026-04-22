@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, Edit3, Save, X, Lock, Globe, Settings, Plus } from "lucide-react";
+import { Camera, Loader2, Edit3, Save, X, Lock, Globe, Settings, Plus, MessageCircle } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -23,12 +24,14 @@ interface Props {
   hasUnseenStory?: boolean;
   onViewMyStory?: () => void;
   onUploadStory?: () => void;
+  onOpenMessages?: () => void;
 }
 
-const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory }: Props) => {
+const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
+  const { msgUnread } = useNotifications();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -223,18 +226,35 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
-        <button
-          onClick={togglePrivate}
-          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
-            profile?.is_private
-              ? "border-accent/40 bg-accent/10 text-accent"
-              : "border-border/40 text-foreground/55 hover:text-foreground/80"
-          }`}
-          aria-label="Toggle private account"
-        >
-          {profile?.is_private ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-          {profile?.is_private ? "Private" : "Public"}
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenMessages && (
+            <button
+              onClick={onOpenMessages}
+              className="relative flex items-center gap-1.5 rounded-full border border-border/40 px-2.5 py-1 text-[10px] font-medium text-foreground/55 hover:text-foreground/80 hover:border-accent/40 transition-colors"
+              aria-label="Open messages"
+            >
+              <MessageCircle className="h-3 w-3" />
+              Messages
+              {msgUnread > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white">
+                  {msgUnread > 99 ? "99+" : msgUnread}
+                </span>
+              )}
+            </button>
+          )}
+          <button
+            onClick={togglePrivate}
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+              profile?.is_private
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-border/40 text-foreground/55 hover:text-foreground/80"
+            }`}
+            aria-label="Toggle private account"
+          >
+            {profile?.is_private ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+            {profile?.is_private ? "Private" : "Public"}
+          </button>
+        </div>
       </div>
 
       <CirclesSheet
