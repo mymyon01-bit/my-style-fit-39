@@ -29,32 +29,66 @@ export default function FitVisual({
   onRescanBody,
   onReload,
 }: Props) {
-  // ── UNIFIED IMAGE PRIORITY ────────────────────────────────────────────
-  // Delegates to the shared selector so inline preview and modal stay in sync.
-  // Generated AI image ALWAYS wins. Failed sources are excluded but the AI
-  // URL is never excluded — we keep it even if a transient load error fires.
+  // ── IMAGE PRIORITY (production-grade, never blank) ────────────────────
+  // Priority order:
+  //   1. AI-generated studio image (final, persisted to our storage)
+  //   2. Canvas composite (deterministic, safe — NOT the user's raw photo)
+  //   3. Fallback canvas (low-priority composite)
+  //
+  // The raw user photo is NEVER used as the final preview to honor the
+  // "no original-scene contamination" rule. Broken URLs are demoted via
+  // onError; the AI URL is sticky (CORS first-paint can fire spurious errors).
   const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  // Hard-fail timer: if nothing renders within 60s of a new request, surface
+  // an honest "Preview unavailable" state with a retry CTA (no broken icon).
+  const [hardFailed, setHardFailed] = useState(false);
 
   useEffect(() => {
     setFailedSrcs([]);
     setLoadedSrc(null);
-  }, [state.requestId, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, state.localPlaceholderUrl, productImageUrl]);
+    setHardFailed(false);
+  }, [state.requestId]);
 
-  // STRICT MODE: only show the FINAL AI-generated image. No composite,
-  // no fallback, no placeholder, no raw product image. Everything else is
-  // a loading state with the animated skeleton.
-  const best = useMemo(() => {
-    const ai = state.aiImageUrl;
-    if (typeof ai === "string" && ai.length > 0 && !failedSrcs.includes(ai)) {
-      return { src: ai, kind: "ai" as const, isFinal: true };
+  useEffect(() => {
+    if (state.aiImageUrl || state.compositeImageUrl || state.fallbackImageUrl) {
+      setHardFailed(false);
+      return;
     }
-    return { src: null as string | null, kind: null as null, isFinal: false };
-  }, [state.aiImageUrl, failedSrcs]);
+    if (state.stage === "error") {
+      setHardFailed(true);
+      return;
+    }
+    const t = window.setTimeout(() => setHardFailed(true), 60_000);
+    return () => window.clearTimeout(t);
+  }, [state.requestId, state.stage, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl]);
+
+  /** Validates the URL is something the browser can actually render. */
+  const isRenderable = (url: string | null | undefined): url is string => {
+    if (!url || typeof url !== "string") return false;
+    const trimmed = url.trim();
+    if (!trimmed || trimmed === "null" || trimmed === "undefined") return false;
+    return /^(https?:\/\/|data:image\/|blob:)/i.test(trimmed);
+  };
+
+  // STRICT preview source selection — never falls through to user's raw photo.
+  const best = useMemo(() => {
+    const candidates: Array<{ src: string | null | undefined; kind: "ai" | "composite" | "fallback"; isFinal: boolean }> = [
+      { src: state.aiImageUrl, kind: "ai", isFinal: true },
+      { src: state.compositeImageUrl, kind: "composite", isFinal: false },
+      { src: state.fallbackImageUrl, kind: "fallback", isFinal: false },
+    ];
+    for (const c of candidates) {
+      if (isRenderable(c.src) && !failedSrcs.includes(c.src)) {
+        return { src: c.src, kind: c.kind, isFinal: c.isFinal };
+      }
+    }
+    return { src: null as string | null, kind: null as null | "ai" | "composite" | "fallback", isFinal: false };
+  }, [state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, failedSrcs]);
   const previewSrc = best.src;
 
   const shouldRenderPreview = Boolean(previewSrc);
-  const isLoading = !shouldRenderPreview;
+  const isLoading = !shouldRenderPreview && !hardFailed;
   const isRefining = false;
   const hasImage = shouldRenderPreview;
 
@@ -71,11 +105,18 @@ export default function FitVisual({
         kind: best.kind,
         isFinal: best.isFinal,
         previewSrc: previewSrc ? `${previewSrc.slice(0, 60)}…` : null,
+        hardFailed,
       });
     }
-  }, [state.requestId, state.stage, previewSrc, best.kind, best.isFinal]);
+  }, [state.requestId, state.stage, previewSrc, best.kind, best.isFinal, hardFailed]);
 
-  const sourceLabel = describeKind(best.kind);
+  const sourceLabel = best.kind === "ai"
+    ? "AI STUDIO PREVIEW"
+    : best.kind === "composite"
+    ? "STYLED PREVIEW"
+    : best.kind === "fallback"
+    ? "QUICK PREVIEW"
+    : "GENERATING";
 
   const handleShare = async () => {
     if (!previewSrc) return;
@@ -106,37 +147,23 @@ export default function FitVisual({
 
   const handleImageError = () => {
     if (!previewSrc) return;
-    // NEVER blacklist a final AI image or the raw product image — both are
-    // last-resort guarantees that the preview will not go blank. The AI image
-    // sometimes fires onError on first paint due to CORS but loads fine on
-    // retry; demoting it would let a stale composite win incorrectly.
+    // The AI URL is sticky — CORS first-paint can fire spurious errors.
     if (previewSrc === state.aiImageUrl) {
       console.warn("[FIT_PREVIEW]", { event: "ai_image_load_error_keeping", previewSrc: previewSrc.slice(0, 60) });
-      return;
-    }
-    if (previewSrc === productImageUrl) {
-      console.warn("[FIT_PREVIEW]", { event: "product_image_failed_keeping_anyway" });
       return;
     }
     setFailedSrcs((prev) => (prev.includes(previewSrc) ? prev : [...prev, previewSrc]));
   };
 
-  // Stage messaging — what to show in the loading state.
-  // "No product image available" is the TRUE hard-failure case: we have
-  // no AI image, no composite, no fallback, no placeholder, AND the raw
-  // product image is missing. Anything else means the pipeline is still
-  // alive and we should reflect that in the message.
-  // Hard-failure: pipeline explicitly failed AND no AI image. Otherwise
-  // (idle, compositing, polling_ai) keep the loading animation alive.
-  const trulyNoImage = !shouldRenderPreview && state.stage === "error";
-  const stageMessage = trulyNoImage
-    ? "Couldn't generate fit preview"
+  // Stage messaging
+  const stageMessage = hardFailed
+    ? "Preview unavailable"
     : state.stage === "polling_ai" ? "Generating your try-on…"
     : state.stage === "compositing" ? "Preparing your try-on…"
     : "Generating your try-on…";
 
-  const stageHint = trulyNoImage
-    ? "Try a different product or rescan your body."
+  const stageHint = hardFailed
+    ? "We couldn't render this preview. Tap reload to try again."
     : "AI is rendering you in this garment";
 
   return (
