@@ -220,7 +220,7 @@ export default function OOTDPostDetail({
           </button>
           <span className="text-[10px] text-foreground/35">{timeAgo(c.created_at)}</span>
         </div>
-        <p className="text-[13px] text-foreground/80 leading-relaxed">{c.content}</p>
+        <p className="text-[13px] text-foreground/80 leading-relaxed ootd-text">{c.content}</p>
         <div className="flex items-center gap-3 mt-1 opacity-60 group-hover:opacity-100 transition-opacity">
           <button onClick={() => toggleCommentLike(c.id)} className={`flex items-center gap-0.5 text-[10px] ${commentLikes.has(c.id) ? "text-rose-400" : "text-foreground/40 hover:text-foreground/60"}`}>
             <Heart className={`h-3 w-3 ${commentLikes.has(c.id) ? "fill-current" : ""}`} />

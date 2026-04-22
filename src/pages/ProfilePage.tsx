@@ -315,8 +315,8 @@ const ProfilePage = () => {
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="flex gap-8 flex-wrap">
+        {/* Stats — fixed 3-column grid so labels never break the row on mobile */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
             { icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
             { icon: Star, label: t("stars"), value: totalStars, onClick: undefined },
@@ -330,10 +330,10 @@ const ProfilePage = () => {
               <Wrap
                 key={stat.label}
                 onClick={stat.onClick}
-                className={`text-center ${stat.onClick ? "hover:text-accent transition-colors cursor-pointer" : ""}`}
+                className={`flex flex-col items-center justify-center text-center min-w-0 ${stat.onClick ? "hover:text-accent transition-colors cursor-pointer" : ""}`}
               >
-                <p className="text-xl font-light text-foreground/80">{stat.value}</p>
-                <p className="text-[10px] text-foreground/70 mt-1.5">{stat.label}</p>
+                <p className="text-xl font-light text-foreground/80 tabular-nums">{stat.value}</p>
+                <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{stat.label}</p>
               </Wrap>
             );
           })}
