@@ -45,8 +45,8 @@ export default function MessageThread({ conversationId, otherUserId, onBack }: P
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  const handleSend = async (content: string, taggedUserIds: string[]) => {
-    await sendMessage(otherUserId, content, taggedUserIds);
+  const handleSend = async (content: string, taggedUserIds: string[], attachments: any[]) => {
+    await sendMessage(otherUserId, content, taggedUserIds, attachments);
   };
 
   return (
@@ -101,6 +101,8 @@ export default function MessageThread({ conversationId, otherUserId, onBack }: P
               content={m.content}
               isMine={m.sender_id === user?.id}
               createdAt={m.created_at}
+              readAt={m.read_at}
+              attachments={(m.attachments as any[]) || []}
             />
           ))
         )}
