@@ -1,18 +1,40 @@
 /**
  * Push notifications bootstrap for the native iOS/Android shell.
- * No-op on web. Call `initPushNotifications()` once after the user is signed
- * in so we have an auth context to associate the device token with.
+ * No-op on web. Call `initPushNotifications(userId)` once after the user is
+ * signed in so we have an auth context to associate the device token with.
  *
- * Tokens are sent to the `register-device-token` Lovable Cloud edge function
- * (create that function later — for now we just log them).
+ * Tokens are POSTed to the `register-device-token` Lovable Cloud edge
+ * function which upserts them into `push_device_tokens` for later targeting.
  */
 import { PushNotifications } from "@capacitor/push-notifications";
+import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp, nativePlatform } from "./platform";
 
 let initialized = false;
 
+const sendTokenToBackend = async (
+  token: string,
+  platform: "ios" | "android",
+) => {
+  try {
+    const { error } = await supabase.functions.invoke(
+      "register-device-token",
+      {
+        body: {
+          token,
+          platform,
+          app_version: "1.0.0",
+        },
+      },
+    );
+    if (error) console.error("[push] register-device-token failed", error);
+  } catch (e) {
+    console.error("[push] register-device-token threw", e);
+  }
+};
+
 export const initPushNotifications = async (
-  onToken?: (token: string, platform: "ios" | "android") => void
+  onToken?: (token: string, platform: "ios" | "android") => void,
 ): Promise<void> => {
   if (!isNativeApp() || initialized) return;
   initialized = true;
@@ -24,9 +46,9 @@ export const initPushNotifications = async (
 
   PushNotifications.addListener("registration", (token) => {
     const platform = nativePlatform();
-    if (platform === "ios" || platform === "android") {
-      onToken?.(token.value, platform);
-    }
+    if (platform !== "ios" && platform !== "android") return;
+    sendTokenToBackend(token.value, platform);
+    onToken?.(token.value, platform);
   });
 
   PushNotifications.addListener("registrationError", (err) => {
