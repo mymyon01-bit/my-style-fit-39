@@ -47,7 +47,7 @@ const InstallPage = () => {
   // Replace OWNER/REPO once the project is exported to GitHub.
   const APK_URL =
     (import.meta.env.VITE_APK_URL as string | undefined) ??
-    "https://github.com/OWNER/REPO/releases/download/latest-apk/mymyon.apk";
+    "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk";
 
   const handleApkDownload = () => {
     window.open(APK_URL, "_blank", "noopener,noreferrer");
