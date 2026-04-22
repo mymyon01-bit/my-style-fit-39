@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,800;1,9..144,400;1,9..144,500;1,9..144,800&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,126 +6,137 @@
 
 @layer base {
   :root {
-    /* ── LIGHT — high-end editorial fashion-tech ──
-       Off-white / charcoal base. Restrained muted-neon accent.
-       Off-White × Jacquemus × modern AI interface. */
-    --background: 36 22% 96%;          /* #F5F2ED cream off-white */
-    --foreground: 240 8% 8%;           /* near-black charcoal */
+    /* ── LIGHT — vibrant edgy fashion-tech ──
+       Deep ink base, acid-lime primary, electric magenta accent.
+       Inspired by Bottega × Loewe × cyber-editorial. */
+    --background: 48 30% 95%;          /* warm bone */
+    --foreground: 240 12% 6%;          /* deep ink */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 8% 8%;
+    --card-foreground: 240 12% 6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 8% 8%;
+    --popover-foreground: 240 12% 6%;
 
-    --primary: 240 8% 10%;             /* charcoal — primary CTA */
-    --primary-foreground: 36 22% 96%;
+    --primary: 78 95% 52%;             /* acid lime — primary */
+    --primary-foreground: 240 12% 6%;
 
-    --secondary: 36 14% 92%;           /* warm beige */
-    --secondary-foreground: 240 8% 14%;
+    --secondary: 48 18% 90%;           /* warm bone secondary */
+    --secondary-foreground: 240 12% 10%;
 
-    --muted: 36 14% 93%;               /* soft cream */
-    --muted-foreground: 240 5% 40%;
+    --muted: 48 14% 92%;
+    --muted-foreground: 240 6% 38%;
 
-    /* Accent — soft electric blue, used sparingly to highlight */
-    --accent: 224 88% 58%;             /* muted neon blue */
+    /* Accent — electric magenta, used for highlights & motion */
+    --accent: 322 95% 56%;             /* hot magenta */
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 224 50% 88%;
-    --accent-highlight: 224 80% 95%;
+    --accent-muted: 322 60% 88%;
+    --accent-highlight: 322 95% 96%;
 
-    /* Editorial accent system — apply via inline color when needed */
-    --edge-lime: 72 78% 56%;
-    --edge-pink: 348 60% 78%;
-    --edge-beige: 32 38% 78%;
+    /* Editorial accent system — vibrant trio */
+    --edge-lime: 78 95% 52%;
+    --edge-pink: 322 95% 56%;
+    --edge-beige: 28 90% 60%;          /* tangerine */
+    --edge-cyan: 188 92% 50%;          /* electric cyan */
+    --edge-violet: 268 88% 62%;        /* ultraviolet */
 
-    --destructive: 4 72% 56%;
+    --destructive: 4 86% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 36 12% 86%;
-    --input: 36 14% 94%;
-    --ring: 224 88% 58%;
+    --border: 240 8% 12%;              /* hard ink borders */
+    --input: 48 14% 94%;
+    --ring: 78 95% 52%;
 
-    --radius: 0.375rem;                /* sharper editorial — 6px */
+    --radius: 0.25rem;                 /* sharp 4px brutalist */
 
-    --neutral: 240 5% 40%;
+    --neutral: 240 6% 38%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 36 14% 93%;
-    --star: 38 90% 60%;
+    --surface-sunken: 48 14% 92%;
+    --star: 38 95% 58%;
 
-    --gold: 38 70% 56%;
-    --gold-light: 38 85% 76%;
-    --gold-dark: 30 45% 40%;
+    --gold: 38 92% 56%;
+    --gold-light: 38 95% 76%;
+    --gold-dark: 30 60% 40%;
 
-    /* Typography — Fraunces display (editorial serif) + DM Sans body */
+    /* Typography — Fraunces italic display + DM Sans body + JetBrains Mono labels */
     --font-display: 'Fraunces', 'Times New Roman', serif;
     --font-body: 'DM Sans', 'Inter', 'Helvetica Neue', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    /* Depth — sharper, low-opacity black, fashion-print feel */
-    --shadow-1: 0 1px 2px hsl(240 8% 8% / 0.04);
-    --shadow-2: 0 12px 28px -14px hsl(240 8% 8% / 0.10), 0 2px 6px hsl(240 8% 8% / 0.04);
-    --shadow-3: 0 32px 64px -22px hsl(240 8% 8% / 0.18), 0 12px 24px -14px hsl(240 8% 8% / 0.08);
+    /* Depth — sharper, hard contact shadows for brutalist feel */
+    --shadow-1: 0 1px 0 hsl(240 12% 6% / 0.08);
+    --shadow-2: 4px 4px 0 hsl(240 12% 6% / 0.10);
+    --shadow-3: 8px 8px 0 hsl(240 12% 6% / 0.14);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(36 24% 97%) 0%, hsl(36 18% 94%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(224 80% 92% / 0.5) 0%, hsl(36 30% 92% / 0.4) 100%);
-    --glow-accent: 0 0 0 1px hsl(224 88% 58% / 0.30), 0 16px 40px -16px hsl(224 88% 58% / 0.30);
+    --gradient-surface: linear-gradient(180deg, hsl(48 32% 96%) 0%, hsl(48 24% 92%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(78 95% 52%) 0%, hsl(322 95% 56%) 50%, hsl(268 88% 62%) 100%);
+    --gradient-acid: linear-gradient(120deg, hsl(78 95% 52%), hsl(188 92% 50%));
+    --gradient-fire: linear-gradient(120deg, hsl(322 95% 56%), hsl(28 90% 60%));
+    --glow-accent: 0 0 0 2px hsl(78 95% 52%), 0 0 24px hsl(78 95% 52% / 0.4);
+    --glow-magenta: 0 0 0 2px hsl(322 95% 56%), 0 0 32px hsl(322 95% 56% / 0.5);
   }
 
   .dark {
-    /* ── DARK — deep black editorial, electric accent ── */
-    --background: 240 8% 6%;
-    --foreground: 36 14% 94%;
+    /* ── DARK — pure ink, acid lime + magenta on black ── */
+    --background: 240 12% 4%;
+    --foreground: 48 30% 95%;
 
-    --card: 240 6% 9%;
-    --card-foreground: 36 14% 94%;
+    --card: 240 10% 8%;
+    --card-foreground: 48 30% 95%;
 
-    --popover: 240 6% 9%;
-    --popover-foreground: 36 14% 94%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 48 30% 95%;
 
-    --primary: 36 14% 94%;
-    --primary-foreground: 240 8% 6%;
+    --primary: 78 95% 58%;
+    --primary-foreground: 240 12% 4%;
 
-    --secondary: 240 6% 13%;
-    --secondary-foreground: 36 14% 94%;
+    --secondary: 240 8% 12%;
+    --secondary-foreground: 48 30% 95%;
 
-    --muted: 240 6% 12%;
-    --muted-foreground: 36 8% 64%;
+    --muted: 240 8% 11%;
+    --muted-foreground: 48 8% 65%;
 
-    --accent: 224 92% 68%;
-    --accent-foreground: 240 8% 6%;
-    --accent-muted: 224 40% 30%;
-    --accent-highlight: 224 70% 70%;
+    --accent: 322 95% 62%;
+    --accent-foreground: 0 0% 100%;
+    --accent-muted: 322 50% 25%;
+    --accent-highlight: 322 80% 70%;
 
-    --edge-lime: 72 80% 60%;
-    --edge-pink: 348 60% 76%;
-    --edge-beige: 32 28% 56%;
+    --edge-lime: 78 95% 58%;
+    --edge-pink: 322 95% 62%;
+    --edge-beige: 28 92% 64%;
+    --edge-cyan: 188 92% 56%;
+    --edge-violet: 268 88% 68%;
 
-    --destructive: 4 72% 60%;
+    --destructive: 4 86% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 18%;
-    --input: 240 6% 12%;
-    --ring: 224 92% 68%;
+    --border: 240 8% 22%;
+    --input: 240 8% 11%;
+    --ring: 78 95% 58%;
 
-    --neutral: 36 8% 64%;
-    --surface-elevated: 240 6% 11%;
-    --surface-sunken: 240 8% 4%;
-    --star: 38 80% 64%;
+    --neutral: 48 8% 65%;
+    --surface-elevated: 240 10% 10%;
+    --surface-sunken: 240 12% 3%;
+    --star: 38 95% 64%;
 
-    --gold: 38 70% 64%;
-    --gold-light: 38 85% 76%;
-    --gold-dark: 30 50% 44%;
+    --gold: 38 92% 64%;
+    --gold-light: 38 95% 76%;
+    --gold-dark: 30 60% 44%;
 
-    --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.40);
-    --shadow-2: 0 12px 28px -12px hsl(0 0% 0% / 0.60), 0 2px 6px hsl(0 0% 0% / 0.30);
-    --shadow-3: 0 32px 64px -20px hsl(0 0% 0% / 0.75), 0 14px 28px -14px hsl(0 0% 0% / 0.50);
+    --shadow-1: 0 1px 0 hsl(0 0% 0% / 0.6);
+    --shadow-2: 4px 4px 0 hsl(78 95% 58% / 0.20);
+    --shadow-3: 8px 8px 0 hsl(322 95% 62% / 0.25);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(240 8% 7%) 0%, hsl(240 10% 4%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(224 92% 68% / 0.20) 0%, hsl(240 6% 9% / 0.20) 100%);
-    --glow-accent: 0 0 0 1px hsl(224 92% 68% / 0.30), 0 16px 44px -14px hsl(224 92% 68% / 0.40);
+    --gradient-surface: linear-gradient(180deg, hsl(240 12% 5%) 0%, hsl(240 14% 3%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(78 95% 58%) 0%, hsl(322 95% 62%) 50%, hsl(268 88% 68%) 100%);
+    --gradient-acid: linear-gradient(120deg, hsl(78 95% 58%), hsl(188 92% 56%));
+    --gradient-fire: linear-gradient(120deg, hsl(322 95% 62%), hsl(28 92% 64%));
+    --glow-accent: 0 0 0 2px hsl(78 95% 58%), 0 0 24px hsl(78 95% 58% / 0.5);
+    --glow-magenta: 0 0 0 2px hsl(322 95% 62%), 0 0 32px hsl(322 95% 62% / 0.55);
   }
 }
 
@@ -138,7 +149,7 @@
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
     font-size: 15px;
-    line-height: 1.55;
+    line-height: 1.5;
     font-weight: 400;
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
@@ -149,19 +160,18 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.03em;
-    line-height: 1.04;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
     color: hsl(var(--foreground));
     font-weight: 500;
     font-feature-settings: "ss01", "cv11", "liga";
   }
-  h1 { font-weight: 500; letter-spacing: -0.04em; }
-  h2 { font-weight: 500; letter-spacing: -0.034em; }
-  h3, h4 { font-weight: 500; letter-spacing: -0.024em; }
+  h1 { font-weight: 500; letter-spacing: -0.05em; font-style: italic; }
+  h2 { font-weight: 500; letter-spacing: -0.04em; }
+  h3, h4 { font-weight: 500; letter-spacing: -0.028em; }
   p { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
-  /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR
-     with a slightly larger base + heavier weight for crisp legibility. */
+  /* Korean: keep crisp legibility with Noto */
   html[lang="ko"] body,
   :lang(ko) {
     font-family: 'Noto Sans KR', var(--font-body);
@@ -188,41 +198,33 @@
 }
 
 @layer utilities {
-  .font-display {
-    font-family: var(--font-display);
-  }
-  .font-body {
-    font-family: var(--font-body);
-  }
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
-  }
-  .shadow-elevated {
-    box-shadow: var(--shadow-elevated);
-  }
-  /* Depth tokens — use directly on cards & surfaces */
+  .font-display { font-family: var(--font-display); }
+  .font-body { font-family: var(--font-body); }
+  .font-mono { font-family: var(--font-mono); }
+
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
   .shadow-d1 { box-shadow: var(--shadow-1); }
   .shadow-d2 { box-shadow: var(--shadow-2); }
   .shadow-d3 { box-shadow: var(--shadow-3); }
 
-  /* Premium card lift — Level 2 → Level 3 on hover/focus.
-     Subtle: -3px translate, deeper shadow, no scale. */
+  /* ── Brutalist card lift — hard offset shadow grows on hover ── */
   .lift-card {
     box-shadow: var(--shadow-2);
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-                box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform;
   }
   @media (hover: hover) {
     .lift-card:hover {
-      transform: translateY(-3px);
+      transform: translate(-4px, -4px);
       box-shadow: var(--shadow-3);
     }
   }
   .lift-card:focus-visible {
-    transform: translateY(-3px);
+    transform: translate(-4px, -4px);
     box-shadow: var(--shadow-3);
-    outline: 2px solid hsl(var(--ring) / 0.5);
+    outline: 2px solid hsl(var(--ring) / 0.6);
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -230,17 +232,40 @@
     .lift-card:hover { transform: none; }
   }
 
-  /* Editorial image overlay — bottom-up gradient for caption legibility
-     on StyledLook / OOTD media. Apply on the image wrapper as ::after. */
-  .image-overlay-editorial {
-    position: relative;
+  /* ── Gradient text — vibrant tri-color ── */
+  .text-gradient {
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
   }
+  .text-gradient-acid {
+    background: var(--gradient-acid);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-fire {
+    background: var(--gradient-fire);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* ── Editorial image overlay ── */
+  .image-overlay-editorial { position: relative; }
   .image-overlay-editorial::after {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(to top, hsl(0 0% 0% / 0.4), hsl(0 0% 0% / 0));
+    background: linear-gradient(to top, hsl(0 0% 0% / 0.55), hsl(0 0% 0% / 0));
     border-radius: inherit;
   }
 
@@ -248,69 +273,156 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-  /* Burgundy hover system */
-  .hover-burgundy {
-    @apply transition-all duration-300;
-  }
+  /* ── Magenta hover system (replacing burgundy) ── */
+  .hover-burgundy { @apply transition-all duration-300; }
   .hover-burgundy:hover {
     color: hsl(var(--accent));
-    text-shadow: 0 0 20px hsl(var(--accent) / 0.15);
+    text-shadow: 0 0 24px hsl(var(--accent) / 0.4);
   }
   .hover-burgundy-icon:hover {
     color: hsl(var(--accent));
-    filter: drop-shadow(0 0 6px hsl(var(--accent) / 0.2));
+    filter: drop-shadow(0 0 8px hsl(var(--accent) / 0.5));
   }
 
-  /* ── Luxury command bar ───────────────────────────────────────────────
-     Premium prompt input surface — frosted, subtle border, focus glow.
-     Used by the Discover search input. Pure visual, no layout impact. */
+  /* ── Acid lime hover variant ── */
+  .hover-acid:hover {
+    color: hsl(var(--primary));
+    text-shadow: 0 0 24px hsl(var(--primary) / 0.5);
+  }
+
+  /* ── Luxury command bar — now sharper with acid focus ── */
   .luxe-command {
     background: linear-gradient(180deg,
-      hsl(var(--card) / 0.85) 0%,
-      hsl(var(--card) / 0.65) 100%);
-    backdrop-filter: blur(18px) saturate(1.2);
-    -webkit-backdrop-filter: blur(18px) saturate(1.2);
-    border: 1px solid hsl(var(--border) / 0.7);
-    border-radius: calc(var(--radius) + 4px);
+      hsl(var(--card) / 0.90) 0%,
+      hsl(var(--card) / 0.70) 100%);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1.5px solid hsl(var(--border) / 0.8);
+    border-radius: var(--radius);
     box-shadow: var(--shadow-2);
     transition: box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1),
-                border-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 200ms ease-out,
                 transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .luxe-command:hover {
-    border-color: hsl(var(--border));
+    border-color: hsl(var(--foreground));
     box-shadow: var(--shadow-3);
   }
   .luxe-command:focus-within {
-    border-color: hsl(var(--accent) / 0.55);
-    box-shadow: var(--glow-accent), var(--shadow-3);
+    border-color: hsl(var(--primary));
+    box-shadow: var(--glow-accent);
   }
   @media (prefers-reduced-motion: reduce) {
     .luxe-command { transition: none; }
   }
 
-  /* Editorial heading utility */
+  /* ── Editorial heading utility ── */
   .text-editorial {
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.028em;
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: -0.04em;
     font-feature-settings: "ss01", "liga";
   }
 
-  /* Page transitions */
-  .page-enter-vertical {
-    animation: slideInVertical 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  /* ── Mono label — used for tags, meta, section headers ── */
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
-  .page-enter-fade {
-    animation: fadeDarkLight 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── Marquee — horizontal scrolling band ── */
+  .marquee {
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+    gap: 3rem;
+    mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
   }
-  .page-enter-split {
-    animation: splitOpen 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  .marquee-track {
+    display: flex;
+    gap: 3rem;
+    flex-shrink: 0;
+    animation: marquee-scroll 30s linear infinite;
   }
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; }
+  }
+
+  /* ── Glitch reveal — subtle RGB split on hover ── */
+  .glitch-hover { position: relative; transition: transform 200ms; }
+  .glitch-hover:hover {
+    text-shadow:
+      2px 0 hsl(var(--accent)),
+      -2px 0 hsl(var(--primary));
+    animation: glitch-jitter 0.4s steps(2, end);
+  }
+  @keyframes glitch-jitter {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-1px, 1px); }
+    50% { transform: translate(1px, -1px); }
+    75% { transform: translate(-1px, -1px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .glitch-hover:hover { text-shadow: none; animation: none; }
+  }
+
+  /* ── Color cycle — animated background gradient ── */
+  .bg-gradient-animated {
+    background: var(--gradient-accent);
+    background-size: 300% 300%;
+    animation: gradient-shift 12s ease infinite;
+  }
+
+  /* ── Brutalist button — sharp, hard-shadowed primary CTA ── */
+  .btn-brutalist {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 1.5px solid hsl(var(--foreground));
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    box-shadow: 4px 4px 0 hsl(var(--foreground));
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 180ms;
+    cursor: pointer;
+  }
+  .btn-brutalist:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 hsl(var(--foreground));
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+  .btn-brutalist:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 hsl(var(--foreground));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-brutalist { transition: background-color 180ms; }
+    .btn-brutalist:hover { transform: none; box-shadow: 4px 4px 0 hsl(var(--foreground)); }
+  }
+
+  /* ── Page transitions ── */
+  .page-enter-vertical { animation: slideInVertical 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+  .page-enter-fade { animation: fadeDarkLight 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+  .page-enter-split { animation: splitOpen 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
 }
 
 @keyframes slideInVertical {
@@ -328,12 +440,7 @@
   100% { opacity: 1; clip-path: inset(0 0 0 0); }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
- * Premium hero crossfade — three frames, 15s total loop (5s per frame).
- * Slow crossfade with Ken Burns zoom-in + subtle parallax drift on each
- * frame. Each frame is visible for ~5s with 1.2s overlap on either side.
- * Subsequent frames are delayed by 5s via inline style.
- * ────────────────────────────────────────────────────────────────────────── */
+/* Hero crossfade — kept */
 @keyframes heroFade {
   0%   { opacity: 0; transform: scale(1.04) translate3d(-1%, 0.5%, 0); }
   8%   { opacity: 1; }
@@ -356,29 +463,19 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
- * Section reveal — fade + small translateY when entering viewport.
- * Triggered by SectionReveal.tsx adding `.section-revealed`.
- * ────────────────────────────────────────────────────────────────────────── */
+/* Section reveal — kept */
 .section-reveal {
   opacity: 0;
   transform: translateY(18px);
   transition: opacity 280ms ease-out, transform 280ms ease-out;
   will-change: opacity, transform;
 }
-.section-revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
+.section-revealed { opacity: 1; transform: translateY(0); }
 @media (prefers-reduced-motion: reduce) {
   .section-reveal { opacity: 1; transform: none; transition: none; }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
- * Desktop-only scroll-snap. Mobile keeps natural scroll. Uses `proximity`
- * (not `mandatory`) so trackpads don't feel hijacked — the snap only
- * engages when a section is already most of the way into view.
- * ────────────────────────────────────────────────────────────────────────── */
+/* Scroll snap — kept */
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
   .snap-scroll-container {
     scroll-snap-type: y proximity;
@@ -388,7 +485,45 @@
     scroll-snap-align: start;
     scroll-snap-stop: normal;
   }
-  .hero-snap {
-    scroll-snap-align: start;
-  }
+  .hero-snap { scroll-snap-align: start; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Blob animation — soft animated background shapes for vibrancy
+ * ────────────────────────────────────────────────────────────────────────── */
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  pointer-events: none;
+  animation: blob-drift 18s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .blob { animation: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Ticker — vertical rotating words
+ * ────────────────────────────────────────────────────────────────────────── */
+@keyframes ticker-spin {
+  0%, 18% { transform: translateY(0); }
+  22%, 40% { transform: translateY(-100%); }
+  44%, 62% { transform: translateY(-200%); }
+  66%, 84% { transform: translateY(-300%); }
+  88%, 100% { transform: translateY(-400%); }
+}
+.ticker-track {
+  display: flex;
+  flex-direction: column;
+  animation: ticker-spin 12s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
 }
