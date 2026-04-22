@@ -59,6 +59,13 @@ interface Props {
   bodyHeightCm?: number;
   bodyWeightKg?: number | null;
   bodyShape?: BodyShapeInput;
+  /** Optional structured user measurements (cm) for the new sizing engine. */
+  bodyGender?: string | null;
+  bodyShoulderCm?: number | null;
+  bodyChestCm?: number | null;
+  bodyWaistCm?: number | null;
+  bodyHipCm?: number | null;
+  bodyInseamCm?: number | null;
   userBodyImageUrl?: string | null;
   onRefineFit?: () => void;
   onRescan?: () => void;
