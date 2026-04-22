@@ -374,7 +374,7 @@ async function updateTryOnRecord(admin: ReturnType<typeof createClient>, request
 
 function toSuccess(row: TryOnRow, imageUrl: string): SuccessResponse {
   return {
-    ok: true, imageUrl, provider: "lovable-ai",
+    ok: true, imageUrl, provider: "replicate",
     selectedSize: row.selected_size, status: "succeeded",
     predictionId: null, requestId: row.id,
   };
