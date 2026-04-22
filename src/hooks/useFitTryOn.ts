@@ -83,18 +83,20 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
 
   // Stable identity for the current generation request. Changing inputs starts
   // a fresh generation. `manualReload` lets the UI force-retry.
+  // NOTE: `userImageUrl` is OPTIONAL in studio mode — the AI fit only needs
+  // body proportions (height/weight) + the product image. Public visitors and
+  // logged-in users without a body scan can still get a final AI fitting.
   const requestKey =
     args.enabled &&
     args.productImageUrl &&
-    args.userImageUrl &&
     args.selectedSize
-      ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl}::${args.reloadToken ?? 0}::${manualReload}`
+      ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`
       : null;
 
   useEffect(() => {
     stopTimers();
 
-    if (!requestKey || !args.productImageUrl || !args.userImageUrl) {
+    if (!requestKey || !args.productImageUrl) {
       setState((prev) => ({
         ...prev,
         stage: "idle",
