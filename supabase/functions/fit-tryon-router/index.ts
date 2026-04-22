@@ -329,107 +329,82 @@ async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<
   }
 }
 
-// ─── REPLICATE STUDIO TEXT-TO-IMAGE ─────────────────────────────────────────
-// Default FIT mode. Generates a brand-new clean studio fashion image driven by
-// (a) the user's body model summary and (b) region-by-region fit deltas — the
-// uploaded user photo is NEVER used as a canvas or background.
-async function generateStudioFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
-  logRouter("REPLICATE_STUDIO_START", {
+// ─── LOVABLE AI STUDIO (NANO BANANA — image-conditioned) ────────────────────
+// Default FIT mode. Uses Gemini 2.5 Flash Image (Nano Banana) via the Lovable
+// AI Gateway. The PRODUCT IMAGE is passed as visual reference so the generated
+// model wears the EXACT same garment — same color, same print, same design.
+async function generateStudioFitImage(_replicateKey: string, body: CreateBody): Promise<GenResult> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing" };
+  }
+
+  logRouter("LOVABLE_STUDIO_START", {
     productKey: body.productKey,
     size: body.selectedSize,
-    model: STUDIO_MODEL_ID,
+    model: "google/gemini-2.5-flash-image",
   });
 
-  const prompt = buildCleanStudioPrompt(body);
-  const negativePrompt =
-    "bathroom, mirror, room interior, sink, household objects, handheld props, bag, phone, selfie framing, original photo background, copy-paste overlay, mannequin, floating clothes, duplicate limbs, text, watermark, low quality, blurry, deformed";
+  const prompt = [
+    buildCleanStudioPrompt(body),
+    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the body wearing it and the studio setting are newly generated.",
+  ].join(" ");
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
 
   try {
-    // Flux Schnell uses the model-name endpoint (no version pin needed).
-    const endpoint = STUDIO_MODEL_VERSION
-      ? "https://api.replicate.com/v1/predictions"
-      : `https://api.replicate.com/v1/models/${STUDIO_MODEL_ID}/predictions`;
-    const payload: Record<string, unknown> = {
-      input: {
-        prompt,
-        negative_prompt: negativePrompt,
-        aspect_ratio: "3:4",
-        output_format: "webp",
-        output_quality: 90,
-        num_inference_steps: 4,
-      },
-    };
-    if (STUDIO_MODEL_VERSION) payload.version = STUDIO_MODEL_VERSION;
-
-    const createRes = await fetch(endpoint, {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       signal: controller.signal,
       headers: {
-        Authorization: `Token ${apiKey}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        Prefer: "wait=5",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: body.productImageUrl } },
+            ],
+          },
+        ],
+        modalities: ["image", "text"],
+      }),
     });
 
-    if (createRes.status === 429) {
-      const txt = await createRes.text().catch(() => "");
+    if (res.status === 429) {
+      const txt = await res.text().catch(() => "");
       return { kind: "throttled", error: txt.slice(0, 220) || "rate_limited", retryAfterMs: 8_000 };
     }
-    if (createRes.status === 402) {
-      const txt = await createRes.text().catch(() => "");
-      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "Replicate credits exhausted" };
+    if (res.status === 402) {
+      const txt = await res.text().catch(() => "");
+      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "Lovable AI credits exhausted" };
     }
-    if (!createRes.ok) {
-      const txt = await createRes.text().catch(() => "");
-      return { kind: "error", code: "provider_error", error: `replicate ${createRes.status}: ${txt.slice(0, 200)}` };
-    }
-
-    let prediction = await createRes.json().catch(() => ({} as any));
-    const predId: string | undefined = prediction?.id;
-
-    const deadline = Date.now() + SERVER_TIMEOUT_MS - 2000;
-    while (
-      prediction &&
-      prediction.status !== "succeeded" &&
-      prediction.status !== "failed" &&
-      prediction.status !== "canceled" &&
-      Date.now() < deadline
-    ) {
-      await new Promise((r) => setTimeout(r, REPLICATE_POLL_INTERVAL_MS));
-      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predId}`, {
-        headers: { Authorization: `Token ${apiKey}` },
-        signal: controller.signal,
-      });
-      if (!pollRes.ok) {
-        const txt = await pollRes.text().catch(() => "");
-        return { kind: "error", code: "provider_error", error: `replicate poll ${pollRes.status}: ${txt.slice(0, 160)}` };
-      }
-      prediction = await pollRes.json().catch(() => ({}));
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      return { kind: "error", code: "provider_error", error: `lovable-ai ${res.status}: ${txt.slice(0, 200)}` };
     }
 
-    if (prediction?.status === "succeeded") {
-      const out = prediction.output;
-      const url = Array.isArray(out) ? out[0] : typeof out === "string" ? out : null;
-      if (!url) return { kind: "error", code: "missing_output", error: "no_image_in_response" };
-      return { kind: "success", imageUrl: url };
+    const data = await res.json().catch(() => ({} as any));
+    const url: string | undefined = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!url) {
+      return { kind: "error", code: "missing_output", error: "no_image_in_response" };
     }
-    if (prediction?.status === "failed" || prediction?.status === "canceled") {
-      return { kind: "error", code: "generation_failed", error: prediction?.error || "replicate_failed" };
-    }
-    return { kind: "error", code: "timeout", error: "replicate_timeout" };
+    return { kind: "success", imageUrl: url };
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
-      return { kind: "error", code: "timeout", error: "replicate_timeout" };
+      return { kind: "error", code: "timeout", error: "lovable_ai_timeout" };
     }
-    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "replicate_failed" };
+    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "lovable_ai_failed" };
   } finally {
     clearTimeout(timer);
   }
 }
+
 async function getTryOnByIdentity(admin: ReturnType<typeof createClient>, userId: string, body: CreateBody) {
   const { data } = await admin
     .from("fit_tryons")
@@ -542,8 +517,8 @@ async function persistImageToStorage(
 // ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
 async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
   const mode: "studio" | "vton" = body.mode === "vton" ? "vton" : "studio";
-  const generatorTag = mode === "vton" ? "replicate-idm-vton" : "replicate-flux-studio";
-  const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : STUDIO_MODEL_ID;
+  const generatorTag = mode === "vton" ? "replicate-idm-vton" : "lovable-ai-nano-banana";
+  const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : "google/gemini-2.5-flash-image";
 
   // Cache key includes mode so studio + vton results don't clobber each other.
   const cacheKey = `${body.productKey}::${mode}`;
