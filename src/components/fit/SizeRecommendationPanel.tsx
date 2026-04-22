@@ -182,6 +182,24 @@ export default function SizeRecommendationPanel({
       {/* Inferred measurements warning */}
       <InferredMeasurementsBanner inferredFields={inferredFields} onAddMeasurements={onAddMeasurements} />
 
+      {/* Out-of-range warning — most important: tells user product won't fit */}
+      {recommendation.rangeWarning && (
+        <div className={`rounded-xl border p-3 flex items-start gap-2 ${
+          recommendation.rangeStatus === "tooSmall"
+            ? "border-red-500/30 bg-red-500/[0.06]"
+            : "border-blue-500/30 bg-blue-500/[0.06]"
+        }`}>
+          <AlertTriangle className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${
+            recommendation.rangeStatus === "tooSmall" ? "text-red-500" : "text-blue-400"
+          }`} />
+          <span className={`text-[11px] leading-relaxed ${
+            recommendation.rangeStatus === "tooSmall" ? "text-red-400/90" : "text-blue-300/90"
+          }`}>
+            {recommendation.rangeWarning}
+          </span>
+        </div>
+      )}
+
       {/* Category-defaults warning */}
       {recommendation.usedCategoryDefaults && (
         <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">

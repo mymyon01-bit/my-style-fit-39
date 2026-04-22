@@ -34,3 +34,4 @@ Lives entirely under `src/lib/sizing/` + `useSizeRecommendation` hook + `SizeRec
 - Never label a size as "perfect" / "recommended" if measurements don't support it.
 - Always surface inferred-vs-exact provenance to the user.
 - Never blank the UI when chart or measurements are missing — degrade with low confidence.
+- **Out-of-range honesty**: if even the largest size in the chart is too tight (or smallest too loose) for the user, `SizeRecommendation.rangeStatus` becomes `"tooSmall"`/`"tooLarge"`, confidence is forced to `low`, primary is pinned to the boundary size, and `rangeWarning` displays a red "this product won't fit" banner. Driven by `detectRangeStatus` in `recommend.ts`. Heavy regions (shoulder/chest, weight ≥ 0.25) marked `tooTight` alone are enough to label a size `verySmall` (see `pickOverall` in `fitCalculator.ts`).
