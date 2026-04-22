@@ -5,14 +5,11 @@
  * Each entry returns the same dynamic import used in App.tsx,
  * so Vite/Rollup dedupes the chunk and the second call is a no-op.
  */
+// Only lazy-loaded routes belong here. Eager routes (Home/Discover/Fit/OOTD/
+// Settings/About) are statically imported in App.tsx — including them here
+// would trigger a Vite "dynamic + static import" warning and split nothing.
 const importers: Record<string, () => Promise<unknown>> = {
-  "/": () => import("@/pages/HomePage"),
-  "/discover": () => import("@/pages/DiscoverPage"),
-  "/ootd": () => import("@/pages/OOTDPage"),
-  "/fit": () => import("@/pages/FitPage"),
   "/profile": () => import("@/pages/ProfilePage"),
-  "/settings": () => import("@/pages/SettingsPage"),
-  "/about": () => import("@/pages/AboutPage"),
   "/subscription": () => import("@/pages/SubscriptionPage"),
 };
 
