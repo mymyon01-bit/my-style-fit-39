@@ -70,7 +70,14 @@ const ShareButton = ({ title, url, className = "" }: ShareButtonProps) => {
 
   const openLink = (base: string, useTitle = false) => {
     const text = useTitle ? `${title} — ${shareUrl}` : shareUrl;
-    window.open(base + encodeURIComponent(text), "_blank", "noopener");
+    const win = window.open(base + encodeURIComponent(text), "_blank", "noopener,noreferrer");
+    if (!win) {
+      // Popup blocked — fall back to copying so the user can paste manually.
+      navigator.clipboard?.writeText(`${title} — ${shareUrl}`).then(
+        () => toast.success("Popup blocked — link copied instead"),
+        () => toast.error("Could not open share window"),
+      );
+    }
     close();
   };
 
