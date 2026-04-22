@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   X, Heart, HeartOff, MessageCircle, Star, Send, Bookmark, BookmarkCheck,
-  Loader2, Trash2, Flag, ChevronDown, ChevronUp, MoreHorizontal, Edit3
+  Loader2, Trash2, Flag, ChevronDown, ChevronUp, MoreHorizontal, Edit3, Sparkles, Check
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import ShareButton from "@/components/ShareButton";
+import PostThemeBackground, { POST_THEMES, loadSavedPostTheme, savePostTheme, type PostTheme } from "@/components/ootd/PostThemeBackground";
 
 interface OOTDPost {
   id: string;
@@ -69,6 +70,8 @@ export default function OOTDPostDetail({
   const [commentLikeCounts, setCommentLikeCounts] = useState<Record<string, number>>({});
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [showPostMenu, setShowPostMenu] = useState(false);
+  const [postTheme, setPostTheme] = useState<PostTheme>(() => loadSavedPostTheme());
+  const [showThemePicker, setShowThemePicker] = useState(false);
 
   const isOwner = user?.id === post.user_id;
   const title = post.caption ? post.caption.split(/\s+/)[0] : null;
