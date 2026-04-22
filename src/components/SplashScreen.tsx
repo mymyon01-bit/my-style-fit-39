@@ -96,15 +96,17 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
 
         {/* Logo inside */}
         <motion.span
-          className="relative z-10 font-display text-[11px] font-semibold tracking-[0.45em] text-foreground/75"
+          className="relative z-10 flex items-baseline font-display text-[18px] font-light leading-none text-foreground/75"
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{
-            opacity: lightReveal ? 0.7 : phase === "idle" ? 0.2 : 0.35,
+            opacity: lightReveal ? 0.85 : phase === "idle" ? 0.2 : 0.4,
             scale: lightReveal ? 1 : 0.97,
           }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          mymyon
+          <span className="tracking-[0.05em]">my</span>
+          <span aria-hidden className="mx-[0.18em] inline-block h-[3px] w-[3px] translate-y-[-0.55em] rounded-full bg-accent/80" />
+          <span className="tracking-[0.05em]">myon</span>
         </motion.span>
       </div>
 

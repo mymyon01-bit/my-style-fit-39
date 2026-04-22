@@ -77,8 +77,10 @@ const HomePage = () => {
           transition={{ duration: 1.5 }}
           className="absolute top-8 z-10 flex w-full items-center justify-between px-8 lg:hidden"
         >
-          <span className="font-display text-[12px] font-semibold tracking-[0.4em] text-foreground md:text-[13px]">
-            mymyon
+          <span className="flex items-baseline font-display text-[15px] font-light leading-none text-foreground md:text-[16px]">
+            <span className="tracking-[0.05em]">my</span>
+            <span aria-hidden className="mx-[0.18em] inline-block h-[2.5px] w-[2.5px] translate-y-[-0.55em] rounded-full bg-accent/70" />
+            <span className="tracking-[0.05em]">myon</span>
           </span>
           <LanguageSelector />
         </motion.div>
