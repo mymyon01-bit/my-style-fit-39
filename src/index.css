@@ -149,15 +149,15 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.022em;
-    line-height: 1.12;
+    letter-spacing: -0.03em;
+    line-height: 1.04;
     color: hsl(var(--foreground));
-    font-weight: 400;
+    font-weight: 500;
     font-feature-settings: "ss01", "cv11", "liga";
   }
-  h1 { font-weight: 400; letter-spacing: -0.032em; }
-  h2 { font-weight: 400; letter-spacing: -0.026em; }
-  h3, h4 { font-weight: 500; letter-spacing: -0.018em; }
+  h1 { font-weight: 500; letter-spacing: -0.04em; }
+  h2 { font-weight: 500; letter-spacing: -0.034em; }
+  h3, h4 { font-weight: 500; letter-spacing: -0.024em; }
   p { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR

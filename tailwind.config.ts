@@ -59,6 +59,11 @@ export default {
           light: "hsl(var(--gold-light))",
           dark: "hsl(var(--gold-dark))",
         },
+        edge: {
+          lime: "hsl(var(--edge-lime))",
+          pink: "hsl(var(--edge-pink))",
+          beige: "hsl(var(--edge-beige))",
+        },
         star: "hsl(var(--star))",
       },
       borderRadius: {
