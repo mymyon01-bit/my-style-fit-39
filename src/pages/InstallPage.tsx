@@ -42,15 +42,15 @@ const InstallPage = () => {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
 
-  const APK_URL = "/downloads/mymyon.apk";
+  // Auto-built by GitHub Actions on every push (.github/workflows/android-build.yml)
+  // and published to a stable "latest-apk" release tag.
+  // Replace OWNER/REPO once the project is exported to GitHub.
+  const APK_URL =
+    (import.meta.env.VITE_APK_URL as string | undefined) ??
+    "https://github.com/OWNER/REPO/releases/download/latest-apk/mymyon.apk";
 
   const handleApkDownload = () => {
-    const a = document.createElement("a");
-    a.href = APK_URL;
-    a.download = "mymyon.apk";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.open(APK_URL, "_blank", "noopener,noreferrer");
   };
 
   return (
