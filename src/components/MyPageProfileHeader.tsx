@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, Edit3, Save, X, Lock, Globe, Settings, Plus } from "lucide-react";
+import { Camera, Loader2, Edit3, Save, X, Lock, Globe, Settings, Plus, MessageCircle } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
