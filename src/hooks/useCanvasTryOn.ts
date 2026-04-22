@@ -438,26 +438,18 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
       cancelled = true;
       window.clearTimeout(hardTimer);
     };
-  }, [
-    args.enabled,
-    args.productKey,
-    args.selectedSize,
-    args.productImageUrl,
-    args.productName,
-    args.productCategory,
-    args.userImageUrl,
-    args.reloadToken,
-    pose.leftShoulder.x,
-    pose.rightShoulder.x,
-    pose.leftHip.y,
-    bodyProfile.shoulderRatio,
-    bodyProfile.chestRatio,
-    frame,
-    poseDegraded,
-    poseSource,
-    solver,
-    fitChips,
-  ]);
+    // Composite effect keys ONLY on requestId + product name. Volatile
+    // recomputed objects (pose/frame/solver/fitChips) are captured at
+    // fire-time via closure. Including them in deps caused the effect to
+    // re-fire on every body recompute, which ran `selection_change` and
+    // wiped `aiImageUrl: null` — the root of the "works once" bug.
+  }, [requestId, args.productName]);
+
+  // Keep pose/solver/fitChips visible in state without re-running the
+  // composite pipeline. Pure passthrough — does not touch image URLs.
+  useEffect(() => {
+    setState((prev) => derivePreviewState({ ...prev, poseDegraded, poseSource, solver, fitChips }));
+  }, [poseDegraded, poseSource, solver, fitChips]);
 
   // Capture latest solver/regions in a ref so we can read them inside the AI
   // effect WITHOUT putting `solver` in the deps. Solver is recomputed on
