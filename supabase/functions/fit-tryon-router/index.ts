@@ -321,7 +321,107 @@ async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<
   }
 }
 
-// ─── DB HELPERS ─────────────────────────────────────────────────────────────
+// ─── REPLICATE STUDIO TEXT-TO-IMAGE ─────────────────────────────────────────
+// Default FIT mode. Generates a brand-new clean studio fashion image driven by
+// (a) the user's body model summary and (b) region-by-region fit deltas — the
+// uploaded user photo is NEVER used as a canvas or background.
+async function generateStudioFitImage(apiKey: string, body: CreateBody): Promise<GenResult> {
+  logRouter("REPLICATE_STUDIO_START", {
+    productKey: body.productKey,
+    size: body.selectedSize,
+    model: STUDIO_MODEL_ID,
+  });
+
+  const prompt = buildCleanStudioPrompt(body);
+  const negativePrompt =
+    "bathroom, mirror, room interior, sink, household objects, handheld props, bag, phone, selfie framing, original photo background, copy-paste overlay, mannequin, floating clothes, duplicate limbs, text, watermark, low quality, blurry, deformed";
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
+
+  try {
+    // Flux Schnell uses the model-name endpoint (no version pin needed).
+    const endpoint = STUDIO_MODEL_VERSION
+      ? "https://api.replicate.com/v1/predictions"
+      : `https://api.replicate.com/v1/models/${STUDIO_MODEL_ID}/predictions`;
+    const payload: Record<string, unknown> = {
+      input: {
+        prompt,
+        negative_prompt: negativePrompt,
+        aspect_ratio: "3:4",
+        output_format: "webp",
+        output_quality: 90,
+        num_inference_steps: 4,
+      },
+    };
+    if (STUDIO_MODEL_VERSION) payload.version = STUDIO_MODEL_VERSION;
+
+    const createRes = await fetch(endpoint, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=5",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (createRes.status === 429) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "throttled", error: txt.slice(0, 220) || "rate_limited", retryAfterMs: 8_000 };
+    }
+    if (createRes.status === 402) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "credits_exhausted", error: txt.slice(0, 220) || "Replicate credits exhausted" };
+    }
+    if (!createRes.ok) {
+      const txt = await createRes.text().catch(() => "");
+      return { kind: "error", code: "provider_error", error: `replicate ${createRes.status}: ${txt.slice(0, 200)}` };
+    }
+
+    let prediction = await createRes.json().catch(() => ({} as any));
+    const predId: string | undefined = prediction?.id;
+
+    const deadline = Date.now() + SERVER_TIMEOUT_MS - 2000;
+    while (
+      prediction &&
+      prediction.status !== "succeeded" &&
+      prediction.status !== "failed" &&
+      prediction.status !== "canceled" &&
+      Date.now() < deadline
+    ) {
+      await new Promise((r) => setTimeout(r, REPLICATE_POLL_INTERVAL_MS));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predId}`, {
+        headers: { Authorization: `Token ${apiKey}` },
+        signal: controller.signal,
+      });
+      if (!pollRes.ok) {
+        const txt = await pollRes.text().catch(() => "");
+        return { kind: "error", code: "provider_error", error: `replicate poll ${pollRes.status}: ${txt.slice(0, 160)}` };
+      }
+      prediction = await pollRes.json().catch(() => ({}));
+    }
+
+    if (prediction?.status === "succeeded") {
+      const out = prediction.output;
+      const url = Array.isArray(out) ? out[0] : typeof out === "string" ? out : null;
+      if (!url) return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+      return { kind: "success", imageUrl: url };
+    }
+    if (prediction?.status === "failed" || prediction?.status === "canceled") {
+      return { kind: "error", code: "generation_failed", error: prediction?.error || "replicate_failed" };
+    }
+    return { kind: "error", code: "timeout", error: "replicate_timeout" };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      return { kind: "error", code: "timeout", error: "replicate_timeout" };
+    }
+    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "replicate_failed" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 async function getTryOnByIdentity(admin: ReturnType<typeof createClient>, userId: string, body: CreateBody) {
   const { data } = await admin
     .from("fit_tryons")
