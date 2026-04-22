@@ -20,6 +20,7 @@ import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
 import Footer from "@/components/Footer";
+import Brandmark from "@/components/Brandmark";
 
 const TICKER_WORDS = ["mood", "weather", "moment", "story", "mood"];
 
