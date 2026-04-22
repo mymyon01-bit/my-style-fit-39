@@ -269,12 +269,27 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     })
   );
 
+  // ── Deterministic request identity ──────────────────────────────────────
+  // BOTH effects (composite + AI swap) compute the same requestId from the
+  // same args. Previously the AI effect captured `activeRequestRef.current`
+  // at fire-time, which could be stale or differ from the composite effect's
+  // id, causing all later state commits to be silently dropped by the
+  // `prev.requestId !== requestId` guard — the "works once only" bug.
+  const requestId = useMemo(
+    () =>
+      args.enabled && args.productImageUrl && args.selectedSize
+        ? `${args.productKey}::${args.selectedSize}::${args.reloadToken ?? 0}::${args.userImageUrl ?? "no-body"}`
+        : null,
+    [args.enabled, args.productKey, args.selectedSize, args.productImageUrl, args.userImageUrl, args.reloadToken]
+  );
+
   const runIdRef = useRef(0);
-  const aiLockedRef = useRef(false);
+  const aiLockedRef = useRef<string | null>(null); // requestId for which AI succeeded
   const activeRequestRef = useRef<string | null>(null);
+  const aiInFlightRef = useRef<string | null>(null); // requestId currently being AI-requested
 
   useEffect(() => {
-    if (!args.enabled || !args.productImageUrl || !args.selectedSize) {
+    if (!args.enabled || !args.productImageUrl || !args.selectedSize || !requestId) {
       setState((prev) =>
         derivePreviewState({
           ...prev,
@@ -295,9 +310,13 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
     }
 
     const runId = ++runIdRef.current;
-    const requestId = `${runId}:${args.productKey}:${args.selectedSize}:${args.reloadToken ?? 0}:${args.userImageUrl ?? "no-body"}`;
+    const previousRequestId = activeRequestRef.current;
     activeRequestRef.current = requestId;
-    aiLockedRef.current = false;
+    // Only reset the AI lock if requestId actually changed (new product/size/body).
+    // This prevents losing a valid AI image when solver/frame recompute.
+    if (previousRequestId !== requestId) {
+      aiLockedRef.current = null;
+    }
     let cancelled = false;
 
     const commitState = (event: string, partial: Partial<CanvasTryOnState>) => {
