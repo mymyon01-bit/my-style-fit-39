@@ -341,11 +341,9 @@ export default function FitVisual({
       )}
 
       <p className="text-center text-[10px] tracking-[0.18em] text-foreground/45">
-        {best.isFinal
-          ? "AI-refined preview"
-          : state.poseDegraded
-          ? "Style preview based on your measurements"
-          : "Style preview built from your body photo"}
+        {hasImage
+          ? "AI-refined preview based on your measurements"
+          : "Generating your personalized AI preview…"}
       </p>
     </div>
   );
