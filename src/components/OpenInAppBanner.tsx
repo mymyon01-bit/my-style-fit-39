@@ -64,11 +64,20 @@ const OpenInAppBanner = () => {
       <button
         onClick={() => {
           dismiss();
-          navigate("/install");
+          if (os === "android") {
+            const a = document.createElement("a");
+            a.href = "/downloads/mymyon.apk";
+            a.download = "mymyon.apk";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } else {
+            navigate("/install");
+          }
         }}
         className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-background"
       >
-        {os === "ios" ? "App Store" : "Play"}
+        {os === "ios" ? "Install" : "Get APK"}
       </button>
       <button
         onClick={dismiss}

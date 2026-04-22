@@ -42,6 +42,17 @@ const InstallPage = () => {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
 
+  const APK_URL = "/downloads/mymyon.apk";
+
+  const handleApkDownload = () => {
+    const a = document.createElement("a");
+    a.href = APK_URL;
+    a.download = "mymyon.apk";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -78,21 +89,52 @@ const InstallPage = () => {
           </p>
         </motion.div>
 
-        {/* Install button (Android / Desktop Chrome) */}
-        {deferredPrompt && !isInstalled && (
+        {/* Primary download buttons — APK for Android, TestFlight notice for iOS */}
+        {!isInstalled && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="mt-10"
+            className="mt-10 space-y-3"
           >
+            {/* Android APK direct download */}
             <button
-              onClick={handleInstall}
-              className="flex w-full items-center justify-center gap-3 rounded-xl bg-accent/90 px-6 py-4 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-accent"
+              onClick={handleApkDownload}
+              className="flex w-full items-center justify-center gap-3 rounded-full bg-foreground px-6 py-4 text-sm font-semibold tracking-wide text-background transition-opacity hover:opacity-90"
             >
-              <Download className="h-5 w-5" />
-              {t("installNow")}
+              <Smartphone className="h-5 w-5" />
+              Download for Android (APK)
             </button>
+
+            {/* iOS — sideloading not allowed, point to TestFlight/App Store */}
+            <button
+              onClick={() => {
+                if (isIOS) {
+                  setActiveGuide("ios");
+                }
+              }}
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-foreground/20 bg-card/50 px-6 py-4 text-sm font-semibold tracking-wide text-foreground/80 transition-colors hover:bg-card"
+            >
+              <Apple className="h-5 w-5" />
+              iOS — TestFlight coming soon
+            </button>
+
+            {/* Browser PWA install (Android Chrome / desktop) */}
+            {deferredPrompt && (
+              <button
+                onClick={handleInstall}
+                className="flex w-full items-center justify-center gap-3 rounded-full bg-accent/90 px-6 py-4 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-accent"
+              >
+                <Download className="h-5 w-5" />
+                {t("installNow")} (Web App)
+              </button>
+            )}
+
+            <p className="px-2 pt-1 text-center text-[11px] leading-relaxed text-foreground/55">
+              Android: after download, open the APK and allow "Install from
+              unknown sources" if prompted. The app is unsigned beta — store
+              release coming soon.
+            </p>
           </motion.div>
         )}
 
