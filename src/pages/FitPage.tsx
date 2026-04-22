@@ -20,6 +20,7 @@ import {
 import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
+import Brandmark from "@/components/Brandmark";
 
 type Tab = "scan" | "measurements" | "check" | "results";
 export type FitMode = "free" | "premium";
@@ -452,11 +453,7 @@ const FitPage = () => {
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
-          <span className="flex items-baseline font-display text-[15px] font-light leading-none text-foreground lg:hidden">
-            <span className="tracking-[0.05em]">my</span>
-            <span aria-hidden className="mx-[0.18em] inline-block h-[2.5px] w-[2.5px] translate-y-[-0.55em] rounded-full bg-accent/70" />
-            <span className="tracking-[0.05em]">myon</span>
-          </span>
+          <div className="lg:hidden"><Brandmark variant="inline" /></div>
           <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT</span>
         </div>
 

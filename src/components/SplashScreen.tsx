@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Brandmark from "@/components/Brandmark";
 
 const TICKER = ["mood", "weather", "moment", "story", "mood"];
 
@@ -64,17 +65,15 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
           </span>
         </motion.h1>
 
-        {/* Rounded brand pill */}
-        <motion.span
+        {/* Brandmark wordmark */}
+        <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-8 flex items-baseline rounded-full border border-foreground/15 bg-background/70 px-4 py-1.5 font-mono text-[11px] font-medium uppercase leading-none text-foreground/80 backdrop-blur-md"
+          className="mt-8"
         >
-          <span className="tracking-[0.22em]">MY</span>
-          <span aria-hidden className="mx-[0.28em] inline-block h-[4px] w-[4px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent" />
-          <span className="tracking-[0.22em]">MYON</span>
-        </motion.span>
+          <Brandmark variant="compact" className="text-[22px]" />
+        </motion.div>
       </div>
     </motion.div>
   );

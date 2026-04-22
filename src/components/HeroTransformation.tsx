@@ -5,6 +5,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import Brandmark from "@/components/Brandmark";
 import frame1 from "@/assets/hero-frame-1.jpg";
 import frame2 from "@/assets/hero-frame-2.jpg";
 import frame3 from "@/assets/hero-frame-3.jpg";
@@ -44,11 +45,7 @@ const HeroTransformation = () => {
         <div className="absolute inset-0 flex flex-col items-start justify-end px-8 pb-12 md:px-16 md:pb-20 lg:px-24 lg:pb-28">
           <div className="max-w-2xl animate-[heroIn_0.9s_cubic-bezier(0.22,1,0.36,1)_both]">
             <div className="flex items-center gap-3">
-              <span className="flex items-baseline font-mono text-[16px] font-medium uppercase leading-none text-foreground md:text-[18px]">
-                <span className="tracking-[0.22em]">MY</span>
-                <span aria-hidden className="mx-[0.28em] inline-block h-[5px] w-[5px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent" />
-                <span className="tracking-[0.22em]">MYON</span>
-              </span>
+              <Brandmark variant="compact" className="text-[18px] md:text-[22px]" />
               <span className="label-mono text-foreground/65">EST. 2026</span>
             </div>
 
