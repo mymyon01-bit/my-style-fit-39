@@ -600,6 +600,11 @@ const OOTDPage = () => {
                 </div>
               ) : (
                 <>
+                  <MyPageInboxCard
+                    onOpenMessages={() => setMessagesOpen(true)}
+                    onOpenNotifications={() => setNotifsOpen(true)}
+                  />
+
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
                     <Camera className="h-5 w-5" />
                     <span className="text-[10px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
@@ -622,6 +627,11 @@ const OOTDPage = () => {
             </motion.div>
           ) : (
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              {/* Top promo strip — Saved + AI AD slots */}
+              {!activeTopic && (
+                <FeedTopRow styleHints={userPrefs?.styles} />
+              )}
+
               {/* Preference banner — explains why these looks are surfacing */}
               {user && userPrefs && (userPrefs.styles.length > 0 || userPrefs.occasions.length > 0) && !activeTopic && (
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/15 bg-accent/[0.04] px-3.5 py-2.5">
