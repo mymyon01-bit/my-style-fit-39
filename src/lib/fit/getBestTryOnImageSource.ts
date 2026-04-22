@@ -69,15 +69,15 @@ export function getBestTryOnImageSource(
 export function describeKind(kind: TryOnImageKind): string {
   switch (kind) {
     case "ai":
-      return "AI TRY-ON";
+      return "AI FIT RENDER";
     case "composite":
-      return "STYLE PREVIEW";
+      return "INTERMEDIATE PREVIEW";
     case "fallback":
-      return "STYLE PREVIEW";
+      return "INTERMEDIATE PREVIEW";
     case "placeholder":
-      return "PLACEHOLDER";
+      return "GENERATING…";
     case "product":
-      return "PRODUCT";
+      return "REFERENCE";
     default:
       return "PREVIEW";
   }

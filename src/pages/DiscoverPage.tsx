@@ -360,7 +360,7 @@ export default function DiscoverPage() {
       <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
         <div className="mx-auto max-w-lg px-6 pt-10 pb-2 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           <div className="flex items-baseline justify-between">
-            <span className="font-display text-[12px] font-semibold tracking-[0.35em] text-foreground/70 lg:hidden">WARDROBE</span>
+            <span className="font-display text-[12px] font-semibold tracking-[0.35em] text-foreground/70 lg:hidden">mymyon</span>
             <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70">{t("discover").toUpperCase()}</span>
           </div>
         </div>

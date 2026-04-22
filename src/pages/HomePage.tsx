@@ -45,8 +45,8 @@ const HomePage = () => {
 
   const handleShareApp = useCallback(async () => {
     const shareData = {
-      title: "WARDROBE — AI fashion stylist",
-      text: "Discover your style on WARDROBE",
+      title: "mymyon — AI fashion stylist",
+      text: "Discover your style on mymyon",
       url: typeof window !== "undefined" ? window.location.origin : "https://mymyon.com",
     };
     try {
@@ -78,7 +78,7 @@ const HomePage = () => {
           className="absolute top-8 z-10 flex w-full items-center justify-between px-8 lg:hidden"
         >
           <span className="font-display text-[12px] font-semibold tracking-[0.4em] text-foreground md:text-[13px]">
-            WARDROBE
+            mymyon
           </span>
           <LanguageSelector />
         </motion.div>
@@ -163,7 +163,7 @@ const HomePage = () => {
           </button>
           <button
             onClick={handleShareApp}
-            aria-label="Share WARDROBE with friends"
+            aria-label="Share mymyon with friends"
             className="hover-burgundy flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:bg-accent/[0.1]"
           >
             <Share2 className="h-3 w-3" /> SHARE
