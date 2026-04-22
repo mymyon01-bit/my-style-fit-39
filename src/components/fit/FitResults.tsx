@@ -219,6 +219,22 @@ export default function FitResults({
     [garmentFit, newBodyProfile, activeSize, solver],
   );
 
+  // ── REGION FIT (truthful, region-by-region, with on-demand size scrape) ──
+  const resolvedSize = useResolvedGarmentSize({
+    productUrl: product.url,
+    productName: product.name,
+    brand: product.brand,
+    category: product.category,
+    selectedSize: activeSize,
+  });
+  const regionFit = useMemo(
+    () =>
+      resolvedSize.resolved
+        ? computeRegionFit({ body: newBodyProfile, garment: resolvedSize.resolved })
+        : null,
+    [resolvedSize.resolved, newBodyProfile],
+  );
+
   // ── Global size fallback card (only when truly missing brand data) ───────
   const profile = bodyHeightCm
     ? normalizeBodyProfile({ heightCm: bodyHeightCm, weightKg: bodyWeightKg ?? null })
