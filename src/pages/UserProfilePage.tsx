@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock } from "lucide-react";
+import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { AuthGate } from "@/components/AuthGate";
+import { openConversationWith } from "@/hooks/useMessages";
 import { toast } from "sonner";
 
 interface UserProfileData {
@@ -213,6 +214,22 @@ const UserProfilePage = () => {
                     >
                       {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
                       {inCircle ? "IN CIRCLE" : "JOIN CIRCLE"}
+                    </button>
+                  </AuthGate>
+                  <AuthGate action="message">
+                    <button
+                      onClick={async () => {
+                        const cid = await openConversationWith(userId!);
+                        if (cid) {
+                          navigate(`/profile?openConversation=${cid}`);
+                        } else {
+                          toast.error("Could not open chat");
+                        }
+                      }}
+                      className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      MESSAGE
                     </button>
                   </AuthGate>
                   <button
