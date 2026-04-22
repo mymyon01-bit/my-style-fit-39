@@ -296,6 +296,11 @@ export default function FitVisual({
           ? "Final AI fitting could not be generated"
           : "Generating your final AI fitting…"}
       </p>
+      {showImage && (
+        <p className="px-2 text-center text-[9px] leading-relaxed text-foreground/35">
+          Visual approximation — actual fit may differ slightly from this preview.
+        </p>
+      )}
     </div>
   );
 }

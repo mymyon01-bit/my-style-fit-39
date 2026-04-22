@@ -156,27 +156,12 @@ async function invokeTryOnDirect(body: CreateTryOnBody): Promise<TryOnInvokeResu
 }
 
 async function invokeTryOn(body: CreateTryOnBody): Promise<TryOnInvokeResult> {
-  // Race the SDK invoke against the direct fetch — whichever resolves first wins.
-  // This protects against the SDK hanging on response stream in secondary windows
-  // while still benefiting from its built-in error parsing when it works.
-  const sdkPromise: Promise<TryOnInvokeResult> = supabase.functions
-    .invoke("fit-tryon-router", { body })
-    .then(({ data, error, response }) => {
-      if (!error) {
-        return {
-          data: (data as TryOnResponse | null) ?? null,
-          error: null,
-          status: response?.status ?? 200,
-        } satisfies TryOnInvokeResult;
-      }
-      return parseHttpError(error);
-    })
-    .catch((e) => ({
-      data: null,
-      error: e instanceof Error ? e : new Error("Function request failed"),
-      status: null,
-    }));
-  return Promise.race([sdkPromise, invokeTryOnDirect(body)]);
+  // IMPORTANT: do NOT race SDK + direct fetch in parallel — that fires the
+  // edge function TWICE for every user action, and the provider rate-limits
+  // the second concurrent call. The user then sees "rate_limited" even when
+  // the first call succeeds. Use direct fetch only (it has its own timeout
+  // and works reliably across preview, new windows, and mobile devices).
+  return invokeTryOnDirect(body);
 }
 
 export function useReplicateTryOn() {
