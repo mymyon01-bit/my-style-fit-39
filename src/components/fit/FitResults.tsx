@@ -150,6 +150,15 @@ export default function FitResults({
   const { user } = useAuth();
   const isRefined = fitMode === "premium";
 
+  // ── CANONICAL PRODUCT IMAGE — defense in depth ──────────────────────────
+  // Re-resolve through the canonical helper so downstream consumers (FitVisual,
+  // useCanvasTryOn, TryOnPreviewModal) all see the same recovered image even
+  // if the upstream product object had an empty/null image field.
+  const resolvedProductImage = useMemo(
+    () => resolveBestProductImage(product).src ?? product.image ?? "",
+    [product]
+  );
+
   // Active size = user-selected; defaults to recommended.
   const [activeSize, setActiveSize] = useState<string>(result.recommendedSize);
   useEffect(() => { setActiveSize(result.recommendedSize); }, [result.recommendedSize]);
