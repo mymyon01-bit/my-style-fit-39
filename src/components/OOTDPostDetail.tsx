@@ -325,10 +325,10 @@ export default function OOTDPostDetail({
             </div>
           )}
 
-          {/* Hashtags / Topics */}
-          {post.topics && post.topics.length > 0 && (
+          {/* Hashtags / Topics — hide the __noshare sentinel */}
+          {post.topics && post.topics.filter(t => t !== "__noshare").length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {post.topics.map(tp => (
+              {post.topics.filter(t => t !== "__noshare").map(tp => (
                 <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[12px] font-medium text-accent/80 hover:text-accent transition-colors">
                   #{tp}
                 </button>
