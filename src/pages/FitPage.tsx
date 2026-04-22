@@ -17,6 +17,7 @@ import FitTryOnTrigger from "@/components/fit/FitTryOnTrigger";
 import {
   type UserBodyImage,
 } from "@/lib/fit/userBodyImages";
+import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 
@@ -174,12 +175,19 @@ const FitPage = () => {
             return;
           }
           const parsed = data.price ? parseFloat(String(data.price).replace(/[^0-9.]/g, "")) : NaN;
+          const resolvedImage = resolveBestProductImage({
+            id: data.id,
+            name: data.name,
+            brand: data.brand,
+            image_url: data.image_url,
+            source: "db",
+          }).src ?? "";
           product = {
             id: data.id,
             name: data.name,
             brand: data.brand || "Unknown",
             price: Number.isFinite(parsed) ? parsed : null,
-            image: data.image_url || "",
+            image: resolvedImage,
             url: data.source_url || "#",
             category: (data.category || "tops").toLowerCase().includes("bottom") ? "bottoms" : "tops",
             fitType: data.fit || "regular",
