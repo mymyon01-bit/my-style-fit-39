@@ -348,6 +348,11 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
+        {/* Direct Messages — inbox + threads with @ tagging */}
+        <MessagesInbox />
+
+        <div className="h-px bg-accent/[0.12]" />
+
         {/* Saved Products — items saved from Discover, postable as OOTD */}
         <div className="space-y-5">
           <div className="flex items-center justify-between">
