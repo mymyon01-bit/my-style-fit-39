@@ -106,17 +106,15 @@ const InstallPage = () => {
               Download for Android (APK)
             </button>
 
-            {/* iOS — sideloading not allowed, point to TestFlight/App Store */}
+            {/* iOS — sideloading not allowed, store release pending */}
             <button
-              onClick={() => {
-                if (isIOS) {
-                  setActiveGuide("ios");
-                }
-              }}
-              className="flex w-full items-center justify-center gap-3 rounded-full border border-foreground/20 bg-card/50 px-6 py-4 text-sm font-semibold tracking-wide text-foreground/80 transition-colors hover:bg-card"
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full border border-foreground/15 bg-card/40 px-6 py-4 text-sm font-semibold tracking-wide text-foreground/50"
             >
               <Apple className="h-5 w-5" />
-              iOS — TestFlight coming soon
+              iOS — Coming soon
             </button>
 
             {/* Browser PWA install (Android Chrome / desktop) */}
