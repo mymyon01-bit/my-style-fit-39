@@ -1,4 +1,4 @@
-import { Share2, Link2, MessageCircle, Send, Inbox, Camera, Hash, Globe } from "lucide-react";
+import { Share2, Link2, MessageCircle, Send, Inbox, Camera, Hash, Globe, MessageSquare } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -114,9 +114,24 @@ const ShareButton = ({ title, url, className = "" }: ShareButtonProps) => {
     }
   };
 
+  const shareToKakao = async () => {
+    // No JS SDK setup — copy link, then try opening KakaoTalk's web sharer.
+    // On mobile this hands off to the app; on desktop it falls back to copy.
+    try {
+      await navigator.clipboard.writeText(`${title} — ${shareUrl}`);
+    } catch { /* keep going */ }
+    const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title)}`;
+    const win = window.open(kakaoUrl, "_blank", "noopener,noreferrer");
+    if (!win) toast.success("Link copied — paste into KakaoTalk");
+    else toast.success("Opening KakaoTalk…");
+    close();
+  };
+
   const items: Array<{ key: string; label: string; icon: React.ReactNode; onClick: () => void }> = [
     { key: "copy", label: "Copy link", icon: <Link2 className="h-3.5 w-3.5" />, onClick: copy },
     { key: "msg", label: "Send via Messages", icon: <Inbox className="h-3.5 w-3.5" />, onClick: shareToOOTDMessage },
+    { key: "kakao", label: "KakaoTalk", icon: <MessageSquare className="h-3.5 w-3.5" />, onClick: shareToKakao },
+    { key: "zalo", label: "Zalo", icon: <MessageSquare className="h-3.5 w-3.5" />, onClick: () => openLink("https://zalo.me/share/link?url=", false) },
     { key: "wa", label: "WhatsApp", icon: <MessageCircle className="h-3.5 w-3.5" />, onClick: () => openLink("https://wa.me/?text=", true) },
     { key: "tg", label: "Telegram", icon: <Send className="h-3.5 w-3.5" />, onClick: () => openLink(`https://t.me/share/url?text=${encodeURIComponent(title)}&url=`) },
     { key: "fb", label: "Facebook", icon: <Globe className="h-3.5 w-3.5" />, onClick: () => openLink("https://www.facebook.com/sharer/sharer.php?u=") },
