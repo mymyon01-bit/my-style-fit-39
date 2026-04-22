@@ -506,7 +506,7 @@ const OOTDPage = () => {
             <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <CrownedBoard
                 styleHints={userPrefs?.styles}
-                onPostClick={(p) => setSelectedPost(p as OOTDPost)}
+                onPostClick={(p) => setSelectedPost(p as unknown as OOTDPost)}
               />
             </motion.div>
           ) : activeTab === "community" ? (
