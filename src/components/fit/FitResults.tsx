@@ -206,6 +206,8 @@ export default function FitResults({
     productName: product.name,
     brand: product.brand,
     category: product.category,
+    productGender: (product as any).gender ?? null,
+    productBreadcrumb: (product as any).breadcrumb ?? null,
     body: {
       gender: bodyGender ?? null,
       heightCm: bodyHeightCm ?? null,
