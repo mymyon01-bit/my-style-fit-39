@@ -41,15 +41,21 @@ export default function FitVisual({
     setLoadedSrc(null);
   }, [state.requestId, state.aiImageUrl, state.compositeImageUrl, state.fallbackImageUrl, state.localPlaceholderUrl, productImageUrl]);
 
-  const best = useMemo(
-    () => getBestTryOnImageSource(state, productImageUrl ?? null, failedSrcs),
-    [state, productImageUrl, failedSrcs]
-  );
+  // STRICT MODE: only show the FINAL AI-generated image. No composite,
+  // no fallback, no placeholder, no raw product image. Everything else is
+  // a loading state with the animated skeleton.
+  const best = useMemo(() => {
+    const ai = state.aiImageUrl;
+    if (typeof ai === "string" && ai.length > 0 && !failedSrcs.includes(ai)) {
+      return { src: ai, kind: "ai" as const, isFinal: true };
+    }
+    return { src: null as string | null, kind: null as null, isFinal: false };
+  }, [state.aiImageUrl, failedSrcs]);
   const previewSrc = best.src;
 
   const shouldRenderPreview = Boolean(previewSrc);
   const isLoading = !shouldRenderPreview;
-  const isRefining = state.stage === "polling_ai" && !best.isFinal;
+  const isRefining = false;
   const hasImage = shouldRenderPreview;
 
   useEffect(() => {
