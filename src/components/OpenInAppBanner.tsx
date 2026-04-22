@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, X } from "lucide-react";
+import { X } from "lucide-react";
 import { detectMobileOS, isNativeApp } from "@/lib/native/platform";
 
 const DISMISS_KEY = "mymyon-app-banner-dismissed";
