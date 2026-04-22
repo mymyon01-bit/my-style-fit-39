@@ -25,7 +25,7 @@ const Wordmark = ({ className }: { className?: string }) => (
   >
     my
     <span aria-hidden className="mx-[0.02em] text-foreground/40">’</span>
-    <span className="text-gradient not-italic font-semibold italic">myon</span>
+    <span className="text-gradient font-semibold">myon</span>
   </span>
 );
 
