@@ -329,7 +329,7 @@ export default function FitResults({
       waistCm: null,
     },
     reloadToken,
-    enableAiSwap: true,
+    enableAiSwap: false,
   });
 
   return (
