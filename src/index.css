@@ -6,118 +6,126 @@
 
 @layer base {
   :root {
-    /* ── LIGHT — soft pastel fashion-app aesthetic ──
-       Blush, mint, peach. Airy, elegant, lifestyle-mobile feel.
-       Layout untouched — only colour, radius, shadow, type tokens. */
-    --background: 30 40% 98.5%;        /* #FCFAF7 warm off-white */
-    --foreground: 240 12% 18%;         /* #292B33 soft charcoal */
+    /* ── LIGHT — high-end editorial fashion-tech ──
+       Off-white / charcoal base. Restrained muted-neon accent.
+       Off-White × Jacquemus × modern AI interface. */
+    --background: 36 22% 96%;          /* #F5F2ED cream off-white */
+    --foreground: 240 8% 8%;           /* near-black charcoal */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 12% 18%;
+    --card-foreground: 240 8% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 12% 18%;
+    --popover-foreground: 240 8% 8%;
 
-    --primary: 350 55% 72%;            /* blush pink — soft CTA */
-    --primary-foreground: 0 0% 100%;
+    --primary: 240 8% 10%;             /* charcoal — primary CTA */
+    --primary-foreground: 36 22% 96%;
 
-    --secondary: 150 40% 90%;          /* pale mint */
-    --secondary-foreground: 160 25% 24%;
+    --secondary: 36 14% 92%;           /* warm beige */
+    --secondary-foreground: 240 8% 14%;
 
-    --muted: 30 30% 95%;               /* warm cream */
-    --muted-foreground: 240 8% 48%;
+    --muted: 36 14% 93%;               /* soft cream */
+    --muted-foreground: 240 5% 40%;
 
-    /* Accent — muted coral/peach, warm and friendly */
-    --accent: 14 78% 72%;              /* soft coral peach */
+    /* Accent — soft electric blue, used sparingly to highlight */
+    --accent: 224 88% 58%;             /* muted neon blue */
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 14 60% 86%;
-    --accent-highlight: 14 90% 92%;
+    --accent-muted: 224 50% 88%;
+    --accent-highlight: 224 80% 95%;
 
-    --destructive: 4 65% 68%;
+    /* Editorial accent system — apply via inline color when needed */
+    --edge-lime: 72 78% 56%;
+    --edge-pink: 348 60% 78%;
+    --edge-beige: 32 38% 78%;
+
+    --destructive: 4 72% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 25% 92%;
-    --input: 30 30% 96.5%;
-    --ring: 350 55% 72%;
+    --border: 36 12% 86%;
+    --input: 36 14% 94%;
+    --ring: 224 88% 58%;
 
-    --radius: 1.25rem;                 /* larger pillow radius */
+    --radius: 0.375rem;                /* sharper editorial — 6px */
 
-    --neutral: 240 8% 48%;
+    --neutral: 240 5% 40%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 30 30% 95%;
-    --star: 38 90% 70%;
+    --surface-sunken: 36 14% 93%;
+    --star: 38 90% 60%;
 
-    --gold: 38 80% 72%;
-    --gold-light: 38 90% 84%;
-    --gold-dark: 30 50% 56%;
+    --gold: 38 70% 56%;
+    --gold-light: 38 85% 76%;
+    --gold-dark: 30 45% 40%;
 
-    /* Typography — DM Sans (clean modern) + Fraunces editorial display */
-    --font-display: 'Fraunces', 'DM Sans', 'Inter', serif;
+    /* Typography — Fraunces display (editorial serif) + DM Sans body */
+    --font-display: 'Fraunces', 'Times New Roman', serif;
     --font-body: 'DM Sans', 'Inter', 'Helvetica Neue', sans-serif;
 
-    /* Depth — diffused, low-opacity, pillowy */
-    --shadow-1: 0 1px 2px hsl(350 30% 60% / 0.05);
-    --shadow-2: 0 8px 24px -10px hsl(350 40% 60% / 0.12), 0 2px 6px hsl(14 40% 60% / 0.05);
-    --shadow-3: 0 24px 56px -18px hsl(350 50% 60% / 0.18), 0 10px 22px -12px hsl(14 50% 60% / 0.10);
+    /* Depth — sharper, low-opacity black, fashion-print feel */
+    --shadow-1: 0 1px 2px hsl(240 8% 8% / 0.04);
+    --shadow-2: 0 12px 28px -14px hsl(240 8% 8% / 0.10), 0 2px 6px hsl(240 8% 8% / 0.04);
+    --shadow-3: 0 32px 64px -22px hsl(240 8% 8% / 0.18), 0 12px 24px -14px hsl(240 8% 8% / 0.08);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    /* Pastel gradients — soft hero washes */
-    --gradient-surface: linear-gradient(180deg, hsl(30 50% 99%) 0%, hsl(350 40% 97%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(350 70% 88% / 0.45) 0%, hsl(150 50% 88% / 0.35) 50%, hsl(14 80% 88% / 0.40) 100%);
-    --glow-accent: 0 0 0 1px hsl(350 55% 72% / 0.20), 0 10px 36px -12px hsl(14 78% 72% / 0.35);
+    --gradient-surface: linear-gradient(180deg, hsl(36 24% 97%) 0%, hsl(36 18% 94%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(224 80% 92% / 0.5) 0%, hsl(36 30% 92% / 0.4) 100%);
+    --glow-accent: 0 0 0 1px hsl(224 88% 58% / 0.30), 0 16px 40px -16px hsl(224 88% 58% / 0.30);
   }
 
   .dark {
-    /* ── DARK — soft pastel translated to a dim, cocooning palette ── */
-    --background: 240 14% 10%;
-    --foreground: 30 20% 95%;
+    /* ── DARK — deep black editorial, electric accent ── */
+    --background: 240 8% 6%;
+    --foreground: 36 14% 94%;
 
-    --card: 240 12% 14%;
-    --card-foreground: 30 20% 95%;
+    --card: 240 6% 9%;
+    --card-foreground: 36 14% 94%;
 
-    --popover: 240 12% 14%;
-    --popover-foreground: 30 20% 95%;
+    --popover: 240 6% 9%;
+    --popover-foreground: 36 14% 94%;
 
-    --primary: 350 60% 78%;
-    --primary-foreground: 240 14% 10%;
+    --primary: 36 14% 94%;
+    --primary-foreground: 240 8% 6%;
 
-    --secondary: 240 10% 18%;
-    --secondary-foreground: 30 20% 95%;
+    --secondary: 240 6% 13%;
+    --secondary-foreground: 36 14% 94%;
 
-    --muted: 240 10% 16%;
-    --muted-foreground: 30 12% 70%;
+    --muted: 240 6% 12%;
+    --muted-foreground: 36 8% 64%;
 
-    --accent: 14 80% 76%;
-    --accent-foreground: 240 14% 10%;
-    --accent-muted: 14 50% 50%;
-    --accent-highlight: 14 70% 82%;
+    --accent: 224 92% 68%;
+    --accent-foreground: 240 8% 6%;
+    --accent-muted: 224 40% 30%;
+    --accent-highlight: 224 70% 70%;
 
-    --destructive: 4 65% 64%;
+    --edge-lime: 72 80% 60%;
+    --edge-pink: 348 60% 76%;
+    --edge-beige: 32 28% 56%;
+
+    --destructive: 4 72% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 22%;
-    --input: 240 10% 16%;
-    --ring: 350 60% 78%;
+    --border: 240 6% 18%;
+    --input: 240 6% 12%;
+    --ring: 224 92% 68%;
 
-    --neutral: 30 12% 70%;
-    --surface-elevated: 240 12% 16%;
-    --surface-sunken: 240 14% 8%;
-    --star: 38 80% 72%;
+    --neutral: 36 8% 64%;
+    --surface-elevated: 240 6% 11%;
+    --surface-sunken: 240 8% 4%;
+    --star: 38 80% 64%;
 
-    --gold: 38 75% 70%;
-    --gold-light: 38 85% 80%;
-    --gold-dark: 30 50% 50%;
+    --gold: 38 70% 64%;
+    --gold-light: 38 85% 76%;
+    --gold-dark: 30 50% 44%;
 
     --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.40);
-    --shadow-2: 0 8px 26px -10px hsl(0 0% 0% / 0.55), 0 2px 6px hsl(0 0% 0% / 0.32);
-    --shadow-3: 0 28px 64px -18px hsl(0 0% 0% / 0.70), 0 12px 26px -12px hsl(0 0% 0% / 0.46);
+    --shadow-2: 0 12px 28px -12px hsl(0 0% 0% / 0.60), 0 2px 6px hsl(0 0% 0% / 0.30);
+    --shadow-3: 0 32px 64px -20px hsl(0 0% 0% / 0.75), 0 14px 28px -14px hsl(0 0% 0% / 0.50);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(240 14% 11%) 0%, hsl(240 16% 8%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(350 60% 78% / 0.20) 0%, hsl(14 70% 60% / 0.12) 100%);
-    --glow-accent: 0 0 0 1px hsl(350 60% 78% / 0.22), 0 12px 38px -12px hsl(14 80% 76% / 0.38);
+    --gradient-surface: linear-gradient(180deg, hsl(240 8% 7%) 0%, hsl(240 10% 4%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(224 92% 68% / 0.20) 0%, hsl(240 6% 9% / 0.20) 100%);
+    --glow-accent: 0 0 0 1px hsl(224 92% 68% / 0.30), 0 16px 44px -14px hsl(224 92% 68% / 0.40);
   }
 }
 
@@ -141,15 +149,15 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.022em;
-    line-height: 1.12;
+    letter-spacing: -0.03em;
+    line-height: 1.04;
     color: hsl(var(--foreground));
-    font-weight: 400;
+    font-weight: 500;
     font-feature-settings: "ss01", "cv11", "liga";
   }
-  h1 { font-weight: 400; letter-spacing: -0.032em; }
-  h2 { font-weight: 400; letter-spacing: -0.026em; }
-  h3, h4 { font-weight: 500; letter-spacing: -0.018em; }
+  h1 { font-weight: 500; letter-spacing: -0.04em; }
+  h2 { font-weight: 500; letter-spacing: -0.034em; }
+  h3, h4 { font-weight: 500; letter-spacing: -0.024em; }
   p { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
   /* Korean: Latin display fonts render Hangul thinly. Use Noto Sans/Serif KR

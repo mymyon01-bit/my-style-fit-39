@@ -92,17 +92,17 @@ const HomePage = () => {
             transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="relative"
           >
-            {/* Pill search bar — magnifier left, submit arrow right */}
+            {/* Editorial command line — thin, wide, confident */}
             <div
-              className={`group relative flex items-center rounded-full border bg-background/60 backdrop-blur-md transition-all duration-300 ${
+              className={`group relative flex items-center border-b bg-transparent transition-all duration-300 ${
                 isFocused
-                  ? "border-accent/60 shadow-[0_0_0_4px_hsl(var(--accent)/0.08)]"
-                  : "border-foreground/15 hover:border-foreground/25"
+                  ? "border-foreground"
+                  : "border-foreground/30 hover:border-foreground/60"
               }`}
             >
               <Search
-                className={`ml-4 h-4 w-4 shrink-0 transition-colors ${
-                  isFocused ? "text-accent" : "text-foreground/50"
+                className={`mb-3 mr-3 h-3.5 w-3.5 shrink-0 transition-colors ${
+                  isFocused ? "text-foreground" : "text-foreground/40"
                 }`}
               />
               <input
@@ -114,18 +114,18 @@ const HomePage = () => {
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
                 placeholder={t("howAreYouFeeling")}
-                className="flex-1 bg-transparent px-3 py-3 font-display text-[15px] font-semibold tracking-tight text-foreground outline-none placeholder:text-foreground/70 placeholder:font-semibold md:py-3.5 md:text-[17px]"
+                className="flex-1 bg-transparent pb-3 pt-1 font-display text-[20px] font-light tracking-tight text-foreground outline-none placeholder:text-foreground/35 placeholder:font-light md:text-[26px]"
               />
               <button
                 onClick={handleSubmit}
                 disabled={!query.trim() || isLoading}
                 aria-label={t("enter")}
-                className="mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all hover:bg-foreground/85 disabled:cursor-not-allowed disabled:bg-foreground/20 disabled:text-foreground/40 md:h-10 md:w-10"
+                className="mb-2 ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-none border border-foreground bg-foreground text-background transition-all hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:border-foreground/15 disabled:bg-transparent disabled:text-foreground/30"
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 )}
               </button>
             </div>
@@ -153,20 +153,20 @@ const HomePage = () => {
         >
           <button
             onClick={() => navigate("/discover")}
-            className="hover-burgundy rounded-lg border border-accent/15 bg-accent/[0.04] px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:bg-accent/[0.08]"
+            className="border-b border-foreground/40 px-1 pb-1 text-[10px] font-semibold tracking-[0.28em] text-foreground transition-colors hover:border-foreground"
           >
             {t("exploreStyles").toUpperCase()}
           </button>
           <button
             onClick={() => navigate("/about")}
-            className="hover-burgundy rounded-lg border border-border/30 px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:text-foreground"
+            className="border-b border-transparent px-1 pb-1 text-[10px] font-semibold tracking-[0.28em] text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
           >
             {t("about").toUpperCase()}
           </button>
           <button
             onClick={handleShareApp}
             aria-label="Share mymyon with friends"
-            className="hover-burgundy flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/[0.06] px-5 py-2.5 text-[11px] font-semibold tracking-[0.2em] text-foreground transition-all hover:bg-accent/[0.1]"
+            className="flex items-center gap-1.5 border-b border-transparent px-1 pb-1 text-[10px] font-semibold tracking-[0.28em] text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
           >
             <Share2 className="h-3 w-3" /> SHARE
           </button>
