@@ -30,18 +30,12 @@ export default function FitVisual({
   onReload,
 }: Props) {
   // ── IMAGE PRIORITY (production-grade, never blank) ────────────────────
-  // Priority order:
-  //   1. AI-generated studio image (final, persisted to our storage)
-  //   2. Canvas composite (deterministic, safe — NOT the user's raw photo)
-  //   3. Fallback canvas (low-priority composite)
-  //
-  // The raw user photo is NEVER used as the final preview to honor the
-  // "no original-scene contamination" rule. Broken URLs are demoted via
-  // onError; the AI URL is sticky (CORS first-paint can fire spurious errors).
+  // Show the best available render immediately:
+  // AI result → composite → fallback → placeholder → product reference.
+  // The previous version only showed the final AI image, which made the card
+  // look frozen whenever the AI swap stalled for a given account/window.
   const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-  // Hard-fail timer: if nothing renders within 60s of a new request, surface
-  // an honest "Preview unavailable" state with a retry CTA (no broken icon).
   const [hardFailed, setHardFailed] = useState(false);
 
   useEffect(() => {
@@ -51,7 +45,7 @@ export default function FitVisual({
   }, [state.requestId]);
 
   useEffect(() => {
-    if (state.aiImageUrl) {
+    if (state.previewSrc || state.aiImageUrl || state.compositeImageUrl || state.fallbackImageUrl || state.localPlaceholderUrl) {
       setHardFailed(false);
       return;
     }
@@ -59,35 +53,27 @@ export default function FitVisual({
       setHardFailed(true);
       return;
     }
-    // Give the AI generator more time — it's the only image we display.
     const t = window.setTimeout(() => setHardFailed(true), 90_000);
     return () => window.clearTimeout(t);
-  }, [state.requestId, state.stage, state.aiImageUrl]);
+  }, [
+    state.requestId,
+    state.stage,
+    state.previewSrc,
+    state.aiImageUrl,
+    state.compositeImageUrl,
+    state.fallbackImageUrl,
+    state.localPlaceholderUrl,
+  ]);
 
-  /** Validates the URL is something the browser can actually render. */
-  const isRenderable = (url: string | null | undefined): url is string => {
-    if (!url || typeof url !== "string") return false;
-    const trimmed = url.trim();
-    if (!trimmed || trimmed === "null" || trimmed === "undefined") return false;
-    return /^(https?:\/\/|data:image\/|blob:)/i.test(trimmed);
-  };
-
-  // STRICT preview source selection — ONLY the AI studio image is shown.
-  // Composite/fallback are intentionally hidden so the user never sees a
-  // half-baked styled preview; instead they see the loading animation until
-  // the real AI render is ready. This prevents the perceived "size changing"
-  // between the styled preview and the final AI image.
-  const best = useMemo(() => {
-    if (isRenderable(state.aiImageUrl) && !failedSrcs.includes(state.aiImageUrl)) {
-      return { src: state.aiImageUrl, kind: "ai" as const, isFinal: true };
-    }
-    return { src: null as string | null, kind: null as null | "ai", isFinal: false };
-  }, [state.aiImageUrl, failedSrcs]);
+  const best = useMemo(
+    () => getBestTryOnImageSource(state, productImageUrl, failedSrcs),
+    [state, productImageUrl, failedSrcs]
+  );
   const previewSrc = best.src;
 
   const shouldRenderPreview = Boolean(previewSrc);
   const isLoading = !shouldRenderPreview && !hardFailed;
-  const isRefining = false;
+  const isRefining = best.kind !== "ai" && state.stage === "polling_ai";
   const hasImage = shouldRenderPreview;
 
   useEffect(() => {
@@ -108,7 +94,7 @@ export default function FitVisual({
     }
   }, [state.requestId, state.stage, previewSrc, best.kind, best.isFinal, hardFailed]);
 
-  const sourceLabel = "AI STUDIO PREVIEW";
+  const sourceLabel = describeKind(best.kind);
 
   const handleShare = async () => {
     if (!previewSrc) return;
