@@ -339,7 +339,7 @@ async function upsertTryOnRecord(admin: ReturnType<typeof createClient>, userId:
       user_id: userId,
       product_key: body.productKey,
       selected_size: body.selectedSize,
-      provider: "lovable-ai",
+      provider: "replicate",
       user_image_url: body.userImageUrl ?? null,
       product_image_url: body.productImageUrl,
       metadata: {
