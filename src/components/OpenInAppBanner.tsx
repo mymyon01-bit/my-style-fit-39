@@ -50,8 +50,8 @@ const OpenInAppBanner = () => {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[60] flex items-center gap-3 border-b border-foreground/10 bg-background/95 px-4 py-2.5 backdrop-blur-md lg:hidden">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground">
-        <Download className="h-4 w-4" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-accent/10">
+        <img src="/icons/icon-192.png" alt="my'myon" className="h-7 w-7 rounded-lg" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[12px] font-semibold text-foreground">
@@ -64,16 +64,7 @@ const OpenInAppBanner = () => {
       <button
         onClick={() => {
           dismiss();
-          if (os === "android") {
-            const a = document.createElement("a");
-            a.href = "/downloads/mymyon.apk";
-            a.download = "mymyon.apk";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          } else {
-            navigate("/install");
-          }
+          navigate("/install");
         }}
         className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-background"
       >
