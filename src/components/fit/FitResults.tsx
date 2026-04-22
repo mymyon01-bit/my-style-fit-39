@@ -24,6 +24,19 @@ import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import RegionFitTable from "@/components/fit/RegionFitTable";
 import { useResolvedGarmentSize } from "@/hooks/useResolvedGarmentSize";
 import { computeRegionFit } from "@/lib/fit/regionFitEngine";
+import { useSizeRecommendation } from "@/hooks/useSizeRecommendation";
+import SizeRecommendationPanel from "@/components/fit/SizeRecommendationPanel";
+import type { FitPreference, RegionStatus } from "@/lib/sizing";
+
+/** Map measurement-engine status → visual try-on fit descriptor. */
+const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
+  tooTight: "too-tight",
+  slightlyTight: "slightly-tight",
+  regular: "regular",
+  slightlyLoose: "slightly-loose",
+  loose: "loose",
+  oversized: "oversized",
+};
 
 interface FitProduct {
   id: string;
