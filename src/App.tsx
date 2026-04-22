@@ -114,11 +114,12 @@ const AppRoutes = () => {
   const { user, loading } = useAuth();
 
   // Init push notifications once a user is signed in (no-op on web).
+  // The push helper POSTs the device token to the `register-device-token`
+  // edge function, which upserts it into push_device_tokens (RLS-scoped).
   useEffect(() => {
     if (!user || !isNativeApp()) return;
     initPushNotifications((token, platform) => {
-      console.log("[push] device token", { platform, token: token.slice(0, 12) + "…" });
-      // TODO: POST { user_id: user.id, token, platform } to a `register-device-token` edge function.
+      console.log("[push] device token registered", { platform, token: token.slice(0, 12) + "…" });
     });
   }, [user]);
 
