@@ -131,14 +131,18 @@ export default function CrownedBoard() {
       const topFive = scored.slice(0, 5);
       const topIds = new Set(topFive.map((post) => post.id));
 
-      const risingCandidates = scored
+      // Rising = anything not already in top 5, sorted by freshness-boosted
+      // score. Widen window to 7 days when nothing is fresh enough so the
+      // section never collapses silently.
+      const fresh = scored
         .filter((post) => !topIds.has(post.id) && getAgeHours(post.created_at) <= 72)
         .sort((a, b) => computeRisingScore(b) - computeRisingScore(a));
 
-      const rising = (risingCandidates.length > 0
-        ? risingCandidates
-        : scored.filter((post) => !topIds.has(post.id))
-      ).slice(0, 6);
+      const wider = scored
+        .filter((post) => !topIds.has(post.id))
+        .sort((a, b) => computeRisingScore(b) - computeRisingScore(a));
+
+      const rising = (fresh.length >= 3 ? fresh : wider).slice(0, 6);
 
       setTopRanked(topFive);
       setRisingStars(rising);
@@ -320,17 +324,21 @@ export default function CrownedBoard() {
             </div>
           </section>
 
-          {risingStars.length > 0 && (
-            <section className="space-y-4">
-              <div className="flex items-end justify-between border-b border-border/15 pb-2">
-                <div>
-                  <h3 className="font-display text-[18px] font-semibold text-foreground/92">Rising Stars</h3>
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-foreground/38">
-                    New most-liked, likely next up
-                  </p>
-                </div>
+          <section className="space-y-4">
+            <div className="flex items-end justify-between border-b border-border/15 pb-2">
+              <div>
+                <h3 className="font-display text-[18px] font-semibold text-foreground/92">Rising Stars</h3>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-foreground/38">
+                  New most-liked, likely next up
+                </p>
               </div>
+            </div>
 
+            {risingStars.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border/25 px-4 py-6 text-center text-[11px] text-foreground/45">
+                No rising stars yet — fresh posts with momentum will appear here.
+              </p>
+            ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {risingStars.map((post, index) => {
                   const profile = getProfile(post.user_id);
@@ -375,8 +383,8 @@ export default function CrownedBoard() {
                   );
                 })}
               </div>
-            </section>
-          )}
+            )}
+          </section>
         </div>
       )}
     </div>
