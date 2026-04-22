@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Brandmark from "@/components/Brandmark";
 
 const TICKER = ["mood", "weather", "moment", "story", "mood"];
 
