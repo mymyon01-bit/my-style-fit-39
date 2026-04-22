@@ -109,4 +109,12 @@ export interface SizeRecommendation {
   preference: FitPreference;
   /** True if any category-default fallback was used. */
   usedCategoryDefaults: boolean;
+  /**
+   * "tooSmall"  → user's body exceeds the largest size in the chart (e.g. 180/100kg picking S).
+   * "tooLarge"  → user's body is below the smallest size in the chart.
+   * "ok"        → at least one size in the chart actually fits.
+   */
+  rangeStatus: "ok" | "tooSmall" | "tooLarge";
+  /** Plain-English warning when rangeStatus !== "ok". */
+  rangeWarning: string | null;
 }
