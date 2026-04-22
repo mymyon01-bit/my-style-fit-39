@@ -129,7 +129,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
         .from("ootd-photos")
         .getPublicUrl(path);
 
-      const allTopics = [...new Set([...selectedTopics, ...hashtags])];
+      const baseTopics = [...new Set([...selectedTopics, ...hashtags])];
+      const allTopics = allowShares ? baseTopics : [...baseTopics, NO_SHARE_FLAG];
 
       const { error: insertError } = await supabase.from("ootd_posts").insert({
         user_id: user.id,
@@ -195,6 +196,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setNewTopic("");
     setError(null);
     setStep(1);
+    setAllowShares(true);
   };
 
   const canProceed = (s: number) => {
