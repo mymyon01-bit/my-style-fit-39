@@ -96,20 +96,27 @@ function statusScore(s: RegionStatus): number {
   }
 }
 
-/** Combine region statuses into an overall fit label. */
-function pickOverall(regions: RegionOutcome[]): OverallFitLabel {
+/** Combine region statuses into an overall fit label.
+ *  Heavily weighted regions (shoulder, chest) dominate even when alone tight. */
+function pickOverall(regions: RegionOutcome[], weights: Partial<Record<string, number>>): OverallFitLabel {
   const statuses = regions.map((r) => r.status);
   const has = (s: RegionStatus) => statuses.includes(s);
   const count = (s: RegionStatus) => statuses.filter((x) => x === s).length;
 
+  // Helper: is any heavy-weight (>=0.25) region in a given status?
+  const heavyWith = (s: RegionStatus) =>
+    regions.some((r) => r.status === s && ((weights as any)[r.region] ?? 0) >= 0.25);
+
+  // Hard fails first — be honest about catastrophic mismatches.
   if (count("tooTight") >= 2) return "verySmall";
-  if (has("tooTight") && (count("slightlyTight") >= 1)) return "verySmall";
+  if (heavyWith("tooTight")) return "verySmall"; // shoulder OR chest tooTight = verySmall
   if (count("oversized") >= 3) return "tooLarge";
   if (count("oversized") >= 2) return "oversizedFit";
-  if (has("oversized")) return "oversizedFit";
+  if (heavyWith("oversized")) return "oversizedFit";
+
+  if (has("tooTight") || count("slightlyTight") >= 2) return "tightFit";
   if (count("loose") >= 2) return "relaxedFit";
   if (count("slightlyLoose") >= 2) return "relaxedFit";
-  if (has("tooTight") || count("slightlyTight") >= 2) return "tightFit";
   if (count("slightlyTight") >= 1 && count("regular") >= regions.length - 2) return "fitted";
   if (count("regular") >= Math.ceil(regions.length / 2)) return "regularFit";
   return "regularFit";
