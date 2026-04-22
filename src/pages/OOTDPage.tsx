@@ -201,6 +201,23 @@ const OOTDPage = () => {
     if (data) setSavedPosts(new Set(data.map((d: any) => d.post_id)));
   };
 
+  // Pulls preferred styles + occasions from style_profiles. Used to filter
+  // the FEED tab so users see looks aligned with their taste.
+  const loadUserPrefs = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("style_profiles")
+      .select("preferred_styles, occasions")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (data) {
+      setUserPrefs({
+        styles: (data.preferred_styles || []).map((s: string) => s.toLowerCase()),
+        occasions: (data.occasions || []).map((s: string) => s.toLowerCase()),
+      });
+    }
+  };
+
   const handleSavePost = async (postId: string) => {
     if (!user) return;
     if (savedPosts.has(postId)) {
