@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import {
   listUserBodyImages,
   resolveBodyImageUrl,

@@ -91,13 +91,10 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setHashtags(prev => prev.filter(t => t !== tag));
   };
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const ingestFile = async (f: File) => {
     try {
       validateMedia(f, { allowVideo: false, maxBytes: 50 * 1024 * 1024 });
       setError(null);
-      // Robust prep: HEIC tolerance + compression
       const prepared = await prepareImage(f);
       setFile(prepared);
       setPreview(URL.createObjectURL(prepared));
@@ -106,8 +103,23 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
       const msg = err?.message || "Couldn't read that photo";
       setError(msg);
       toast.error(msg);
-    } finally {
-      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    await ingestFile(f);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handlePickPhoto = async () => {
+    // Native iOS/Android: open OS sheet (camera + library); web: <input>.
+    const native = await pickPhotoFile({ source: "prompt" });
+    if (native) {
+      await ingestFile(native);
+    } else {
+      fileRef.current?.click();
     }
   };
 
