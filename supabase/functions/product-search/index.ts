@@ -793,25 +793,53 @@ serve(async (req) => {
       const minTarget = Math.min(clampedLimit, 18);
       const hl = (body.hl || "").toString() || undefined;
 
-      // PARALLEL MAIN SOURCES: Google (SerpAPI Shopping) + ScrapingBee
-      // (commerce-scraper / multi-source) + DB. CSE removed — bee+google now
-      // carry the discovery load directly.
-      const [gShop, externalResult, dbResult] = await Promise.all([
-        fetchFromGoogleShopping(normalizedQuery, 100, hl)
-          .catch((e) => { console.error("Google Shopping failed:", e); return [] as any[]; }),
-        fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
-          .then(products => products.map(autoTagProduct))
-          .catch(e => { console.error("External search failed:", e); return [] as any[]; }),
-        loadFromDB(supabase, {
-          query: normalizedQuery,
-          category,
-          styles,
-          fit,
-          limit: Math.min(clampedLimit, 30),
-          excludeIds,
-          randomize: false,
-        }),
+      // FAST PATH: DB first (sub-second), with a TIGHT 3.5s budget for one
+      // external source (Google Shopping) so the user gets fresh items only
+      // when they're ready quickly. Heavier sources (commerce-scraper,
+      // multi-source) run in the background via waitUntil to enrich the
+      // cache for the next request.
+      const dbResult = await loadFromDB(supabase, {
+        query: normalizedQuery,
+        category,
+        styles,
+        fit,
+        limit: Math.min(clampedLimit, 30),
+        excludeIds,
+        randomize: false,
+      });
+
+      // Race Google Shopping against a 3.5s budget — return whatever's ready.
+      const gShop = await Promise.race([
+        fetchFromGoogleShopping(normalizedQuery, 60, hl, 3_500)
+          .catch(() => [] as any[]),
+        new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 3_500)),
       ]);
+
+      // Background enrichment — does NOT block response.
+      const bgTasks = (async () => {
+        try {
+          const [cs, ms] = await Promise.all([
+            fetchFromCommerceScraper(normalizedQuery, Math.min(clampedLimit, 24))
+              .catch(() => [] as any[]),
+            fetchFromMultiSource(normalizedQuery, 12_000)
+              .catch(() => [] as any[]),
+          ]);
+          const merged = mergeUniqueProducts(cs.map(autoTagProduct), ms);
+          if (merged.length > 0) {
+            await cacheToDB(supabase, merged, normalizedQuery);
+          }
+        } catch (e) {
+          console.warn("[bg-enrich] failed:", (e as Error).message);
+        }
+      })();
+      try {
+        // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
+        EdgeRuntime.waitUntil(bgTasks);
+      } catch {
+        /* not in edge runtime — let it dangle */
+      }
+
+      const externalResult: any[] = [];
 
       // gShop already lives in product_cache (google-shopping upserts directly).
       // Commerce-scraper results still need caching.
