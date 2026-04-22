@@ -192,7 +192,7 @@ export function useThread(conversationId: string | null) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const row = payload.new as MessageRow;
+          const row = (payload.new as unknown) as MessageRow;
           setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
           if (user && row.recipient_id === user.id) {
             markRead();
