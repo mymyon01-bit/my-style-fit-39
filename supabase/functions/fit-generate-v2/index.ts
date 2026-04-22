@@ -134,40 +134,33 @@ Deno.serve(async (req) => {
     const body = input.body as BodyMeasurements;
     const garment = input.garment as GarmentMeasurements;
     const garmentLabel = String(input.garmentLabel ?? "garment");
+    const genderPresentation = input.genderPresentation as string | undefined;
     const productImageUrl = (input.productImageUrl as string | null) ?? null;
     const userImageUrl = (input.userImageUrl as string | null) ?? null;
     const productKey = String(input.productKey ?? `pkey_${garmentLabel}`).slice(0, 200);
     const productName = (input.productName as string | undefined) ?? garmentLabel;
     const productCategory = (input.productCategory as string | undefined) ?? undefined;
     const selectedSize = String(input.selectedSize ?? "M");
+
+    if (!body || !garment) {
+      return new Response(JSON.stringify({ error: "body and garment are required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const bodyProfileSummary = (input.bodyProfileSummary as Record<string, unknown> | undefined) ?? {
       heightCm: body.height, weightKg: body.weight, gender: genderPresentation,
     };
+
+    const fitResult = calculateFit(body, garment);
+    const fitAnalysis = interpretFit(fitResult);
+    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation });
 
     const { url, error } = await generateImage({
       prompt, productImageUrl, userImageUrl, productKey,
       productName, productCategory, selectedSize, bodyProfileSummary,
       authHeader: req.headers.get("Authorization") || "",
     });
-
-    const status = url ? "success" : "partial";
-    return new Response(JSON.stringify({
-      status, fitResult, fitAnalysis, prompt, imageUrl: url, message: error,
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e) {
-    return new Response(JSON.stringify({
-      status: "error", message: e instanceof Error ? e.message : String(e),
-      fitResult: null, fitAnalysis: null, prompt: "", imageUrl: null,
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-});
-    }
-
-    const fitResult = calculateFit(body, garment);
-    const fitAnalysis = interpretFit(fitResult);
-    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation });
-
-    const { url, error } = await generateImage(prompt, productImageUrl);
 
     const status = url ? "success" : "partial";
     return new Response(JSON.stringify({
