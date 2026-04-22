@@ -270,7 +270,7 @@ export default function FitVisual({
             {/* Status overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/60 backdrop-blur-md ring-1 ring-foreground/10">
-                {trulyNoImage ? (
+                {hardFailed ? (
                   <AlertTriangle className="h-4 w-4 text-foreground/60" />
                 ) : (
                   <Loader2 className="h-4 w-4 animate-spin text-accent" />
@@ -278,7 +278,7 @@ export default function FitVisual({
               </div>
               <div className="space-y-2 text-center">
                 <p className="text-[12px] font-semibold text-foreground/80">{stageMessage}</p>
-                {!trulyNoImage && (
+                {!hardFailed && (
                   <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
                     <motion.div
                       className="h-full w-1/3 rounded-full bg-accent"
@@ -290,6 +290,14 @@ export default function FitVisual({
                 <p className="text-[10px] tracking-[0.18em] text-foreground/45">
                   {stageHint}
                 </p>
+                {hardFailed && onReload && (
+                  <button
+                    onClick={onReload}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-background/60 px-3 py-1.5 text-[10px] font-bold tracking-[0.18em] text-foreground/85 transition-colors hover:bg-foreground/10"
+                  >
+                    <RefreshCw className="h-3 w-3" /> RETRY
+                  </button>
+                )}
               </div>
             </div>
           </div>
