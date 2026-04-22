@@ -540,6 +540,12 @@ const FitPage = () => {
                   bodyHeightCm={measurements.heightCm.value}
                   bodyWeightKg={weightKg}
                   bodyShape={bodyShape}
+                  bodyGender={(bodyShape as any)?.gender ?? null}
+                  bodyShoulderCm={measurements.shoulderWidthCm?.value ?? null}
+                  bodyChestCm={measurements.chestCm?.value ?? null}
+                  bodyWaistCm={measurements.waistCm?.value ?? null}
+                  bodyHipCm={measurements.hipCm?.value ?? null}
+                  bodyInseamCm={measurements.inseamCm?.value ?? null}
                   userBodyImageUrl={userBodyImageUrl}
                   onRefineFit={handleRefineFit}
                   onRescan={() => setActiveTab("scan")}

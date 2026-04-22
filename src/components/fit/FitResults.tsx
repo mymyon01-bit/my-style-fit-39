@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, RotateCcw, Pencil, Sparkles, Loader2, Lock, Wand2, Globe2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import TryOnPreviewModal, { TryOnContext } from "@/components/fit/TryOnPreviewModal";
@@ -24,6 +24,19 @@ import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import RegionFitTable from "@/components/fit/RegionFitTable";
 import { useResolvedGarmentSize } from "@/hooks/useResolvedGarmentSize";
 import { computeRegionFit } from "@/lib/fit/regionFitEngine";
+import { useSizeRecommendation } from "@/hooks/useSizeRecommendation";
+import SizeRecommendationPanel from "@/components/fit/SizeRecommendationPanel";
+import type { FitPreference, RegionStatus } from "@/lib/sizing";
+
+/** Map measurement-engine status → visual try-on fit descriptor. */
+const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
+  tooTight: "too-tight",
+  slightlyTight: "slightly-tight",
+  regular: "regular",
+  slightlyLoose: "slightly-loose",
+  loose: "loose",
+  oversized: "oversized",
+};
 
 interface FitProduct {
   id: string;
@@ -46,6 +59,13 @@ interface Props {
   bodyHeightCm?: number;
   bodyWeightKg?: number | null;
   bodyShape?: BodyShapeInput;
+  /** Optional structured user measurements (cm) for the new sizing engine. */
+  bodyGender?: string | null;
+  bodyShoulderCm?: number | null;
+  bodyChestCm?: number | null;
+  bodyWaistCm?: number | null;
+  bodyHipCm?: number | null;
+  bodyInseamCm?: number | null;
   userBodyImageUrl?: string | null;
   onRefineFit?: () => void;
   onRescan?: () => void;
@@ -145,6 +165,12 @@ export default function FitResults({
   bodyHeightCm,
   bodyWeightKg,
   bodyShape,
+  bodyGender,
+  bodyShoulderCm,
+  bodyChestCm,
+  bodyWaistCm,
+  bodyHipCm,
+  bodyInseamCm,
   userBodyImageUrl,
   onRefineFit,
   onRescan,
@@ -168,6 +194,52 @@ export default function FitResults({
   const activeSizeResult = result.sizeResults.find(s => s.size === activeSize)
     ?? result.sizeResults.find(s => s.recommended);
   const heroScore = activeSizeResult?.fitScore ?? 0;
+
+  // ══ NEW MEASUREMENT-DRIVEN SIZING PIPELINE ═══════════════════════════════
+  // Runs ALONGSIDE the legacy fitEngine (which stays the locked working model
+  // for the visual try-on prompt). The new panel + recommendation feeds back
+  // into `activeSize` and into the visual try-on `regions` payload so the AI
+  // image visualizes the CALCULATED fit (S=tight / M=fit / L=regular / XL=loose).
+  const [sizingPrefOverride, setSizingPrefOverride] = useState<FitPreference | null>(null);
+  const sizing = useSizeRecommendation({
+    productUrl: product.url,
+    productName: product.name,
+    brand: product.brand,
+    category: product.category,
+    body: {
+      gender: bodyGender ?? null,
+      heightCm: bodyHeightCm ?? null,
+      weightKg: bodyWeightKg ?? null,
+      shoulderCm: bodyShoulderCm ?? null,
+      chestCm: bodyChestCm ?? null,
+      waistCm: bodyWaistCm ?? null,
+      hipCm: bodyHipCm ?? null,
+      inseamCm: bodyInseamCm ?? null,
+    },
+    preferenceOverride: sizingPrefOverride,
+  });
+
+  // When the new engine produces a primary size that exists in the legacy
+  // size ladder, prefer it as the default active size. Never override a user
+  // pick — only sync once when the recommendation first arrives.
+  const syncedRecRef = useRef(false);
+  useEffect(() => {
+    if (syncedRecRef.current) return;
+    const rec = sizing.recommendation?.primarySize;
+    if (!rec) return;
+    if (result.sizeResults.some((s) => s.size === rec)) {
+      setActiveSize(rec);
+      syncedRecRef.current = true;
+    }
+  }, [sizing.recommendation?.primarySize, result.sizeResults]);
+
+  // Active size outcome from the new measurement-driven engine.
+  // Used to feed the visual try-on with calculated per-region fit so the AI
+  // image visualizes the computed result instead of guessing.
+  const sizingActiveOutcome = useMemo(
+    () => sizing.recommendation?.sizes.find((s) => s.size === activeSize) ?? null,
+    [sizing.recommendation, activeSize],
+  );
 
   // ── Global fallback + confidence (honest tiers) ──────────────────────────
   const usedGlobalFallback = shouldUseGlobalFallback(result.productDataQuality, true) || result.productDataQuality < 50;
@@ -329,16 +401,31 @@ export default function FitResults({
     productCategory: product.category,
     selectedSize: activeSize,
     userImageUrl: resolvedUserImageUrl ?? null,
-    fitDescriptor: activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() || "regular",
-    regions: activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [],
+    // ── PRIMARY: feed the visual try-on the CALCULATED per-region fit from
+    // the new measurement-driven engine, so the AI image visualizes the
+    // computed fit (S=tight, M=fitted, L=regular, XL=oversized) instead of
+    // generating a generic fashion shot. Falls back to legacy regions if the
+    // engine hasn't resolved yet.
+    fitDescriptor:
+      sizingActiveOutcome?.overall ??
+      (activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() || "regular"),
+    regions:
+      sizingActiveOutcome
+        ? sizingActiveOutcome.regions.map((r) => ({
+            region: r.region,
+            fit: STATUS_TO_FIT_DESCRIPTOR[r.status],
+          }))
+        : activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [],
     bodyProfileSummary: {
       heightCm: bodyHeightCm ?? null,
       weightKg: bodyWeightKg ?? null,
       build: bodyShape ? String((bodyShape as any).build ?? "") : null,
-      gender: null,
+      gender: bodyGender ?? null,
     },
     reloadToken,
   });
+
+  // (sizingActiveOutcome memo is declared earlier so useFitTryOn can read it.)
 
   // Per-region fit chips computed from the deterministic solver.
   const fitChipsForVisual = useMemo(() => {
@@ -597,6 +684,20 @@ export default function FitResults({
             : (<><Lock className="h-3.5 w-3.5" /> Refined Fit (Premium)</>)}
         </motion.button>
       )}
+
+      {/* ══ MEASUREMENT-DRIVEN SIZE RECOMMENDATION (new pipeline) ══
+          Shows per-size fit calculated from real body cm vs garment cm.
+          Selecting a size here also drives the visual try-on prompt above. */}
+      <SizeRecommendationPanel
+        recommendation={sizing.recommendation}
+        loading={sizing.loadingChart}
+        inferredFields={sizing.body?.inferredFieldNames ?? []}
+        preference={sizing.preference}
+        onPreferenceChange={(p) => setSizingPrefOverride(p)}
+        onAddMeasurements={onEditMeasurements}
+        activeSize={activeSize}
+        onSizeSelect={(s) => setActiveSize(s)}
+      />
 
       {/* Size comparison (collapsed by default for non-recommended) */}
       <div>

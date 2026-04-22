@@ -23,6 +23,12 @@ Lives entirely under `src/lib/sizing/` + `useSizeRecommendation` hook + `SizeRec
 - `SizeRecommendationPanel` shows confidence badge, recommended/alternate, per-size collapsible table with region chips and cm deltas, "why" sentence, and fit-preference toggle.
 - `InferredMeasurementsBanner` shows when any body field was inferred.
 - Category-default warning appears when chart fell back to defaults.
+- Wired into `FitResults.tsx` (rendered above legacy SIZE COMPARISON). Selecting a size in the panel updates the active size for the visual try-on too.
+
+## Visual try-on rewire
+- `FitResults` reads `sizing.recommendation.sizes[activeSize]` and passes its per-region statuses (mapped via `STATUS_TO_FIT_DESCRIPTOR`) into `useFitTryOn`'s `regions` payload + `fitDescriptor` (overall label).
+- Result: `fit-tryon-router` (Replicate IDM-VTON) generates an image that visualizes the CALCULATED fit (S=tight / M=fitted / L=regular / XL=oversized) instead of guessing.
+- Falls back to legacy `fitEngine` regions when the new chart hasn't resolved yet — never blocks rendering.
 
 ## Hard rules (do not violate)
 - Never label a size as "perfect" / "recommended" if measurements don't support it.
