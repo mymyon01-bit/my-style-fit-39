@@ -65,11 +65,11 @@ function OOTDCardImpl({
       className="cursor-pointer group relative"
       onClick={() => onOpen(post)}
     >
-      <div className="relative overflow-hidden rounded-lg aspect-[3/4] bg-foreground/[0.04]">
+      <div className="relative overflow-hidden rounded-lg aspect-square bg-foreground/[0.04]">
         <img
           src={post.image_url}
           alt={post.caption || ""}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
           loading="lazy"
         />
 
