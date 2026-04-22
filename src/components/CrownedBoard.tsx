@@ -31,17 +31,9 @@ interface DailyWinner {
   profile?: ProfileInfo;
 }
 
-const BOARD_LAYOUTS = [
-  "col-span-12 row-span-2 md:col-span-7",
-  "col-span-6 row-span-1 md:col-span-5",
-  "col-span-6 row-span-1 md:col-span-5",
-  "col-span-6 row-span-1 md:col-span-6",
-  "col-span-6 row-span-1 md:col-span-6",
-];
-
 const RANK_STYLES = [
   {
-    frame: "border-accent/25 bg-accent/[0.08]",
+    frame: "border-accent/40 bg-accent/[0.08]",
     badge: "bg-foreground text-background",
     points: "text-foreground",
   },
@@ -247,12 +239,18 @@ export default function CrownedBoard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-12 auto-rows-[148px] gap-3 md:auto-rows-[180px] md:gap-4">
+            {/* Layout: rank #1 is the hero (large square), ranks 2-5 sit
+                in a compact 2x2 grid. Mobile: 2 cols, hero spans both.
+                Desktop: 3 cols, hero spans 2x2. */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
               {topRanked.map((post, index) => {
                 const profile = getProfile(post.user_id);
                 const rank = index + 1;
                 const rankStyle = RANK_STYLES[index] || RANK_STYLES[4];
                 const isFirst = rank === 1;
+                const cellClass = isFirst
+                  ? "col-span-2 md:col-span-2 md:row-span-2"
+                  : "col-span-1";
 
                 return (
                   <motion.article
@@ -260,64 +258,89 @@ export default function CrownedBoard() {
                     initial={{ opacity: 0, y: 18 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className={`${BOARD_LAYOUTS[index] || "col-span-6"} group relative overflow-hidden rounded-[1.25rem] border ${rankStyle.frame}`}
+                    className={`${cellClass} group relative aspect-square overflow-hidden rounded-[1.25rem] border ${rankStyle.frame}`}
                   >
                     <img
                       src={post.image_url}
                       alt={post.caption || `${profile?.display_name || "Anonymous"} OOTD`}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                      className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/0 to-background/90" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/0 to-background/85" />
 
-                    <div className="absolute left-3 top-3 flex items-center gap-2">
-                      <div className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[11px] font-semibold ${rankStyle.badge}`}>
+                    <div className="absolute left-2 top-2 flex items-center gap-1.5 md:left-3 md:top-3 md:gap-2">
+                      <div className={`flex ${isFirst ? "h-8 min-w-8 text-[12px]" : "h-6 min-w-6 text-[10px]"} items-center justify-center rounded-full px-1.5 font-semibold ${rankStyle.badge}`}>
                         {rank}
                       </div>
-                      <button
-                        onClick={() => navigate(`/user/${post.user_id}`)}
-                        className="flex max-w-[65vw] items-center gap-2 rounded-full bg-background/72 px-2.5 py-1 backdrop-blur-sm transition-colors hover:bg-background/88"
-                      >
-                        <div className="h-5 w-5 overflow-hidden rounded-full bg-muted">
-                          {profile?.avatar_url ? (
-                            <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[8px] font-bold text-foreground/45">
-                              {(profile?.display_name || "?")[0].toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <span className="truncate text-[10px] font-medium text-foreground/88">
-                          {profile?.display_name || "Anonymous"}
-                        </span>
-                      </button>
-                    </div>
-
-                    <div className="absolute right-3 top-3 rounded-full bg-background/72 px-2.5 py-1 text-right backdrop-blur-sm">
-                      <p className={`text-[13px] font-semibold ${rankStyle.points}`}>{formatPoints(post.score)}</p>
-                      <p className="text-[8px] uppercase tracking-[0.22em] text-foreground/38">PTS</p>
-                    </div>
-
-                    <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
-                      {post.style_tags && post.style_tags.length > 0 && (
-                        <div className="mb-2 flex flex-wrap gap-1.5">
-                          {post.style_tags.slice(0, isFirst ? 3 : 2).map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full border border-background/15 bg-background/70 px-2 py-1 text-[8px] uppercase tracking-[0.18em] text-foreground/62 backdrop-blur-sm"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {post.caption && (
-                        <p className={`${isFirst ? "text-[13px] line-clamp-2" : "text-[11px] line-clamp-2"} max-w-[92%] text-foreground/86`}>
-                          {post.caption}
-                        </p>
+                      {isFirst && (
+                        <button
+                          onClick={() => navigate(`/user/${post.user_id}`)}
+                          className="flex max-w-[60vw] items-center gap-2 rounded-full bg-background/72 px-2.5 py-1 backdrop-blur-sm transition-colors hover:bg-background/88"
+                        >
+                          <div className="h-5 w-5 overflow-hidden rounded-full bg-muted">
+                            {profile?.avatar_url ? (
+                              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[8px] font-bold text-foreground/45">
+                                {(profile?.display_name || "?")[0].toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <span className="truncate text-[10px] font-medium text-foreground/88">
+                            {profile?.display_name || "Anonymous"}
+                          </span>
+                        </button>
                       )}
                     </div>
+
+                    <div className={`absolute ${isFirst ? "right-3 top-3 px-2.5 py-1" : "right-2 top-2 px-1.5 py-0.5"} rounded-full bg-background/72 text-right backdrop-blur-sm`}>
+                      <p className={`${isFirst ? "text-[13px]" : "text-[10px]"} font-semibold ${rankStyle.points}`}>{formatPoints(post.score)}</p>
+                      {isFirst && <p className="text-[8px] uppercase tracking-[0.22em] text-foreground/38">PTS</p>}
+                    </div>
+
+                    {!isFirst && (
+                      <div className="absolute inset-x-0 bottom-0 px-2 pb-1.5 pt-6 bg-gradient-to-t from-background/90 to-transparent">
+                        <button
+                          onClick={() => navigate(`/user/${post.user_id}`)}
+                          className="flex w-full items-center gap-1.5 text-left"
+                        >
+                          <div className="h-4 w-4 overflow-hidden rounded-full bg-muted shrink-0">
+                            {profile?.avatar_url ? (
+                              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[7px] font-bold text-foreground/45">
+                                {(profile?.display_name || "?")[0].toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <span className="truncate text-[9px] font-medium text-foreground/85">
+                            {profile?.display_name || "Anonymous"}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+
+                    {isFirst && (
+                      <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
+                        {post.style_tags && post.style_tags.length > 0 && (
+                          <div className="mb-2 flex flex-wrap gap-1.5">
+                            {post.style_tags.slice(0, 3).map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-full border border-background/15 bg-background/70 px-2 py-1 text-[8px] uppercase tracking-[0.18em] text-foreground/62 backdrop-blur-sm"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {post.caption && (
+                          <p className="text-[13px] line-clamp-2 max-w-[92%] text-foreground/86">
+                            {post.caption}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </motion.article>
                 );
               })}
@@ -351,8 +374,8 @@ export default function CrownedBoard() {
                       transition={{ delay: index * 0.04 }}
                       className="flex items-center gap-3 rounded-2xl border border-border/12 bg-card/35 p-3"
                     >
-                      <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-xl border border-border/10 bg-muted/40">
-                        <img src={post.image_url} alt={post.caption || "Rising star OOTD"} className="h-full w-full object-cover" loading="lazy" />
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border/10 bg-muted/40">
+                        <img src={post.image_url} alt={post.caption || "Rising star OOTD"} className="h-full w-full object-cover object-top" loading="lazy" />
                       </div>
 
                       <div className="min-w-0 flex-1 space-y-1.5">

@@ -158,6 +158,21 @@
     font-feature-settings: "ss01", "cv11";
   }
 
+  /* ── User text-size preference (Settings → Text size) ──
+     Scales the *root* font, so all rem-based sizes follow.
+     Tailwind tracks (text-xs etc.) use rem, so they scale automatically.
+     Hard-pinned text-[10px]/[11px] etc. won't scale, but bodies and
+     comments (which use text-sm/[13px] tokens) get a CSS multiplier. */
+  html[data-fontsize="small"]  { font-size: 14px; }
+  html[data-fontsize="medium"] { font-size: 16px; }
+  html[data-fontsize="large"]  { font-size: 18px; }
+  html[data-fontsize="large"] body { font-size: 17px; }
+  html[data-fontsize="small"] body { font-size: 14px; }
+  /* OOTD comments + captions: bump readability based on user pref */
+  html[data-fontsize="large"] .ootd-text { font-size: 15px; line-height: 1.55; }
+  html[data-fontsize="medium"] .ootd-text { font-size: 13.5px; line-height: 1.5; }
+  html[data-fontsize="small"] .ootd-text { font-size: 12.5px; line-height: 1.45; }
+
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: -0.04em;

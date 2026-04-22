@@ -9,8 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Check, Moon, Sun, Monitor, RotateCcw, Shield, Layers,
   User, Globe, Palette, Bell, Lock, Crown, HelpCircle, LogOut,
-  CheckCircle, XCircle, Mail, Loader2, Trash2
+  CheckCircle, XCircle, Mail, Loader2, Trash2, Type
 } from "lucide-react";
+import { useFontSize, type FontSize } from "@/lib/fontSize";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -266,6 +267,37 @@ const SettingsPage = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="h-px bg-border/30" />
+
+        {/* Text size — affects OOTD copy + comments globally */}
+        <div className="space-y-5">
+          <div className="flex items-center gap-2">
+            <Type className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
+            <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">TEXT SIZE</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              { v: "small" as FontSize, label: "Small", sample: "Aa", size: "text-[13px]" },
+              { v: "medium" as FontSize, label: "Medium", sample: "Aa", size: "text-[15px]" },
+              { v: "large" as FontSize, label: "Large", sample: "Aa", size: "text-[18px]" },
+            ]).map((opt) => (
+              <button
+                key={opt.v}
+                onClick={() => setFontSize(opt.v)}
+                className={`flex flex-col items-center gap-1.5 rounded-lg border py-3 transition-all ${
+                  fontSize === opt.v
+                    ? "border-accent/50 bg-accent/[0.08] text-foreground"
+                    : "border-border/30 text-foreground/60 hover:text-foreground/80"
+                }`}
+              >
+                <span className={`${opt.size} font-semibold`}>{opt.sample}</span>
+                <span className="text-[10px] tracking-[0.18em] uppercase">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-foreground/50">Adjusts post captions, comments, and reading copy across the app.</p>
         </div>
 
         <div className="h-px bg-border/30" />

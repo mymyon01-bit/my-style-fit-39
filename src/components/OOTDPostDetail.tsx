@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   X, Heart, HeartOff, MessageCircle, Star, Send, Bookmark, BookmarkCheck,
-  Loader2, Trash2, Flag, ChevronDown, ChevronUp, MoreHorizontal, Edit3
+  Loader2, Trash2, Flag, ChevronDown, ChevronUp, MoreHorizontal, Edit3, Sparkles, Check
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import ShareButton from "@/components/ShareButton";
+import PostThemeBackground, { POST_THEMES, loadSavedPostTheme, savePostTheme, type PostTheme } from "@/components/ootd/PostThemeBackground";
 
 interface OOTDPost {
   id: string;
@@ -69,6 +70,8 @@ export default function OOTDPostDetail({
   const [commentLikeCounts, setCommentLikeCounts] = useState<Record<string, number>>({});
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [showPostMenu, setShowPostMenu] = useState(false);
+  const [postTheme, setPostTheme] = useState<PostTheme>(() => loadSavedPostTheme());
+  const [showThemePicker, setShowThemePicker] = useState(false);
 
   const isOwner = user?.id === post.user_id;
   const title = post.caption ? post.caption.split(/\s+/)[0] : null;
@@ -217,7 +220,7 @@ export default function OOTDPostDetail({
           </button>
           <span className="text-[10px] text-foreground/35">{timeAgo(c.created_at)}</span>
         </div>
-        <p className="text-[13px] text-foreground/80 leading-relaxed">{c.content}</p>
+        <p className="text-[13px] text-foreground/80 leading-relaxed ootd-text">{c.content}</p>
         <div className="flex items-center gap-3 mt-1 opacity-60 group-hover:opacity-100 transition-opacity">
           <button onClick={() => toggleCommentLike(c.id)} className={`flex items-center gap-0.5 text-[10px] ${commentLikes.has(c.id) ? "text-rose-400" : "text-foreground/40 hover:text-foreground/60"}`}>
             <Heart className={`h-3 w-3 ${commentLikes.has(c.id) ? "fill-current" : ""}`} />
@@ -256,6 +259,9 @@ export default function OOTDPostDetail({
         onClick={e => e.stopPropagation()}
         className="relative w-full max-w-md md:max-w-5xl max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col md:flex-row"
       >
+        {/* Decorative background theme — sits above bg, below content */}
+        <PostThemeBackground theme={postTheme} />
+
         {/* Always-visible close — floats above image AND details pane */}
         <button
           onClick={onClose}
@@ -264,6 +270,32 @@ export default function OOTDPostDetail({
         >
           <X className="h-4 w-4" />
         </button>
+
+        {/* Theme picker toggle */}
+        <button
+          onClick={() => setShowThemePicker((v) => !v)}
+          aria-label="Change background theme"
+          className="absolute top-3 right-14 z-30 rounded-full bg-black/65 p-2 text-white shadow-lg hover:bg-black/85 backdrop-blur-md transition-colors"
+        >
+          <Sparkles className="h-4 w-4" />
+        </button>
+        {showThemePicker && (
+          <div className="absolute top-14 right-3 z-30 w-44 rounded-xl bg-card/95 border border-border shadow-xl backdrop-blur-md p-1.5 space-y-0.5">
+            {POST_THEMES.map((th) => (
+              <button
+                key={th.id}
+                onClick={() => { setPostTheme(th.id); savePostTheme(th.id); setShowThemePicker(false); }}
+                className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[11px] text-foreground/80 hover:bg-accent/10 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-[13px] w-4 text-center">{th.emoji}</span>
+                  {th.label}
+                </span>
+                {postTheme === th.id && <Check className="h-3 w-3 text-accent" />}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Image */}
         <div className="relative flex-shrink-0 md:w-[55%] md:h-[85vh] md:bg-black/40">

@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/lib/theme";
 import { TransitionProvider } from "@/lib/transition";
+import { FontSizeProvider } from "@/lib/fontSize";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
 import DesktopNav from "@/components/DesktopNav";
@@ -191,9 +192,10 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TransitionProvider>
-          <I18nProvider>
-            <AuthProvider>
+        <FontSizeProvider>
+          <TransitionProvider>
+            <I18nProvider>
+              <AuthProvider>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
@@ -202,9 +204,10 @@ const App = () => {
                   <AppRoutes />
                 </BrowserRouter>
               </TooltipProvider>
-            </AuthProvider>
-          </I18nProvider>
-        </TransitionProvider>
+              </AuthProvider>
+            </I18nProvider>
+          </TransitionProvider>
+        </FontSizeProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
