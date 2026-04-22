@@ -327,9 +327,32 @@ const OOTDPage = () => {
   const handlePosted = () => { loadPosts(); loadMyPosts(); loadTopics(); };
   const getProfile = (userId: string) => profileMap[userId] || null;
 
-  const getFeaturedPosts = () => {
-    if (posts.length < 4) return { featured: [], rest: posts };
-    const scored = [...posts].sort((a, b) => {
+  // FEED tab — preference-aware ranking. Posts that match the user's preferred
+  // styles or occasions surface first; everything else falls through in the
+  // original chronological order. When the user has no preferences (or no
+  // matches) we keep the chronological order so the feed never looks empty.
+  const getFeedPosts = (): OOTDPost[] => {
+    if (!userPrefs || (userPrefs.styles.length === 0 && userPrefs.occasions.length === 0)) {
+      return posts;
+    }
+    const styleSet = new Set(userPrefs.styles);
+    const occasionSet = new Set(userPrefs.occasions);
+    const scoreOf = (p: OOTDPost) => {
+      const styleHits = (p.style_tags || []).reduce((n, t) => n + (styleSet.has(t.toLowerCase()) ? 1 : 0), 0);
+      const occHits = (p.occasion_tags || []).reduce((n, t) => n + (occasionSet.has(t.toLowerCase()) ? 1 : 0), 0);
+      const topicHits = (p.topics || []).reduce((n, t) => n + (styleSet.has(t.toLowerCase()) ? 1 : 0), 0);
+      return styleHits * 3 + occHits * 2 + topicHits;
+    };
+    const matched = posts.map(p => ({ p, s: scoreOf(p) })).filter(x => x.s > 0);
+    if (matched.length === 0) return posts;
+    matched.sort((a, b) => b.s - a.s);
+    const matchedIds = new Set(matched.map(x => x.p.id));
+    return [...matched.map(x => x.p), ...posts.filter(p => !matchedIds.has(p.id))];
+  };
+
+  const getFeaturedPosts = (source: OOTDPost[] = posts) => {
+    if (source.length < 4) return { featured: [], rest: source };
+    const scored = [...source].sort((a, b) => {
       const scoreA = (a.like_count || 0) * 3 + (a.star_count || 0) * 5 - (a.dislike_count || 0) * 2;
       const scoreB = (b.like_count || 0) * 3 + (b.star_count || 0) * 5 - (b.dislike_count || 0) * 2;
       return scoreB - scoreA;
