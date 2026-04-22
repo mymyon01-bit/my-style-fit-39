@@ -128,7 +128,7 @@ export default function FitVisual({
   // alive and we should reflect that in the message.
   // Hard-failure: pipeline explicitly failed AND no AI image. Otherwise
   // (idle, compositing, polling_ai) keep the loading animation alive.
-  const trulyNoImage = !shouldRenderPreview && state.stage === "failed";
+  const trulyNoImage = !shouldRenderPreview && state.stage === "error";
   const stageMessage = trulyNoImage
     ? "Couldn't generate fit preview"
     : state.stage === "polling_ai" ? "Generating your try-on…"
