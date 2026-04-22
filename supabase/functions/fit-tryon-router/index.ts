@@ -21,10 +21,21 @@ const corsHeaders = {
 };
 
 const SERVER_TIMEOUT_MS = 55_000; // image gen needs more headroom than vton
-// Replicate IDM-VTON: real virtual try-on (garment composited onto user body).
-// Used while Lovable AI image credits are being topped up.
-const MODEL_ID = Deno.env.get("REPLICATE_FIT_MODEL") || "cuuupid/idm-vton";
-const MODEL_VERSION = Deno.env.get("REPLICATE_FIT_MODEL_VERSION") || "c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4";
+
+// ─── PROVIDER SELECTION ─────────────────────────────────────────────────────
+// Default mode = "studio": clean newly-generated text-to-image render driven
+// by the user's body proportions + region fit deltas. The garment image is
+// passed as a visual reference; the original photo background is NEVER kept.
+//
+// Opt-in mode = "vton": uses Replicate IDM-VTON to composite the garment onto
+// the user photo (legacy behavior). Triggered via `mode: "vton"` in the body.
+const STUDIO_MODEL_ID = Deno.env.get("REPLICATE_FIT_STUDIO_MODEL") || "black-forest-labs/flux-schnell";
+const STUDIO_MODEL_VERSION = Deno.env.get("REPLICATE_FIT_STUDIO_MODEL_VERSION") || "";
+const VTON_MODEL_ID = Deno.env.get("REPLICATE_FIT_MODEL") || "cuuupid/idm-vton";
+const VTON_MODEL_VERSION = Deno.env.get("REPLICATE_FIT_MODEL_VERSION") || "c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4";
+// Back-compat aliases (used by older code paths in this file)
+const MODEL_ID = VTON_MODEL_ID;
+const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 
 type ProviderName = "lovable-ai" | "replicate";
