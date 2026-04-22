@@ -490,14 +490,17 @@ export default function FitResults({
 
         {/* ── RIGHT COLUMN ───────────────────────────────────────── */}
         <div className="space-y-5 lg:sticky lg:top-24">
-          {/* ══ VISUAL FIT — canvas compositor (instant) + optional AI swap ══ */}
+          {/* ══ VISUAL FIT — direct AI-generated final fitting image ══ */}
           <FitVisual
             productName={product.name}
             activeSize={activeSize}
             state={tryOn}
-            productImageUrl={resolvedProductImage}
             onRescanBody={onRescan}
-            onReload={() => setReloadToken((n) => n + 1)}
+            onRetry={() => {
+              tryOn.retry();
+              setReloadToken((n) => n + 1);
+            }}
+            fitChips={fitChipsForVisual}
           />
         </div>
       </div>
