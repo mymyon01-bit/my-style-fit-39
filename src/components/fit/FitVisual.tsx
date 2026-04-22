@@ -251,19 +251,25 @@ export default function FitVisual({
             {/* Status overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/60 backdrop-blur-md ring-1 ring-foreground/10">
-                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                {hasNoProductImage ? (
+                  <AlertTriangle className="h-4 w-4 text-foreground/60" />
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                )}
               </div>
               <div className="space-y-2 text-center">
                 <p className="text-[12px] font-semibold text-foreground/80">{stageMessage}</p>
-                <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
-                  <motion.div
-                    className="h-full w-1/3 rounded-full bg-accent"
-                    animate={{ x: ["-100%", "300%"] }}
-                    transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-                  />
-                </div>
+                {!hasNoProductImage && (
+                  <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
+                    <motion.div
+                      className="h-full w-1/3 rounded-full bg-accent"
+                      animate={{ x: ["-100%", "300%"] }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                    />
+                  </div>
+                )}
                 <p className="text-[10px] tracking-[0.18em] text-foreground/45">
-                  Fit summary already shown — image follows
+                  {stageHint}
                 </p>
               </div>
             </div>
