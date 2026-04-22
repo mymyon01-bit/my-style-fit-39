@@ -31,17 +31,9 @@ interface DailyWinner {
   profile?: ProfileInfo;
 }
 
-const BOARD_LAYOUTS = [
-  "col-span-12 row-span-2 md:col-span-7",
-  "col-span-6 row-span-1 md:col-span-5",
-  "col-span-6 row-span-1 md:col-span-5",
-  "col-span-6 row-span-1 md:col-span-6",
-  "col-span-6 row-span-1 md:col-span-6",
-];
-
 const RANK_STYLES = [
   {
-    frame: "border-accent/25 bg-accent/[0.08]",
+    frame: "border-accent/40 bg-accent/[0.08]",
     badge: "bg-foreground text-background",
     points: "text-foreground",
   },
