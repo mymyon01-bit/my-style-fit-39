@@ -15,6 +15,7 @@ import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
 import MyPageProfileHeader from "@/components/MyPageProfileHeader";
 import { toast } from "sonner";
+import Brandmark from "@/components/Brandmark";
 
 interface OOTDPost {
   id: string;
