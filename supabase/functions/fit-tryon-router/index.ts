@@ -517,8 +517,8 @@ async function persistImageToStorage(
 // ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
 async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
   const mode: "studio" | "vton" = body.mode === "vton" ? "vton" : "studio";
-  const generatorTag = mode === "vton" ? "replicate-idm-vton" : "replicate-flux-studio";
-  const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : STUDIO_MODEL_ID;
+  const generatorTag = mode === "vton" ? "replicate-idm-vton" : "lovable-ai-nano-banana";
+  const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : "google/gemini-2.5-flash-image";
 
   // Cache key includes mode so studio + vton results don't clobber each other.
   const cacheKey = `${body.productKey}::${mode}`;
