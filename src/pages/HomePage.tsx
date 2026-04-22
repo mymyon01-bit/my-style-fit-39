@@ -87,10 +87,7 @@ const HomePage = () => {
           className="absolute top-6 z-20 flex w-full items-center justify-between px-6 lg:hidden"
         >
           <span className="flex items-baseline font-mono text-[13px] font-medium uppercase leading-none text-foreground">
-            <span className="tracking-[0.22em]">MY</span>
-            <span aria-hidden className="mx-[0.28em] inline-block h-[4px] w-[4px] translate-y-[-0.45em] rounded-full bg-gradient-to-br from-primary to-accent" />
-            <span className="tracking-[0.22em]">MYON</span>
-          </span>
+          <Brandmark variant="inline" />
           <LanguageSelector />
         </motion.div>
 
