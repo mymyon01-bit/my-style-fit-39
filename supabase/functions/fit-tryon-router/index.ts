@@ -122,14 +122,14 @@ function logRouter(event: string, details: Record<string, unknown>) {
 }
 
 function failure(code: FailureCode, error: string, selectedSize?: string, requestId?: string | null): FailureResponse {
-  return { ok: false, code, error, selectedSize, provider: "lovable-ai", status: "failed", requestId, predictionId: null };
+  return { ok: false, code, error, selectedSize, provider: "replicate", status: "failed", requestId, predictionId: null };
 }
 
 function pending(code: PendingCode, params: { error?: string | null; selectedSize?: string; status: PendingResponse["status"]; requestId?: string | null; retryAfterMs?: number | null; }): PendingResponse {
   return {
     ok: false, code,
     error: params.error ?? null,
-    provider: "lovable-ai",
+    provider: "replicate",
     selectedSize: params.selectedSize,
     status: params.status,
     requestId: params.requestId ?? null,
