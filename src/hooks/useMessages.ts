@@ -231,9 +231,9 @@ export function useThread(conversationId: string | null) {
         return null;
       }
       setMessages((prev) =>
-        prev.some((m) => m.id === (data as any).id) ? prev : [...prev, data as MessageRow],
+        prev.some((m) => m.id === (data as any).id) ? prev : [...prev, (data as unknown) as MessageRow],
       );
-      return data as MessageRow;
+      return (data as unknown) as MessageRow;
     },
     [user, conversationId],
   );
