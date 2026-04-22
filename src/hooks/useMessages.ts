@@ -13,6 +13,13 @@ export interface ConversationSummary {
   unread_count: number;
 }
 
+export interface ChatAttachmentRow {
+  url: string;
+  type: "image" | "file";
+  name?: string;
+  size?: number;
+}
+
 export interface MessageRow {
   id: string;
   conversation_id: string;
@@ -20,6 +27,7 @@ export interface MessageRow {
   recipient_id: string;
   content: string;
   tagged_user_ids: string[];
+  attachments: ChatAttachmentRow[];
   read_at: string | null;
   created_at: string;
 }
@@ -198,8 +206,14 @@ export function useThread(conversationId: string | null) {
   }, [conversationId, user, markRead]);
 
   const sendMessage = useCallback(
-    async (recipientId: string, content: string, taggedUserIds: string[] = []) => {
-      if (!user || !conversationId || !content.trim()) return null;
+    async (
+      recipientId: string,
+      content: string,
+      taggedUserIds: string[] = [],
+      attachments: ChatAttachmentRow[] = [],
+    ) => {
+      if (!user || !conversationId) return null;
+      if (!content.trim() && attachments.length === 0) return null;
       const { data, error } = await supabase
         .from("messages")
         .insert({
@@ -208,14 +222,14 @@ export function useThread(conversationId: string | null) {
           recipient_id: recipientId,
           content: content.trim(),
           tagged_user_ids: taggedUserIds,
-        })
+          attachments: attachments as any,
+        } as any)
         .select()
         .single();
       if (error) {
         console.error("send message failed", error);
         return null;
       }
-      // Optimistic add (realtime will dedupe)
       setMessages((prev) =>
         prev.some((m) => m.id === (data as any).id) ? prev : [...prev, data as MessageRow],
       );
