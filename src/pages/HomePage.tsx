@@ -21,9 +21,8 @@ import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
 import Footer from "@/components/Footer";
 import Brandmark from "@/components/Brandmark";
+import MoodTicker from "@/components/MoodTicker";
 import { useAuth } from "@/lib/auth";
-
-const TICKER_WORDS = ["mood", "weather", "moment", "story", "mood"];
 
 const HomePage = () => {
   const { t } = useI18n();
