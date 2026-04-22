@@ -847,6 +847,9 @@ const OOTDPage = () => {
         onClose={() => setViewerState(s => ({ ...s, open: false }))}
         onDeleted={() => setStoriesRefreshKey(k => k + 1)}
       />
+
+      <MessagesFullSheet open={messagesOpen} onClose={() => setMessagesOpen(false)} />
+      <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
     </div>
   );
 };
