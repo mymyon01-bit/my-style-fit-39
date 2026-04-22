@@ -318,13 +318,17 @@ export default function FitResults({
   // so the same result renders identically in preview, new windows, and on
   // any device for any logged-in user with a body scan.
   const tryOn = useFitTryOn({
-    enabled: !!resolvedProductImage && !!resolvedUserImageUrl,
+    // Studio AI fit only needs the product image + body measurements.
+    // The user photo is optional — public visitors and users without a body
+    // scan still get a final AI fitting image. This unblocks new windows /
+    // other accounts where the signed body-scan URL isn't available.
+    enabled: !!resolvedProductImage,
     productKey,
     productImageUrl: resolvedProductImage,
     productName: product.name,
     productCategory: product.category,
     selectedSize: activeSize,
-    userImageUrl: resolvedUserImageUrl,
+    userImageUrl: resolvedUserImageUrl ?? null,
     fitDescriptor: activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() || "regular",
     regions: activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [],
     bodyProfileSummary: {
