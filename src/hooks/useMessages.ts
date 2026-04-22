@@ -169,7 +169,7 @@ export function useThread(conversationId: string | null) {
         .order("created_at", { ascending: true })
         .limit(200);
       if (cancelled) return;
-      setMessages((data as MessageRow[]) || []);
+      setMessages(((data as unknown) as MessageRow[]) || []);
       setLoading(false);
       markRead();
     })();
