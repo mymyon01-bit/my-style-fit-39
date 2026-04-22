@@ -587,6 +587,19 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
           });
           return;
         }
+        if (!error && asyncData?.code === "rate_limited") {
+          setState((prev) => {
+            if (prev.requestId !== requestId) return prev;
+            const next = derivePreviewState({
+              ...prev,
+              stage: prev.previewSrc ? "fallback_ready" : "error",
+              error: asyncData.error ?? "rate_limited",
+            });
+            logFitPreview("ai_rate_limited_keep_best_preview", next);
+            return next;
+          });
+          return;
+        }
         if (!error && asyncData) {
           const pollRequestId = asyncData.requestId ?? null;
           const predictionId = asyncData.predictionId ?? null;
