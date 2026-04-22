@@ -438,6 +438,14 @@ export default function FitResults({
             confidence={confLabel as "HIGH" | "MEDIUM" | "LIMITED"}
             regions={activeSizeResult?.regions ?? []}
           />
+
+          {/* ══ REGION-BY-REGION FIT — measurement-driven, honest ══ */}
+          <RegionFitTable
+            fit={regionFit}
+            loading={resolvedSize.loading}
+            fetching={resolvedSize.fetching}
+            selectedSize={activeSize}
+          />
         </div>
 
         {/* ── RIGHT COLUMN ───────────────────────────────────────── */}
