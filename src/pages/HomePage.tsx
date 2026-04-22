@@ -47,23 +47,6 @@ const HomePage = () => {
     if (e.key === "Enter") handleSubmit();
   };
 
-  const handleShareApp = useCallback(async () => {
-    const shareData = {
-      title: "mymyon — AI fashion stylist",
-      text: "Discover your style on mymyon",
-      url: typeof window !== "undefined" ? window.location.origin : "https://mymyon.com",
-    };
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share(shareData);
-      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(shareData.url);
-        toast.success("Link copied — share with friends");
-      }
-    } catch {
-      // user cancelled
-    }
-  }, []);
 
   const weatherLabel = weather.condition
     .replace(/-/g, " ")
