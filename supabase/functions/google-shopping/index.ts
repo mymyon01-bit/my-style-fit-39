@@ -32,6 +32,30 @@ function isFashionTitle(t: string): boolean {
   return FASHION_RE.test(t) || FASHION_KR_RE.test(t);
 }
 
+// Hosts that block hotlinking or expire — must be proxied through our storage.
+const FRAGILE_HOST_RE = /(^|\.)(gstatic\.com|googleusercontent\.com|bing\.net|encrypted-tbn\d?\..+|lookaside\..+)$/i;
+function isFragileHost(u: string): boolean {
+  try { return FRAGILE_HOST_RE.test(new URL(u).hostname); } catch { return false; }
+}
+
+async function proxyImage(url: string): Promise<string | null> {
+  if (!SUPABASE_URL || !SERVICE_ROLE) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/image-proxy`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE}`,
+        apikey: SERVICE_ROLE,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j?.ok && typeof j.url === "string") return j.url;
+  } catch { /* swallow — caller decides whether to drop */ }
+  return null;
+}
+
 function classifyGarment(title: string): string | null {
   if (!title) return null;
   const t = title.toLowerCase();
