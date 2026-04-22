@@ -116,10 +116,18 @@ export default function FitVisual({
   };
 
   // Stage messaging — what to show in the loading state.
-  const stageMessage =
-    state.stage === "compositing" ? "Generating fit preview…"
+  // When there is no product image at all, the AI pipeline cannot run.
+  // Surface that explicitly instead of spinning on "Preparing…" forever.
+  const hasNoProductImage = !productImageUrl;
+  const stageMessage = hasNoProductImage
+    ? "No product image available"
+    : state.stage === "compositing" ? "Generating fit preview…"
     : state.stage === "polling_ai" ? "Refining your preview…"
     : "Preparing your preview…";
+
+  const stageHint = hasNoProductImage
+    ? "Pick a product with a photo to generate a fit visual."
+    : "Fit summary already shown — image follows";
 
   return (
     <div className="group/visual space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-br from-card/80 via-card/50 to-card/20 p-3 shadow-[0_8px_40px_-16px_hsl(var(--accent)/0.18)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.28)] sm:p-4">
@@ -243,19 +251,25 @@ export default function FitVisual({
             {/* Status overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/60 backdrop-blur-md ring-1 ring-foreground/10">
-                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                {hasNoProductImage ? (
+                  <AlertTriangle className="h-4 w-4 text-foreground/60" />
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                )}
               </div>
               <div className="space-y-2 text-center">
                 <p className="text-[12px] font-semibold text-foreground/80">{stageMessage}</p>
-                <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
-                  <motion.div
-                    className="h-full w-1/3 rounded-full bg-accent"
-                    animate={{ x: ["-100%", "300%"] }}
-                    transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-                  />
-                </div>
+                {!hasNoProductImage && (
+                  <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
+                    <motion.div
+                      className="h-full w-1/3 rounded-full bg-accent"
+                      animate={{ x: ["-100%", "300%"] }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                    />
+                  </div>
+                )}
                 <p className="text-[10px] tracking-[0.18em] text-foreground/45">
-                  Fit summary already shown — image follows
+                  {stageHint}
                 </p>
               </div>
             </div>
