@@ -42,13 +42,18 @@ export function bodyToAvatar(body?: UserBody | null): AvatarMorph {
   const waist = body.waistCm ?? 80;
   const inseam = body.inseamCm ?? 78;
 
-  // Reference body: 172 cm, 68 kg, 44 cm shoulder, 96 cm chest, 80 cm waist, 78 cm inseam
-  const heightScale = clamp(height / 172, 0.9, 1.12);
-  const shoulderWidth = clamp(shoulder / 44, 0.85, 1.18);
-  const torsoWidth = clamp((chest / 96) * (1 + (weight - 68) / 220), 0.85, 1.25);
-  const waistWidth = clamp(waist / 80, 0.82, 1.28);
-  const hipWidth = clamp((waist / 80) * 1.04, 0.85, 1.28);
-  const legLength = clamp(inseam / 78, 0.9, 1.12);
+  // Reference body: 172 cm, 68 kg → BMI ~23
+  // Compute BMI-driven width multiplier so heavier users render visibly larger.
+  const bmi = weight / Math.pow(height / 100, 2);
+  // 1.0 at BMI 23, ~0.88 at BMI 18, ~1.18 at BMI 30, ~1.32 at BMI 36
+  const bmiWidth = clamp(1 + (bmi - 23) * 0.045, 0.85, 1.4);
+
+  const heightScale  = clamp(height / 172, 0.9, 1.12);
+  const shoulderWidth = clamp((shoulder / 44) * (0.6 + 0.4 * bmiWidth), 0.85, 1.3);
+  const torsoWidth    = clamp((chest / 96) * bmiWidth, 0.85, 1.45);
+  const waistWidth    = clamp((waist / 80) * bmiWidth, 0.82, 1.5);
+  const hipWidth      = clamp((waist / 80) * 1.04 * bmiWidth, 0.85, 1.5);
+  const legLength     = clamp(inseam / 78, 0.9, 1.12);
 
   return { heightScale, torsoWidth, shoulderWidth, waistWidth, hipWidth, legLength };
 }

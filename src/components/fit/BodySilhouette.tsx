@@ -6,15 +6,32 @@ import { motion } from "framer-motion";
 import { getAnchors } from "@/lib/visual/anchors";
 
 interface Props {
-  /** body frame factor — 0.92 slim → 1.08 broad */
+  /** body frame factor — 0.92 slim → 1.4 plus-size. Overrides height/weight if provided. */
   frameFactor?: number;
+  /** Optional: derive frame from real height (cm) + weight (kg). */
+  heightCm?: number | null;
+  weightKg?: number | null;
 }
 
-export default function BodySilhouette({ frameFactor = 1 }: Props) {
+/** Map BMI → a width multiplier matching bodyToAvatar.ts. */
+function bmiToFrame(heightCm: number, weightKg: number): number {
+  const bmi = weightKg / Math.pow(heightCm / 100, 2);
+  const f = 1 + (bmi - 23) * 0.045;
+  return Math.max(0.85, Math.min(1.4, f));
+}
+
+export default function BodySilhouette({ frameFactor, heightCm, weightKg }: Props) {
   const a = getAnchors();
-  const shoulderW = 110 * frameFactor;
-  const waistW = shoulderW * 0.78;
-  const hipW = shoulderW * 0.86;
+  const factor =
+    typeof frameFactor === "number"
+      ? frameFactor
+      : heightCm && weightKg
+        ? bmiToFrame(heightCm, weightKg)
+        : 1;
+  const shoulderW = 110 * factor;
+  // heavier bodies have less waist taper
+  const waistW = shoulderW * (factor > 1.15 ? 0.88 : 0.78);
+  const hipW = shoulderW * (factor > 1.15 ? 0.95 : 0.86);
   const cx = 100; // svg center
 
   return (
