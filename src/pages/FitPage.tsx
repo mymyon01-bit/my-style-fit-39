@@ -282,7 +282,24 @@ const FitPage = () => {
     });
   }, []);
 
-  const handleSelectProduct = useCallback((product: SelectedProduct, opts?: { silent?: boolean }) => {
+  const handleSelectProduct = useCallback((rawProduct: SelectedProduct, opts?: { silent?: boolean }) => {
+    // ── CANONICAL IMAGE RECOVERY ─────────────────────────────────────────
+    // Re-resolve through the canonical helper. This handles the case where
+    // the product was handed off from another flow (sessionStorage, deep
+    // link, search result) with an empty/null image field.
+    const resolvedImage = resolveBestProductImage(rawProduct).src ?? rawProduct.image ?? "";
+    const product: SelectedProduct = resolvedImage !== rawProduct.image
+      ? { ...rawProduct, image: resolvedImage }
+      : rawProduct;
+    console.log("[FIT_PREVIEW]", {
+      event: "product_selected",
+      productId: product.id,
+      productName: product.name,
+      hadImage: !!rawProduct.image,
+      hasResolvedImage: !!product.image,
+      noImageReason: !product.image ? "all_resolution_paths_failed" : null,
+    });
+
     // ── INSTANT-DEMO MODE ────────────────────────────────────────────────
     // FIT must run the moment a product is selected. Inject safe defaults
     // for any missing body data so we never block on onboarding.
