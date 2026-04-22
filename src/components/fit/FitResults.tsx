@@ -12,7 +12,7 @@ import { buildFitExplanation as buildLegacyExplanation, confidenceTier } from "@
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
 import FitVisual from "@/components/fit/FitVisual";
-import { useCanvasTryOn } from "@/hooks/useCanvasTryOn";
+import { useFitTryOn } from "@/hooks/useFitTryOn";
 import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
 import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
 import { buildBodyShapeScales, type BodyShapeInput } from "@/lib/fit/bodyShape";
@@ -309,28 +309,50 @@ export default function FitResults({
       }
     : null;
 
-  // ── Reload token: bump to force-clear all try-on caches and regenerate ──
+  // ── Reload token: bump to force-regenerate the AI fitting image ──
   const [reloadToken, setReloadToken] = useState(0);
 
-  // ── PRIMARY visual: deterministic canvas compositor (+ optional AI swap) ──
-  const tryOn = useCanvasTryOn({
-    enabled: !!resolvedProductImage,
+  // ── PRIMARY visual: DIRECT AI fitting image (no intermediate composite) ──
+  // The fit-tryon-router edge function persists every successful generation
+  // to the `fit-composites` storage bucket and returns a stable public URL,
+  // so the same result renders identically in preview, new windows, and on
+  // any device for any logged-in user with a body scan.
+  const tryOn = useFitTryOn({
+    enabled: !!resolvedProductImage && !!resolvedUserImageUrl,
     productKey,
     productImageUrl: resolvedProductImage,
     productName: product.name,
     productCategory: product.category,
     selectedSize: activeSize,
     userImageUrl: resolvedUserImageUrl,
-    body: {
+    fitDescriptor: activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() || "regular",
+    regions: activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [],
+    bodyProfileSummary: {
       heightCm: bodyHeightCm ?? null,
       weightKg: bodyWeightKg ?? null,
-      shoulderWidthCm: estUserShoulder,
-      chestCm: estUserChest,
-      waistCm: null,
+      build: bodyShape ? String((bodyShape as any).build ?? "") : null,
+      gender: null,
     },
     reloadToken,
-    enableAiSwap: false,
   });
+
+  // Per-region fit chips computed from the deterministic solver.
+  const fitChipsForVisual = useMemo(() => {
+    const isBottom = garmentFit.category === "bottom";
+    const tone = (fit: string): "tight" | "regular" | "loose" => {
+      if (/(tight|snug|pulled|trim|short)/i.test(fit)) return "tight";
+      if (/(loose|oversized|relaxed|roomy|dropped|long)/i.test(fit)) return "loose";
+      return "regular";
+    };
+    const all = [
+      { region: "Chest", fit: solver.regions.chest.fit },
+      { region: "Waist", fit: solver.regions.waist.fit },
+      ...(isBottom ? [] : [{ region: "Shoulder", fit: solver.regions.shoulder.fit }]),
+      { region: "Length", fit: solver.regions.length.fit },
+      ...(isBottom ? [] : [{ region: "Sleeve", fit: solver.regions.sleeve.fit }]),
+    ];
+    return all.map((r) => ({ ...r, tone: tone(r.fit) }));
+  }, [solver, garmentFit.category]);
 
   return (
     <div className="space-y-6">
@@ -468,14 +490,17 @@ export default function FitResults({
 
         {/* ── RIGHT COLUMN ───────────────────────────────────────── */}
         <div className="space-y-5 lg:sticky lg:top-24">
-          {/* ══ VISUAL FIT — canvas compositor (instant) + optional AI swap ══ */}
+          {/* ══ VISUAL FIT — direct AI-generated final fitting image ══ */}
           <FitVisual
             productName={product.name}
             activeSize={activeSize}
             state={tryOn}
-            productImageUrl={resolvedProductImage}
             onRescanBody={onRescan}
-            onReload={() => setReloadToken((n) => n + 1)}
+            onRetry={() => {
+              tryOn.retry();
+              setReloadToken((n) => n + 1);
+            }}
+            fitChips={fitChipsForVisual}
           />
         </div>
       </div>
