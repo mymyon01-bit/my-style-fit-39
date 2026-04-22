@@ -204,6 +204,36 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          last_message_preview: string | null
+          updated_at: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          updated_at?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          updated_at?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
       daily_recommendations: {
         Row: {
           context: Json | null
@@ -651,6 +681,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+          tagged_user_ids: string[]
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+          tagged_user_ids?: string[]
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+          tagged_user_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ootd_comments: {
         Row: {
@@ -1637,6 +1708,10 @@ export type Database = {
     }
     Functions: {
       claim_referral: { Args: { _code: string }; Returns: Json }
+      get_or_create_conversation: {
+        Args: { _other_user: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
