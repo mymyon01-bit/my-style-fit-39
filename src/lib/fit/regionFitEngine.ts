@@ -187,10 +187,22 @@ export function computeRegionFit({ body, garment }: ComputeRegionFitInput): Regi
     : garment.confidence;
 
   const warnings: string[] = [];
-  if (!garment.exactSizeDataAvailable) {
+  // Surface the resolver's note when we're not on exact DB data so the user
+  // always sees WHY the preview is approximate (graded / fallback / nothing).
+  if (garment.source === "db_graded") {
     warnings.push(
-      `Exact measurements for size ${garment.selectedSize} are not available. Preview is approximate.`,
+      `${garment.resolverNote} Size grading is approximate.`,
     );
+  } else if (garment.source === "category_fallback") {
+    warnings.push(
+      `Exact measurements for size ${garment.selectedSize} are unavailable. ${garment.resolverNote}`,
+    );
+  } else if (garment.source === "brand_average") {
+    warnings.push(
+      `${garment.resolverNote} Confidence is reduced.`,
+    );
+  } else if (garment.source === "approximate") {
+    warnings.push(garment.resolverNote);
   } else if (garment.missingFields.length > 0) {
     warnings.push(
       `Brand size chart is incomplete (missing ${garment.missingFields.length} field${
@@ -205,7 +217,7 @@ export function computeRegionFit({ body, garment }: ComputeRegionFitInput): Regi
     selectedSize: garment.selectedSize,
     category: garment.category,
     exactSizeDataAvailable: garment.exactSizeDataAvailable,
-    approximationUsed: !garment.exactSizeDataAvailable,
+    approximationUsed: garment.source !== "db_exact",
     confidence,
     overallLabel,
     regions,

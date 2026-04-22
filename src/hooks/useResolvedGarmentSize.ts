@@ -1,8 +1,14 @@
 // ─── useResolvedGarmentSize ─────────────────────────────────────────────────
-// Loads exact size measurements for the selected size. If none exist, it
-// fires the on-demand `garment-size-fetch` scraper and re-resolves once.
-// Surfaces honest state to the UI: exactSizeDataAvailable, missingFields,
-// and a `fetching` flag while the on-demand scrape is in flight.
+// Loads measurements for the selected size using the strict 5-step hierarchy
+// implemented by `resolveGarmentSize`. If we land on the lowest-confidence
+// fallback ("approximate") AND we haven't tried yet for this product+size,
+// fires the on-demand `garment-size-fetch` scraper ONCE and re-resolves.
+//
+// Surfaces honest state to the UI:
+//   - `resolved.source`  → exact / graded / category fallback / etc
+//   - `resolved.confidence`
+//   - `fetching` flag while the on-demand scrape is running
+//   - `error` if the resolver itself crashed
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -24,7 +30,7 @@ interface Args {
 export interface UseResolvedGarmentSizeState {
   resolved: ResolvedGarmentSize | null;
   loading: boolean;
-  fetching: boolean; // true while on-demand size-chart scrape is running
+  fetching: boolean;
   error: string | null;
 }
 
@@ -35,7 +41,7 @@ export function useResolvedGarmentSize(args: Args): UseResolvedGarmentSizeState 
     fetching: false,
     error: null,
   });
-  const triedFetchKey = useRef<string | null>(null);
+  const triedFetchKey = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (args.enabled === false) return;
@@ -48,28 +54,29 @@ export function useResolvedGarmentSize(args: Args): UseResolvedGarmentSizeState 
       try {
         const first = await resolveGarmentSize({
           productKey,
+          productName: args.productName,
           selectedSize: args.selectedSize,
           category: args.category,
         });
         if (cancelled) return;
 
-        // If we already have exact data, we're done.
-        if (first.exactSizeDataAvailable) {
+        // db_exact and db_graded are good enough — no need to scrape.
+        if (first.source === "db_exact" || first.source === "db_graded") {
           setState({ resolved: first, loading: false, fetching: false, error: null });
           return;
         }
 
-        // Otherwise show the approximate result immediately AND kick off the
-        // on-demand scraper so the UI honestly says "preview is approximate"
-        // while we try to find real measurements in the background.
+        // For category fallback / brand average / approximate, immediately
+        // surface the approximate result so the UI never blocks. THEN attempt
+        // a one-shot scrape to see if we can upgrade to db_exact.
         setState({ resolved: first, loading: false, fetching: true, error: null });
 
         const fetchKey = `${productKey}::${args.selectedSize}`;
-        if (triedFetchKey.current === fetchKey) {
+        if (triedFetchKey.current.has(fetchKey)) {
           setState((s) => ({ ...s, fetching: false }));
           return;
         }
-        triedFetchKey.current = fetchKey;
+        triedFetchKey.current.add(fetchKey);
 
         const fetched = await requestSizeChartFetch({
           productKey,
@@ -82,13 +89,14 @@ export function useResolvedGarmentSize(args: Args): UseResolvedGarmentSizeState 
         if (cancelled) return;
 
         if (!fetched.ok) {
+          // Stay on the fallback we already have — never blank the UI.
           setState((s) => ({ ...s, fetching: false }));
           return;
         }
 
-        // Re-resolve once after the scraper returns.
         const second = await resolveGarmentSize({
           productKey,
+          productName: args.productName,
           selectedSize: args.selectedSize,
           category: args.category,
         });
