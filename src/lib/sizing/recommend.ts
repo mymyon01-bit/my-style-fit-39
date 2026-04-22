@@ -210,6 +210,8 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
   }
 
   const { confidence, reason } = computeConfidence(input.body, input.chart, range.status);
+  const productGender = input.productGender ?? null;
+  const genderMismatchWarning = detectGenderMismatch(input.body.gender, productGender);
   return {
     category: input.chart.category,
     sizes: input.outcomes,
@@ -222,5 +224,8 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
     usedCategoryDefaults: input.chart.usedCategoryDefaults,
     rangeStatus: range.status,
     rangeWarning: range.warning,
+    bodyGender: input.body.gender,
+    productGender,
+    genderMismatchWarning,
   };
 }
