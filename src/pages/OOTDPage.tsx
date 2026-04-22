@@ -89,6 +89,10 @@ const OOTDPage = () => {
     index: 0,
     users: [],
   });
+  // Inbox/notifications sheets opened from My Page
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [notifsOpen, setNotifsOpen] = useState(false);
+  const { totalUnread } = useNotifications();
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
@@ -393,6 +397,18 @@ const OOTDPage = () => {
               </div>
             )}
             <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">OOTD</span>
+            {user && totalUnread > 0 && (
+              <button
+                onClick={() => setNotifsOpen(true)}
+                className="relative text-foreground/75 hover:text-foreground transition-colors"
+                aria-label="Open notifications"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
