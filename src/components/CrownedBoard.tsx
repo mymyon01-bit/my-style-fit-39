@@ -81,11 +81,11 @@ export default function CrownedBoard() {
         score: computeScore(p as any),
       }));
       scored.sort((a, b) => b.score - a.score);
-      const top5 = scored.slice(0, 5);
-      setRanked(top5);
+      const top10 = scored.slice(0, 10);
+      setRanked(top10);
 
       // Load profiles
-      const userIds = [...new Set(top5.map(p => p.user_id))];
+      const userIds = [...new Set(top10.map(p => p.user_id))];
       if (userIds.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
@@ -178,14 +178,27 @@ export default function CrownedBoard() {
           <p className="text-[10px] text-foreground/30">Post OOTDs and get likes to enter the rankings</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {ranked.map((post, i) => {
-            const profile = getProfile(post.user_id);
-            const rank = i + 1;
+        <div className="space-y-10">
+          {/* TOP 5 */}
+          <section className="space-y-4">
+            <div className="flex items-baseline justify-between border-b border-border/15 pb-2">
+              <h3
+                className="text-[16px] font-semibold tracking-[0.02em] text-foreground/90"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Top 5
+              </h3>
+              <p className="text-[9px] tracking-[0.3em] text-foreground/40 uppercase">
+                The crowned
+              </p>
+            </div>
+            {ranked.slice(0, 5).map((post, i) => {
+              const profile = getProfile(post.user_id);
+              const rank = i + 1;
 
-            return (
-              <motion.div
-                key={post.id}
+              return (
+                <motion.div
+                  key={post.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.08 }}
