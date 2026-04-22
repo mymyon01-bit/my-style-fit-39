@@ -685,6 +685,20 @@ export default function FitResults({
         </motion.button>
       )}
 
+      {/* ══ MEASUREMENT-DRIVEN SIZE RECOMMENDATION (new pipeline) ══
+          Shows per-size fit calculated from real body cm vs garment cm.
+          Selecting a size here also drives the visual try-on prompt above. */}
+      <SizeRecommendationPanel
+        recommendation={sizing.recommendation}
+        loading={sizing.loadingChart}
+        inferredFields={sizing.body?.inferredFieldNames ?? []}
+        preference={sizing.preference}
+        onPreferenceChange={(p) => setSizingPrefOverride(p)}
+        onAddMeasurements={onEditMeasurements}
+        activeSize={activeSize}
+        onSizeSelect={(s) => setActiveSize(s)}
+      />
+
       {/* Size comparison (collapsed by default for non-recommended) */}
       <div>
         <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50 mb-3">SIZE COMPARISON</p>
