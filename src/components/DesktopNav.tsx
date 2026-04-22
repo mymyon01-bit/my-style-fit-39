@@ -6,12 +6,14 @@ import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const DesktopNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
+  const { ootdUnread } = useNotifications();
 
   useEffect(() => {
     prefetchAllTabs();
@@ -49,6 +51,7 @@ const DesktopNav = () => {
           <div className="flex items-center gap-10">
             {navLinks.map((link) => {
               const active = isActive(link.path);
+              const showOotdBadge = link.path === "/ootd" && !active && ootdUnread > 0;
               return (
                 <button
                   key={link.path}
@@ -59,6 +62,14 @@ const DesktopNav = () => {
                   }`}
                 >
                   {link.label}
+                  {showOotdBadge && (
+                    <span
+                      aria-label={`${ootdUnread} new OOTD activity`}
+                      className="absolute -right-2.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground"
+                    >
+                      {ootdUnread > 9 ? "9+" : ootdUnread}
+                    </span>
+                  )}
                   <span
                     className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
                       active ? "w-full" : "w-0 group-hover:w-full"

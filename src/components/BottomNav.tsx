@@ -2,10 +2,12 @@ import { Home, Compass, Camera, Scan, User } from "lucide-react";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { ootdUnread } = useNotifications();
 
   useEffect(() => {
     prefetchAllTabs();
@@ -29,6 +31,8 @@ const BottomNav = () => {
             const isActive =
               location.pathname === tab.path ||
               (tab.path !== "/" && location.pathname.startsWith(tab.path));
+            // Only show OOTD badge when not already on the OOTD tab.
+            const showOotdBadge = tab.path === "/ootd" && !isActive && ootdUnread > 0;
             return (
               <button
                 key={tab.path}
@@ -45,12 +49,22 @@ const BottomNav = () => {
                     style={{ borderRadius: "0 0 4px 4px" }}
                   />
                 )}
-                <tab.icon
-                  className={`h-[18px] w-[18px] transition-transform duration-200 md:h-5 md:w-5 ${
-                    isActive ? "scale-110" : "group-hover:scale-110"
-                  }`}
-                  strokeWidth={isActive ? 2.4 : 1.6}
-                />
+                <span className="relative">
+                  <tab.icon
+                    className={`h-[18px] w-[18px] transition-transform duration-200 md:h-5 md:w-5 ${
+                      isActive ? "scale-110" : "group-hover:scale-110"
+                    }`}
+                    strokeWidth={isActive ? 2.4 : 1.6}
+                  />
+                  {showOotdBadge && (
+                    <span
+                      aria-label={`${ootdUnread} new OOTD activity`}
+                      className="absolute -right-1.5 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground"
+                    >
+                      {ootdUnread > 9 ? "9+" : ootdUnread}
+                    </span>
+                  )}
+                </span>
                 <span className="font-mono text-[8px] font-semibold tracking-[0.2em] md:text-[9px]">
                   {tab.label}
                 </span>

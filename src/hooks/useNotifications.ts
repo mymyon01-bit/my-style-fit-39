@@ -10,18 +10,36 @@ import { useAuth } from "@/lib/auth";
  *
  * Realtime: subscribes to inserts on both tables for the current user.
  */
+// Notification "type" values that originate from activity on a user's OOTD
+// posts (likes / stars / comments / mentions / reactions). Used to drive the
+// red dot on the OOTD tab in the bottom & desktop navs.
+const OOTD_NOTIF_TYPES = [
+  "ootd_like",
+  "ootd_star",
+  "ootd_comment",
+  "ootd_reply",
+  "ootd_mention",
+  "ootd_reaction",
+  "comment_like",
+  "star",
+  "comment",
+  "reaction",
+];
+
 export function useNotifications() {
   const { user } = useAuth();
   const [notifUnread, setNotifUnread] = useState(0);
   const [msgUnread, setMsgUnread] = useState(0);
+  const [ootdUnread, setOotdUnread] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!user) {
       setNotifUnread(0);
       setMsgUnread(0);
+      setOotdUnread(0);
       return;
     }
-    const [n, m] = await Promise.all([
+    const [n, m, o] = await Promise.all([
       supabase
         .from("notifications" as any)
         .select("id", { count: "exact", head: true })
@@ -32,9 +50,16 @@ export function useNotifications() {
         .select("id", { count: "exact", head: true })
         .eq("recipient_id", user.id)
         .is("read_at", null),
+      supabase
+        .from("notifications" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("recipient_id", user.id)
+        .is("read_at", null)
+        .in("type", OOTD_NOTIF_TYPES),
     ]);
     setNotifUnread(n.count || 0);
     setMsgUnread(m.count || 0);
+    setOotdUnread(o.count || 0);
   }, [user]);
 
   useEffect(() => {
@@ -64,6 +89,7 @@ export function useNotifications() {
   return {
     notifUnread,
     msgUnread,
+    ootdUnread,
     totalUnread: notifUnread + msgUnread,
     refresh,
   };
