@@ -15,6 +15,16 @@ import OpenInAppBanner from "@/components/OpenInAppBanner";
 import { initPushNotifications } from "@/lib/native/push";
 import { isNativeApp } from "@/lib/native/platform";
 import { Loader2 } from "lucide-react";
+import AuthPage from "@/pages/AuthPage";
+import HomePage from "@/pages/HomePage";
+import DiscoverPage from "@/pages/DiscoverPage";
+import FitPage from "@/pages/FitPage";
+import OOTDPage from "@/pages/OOTDPage";
+import SettingsPage from "@/pages/SettingsPage";
+import AboutPage from "@/pages/AboutPage";
+import NotFound from "@/pages/NotFound";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import InstallPage from "@/pages/InstallPage";
 
 const lazyWithRetry = <T extends ComponentType<any>>(
   importer: () => Promise<{ default: T }>,
@@ -39,19 +49,10 @@ const lazyWithRetry = <T extends ComponentType<any>>(
     }
   });
 
-// Lazy load all pages for code splitting
-const AuthPage = lazyWithRetry(() => import("@/pages/AuthPage"), "AuthPage");
+// Keep the public entry flow eager so the published site never hangs on
+// first-load route chunks in a fresh browser or slow network.
 const OnboardingPage = lazyWithRetry(() => import("@/pages/OnboardingPage"), "OnboardingPage");
-const HomePage = lazyWithRetry(() => import("@/pages/HomePage"), "HomePage");
-const DiscoverPage = lazyWithRetry(() => import("@/pages/DiscoverPage"), "DiscoverPage");
-const FitPage = lazyWithRetry(() => import("@/pages/FitPage"), "FitPage");
-const OOTDPage = lazyWithRetry(() => import("@/pages/OOTDPage"), "OOTDPage");
 const ProfilePage = lazyWithRetry(() => import("@/pages/ProfilePage"), "ProfilePage");
-const SettingsPage = lazyWithRetry(() => import("@/pages/SettingsPage"), "SettingsPage");
-const AboutPage = lazyWithRetry(() => import("@/pages/AboutPage"), "AboutPage");
-const NotFound = lazyWithRetry(() => import("@/pages/NotFound"), "NotFound");
-const ResetPasswordPage = lazyWithRetry(() => import("@/pages/ResetPasswordPage"), "ResetPasswordPage");
-const InstallPage = lazyWithRetry(() => import("@/pages/InstallPage"), "InstallPage");
 const SubscriptionPage = lazyWithRetry(() => import("@/pages/SubscriptionPage"), "SubscriptionPage");
 const UserProfilePage = lazyWithRetry(() => import("@/pages/UserProfilePage"), "UserProfilePage");
 const AdminLayout = lazyWithRetry(() => import("@/pages/admin/AdminLayout"), "AdminLayout");
