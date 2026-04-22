@@ -448,7 +448,7 @@ Deno.serve(async (req) => {
     const response = await handleCreate(admin, LOVABLE_API_KEY, userId, createBody);
     logRouter("RESPONSE_OUT", { code: response.ok ? "ok" : response.code, requestId: response.requestId, elapsedMs: Date.now() - requestStartedAt });
 
-    const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 402 : response.code === "missing_output" ? 422 : response.code === "timeout" ? 504 : 500;
+    const statusCode = response.ok ? 200 : response.code === "rate_limited" ? 429 : response.code === "pending" ? 202 : response.code === "credits_exhausted" ? 200 : response.code === "missing_output" ? 422 : response.code === "timeout" ? 504 : 500;
     return json(response, statusCode);
   } catch (error) {
     const out = failure("provider_error", error instanceof Error ? error.message : "Unknown error");
