@@ -200,14 +200,15 @@ function buildCleanStudioPrompt(body: CreateBody): string {
 
   return [
     `A premium realistic fashion photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
-    `IMPORTANT: the body proportions (torso width, waist, hips, arm and leg thickness) MUST visibly match this exact height and weight — do NOT default to a slim model body.`,
+    `LOCKED BODY MODEL: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same person — only the GARMENT changes between sizes, the body NEVER changes. Do NOT slim, enlarge, restyle, or adjust the body in any way based on the garment size.`,
+    `Body proportions must visibly match this exact height and weight — do NOT default to a slim model body, but also do NOT modify the body to compensate for a tighter or looser garment.`,
     `Preserve the EXACT style, color, print, and construction of the garment shown in the reference image.`,
-    `Render the garment with a ${silhouette}.`,
+    `Render the garment with a ${silhouette}. Translate fit purely into FABRIC BEHAVIOR on the unchanged body: tight = visible tension lines, stretched fabric, pulled seams, reduced ease; loose = extra volume, soft folds, draping, hanging fabric; short length = higher hem; long length = extended hem; tight sleeves = narrower around arms; loose sleeves = wider sleeve openings.`,
     regions,
     `Full-body or 3/4 body front-facing standing fashion pose. Realistic fabric drape, natural folds, accurate proportions.`,
     `Background: clean seamless light-gray studio backdrop with soft directional fashion lighting and a subtle floor shadow for grounding. Editorial / premium ecommerce quality.`,
     `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag, NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO mannequin, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment.`,
-    `Output must look like a brand-new generated studio fashion image — never like an edit of an existing snapshot.`,
+    `Output must look like a brand-new generated studio fashion image — never like an edit of an existing snapshot. The ONLY visual difference between size variations of this same person must be GARMENT FIT, never body shape.`,
   ].filter(Boolean).join(" ");
 }
 
