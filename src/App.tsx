@@ -95,20 +95,30 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
  */
 const UrlMasker = () => {
   const location = useLocation();
+  // Run synchronously during render-commit window via useEffect, but DO NOT
+  // depend on location.pathname — depending on it caused a second render pass
+  // on every navigation (replaceState → useLocation tick → re-render of heavy
+  // pages like Home/Discover). We read pathname fresh inside the effect.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const path = location.pathname;
-    // Exempt routes where the URL must remain visible/usable.
     const exempt =
       path.startsWith("/auth") ||
       path.startsWith("/reset-password") ||
       path.startsWith("/admin") ||
       path.startsWith("/onboarding");
     if (exempt) return;
-    if (window.location.pathname !== "/" || window.location.search || window.location.hash) {
+    if (
+      window.location.pathname !== "/" ||
+      window.location.search ||
+      window.location.hash
+    ) {
+      // replaceState does not fire popstate, so React Router's internal
+      // location is unaffected — no extra render is triggered.
       window.history.replaceState(null, "", "/");
     }
-  }, [location.pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
   return null;
 };
 
