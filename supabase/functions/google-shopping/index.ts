@@ -16,14 +16,34 @@ const SERPAPI_KEY = Deno.env.get("SERPAPI_API_KEY") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-function inferCategory(title: string): string {
-  const t = (title || "").toLowerCase();
-  if (/\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker)\b/.test(t)) return "outerwear";
-  if (/\b(shirt|tee|t-shirt|hoodie|sweater|cardigan|polo|blouse|tank|knit)\b/.test(t)) return "tops";
-  if (/\b(pants|trousers|jeans|shorts|skirt|chinos|joggers|leggings)\b/.test(t)) return "bottoms";
-  if (/\b(sneaker|shoe|boot|loafer|sandal|trainer|mule)\b/.test(t)) return "shoes";
-  if (/\b(bag|tote|backpack|crossbody|clutch|purse|satchel|duffel)\b/.test(t)) return "bags";
-  return "accessories";
+// ─── FASHION GUARD (mirror of src/lib/search/fashionGuard.ts) ──────────────
+const NON_FASHION_RE =
+  /\b(?:golf\s*(?:club|set|ball|tee|cart|bag\s*set)|cart\s*bag|driver|putter|wedge\s*set|iron\s*set|hybrid\s*set|tee\s*marker|yard\s*game|yard\s*links|cornhole|frisbee|disc\s*golf|hockey|baseball\s*bat|tennis\s*racket|skateboard|surfboard|paddle|kayak|barbell|dumbbell|treadmill|charger|cable|adapter|laptop|tablet|phone\s*case|earbuds|headphone|speaker|router|monitor|keyboard|mouse|webcam|grocery|snack|vitamin|supplement|protein\s*powder|coffee\s*bean|tea\s*bag|recipe|cookbook|template|mockup|printable|digital\s*download|svg\s*file|png\s*file|cricut|vector\s*pack|font\s*bundle|poster|wall\s*art|canvas\s*print|sticker\s*pack|decal|wallpaper|toy|plushie|doll|action\s*figure|board\s*game|puzzle|gift\s*card)\b/i;
+
+const FASHION_RE =
+  /\b(?:jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan|shirt|tee|t-shirts?|hoodie|sweater|sweatshirt|polo|blouse|tank|knit|jersey|crewneck|pullover|henley|tunic|camisole|top|pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes|skort|dress|jumpsuit|romper|gown|sundress|sneakers?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|espadrilles?|bag|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|wallet|hat|cap|beanie|fedora|beret|scarf|belt|gloves?|tie|sunglasses|necklace|bracelet|earrings?|watch|jewelry|jewellery|outfit|outerwear|footwear|denim|leather|suede)\b/i;
+
+const FASHION_KR_RE =
+  /(자켓|재킷|코트|블레이저|셔츠|후디|후드|스웨터|니트|가디건|티셔츠|티|폴로|바지|팬츠|청바지|진|반바지|스커트|치마|드레스|원피스|운동화|스니커즈|신발|슈즈|부츠|로퍼|샌들|가방|백|토트|백팩|크로스백|클러치|모자|캡|비니|벨트|스카프|봄버|파카|풀오버|맨투맨|블라우스|점퍼|패딩|아우터|악세서리|악세사리|선글라스|시계|목걸이|팔찌|귀걸이|반지)/;
+
+function isFashionTitle(t: string): boolean {
+  if (!t || t.trim().length < 3) return false;
+  if (NON_FASHION_RE.test(t)) return false;
+  return FASHION_RE.test(t) || FASHION_KR_RE.test(t);
+}
+
+function classifyGarment(title: string): string | null {
+  if (!title) return null;
+  const t = title.toLowerCase();
+  if (NON_FASHION_RE.test(t)) return null;
+  if (/\b(dress|jumpsuit|romper|gown|sundress)\b/.test(t)) return "dresses";
+  if (/\b(jacket|coat|blazer|parka|bomber|trench|overcoat|windbreaker|anorak|gilet|puffer|cardigan)\b/.test(t)) return "outerwear";
+  if (/\b(pants|trousers|jeans|shorts|skirt|chinos?|joggers?|leggings?|slacks|culottes|skort)\b/.test(t)) return "bottoms";
+  if (/\b(shirt|tee|t-?shirts?|hoodie|sweater|sweatshirt|polo|blouse|tank|knit|jersey|crewneck|pullover|henley|tunic|camisole|top)\b/.test(t)) return "tops";
+  if (/\b(sneakers?|boots?|loafers?|sandals?|trainers?|mules?|heels?|pumps?|flats?|oxfords?|espadrilles?)\b/.test(t)) return "shoes";
+  if (/\b(bag|tote|backpack|crossbody|clutch|purse|satchel|duffle|messenger|handbag|wallet)\b/.test(t)) return "bags";
+  if (/\b(hat|cap|beanie|fedora|beret|scarf|belt|gloves?|tie|sunglasses|necklace|bracelet|earrings?|watch|jewelry|jewellery)\b/.test(t)) return "accessories";
+  return null;
 }
 
 function langToLocale(hl?: string): { gl: string; hl: string } {
@@ -110,6 +130,11 @@ serve(async (req) => {
         const image = it.thumbnail || (Array.isArray(it.thumbnails) ? it.thumbnails[0] : "") || "";
         const link = it.product_link || it.link || "";
         if (!title || !image || !link) return null;
+        // STRICT FASHION-ONLY GATE: reject golf clubs, yard games, electronics, etc.
+        if (!isFashionTitle(title)) return null;
+        const category = classifyGarment(title);
+        // If we can't classify it confidently into a garment bucket, drop it.
+        if (!category) return null;
         return {
           external_id: it.product_id ? `gshop:${it.product_id}` : `gshop:${link}`,
           name: title,
@@ -122,7 +147,7 @@ serve(async (req) => {
           platform: "google_shopping",
           source_type: "serpapi",
           source_trust_level: "high",
-          category: inferCategory(title),
+          category,
           search_query: query,
           image_valid: true,
           is_active: true,
