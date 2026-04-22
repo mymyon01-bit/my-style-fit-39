@@ -1,20 +1,15 @@
-// ─── FIT TRY-ON ROUTER (CLEAN STUDIO GENERATION via Lovable AI) ─────────────
-// IMPORTANT: This router NO LONGER overlays the garment onto the user's
-// uploaded photo. The previous IDM-VTON pipeline was preserving the user's
-// original background (mirrors, bathrooms, rooms, hands, props), producing
-// crude composite-looking results. That is now removed.
+// ─── FIT TRY-ON ROUTER (REPLICATE IDM-VTON) ────────────────────────────────
+// Final image generation runs on Replicate IDM-VTON. Local code (in
+// `fit-generate-v2` and `src/lib/fit/*`) handles fit calculation, region
+// interpretation, and prompt assembly — no Gemini dependency in this path.
+// Optional lightweight assist (e.g. body bbox) lives in `fit-vision-analyze`
+// and uses gemini-2.5-flash-lite (free-tier friendly), and is OPTIONAL.
 //
-// New flow:
-//   - Body image is NOT used as a canvas. Only body measurements + region fit
-//     descriptors are fed into the prompt.
-//   - Product image is sent as a visual reference only (so style/color/print
-//     are preserved).
-//   - Lovable AI Gateway (google/gemini-3-pro-image-preview a.k.a. Nano-Banana
-//     Pro) generates a brand-new clean studio fashion image — neutral
-//     background, premium ecommerce/editorial look, no environmental artifacts.
-//
-// Persistence + caching contract (fit_tryons table) is preserved so the inline
-// useCanvasTryOn hook + TryOnPreviewModal continue to work without changes.
+// Flow:
+//   1. local fit calc + prompt (handled by caller / fit-generate-v2)
+//   2. Replicate IDM-VTON renders the final try-on image
+//   3. result is persisted to the `fit-composites` storage bucket
+//   4. persistent URL is stored in `fit_tryons` and returned to the UI
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
