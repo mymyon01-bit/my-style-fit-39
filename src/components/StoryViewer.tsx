@@ -4,6 +4,7 @@ import { X, Trash2, Heart, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { openConversationWith } from "@/hooks/useMessages";
 import type { UserStories } from "./StoriesRow";
 
 interface Props {
