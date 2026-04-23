@@ -28,6 +28,9 @@ export interface ChatAttachment {
     name?: string | null;
     image_url?: string | null;
     source_url?: string | null;
+    // story
+    story_id?: string;
+    media_type?: "image" | "video";
   };
 }
 
