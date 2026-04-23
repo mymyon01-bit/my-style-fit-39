@@ -114,9 +114,11 @@ export default function AdminAdmins() {
     const existing = admins.find((a) => a.user_id === userId)?.permissions;
     const before = existing ? { ...existing } : null;
     if (existing) {
+      const update: Record<string, boolean> = {};
+      update[key] = value;
       const { error } = await supabase
         .from("admin_permissions")
-        .update({ [key]: value })
+        .update(update as any)
         .eq("user_id", userId);
       if (error) return toast.error(error.message);
     } else {

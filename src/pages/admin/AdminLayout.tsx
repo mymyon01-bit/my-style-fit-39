@@ -1,16 +1,24 @@
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Users, Package, FolderTree, Camera, Star, BarChart3, Settings, Home, Activity } from "lucide-react";
+import { Loader2, Users, Package, FolderTree, Camera, Star, BarChart3, Settings, Home, Activity, ShieldCheck, FileSearch, Ruler, Tag, Database, MessageSquare, ToggleLeft, Cog } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/admin", icon: BarChart3, label: "Overview", exact: true },
   { path: "/admin/diagnostics", icon: Activity, label: "Diagnostics" },
   { path: "/admin/users", icon: Users, label: "Users" },
+  { path: "/admin/admins", icon: ShieldCheck, label: "Admins" },
+  { path: "/admin/audit", icon: FileSearch, label: "Audit Log" },
   { path: "/admin/products", icon: Package, label: "Products" },
   { path: "/admin/categories", icon: FolderTree, label: "Categories" },
   { path: "/admin/ootd", icon: Camera, label: "OOTD" },
   { path: "/admin/content", icon: Star, label: "Content" },
+  { path: "/admin/brand-calibration", icon: Tag, label: "Brand Calibration" },
+  { path: "/admin/fit-rules", icon: Ruler, label: "Fit Rules" },
+  { path: "/admin/fallback-tables", icon: Database, label: "Fallback Tables" },
+  { path: "/admin/fit-feedback", icon: MessageSquare, label: "Fit Feedback" },
+  { path: "/admin/feature-flags", icon: ToggleLeft, label: "Feature Flags" },
+  { path: "/admin/app-config", icon: Cog, label: "App Config" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
