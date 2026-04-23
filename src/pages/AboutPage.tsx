@@ -32,6 +32,7 @@ const FEATURES = [
 const AboutPage = () => {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const [contactOpen, setContactOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
