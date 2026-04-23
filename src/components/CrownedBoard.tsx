@@ -501,6 +501,29 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
         </div>
       )}
       <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} topic="Add Your Ad" />
+      <ProductDetailSheet
+        product={
+          activeAd
+            ? {
+                id: activeAd.id,
+                name: activeAd.name,
+                brand: activeAd.brand || "",
+                price: "",
+                category: "",
+                reason: "",
+                style_tags: [],
+                color: "",
+                fit: "",
+                image_url: activeAd.image_url,
+                source_url: activeAd.source_url,
+              }
+            : null
+        }
+        open={!!activeAd}
+        onClose={() => setActiveAd(null)}
+        isSaved={false}
+        onSave={() => {}}
+      />
     </div>
   );
 }
