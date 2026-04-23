@@ -339,7 +339,7 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
 
         {/* Like button — only for stories from others */}
         {!isOwn && (
-          <div className="absolute bottom-5 right-4 z-30 flex flex-col items-center gap-1">
+          <div className="absolute bottom-20 right-4 z-30 flex flex-col items-center gap-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -361,12 +361,13 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
             )}
           </div>
         )}
+
         <button
           onClick={prev}
           onPointerDown={() => setPaused(true)}
           onPointerUp={() => setPaused(false)}
           onPointerLeave={() => setPaused(false)}
-          className="absolute left-0 top-0 bottom-0 w-1/3 z-10"
+          className="absolute left-0 top-0 bottom-20 w-1/3 z-10"
           aria-label="Previous"
         />
         <button
@@ -374,9 +375,44 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
           onPointerDown={() => setPaused(true)}
           onPointerUp={() => setPaused(false)}
           onPointerLeave={() => setPaused(false)}
-          className="absolute right-0 top-0 bottom-0 w-1/3 z-10"
+          className="absolute right-0 top-0 bottom-20 w-1/3 z-10"
           aria-label="Next"
         />
+
+        {/* Reply input — Instagram-style DM to story author */}
+        {!isOwn && user && (
+          <div
+            className="absolute bottom-0 inset-x-0 z-30 px-3 pb-4 pt-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 rounded-full border border-white/25 bg-black/40 backdrop-blur-md px-3 py-1.5">
+              <input
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                onFocus={() => setPaused(true)}
+                onBlur={() => setPaused(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    sendReply();
+                  }
+                }}
+                placeholder={`Reply to ${currentUser.profile?.display_name || "story"}…`}
+                className="flex-1 bg-transparent text-[13px] text-white placeholder:text-white/55 outline-none"
+              />
+              {reply.trim() && (
+                <button
+                  onClick={sendReply}
+                  disabled={sending}
+                  aria-label="Send reply"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-black active:scale-90 transition-transform disabled:opacity-60"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </motion.div>
     </AnimatePresence>
   );
