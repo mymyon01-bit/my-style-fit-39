@@ -23,6 +23,7 @@ import DiscoverAdRow from "@/components/discover/DiscoverAdRow";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
 import { genderPreferenceToFilter, type GenderFilter } from "@/lib/discover/genderFilter";
 import Brandmark from "@/components/Brandmark";
+import StyleRecsForYou from "@/components/StyleRecsForYou";
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
@@ -630,6 +631,16 @@ export default function DiscoverPage() {
 
           {/* ─── HARDCODED LAYERS ─────────────────────────────────────── */}
           <div className="mt-8 space-y-12">
+            {/* Style recommendations — open to everyone, driven by search signal */}
+            <StyleRecsForYou
+              variant="inline"
+              searchQuery={committedQuery || null}
+              searchTags={intentChips}
+              searchProducts={(allLiveResults.length > 0 ? allLiveResults : dbTopProducts)
+                .slice(0, 6)
+                .map((p) => ({ name: p.title, brand: p.brand }))}
+            />
+
             {/* Layer 1 — Top DB recommendation grid (instant) */}
             <DbTopGrid products={dbTopProducts} loading={dbTopLoading} onSelect={setDetailProduct} />
 
