@@ -208,6 +208,7 @@ export default function FitResults({
     productBreadcrumb: (product as any).breadcrumb ?? null,
     body: {
       gender: bodyGender ?? null,
+      bodyType: bodyShape ? String((bodyShape as any).build ?? "") : null,
       heightCm: bodyHeightCm ?? null,
       weightKg: bodyWeightKg ?? null,
       shoulderCm: bodyShoulderCm ?? null,
