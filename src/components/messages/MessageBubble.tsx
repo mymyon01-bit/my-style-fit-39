@@ -1,12 +1,27 @@
 import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
-import { Paperclip } from "lucide-react";
+import { Paperclip, Sparkles, UserCircle2 } from "lucide-react";
 
 export interface ChatAttachment {
+  /**
+   * Attachment kinds:
+   *  - "image" / "file" — uploaded media (legacy)
+   *  - "ootd_post"     — a re-shared OOTD post (renders a preview card)
+   *  - "namecard"      — a sender/other-user namecard (renders avatar + name)
+   */
   url: string;
-  type: "image" | "file";
+  type: "image" | "file" | "ootd_post" | "namecard";
   name?: string;
   size?: number;
+  /** Extra metadata used by ootd_post + namecard renderers. */
+  meta?: {
+    post_id?: string;
+    user_id?: string;
+    username?: string | null;
+    display_name?: string | null;
+    avatar_url?: string | null;
+    caption?: string | null;
+  };
 }
 
 interface Props {
@@ -21,6 +36,10 @@ interface Props {
  * Chat bubble: @mentions become profile links, image attachments render
  * inline, file attachments show as a download chip. Shows a tiny "Read"
  * status under the user's own bubbles.
+ *
+ * Two new rich attachment types are also supported:
+ *   - ootd_post  → preview card that deep-links to the OOTD post
+ *   - namecard   → avatar + name pill that deep-links to the user profile
  */
 export default function MessageBubble({ content, isMine, createdAt, readAt, attachments = [] }: Props) {
   const navigate = useNavigate();
@@ -38,12 +57,99 @@ export default function MessageBubble({ content, isMine, createdAt, readAt, atta
       >
         {attachments.length > 0 && (
           <div className="mb-2 flex flex-col gap-1.5">
-            {attachments.map((a, idx) =>
-              a.type === "image" ? (
-                <a key={idx} href={a.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl">
-                  <img src={a.url} alt={a.name || "attachment"} className="max-h-64 w-full object-cover" />
-                </a>
-              ) : (
+            {attachments.map((a, idx) => {
+              if (a.type === "ootd_post") {
+                const targetUser = a.meta?.user_id || "";
+                const postId = a.meta?.post_id || "";
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (targetUser) navigate(`/user/${targetUser}?post=${postId}`);
+                    }}
+                    className={`flex w-full items-stretch gap-2 overflow-hidden rounded-xl border text-left transition-colors ${
+                      isMine
+                        ? "border-primary-foreground/20 bg-primary-foreground/10 hover:bg-primary-foreground/15"
+                        : "border-border/40 bg-foreground/[0.03] hover:bg-foreground/[0.06]"
+                    }`}
+                  >
+                    {a.url ? (
+                      <img src={a.url} alt={a.name || "OOTD"} className="h-20 w-20 flex-shrink-0 object-cover" />
+                    ) : (
+                      <div className={`flex h-20 w-20 flex-shrink-0 items-center justify-center ${isMine ? "bg-primary-foreground/10" : "bg-muted"}`}>
+                        <Sparkles className="h-4 w-4 opacity-60" />
+                      </div>
+                    )}
+                    <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-1.5">
+                      <p className={`text-[9px] font-semibold tracking-[0.18em] ${isMine ? "text-primary-foreground/70" : "text-foreground/55"}`}>
+                        SHARED OOTD
+                      </p>
+                      <p className="mt-0.5 line-clamp-2 text-[11.5px] font-medium">
+                        {a.meta?.caption || a.name || "View this look"}
+                      </p>
+                      {(a.meta?.display_name || a.meta?.username) && (
+                        <p className={`mt-0.5 truncate text-[10px] ${isMine ? "text-primary-foreground/65" : "text-muted-foreground"}`}>
+                          @{a.meta?.username || a.meta?.display_name}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              }
+
+              if (a.type === "namecard") {
+                const targetUser = a.meta?.user_id || "";
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (targetUser) navigate(`/user/${targetUser}`);
+                    }}
+                    className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors ${
+                      isMine
+                        ? "border-primary-foreground/20 bg-primary-foreground/10 hover:bg-primary-foreground/15"
+                        : "border-border/40 bg-foreground/[0.03] hover:bg-foreground/[0.06]"
+                    }`}
+                  >
+                    <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-muted">
+                      {a.meta?.avatar_url ? (
+                        <img src={a.meta.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <UserCircle2 className="h-5 w-5 opacity-60" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-[9px] font-semibold tracking-[0.18em] ${isMine ? "text-primary-foreground/70" : "text-foreground/55"}`}>
+                        NAMECARD
+                      </p>
+                      <p className="truncate text-[12px] font-semibold">
+                        {a.meta?.display_name || a.meta?.username || "View profile"}
+                      </p>
+                      {a.meta?.username && (
+                        <p className={`truncate text-[10px] ${isMine ? "text-primary-foreground/65" : "text-muted-foreground"}`}>
+                          @{a.meta.username}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              }
+
+              if (a.type === "image") {
+                return (
+                  <a key={idx} href={a.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl">
+                    <img src={a.url} alt={a.name || "attachment"} className="max-h-64 w-full object-cover" />
+                  </a>
+                );
+              }
+
+              return (
                 <a
                   key={idx}
                   href={a.url}
@@ -56,8 +162,8 @@ export default function MessageBubble({ content, isMine, createdAt, readAt, atta
                   <Paperclip className="h-3 w-3" />
                   <span className="truncate">{a.name || "Download file"}</span>
                 </a>
-              ),
-            )}
+              );
+            })}
           </div>
         )}
 
