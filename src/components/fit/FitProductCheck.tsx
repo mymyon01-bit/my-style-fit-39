@@ -207,6 +207,8 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
 
   const allProducts = visible;
 
+  const [preciseOpen, setPreciseOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       {selectedProduct && (
@@ -223,8 +225,29 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
             onChange={onClearSelected}
             changeLabel="Change product"
           />
+          <button
+            onClick={() => setPreciseOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/[0.06] py-3 text-[11px] font-bold tracking-[0.22em] text-accent transition-all hover:bg-accent/[0.14]"
+          >
+            <Sliders className="h-3.5 w-3.5" />
+            ADD PRECISE INFO
+            <span className="text-foreground/40 font-normal tracking-normal text-[10px] ml-1">
+              (more accurate result)
+            </span>
+          </button>
         </div>
       )}
+
+      <PreciseInfoDialog
+        open={preciseOpen}
+        onOpenChange={setPreciseOpen}
+        product={selectedProduct ?? null}
+        onSave={(updated) => {
+          setPreciseOpen(false);
+          onSelectProduct(updated);
+          toast.success("Precise sizing applied — fit recalculated");
+        }}
+      />
 
       {/* Search */}
       <div className="space-y-2">
