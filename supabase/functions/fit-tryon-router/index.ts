@@ -281,6 +281,9 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     ].filter(Boolean).join(" ");
   }
 
+  const safeModeSuffix = body.safeMode
+    ? " SAFE RENDER MODE (RETRY): the previous attempt produced a malformed or low-quality image. Render with EXTRA stability — full body cleanly framed neck-down, garment fully visible with no clipping at sleeves, hem, shoulders, or sides; sharp clean edges, no torn or melted regions, no floating fabric, no duplicated limbs, no blurred or low-resolution areas. Output a high-resolution, sharp, well-lit final fit photograph. Prefer simplicity and structural integrity over stylistic flourishes."
+    : "";
   return [
     `A premium realistic studio fit-visualization photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
     facelessRule,
