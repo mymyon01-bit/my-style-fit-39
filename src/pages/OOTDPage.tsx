@@ -15,10 +15,12 @@ import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
 import MyPageProfileHeader from "@/components/MyPageProfileHeader";
 import MyPageInboxCard from "@/components/ootd/MyPageInboxCard";
-import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
+import MailboxPopup from "@/components/messages/MailboxPopup";
+import MailboxIcon from "@/components/messages/MailboxIcon";
 import NotificationsSheet from "@/components/NotificationsSheet";
 import FeedTopRow from "@/components/ootd/FeedTopRow";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 
@@ -92,10 +94,12 @@ const OOTDPage = () => {
     index: 0,
     users: [],
   });
-  // Inbox/notifications sheets opened from My Page
+  // Inbox/notifications opened from My Page or the top mailbox icon
   const [messagesOpen, setMessagesOpen] = useState(false);
+  const [mailboxAnchor, setMailboxAnchor] = useState<{ x: number; y: number } | null>(null);
   const [notifsOpen, setNotifsOpen] = useState(false);
   const { notifUnread, totalUnread } = useNotifications();
+  const { totalUnread: msgUnread } = useConversations();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Combined user + hashtag search
@@ -472,6 +476,10 @@ const OOTDPage = () => {
                   <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                   <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
                 </div>
+                <MailboxIcon
+                  unread={msgUnread}
+                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                />
                 {notifUnread > 0 && (
                   <button
                     onClick={() => setNotifsOpen(true)}
@@ -911,7 +919,11 @@ const OOTDPage = () => {
         onDeleted={() => setStoriesRefreshKey(k => k + 1)}
       />
 
-      <MessagesFullSheet open={messagesOpen} onClose={() => setMessagesOpen(false)} />
+      <MailboxPopup
+        open={messagesOpen}
+        anchor={mailboxAnchor}
+        onClose={() => setMessagesOpen(false)}
+      />
       <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
     </div>
   );
