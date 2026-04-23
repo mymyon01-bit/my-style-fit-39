@@ -58,7 +58,10 @@ const OOTDPage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>("ranking");
+  const [activeTab, setActiveTabState] = useState<Tab>(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return (t === "feed" || t === "community" || t === "mypage" || t === "ranking") ? t : "ranking";
+  });
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
