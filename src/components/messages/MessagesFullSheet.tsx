@@ -63,7 +63,7 @@ export default function MessagesFullSheet({ open, onClose, initialConversationId
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className={`flex-1 min-h-0 ${active ? "p-0" : "overflow-y-auto p-4"}`}>
               {active ? (
                 <MessageThread
                   conversationId={active.id}

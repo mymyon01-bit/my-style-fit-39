@@ -50,7 +50,7 @@ export default function MessageThread({ conversationId, otherUserId, onBack }: P
   };
 
   return (
-    <div className="flex h-[70vh] min-h-[500px] flex-col overflow-hidden rounded-3xl border border-border/40 bg-background shadow-soft">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border-2 border-foreground/15 bg-background shadow-soft">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-border/40 bg-card/60 px-4 py-3">
         <button
