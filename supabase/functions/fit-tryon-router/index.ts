@@ -626,6 +626,67 @@ async function persistImageToStorage(
   }
 }
 
+async function processTryOnInBackground(
+  admin: ReturnType<typeof createClient>,
+  apiKey: string,
+  userId: string,
+  body: CreateBody,
+  record: TryOnRow,
+  mode: "studio" | "vton",
+) {
+  try {
+    const result = mode === "vton"
+      ? await generateCleanFitImage(apiKey, body)
+      : await generateStudioFitImage(apiKey, body);
+
+    if (result.kind === "success") {
+      const persistedUrl = await persistImageToStorage(admin, result.imageUrl, userId, body.productKey, body.selectedSize);
+      await updateTryOnRecord(admin, record.id, {
+        status: "succeeded",
+        result_image_url: persistedUrl,
+        error_message: null,
+        metadata: {
+          ...(record.metadata || {}),
+          retryAfterUntil: null,
+          sourceUrl: result.imageUrl,
+          renderVersion: mode === "studio" ? STUDIO_RENDER_VERSION : record.metadata?.renderVersion ?? null,
+        },
+      });
+      logRouter("ASYNC_COMPLETE", { requestId: record.id, mode });
+      return;
+    }
+
+    if (result.kind === "throttled") {
+      await updateTryOnRecord(admin, record.id, {
+        status: "throttled",
+        error_message: result.error,
+        metadata: { ...(record.metadata || {}), retryAfterUntil: Date.now() + result.retryAfterMs },
+      });
+      logRouter("ASYNC_THROTTLED", { requestId: record.id, retryAfterMs: result.retryAfterMs, mode });
+      return;
+    }
+
+    const failureMessage = result.error;
+    await updateTryOnRecord(admin, record.id, {
+      status: "failed",
+      error_message: failureMessage,
+    });
+    logRouter("ASYNC_FAILED", {
+      requestId: record.id,
+      code: result.kind === "credits_exhausted" ? "credits_exhausted" : result.code,
+      error: failureMessage,
+      mode,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown background error";
+    await updateTryOnRecord(admin, record.id, {
+      status: "failed",
+      error_message: message,
+    });
+    logRouter("ASYNC_CRASH", { requestId: record.id, error: message, mode });
+  }
+}
+
 // ─── MAIN ENTRYPOINTS ───────────────────────────────────────────────────────
 async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: string, userId: string | null, body: CreateBody): Promise<TryOnResponse> {
   const mode: "studio" | "vton" = body.mode === "vton" ? "vton" : "studio";
@@ -646,59 +707,48 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
     return toSuccess(existing, existing.result_image_url);
   }
 
-  const record = userId
-    ? await upsertTryOnRecord(admin, userId, { ...body, productKey: cacheKey }, {
-        status: "processing",
-        prediction_id: null,
-        result_image_url: null,
-        error_message: null,
-        model_id: modelIdForRecord,
-        metadata: { generator: generatorTag, mode, retryAfterUntil: null, renderVersion: STUDIO_RENDER_VERSION },
-      })
-    : null;
+  if (!userId) {
+    const result = mode === "vton"
+      ? await generateCleanFitImage(apiKey, body)
+      : await generateStudioFitImage(apiKey, body);
 
-  const result = mode === "vton"
-    ? await generateCleanFitImage(apiKey, body)
-    : await generateStudioFitImage(apiKey, body);
-
-  if (result.kind === "success") {
-    // Persist immediately so the UI never depends on Replicate's expiring URL.
-    const persistedUrl = await persistImageToStorage(admin, result.imageUrl, userId, body.productKey, body.selectedSize);
-    if (record) {
-      await updateTryOnRecord(admin, record.id, {
-        status: "succeeded",
-        result_image_url: persistedUrl,
-        error_message: null,
-        metadata: {
-          ...(record.metadata || {}),
-          retryAfterUntil: null,
-          sourceUrl: result.imageUrl,
-          renderVersion: mode === "studio" ? STUDIO_RENDER_VERSION : record.metadata?.renderVersion ?? null,
-        },
-      });
-      return toSuccess(record, persistedUrl);
+    if (result.kind === "success") {
+      const persistedUrl = await persistImageToStorage(admin, result.imageUrl, userId, body.productKey, body.selectedSize);
+      return { ok: true, imageUrl: persistedUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
     }
-    return { ok: true, imageUrl: persistedUrl, provider: "replicate", selectedSize: body.selectedSize, status: "succeeded", requestId: null, predictionId: null };
-  }
 
-  if (result.kind === "throttled") {
-    if (record) {
-      await updateTryOnRecord(admin, record.id, {
-        status: "throttled",
-        error_message: result.error,
-        metadata: { ...(record.metadata || {}), retryAfterUntil: Date.now() + result.retryAfterMs },
-      });
+    if (result.kind === "throttled") {
+      return pending("rate_limited", { error: result.error, selectedSize: body.selectedSize, status: "throttled", requestId: null, retryAfterMs: result.retryAfterMs });
     }
-    return pending("rate_limited", { error: result.error, selectedSize: body.selectedSize, status: "throttled", requestId: record?.id ?? null, retryAfterMs: result.retryAfterMs });
+
+    if (result.kind === "credits_exhausted") {
+      return failure("credits_exhausted", result.error, body.selectedSize, null);
+    }
+
+    return failure(result.code, result.error, body.selectedSize, null);
   }
 
-  if (result.kind === "credits_exhausted") {
-    if (record) await updateTryOnRecord(admin, record.id, { status: "failed", error_message: result.error });
-    return failure("credits_exhausted", result.error, body.selectedSize, record?.id ?? null);
+  const record = await upsertTryOnRecord(admin, userId, { ...body, productKey: cacheKey }, {
+    status: "processing",
+    prediction_id: null,
+    result_image_url: null,
+    error_message: null,
+    model_id: modelIdForRecord,
+    metadata: { generator: generatorTag, mode, retryAfterUntil: null, renderVersion: STUDIO_RENDER_VERSION },
+  });
+
+  if (!record) {
+    return failure("provider_error", "could_not_create_try_on_job", body.selectedSize, null);
   }
 
-  if (record) await updateTryOnRecord(admin, record.id, { status: "failed", error_message: result.error });
-  return failure(result.code, result.error, body.selectedSize, record?.id ?? null);
+  EdgeRuntime.waitUntil(processTryOnInBackground(admin, apiKey, userId, body, record, mode));
+  logRouter("ASYNC_QUEUED", { requestId: record.id, mode });
+  return pending("pending", {
+    error: null,
+    selectedSize: body.selectedSize,
+    status: "processing",
+    requestId: record.id,
+  });
 }
 
 async function handleStatus(admin: ReturnType<typeof createClient>, userId: string | null, body: Partial<CreateBody>): Promise<TryOnResponse> {
