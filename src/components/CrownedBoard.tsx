@@ -491,6 +491,7 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
           </section>
         </div>
       )}
+      <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} topic="Add Your Ad" />
     </div>
   );
 }
