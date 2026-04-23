@@ -166,6 +166,9 @@ function describeBuild(b?: CreateBody["bodyProfileSummary"]) {
 }
 
 function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
+  // BODY GENDER LOCK: subject gender comes ONLY from the user's body profile.
+  // It is never inferred from the product. A male user wearing a women's
+  // garment must still be rendered as a male body wearing that garment.
   const g = (b?.gender || "").toLowerCase();
   if (g === "female" || g === "feminine" || g === "woman") return "female model";
   if (g === "male" || g === "masculine" || g === "man") return "male model";
@@ -207,8 +210,13 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     ? `STRICT PHYSICAL SPECS (NON-NEGOTIABLE): height = ${h} cm, weight = ${w} kg, BMI = ${bmi}. The rendered body MUST visually correspond to a real person of EXACTLY this height and weight. A ${w} kg person at ${h} cm has a clearly visible body mass — torso width, waist circumference, arm and leg thickness, and overall volume MUST match this weight. Do NOT render a slim or athletic fashion-model body unless the weight actually matches one. If weight is high, the body MUST look heavier (wider torso, fuller waist, thicker limbs). If weight is low, the body MUST look slimmer. Mismatched proportions are unacceptable.`
     : `Render an average-proportioned body.`;
 
+  const genderLockLine = subject === "model"
+    ? `Render a gender-neutral body shape — do not infer gender from the garment.`
+    : `BODY GENDER LOCK: the subject is a ${subject}. This is NON-NEGOTIABLE and based on the user's body profile, NOT the garment. Even if the garment is typically associated with another gender, the subject body MUST remain a ${subject}. Do not switch the subject's gender to match the garment.`;
+
   return [
     `A premium realistic fashion photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
+    genderLockLine,
     physicalSpec,
     `LOCKED BODY MODEL: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same person — only the GARMENT changes between sizes, the body NEVER changes. Do NOT slim, enlarge, restyle, or adjust the body in any way based on the garment size.`,
     `Body proportions must visibly match this exact height and weight — do NOT default to a slim model body, but also do NOT modify the body to compensate for a tighter or looser garment.`,
