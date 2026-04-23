@@ -127,7 +127,7 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
         meta: {
           story_id: currentStory.id,
           user_id: currentUser.user_id,
-          username: currentUser.profile?.username ?? null,
+          username: null,
           display_name: currentUser.profile?.display_name ?? null,
           avatar_url: currentUser.profile?.avatar_url ?? null,
           image_url: currentStory.media_url,
