@@ -8,9 +8,13 @@
 // new sizing pipeline. The existing `garmentSizeResolver` is unchanged.
 
 import { supabase } from "@/integrations/supabase/client";
-import { CATEGORY_RULES, normalizeSizingCategory } from "./categoryRules";
+import {
+  CATEGORY_RULES,
+  normalizeSizingCategory,
+  getDefaultChartForGender,
+} from "./categoryRules";
 import { requestSizeChartFetch, makeProductKey } from "@/lib/fit/garmentSizeResolver";
-import type { Region, SizingCategory } from "./types";
+import type { Gender, Region, SizingCategory } from "./types";
 
 export interface SizeMeasurements {
   shoulder?: number;
@@ -91,6 +95,12 @@ interface ChartInput {
   category?: string | null;
   /** When true, fire an on-demand scrape if no DB rows are found. */
   triggerScrape?: boolean;
+  /**
+   * Resolved gender of the product audience. Drives which standard size
+   * table is used for the fallback chart (male vs female per the strict
+   * FIT spec). When unknown, the unisex default is used.
+   */
+  productGender?: Gender | null;
 }
 
 export async function loadGarmentChart(input: ChartInput): Promise<GarmentChart> {
@@ -116,7 +126,7 @@ export async function loadGarmentChart(input: ChartInput): Promise<GarmentChart>
     rows = await fetchRows(productKey);
   }
 
-  return buildChart(category, rows);
+  return buildChart(category, rows, input.productGender ?? null);
 }
 
 async function fetchRows(productKey: string): Promise<DbRow[]> {
@@ -133,9 +143,14 @@ async function fetchRows(productKey: string): Promise<DbRow[]> {
   }
 }
 
-function buildChart(category: SizingCategory, rows: DbRow[]): GarmentChart {
+function buildChart(category: SizingCategory, rows: DbRow[], productGender: Gender | null): GarmentChart {
   const rule = CATEGORY_RULES[category];
   const required = requiredRegions(category);
+  // Pick the gender-aware standard size table when available — per the
+  // strict FIT spec, men's and women's tops/pants don't share a chart.
+  const fallbackChart = productGender
+    ? getDefaultChartForGender(rule, productGender)
+    : rule.defaultChart;
 
   const sizes: Record<string, SizeMeasurements> = {};
   const sources: Record<string, "exact" | "graded" | "categoryDefault"> = {};
