@@ -3,6 +3,13 @@ import { motion } from "framer-motion";
 import { Sparkles, AlertTriangle, RefreshCw, Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { FitTryOnState } from "@/hooks/useFitTryOn";
+import FitImageCanvas from "@/components/fit/FitImageCanvas";
+import {
+  profileFromOverall,
+  profileFromSizeLetter,
+  type SizeWarpProfile,
+} from "@/lib/fit/sizeWarpProfile";
+import type { OverallFitLabel } from "@/lib/sizing";
 
 interface Props {
   productName: string;
@@ -14,6 +21,13 @@ interface Props {
   fitChips?: Array<{ region: string; fit: string; tone: "tight" | "regular" | "loose" }>;
   /** Hint that the user's body photo was missing details. */
   poseDegraded?: boolean;
+  /**
+   * Overall fit label from the measurement-driven sizing engine for the
+   * currently selected size. Drives the deterministic per-size silhouette
+   * warp applied on top of the AI image — this is what guarantees XL never
+   * looks identical to S even when the AI ignores fit hints.
+   */
+  overallFit?: OverallFitLabel | null;
 }
 
 const TONE_STYLE: Record<string, { dot: string; label: string }> = {
