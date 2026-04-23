@@ -94,10 +94,12 @@ const OOTDPage = () => {
     index: 0,
     users: [],
   });
-  // Inbox/notifications sheets opened from My Page
+  // Inbox/notifications opened from My Page or the top mailbox icon
   const [messagesOpen, setMessagesOpen] = useState(false);
+  const [mailboxAnchor, setMailboxAnchor] = useState<{ x: number; y: number } | null>(null);
   const [notifsOpen, setNotifsOpen] = useState(false);
   const { notifUnread, totalUnread } = useNotifications();
+  const { totalUnread: msgUnread } = useConversations();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Combined user + hashtag search
