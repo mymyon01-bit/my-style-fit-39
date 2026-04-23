@@ -52,9 +52,16 @@ export default function FitVisual({
   onRetry,
   fitChips = [],
   poseDegraded = false,
+  overallFit = null,
 }: Props) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+
+  // Deterministic per-size silhouette warp profile. Falls back to the size
+  // letter when the measurement engine hasn't produced an overall label yet.
+  const warpProfile: SizeWarpProfile = overallFit
+    ? profileFromOverall(overallFit)
+    : profileFromSizeLetter(activeSize);
 
   const previewSrc = state.imageUrl ?? null;
   const isReady = state.stage === "ready" && !!previewSrc && !imageError;
