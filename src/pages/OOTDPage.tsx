@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
@@ -60,6 +60,7 @@ const OOTDPage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return (t === "feed" || t === "community" || t === "mypage" || t === "ranking") ? t : "ranking";
@@ -192,6 +193,41 @@ const OOTDPage = () => {
     next.delete("user");
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const pendingFromState = (location.state as { openChat?: { conversationId?: string | null; otherUserId?: string | null } } | null)?.openChat;
+    let pending = pendingFromState;
+
+    if (!pending?.conversationId || !pending?.otherUserId) {
+      try {
+        const raw = sessionStorage.getItem("ootd:pending-chat");
+        if (raw) {
+          pending = JSON.parse(raw);
+        }
+      } catch {
+        pending = null;
+      }
+    }
+
+    if (!pending?.conversationId || !pending?.otherUserId) return;
+
+    setActiveTabState("mypage");
+    setInitialChat({
+      conversationId: pending.conversationId,
+      otherUserId: pending.otherUserId,
+    });
+    setMessagesOpen(true);
+
+    try {
+      sessionStorage.removeItem("ootd:pending-chat");
+    } catch {
+      // ignore storage failures
+    }
+
+    if (location.state && (location.state as any).openChat) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    }
+  }, [location.pathname, location.search, location.state, navigate]);
 
 
   // Debounced combined search (users + hashtags)
