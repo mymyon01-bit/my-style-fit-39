@@ -62,6 +62,19 @@ interface CreateBody {
     build?: string | null;
     gender?: string | null;
   };
+  /**
+   * Pre-computed baseline-vs-current-size verdict from the client. When the
+   * product has no measurements, this is the ONLY truth the prompt has about
+   * whether the chosen size will actually fit. Drives the exaggerated visual
+   * consequences (blanket / compressed / etc.).
+   */
+  baselineVerdict?: {
+    baseline?: string;
+    offset?: number;            // +N = current size smaller than baseline
+    verdict?: string;           // way-too-tight | tight | matches | loose | blanket
+    consequence?: string;       // human sentence describing fabric behavior
+    fallbackMode?: boolean;     // true when no product measurement data
+  };
   forceRegenerate?: boolean;
   /**
    * "studio" (DEFAULT) — clean newly-generated text-to-image render reflecting
@@ -155,14 +168,16 @@ function describeBuild(b?: CreateBody["bodyProfileSummary"]) {
   if (!b?.heightCm || !b?.weightKg) return "average build, average body width";
   const bmi = b.weightKg / Math.pow(b.heightCm / 100, 2);
   // Body width MUST scale with weight, not just BMI tier label.
-  // The downstream image model needs explicit width cues to render a heavier body.
+  // No upper clamp — extreme weights MUST extend the silhouette, never normalize.
+  if (bmi < 17)   return "very thin build, narrow frame, slim limbs, visible bone structure, minimal body mass";
   if (bmi < 18.5) return "very slim build, narrow shoulders, slim torso, slim waist, slim arms and legs";
   if (bmi < 22)   return "slim build, lean torso, slim waist, lean arms and legs";
   if (bmi < 25)   return "average build, balanced torso width, natural waist, average arms and legs";
   if (bmi < 28)   return "solid build, slightly wider torso, fuller waist, slightly thicker arms and legs";
   if (bmi < 32)   return "heavier build, visibly wider torso and shoulders, fuller waist and midsection, thicker arms and legs, soft body contours";
   if (bmi < 36)   return "plus-size build, broad torso, wide waist and hips, full midsection, thick arms and legs, rounded body shape";
-  return "very plus-size build, very broad torso and shoulders, very wide waist and hips, large midsection, thick limbs, rounded full-bodied shape";
+  if (bmi < 42)   return "very plus-size build, very broad torso and shoulders, very wide waist and hips, large midsection, thick limbs, rounded full-bodied shape";
+  return "extra-large body mass build, extremely broad torso and shoulders, very wide waist and hips, very large midsection, very thick limbs, fully rounded silhouette — DO NOT clamp or shrink the body";
 }
 
 function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
