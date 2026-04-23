@@ -11,7 +11,7 @@
 // This is render-only — it does NOT replace the AI image, it transforms it.
 // If the canvas fails to draw, we fall back to the raw AI image silently.
 
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import type { SizeWarpProfile } from "@/lib/fit/sizeWarpProfile";
 
 interface Props {
