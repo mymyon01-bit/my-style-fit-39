@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Crown, Loader2, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
+import { Crown, Loader2, TrendingUp, Sparkles, ChevronRight, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ContactUsDialog from "@/components/ContactUsDialog";
 
 interface RankedPost {
   id: string;
