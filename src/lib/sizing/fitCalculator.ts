@@ -11,6 +11,7 @@ import {
   CATEGORY_RULES,
   REGION_STATUS_LABEL,
   classifyRegion,
+  type EasePerRegion,
 } from "./categoryRules";
 import type { GarmentChart, SizeMeasurements } from "./garmentChart";
 import type {
@@ -21,6 +22,7 @@ import type {
   RegionStatus,
   ResolvedBody,
   SizeOutcome,
+  SizingCategory,
 } from "./types";
 
 interface CalcInput {
