@@ -585,6 +585,7 @@ export default function FitResults({
               setReloadToken((n) => n + 1);
             }}
             fitChips={fitChipsForVisual}
+            overallFit={sizingActiveOutcome?.overall ?? null}
           />
         </div>
       </div>

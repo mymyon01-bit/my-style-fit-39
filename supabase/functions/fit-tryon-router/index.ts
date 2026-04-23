@@ -212,7 +212,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
 
   const genderLockLine = subject === "model"
     ? `Render a gender-neutral body shape — do not infer gender from the garment.`
-    : `BODY GENDER LOCK: the subject is a ${subject}. This is NON-NEGOTIABLE and based on the user's body profile, NOT the garment. Even if the garment is typically associated with another gender, the subject body MUST remain a ${subject}. Do not switch the subject's gender to match the garment.`;
+    : `BODY GENDER LOCK (HIGHEST PRIORITY): the subject is a ${subject}. This is NON-NEGOTIABLE and based ONLY on the user's saved body profile, NEVER on the garment. The subject MUST have a clearly recognizable ${subject} body — ${subject === "female model" ? "feminine facial features, longer hair if appropriate, female chest contour, narrower shoulders, defined waist, female hips" : "masculine facial features, broader shoulders, flatter chest, straighter waist, male facial structure"}. If the garment is typically worn by another gender, the subject body STILL stays a ${subject} wearing that garment — do NOT switch to the opposite gender to match the garment style. Cross-gender wear is fully allowed; gender swap of the subject is FORBIDDEN.`;
 
   return [
     `A premium realistic fashion photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,

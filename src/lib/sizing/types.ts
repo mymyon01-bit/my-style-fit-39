@@ -126,12 +126,4 @@ export interface SizeRecommendation {
   productGender: Gender | null;
   /** Set when product clearly targets a different gender than the user's body. */
   genderMismatchWarning: string | null;
-  /** Brand calibration applied to this recommendation. Null when brand unknown. */
-  brandCalibration: {
-    brand: string;
-    fitBias: "runs_small" | "true_to_size" | "runs_large";
-    adjustments: { chest: number; waist: number; shoulder: number; hip: number };
-    /** True when the brand-bias actually shifted the primary size by ±1. */
-    sizeShifted: boolean;
-  } | null;
 }

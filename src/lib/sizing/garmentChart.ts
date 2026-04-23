@@ -14,7 +14,6 @@ import {
   getDefaultChartForGender,
 } from "./categoryRules";
 import { requestSizeChartFetch, makeProductKey } from "@/lib/fit/garmentSizeResolver";
-import { applyBrandCalibration, type CalibrationApplied } from "./brandCalibration";
 import type { Gender, Region, SizingCategory } from "./types";
 
 export interface SizeMeasurements {
@@ -41,8 +40,6 @@ export interface GarmentChart {
   usedCategoryDefaults: boolean;
   /** Confidence in the chart as a whole. */
   confidence: "high" | "medium" | "low";
-  /** Brand calibration applied (null when brand unknown). */
-  brandCalibration: CalibrationApplied | null;
 }
 
 interface DbRow {
@@ -129,13 +126,7 @@ export async function loadGarmentChart(input: ChartInput): Promise<GarmentChart>
     rows = await fetchRows(productKey);
   }
 
-  const baseChart = buildChart(category, rows, input.productGender ?? null);
-
-  // Brand calibration is a CORRECTION layer applied AFTER the base chart is
-  // built (so the fit calc compares body vs brand-corrected garment cm).
-  // Unknown brand → no-op.
-  const { chart, applied } = applyBrandCalibration(baseChart, input.brand ?? null);
-  return { ...chart, brandCalibration: applied };
+  return buildChart(category, rows, input.productGender ?? null);
 }
 
 async function fetchRows(productKey: string): Promise<DbRow[]> {
@@ -224,6 +215,5 @@ function buildChart(category: SizingCategory, rows: DbRow[], productGender: Gend
     hasAnyRealData,
     usedCategoryDefaults,
     confidence,
-    brandCalibration: null,
   };
 }

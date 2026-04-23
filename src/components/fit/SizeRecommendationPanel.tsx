@@ -224,20 +224,6 @@ export default function SizeRecommendationPanel({
         </div>
       )}
 
-      {/* Brand calibration notice — correction layer, not a replacement */}
-      {recommendation.brandCalibration && (
-        <div className="rounded-xl border border-accent/20 bg-accent/5 p-3 flex items-start gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-accent mt-0.5 shrink-0" />
-          <span className="text-[11px] text-foreground/70">
-            Calibrated for <span className="font-medium text-foreground">{recommendation.brandCalibration.brand}</span>
-            {recommendation.brandCalibration.fitBias === "runs_small" && " — runs small, sizing nudged up"}
-            {recommendation.brandCalibration.fitBias === "runs_large" && " — runs large, sizing nudged down"}
-            {recommendation.brandCalibration.fitBias === "true_to_size" && " — true to size"}
-            {recommendation.brandCalibration.sizeShifted && " (suggested ±1 size shift applied)"}.
-          </span>
-        </div>
-      )}
-
       {/* Recommended + alternate summary */}
       <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
         <div className="flex items-center justify-between">

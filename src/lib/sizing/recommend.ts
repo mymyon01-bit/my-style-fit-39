@@ -192,44 +192,6 @@ function computeConfidence(
   };
 }
 
-/**
- * Optional ±1-size shift driven by brand fit-bias. Per the strict rules:
- *   - only applies when chart confidence is low/medium (weak data)
- *   - only when primary's overall fit is borderline (fitted/regular/relaxed)
- *   - never jumps more than one neighbour
- *   - strong measurement data ALWAYS wins (high-confidence chart → no shift)
- */
-function applyBrandBiasShift(
-  primary: SizeOutcome | null,
-  outcomes: SizeOutcome[],
-  chart: GarmentChart,
-): { primary: SizeOutcome | null; shifted: boolean } {
-  if (!primary || !chart.brandCalibration) return { primary, shifted: false };
-  if (chart.confidence === "high") return { primary, shifted: false };
-
-  const bias = chart.brandCalibration.fitBias;
-  if (bias === "true_to_size") return { primary, shifted: false };
-
-  // Borderline-only: don't override clear tight/oversized verdicts.
-  const borderline = new Set(["fitted", "regularFit", "relaxedFit"]);
-  if (!borderline.has(primary.overall)) return { primary, shifted: false };
-
-  const idx = outcomes.findIndex((o) => o.size === primary.size);
-  if (idx === -1) return { primary, shifted: false };
-
-  // runs_small → bump up one size; runs_large → drop one size.
-  const targetIdx = bias === "runs_small" ? idx + 1 : idx - 1;
-  const next = outcomes[targetIdx];
-  if (!next) return { primary, shifted: false };
-
-  // Failsafe: never shift INTO a tooSmall/tooLarge verdict.
-  if (next.overall === "verySmall" || next.overall === "tooLarge") {
-    return { primary, shifted: false };
-  }
-
-  return { primary: next, shifted: true };
-}
-
 export function buildRecommendation(input: RecommendInput): SizeRecommendation {
   const range = detectRangeStatus(input.outcomes);
 
@@ -247,30 +209,7 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
     alternate = picked.alternate;
   }
 
-  // Brand-bias correction layer. Only nudges when chart data is weak AND
-  // the primary fit is borderline. Out-of-range cases skip the shift.
-  let sizeShifted = false;
-  if (range.status === "ok") {
-    const shifted = applyBrandBiasShift(primary, input.outcomes, input.chart);
-    if (shifted.shifted) {
-      // Old primary becomes the alternate so the user can still see it.
-      alternate = primary;
-      primary = shifted.primary;
-      sizeShifted = true;
-    }
-  }
-
   const { confidence, reason } = computeConfidence(input.body, input.chart, range.status);
-
-  // Tiny confidence bump when calibration is active. Never promotes "low" past
-  // "medium" — strong base evidence should still drive the top tier.
-  let finalConfidence = confidence;
-  let finalReason = reason;
-  if (input.chart.brandCalibration && range.status === "ok") {
-    if (confidence === "low") finalConfidence = "medium";
-    finalReason = `${reason} · calibrated for ${input.chart.brandCalibration.brand}`;
-  }
-
   const productGender = input.productGender ?? null;
   const genderMismatchWarning = detectGenderMismatch(input.body.gender, productGender);
   return {
@@ -279,8 +218,8 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
     primarySize: primary?.size ?? null,
     alternateSize: alternate?.size ?? null,
     primaryReason: buildReason(primary, alternate, input.preference, range.status),
-    confidence: finalConfidence,
-    confidenceReason: finalReason,
+    confidence,
+    confidenceReason: reason,
     preference: input.preference,
     usedCategoryDefaults: input.chart.usedCategoryDefaults,
     rangeStatus: range.status,
@@ -288,13 +227,5 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
     bodyGender: input.body.gender,
     productGender,
     genderMismatchWarning,
-    brandCalibration: input.chart.brandCalibration
-      ? {
-          brand: input.chart.brandCalibration.brand,
-          fitBias: input.chart.brandCalibration.fitBias,
-          adjustments: input.chart.brandCalibration.adjustments,
-          sizeShifted,
-        }
-      : null,
   };
 }

@@ -3,6 +3,13 @@ import { motion } from "framer-motion";
 import { Sparkles, AlertTriangle, RefreshCw, Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { FitTryOnState } from "@/hooks/useFitTryOn";
+import FitImageCanvas from "@/components/fit/FitImageCanvas";
+import {
+  profileFromOverall,
+  profileFromSizeLetter,
+  type SizeWarpProfile,
+} from "@/lib/fit/sizeWarpProfile";
+import type { OverallFitLabel } from "@/lib/sizing";
 
 interface Props {
   productName: string;
@@ -14,6 +21,13 @@ interface Props {
   fitChips?: Array<{ region: string; fit: string; tone: "tight" | "regular" | "loose" }>;
   /** Hint that the user's body photo was missing details. */
   poseDegraded?: boolean;
+  /**
+   * Overall fit label from the measurement-driven sizing engine for the
+   * currently selected size. Drives the deterministic per-size silhouette
+   * warp applied on top of the AI image — this is what guarantees XL never
+   * looks identical to S even when the AI ignores fit hints.
+   */
+  overallFit?: OverallFitLabel | null;
 }
 
 const TONE_STYLE: Record<string, { dot: string; label: string }> = {
@@ -38,9 +52,16 @@ export default function FitVisual({
   onRetry,
   fitChips = [],
   poseDegraded = false,
+  overallFit = null,
 }: Props) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+
+  // Deterministic per-size silhouette warp profile. Falls back to the size
+  // letter when the measurement engine hasn't produced an overall label yet.
+  const warpProfile: SizeWarpProfile = overallFit
+    ? profileFromOverall(overallFit)
+    : profileFromSizeLetter(activeSize);
 
   const previewSrc = state.imageUrl ?? null;
   const isReady = state.stage === "ready" && !!previewSrc && !imageError;
@@ -141,14 +162,13 @@ export default function FitVisual({
                   aria-hidden
                 />
               )}
-              <img
-                key={previewSrc}
+              <FitImageCanvas
+                key={`${previewSrc}::${warpProfile.silhouetteLabel}`}
                 src={previewSrc}
                 alt={`${productName} try-on, size ${activeSize}`}
+                profile={warpProfile}
                 className="relative h-full w-full object-cover"
-                loading="eager"
-                decoding="async"
-                onLoad={() => setLoadedSrc(previewSrc)}
+                onLoaded={() => setLoadedSrc(previewSrc)}
                 onError={() => {
                   console.warn("[FIT_TRYON] image_load_error", {
                     urlPrefix: previewSrc.slice(0, 80),
@@ -159,7 +179,7 @@ export default function FitVisual({
             </div>
             <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
               <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
-                AI FITTING · SIZE {activeSize}
+                AI FITTING · SIZE {activeSize} · {warpProfile.silhouetteLabel}
               </span>
             </div>
             {showStickyFallback && (

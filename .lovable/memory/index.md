@@ -16,7 +16,7 @@ Sizing recommendations are measurement-driven (src/lib/sizing/) — do NOT bypas
 - [DB schema](mem://features/db-schema) — profiles, style_profiles, body_profiles, interactions, saved_items, ootd_posts, ootd_stars
 - [Auth flow](mem://features/auth) — Email + Google OAuth, guest mode with AuthGate, onboarding saves to DB
 - [Star system](mem://features/stars) — 3 stars/day limit enforced by DB trigger
-- [Brand calibration](mem://features/brand-calibration) — Brand-specific cm adjustments + ±1 size bias shift on top of the base sizing engine
+- [FIT size visual](mem://features/fit-size-visual) — Canvas warp on AI image guarantees XL≠S; head band unwarped; body gender locked to user profile
 - [FIT working model](mem://features/fit-working-model) — Locked baseline for FIT visual try-on (fit-generate-v2 + Replicate IDM-VTON + canvas hooks)
 - [Sizing engine](mem://features/sizing-engine) — Measurement-driven size recommendation pipeline (body + garment chart + category rules)
 - [FIT strict rules](mem://features/fit-strict-rules) — No numeric scores in UI, body+gender always from user profile (never product), all sizes shown with distinct fit outcomes
