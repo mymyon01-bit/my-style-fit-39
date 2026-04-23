@@ -240,14 +240,23 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
               <span className="text-xs text-foreground/75">
                 Weight {!weightTouched && <span className="text-orange-500/90 font-bold">· required</span>}
               </span>
-              <span className={`text-sm font-bold ${weightTouched ? "text-foreground" : "text-orange-500"}`}>
-                {weightTouched ? `${weight} kg` : "— kg"}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={loadSavedProfile}
+                  className="text-[10px] font-semibold tracking-[0.15em] text-accent/80 hover:text-accent transition-colors"
+                >
+                  LOAD FROM PROFILE
+                </button>
+                <span className={`text-sm font-bold ${weightTouched ? "text-foreground" : "text-orange-500"}`}>
+                  {weightTouched ? `${weight} kg` : "— kg"}
+                </span>
+              </div>
             </div>
             <input
               type="range"
-              min={40}
-              max={120}
+              min={35}
+              max={180}
               value={weight}
               onChange={e => {
                 const w = Number(e.target.value);
@@ -258,11 +267,11 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
               className="w-full accent-accent h-1.5 rounded-full appearance-none bg-foreground/[0.08] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
             />
             <div className="flex justify-between text-[10px] text-foreground/40 mt-1">
-              <span>40</span><span>80</span><span>120</span>
+              <span>35</span><span>100</span><span>180</span>
             </div>
             {!weightTouched && (
               <p className="text-[10px] text-orange-500/80 mt-2 leading-relaxed">
-                Slide to set your weight — needed for accurate fit (40–120 kg).
+                Slide to set your weight — needed for accurate fit (35–180 kg).
               </p>
             )}
           </div>

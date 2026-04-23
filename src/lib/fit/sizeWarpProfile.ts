@@ -51,64 +51,64 @@ export function profileFromOverall(overall: OverallFitLabel | null | undefined):
   switch (overall) {
     case "verySmall":
       return {
+        scaleX: 0.84,
+        scaleY: 0.96,
+        shoulderDropPx: -8,
+        hemDropPx: -22,
+        tensionOpacity: 0.34,
+        drapeOpacity: 0,
+        silhouetteLabel: "TRIM",
+      };
+    case "tightFit":
+      return {
         scaleX: 0.92,
-        scaleY: 0.985,
+        scaleY: 0.98,
         shoulderDropPx: -4,
         hemDropPx: -10,
         tensionOpacity: 0.22,
         drapeOpacity: 0,
         silhouetteLabel: "TRIM",
       };
-    case "tightFit":
-      return {
-        scaleX: 0.96,
-        scaleY: 0.99,
-        shoulderDropPx: -2,
-        hemDropPx: -5,
-        tensionOpacity: 0.16,
-        drapeOpacity: 0,
-        silhouetteLabel: "TRIM",
-      };
     case "fitted":
       return {
-        scaleX: 0.985,
-        scaleY: 0.995,
+        scaleX: 0.97,
+        scaleY: 0.99,
         shoulderDropPx: 0,
-        hemDropPx: -2,
-        tensionOpacity: 0.06,
-        drapeOpacity: 0.04,
+        hemDropPx: -3,
+        tensionOpacity: 0.08,
+        drapeOpacity: 0.05,
         silhouetteLabel: "FITTED",
       };
     case "regularFit":
       return REGULAR;
     case "relaxedFit":
       return {
-        scaleX: 1.06,
-        scaleY: 1.025,
-        shoulderDropPx: 8,
-        hemDropPx: 10,
+        scaleX: 1.10,
+        scaleY: 1.04,
+        shoulderDropPx: 14,
+        hemDropPx: 18,
         tensionOpacity: 0,
-        drapeOpacity: 0.14,
+        drapeOpacity: 0.20,
         silhouetteLabel: "RELAXED",
       };
     case "oversizedFit":
       return {
-        scaleX: 1.12,
-        scaleY: 1.06,
-        shoulderDropPx: 18,
-        hemDropPx: 22,
+        scaleX: 1.20,
+        scaleY: 1.09,
+        shoulderDropPx: 26,
+        hemDropPx: 36,
         tensionOpacity: 0,
-        drapeOpacity: 0.20,
+        drapeOpacity: 0.28,
         silhouetteLabel: "OVERSIZED",
       };
     case "tooLarge":
       return {
-        scaleX: 1.18,
-        scaleY: 1.10,
-        shoulderDropPx: 28,
-        hemDropPx: 36,
+        scaleX: 1.30,
+        scaleY: 1.14,
+        shoulderDropPx: 40,
+        hemDropPx: 56,
         tensionOpacity: 0,
-        drapeOpacity: 0.22,
+        drapeOpacity: 0.34,
         silhouetteLabel: "OVERSIZED",
       };
     default:

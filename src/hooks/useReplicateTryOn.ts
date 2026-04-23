@@ -72,6 +72,14 @@ export interface CreateTryOnBody {
   bodyImageHash?: string | null;
   garmentImageHash?: string | null;
   forceRegenerate?: boolean;
+  /** Pre-computed baseline-vs-current-size verdict (see sizeBaseline.ts). */
+  baselineVerdict?: {
+    baseline?: string;
+    offset?: number;
+    verdict?: string;
+    consequence?: string;
+    fallbackMode?: boolean;
+  };
   /**
    * "studio" (default) = clean text-to-image render (no user photo as canvas).
    * "vton" = legacy IDM-VTON composite onto user photo.

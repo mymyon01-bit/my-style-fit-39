@@ -43,6 +43,14 @@ export interface UseFitTryOnArgs {
     build?: string | null;
     gender?: string | null;
   };
+  /** Pre-computed baseline verdict (gender+weight → expected size). */
+  baselineVerdict?: {
+    baseline?: string;
+    offset?: number;
+    verdict?: string;
+    consequence?: string;
+    fallbackMode?: boolean;
+  };
   reloadToken?: number;
 }
 
@@ -241,6 +249,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           fitDescriptor: args.fitDescriptor,
           regions: args.regions,
           bodyProfileSummary: args.bodyProfileSummary,
+          baselineVerdict: args.baselineVerdict,
           mode: "studio",
         });
         if (isStale()) return;
