@@ -41,6 +41,8 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [likeBusy, setLikeBusy] = useState(false);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
 
   const currentUser = userStories[userIdx];
   const currentStory = currentUser?.stories[storyIdx];
