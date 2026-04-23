@@ -212,10 +212,61 @@ export default function DiscoverPage() {
     void loadSavedIds();
   }, [loadSavedIds]);
 
-  // Discover always defaults to "all" regardless of saved gender preference.
-  // Users can manually switch the filter per-session.
+  useEffect(() => {
+    let cancelled = false;
 
-  // ── Run discover (single entry point — hook owns the pipeline) ────────
+    if (!productParam) {
+      setDeepLinkedProduct(null);
+      return;
+    }
+
+    const alreadyVisible = [
+      ...dbTopProducts,
+      ...allLiveResults,
+    ].find((item) => item.id === productParam);
+
+    if (alreadyVisible) {
+      setDeepLinkedProduct(null);
+      setDetailProduct(alreadyVisible);
+      return;
+    }
+
+    (async () => {
+      const { data } = await supabase
+        .from("product_cache")
+        .select("id, name, brand, price, image_url, source_url, category, reason, style_tags, fit, store_name, platform")
+        .eq("id", productParam)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (!data) {
+        setDeepLinkedProduct(null);
+        return;
+      }
+
+      setDeepLinkedProduct({
+        id: data.id,
+        name: data.name,
+        brand: data.brand || "",
+        price: data.price || "",
+        category: data.category || "",
+        reason: data.reason || "Shared from chat",
+        style_tags: Array.isArray(data.style_tags) ? data.style_tags : [],
+        color: "",
+        fit: data.fit || "regular",
+        image_url: data.image_url,
+        source_url: data.source_url,
+        store_name: data.store_name,
+        platform: data.platform,
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productParam, dbTopProducts, allLiveResults]);
+
+
   const runDiscover = useCallback(
     (baseQuery: string) => {
       const query = buildQuery(baseQuery, {
