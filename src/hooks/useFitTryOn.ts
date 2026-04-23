@@ -176,7 +176,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       const verdict = await validateFitImage(persistentUrl);
       if (isStale()) return;
       if (verdict.ok) {
-        log("validated_ok", { width: verdict.width, height: verdict.height, variance: verdict.variance });
+        log("validated_ok", { width: verdict.width, height: verdict.height, variance: verdict.variance, sharpness: verdict.sharpness });
         setState({
           stage: "ready",
           imageUrl: persistentUrl,
@@ -188,10 +188,17 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         });
         return;
       }
-      log("validation_failed", { reason: verdict.reason, width: verdict.width, height: verdict.height, variance: verdict.variance, safeModeAttempt });
+      log("validation_failed", { reason: verdict.reason, width: verdict.width, height: verdict.height, variance: verdict.variance, sharpness: verdict.sharpness, safeModeAttempt });
       if (safeModeAttempt === 0) {
         // Auto-retry once with safer preset. Don't show the broken image.
         log("auto_retry_safe_mode");
+        setState((prev) => ({
+          ...prev,
+          stage: "generating",
+          error: "Using stable render mode…",
+          provider,
+          requestId,
+        }));
         setSafeModeAttempt(1);
         return;
       }
@@ -257,10 +264,13 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           if (data && !data.ok && data.code !== "pending") {
             stopTimers();
             log("poll_failed", { code: data.code, error: data.error });
+            const cleanedError = data.error?.startsWith("unstable_fit_render:")
+              ? "We couldn't render a clean mannequin preview. Please try again."
+              : data.error || "Generation failed.";
             setState((prev) => ({
               ...prev,
               stage: "failed",
-              error: data.error || "Generation failed.",
+              error: cleanedError,
               provider: data.provider ?? null,
             }));
             return;
@@ -374,10 +384,13 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         if (isStale()) return;
         stopTimers();
         log("create_error", { message: e?.message });
+        const cleanedError = typeof e?.message === "string" && e.message.startsWith("unstable_fit_render:")
+          ? "We couldn't render a clean mannequin preview. Please try again."
+          : e?.message || "Generation failed.";
         setState((prev) => ({
           ...prev,
           stage: "failed",
-          error: e?.message || "Generation failed.",
+          error: cleanedError,
         }));
       }
     })();

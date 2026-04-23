@@ -560,6 +560,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody): Promise
   });
 
   const prompt = [
+    `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
     buildCleanStudioPrompt(body),
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
   ].join(" ");
@@ -802,7 +803,7 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
         result_image_url: null,
         error_message: null,
         model_id: modelIdForRecord,
-        metadata: { generator: generatorTag, mode, retryAfterUntil: null },
+        metadata: { generator: generatorTag, mode, retryAfterUntil: null, renderVersion: STUDIO_RENDER_VERSION },
       })
     : null;
 
