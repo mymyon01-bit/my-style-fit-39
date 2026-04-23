@@ -16,6 +16,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import PremiumBanner from "@/components/PremiumBanner";
 import TodayPicks from "@/components/today/TodayPicks";
 import SavedProductsTab from "@/components/profile/SavedProductsTab";
+import StyleMeButton from "@/components/StyleMeButton";
 // MessagesInbox moved to OOTD My Page (full-screen sheet)
 import { toast } from "sonner";
 
@@ -340,6 +341,10 @@ const ProfilePage = () => {
         </div>
 
         {!subscription.isPremium && <PremiumBanner />}
+
+        <div className="flex justify-center">
+          <StyleMeButton variant="solid" />
+        </div>
 
         <div className="h-px bg-accent/[0.12]" />
 
