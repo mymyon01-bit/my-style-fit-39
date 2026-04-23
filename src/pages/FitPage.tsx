@@ -324,7 +324,8 @@ const FitPage = () => {
       heightCm: 175, weightKg: 70, shoulderWidthCm: 45,
       chestCm: 96, waistCm: 80, hipCm: 96, inseamCm: 80,
     };
-    const effectiveWeight = (weightKg && weightKg >= 40 && weightKg <= 120) ? weightKg : SAFE_DEFAULTS.weightKg;
+    // BODY tab is the source of truth — no upper clamp on weight.
+    const effectiveWeight = (weightKg && weightKg >= 30) ? weightKg : SAFE_DEFAULTS.weightKg;
     if (!weightKg) setWeightKg(SAFE_DEFAULTS.weightKg);
 
     const startedAt = performance.now();
