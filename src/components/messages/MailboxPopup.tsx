@@ -44,12 +44,13 @@ export default function MailboxPopup({
     if (pos) return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const h = active ? POPUP_H_THREAD : POPUP_H_LIST;
     let x = anchor ? Math.min(anchor.x - POPUP_W + 32, vw - POPUP_W - 12) : vw - POPUP_W - 12;
     let y = anchor ? anchor.y + 12 : 80;
     x = Math.max(8, x);
-    y = Math.max(8, Math.min(y, vh - POPUP_H - 8));
+    y = Math.max(8, Math.min(y, vh - h - 8));
     setPos({ x, y });
-  }, [open, anchor, pos]);
+  }, [open, anchor, pos, active]);
 
   // Esc to close
   useEffect(() => {
