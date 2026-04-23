@@ -13,3 +13,7 @@ export {
   REGION_TOLERANCE,
 } from "./categoryRules";
 export { estimateAnthropometry, bmiCategory } from "./anthropometry";
+export { loadBrandCalibration, applyCalibration } from "./brandCalibration";
+export type { CalibrationOffset } from "./brandCalibration";
+export { submitFitFeedback } from "./feedback";
+export type { FitFeedbackInput, FitFeedbackType } from "./feedback";
