@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Crown, Loader2, TrendingUp, Sparkles, ChevronRight, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ContactUsDialog from "@/components/ContactUsDialog";
+import ProductDetailSheet from "@/components/ProductDetailSheet";
 
 interface RankedPost {
   id: string;
@@ -90,6 +91,7 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
   const [dailyWinner, setDailyWinner] = useState<DailyWinner | null>(null);
   const [ads, setAds] = useState<AdProduct[]>([]);
   const [contactOpen, setContactOpen] = useState(false);
+  const [activeAd, setActiveAd] = useState<AdProduct | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -401,12 +403,11 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
             </div>
             <div className="grid grid-cols-6 gap-2">
               {ads.slice(0, 5).map((p) => (
-                <a
+                <button
                   key={p.id}
-                  href={p.source_url || "#"}
-                  target={p.source_url ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  className="flex flex-col gap-1"
+                  type="button"
+                  onClick={() => setActiveAd(p)}
+                  className="flex flex-col gap-1 text-left"
                 >
                   <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
                     {p.image_url ? (
@@ -414,7 +415,7 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
                     ) : null}
                   </div>
                   <p className="line-clamp-1 text-[9px] text-foreground/60">{p.brand || p.name}</p>
-                </a>
+                </button>
               ))}
               {Array.from({ length: Math.max(0, 5 - ads.slice(0, 5).length) }).map((_, i) => (
                 <div key={`spacer-${i}`} className="aspect-[3/4] rounded-lg bg-foreground/[0.02]" />
