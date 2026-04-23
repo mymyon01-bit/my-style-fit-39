@@ -195,6 +195,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
                   key={s}
                   onClick={() => {
                     setGender(s);
+                    onGenderChange?.(s);
                     if (user) {
                       supabase.from("profiles").update({ gender_preference: s }).eq("user_id", user.id).then(() => {});
                     }
