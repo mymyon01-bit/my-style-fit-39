@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import ShareButton from "@/components/ShareButton";
+import ShareToOOTDDialog from "@/components/ShareToOOTDDialog";
+import { Repeat2 } from "lucide-react";
 import PostThemeBackground, { POST_THEMES, loadSavedPostTheme, savePostTheme, type PostTheme } from "@/components/ootd/PostThemeBackground";
 
 interface OOTDPost {
