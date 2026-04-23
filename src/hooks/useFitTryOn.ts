@@ -389,7 +389,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey]);
 
-  const retry = useCallback(() => setManualReload((n) => n + 1), []);
+  const retry = useCallback(() => {
+    setSafeModeAttempt(0);
+    setManualReload((n) => n + 1);
+  }, []);
 
   return { ...state, retry };
 }
