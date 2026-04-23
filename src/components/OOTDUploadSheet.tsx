@@ -8,8 +8,8 @@ import { prepareImage, validateMedia } from "@/lib/imageUpload";
 import { recordEvent } from "@/lib/diagnostics";
 import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import { toast } from "sonner";
-import { usePhoneVerification } from "@/hooks/usePhoneVerification";
-import PhoneVerificationModal from "@/components/legal/PhoneVerificationModal";
+import { useEmailVerified } from "@/hooks/useEmailVerified";
+import EmailVerificationModal from "@/components/legal/EmailVerificationModal";
 
 // Sentinel topic — when present in a post's `topics` array it signals that
 // the author has disabled sharing. Stored in `topics` to avoid a schema
@@ -36,8 +36,8 @@ interface Topic {
 const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted }, ref) => {
   const { user } = useAuth();
   const weather = useWeather();
-  const { phoneVerified } = usePhoneVerification();
-  const [phoneGateOpen, setPhoneGateOpen] = useState(false);
+  const { verified: emailVerified } = useEmailVerified();
+  const [emailGateOpen, setEmailGateOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -54,12 +54,12 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [allowShares, setAllowShares] = useState(true);
 
-  // Gate: when an unverified user opens the upload sheet, show phone modal first.
+  // Gate: when an unverified user opens the upload sheet, show email modal first.
   useEffect(() => {
-    if (open && user && phoneVerified === false) {
-      setPhoneGateOpen(true);
+    if (open && user && emailVerified === false) {
+      setEmailGateOpen(true);
     }
-  }, [open, user, phoneVerified]);
+  }, [open, user, emailVerified]);
 
   useEffect(() => {
     if (open) { loadTopics(); setStep(1); setAllowShares(true); }
@@ -538,6 +538,14 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
           </motion.div>
         </motion.div>
       )}
+      <EmailVerificationModal
+        open={emailGateOpen}
+        onOpenChange={(o) => {
+          setEmailGateOpen(o);
+          if (!o && emailVerified === false) onClose();
+        }}
+        onVerified={() => setEmailGateOpen(false)}
+      />
     </AnimatePresence>
   );
 });
