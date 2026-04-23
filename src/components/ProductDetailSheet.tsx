@@ -1,11 +1,14 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Heart, Share2, ExternalLink, X, Tag, Sparkles, Camera } from "lucide-react";
+import { Heart, ExternalLink, X, Tag, Sparkles, Camera, Link2, Inbox, MessageSquare, MessageCircle, Send, Globe, Hash } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import SafeImage from "@/components/SafeImage";
 import { AuthGate } from "@/components/AuthGate";
-import ShareProductDialog from "@/components/ShareProductDialog";
 import PostProductToOOTDSheet from "@/components/profile/PostProductToOOTDSheet";
+import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
+import { useAuth } from "@/lib/auth";
+import { useReferralCode } from "@/hooks/useReferralCode";
 
 interface ProductDetailItem {
   id: string;
@@ -42,9 +45,23 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: ProductDetailSheetProps) => {
   const navigate = useNavigate();
-  const [shareOpen, setShareOpen] = useState(false);
+  const { user } = useAuth();
+  const { code: referralCode } = useReferralCode();
   const [postOpen, setPostOpen] = useState(false);
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
   if (!product) return null;
+
+  const buildShareLink = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = new URL(`${origin}/discover`);
+    url.searchParams.set("p", product.id);
+    if (referralCode) url.searchParams.set("ref", referralCode);
+    return url.toString();
+  };
+
+  const shareUrl = buildShareLink();
+  const shareTitle = `${product.brand} — ${product.name}`;
 
   const handleTryOn = () => {
     const parsed = product.price ? parseFloat(String(product.price).replace(/[^0-9.]/g, "")) : NaN;
@@ -67,6 +84,52 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
     navigate(`/fit/${encodeURIComponent(product.id)}`);
   };
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not copy");
+    }
+    setShareMenuOpen(false);
+  };
+
+  const sendViaMessages = async () => {
+    if (!user) {
+      toast.error("Sign in to send via Messages");
+      setShareMenuOpen(false);
+      return;
+    }
+    try { await navigator.clipboard.writeText(`${shareTitle} — ${shareUrl}`); } catch {}
+    toast.success("Link copied — pick a chat to paste it");
+    setShareMenuOpen(false);
+    setMsgOpen(true);
+  };
+
+  const openExternal = (base: string, useTitle = false) => {
+    const text = useTitle ? `${shareTitle} — ${shareUrl}` : shareUrl;
+    window.open(base + encodeURIComponent(text), "_blank", "noopener,noreferrer");
+    setShareMenuOpen(false);
+  };
+
+  const shareToKakao = async () => {
+    try { await navigator.clipboard.writeText(`${shareTitle} — ${shareUrl}`); } catch {}
+    const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`;
+    window.open(kakaoUrl, "_blank", "noopener,noreferrer");
+    toast.success("Opening KakaoTalk…");
+    setShareMenuOpen(false);
+  };
+
+  const shareItems = [
+    { key: "copy", label: "Copy link", icon: <Link2 className="h-3.5 w-3.5" />, onClick: copyLink },
+    { key: "msg", label: "Send via Messages", icon: <Inbox className="h-3.5 w-3.5" />, onClick: sendViaMessages },
+    { key: "kakao", label: "KakaoTalk", icon: <MessageSquare className="h-3.5 w-3.5" />, onClick: shareToKakao },
+    { key: "wa", label: "WhatsApp", icon: <MessageCircle className="h-3.5 w-3.5" />, onClick: () => openExternal("https://wa.me/?text=", true) },
+    { key: "tg", label: "Telegram", icon: <Send className="h-3.5 w-3.5" />, onClick: () => openExternal(`https://t.me/share/url?text=${encodeURIComponent(shareTitle)}&url=`) },
+    { key: "fb", label: "Facebook", icon: <Globe className="h-3.5 w-3.5" />, onClick: () => openExternal("https://www.facebook.com/sharer/sharer.php?u=") },
+    { key: "tw", label: "X / Twitter", icon: <Hash className="h-3.5 w-3.5" />, onClick: () => openExternal(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=`) },
+  ];
+
   const tags = [
     ...(product.style_tags || []),
     product.fit && product.fit !== "regular" ? product.fit : null,
@@ -76,165 +139,173 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
 
   return (
     <>
-    <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent side="bottom" className="h-[92vh] rounded-t-3xl border-t border-border/20 bg-background p-0 overflow-hidden">
-        <div className="flex h-full flex-col overflow-y-auto">
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-md"
-          >
-            <X className="h-4 w-4 text-foreground/70" />
-          </button>
+      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+        <SheetContent
+          side="bottom"
+          className="h-[92vh] rounded-t-3xl border-t border-border/20 bg-background p-0 overflow-hidden"
+        >
+          <div className="relative flex h-full flex-col overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 backdrop-blur-md shadow-soft hover:bg-background"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4 text-foreground/70" />
+            </button>
 
-          {/* Centered card — width follows the image */}
-          <div className="mx-auto w-full max-w-md px-4 pb-10 pt-4 sm:max-w-lg sm:px-0">
-            {/* Product Image */}
-            <div className="relative w-full overflow-hidden rounded-2xl bg-muted/30 flex items-center justify-center">
-              <SafeImage
-                src={product.image_url || ""}
-                alt={product.name}
-                className="max-h-[68vh] w-auto max-w-full object-contain"
-                fallbackClassName="aspect-[3/4] w-full"
-              />
-              {product.platform && PLATFORM_COLORS[product.platform] && (
-                <div className={`absolute top-3 left-3 rounded-full ${PLATFORM_COLORS[product.platform]} px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm tracking-wide`}>
-                  {product.platform.toUpperCase()}
-                </div>
-              )}
-            </div>
-
-            {/* Product Info — same width as image card above */}
-            <div className="mt-5 space-y-5">
-              {/* Brand & Name */}
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  {product.brand}
-                </p>
-                <h2 className="font-display text-lg font-semibold leading-tight text-foreground">
-                  {product.name}
-                </h2>
-                {product.price && (
-                  <p className="text-base font-bold text-foreground">{product.price}</p>
+            <div className="mx-auto w-full max-w-md px-5 pb-12 pt-6 sm:max-w-lg">
+              {/* Product Image */}
+              <div className="relative w-full overflow-hidden rounded-2xl bg-muted/30 flex items-center justify-center">
+                <SafeImage
+                  src={product.image_url || ""}
+                  alt={product.name}
+                  className="max-h-[60vh] w-auto max-w-full object-contain"
+                  fallbackClassName="aspect-[3/4] w-full"
+                />
+                {product.platform && PLATFORM_COLORS[product.platform] && (
+                  <div className={`absolute top-3 left-3 rounded-full ${PLATFORM_COLORS[product.platform]} px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm tracking-wide`}>
+                    {product.platform.toUpperCase()}
+                  </div>
                 )}
               </div>
 
-              {/* Store */}
-              {product.store_name && (
-                <p className="text-[11px] text-muted-foreground">
-                  Available at <span className="font-medium text-foreground/80">{product.store_name}</span>
-                </p>
-              )}
-
-              {/* Tags */}
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="flex items-center gap-1 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[10px] font-medium text-foreground/70"
-                    >
-                      <Tag className="h-2.5 w-2.5" />
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Reason */}
-              {product.reason && (
-                <p className="text-[12px] leading-relaxed text-foreground/60 italic">
-                  "{product.reason}"
-                </p>
-              )}
-
-              {/* Actions */}
-              <div className="space-y-2.5 pt-1">
-                {/* Try this on — primary AI CTA */}
-                <button
-                  onClick={handleTryOn}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent transition-all hover:bg-accent/20"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  TRY THIS ON
-                </button>
-
-                {/* Post as OOTD */}
-                <AuthGate action="post outfits">
-                  <button
-                    onClick={() => setPostOpen(true)}
-                    disabled={!product.image_url}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[12px] font-bold tracking-[0.15em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
-                  >
-                    <Camera className="h-4 w-4" />
-                    POST AS OOTD
-                  </button>
-                </AuthGate>
-
-                <div className="flex items-center gap-3">
-                  {/* Shop Now */}
-                  {product.source_url && (
-                    <a
-                      href={product.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      SHOP NOW
-                    </a>
+              {/* Product Info */}
+              <div className="mt-5 space-y-5">
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    {product.brand}
+                  </p>
+                  <h2 className="font-display text-lg font-semibold leading-tight text-foreground">
+                    {product.name}
+                  </h2>
+                  {product.price && (
+                    <p className="text-base font-bold text-foreground">{product.price}</p>
                   )}
+                </div>
 
-                  {/* Save */}
-                  <AuthGate action="save items">
+                {product.store_name && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Available at <span className="font-medium text-foreground/80">{product.store_name}</span>
+                  </p>
+                )}
+
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="flex items-center gap-1 rounded-full bg-foreground/[0.05] px-3 py-1.5 text-[10px] font-medium text-foreground/70"
+                      >
+                        <Tag className="h-2.5 w-2.5" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {product.reason && (
+                  <p className="text-[12px] leading-relaxed text-foreground/60 italic">
+                    "{product.reason}"
+                  </p>
+                )}
+
+                {/* Actions */}
+                <div className="space-y-2.5 pt-1">
+                  {/* Try this on */}
+                  <button
+                    onClick={handleTryOn}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent transition-all hover:bg-accent/20"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    TRY THIS ON
+                  </button>
+
+                  {/* Post as OOTD */}
+                  <AuthGate action="post outfits">
                     <button
-                      onClick={() => onSave(product.id)}
-                      className={`flex h-12 w-12 items-center justify-center rounded-xl border transition-all ${
-                        isSaved
-                          ? "border-accent/30 bg-accent/10 text-accent"
-                          : "border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80"
-                      }`}
-                      aria-label="Save"
+                      onClick={() => setPostOpen(true)}
+                      disabled={!product.image_url}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[12px] font-bold tracking-[0.15em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
                     >
-                      <Heart className="h-5 w-5" fill={isSaved ? "currentColor" : "none"} />
+                      <Camera className="h-4 w-4" />
+                      POST AS OOTD
                     </button>
                   </AuthGate>
 
-                  {/* Share */}
-                  <button
-                    onClick={() => setShareOpen(true)}
-                    className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80 transition-all"
-                    aria-label="Share"
-                  >
-                    <Share2 className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {product.source_url && (
+                      <a
+                        href={product.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        SHOP NOW
+                      </a>
+                    )}
+
+                    {/* Save */}
+                    <AuthGate action="save items">
+                      <button
+                        onClick={() => onSave(product.id)}
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl border transition-all ${
+                          isSaved
+                            ? "border-accent/30 bg-accent/10 text-accent"
+                            : "border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80"
+                        }`}
+                        aria-label="Save"
+                      >
+                        <Heart className="h-5 w-5" fill={isSaved ? "currentColor" : "none"} />
+                      </button>
+                    </AuthGate>
+                  </div>
+
+                  {/* Share — full menu inline */}
+                  <div className="pt-1">
+                    <button
+                      onClick={() => setShareMenuOpen((v) => !v)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/70 hover:bg-foreground/[0.04]"
+                    >
+                      SHARE
+                    </button>
+                    {shareMenuOpen && (
+                      <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-xl border border-border/30 bg-card/60 p-2">
+                        {shareItems.map((it) => (
+                          <button
+                            key={it.key}
+                            onClick={it.onClick}
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium text-foreground/75 hover:bg-foreground/[0.05] transition-colors text-left"
+                          >
+                            {it.icon} {it.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
 
-    <ShareProductDialog
-      open={shareOpen}
-      product={product}
-      onClose={() => setShareOpen(false)}
-    />
-    <PostProductToOOTDSheet
-      open={postOpen}
-      product={{
-        id: product.id,
-        productId: product.id,
-        name: product.name,
-        brand: product.brand,
-        imageUrl: product.image_url ?? null,
-      }}
-      onClose={() => setPostOpen(false)}
-    />
+      <PostProductToOOTDSheet
+        open={postOpen}
+        product={{
+          id: product.id,
+          productId: product.id,
+          name: product.name,
+          brand: product.brand,
+          imageUrl: product.image_url ?? null,
+        }}
+        onClose={() => setPostOpen(false)}
+      />
+
+      <MessagesFullSheet open={msgOpen} onClose={() => setMsgOpen(false)} />
     </>
   );
 };
 
 export default ProductDetailSheet;
-
