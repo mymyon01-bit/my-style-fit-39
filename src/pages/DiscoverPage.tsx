@@ -586,6 +586,9 @@ export default function DiscoverPage() {
             {/* Layer 2 — Styled Looks shell */}
             <StyledLooksRow products={styledLooksPool} />
 
+            {/* AI AD strip — sits right above the live grid */}
+            <DiscoverAdRow pool={allLiveResults.length > 0 ? allLiveResults : dbTopProducts} />
+
             {/* Layer 3 — Live search result section (append-only) */}
             <LiveResultsSection
               query={committedQuery}
