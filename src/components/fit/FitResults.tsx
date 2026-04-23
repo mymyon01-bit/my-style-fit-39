@@ -496,44 +496,39 @@ export default function FitResults({
             </div>
           )}
 
-          {/* ══ EDITORIAL FIT SCORE — typography-driven, no chrome ══ */}
+          {/* ══ EDITORIAL SIZE DISPLAY — measurement-driven, no scores ══ */}
           <div className="border-t border-b border-foreground/20 py-7">
             <div className="flex items-end justify-between gap-6">
-              <div className="flex items-baseline gap-5">
-                <motion.span
-                  key={heroScore}
+              <div className="space-y-1.5">
+                <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40">
+                  RECOMMENDED SIZE
+                </p>
+                <motion.p
+                  key={activeSize}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   className="font-display text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground"
                 >
-                  {heroScore}
-                </motion.span>
-                <div className="space-y-1.5 pb-1">
-                  <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40">
-                    FIT&nbsp;/&nbsp;100
+                  {activeSize}
+                </motion.p>
+                <p className={`text-[15px] font-medium tracking-tight ${heroColor}`}>
+                  {heroFitType}
+                </p>
+              </div>
+              {result.alternateSize !== "N/A" && activeSize !== result.alternateSize && (
+                <div className="text-right pb-2">
+                  <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40 mb-1">
+                    ALTERNATE
                   </p>
-                  <p className={`text-[15px] font-medium tracking-tight ${heroColor}`}>
-                    {heroFitType}
+                  <p className="font-display text-[36px] font-medium leading-[0.9] tracking-[-0.04em] text-foreground/70">
+                    {result.alternateSize}
                   </p>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40 mb-1">
-                  SIZE
-                </p>
-                <p className="font-display text-[44px] font-medium leading-[0.9] tracking-[-0.04em] text-foreground">
-                  {activeSize}
-                </p>
-                {result.alternateSize !== "N/A" && activeSize !== result.alternateSize && (
-                  <p className="text-[10px] tracking-[0.18em] text-foreground/40 mt-1.5">
-                    ALT&nbsp;·&nbsp;{result.alternateSize}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Size switcher — minimal pills */}
+            {/* Size switcher — minimal pills, no scores */}
             <div className="mt-6 flex flex-wrap gap-1.5">
               {result.sizeResults.map((sr) => {
                 const isActive = sr.size === activeSize;
@@ -541,19 +536,13 @@ export default function FitResults({
                   <button
                     key={sr.size}
                     onClick={() => setActiveSize(sr.size)}
-                    className={`relative flex min-w-[52px] flex-col items-center justify-center border px-3 py-2 transition-all duration-200 ${
+                    className={`relative flex min-w-[52px] items-center justify-center border px-4 py-2.5 transition-all duration-200 ${
                       isActive
                         ? "border-foreground bg-foreground text-background"
-                        : "border-foreground/15 bg-transparent text-foreground/50 hover:border-foreground/50 hover:text-foreground"
+                        : "border-foreground/15 bg-transparent text-foreground/55 hover:border-foreground/50 hover:text-foreground"
                     }`}
                   >
                     <span className="font-display text-[13px] font-medium leading-none tracking-tight">{sr.size}</span>
-                    <span className={`text-[9px] font-semibold tracking-[0.12em] mt-1 ${
-                      isActive ? "text-background/70"
-                      : sr.fitScore >= 80 ? "text-foreground/60"
-                      : sr.fitScore >= 65 ? "text-accent"
-                      : "text-foreground/35"
-                    }`}>{sr.fitScore}</span>
                     {sr.recommended && !isActive && (
                       <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-accent" />
                     )}
