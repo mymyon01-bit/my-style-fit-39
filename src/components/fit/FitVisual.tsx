@@ -153,6 +153,19 @@ export default function FitVisual({
       ? "Preparing your fitting…"
       : "Generating final fitting image…";
 
+  const stageHint =
+    state.stage === "validating"
+      ? "Rejecting broken or off-style renders before display"
+      : state.stage === "polling"
+      ? "Generating fit image…"
+      : state.stage === "generating"
+      ? "Building a mannequin-based fit preview"
+      : "Generating fit image…";
+
+  const stableModeMessage = isLoading && state.error?.includes("stable render")
+    ? state.error
+    : null;
+
   return (
     <div className="group/visual space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-br from-card/80 via-card/50 to-card/20 p-3 shadow-[0_8px_40px_-16px_hsl(var(--accent)/0.18)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.28)] sm:p-4">
       <div className="flex items-center justify-between px-1">
@@ -295,8 +308,11 @@ export default function FitVisual({
                   />
                 </div>
                 <p className="text-[10px] tracking-[0.18em] text-foreground/45">
-                  AI is rendering you in this garment
+                  {stageHint}
                 </p>
+                {stableModeMessage && (
+                  <p className="text-[10px] font-medium text-foreground/55">{stableModeMessage}</p>
+                )}
               </div>
             </div>
           </div>
