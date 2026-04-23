@@ -26,6 +26,7 @@ const POPUP_H_THREAD = 560;
 export default function MailboxPopup({
   open, onClose, anchor, initialConversationId, initialOtherUserId,
 }: Props) {
+  const isMobile = useIsMobile();
   const { conversations, loading, totalUnread } = useConversations();
   const [active, setActive] = useState<{ id: string; otherUserId: string } | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
