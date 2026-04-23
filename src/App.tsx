@@ -65,6 +65,14 @@ const AdminOOTD = lazyWithRetry(() => import("@/pages/admin/AdminOOTD"), "AdminO
 const AdminContent = lazyWithRetry(() => import("@/pages/admin/AdminContent"), "AdminContent");
 const AdminSettings = lazyWithRetry(() => import("@/pages/admin/AdminSettings"), "AdminSettings");
 const AdminDiagnostics = lazyWithRetry(() => import("@/pages/admin/AdminDiagnostics"), "AdminDiagnostics");
+const AdminAdmins = lazyWithRetry(() => import("@/pages/admin/AdminAdmins"), "AdminAdmins");
+const AdminAuditLog = lazyWithRetry(() => import("@/pages/admin/AdminAuditLog"), "AdminAuditLog");
+const AdminBrandCalibration = lazyWithRetry(() => import("@/pages/admin/AdminBrandCalibration"), "AdminBrandCalibration");
+const AdminFitRules = lazyWithRetry(() => import("@/pages/admin/AdminFitRules"), "AdminFitRules");
+const AdminFallbackTables = lazyWithRetry(() => import("@/pages/admin/AdminFallbackTables"), "AdminFallbackTables");
+const AdminFitFeedback = lazyWithRetry(() => import("@/pages/admin/AdminFitFeedback"), "AdminFitFeedback");
+const AdminFeatureFlags = lazyWithRetry(() => import("@/pages/admin/AdminFeatureFlags"), "AdminFeatureFlags");
+const AdminAppConfig = lazyWithRetry(() => import("@/pages/admin/AdminAppConfig"), "AdminAppConfig");
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
@@ -166,10 +174,18 @@ const AppRoutes = () => {
             <Route index element={<AdminOverview />} />
             <Route path="diagnostics" element={<AdminDiagnostics />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="admins" element={<AdminAdmins />} />
+            <Route path="audit" element={<AdminAuditLog />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="ootd" element={<AdminOOTD />} />
             <Route path="content" element={<AdminContent />} />
+            <Route path="brand-calibration" element={<AdminBrandCalibration />} />
+            <Route path="fit-rules" element={<AdminFitRules />} />
+            <Route path="fallback-tables" element={<AdminFallbackTables />} />
+            <Route path="fit-feedback" element={<AdminFitFeedback />} />
+            <Route path="feature-flags" element={<AdminFeatureFlags />} />
+            <Route path="app-config" element={<AdminAppConfig />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
 
