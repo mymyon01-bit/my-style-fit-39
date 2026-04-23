@@ -1,17 +1,19 @@
-import { useState, useCallback, ImgHTMLAttributes } from "react";
+import { forwardRef, useState, useCallback, ImgHTMLAttributes } from "react";
 import { ImageOff } from "lucide-react";
 
 interface SafeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   fallbackClassName?: string;
   fallbackSrcs?: string[];
-  eager?: boolean; // mark above-the-fold images for eager loading
+  eager?: boolean;
 }
 
-/** Validates a URL is a proper https image link */
 function isValidImageUrl(url: unknown): url is string {
   if (!url || typeof url !== "string") return false;
   const trimmed = url.trim();
   if (!trimmed || trimmed === "null" || trimmed === "undefined") return false;
+  if (trimmed.startsWith("data:image/")) return true;
+  if (trimmed.startsWith("blob:")) return true;
+  if (/^(\/|\.\.?\/)/.test(trimmed)) return true;
   try {
     const u = new URL(trimmed);
     return u.protocol === "https:" || u.protocol === "http:";
@@ -20,7 +22,6 @@ function isValidImageUrl(url: unknown): url is string {
   }
 }
 
-/** Resolves the best available image from multiple possible fields */
 export function resolveImageUrl(
   ...candidates: (string | string[] | null | undefined)[]
 ): string | null {
@@ -30,13 +31,16 @@ export function resolveImageUrl(
         if (isValidImageUrl(item)) return item.trim();
       }
     } else if (isValidImageUrl(c)) {
-      return (c as string).trim();
+      return c.trim();
     }
   }
   return null;
 }
 
-const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager, ...props }: SafeImageProps) => {
+const SafeImage = forwardRef<HTMLImageElement, SafeImageProps>(function SafeImage(
+  { src, alt, className, fallbackClassName, fallbackSrcs, eager, onLoad, onError, ...props },
+  ref,
+) {
   const allSrcs = [src, ...(fallbackSrcs || [])].filter(isValidImageUrl);
   const [srcIndex, setSrcIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -44,15 +48,27 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager
 
   const currentSrc = allSrcs[srcIndex];
 
-  const handleError = useCallback(() => {
-    if (srcIndex < allSrcs.length - 1) {
-      setSrcIndex(prev => prev + 1);
-      setLoaded(false);
-    } else {
+  const handleLoad = useCallback(
+    (event: React.SyntheticEvent<HTMLImageElement>) => {
+      setLoaded(true);
+      onLoad?.(event);
+    },
+    [onLoad],
+  );
+
+  const handleError = useCallback(
+    (event: React.SyntheticEvent<HTMLImageElement>) => {
+      if (srcIndex < allSrcs.length - 1) {
+        setSrcIndex((prev) => prev + 1);
+        setLoaded(false);
+        return;
+      }
       setFailed(true);
       console.warn(`[SafeImage] All sources failed for "${alt}"`, allSrcs);
-    }
-  }, [srcIndex, allSrcs.length, alt]);
+      onError?.(event);
+    },
+    [srcIndex, allSrcs, alt, onError],
+  );
 
   if (!currentSrc || failed) {
     return (
@@ -62,8 +78,6 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager
     );
   }
 
-  // Premium load-in: blurred placeholder swap → sharp image fades+unblurs.
-  // Image is always mounted so the slot height never collapses (no layout shift).
   return (
     <div className="relative h-full w-full">
       {!loaded && (
@@ -73,6 +87,7 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager
         />
       )}
       <img
+        ref={ref}
         src={currentSrc}
         alt={alt || ""}
         className={`${className || ""} ${loaded ? "animate-blur-up" : "opacity-0"}`}
@@ -80,12 +95,12 @@ const SafeImage = ({ src, alt, className, fallbackClassName, fallbackSrcs, eager
         decoding="async"
         // @ts-expect-error fetchpriority is a valid HTML attr but not yet typed
         fetchpriority={eager ? "high" : "low"}
-        onLoad={() => setLoaded(true)}
+        onLoad={handleLoad}
         onError={handleError}
         {...props}
       />
     </div>
   );
-};
+});
 
 export default SafeImage;

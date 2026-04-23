@@ -135,10 +135,11 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
               source: "db" as const,
             });
           });
-        // Combine DB + mock for full pool
-        const full = [...mapped, ...MOCK_CATALOG]
+        // FIT should share the same real inventory pool as Discover.
+        // Only fall back to demo items when the DB returns nothing usable.
+        const full = (mapped.length > 0 ? mapped : MOCK_CATALOG)
           .filter((p) => {
-            const hasImage = !!p.image && /^(https?:\/\/|data:image\/)/i.test(p.image);
+            const hasImage = !!p.image && /^(https?:\/\/|data:image\/|blob:|\/)/i.test(p.image);
             const hasCategory = !!p.category && p.category !== "other";
             return hasImage && hasCategory;
           });

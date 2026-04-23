@@ -130,11 +130,66 @@ async function parseHttpError(error: unknown): Promise<TryOnInvokeResult> {
 // an explicit AbortController timeout so the UI never gets stuck.
 const INVOKE_TIMEOUT_MS = 75_000;
 
+function isRelativeUrl(value: string) {
+  return /^(\/|\.\.?\/)/.test(value);
+}
+
+function isPreviewScopedImageUrl(value: string) {
+  if (typeof window === "undefined") return false;
+  if (value.startsWith("blob:")) return true;
+  if (isRelativeUrl(value)) return true;
+  if (value.startsWith("data:image/")) return false;
+  try {
+    const url = new URL(value, window.location.href);
+    return url.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error ?? new Error("file_read_failed"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function imageUrlToDataUrl(url: string): Promise<string> {
+  const resolved = typeof window !== "undefined" ? new URL(url, window.location.href).toString() : url;
+  const response = await fetch(resolved);
+  if (!response.ok) throw new Error(`image_fetch_failed:${response.status}`);
+  const blob = await response.blob();
+  if (blob.type.includes("text/html")) throw new Error("expected_image_got_html");
+  return blobToDataUrl(blob);
+}
+
+async function prepareEdgeImageUrl(url?: string | null): Promise<string | undefined> {
+  const trimmed = url?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith("data:image/")) return trimmed.replace(/\s/g, "");
+  if (!isPreviewScopedImageUrl(trimmed)) return trimmed;
+  try {
+    return await imageUrlToDataUrl(trimmed);
+  } catch (error) {
+    console.warn("[FIT_TRYON] failed to inline preview-scoped image", error);
+    return trimmed;
+  }
+}
+
 async function invokeTryOnDirect(body: CreateTryOnBody): Promise<TryOnInvokeResult> {
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fit-tryon-router`;
   const anon = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
   const { data: sess } = await supabase.auth.getSession();
   const token = sess?.session?.access_token ?? anon;
+  const requestBody = body.action === "create"
+    ? {
+        ...body,
+        userImageUrl: await prepareEdgeImageUrl(body.userImageUrl),
+        productImageUrl: await prepareEdgeImageUrl(body.productImageUrl),
+      }
+    : body;
   const ctrl = new AbortController();
   const timer = window.setTimeout(() => ctrl.abort(), INVOKE_TIMEOUT_MS);
   try {
@@ -145,7 +200,7 @@ async function invokeTryOnDirect(body: CreateTryOnBody): Promise<TryOnInvokeResu
         apikey: anon,
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
       signal: ctrl.signal,
     });
     const status = res.status;
