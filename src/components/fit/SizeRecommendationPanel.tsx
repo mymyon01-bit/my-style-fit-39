@@ -173,6 +173,9 @@ export default function SizeRecommendationPanel({
               )}
             </span>
           )}
+          {recommendation.sizes.length > 0 && (recommendation as any).category && null}
+          {/* Calibration chip — shown when brand rule or community feedback shifted the chart */}
+        </div>
         </div>
         <div className="inline-flex rounded-full border border-foreground/10 p-0.5 bg-card/40">
           {PREF_OPTIONS.map((o) => (
