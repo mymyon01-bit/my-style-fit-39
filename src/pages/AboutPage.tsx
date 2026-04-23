@@ -12,12 +12,14 @@
  * Motion: SectionReveal handles the gentle fade-in-on-scroll. No heavy
  * animation libraries. Hardcoded layout, only content changes.
  */
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Megaphone } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import SectionReveal from "@/components/SectionReveal";
 import Footer from "@/components/Footer";
 import HeroTransformation from "@/components/HeroTransformation";
+import ContactUsDialog from "@/components/ContactUsDialog";
 
 const FEATURES = [
   "AI-powered product discovery",
