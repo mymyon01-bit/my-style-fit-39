@@ -15,10 +15,12 @@ import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
 import MyPageProfileHeader from "@/components/MyPageProfileHeader";
 import MyPageInboxCard from "@/components/ootd/MyPageInboxCard";
-import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
+import MailboxPopup from "@/components/messages/MailboxPopup";
+import MailboxIcon from "@/components/messages/MailboxIcon";
 import NotificationsSheet from "@/components/NotificationsSheet";
 import FeedTopRow from "@/components/ootd/FeedTopRow";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 
