@@ -38,7 +38,7 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "mannequin-lock-v4";
+const STUDIO_RENDER_VERSION = "mannequin-lock-v5-headroom";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
@@ -282,6 +282,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       consequenceLine,
       fallbackLine,
       `Bag rendering: preserve the EXACT shape, color, hardware, and material of the reference product. Show on the mannequin's shoulder, crossbody, or held in a sculpted mannequin hand naturally.`,
+      `FRAMING: full-body shot with at least 10–14% empty headroom above the top of the head and 5–8% space below the feet. NEVER crop the head, top of skull, hands, or feet. The mannequin head must be ENTIRELY inside the frame.`,
       `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body.`,
       MANNEQUIN_NEGATIVES,
       `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the product.`,
@@ -305,10 +306,10 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     `Garment behavior: garment must wrap correctly around the mannequin, respect gravity and drape, no floating clothing, no broken sleeves, no missing parts, no torn seams. Hoodies/jackets show outer-layer volume, pants show waist/thigh/length changes, tops emphasize chest and shoulders.`,
     regions,
     `Pose: neutral front-facing standing mannequin pose, arms slightly away from the sides in a static display position. NOT a fashion-model pose, NOT lifestyle, NOT candid. Focus is silhouette and garment fit only.`,
-    `Framing: neck-down crop OR smooth featureless mannequin head. NEVER a real face.`,
+    `FRAMING + COMPOSITION (HARD RULE — HIGHEST PRIORITY): Render a COMPLETE FULL-BODY shot. The ENTIRE mannequin must fit inside the frame from the TOP OF THE HEAD down to BELOW THE FEET, with clear empty studio space (HEADROOM) of at least 10–14% of the image height ABOVE the top of the head, and at least 5–8% below the feet. NEVER crop, cut, chop, slice, or clip the head, top of skull, neck, shoulders, hands, fingers, hips, knees, ankles, or feet. The top of the mannequin's head MUST be clearly visible with breathing room above it — it MUST NOT touch or exceed the top edge of the frame. Camera is centered at chest height, slightly pulled back so the full standing figure is visible. The smooth featureless mannequin head must be ENTIRELY inside the frame; a half-cropped or partially-decapitated head is FORBIDDEN. Alternative neck-down crop is acceptable ONLY if cleanly cut at the lower neck — never mid-head, never mid-skull.`,
     `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body, NO environment, NO lifestyle context.`,
     MANNEQUIN_NEGATIVES,
-    `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity, NO real person.`,
+    `Strictly NO cropped head, NO chopped head, NO half-head, NO decapitated mannequin, NO head touching the top edge, NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity, NO real person.`,
     `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base, same camera, same pose, same lighting across all sizes; only the garment fit and fabric behavior change. Visual clarity of the size difference is more important than photographic realism. Model-type consistency (faceless mannequin) is mandatory.`,
     safeModeSuffixEarly,
   ].filter(Boolean).join(" ");
