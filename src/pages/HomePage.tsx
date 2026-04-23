@@ -23,6 +23,7 @@ import Footer from "@/components/Footer";
 import Brandmark from "@/components/Brandmark";
 import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
+import OOTDDiaryButton from "@/components/OOTDDiaryButton";
 import { useAuth } from "@/lib/auth";
 
 const HomePage = () => {
@@ -148,6 +149,16 @@ const HomePage = () => {
                 )}
               </button>
             </div>
+          </motion.div>
+
+          {/* OOTD Diary entry — playful, decorative */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-7 flex justify-center"
+          >
+            <OOTDDiaryButton />
           </motion.div>
 
           {/* Single-line round button row */}
