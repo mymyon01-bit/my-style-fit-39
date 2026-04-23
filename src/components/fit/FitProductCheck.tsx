@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Link2, Search, Info, Loader2, ShieldCheck, RefreshCw, Sparkles } from "lucide-react";
+import { Link2, Search, Info, Loader2, ShieldCheck, RefreshCw, Sparkles, Sliders, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { mockProductFitData } from "@/lib/fitEngine";
@@ -13,6 +13,8 @@ import {
   type GenderFilter,
 } from "@/lib/discover/genderFilter";
 import { wasRecentlyShown, markProductsAsSeen } from "@/lib/search/search-session";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 6;
 const POOL_SIZE = 120;
