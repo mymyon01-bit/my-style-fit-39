@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link2, Search, Info, Loader2, ShieldCheck, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,10 @@ import {
   genderPreferenceToFilter,
   type GenderFilter,
 } from "@/lib/discover/genderFilter";
+import { wasRecentlyShown, markProductsAsSeen } from "@/lib/search/search-session";
+
+const PAGE_SIZE = 6;
+const POOL_SIZE = 120;
 
 interface FitProduct {
   id: string;
