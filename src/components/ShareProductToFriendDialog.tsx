@@ -11,6 +11,7 @@
  * that MessageBubble will render as a tappable preview card.
  */
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Search, Loader2, Check, Users, AtSign } from "lucide-react";
 import { toast } from "sonner";
@@ -203,14 +204,14 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
     }
   }
 
-  return (
+  const node = (
     <AnimatePresence>
       {open && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[125] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
           onClick={onClose}
         >
           <motion.div
@@ -358,4 +359,7 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(node, document.body);
 }
