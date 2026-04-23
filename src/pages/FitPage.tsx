@@ -107,6 +107,23 @@ const FitPage = () => {
   const [selectedBodyImage, setSelectedBodyImage] = useState<UserBodyImage | null>(null);
   // Simple shape inputs — refine fit accuracy without raw cm.
   const [bodyShape, setBodyShape] = useState<import("@/lib/fit/bodyShape").BodyShapeInput>({});
+  // ─── BODY GENDER LOCK ────────────────────────────────────────────────────
+  // Single source of truth: profiles.gender_preference. The body in every fit
+  // visualization MUST match the user's gender — never the product's gender.
+  const [bodyGender, setBodyGender] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) { setBodyGender(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("gender_preference")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled && data?.gender_preference) setBodyGender(data.gender_preference);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const handleSelectBodyImage = useCallback((image: UserBodyImage, url: string) => {
     setSelectedBodyImage(image);
@@ -540,7 +557,7 @@ const FitPage = () => {
                   bodyHeightCm={measurements.heightCm.value}
                   bodyWeightKg={weightKg}
                   bodyShape={bodyShape}
-                  bodyGender={(bodyShape as any)?.gender ?? null}
+                  bodyGender={bodyGender ?? (bodyShape as any)?.gender ?? null}
                   bodyShoulderCm={measurements.shoulderWidthCm?.value ?? null}
                   bodyChestCm={measurements.chestCm?.value ?? null}
                   bodyWaistCm={measurements.waistCm?.value ?? null}
