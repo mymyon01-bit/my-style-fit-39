@@ -44,22 +44,9 @@ const PLATFORM_COLORS: Record<string, string> = {
 const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: ProductDetailSheetProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { code: referralCode } = useReferralCode();
   const [postOpen, setPostOpen] = useState(false);
-  const [msgOpen, setMsgOpen] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [shareInOOTDOpen, setShareInOOTDOpen] = useState(false);
   if (!product) return null;
-
-  const buildShareLink = () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = new URL(`${origin}/discover`);
-    url.searchParams.set("p", product.id);
-    if (referralCode) url.searchParams.set("ref", referralCode);
-    return url.toString();
-  };
-
-  const shareUrl = buildShareLink();
-  const shareTitle = `${product.brand} — ${product.name}`;
 
   const handleTryOn = () => {
     const parsed = product.price ? parseFloat(String(product.price).replace(/[^0-9.]/g, "")) : NaN;
@@ -81,52 +68,6 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
     onClose();
     navigate(`/fit/${encodeURIComponent(product.id)}`);
   };
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copied");
-    } catch {
-      toast.error("Could not copy");
-    }
-    setShareMenuOpen(false);
-  };
-
-  const sendViaMessages = async () => {
-    if (!user) {
-      toast.error("Sign in to send via Messages");
-      setShareMenuOpen(false);
-      return;
-    }
-    try { await navigator.clipboard.writeText(`${shareTitle} — ${shareUrl}`); } catch {}
-    toast.success("Link copied — pick a chat to paste it");
-    setShareMenuOpen(false);
-    setMsgOpen(true);
-  };
-
-  const openExternal = (base: string, useTitle = false) => {
-    const text = useTitle ? `${shareTitle} — ${shareUrl}` : shareUrl;
-    window.open(base + encodeURIComponent(text), "_blank", "noopener,noreferrer");
-    setShareMenuOpen(false);
-  };
-
-  const shareToKakao = async () => {
-    try { await navigator.clipboard.writeText(`${shareTitle} — ${shareUrl}`); } catch {}
-    const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`;
-    window.open(kakaoUrl, "_blank", "noopener,noreferrer");
-    toast.success("Opening KakaoTalk…");
-    setShareMenuOpen(false);
-  };
-
-  const shareItems = [
-    { key: "copy", label: "Copy link", icon: <Link2 className="h-3.5 w-3.5" />, onClick: copyLink },
-    { key: "msg", label: "Send via Messages", icon: <Inbox className="h-3.5 w-3.5" />, onClick: sendViaMessages },
-    { key: "kakao", label: "KakaoTalk", icon: <MessageSquare className="h-3.5 w-3.5" />, onClick: shareToKakao },
-    { key: "wa", label: "WhatsApp", icon: <MessageCircle className="h-3.5 w-3.5" />, onClick: () => openExternal("https://wa.me/?text=", true) },
-    { key: "tg", label: "Telegram", icon: <Send className="h-3.5 w-3.5" />, onClick: () => openExternal(`https://t.me/share/url?text=${encodeURIComponent(shareTitle)}&url=`) },
-    { key: "fb", label: "Facebook", icon: <Globe className="h-3.5 w-3.5" />, onClick: () => openExternal("https://www.facebook.com/sharer/sharer.php?u=") },
-    { key: "tw", label: "X / Twitter", icon: <Hash className="h-3.5 w-3.5" />, onClick: () => openExternal(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=`) },
-  ];
 
   const tags = [
     ...(product.style_tags || []),
