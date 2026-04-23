@@ -440,33 +440,57 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
-      <div className="mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-        <div className="flex items-baseline justify-between mb-8">
-          <div className="lg:hidden"><Brandmark variant="inline" /></div>
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
+      {/* Sticky tab line — pinned directly under the main menu bar so users
+          can always jump between Ranking / Feed / Community / My Page. */}
+      <div className="sticky top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
+        <div className="mx-auto max-w-lg px-6 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+          <div className="flex items-center gap-3">
+            <div className="lg:hidden shrink-0"><Brandmark variant="inline" /></div>
+            <div className="flex flex-1 min-w-0">
+              {([
+                { key: "ranking" as const, label: "RANKING" },
+                { key: "feed" as const, label: "FEED" },
+                { key: "community" as const, label: "COMMUNITY" },
+                { key: "mypage" as const, label: "MY PAGE" },
+              ]).map(({ key, label }) => (
+                <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 py-3.5 text-center">
+                  <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+                    activeTab === key ? "text-foreground/90" : "text-foreground/45"
+                  }`}>
+                    {label}
+                  </span>
+                  {activeTab === key && (
+                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/60" />
+                  )}
+                </button>
+              ))}
+            </div>
             {user && (
-              <div className="flex items-center gap-1.5">
-                <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                  <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
+                </div>
+                {notifUnread > 0 && (
+                  <button
+                    onClick={() => setNotifsOpen(true)}
+                    className="relative text-foreground/75 hover:text-foreground transition-colors"
+                    aria-label="Open notifications"
+                  >
+                    <Bell className="h-4 w-4" />
+                    <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                      {notifUnread > 99 ? "99+" : notifUnread}
+                    </span>
+                  </button>
+                )}
               </div>
-            )}
-            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75">OOTD</span>
-            {user && notifUnread > 0 && (
-              <button
-                onClick={() => setNotifsOpen(true)}
-                className="relative text-foreground/75 hover:text-foreground transition-colors"
-                aria-label="Open notifications"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
-                  {notifUnread > 99 ? "99+" : notifUnread}
-                </span>
-              </button>
             )}
           </div>
         </div>
+      </div>
 
+      <div className="mx-auto max-w-lg px-6 pt-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         {/* My Page profile header — owner-only quick edit + privacy */}
         {activeTab === "mypage" && user && (
           <MyPageProfileHeader
@@ -498,31 +522,6 @@ const OOTDPage = () => {
             onLoaded={setAllStoryUsers}
           />
         )}
-      </div>
-
-      {/* Sticky tab line — stays pinned at the top while scrolling the tab content */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
-        <div className="mx-auto max-w-lg px-6 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-          <div className="flex">
-            {([
-              { key: "ranking" as const, label: "RANKING" },
-              { key: "feed" as const, label: "FEED" },
-              { key: "community" as const, label: "COMMUNITY" },
-              { key: "mypage" as const, label: "MY PAGE" },
-            ]).map(({ key, label }) => (
-              <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 py-4 text-center">
-                <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 ${
-                  activeTab === key ? "text-foreground/90" : "text-foreground/45"
-                }`}>
-                  {label}
-                </span>
-                {activeTab === key && (
-                  <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/60" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
 
