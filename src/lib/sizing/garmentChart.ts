@@ -14,6 +14,11 @@ import {
   getDefaultChartForGender,
 } from "./categoryRules";
 import { requestSizeChartFetch, makeProductKey } from "@/lib/fit/garmentSizeResolver";
+import {
+  loadBrandCalibration,
+  applyCalibration,
+  type CalibrationOffset,
+} from "./brandCalibration";
 import type { Gender, Region, SizingCategory } from "./types";
 
 export interface SizeMeasurements {
@@ -29,7 +34,7 @@ export interface SizeMeasurements {
 
 export interface GarmentChart {
   category: SizingCategory;
-  /** Map size label → measurements. Ordered list available via `sizeOrder`. */
+  /** Map size label → measurements (POST-calibration). */
   sizes: Record<string, SizeMeasurements>;
   sizeOrder: string[];
   /** Where each size came from. */
@@ -40,6 +45,8 @@ export interface GarmentChart {
   usedCategoryDefaults: boolean;
   /** Confidence in the chart as a whole. */
   confidence: "high" | "medium" | "low";
+  /** Brand+community calibration offset applied to every size. Zero when none. */
+  calibration: CalibrationOffset;
 }
 
 interface DbRow {
