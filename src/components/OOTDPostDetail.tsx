@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import ShareButton from "@/components/ShareButton";
+import ShareToOOTDDialog from "@/components/ShareToOOTDDialog";
+import { Repeat2 } from "lucide-react";
 import PostThemeBackground, { POST_THEMES, loadSavedPostTheme, savePostTheme, type PostTheme } from "@/components/ootd/PostThemeBackground";
 
 interface OOTDPost {
@@ -72,6 +74,7 @@ export default function OOTDPostDetail({
   const [showPostMenu, setShowPostMenu] = useState(false);
   const [postTheme, setPostTheme] = useState<PostTheme>(() => loadSavedPostTheme());
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   const isOwner = user?.id === post.user_id;
   const title = post.caption ? post.caption.split(/\s+/)[0] : null;
@@ -413,10 +416,21 @@ export default function OOTDPostDetail({
               </button>
             </AuthGate>
             {!(post.topics || []).includes("__noshare") && (
-              <ShareButton
-                title={post.caption || "OOTD"}
-                url={`${window.location.origin}/user/${post.user_id}?post=${post.id}`}
-              />
+              <>
+                <AuthGate action="share">
+                  <button
+                    onClick={() => setShowShareDialog(true)}
+                    className="flex items-center gap-1 text-foreground/50 transition-colors hover:text-foreground/80"
+                    aria-label="Repost or send to a friend"
+                  >
+                    <Repeat2 className="h-4 w-4" />
+                  </button>
+                </AuthGate>
+                <ShareButton
+                  title={post.caption || "OOTD"}
+                  url={`${window.location.origin}/user/${post.user_id}?post=${post.id}`}
+                />
+              </>
             )}
             <AuthGate action="give stars">
               <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/50 hover:text-foreground/80"}`}>
@@ -490,6 +504,18 @@ export default function OOTDPostDetail({
         )}
         </div>
       </motion.div>
+
+      <ShareToOOTDDialog
+        open={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        post={{
+          id: post.id,
+          user_id: post.user_id,
+          image_url: post.image_url,
+          caption: post.caption,
+        }}
+        author={profile ? { display_name: profile.display_name, username: null, avatar_url: profile.avatar_url } : null}
+      />
     </motion.div>
   );
 }
