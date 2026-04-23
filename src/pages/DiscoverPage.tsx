@@ -648,7 +648,7 @@ export default function DiscoverPage() {
             <InterpretationBanner query={committedQuery} chips={intentChips} fallbackUsed={intentFallback} />
 
             {/* Layer 2 — Styled Looks shell */}
-            <StyledLooksRow products={styledLooksPool} />
+            <StyledLooksRow products={styledLooksPool} onSelect={setDetailProduct} />
 
             {/* AI AD strip — sits right above the live grid */}
             <DiscoverAdRow pool={allLiveResults.length > 0 ? allLiveResults : dbTopProducts} />
