@@ -11,7 +11,7 @@ export interface ChatAttachment {
    *  - "product"       — an in-app product share (renders a tappable card)
    */
   url: string;
-  type: "image" | "file" | "ootd_post" | "namecard" | "product";
+  type: "image" | "file" | "ootd_post" | "namecard" | "product" | "story";
   name?: string;
   size?: number;
   /** Extra metadata used by ootd_post / namecard / product renderers. */
