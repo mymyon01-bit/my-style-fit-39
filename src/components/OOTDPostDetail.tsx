@@ -420,10 +420,11 @@ export default function OOTDPostDetail({
                 <AuthGate action="share">
                   <button
                     onClick={() => setShowShareDialog(true)}
-                    className="flex items-center gap-1 text-foreground/50 transition-colors hover:text-foreground/80"
+                    className="flex items-center gap-1 rounded-full border border-accent/30 bg-accent/[0.06] px-2 py-0.5 text-accent/80 transition-colors hover:bg-accent/15 hover:text-accent"
                     aria-label="Repost or send to a friend"
                   >
-                    <Repeat2 className="h-4 w-4" />
+                    <Repeat2 className="h-3.5 w-3.5" />
+                    <span className="text-[9.5px] font-semibold tracking-[0.14em] uppercase">Repost</span>
                   </button>
                 </AuthGate>
                 <ShareButton
