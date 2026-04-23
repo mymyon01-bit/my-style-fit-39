@@ -127,12 +127,7 @@ function SizeComparisonCard({ result, isRecommended, isAlternate }: {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-sm font-bold ${
-            result.fitScore >= 80 ? "text-green-500" : result.fitScore >= 60 ? "text-accent" : "text-orange-500"
-          }`}>{result.fitScore}</span>
-          <ChevronDown className={`h-4 w-4 text-foreground/40 transition-transform ${expanded ? "rotate-180" : ""}`} />
-        </div>
+        <ChevronDown className={`h-4 w-4 text-foreground/40 transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence>
         {expanded && (
