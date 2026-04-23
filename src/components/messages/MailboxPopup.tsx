@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, MessageCircle, X, GripHorizontal } from "lucide-react";
+import { Loader2, Mail, X, GripHorizontal } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useConversations } from "@/hooks/useMessages";
 import MessageThread from "./MessageThread";
