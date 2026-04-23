@@ -538,6 +538,14 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
           </motion.div>
         </motion.div>
       )}
+      <EmailVerificationModal
+        open={emailGateOpen}
+        onOpenChange={(o) => {
+          setEmailGateOpen(o);
+          if (!o && emailVerified === false) onClose();
+        }}
+        onVerified={() => setEmailGateOpen(false)}
+      />
     </AnimatePresence>
   );
 });
