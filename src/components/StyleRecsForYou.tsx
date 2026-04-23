@@ -72,7 +72,7 @@ export default function StyleRecsForYou({
   const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const lastKeyRef = useRef<string>("");
-  const [expanded, setExpanded] = useState<StyleLookOutfit | null>(null);
+  
 
   // Build a dedupe key so we don't re-fetch on every render
   const fetchKey = JSON.stringify({

@@ -83,18 +83,9 @@ const DailyPicks = () => {
 
   return (
     <div className="space-y-7 md:space-y-8">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Sparkles className="h-4 w-4 text-accent/80" />
-          <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/65 md:text-[11px]">TODAY'S PICKS</p>
-        </div>
-        <button
-          onClick={() => setExpanded(current as StyleLookOutfit)}
-          aria-label="Expand look with AI image"
-          className="h-8 w-8 rounded-full border border-foreground/15 flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+      <div className="flex items-center gap-3">
+        <Sparkles className="h-4 w-4 text-accent/80" />
+        <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/65 md:text-[11px]">TODAY'S PICKS</p>
       </div>
       <div className="flex gap-6 md:gap-8">
         {outfits.map((o, i) => (
