@@ -639,7 +639,7 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
   const existing = userId ? await getTryOnByIdentity(admin, userId, { ...body, productKey: cacheKey }) : null;
   const existingMeta = (existing?.metadata || {}) as Record<string, unknown>;
   const studioCacheApproved = mode !== "studio"
-    || (existingMeta.renderVersion === STUDIO_RENDER_VERSION && existingMeta.reviewStatus === "passed");
+    || existingMeta.renderVersion === STUDIO_RENDER_VERSION;
 
   if (existing && !body.forceRegenerate && existing.status === "succeeded" && existing.result_image_url && studioCacheApproved) {
     logRouter("CACHE_HIT", { id: existing.id, mode });
@@ -674,7 +674,6 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
           retryAfterUntil: null,
           sourceUrl: result.imageUrl,
           renderVersion: mode === "studio" ? STUDIO_RENDER_VERSION : record.metadata?.renderVersion ?? null,
-          reviewStatus: mode === "studio" ? "passed" : "skipped",
         },
       });
       return toSuccess(record, persistedUrl);
