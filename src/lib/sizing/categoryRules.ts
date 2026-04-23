@@ -37,6 +37,20 @@ export interface CategoryRule {
   lengthMode: "strict" | "lenient" | "ignore";
   /** Category defaults — used when no scraped chart exists. */
   defaultChart: Record<string, Partial<Record<Region, number>>>;
+  /**
+   * OPTIONAL gender-specific default charts (per the strict FIT spec
+   * standard size tables). When present, `getDefaultChartForGender` will
+   * pick this over `defaultChart`.
+   */
+  defaultChartByGender?: Partial<Record<Gender, Record<string, Partial<Record<Region, number>>>>>;
+}
+
+/** Pick the right default chart for a gender, falling back to the unisex one. */
+export function getDefaultChartForGender(
+  rule: CategoryRule,
+  gender: Gender,
+): Record<string, Partial<Record<Region, number>>> {
+  return rule.defaultChartByGender?.[gender] ?? rule.defaultChart;
 }
 
 /** Map a free-text category to a normalized SizingCategory. */
