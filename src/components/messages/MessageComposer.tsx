@@ -1,5 +1,5 @@
 import { useRef, useState, KeyboardEvent } from "react";
-import { Send, Image as ImageIcon, Paperclip, X, Loader2 } from "lucide-react";
+import { Send, Image as ImageIcon, Paperclip, X, Loader2, Camera, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -26,7 +26,9 @@ export default function MessageComposer({ onSend, disabled }: Props) {
   const [sending, setSending] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const updateMentionState = (value: string, caret: number) => {
     const upToCaret = value.slice(0, caret);
@@ -151,27 +153,67 @@ export default function MessageComposer({ onSend, disabled }: Props) {
         </div>
       )}
 
-      <div className="flex items-end gap-2 rounded-2xl border border-border/40 bg-card p-2 shadow-soft">
-        <input ref={imgInputRef} type="file" accept="image/*" capture="environment" onChange={onPickImage} className="hidden" />
+      <div className="flex items-end gap-2 rounded-2xl border-2 border-foreground/15 bg-card p-2 shadow-soft transition-colors focus-within:border-foreground/40">
+        <input ref={imgInputRef} type="file" accept="image/*" onChange={onPickImage} className="hidden" />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={onPickImage} className="hidden" />
         <input ref={fileInputRef} type="file" onChange={onPickFile} className="hidden" />
-        <button
-          type="button"
-          onClick={() => imgInputRef.current?.click()}
-          disabled={disabled || uploading || sending}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/60 hover:bg-muted hover:text-foreground disabled:opacity-40"
-          aria-label="Attach photo"
-        >
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || uploading || sending}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/60 hover:bg-muted hover:text-foreground disabled:opacity-40"
-          aria-label="Attach file"
-        >
-          <Paperclip className="h-4 w-4" />
-        </button>
+
+        {/* + picker button */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setPickerOpen((v) => !v)}
+            disabled={disabled || uploading || sending}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all disabled:opacity-40 ${
+              pickerOpen
+                ? "rotate-45 border-foreground bg-foreground text-background"
+                : "border-foreground/20 text-foreground/70 hover:border-foreground/45 hover:text-foreground"
+            }`}
+            aria-label="Add attachment"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-5 w-5" strokeWidth={2.6} />}
+          </button>
+
+          {pickerOpen && (
+            <>
+              {/* click-away */}
+              <div
+                className="fixed inset-0 z-[55]"
+                onClick={() => setPickerOpen(false)}
+              />
+              <div className="absolute bottom-12 left-0 z-[60] flex gap-2 rounded-2xl border-2 border-foreground/15 bg-background p-2 shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => { setPickerOpen(false); imgInputRef.current?.click(); }}
+                  className="group flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-colors hover:bg-foreground/[0.06]"
+                  aria-label="Photo"
+                >
+                  <span className="text-2xl leading-none transition-transform group-hover:scale-110">🖼️</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-foreground/70">Photo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPickerOpen(false); cameraInputRef.current?.click(); }}
+                  className="group flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-colors hover:bg-foreground/[0.06]"
+                  aria-label="Camera"
+                >
+                  <span className="text-2xl leading-none transition-transform group-hover:scale-110">📷</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-foreground/70">Camera</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPickerOpen(false); fileInputRef.current?.click(); }}
+                  className="group flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-colors hover:bg-foreground/[0.06]"
+                  aria-label="File"
+                >
+                  <span className="text-2xl leading-none transition-transform group-hover:scale-110">📎</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-foreground/70">File</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         <textarea
           ref={inputRef}
           value={text}
@@ -180,16 +222,16 @@ export default function MessageComposer({ onSend, disabled }: Props) {
           placeholder="Write a message… use @ to tag"
           rows={1}
           disabled={disabled || sending}
-          className="max-h-32 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+          className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-[13.5px] text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
         <button
           type="button"
           onClick={submit}
           disabled={disabled || sending || (!text.trim() && pending.length === 0)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background transition-all hover:scale-105 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
           aria-label="Send message"
         >
-          <Send className="h-4 w-4" />
+          <Send className="h-4 w-4" strokeWidth={2.4} />
         </button>
       </div>
     </div>
