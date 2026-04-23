@@ -244,11 +244,14 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
 
       toast.success(`Sent to ${picked.display_name || picked.username || "friend"}`);
       onClose();
-      navigate(`/ootd?tab=mypage`, {
-        state: {
-          openChat: pendingChat,
+      navigate(
+        `/ootd?tab=mypage&chat=${encodeURIComponent(conversationId)}&user=${encodeURIComponent(picked.user_id)}`,
+        {
+          state: {
+            openChat: pendingChat,
+          },
         },
-      });
+      );
     } catch (e: any) {
       console.error("[ShareProduct] handleSend error", e);
       toast.error(e?.message || "Could not send");
