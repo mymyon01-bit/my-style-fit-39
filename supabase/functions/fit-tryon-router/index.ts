@@ -199,10 +199,13 @@ function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
 
 function sizeSilhouette(size: string) {
   const s = (size || "M").toUpperCase();
-  if (s === "XS" || s === "S") return "tight body-skimming silhouette, sleeves hugging the arm, hem high on the hip, fabric pulled close with visible tension";
-  if (s === "L") return "relaxed silhouette with visible chest room, softer waist, slightly longer hem, soft drape";
-  if (s === "XL" || s === "XXL") return "oversized silhouette with dropped shoulders, generous chest and waist volume, hem near mid-thigh, deep folds and excess fabric";
-  return "fitted regular silhouette with natural ease, shoulder seam at the joint, hem at the hip";
+  if (s === "XS" || s === "S")
+    return "TIGHT / TOO-SMALL silhouette: fabric clearly stretched across chest and shoulders with visible horizontal tension lines, pulled seams at shoulder and underarm, sleeves visibly shorter than the arm, hem riding up high above the hip, garment looks compressed and about to burst — exaggerate the tightness, do NOT make it look comfortable";
+  if (s === "L")
+    return "RELAXED silhouette: visibly more space at chest and waist, soft natural folds, sleeves slightly longer, hem slightly past the hip, clearly roomier than a fitted size";
+  if (s === "XL" || s === "XXL")
+    return "OVERSIZED silhouette: exaggerated dropped shoulders well past the natural shoulder line, very generous chest and waist volume, sleeves extending past the mannequin's hands, hem near mid-thigh, deep heavy folds, blanket-like drape — exaggerate the looseness, garment must look intentionally much larger than the body";
+  return "FITTED silhouette: clean follow of the form with minimal natural ease, shoulder seam exactly on the joint, hem at the hip, no tension lines, no excess volume";
 }
 
 function regionPhrase(regions?: RegionFitLite[]) {
@@ -290,19 +293,21 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     genderLockLine,
     physicalSpec,
     `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same mannequin — only the GARMENT changes between sizes, the mannequin NEVER changes. Do NOT slim, enlarge, restyle, or adjust the mannequin in any way based on the garment size.`,
+    `LOCKED CAMERA + POSE (CONSISTENCY SYSTEM): same front-facing camera angle at chest height, same focal length, same framing, same standing posture across all size variations — straight standing, feet shoulder-width apart, arms slightly away from the body in a neutral display pose (NOT against the hips, NOT crossed, NOT a fashion pose). Only the garment fit and fabric behavior change between S/M/L/XL — the mannequin, camera, lighting, and pose stay identical.`,
     `Mannequin proportions must match the height and weight specified — do NOT default to a slim display dummy, but also do NOT modify the mannequin to compensate for a tighter or looser garment.`,
     `Preserve the EXACT style, color, print, and construction of the garment shown in the reference image.`,
     `Render the garment with a ${silhouette}.`,
     consequenceLine,
     fallbackLine,
-    `Translate fit purely into FABRIC BEHAVIOR on the unchanged mannequin: tight (S) = visible tension lines, stretched fabric, pulled seams, minimal ease; fitted (M) = clean follow of the form with natural ease; regular (L) = visible chest/waist room, soft drape, slightly longer hem; oversized (XL/XXL) = exaggerated dropped shoulders past the natural shoulder line, sleeves extending past the mannequin hands, hem extended well past the hip, deep folds. Differences MUST be visible at chest, shoulders, waist, sleeve width, and garment length.`,
+    `SIZE EXAGGERATION ENGINE (MANDATORY): each size MUST look obviously different at a glance — do NOT keep differences subtle for aesthetic reasons. TIGHT/too-small = stretched fabric, chest pulling, shoulder tension, sleeves visibly short, visible compression. FITTED = clean close-to-body silhouette, no wrinkles. REGULAR = balanced ease, natural drape. RELAXED = clear extra space at torso and arms. OVERSIZED = exaggerated volume, dropped shoulders, sleeves past hands, extended length, intentionally much larger than the body. Extreme cases: small mannequin + XL must look blanket-like; large mannequin + S must look about to burst. Differences MUST be visible at chest, shoulders, waist, sleeve width, sleeve length, and hem length.`,
+    `Garment behavior: garment must wrap correctly around the mannequin, respect gravity and drape, no floating clothing, no broken sleeves, no missing parts, no torn seams. Hoodies/jackets show outer-layer volume, pants show waist/thigh/length changes, tops emphasize chest and shoulders.`,
     regions,
-    `Pose: neutral front-facing standing mannequin pose, arms relaxed straight at the sides or in a static display position. NOT a fashion-model pose, NOT lifestyle, NOT candid. Focus is silhouette and garment fit only.`,
+    `Pose: neutral front-facing standing mannequin pose, arms slightly away from the sides in a static display position. NOT a fashion-model pose, NOT lifestyle, NOT candid. Focus is silhouette and garment fit only.`,
     `Framing: neck-down crop OR smooth featureless mannequin head. NEVER a real face.`,
-    `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body.`,
+    `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body, NO environment, NO lifestyle context.`,
     MANNEQUIN_NEGATIVES,
     `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity, NO real person.`,
-    `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base across all sizes, only the garment fit and fabric behavior changes. Model-type consistency (faceless mannequin) is more important than photographic realism.`,
+    `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base, same camera, same pose, same lighting across all sizes; only the garment fit and fabric behavior change. Visual clarity of the size difference is more important than photographic realism. Model-type consistency (faceless mannequin) is mandatory.`,
     safeModeSuffixEarly,
   ].filter(Boolean).join(" ");
 }
