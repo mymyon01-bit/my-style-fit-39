@@ -110,6 +110,63 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
     setLikeBusy(false);
   };
 
+  const sendReply = async () => {
+    const text = reply.trim();
+    if (!text || !user || !currentStory || !currentUser || isOwnCurrent || sending) return;
+    setSending(true);
+    setPaused(true);
+    try {
+      const conversationId = await openConversationWith(currentUser.user_id);
+      if (!conversationId) {
+        toast.error("Couldn't open chat");
+        return;
+      }
+      const attachment = {
+        url: currentStory.media_url,
+        type: "story" as const,
+        meta: {
+          story_id: currentStory.id,
+          user_id: currentUser.user_id,
+          username: currentUser.profile?.username ?? null,
+          display_name: currentUser.profile?.display_name ?? null,
+          avatar_url: currentUser.profile?.avatar_url ?? null,
+          image_url: currentStory.media_url,
+          media_type: (currentStory.media_type as "image" | "video") || "image",
+        },
+      };
+      const { data: msg, error } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          recipient_id: currentUser.user_id,
+          content: text,
+          tagged_user_ids: [],
+          attachments: [attachment] as any,
+        } as any)
+        .select()
+        .single();
+      if (error) {
+        console.error("story reply failed", error);
+        toast.error("Couldn't send reply");
+        return;
+      }
+      await supabase
+        .from("conversations")
+        .update({
+          last_message_at: (msg as any).created_at,
+          last_message_preview: text.slice(0, 140),
+          updated_at: (msg as any).created_at,
+        } as any)
+        .eq("id", conversationId);
+      setReply("");
+      toast.success("Reply sent");
+    } finally {
+      setSending(false);
+      setPaused(false);
+    }
+  };
+
   useEffect(() => {
     if (open) {
       setUserIdx(startUserIndex);
