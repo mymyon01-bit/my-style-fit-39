@@ -32,6 +32,20 @@ export interface MessageRow {
   created_at: string;
 }
 
+function buildConversationPreview(content: string, attachments: ChatAttachmentRow[]) {
+  const trimmed = content.trim();
+  if (trimmed) return trimmed.slice(0, 140);
+
+  const firstAttachment = attachments[0];
+  if (!firstAttachment) return "";
+
+  if ((firstAttachment as any).type === "image") return "Photo";
+  if ((firstAttachment as any).type === "file") return firstAttachment.name || "File";
+
+  const metaName = (firstAttachment as any).meta?.name;
+  return (metaName || firstAttachment.name || "Shared item").slice(0, 140);
+}
+
 /**
  * Hook: list all conversations for the current user, with the other
  * participant's profile data and unread counts. Updates in realtime.
@@ -230,10 +244,19 @@ export function useThread(conversationId: string | null) {
         console.error("send message failed", error);
         return null;
       }
+      const created = (data as unknown) as MessageRow;
+      await supabase
+        .from("conversations")
+        .update({
+          last_message_at: created.created_at,
+          last_message_preview: buildConversationPreview(created.content, created.attachments || []),
+          updated_at: created.created_at,
+        } as any)
+        .eq("id", conversationId);
       setMessages((prev) =>
-        prev.some((m) => m.id === (data as any).id) ? prev : [...prev, (data as unknown) as MessageRow],
+        prev.some((m) => m.id === created.id) ? prev : [...prev, created],
       );
-      return (data as unknown) as MessageRow;
+      return created;
     },
     [user, conversationId],
   );

@@ -20,6 +20,14 @@ import { useAuth } from "@/lib/auth";
 import { useConversations, openConversationWith } from "@/hooks/useMessages";
 import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 
+function buildSharePreview(product: ProductLite, note: string) {
+  const trimmed = note.trim();
+  if (trimmed) return trimmed.slice(0, 140);
+  const brand = product.brand?.trim();
+  const name = product.name.trim();
+  return [brand, name].filter(Boolean).join(" · ").slice(0, 140);
+}
+
 interface ProductLite {
   id: string;
   name: string;
@@ -207,7 +215,7 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
         content: note.trim() || fallbackText,
         tagged_user_ids: [],
         attachments,
-      } as any).select("id").single();
+      } as any).select("id, created_at, content").single();
       if (error) {
         console.error("[ShareProduct] insert error", error);
         throw new Error(error.message || "Send failed");
@@ -216,13 +224,23 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
         throw new Error("Message was not created");
       }
 
+      const previewText = buildSharePreview(product, String(data.content || note || fallbackText));
+      await supabase
+        .from("conversations")
+        .update({
+          last_message_at: data.created_at,
+          last_message_preview: previewText,
+          updated_at: data.created_at,
+        } as any)
+        .eq("id", conversationId);
+
       toast.success(`Sent to ${picked.display_name || picked.username || "friend"}`);
       setMessageSheet({
         open: true,
         conversationId,
         otherUserId: picked.user_id,
       });
-      onClose();
+      queueMicrotask(() => onClose());
     } catch (e: any) {
       console.error("[ShareProduct] handleSend error", e);
       toast.error(e?.message || "Could not send");
