@@ -121,6 +121,10 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
     </div>
   );
 
+  // Cap AI AD items so the row stays visually balanced; reserve last slot
+  // for the "ADD YOUR AD" CTA. Total = 6 cells (5 ads + 1 CTA).
+  const adItems = ads.slice(0, 5);
+
   return (
     <div className="space-y-3">
       {user && saved.length > 0 && (
@@ -132,14 +136,52 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
           onCta={() => navigate("/profile")}
         />
       )}
-      {ads.length > 0 && (
-        <Row
-          title="FOR YOU"
-          icon={Sparkles}
-          items={ads}
-          badge="AI AD"
-        />
+      {(adItems.length > 0 || true) && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-accent/70" />
+              <span className="text-[9px] font-semibold tracking-[0.22em] text-foreground/55">FOR YOU</span>
+              <span className="rounded-full bg-accent/15 px-1.5 py-px text-[8px] font-bold tracking-[0.15em] text-accent">
+                AI AD
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-6 gap-2">
+            {adItems.map((p) => (
+              <a
+                key={p.id}
+                href={p.source_url || "#"}
+                target={p.source_url ? "_blank" : undefined}
+                rel="noopener noreferrer"
+                className="flex flex-col gap-1"
+              >
+                <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+                  ) : null}
+                </div>
+                <p className="line-clamp-1 text-[9px] text-foreground/60">{p.brand || p.name}</p>
+              </a>
+            ))}
+            {/* ADD YOUR AD slot — opens CONTACT US dialog (mail to mymyon.01@gmail.com hidden from UI) */}
+            {Array.from({ length: Math.max(0, 5 - adItems.length) }).map((_, i) => (
+              <div key={`spacer-${i}`} className="aspect-[3/4] rounded-lg bg-foreground/[0.02]" />
+            ))}
+            <button
+              onClick={() => setContactOpen(true)}
+              className="group flex flex-col gap-1 text-left"
+              aria-label="Add your ad — contact us"
+            >
+              <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-dashed border-accent/40 bg-accent/[0.04] transition-all group-hover:bg-accent/[0.1] group-hover:border-accent/60">
+                <Plus className="h-4 w-4 text-accent/70 transition-transform group-hover:scale-110" />
+              </div>
+              <p className="line-clamp-1 text-[9px] font-semibold tracking-[0.14em] text-accent/75">ADD YOUR AD</p>
+            </button>
+          </div>
+        </div>
       )}
+      <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} topic="Add Your Ad" />
     </div>
   );
 }
