@@ -10,6 +10,7 @@ import type {
   RegionStatus,
   SizingCategory,
   Region,
+  Gender,
 } from "./types";
 
 export interface EasePerRegion {
@@ -36,6 +37,20 @@ export interface CategoryRule {
   lengthMode: "strict" | "lenient" | "ignore";
   /** Category defaults — used when no scraped chart exists. */
   defaultChart: Record<string, Partial<Record<Region, number>>>;
+  /**
+   * OPTIONAL gender-specific default charts (per the strict FIT spec
+   * standard size tables). When present, `getDefaultChartForGender` will
+   * pick this over `defaultChart`.
+   */
+  defaultChartByGender?: Partial<Record<Gender, Record<string, Partial<Record<Region, number>>>>>;
+}
+
+/** Pick the right default chart for a gender, falling back to the unisex one. */
+export function getDefaultChartForGender(
+  rule: CategoryRule,
+  gender: Gender,
+): Record<string, Partial<Record<Region, number>>> {
+  return rule.defaultChartByGender?.[gender] ?? rule.defaultChart;
 }
 
 /** Map a free-text category to a normalized SizingCategory. */
@@ -92,52 +107,87 @@ export function inferProductGender(args: {
 const TOP_WEIGHTS = { shoulder: 0.40, chest: 0.30, waist: 0.15, sleeve: 0.075, length: 0.075 };
 const PANT_WEIGHTS = { waist: 0.35, hip: 0.25, thigh: 0.20, inseam: 0.15, length: 0.05 };
 
+// ─── STANDARD SIZE TABLES (per the strict FIT spec) ────────────────────────
+// Flat chest width is given in the spec (e.g. M men 53cm). Garment chest
+// circumference = flat × 2. Shoulder & sleeve are estimated proportionally.
+// These are ONLY used when no real product chart is available.
+
+// Male tops — chest circumference (cm) = flat × 2
+const MALE_TOP_DEFAULT = {
+  XS: { shoulder: 42, chest:  96, waist:  90, sleeve: 60, length: 66 }, // flat 48
+  S:  { shoulder: 44, chest: 100, waist:  94, sleeve: 61, length: 68 }, // flat 50
+  M:  { shoulder: 46, chest: 106, waist: 100, sleeve: 62, length: 70 }, // flat 53
+  L:  { shoulder: 48, chest: 112, waist: 106, sleeve: 63, length: 72 }, // flat 56
+  XL: { shoulder: 50, chest: 120, waist: 114, sleeve: 64, length: 74 }, // flat 60
+};
+
+// Female tops — chest circumference (cm) = flat × 2
+const FEMALE_TOP_DEFAULT = {
+  XS: { shoulder: 36, chest:  84, waist:  68, sleeve: 56, length: 60 }, // flat 42
+  S:  { shoulder: 37, chest:  88, waist:  72, sleeve: 57, length: 62 }, // flat 44
+  M:  { shoulder: 38, chest:  94, waist:  76, sleeve: 58, length: 64 }, // flat 47
+  L:  { shoulder: 39, chest: 100, waist:  82, sleeve: 59, length: 66 }, // flat 50
+  XL: { shoulder: 40, chest: 108, waist:  90, sleeve: 60, length: 68 }, // flat 54
+};
+
+// Male pants — waist circumference per spec
+const MALE_PANT_DEFAULT = {
+  S:  { waist: 76, hip:  94, thigh: 56, inseam: 80, length: 105 },
+  M:  { waist: 81, hip:  99, thigh: 58, inseam: 81, length: 106 },
+  L:  { waist: 86, hip: 104, thigh: 60, inseam: 82, length: 107 },
+  XL: { waist: 91, hip: 109, thigh: 62, inseam: 82, length: 108 },
+};
+
+// Female pants — waist circumference per spec
+const FEMALE_PANT_DEFAULT = {
+  XS: { waist: 64, hip:  88, thigh: 52, inseam: 78, length: 102 },
+  S:  { waist: 68, hip:  92, thigh: 54, inseam: 78, length: 103 },
+  M:  { waist: 72, hip:  96, thigh: 56, inseam: 79, length: 104 },
+  L:  { waist: 76, hip: 100, thigh: 58, inseam: 79, length: 105 },
+  XL: { waist: 80, hip: 104, thigh: 60, inseam: 80, length: 106 },
+};
+
+// Ease bands per the strict FIT spec
+//   TOPS:    fitted +4, regular +8, relaxed +12, oversized +18
+//   BOTTOMS: fitted +2, regular +4, relaxed +6,  oversized +10
+const TOP_EASE = {
+  fitted:    { shoulder: 1, chest: 4,  waist: 4 },
+  regular:   { shoulder: 2, chest: 8,  waist: 8 },
+  relaxed:   { shoulder: 4, chest: 12, waist: 12 },
+  oversized: { shoulder: 7, chest: 18, waist: 18 },
+};
+const PANT_EASE = {
+  fitted:    { waist: 2, hip: 2, thigh: 2 },
+  regular:   { waist: 4, hip: 4, thigh: 4 },
+  relaxed:   { waist: 6, hip: 6, thigh: 6 },
+  oversized: { waist: 10, hip: 10, thigh: 10 },
+};
+
 export const CATEGORY_RULES: Record<SizingCategory, CategoryRule> = {
   tshirt: {
     regions: ["shoulder", "chest", "waist", "sleeve", "length"],
-    ease: {
-      fitted:    { shoulder: 1, chest: 4,  waist: 4 },
-      regular:   { shoulder: 2, chest: 8,  waist: 8 },
-      relaxed:   { shoulder: 4, chest: 14, waist: 14 },
-      oversized: { shoulder: 8, chest: 22, waist: 22 },
-    },
+    ease: TOP_EASE,
     weights: TOP_WEIGHTS,
     lengthMode: "lenient",
-    defaultChart: {
-      XS: { shoulder: 42, chest:  92, waist:  88, sleeve: 19, length: 64 },
-      S:  { shoulder: 44, chest:  96, waist:  92, sleeve: 20, length: 66 },
-      M:  { shoulder: 46, chest: 102, waist:  98, sleeve: 21, length: 68 },
-      L:  { shoulder: 48, chest: 108, waist: 104, sleeve: 22, length: 70 },
-      XL: { shoulder: 50, chest: 114, waist: 110, sleeve: 23, length: 72 },
-      XXL:{ shoulder: 52, chest: 120, waist: 116, sleeve: 24, length: 74 },
-    },
+    defaultChart: MALE_TOP_DEFAULT,
+    defaultChartByGender: { male: MALE_TOP_DEFAULT, female: FEMALE_TOP_DEFAULT },
   },
   shirt: {
     regions: ["shoulder", "chest", "waist", "sleeve", "length"],
-    ease: {
-      fitted:    { shoulder: 1, chest: 6,  waist: 6 },
-      regular:   { shoulder: 2, chest: 10, waist: 10 },
-      relaxed:   { shoulder: 4, chest: 16, waist: 14 },
-      oversized: { shoulder: 8, chest: 22, waist: 20 },
-    },
+    ease: TOP_EASE,
     weights: TOP_WEIGHTS,
     lengthMode: "strict",
-    defaultChart: {
-      XS: { shoulder: 43, chest:  98, waist:  92, sleeve: 60, length: 70 },
-      S:  { shoulder: 44, chest: 102, waist:  96, sleeve: 61, length: 72 },
-      M:  { shoulder: 46, chest: 108, waist: 102, sleeve: 62, length: 74 },
-      L:  { shoulder: 48, chest: 114, waist: 108, sleeve: 63, length: 76 },
-      XL: { shoulder: 50, chest: 120, waist: 114, sleeve: 64, length: 78 },
-      XXL:{ shoulder: 52, chest: 126, waist: 120, sleeve: 65, length: 80 },
-    },
+    defaultChart: MALE_TOP_DEFAULT,
+    defaultChartByGender: { male: MALE_TOP_DEFAULT, female: FEMALE_TOP_DEFAULT },
   },
   hoodie: {
     regions: ["shoulder", "chest", "waist", "sleeve", "length"],
+    // Hoodies wear roomier than the spec base — keep larger ease but match shape.
     ease: {
-      fitted:    { shoulder: 3, chest: 10, waist: 10 },
-      regular:   { shoulder: 5, chest: 18, waist: 16 },
-      relaxed:   { shoulder: 7, chest: 24, waist: 22 },
-      oversized: { shoulder: 10, chest: 30, waist: 28 },
+      fitted:    { shoulder: 3, chest: 8,  waist: 8 },
+      regular:   { shoulder: 5, chest: 14, waist: 14 },
+      relaxed:   { shoulder: 7, chest: 20, waist: 20 },
+      oversized: { shoulder: 10, chest: 28, waist: 28 },
     },
     weights: { ...TOP_WEIGHTS, shoulder: 0.30, chest: 0.35 },
     lengthMode: "lenient",
@@ -147,36 +197,25 @@ export const CATEGORY_RULES: Record<SizingCategory, CategoryRule> = {
       M:  { shoulder: 52, chest: 120, waist: 112, sleeve: 62, length: 70 },
       L:  { shoulder: 54, chest: 126, waist: 118, sleeve: 63, length: 72 },
       XL: { shoulder: 56, chest: 132, waist: 124, sleeve: 64, length: 74 },
-      XXL:{ shoulder: 58, chest: 138, waist: 130, sleeve: 65, length: 76 },
     },
   },
   knit: {
     regions: ["shoulder", "chest", "waist", "sleeve", "length"],
-    ease: {
-      fitted:    { shoulder: 1, chest: 4,  waist: 4 },
-      regular:   { shoulder: 3, chest: 10, waist: 8 },
-      relaxed:   { shoulder: 5, chest: 16, waist: 14 },
-      oversized: { shoulder: 8, chest: 22, waist: 20 },
-    },
+    ease: TOP_EASE,
     weights: TOP_WEIGHTS,
     lengthMode: "lenient",
-    defaultChart: {
-      XS: { shoulder: 43, chest:  96, waist:  90, sleeve: 60, length: 64 },
-      S:  { shoulder: 45, chest: 102, waist:  96, sleeve: 61, length: 66 },
-      M:  { shoulder: 47, chest: 108, waist: 102, sleeve: 62, length: 68 },
-      L:  { shoulder: 49, chest: 114, waist: 108, sleeve: 63, length: 70 },
-      XL: { shoulder: 51, chest: 120, waist: 114, sleeve: 64, length: 72 },
-    },
+    defaultChart: MALE_TOP_DEFAULT,
+    defaultChartByGender: { male: MALE_TOP_DEFAULT, female: FEMALE_TOP_DEFAULT },
   },
   jacket: {
     regions: ["shoulder", "chest", "waist", "sleeve", "length"],
+    // Jackets need slightly more ease than tops (worn over layers).
     ease: {
-      fitted:    { shoulder: 2, chest: 10, waist: 10 },
-      regular:   { shoulder: 4, chest: 16, waist: 14 },
-      relaxed:   { shoulder: 6, chest: 22, waist: 20 },
-      oversized: { shoulder: 9, chest: 28, waist: 26 },
+      fitted:    { shoulder: 2, chest: 8,  waist: 8 },
+      regular:   { shoulder: 4, chest: 14, waist: 14 },
+      relaxed:   { shoulder: 6, chest: 20, waist: 18 },
+      oversized: { shoulder: 9, chest: 26, waist: 24 },
     },
-    // Jackets must respect shoulder structure.
     weights: { shoulder: 0.45, chest: 0.30, waist: 0.10, sleeve: 0.10, length: 0.05 },
     lengthMode: "strict",
     defaultChart: {
@@ -207,49 +246,39 @@ export const CATEGORY_RULES: Record<SizingCategory, CategoryRule> = {
   },
   pants: {
     regions: ["waist", "hip", "thigh", "inseam", "length"],
-    ease: {
-      fitted:    { waist: 0, hip: 2, thigh: 2 },
-      regular:   { waist: 1, hip: 4, thigh: 4 },
-      relaxed:   { waist: 2, hip: 8, thigh: 6 },
-      oversized: { waist: 3, hip: 14, thigh: 10 },
-    },
+    ease: PANT_EASE,
     weights: PANT_WEIGHTS,
     lengthMode: "strict",
     defaultChart: {
-      XS: { waist: 70, hip:  90, thigh: 54, inseam: 78, length: 102 },
-      S:  { waist: 74, hip:  94, thigh: 56, inseam: 79, length: 104 },
-      M:  { waist: 80, hip: 100, thigh: 60, inseam: 80, length: 105 },
-      L:  { waist: 86, hip: 106, thigh: 64, inseam: 81, length: 106 },
-      XL: { waist: 92, hip: 112, thigh: 68, inseam: 82, length: 107 },
+      ...MALE_PANT_DEFAULT,
       "28": { waist: 72, hip:  92, thigh: 54, inseam: 80, length: 104 },
       "30": { waist: 76, hip:  96, thigh: 56, inseam: 80, length: 105 },
-      "32": { waist: 82, hip: 100, thigh: 60, inseam: 81, length: 106 },
-      "34": { waist: 86, hip: 104, thigh: 64, inseam: 82, length: 107 },
-      "36": { waist: 92, hip: 110, thigh: 68, inseam: 82, length: 108 },
+      "32": { waist: 81, hip:  99, thigh: 58, inseam: 81, length: 106 },
+      "34": { waist: 86, hip: 104, thigh: 60, inseam: 82, length: 107 },
+      "36": { waist: 91, hip: 109, thigh: 62, inseam: 82, length: 108 },
     },
+    defaultChartByGender: { male: MALE_PANT_DEFAULT, female: FEMALE_PANT_DEFAULT },
   },
   denim: {
     regions: ["waist", "hip", "thigh", "inseam", "length"],
+    // Denim has minimal stretch — slightly tighter than the spec base.
     ease: {
-      // Denim has minimal stretch — recommend tight ease values.
-      fitted:    { waist: -1, hip: 1, thigh: 1 },
-      regular:   { waist: 0,  hip: 3, thigh: 3 },
-      relaxed:   { waist: 2,  hip: 6, thigh: 5 },
-      oversized: { waist: 3,  hip: 12, thigh: 9 },
+      fitted:    { waist: 0, hip: 1, thigh: 1 },
+      regular:   { waist: 2, hip: 3, thigh: 3 },
+      relaxed:   { waist: 4, hip: 5, thigh: 5 },
+      oversized: { waist: 8, hip: 8, thigh: 8 },
     },
     weights: PANT_WEIGHTS,
     lengthMode: "strict",
     defaultChart: {
       "28": { waist: 72, hip:  92, thigh: 56, inseam: 80, length: 104 },
       "30": { waist: 76, hip:  96, thigh: 58, inseam: 80, length: 105 },
-      "32": { waist: 82, hip: 100, thigh: 62, inseam: 81, length: 106 },
-      "34": { waist: 86, hip: 104, thigh: 66, inseam: 82, length: 107 },
-      "36": { waist: 92, hip: 110, thigh: 70, inseam: 82, length: 108 },
-      S:  { waist: 76, hip:  96, thigh: 58, inseam: 80, length: 105 },
-      M:  { waist: 82, hip: 100, thigh: 62, inseam: 81, length: 106 },
-      L:  { waist: 86, hip: 104, thigh: 66, inseam: 82, length: 107 },
-      XL: { waist: 92, hip: 110, thigh: 70, inseam: 82, length: 108 },
+      "32": { waist: 81, hip: 100, thigh: 60, inseam: 81, length: 106 },
+      "34": { waist: 86, hip: 104, thigh: 62, inseam: 82, length: 107 },
+      "36": { waist: 91, hip: 109, thigh: 64, inseam: 82, length: 108 },
+      ...MALE_PANT_DEFAULT,
     },
+    defaultChartByGender: { male: MALE_PANT_DEFAULT, female: FEMALE_PANT_DEFAULT },
   },
   shorts: {
     regions: ["waist", "hip", "thigh", "length"],

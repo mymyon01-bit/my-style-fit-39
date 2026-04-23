@@ -6,6 +6,9 @@
 
 export type Gender = "male" | "female" | "neutral";
 
+/** User-stated build. Drives the deterministic weight-adjustment offset. */
+export type BodyType = "slim" | "regular" | "solid" | "heavy";
+
 export type FitPreference = "fitted" | "regular" | "relaxed" | "oversized";
 
 export type MeasurementSource = "exact" | "inferred" | "default";

@@ -214,12 +214,12 @@ export default function SizeRecommendationPanel({
         </div>
       )}
 
-      {/* Category-defaults warning */}
+      {/* Category-defaults warning — wording per the strict FIT spec */}
       {recommendation.usedCategoryDefaults && (
         <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
           <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
           <span className="text-[11px] text-orange-400/80">
-            No detailed size chart for this product — using category averages. Treat individual cm values as approximate.
+            Size data unavailable. Using standard size estimation.
           </span>
         </div>
       )}
