@@ -88,9 +88,16 @@ export default function FitVisual({
   fitChips = [],
   poseDegraded = false,
   overallFit = null,
+  bodyGender = null,
 }: Props) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+
+  // Normalize the user's stored gender_preference into the two silhouettes
+  // we actually render. Anything unknown falls back to male as the wider
+  // default frame — never inferred from the product.
+  const normalizedGender: "male" | "female" =
+    (bodyGender || "").toLowerCase().startsWith("f") ? "female" : "male";
 
   // Deterministic per-size silhouette warp profile. Falls back to the size
   // letter when the measurement engine hasn't produced an overall label yet.
