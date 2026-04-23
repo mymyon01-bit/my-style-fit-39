@@ -158,7 +158,7 @@ const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCan
         // 4. Head band — re-drawn on top so face proportions stay correct.
         ctx.drawImage(
           img,
-          0, 0, W, headH,
+          0, 0, W, H * HEAD_BAND,
           baseX, baseY, baseW, headH,
         );
 
