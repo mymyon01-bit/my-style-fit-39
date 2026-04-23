@@ -111,23 +111,13 @@ function SizeComparisonCard({ result, isRecommended, isAlternate }: {
   const [expanded, setExpanded] = useState(isRecommended);
   return (
     <div className={`rounded-2xl border transition-colors ${
-      isRecommended ? "border-accent/30 bg-accent/[0.04]"
+      isRecommended ? "border-foreground/[0.08] bg-card/40"
         : isAlternate ? "border-foreground/[0.08] bg-card/40"
         : "border-foreground/[0.04] bg-card/20"
     }`}>
       <button onClick={() => setExpanded(!expanded)} className="flex w-full items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <span className="font-display text-xl font-bold text-foreground">{result.size}</span>
-          {isRecommended && (
-            <span className="text-[10px] font-bold tracking-[0.12em] px-2.5 py-1 rounded-full bg-accent/15 text-accent">
-              RECOMMENDED
-            </span>
-          )}
-          {isAlternate && (
-            <span className="text-[10px] font-bold tracking-[0.12em] px-2.5 py-1 rounded-full bg-foreground/5 text-foreground/60">
-              ALTERNATE
-            </span>
-          )}
         </div>
         <ChevronDown className={`h-4 w-4 text-foreground/40 transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
@@ -228,16 +218,9 @@ export default function FitResults({
   // When the new engine produces a primary size that exists in the legacy
   // size ladder, prefer it as the default active size. Never override a user
   // pick — only sync once when the recommendation first arrives.
-  const syncedRecRef = useRef(false);
-  useEffect(() => {
-    if (syncedRecRef.current) return;
-    const rec = sizing.recommendation?.primarySize;
-    if (!rec) return;
-    if (result.sizeResults.some((s) => s.size === rec)) {
-      setActiveSize(rec);
-      syncedRecRef.current = true;
-    }
-  }, [sizing.recommendation?.primarySize, result.sizeResults]);
+  // (Auto-sync to "recommended" size removed — user picks their own size; we
+  // never push them toward a recommendation. The visualization simply reflects
+  // whichever size they tapped.)
 
   // Active size outcome from the new measurement-driven engine.
   // Used to feed the visual try-on with calculated per-region fit so the AI
@@ -745,20 +728,7 @@ export default function FitResults({
               </div>
             )}
 
-            {/* MEASUREMENT-DRIVEN PANEL */}
-            <SizeRecommendationPanel
-              recommendation={sizing.recommendation}
-              loading={sizing.loadingChart}
-              inferredFields={sizing.body?.inferredFieldNames ?? []}
-              preference={sizing.preference}
-              onPreferenceChange={(p) => setSizingPrefOverride(p)}
-              onAddMeasurements={onEditMeasurements}
-              activeSize={activeSize}
-              onSizeSelect={(s) => setActiveSize(s)}
-              productKey={productKey}
-              productBrand={product.brand}
-              productCategory={product.category}
-            />
+            {/* Size recommendation panel removed — user picks their own size, only the visualization is shown. */}
 
             {/* SIZE COMPARISON */}
             <div>
