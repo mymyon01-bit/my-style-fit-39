@@ -168,7 +168,7 @@ function buildChart(category: SizingCategory, rows: DbRow[], productGender: Gend
 
   // 2. Fill in default sizes that aren't present (so user always sees a full ladder).
   let usedCategoryDefaults = false;
-  for (const [label, def] of Object.entries(rule.defaultChart)) {
+  for (const [label, def] of Object.entries(fallbackChart)) {
     if (!sizes[label]) {
       sizes[label] = { ...def };
       sources[label] = "categoryDefault";
