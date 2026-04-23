@@ -237,15 +237,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             stopTimers();
             const persistentUrl = data.imageUrl;
             log("ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80) });
-            setState({
-              stage: "ready",
-              imageUrl: persistentUrl,
-              lastGoodImageUrl: persistentUrl,
-              error: null,
-              provider: data.provider ?? null,
-              requestId: data.requestId ?? null,
-              retryAfterMs: null,
-            });
+            await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null);
             return;
           }
 
