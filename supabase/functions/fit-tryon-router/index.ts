@@ -335,6 +335,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     MANNEQUIN_STYLE_LOCK,
     genderLockLine,
     physicalSpec,
+    baseLayerLine,
     `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same mannequin — only the GARMENT changes between sizes, the mannequin NEVER changes. Do NOT slim, enlarge, restyle, or adjust the mannequin in any way based on the garment size.`,
     `LOCKED CAMERA + POSE (CONSISTENCY SYSTEM): same front-facing camera angle at chest height, same focal length, same framing, same standing posture across all size variations — straight standing, feet shoulder-width apart, arms slightly away from the body in a neutral display pose (NOT against the hips, NOT crossed, NOT a fashion pose). Only the garment fit and fabric behavior change between S/M/L/XL — the mannequin, camera, lighting, and pose stay identical.`,
     `Mannequin proportions must match the height and weight specified — do NOT default to a slim display dummy, but also do NOT modify the mannequin to compensate for a tighter or looser garment.`,
