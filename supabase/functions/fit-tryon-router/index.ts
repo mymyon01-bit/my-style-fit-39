@@ -189,19 +189,20 @@ function describeBuild(b?: CreateBody["bodyProfileSummary"]) {
 function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
   // BODY GENDER LOCK: subject gender comes ONLY from the user's body profile.
   // It is never inferred from the product. A male user wearing a women's
-  // garment must still be rendered as a male body wearing that garment.
+  // garment must still be rendered as a male-proportioned MANNEQUIN wearing
+  // that garment.
   const g = (b?.gender || "").toLowerCase();
-  if (g === "female" || g === "feminine" || g === "woman") return "female model";
-  if (g === "male" || g === "masculine" || g === "man") return "male model";
-  return "model";
+  if (g === "female" || g === "feminine" || g === "woman") return "female mannequin";
+  if (g === "male" || g === "masculine" || g === "man") return "male mannequin";
+  return "neutral mannequin";
 }
 
 function sizeSilhouette(size: string) {
   const s = (size || "M").toUpperCase();
-  if (s === "XS" || s === "S") return "trim body-skimming silhouette, sleeves close to the arm, hem sits high on the hip, minimal fabric ease";
+  if (s === "XS" || s === "S") return "tight body-skimming silhouette, sleeves hugging the arm, hem high on the hip, fabric pulled close with visible tension";
   if (s === "L") return "relaxed silhouette with visible chest room, softer waist, slightly longer hem, soft drape";
-  if (s === "XL" || s === "XXL") return "oversized silhouette with dropped shoulders, generous chest and waist volume, hem near mid-thigh, deep folds";
-  return "regular fitted silhouette with natural ease, shoulder seam at the joint, hem at the hip";
+  if (s === "XL" || s === "XXL") return "oversized silhouette with dropped shoulders, generous chest and waist volume, hem near mid-thigh, deep folds and excess fabric";
+  return "fitted regular silhouette with natural ease, shoulder seam at the joint, hem at the hip";
 }
 
 function regionPhrase(regions?: RegionFitLite[]) {
@@ -217,25 +218,29 @@ function isBagCategory(cat?: string | null) {
   return /bag|backpack|tote|purse|clutch|handbag|messenger|crossbody/i.test(cat || "");
 }
 
+// ── GLOBAL MANNEQUIN VISUAL LOCK ────────────────────────────────────────────
+// HARD RULE: every FIT image is a faceless mannequin. No real humans. No
+// editorial / lifestyle / influencer photography. Same visual system across
+// all sizes — only the garment changes.
+const MANNEQUIN_STYLE_LOCK =
+  "VISUAL MODEL TYPE LOCK (HARD RULE — HIGHEST PRIORITY): The subject MUST be a faceless display MANNEQUIN — a smooth matte fiberglass / plastic store-display dummy, NOT a real human. NO real person, NO human face, NO human identity, NO realistic facial features (no eyes, nose, mouth, eyebrows, ears), NO hair, NO skin pores or skin micro-detail, NO makeup, NO expression, NO lifestyle photography, NO streetwear photo, NO influencer pose, NO editorial fashion shot, NO posed model. The mannequin has a smooth featureless head OR the frame is cropped from the neck down. Body surface is uniform matte mannequin material — clearly artificial, clearly a display dummy. Studio fit-visualization aesthetic only.";
+
+const MANNEQUIN_NEGATIVES =
+  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams.";
+
 function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
   const h = body.bodyProfileSummary?.heightCm;
   const w = body.bodyProfileSummary?.weightKg;
   const heightLine = h ? `, approximately ${h} cm tall` : "";
-  const weightLine = w ? ` and approximately ${w} kg` : "";
+  const weightLine = w ? ` and approximately ${w} kg equivalent body mass` : "";
   const bmi = h && w ? Math.round((w / Math.pow(h / 100, 2)) * 10) / 10 : null;
   const garmentLabel = body.productName?.trim() || body.productCategory || "the garment";
   const silhouette = sizeSilhouette(body.selectedSize);
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
 
-  // ── BASELINE-DRIVEN PHYSICAL CONSEQUENCE ────────────────────────────────
-  // When product measurements are missing, the client computes a baseline
-  // verdict from gender + weight (XS≈50kg male, XXL≈105kg+ male, etc.). That
-  // verdict is what tells the prompt "100kg user wearing S = compressed and
-  // stretched, NOT a perfect fit". Without this, the AI defaults to making
-  // every size look acceptable.
   const verdict = body.baselineVerdict;
   const consequenceLine = verdict?.consequence
     ? `PHYSICAL CONSEQUENCE OF THIS SIZE ON THIS BODY (NON-NEGOTIABLE): ${verdict.consequence}. This is the ONLY acceptable way the garment can render — do not normalize, do not flatter, do not make a wrong size look correct.`
@@ -244,67 +249,61 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     ? "Brand size chart unavailable — using gender+weight baseline. Fit must reflect the calculated baseline verdict, not a generic regular fit."
     : "";
 
-  // Explicit, hard-locked physical specs so the model cannot default to a
-  // generic slim fashion-model body. e.g. 100 kg MUST look like 100 kg.
+  // Mannequin proportions still mirror the user's height + weight so a 100kg
+  // body reads as a 100kg mannequin, not a slim default dummy.
   const physicalSpec = h && w
-    ? `STRICT PHYSICAL SPECS (NON-NEGOTIABLE): height = ${h} cm, weight = ${w} kg, BMI = ${bmi}. The rendered body MUST visually correspond to a real person of EXACTLY this height and weight. A ${w} kg person at ${h} cm has a clearly visible body mass — torso width, waist circumference, arm and leg thickness, and overall volume MUST match this weight. Do NOT render a slim or athletic fashion-model body unless the weight actually matches one. If weight is high, the body MUST look heavier (wider torso, fuller waist, thicker limbs). If weight is low, the body MUST look slimmer. Body proportions extend monotonically beyond typical ranges — DO NOT clamp or normalize extreme weights.`
-    : `Render an average-proportioned body.`;
+    ? `MANNEQUIN PROPORTIONS (NON-NEGOTIABLE): the mannequin is sculpted to approximately ${h} cm tall with body volume equivalent to a ${w} kg human (BMI ${bmi}). Torso width, waist circumference, arm and leg thickness, and overall mannequin volume MUST match this mass. Heavier weight → wider torso, fuller waist, thicker limbs on the mannequin. Lower weight → slimmer mannequin. Proportions extend monotonically beyond typical ranges — DO NOT clamp or normalize extreme weights to a default mannequin.`
+    : `Use average mannequin proportions.`;
 
-  const genderLockLine = subject === "model"
-    ? `Render a gender-neutral mannequin body shape — do not infer gender from the garment.`
-    : `BODY GENDER LOCK (HIGHEST PRIORITY): the subject is a ${subject}. This is NON-NEGOTIABLE and based ONLY on the user's saved body profile, NEVER on the garment. The subject MUST have a clearly recognizable ${subject} body silhouette — ${subject === "female model" ? "narrower shoulders, defined waist, female hip line, female chest contour" : "broader shoulders, flatter chest, straighter waist, male shoulder line"}. If the garment is typically worn by another gender, the subject body STILL stays a ${subject} wearing that garment — do NOT switch body type to match the garment. Cross-gender wear is fully allowed; gender swap of the subject body is FORBIDDEN.`;
-
-  // ── FACELESS / IDENTITY-FREE RENDER (HARD RULE) ─────────────────────────
-  // Identity, face, and fashion posing are removed entirely. The frame is
-  // cropped from the neck down OR the head is rendered as a smooth featureless
-  // mannequin head. This is required so the user reads the garment fit, not a
-  // fashion model identity.
-  const facelessRule = `IDENTITY REMOVAL (MANDATORY): NO visible face, NO facial features (no eyes, no nose, no mouth, no eyebrows, no ears), NO hairstyle, NO skin texture detail on the face, NO expression, NO identity. Render either (a) a smooth featureless neutral mannequin head with no features whatsoever, or (b) crop the frame from the neck down so the head is not in view. Never render a recognizable human face. The body itself remains realistic and proportionally accurate.`;
+  const genderLockLine = subject === "neutral mannequin"
+    ? `Render a gender-neutral mannequin shape — do NOT infer gender from the garment.`
+    : `MANNEQUIN GENDER LOCK (HIGHEST PRIORITY): the mannequin is a ${subject}. Based ONLY on the user's saved BODY tab profile, NEVER on the garment. ${subject === "female mannequin" ? "Narrower shoulders, defined waist, female hip curve, female chest contour — sculpted into the mannequin form." : "Broader shoulders, flatter chest, straighter waist, male shoulder line — sculpted into the mannequin form."}. If the garment is typically worn by another gender, the mannequin STILL stays a ${subject} wearing that garment. Cross-gender wear is allowed; gender swap of the mannequin body is FORBIDDEN.`;
 
   const safeModeSuffixEarly = body.safeMode
-    ? " SAFE RENDER MODE (RETRY): previous attempt produced a malformed or low-quality image. Render with EXTRA stability — full body cleanly framed neck-down, garment fully visible with no clipping at sleeves, hem, shoulders, or sides; sharp clean edges, no torn or melted regions, no floating fabric, no duplicated limbs, no blurred or low-resolution areas. High-resolution sharp final image. Prefer simplicity and structural integrity over stylistic flourishes."
+    ? " SAFE RENDER MODE (RETRY): previous attempt produced a malformed or off-style image. Render with EXTRA stability — clean faceless mannequin, full body cleanly framed neck-down, garment fully visible with no clipping at sleeves, hem, shoulders, or sides; sharp clean edges, no torn or melted regions, no floating fabric, no duplicated limbs, no blurred or low-resolution areas. High-resolution sharp final image. Prefer simplicity and structural integrity over stylistic flourishes."
     : "";
 
-  // ── BAG / ACCESSORY CATEGORY ────────────────────────────────────────────
   if (isBag) {
     const bagScale = consequenceLine
-      ? `Scale the bag relative to the body so the consequence above is visible: ${verdict?.consequence ?? ""}.`
-      : `Scale the bag naturally to the body — small body makes a large bag look oversized; large body makes a small bag look dwarfed.`;
+      ? `Scale the bag relative to the mannequin so the consequence above is visible: ${verdict?.consequence ?? ""}.`
+      : `Scale the bag naturally to the mannequin — small mannequin makes a large bag look oversized; large mannequin makes a small bag look dwarfed.`;
     return [
-      `A premium realistic editorial photograph of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
-      facelessRule,
+      `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
+      MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
-      `LOCKED BODY MODEL: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same person — only the BAG/ACCESSORY changes between sizes.`,
+      `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation — only the BAG/ACCESSORY changes between sizes.`,
       bagScale,
       consequenceLine,
       fallbackLine,
-      `Bag rendering: preserve the EXACT shape, color, hardware, and material of the reference product. Show worn over the shoulder, crossbody, or held in one hand naturally.`,
-      `Background: clean seamless light-gray studio backdrop, soft directional lighting, subtle floor shadow.`,
-      `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark.`,
+      `Bag rendering: preserve the EXACT shape, color, hardware, and material of the reference product. Show on the mannequin's shoulder, crossbody, or held in a sculpted mannequin hand naturally.`,
+      `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body.`,
+      MANNEQUIN_NEGATIVES,
+      `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the product.`,
       safeModeSuffixEarly,
     ].filter(Boolean).join(" ");
   }
 
-  const safeModeSuffix = safeModeSuffixEarly;
   return [
-    `A premium realistic studio fit-visualization photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
-    facelessRule,
+    `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
+    MANNEQUIN_STYLE_LOCK,
     genderLockLine,
     physicalSpec,
-    `LOCKED BODY MODEL: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same person — only the GARMENT changes between sizes, the body NEVER changes. Do NOT slim, enlarge, restyle, or adjust the body in any way based on the garment size.`,
-    `Body proportions must visibly match this exact height and weight — do NOT default to a slim model body, but also do NOT modify the body to compensate for a tighter or looser garment.`,
+    `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same mannequin — only the GARMENT changes between sizes, the mannequin NEVER changes. Do NOT slim, enlarge, restyle, or adjust the mannequin in any way based on the garment size.`,
+    `Mannequin proportions must match the height and weight specified — do NOT default to a slim display dummy, but also do NOT modify the mannequin to compensate for a tighter or looser garment.`,
     `Preserve the EXACT style, color, print, and construction of the garment shown in the reference image.`,
     `Render the garment with a ${silhouette}.`,
     consequenceLine,
     fallbackLine,
-    `Translate fit purely into FABRIC BEHAVIOR on the unchanged body: tight = visible tension lines, stretched fabric, pulled seams, reduced ease, possibly visible body shape through the fabric; loose = extra volume, soft folds, draping, hanging fabric; oversized = exaggerated dropped shoulders past the natural shoulder line, sleeves extending past the hands, hem extended well past the hip; short length = higher hem; long length = extended hem.`,
+    `Translate fit purely into FABRIC BEHAVIOR on the unchanged mannequin: tight (S) = visible tension lines, stretched fabric, pulled seams, minimal ease; fitted (M) = clean follow of the form with natural ease; regular (L) = visible chest/waist room, soft drape, slightly longer hem; oversized (XL/XXL) = exaggerated dropped shoulders past the natural shoulder line, sleeves extending past the mannequin hands, hem extended well past the hip, deep folds. Differences MUST be visible at chest, shoulders, waist, sleeve width, and garment length.`,
     regions,
-    `Pose: front neutral standing pose with arms relaxed at the sides or lightly held, NOT a fashion-model pose. Focus is silhouette and garment fit.`,
-    `Background: clean seamless light-gray studio backdrop with soft even directional lighting and a subtle floor shadow for grounding. Editorial fit-preview quality, NOT fashion editorial.`,
-    `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity.`,
-    `Output must look like a brand-new generated studio fit visualization — never like an edit of an existing snapshot. The ONLY visual difference between size variations of this same person must be GARMENT FIT and FABRIC BEHAVIOR, never body shape, never identity.`,
-    safeModeSuffix,
+    `Pose: neutral front-facing standing mannequin pose, arms relaxed straight at the sides or in a static display position. NOT a fashion-model pose, NOT lifestyle, NOT candid. Focus is silhouette and garment fit only.`,
+    `Framing: neck-down crop OR smooth featureless mannequin head. NEVER a real face.`,
+    `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body.`,
+    MANNEQUIN_NEGATIVES,
+    `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity, NO real person.`,
+    `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base across all sizes, only the garment fit and fabric behavior changes. Model-type consistency (faceless mannequin) is more important than photographic realism.`,
+    safeModeSuffixEarly,
   ].filter(Boolean).join(" ");
 }
 
@@ -443,7 +442,7 @@ async function generateStudioFitImage(_replicateKey: string, body: CreateBody): 
 
   const prompt = [
     buildCleanStudioPrompt(body),
-    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the body wearing it and the studio setting are newly generated.",
+    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
   ].join(" ");
 
   const controller = new AbortController();
