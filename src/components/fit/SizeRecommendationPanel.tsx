@@ -7,7 +7,7 @@
 //   • Honest banner when measurements are inferred / chart used defaults
 
 import { useState } from "react";
-import { ChevronDown, ShieldCheck, AlertTriangle, Sparkles, User } from "lucide-react";
+import { ChevronDown, ShieldCheck, AlertTriangle, Sparkles, User, Wrench } from "lucide-react";
 import {
   REGION_STATUS_LABEL,
   overallLabelText,
@@ -18,6 +18,7 @@ import {
   type SizeRecommendation,
 } from "@/lib/sizing";
 import InferredMeasurementsBanner from "./InferredMeasurementsBanner";
+import FitFeedbackWidget from "./FitFeedbackWidget";
 
 interface Props {
   recommendation: SizeRecommendation | null;
@@ -29,6 +30,10 @@ interface Props {
   /** Optional: surface the active size selection back to the parent. */
   onSizeSelect?: (size: string) => void;
   activeSize?: string | null;
+  /** Product identity for feedback submission. Optional — feedback widget hidden if missing. */
+  productKey?: string;
+  productBrand?: string | null;
+  productCategory?: string | null;
 }
 
 const PREF_OPTIONS: { value: FitPreference; label: string }[] = [
@@ -131,6 +136,9 @@ export default function SizeRecommendationPanel({
   onAddMeasurements,
   onSizeSelect,
   activeSize,
+  productKey,
+  productBrand,
+  productCategory,
 }: Props) {
   if (loading && !recommendation) {
     return (
@@ -258,6 +266,17 @@ export default function SizeRecommendationPanel({
           />
         ))}
       </div>
+
+      {/* Feedback — feeds the brand calibration learning loop */}
+      {productKey && (
+        <FitFeedbackWidget
+          recommendation={recommendation}
+          productKey={productKey}
+          productBrand={productBrand ?? null}
+          productCategory={productCategory ?? null}
+          activeSize={activeSize ?? recommendation.primarySize ?? null}
+        />
+      )}
     </div>
   );
 }

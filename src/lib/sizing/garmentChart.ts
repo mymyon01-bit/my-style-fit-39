@@ -14,6 +14,11 @@ import {
   getDefaultChartForGender,
 } from "./categoryRules";
 import { requestSizeChartFetch, makeProductKey } from "@/lib/fit/garmentSizeResolver";
+import {
+  loadBrandCalibration,
+  applyCalibration,
+  type CalibrationOffset,
+} from "./brandCalibration";
 import type { Gender, Region, SizingCategory } from "./types";
 
 export interface SizeMeasurements {
@@ -29,7 +34,7 @@ export interface SizeMeasurements {
 
 export interface GarmentChart {
   category: SizingCategory;
-  /** Map size label → measurements. Ordered list available via `sizeOrder`. */
+  /** Map size label → measurements (POST-calibration). */
   sizes: Record<string, SizeMeasurements>;
   sizeOrder: string[];
   /** Where each size came from. */
@@ -40,6 +45,8 @@ export interface GarmentChart {
   usedCategoryDefaults: boolean;
   /** Confidence in the chart as a whole. */
   confidence: "high" | "medium" | "low";
+  /** Brand+community calibration offset applied to every size. Zero when none. */
+  calibration: CalibrationOffset;
 }
 
 interface DbRow {
@@ -107,8 +114,12 @@ export async function loadGarmentChart(input: ChartInput): Promise<GarmentChart>
   const category = normalizeSizingCategory(input.category, input.productName);
   const productKey = makeProductKey({ url: input.productUrl, name: input.productName, brand: input.brand });
 
-  // 1. Fetch any rows we already have.
-  let rows = await fetchRows(productKey);
+  // 1. Fetch any rows we already have + brand calibration in parallel.
+  const [initialRows, calibration] = await Promise.all([
+    fetchRows(productKey),
+    loadBrandCalibration({ brand: input.brand ?? null, category }),
+  ]);
+  let rows = initialRows;
 
   // 2. If we have nothing AND can scrape — fire scraper, wait briefly, retry.
   if (rows.length === 0 && input.triggerScrape && (input.productUrl || input.productName)) {
@@ -126,7 +137,7 @@ export async function loadGarmentChart(input: ChartInput): Promise<GarmentChart>
     rows = await fetchRows(productKey);
   }
 
-  return buildChart(category, rows, input.productGender ?? null);
+  return buildChart(category, rows, input.productGender ?? null, calibration);
 }
 
 async function fetchRows(productKey: string): Promise<DbRow[]> {
@@ -143,7 +154,12 @@ async function fetchRows(productKey: string): Promise<DbRow[]> {
   }
 }
 
-function buildChart(category: SizingCategory, rows: DbRow[], productGender: Gender | null): GarmentChart {
+function buildChart(
+  category: SizingCategory,
+  rows: DbRow[],
+  productGender: Gender | null,
+  calibration: CalibrationOffset,
+): GarmentChart {
   const rule = CATEGORY_RULES[category];
   const required = requiredRegions(category);
   // Pick the gender-aware standard size table when available — per the
@@ -187,6 +203,12 @@ function buildChart(category: SizingCategory, rows: DbRow[], productGender: Gend
     }
   }
 
+  // 3. Apply brand + community calibration to every size (post-merge).
+  //    Per spec [9]: small shifts only, never override real measurements.
+  for (const label of Object.keys(sizes)) {
+    sizes[label] = applyCalibration(sizes[label], calibration);
+  }
+
   const sizeOrder = Object.keys(sizes).sort((a, b) => rankOf(a) - rankOf(b));
 
   // Confidence: based on per-size completeness on required regions.
@@ -215,5 +237,6 @@ function buildChart(category: SizingCategory, rows: DbRow[], productGender: Gend
     hasAnyRealData,
     usedCategoryDefaults,
     confidence,
+    calibration,
   };
 }
