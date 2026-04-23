@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
-import { Paperclip, Sparkles, UserCircle2, ShoppingBag } from "lucide-react";
+import { Paperclip, Sparkles, UserCircle2, ShoppingBag, Camera } from "lucide-react";
 
 export interface ChatAttachment {
   /**
@@ -11,7 +11,7 @@ export interface ChatAttachment {
    *  - "product"       — an in-app product share (renders a tappable card)
    */
   url: string;
-  type: "image" | "file" | "ootd_post" | "namecard" | "product";
+  type: "image" | "file" | "ootd_post" | "namecard" | "product" | "story";
   name?: string;
   size?: number;
   /** Extra metadata used by ootd_post / namecard / product renderers. */
@@ -28,6 +28,9 @@ export interface ChatAttachment {
     name?: string | null;
     image_url?: string | null;
     source_url?: string | null;
+    // story
+    story_id?: string;
+    media_type?: "image" | "video";
   };
 }
 
@@ -189,6 +192,38 @@ export default function MessageBubble({ content, isMine, createdAt, readAt, atta
                       )}
                     </div>
                   </button>
+                );
+              }
+
+              if (a.type === "story") {
+                const img = a.url || a.meta?.image_url;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex w-full items-stretch gap-2 overflow-hidden rounded-xl border ${
+                      isMine
+                        ? "border-primary-foreground/20 bg-primary-foreground/10"
+                        : "border-border/40 bg-foreground/[0.03]"
+                    }`}
+                  >
+                    {img ? (
+                      <img src={img} alt="story" className="h-20 w-16 flex-shrink-0 object-cover" />
+                    ) : (
+                      <div className={`flex h-20 w-16 flex-shrink-0 items-center justify-center ${isMine ? "bg-primary-foreground/10" : "bg-muted"}`}>
+                        <Camera className="h-4 w-4 opacity-60" />
+                      </div>
+                    )}
+                    <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-1.5">
+                      <p className={`text-[9px] font-semibold tracking-[0.18em] ${isMine ? "text-primary-foreground/70" : "text-foreground/55"}`}>
+                        REPLIED TO STORY
+                      </p>
+                      {(a.meta?.display_name || a.meta?.username) && (
+                        <p className={`mt-0.5 truncate text-[10.5px] ${isMine ? "text-primary-foreground/75" : "text-muted-foreground"}`}>
+                          @{a.meta?.username || a.meta?.display_name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 );
               }
 
