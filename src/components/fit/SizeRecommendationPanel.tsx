@@ -266,6 +266,17 @@ export default function SizeRecommendationPanel({
           />
         ))}
       </div>
+
+      {/* Feedback — feeds the brand calibration learning loop */}
+      {productKey && (
+        <FitFeedbackWidget
+          recommendation={recommendation}
+          productKey={productKey}
+          productBrand={productBrand ?? null}
+          productCategory={productCategory ?? null}
+          activeSize={activeSize ?? recommendation.primarySize ?? null}
+        />
+      )}
     </div>
   );
 }
