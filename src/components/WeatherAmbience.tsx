@@ -489,19 +489,46 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
       {/* ======================== STORM ======================== */}
       {isStorm && (
         <>
-          {/* Heavy dark wash */}
-          <div
+          {/* Heavy dark wash with rolling cloud darkening */}
+          <motion.div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, hsl(240 35% 12% / 0.45) 0%, hsl(230 40% 18% / 0.35) 50%, hsl(245 45% 10% / 0.50) 100%)",
+                "linear-gradient(180deg, hsl(240 35% 10% / 0.55) 0%, hsl(230 40% 16% / 0.42) 50%, hsl(245 45% 8% / 0.58) 100%)",
             }}
+            animate={{ opacity: [1, 0.78, 1, 0.85, 1] }}
+            transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
           />
-          {/* Heavy slanted rain */}
-          {Array.from({ length: 110 }).map((_, i) => {
+          {/* Drifting storm clouds — heavy & dark */}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <motion.div
+              key={`storm-cloud-${i}`}
+              className="absolute rounded-full"
+              style={{
+                top: `${2 + i * 8}%`,
+                width: 420 + rand(i + 71) * 280,
+                height: (420 + rand(i + 71) * 280) * 0.42,
+                background:
+                  "radial-gradient(ellipse at center, hsl(235 30% 18% / 0.7) 0%, hsl(240 25% 12% / 0.45) 55%, transparent 78%)",
+                filter: "blur(28px)",
+              }}
+              initial={{ x: "-20%" }}
+              animate={{ x: "120%" }}
+              transition={{
+                duration: 80 + i * 20,
+                repeat: Infinity,
+                ease: "linear",
+                delay: i * 12,
+              }}
+            />
+          ))}
+          {/* Heavy slanted rain — dense + motion-blurred */}
+          {Array.from({ length: 180 }).map((_, i) => {
             const left = rand(i + 100) * 100;
             const top = -rand(i + 200) * 25;
-            const height = 3 + rand(i + 300) * 6;
+            const height = 2.5 + rand(i + 300) * 7;
+            const layer = i % 3;
+            const depth = layer === 0 ? 0.45 : layer === 1 ? 0.75 : 1;
             return (
               <motion.div
                 key={`storm-rain-${i}`}
@@ -509,16 +536,18 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
                 style={{
                   left: `${left}%`,
                   top: `${top}%`,
-                  width: 1.5,
-                  height: `${height}rem`,
-                  transform: "rotate(-14deg)",
+                  width: 0.8 + depth * 1.4,
+                  height: `${height * depth}rem`,
+                  transform: "rotate(-16deg)",
                   background:
-                    "linear-gradient(to bottom, transparent 0%, hsl(220 60% 75% / 0.5) 60%, hsl(230 80% 85% / 0.65) 100%)",
+                    "linear-gradient(to bottom, transparent 0%, hsl(220 70% 80% / 0.55) 55%, hsl(230 90% 92% / 0.8) 100%)",
                   borderRadius: 999,
+                  filter: layer === 0 ? "blur(1.4px)" : layer === 1 ? "blur(0.5px)" : undefined,
+                  willChange: "transform",
                 }}
                 animate={{ y: ["0vh", "120vh"] }}
                 transition={{
-                  duration: 0.45 + rand(i + 400) * 0.35,
+                  duration: (0.35 + rand(i + 400) * 0.3) / depth,
                   repeat: Infinity,
                   delay: rand(i + 500) * 1.5,
                   ease: "linear",
@@ -526,6 +555,28 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
               />
             );
           })}
+          {/* Splash crowns under heavy rain */}
+          {splashes.map((s, i) => (
+            <motion.div
+              key={`storm-splash-${i}`}
+              className="absolute rounded-full border"
+              style={{
+                left: `${s.left}%`,
+                bottom: "1%",
+                width: s.size * 1.4,
+                height: s.size * 0.4,
+                borderColor: "hsl(215 80% 90% / 0.85)",
+                borderWidth: 1,
+              }}
+              animate={{ scale: [0, 2.2, 0], opacity: [0, 0.95, 0] }}
+              transition={{
+                duration: s.duration * 0.8,
+                repeat: Infinity,
+                delay: s.delay,
+                ease: "easeOut",
+              }}
+            />
+          ))}
           {/* Raindrops on screen during storm */}
           {screenDrops.map((d, i) => (
             <motion.div
