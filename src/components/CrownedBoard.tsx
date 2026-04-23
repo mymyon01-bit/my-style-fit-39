@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Crown, Loader2, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
+import { Crown, Loader2, TrendingUp, Sparkles, ChevronRight, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ContactUsDialog from "@/components/ContactUsDialog";
 
 interface RankedPost {
   id: string;
@@ -88,6 +89,7 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [dailyWinner, setDailyWinner] = useState<DailyWinner | null>(null);
   const [ads, setAds] = useState<AdProduct[]>([]);
+  const [contactOpen, setContactOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -96,6 +98,8 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
   }, []);
 
   // AI AD strip — personalized when style hints are present.
+  // Pulls a wider pool then shuffles so the Ranking ads don't echo the
+  // Discover grid (which sorts by trend_score).
   useEffect(() => {
     (async () => {
       const tags = (styleHints || []).filter(Boolean).slice(0, 3);
@@ -103,13 +107,19 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
         .from("product_cache")
         .select("id, name, brand, image_url, source_url")
         .not("image_url", "is", null)
-        .order("trend_score", { ascending: false })
-        .limit(8);
+        .order("updated_at", { ascending: false })
+        .limit(40);
       if (tags.length > 0) q = q.overlaps("style_tags", tags);
       const { data } = await q;
-      setAds(((data || []) as AdProduct[]).slice(0, 6));
+      const pool = ((data || []) as AdProduct[]).slice();
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      setAds(pool.slice(0, 5));
     })();
   }, [styleHints?.join(",")]);
+
 
   const loadRankings = async () => {
     setLoading(true);
@@ -378,38 +388,51 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
             </div>
           </section>
 
-          {/* AI AD — between Top 5 and Rising Stars */}
-          {ads.length > 0 && (
-            <section className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="h-3 w-3 text-accent/70" />
-                  <span className="text-[9px] font-semibold tracking-[0.22em] text-foreground/55">FOR YOU</span>
-                  <span className="rounded-full bg-accent/15 px-1.5 py-px text-[8px] font-bold tracking-[0.15em] text-accent">
-                    AI AD
-                  </span>
+          {/* AI AD — between Top 5 and Rising Stars (always shown so users can ADD YOUR AD) */}
+          <section className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3 text-accent/70" />
+                <span className="text-[9px] font-semibold tracking-[0.22em] text-foreground/55">FOR YOU</span>
+                <span className="rounded-full bg-accent/15 px-1.5 py-px text-[8px] font-bold tracking-[0.15em] text-accent">
+                  AI AD
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-6 gap-2">
+              {ads.slice(0, 5).map((p) => (
+                <a
+                  key={p.id}
+                  href={p.source_url || "#"}
+                  target={p.source_url ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="flex flex-col gap-1"
+                >
+                  <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+                    ) : null}
+                  </div>
+                  <p className="line-clamp-1 text-[9px] text-foreground/60">{p.brand || p.name}</p>
+                </a>
+              ))}
+              {Array.from({ length: Math.max(0, 5 - ads.slice(0, 5).length) }).map((_, i) => (
+                <div key={`spacer-${i}`} className="aspect-[3/4] rounded-lg bg-foreground/[0.02]" />
+              ))}
+              <button
+                onClick={() => setContactOpen(true)}
+                className="group flex flex-col gap-1 text-left"
+                aria-label="Add your ad — contact us"
+              >
+                <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-dashed border-accent/40 bg-accent/[0.04] transition-all group-hover:bg-accent/[0.1] group-hover:border-accent/60">
+                  <Plus className="h-4 w-4 text-accent/70 transition-transform group-hover:scale-110" />
                 </div>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {ads.map((p) => (
-                  <a
-                    key={p.id}
-                    href={p.source_url || "#"}
-                    target={p.source_url ? "_blank" : undefined}
-                    rel="noopener noreferrer"
-                    className="flex w-20 shrink-0 flex-col gap-1"
-                  >
-                    <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
-                      {p.image_url ? (
-                        <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
-                      ) : null}
-                    </div>
-                    <p className="line-clamp-1 text-[9px] text-foreground/60">{p.brand || p.name}</p>
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
+                <p className="line-clamp-1 text-[9px] font-semibold tracking-[0.14em] text-accent/75">
+                  ADD YOUR AD
+                </p>
+              </button>
+            </div>
+          </section>
 
           {/* RISING STARS */}
           <section className="space-y-4">
@@ -476,6 +499,7 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
           </section>
         </div>
       )}
+      <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} topic="Add Your Ad" />
     </div>
   );
 }

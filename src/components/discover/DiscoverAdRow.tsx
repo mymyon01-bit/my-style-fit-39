@@ -1,24 +1,68 @@
 /**
  * DiscoverAdRow — single skinny "AI AD" row shown on Discover, just before
- * the Live Results section. Mirrors the FEED top row aesthetic (small chip,
- * 3:4 thumbs, ADD YOUR AD slot opening the CONTACT US dialog).
- *
- * It re-uses already-loaded discover products (no extra fetch) so it stays
- * cheap and stylistically aligned with what the user just searched for.
+ * the Live Results section. Fetches its OWN product set (separate from the
+ * Discover live results / DB top grid) so ads never duplicate what the user
+ * is already browsing on this page. Includes an ADD YOUR AD CTA opening the
+ * CONTACT US dialog.
  */
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Plus } from "lucide-react";
 import ContactUsDialog from "@/components/ContactUsDialog";
+import { supabase } from "@/integrations/supabase/client";
 import type { DiscoverRenderableProduct } from "@/lib/search/discover-feed";
 import type { Product } from "@/lib/search/types";
 
-interface Props {
-  pool: Array<Product | DiscoverRenderableProduct>;
+interface AdItem {
+  id: string;
+  name: string;
+  brand: string | null;
+  image_url: string | null;
+  source_url: string | null;
 }
 
-export default function DiscoverAdRow({ pool }: Props) {
+interface Props {
+  /** Products already visible on the Discover page — used to exclude duplicates. */
+  pool: Array<Product | DiscoverRenderableProduct>;
+  /** Optional style hints to bias ad selection. */
+  styleHints?: string[];
+}
+
+export default function DiscoverAdRow({ pool, styleHints }: Props) {
   const [contactOpen, setContactOpen] = useState(false);
-  const items = pool.filter((p) => p.imageUrl).slice(0, 5);
+  const [items, setItems] = useState<AdItem[]>([]);
+
+  // Build a stable set of ids already shown on the Discover page so we never
+  // recommend the exact same product as an "ad".
+  const excludeKey = useMemo(
+    () => pool.map((p) => p.id).filter(Boolean).slice(0, 200).join(","),
+    [pool],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const excludeIds = excludeKey ? excludeKey.split(",") : [];
+      const tags = (styleHints || []).filter(Boolean).slice(0, 3);
+
+      let q = supabase
+        .from("product_cache")
+        .select("id, name, brand, image_url, source_url")
+        .not("image_url", "is", null)
+        .order("trend_score", { ascending: false })
+        .limit(20);
+      if (tags.length > 0) q = q.overlaps("style_tags", tags);
+
+      const { data } = await q;
+      if (cancelled) return;
+      const filtered = ((data || []) as AdItem[])
+        .filter((p) => !excludeIds.includes(p.id))
+        .slice(0, 5);
+      setItems(filtered);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [excludeKey, styleHints?.join(",")]);
 
   return (
     <div className="space-y-1.5">
@@ -37,23 +81,23 @@ export default function DiscoverAdRow({ pool }: Props) {
         {items.map((p) => (
           <a
             key={p.id}
-            href={p.externalUrl || "#"}
-            target={p.externalUrl ? "_blank" : undefined}
+            href={p.source_url || "#"}
+            target={p.source_url ? "_blank" : undefined}
             rel="noopener noreferrer"
             className="flex flex-col gap-1"
           >
             <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
-              {p.imageUrl ? (
+              {p.image_url ? (
                 <img
-                  src={p.imageUrl}
-                  alt={p.title}
+                  src={p.image_url}
+                  alt={p.name}
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
               ) : null}
             </div>
             <p className="line-clamp-1 text-[9px] text-foreground/60">
-              {p.brand || p.title}
+              {p.brand || p.name}
             </p>
           </a>
         ))}

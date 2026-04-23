@@ -1,14 +1,12 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Heart, ExternalLink, X, Tag, Sparkles, Camera, Link2, Inbox, MessageSquare, MessageCircle, Send, Globe, Hash } from "lucide-react";
+import { Heart, ExternalLink, X, Tag, Sparkles, Camera, Send } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import SafeImage from "@/components/SafeImage";
 import { AuthGate } from "@/components/AuthGate";
 import PostProductToOOTDSheet from "@/components/profile/PostProductToOOTDSheet";
-import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
+import ShareProductToFriendDialog from "@/components/ShareProductToFriendDialog";
 import { useAuth } from "@/lib/auth";
-import { useReferralCode } from "@/hooks/useReferralCode";
 
 interface ProductDetailItem {
   id: string;
@@ -46,22 +44,9 @@ const PLATFORM_COLORS: Record<string, string> = {
 const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: ProductDetailSheetProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { code: referralCode } = useReferralCode();
   const [postOpen, setPostOpen] = useState(false);
-  const [msgOpen, setMsgOpen] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [shareInOOTDOpen, setShareInOOTDOpen] = useState(false);
   if (!product) return null;
-
-  const buildShareLink = () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = new URL(`${origin}/discover`);
-    url.searchParams.set("p", product.id);
-    if (referralCode) url.searchParams.set("ref", referralCode);
-    return url.toString();
-  };
-
-  const shareUrl = buildShareLink();
-  const shareTitle = `${product.brand} — ${product.name}`;
 
   const handleTryOn = () => {
     const parsed = product.price ? parseFloat(String(product.price).replace(/[^0-9.]/g, "")) : NaN;
@@ -83,52 +68,6 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
     onClose();
     navigate(`/fit/${encodeURIComponent(product.id)}`);
   };
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copied");
-    } catch {
-      toast.error("Could not copy");
-    }
-    setShareMenuOpen(false);
-  };
-
-  const sendViaMessages = async () => {
-    if (!user) {
-      toast.error("Sign in to send via Messages");
-      setShareMenuOpen(false);
-      return;
-    }
-    try { await navigator.clipboard.writeText(`${shareTitle} — ${shareUrl}`); } catch {}
-    toast.success("Link copied — pick a chat to paste it");
-    setShareMenuOpen(false);
-    setMsgOpen(true);
-  };
-
-  const openExternal = (base: string, useTitle = false) => {
-    const text = useTitle ? `${shareTitle} — ${shareUrl}` : shareUrl;
-    window.open(base + encodeURIComponent(text), "_blank", "noopener,noreferrer");
-    setShareMenuOpen(false);
-  };
-
-  const shareToKakao = async () => {
-    try { await navigator.clipboard.writeText(`${shareTitle} — ${shareUrl}`); } catch {}
-    const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`;
-    window.open(kakaoUrl, "_blank", "noopener,noreferrer");
-    toast.success("Opening KakaoTalk…");
-    setShareMenuOpen(false);
-  };
-
-  const shareItems = [
-    { key: "copy", label: "Copy link", icon: <Link2 className="h-3.5 w-3.5" />, onClick: copyLink },
-    { key: "msg", label: "Send via Messages", icon: <Inbox className="h-3.5 w-3.5" />, onClick: sendViaMessages },
-    { key: "kakao", label: "KakaoTalk", icon: <MessageSquare className="h-3.5 w-3.5" />, onClick: shareToKakao },
-    { key: "wa", label: "WhatsApp", icon: <MessageCircle className="h-3.5 w-3.5" />, onClick: () => openExternal("https://wa.me/?text=", true) },
-    { key: "tg", label: "Telegram", icon: <Send className="h-3.5 w-3.5" />, onClick: () => openExternal(`https://t.me/share/url?text=${encodeURIComponent(shareTitle)}&url=`) },
-    { key: "fb", label: "Facebook", icon: <Globe className="h-3.5 w-3.5" />, onClick: () => openExternal("https://www.facebook.com/sharer/sharer.php?u=") },
-    { key: "tw", label: "X / Twitter", icon: <Hash className="h-3.5 w-3.5" />, onClick: () => openExternal(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=`) },
-  ];
 
   const tags = [
     ...(product.style_tags || []),
@@ -221,17 +160,29 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                     TRY THIS ON
                   </button>
 
-                  {/* Post as OOTD */}
-                  <AuthGate action="post outfits">
-                    <button
-                      onClick={() => setPostOpen(true)}
-                      disabled={!product.image_url}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[12px] font-bold tracking-[0.15em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
-                    >
-                      <Camera className="h-4 w-4" />
-                      POST AS OOTD
-                    </button>
-                  </AuthGate>
+                  {/* OOTD actions — POST AS OOTD + SHARE IN OOTD */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <AuthGate action="post outfits">
+                      <button
+                        onClick={() => setPostOpen(true)}
+                        disabled={!product.image_url}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[11px] font-bold tracking-[0.14em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
+                      >
+                        <Camera className="h-4 w-4" />
+                        POST IN OOTD
+                      </button>
+                    </AuthGate>
+
+                    <AuthGate action="share to friends">
+                      <button
+                        onClick={() => setShareInOOTDOpen(true)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[11px] font-bold tracking-[0.14em] text-accent transition-all hover:bg-accent/15"
+                      >
+                        <Send className="h-4 w-4" />
+                        SHARE IN OOTD
+                      </button>
+                    </AuthGate>
+                  </div>
 
                   <div className="flex items-center gap-3">
                     {product.source_url && (
@@ -261,29 +212,6 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                       </button>
                     </AuthGate>
                   </div>
-
-                  {/* Share — full menu inline */}
-                  <div className="pt-1">
-                    <button
-                      onClick={() => setShareMenuOpen((v) => !v)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/70 hover:bg-foreground/[0.04]"
-                    >
-                      SHARE
-                    </button>
-                    {shareMenuOpen && (
-                      <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-xl border border-border/30 bg-card/60 p-2">
-                        {shareItems.map((it) => (
-                          <button
-                            key={it.key}
-                            onClick={it.onClick}
-                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium text-foreground/75 hover:bg-foreground/[0.05] transition-colors text-left"
-                          >
-                            {it.icon} {it.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -303,7 +231,19 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
         onClose={() => setPostOpen(false)}
       />
 
-      <MessagesFullSheet open={msgOpen} onClose={() => setMsgOpen(false)} />
+      <ShareProductToFriendDialog
+        open={shareInOOTDOpen}
+        product={{
+          id: product.id,
+          name: product.name,
+          brand: product.brand,
+          image_url: product.image_url ?? null,
+          source_url: product.source_url ?? null,
+        }}
+        onClose={() => setShareInOOTDOpen(false)}
+      />
+
+
     </>
   );
 };
