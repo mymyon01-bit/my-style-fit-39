@@ -23,6 +23,7 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [consents, setConsents] = useState<ConsentState>({ terms: false, privacy: false, marketing: false });
 
   // Capture ?ref=CODE from URL on mount so we can claim it after signup
   useEffect(() => { captureReferralFromUrl(); }, []);
