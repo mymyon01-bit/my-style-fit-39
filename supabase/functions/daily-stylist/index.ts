@@ -11,54 +11,59 @@ serve(async (req) => {
 
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-    if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY not configured");
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from JWT
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) throw new Error("Unauthorized");
-
-    const { type, weather, location, mood } = await req.json();
-    // type: "daily" | "weekly"
-
-    // Check subscription
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const isPremium = sub && (sub.plan === "premium_trial" || sub.plan === "premium") &&
-      sub.status === "active" &&
-      (!sub.trial_end_date || new Date(sub.trial_end_date) > new Date());
-
-    if (!isPremium) {
-      return new Response(JSON.stringify({ error: "premium_required", message: "Upgrade to Premium for daily styling" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Optional auth — guests are now welcome
+    let user: { id: string } | null = null;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      try {
+        const token = authHeader.replace("Bearer ", "");
+        const { data } = await supabase.auth.getUser(token);
+        if (data?.user) user = { id: data.user.id };
+      } catch {/* ignore — treat as guest */}
     }
 
-    // Fetch user data
-    const [styleRes, bodyRes, interactionsRes, recentRecsRes] = await Promise.all([
-      supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("interactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("daily_recommendations").select("outfits").eq("user_id", user.id).order("recommendation_date", { ascending: false }).limit(3),
-    ]);
+    const body = await req.json().catch(() => ({}));
+    const {
+      type = "daily",
+      weather,
+      location,
+      mood,
+      searchQuery,
+      searchTags = [],
+      searchProducts = [],
+    } = body || {};
 
-    const style = styleRes.data;
-    const body = bodyRes.data;
-    const interactions = interactionsRes.data || [];
-    const recentOutfits = recentRecsRes.data || [];
+    // Determine premium tier (used to pick model). All users get recs now.
+    let isPremium = false;
+    let style: any = null;
+    let bodyProfile: any = null;
+    let interactions: any[] = [];
+    const recentOutfits: any[] = [];
 
-    // Build context for AI
+    if (user) {
+      const [subRes, styleRes, bodyRes, interactionsRes, recentRecsRes] = await Promise.all([
+        supabase.from("subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("interactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabase.from("daily_recommendations").select("outfits").eq("user_id", user.id).order("recommendation_date", { ascending: false }).limit(3),
+      ]);
+      const sub = subRes.data;
+      isPremium = !!(sub && (sub.plan === "premium_trial" || sub.plan === "premium") &&
+        sub.status === "active" &&
+        (!sub.trial_end_date || new Date(sub.trial_end_date) > new Date()));
+      style = styleRes.data;
+      bodyProfile = bodyRes.data;
+      interactions = interactionsRes.data || [];
+      recentOutfits.push(...(recentRecsRes.data || []));
+    }
+
     const recentOutfitSummary = recentOutfits.map((r: any) => {
       const outfits = r.outfits || [];
       return outfits.map((o: any) => o.label || o.top?.name).filter(Boolean).join(", ");
@@ -68,119 +73,137 @@ serve(async (req) => {
     const today = new Date();
     const dayOfWeek = dayNames[today.getDay()];
 
-    if (type === "weekly") {
-      // Generate 5-day plan
-      const systemPrompt = `You are WARDROBE AI — a premium personal fashion stylist creating a weekly outfit plan. Respond ONLY with valid JSON, no markdown.`;
+    // Build search-signal context block (new)
+    const searchContext = (() => {
+      const lines: string[] = [];
+      if (searchQuery) lines.push(`Current search intent: "${searchQuery}"`);
+      if (Array.isArray(searchTags) && searchTags.length) lines.push(`Style signals: ${searchTags.slice(0, 8).join(", ")}`);
+      if (Array.isArray(searchProducts) && searchProducts.length) {
+        const sample = searchProducts.slice(0, 6).map((p: any) =>
+          `${p.brand || ""} ${p.name || p.title || ""}`.trim()
+        ).filter(Boolean);
+        if (sample.length) lines.push(`Items they're browsing: ${sample.join(" | ")}`);
+      }
+      return lines.join("\n");
+    })();
 
-      const userPrompt = `Create a 5-day styling plan (Monday-Friday) for someone with these details:
-Style preferences: ${style?.preferred_styles?.join(", ") || "minimal, clean"}
-Disliked styles: ${style?.disliked_styles?.join(", ") || "none"}
-Fit preference: ${style?.preferred_fit || "regular"}
-Budget: ${style?.budget || "mid-range"}
-Body: ${body?.height_cm || "175"}cm, ${body?.weight_kg || "70"}kg, ${body?.silhouette_type || "balanced"} build
-Current weather: ${weather?.temp || 22}°C, ${weather?.condition || "clear"} in ${location || "city"}
-Recent outfits to AVOID repeating: ${recentOutfitSummary || "none"}
+    const styleLine = style?.preferred_styles?.join(", ") || (searchTags.slice(0, 3).join(", ") || "minimal, clean");
+    const dislikedLine = style?.disliked_styles?.join(", ") || "none";
+    const fitLine = style?.preferred_fit || "regular";
+    const budgetLine = style?.budget || "mid-range";
+    const bodyLine = `${bodyProfile?.height_cm || "175"}cm, ${bodyProfile?.weight_kg || "70"}kg, ${bodyProfile?.silhouette_type || "balanced"} build`;
 
-Return JSON: { "days": [{ "day": "Monday", "label": "Clean Work Fit", "mood_tag": "sharp", "outfit": { "top": { "name": "...", "color": "...", "style": "..." }, "bottom": { "name": "...", "color": "...", "style": "..." }, "shoes": { "name": "...", "color": "...", "style": "..." }, "outerwear": null, "accessories": null }, "explanation": "One sentence why this works today." }] }
-Each day should have a different vibe. Ensure variety in colors and silhouettes across the week.`;
-
-      const response = await fetch("https://api.perplexity.ai/chat/completions", {
+    // Helper: call AI (Perplexity for premium, Lovable AI for free)
+    async function callAI(systemPrompt: string, userPrompt: string, maxTokens: number) {
+      if (isPremium && PERPLEXITY_API_KEY) {
+        const r = await fetch("https://api.perplexity.ai/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "sonar",
+            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+            max_tokens: maxTokens,
+            temperature: 0.65,
+          }),
+        });
+        if (!r.ok) throw new Error(`Perplexity error ${r.status}`);
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || "";
+      }
+      // Fallback / free tier: Lovable AI Gateway
+      if (!LOVABLE_API_KEY) throw new Error("No AI provider configured");
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
+        headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "sonar",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          max_tokens: 1200,
-          temperature: 0.6,
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
         }),
       });
+      if (r.status === 429) throw new Error("rate_limited");
+      if (r.status === 402) throw new Error("payment_required");
+      if (!r.ok) throw new Error(`Lovable AI error ${r.status}`);
+      const d = await r.json();
+      return d.choices?.[0]?.message?.content || "";
+    }
 
-      if (!response.ok) throw new Error(`Perplexity error ${response.status}`);
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || "";
+    if (type === "weekly") {
+      const systemPrompt = `You are WARDROBE AI — a personal fashion stylist creating a weekly outfit plan. Respond ONLY with valid JSON, no markdown.`;
+      const userPrompt = `Create a 5-day styling plan (Monday-Friday).
+Style: ${styleLine}
+Disliked: ${dislikedLine}
+Fit: ${fitLine}
+Budget: ${budgetLine}
+Body: ${bodyLine}
+Weather: ${weather?.temp || 22}°C, ${weather?.condition || "clear"} in ${location || "city"}
+Recent outfits to AVOID: ${recentOutfitSummary || "none"}
+${searchContext ? "\n" + searchContext : ""}
 
-      // Parse JSON from response
-      let parsed;
+Return JSON: { "days": [{ "day": "Monday", "label": "Clean Work Fit", "mood_tag": "sharp", "outfit": { "top": { "name": "...", "color": "...", "style": "..." }, "bottom": {...}, "shoes": {...}, "outerwear": null, "accessories": null }, "explanation": "One sentence." }] }`;
+
+      const content = await callAI(systemPrompt, userPrompt, 1200);
+      let parsed: any;
       try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { days: [] };
+        const m = content.match(/\{[\s\S]*\}/);
+        parsed = m ? JSON.parse(m[0]) : { days: [] };
       } catch { parsed = { days: [], raw: content }; }
 
-      // Cache
-      await supabase.from("daily_recommendations").upsert({
-        user_id: user.id,
-        recommendation_date: today.toISOString().split("T")[0],
-        recommendation_type: "weekly",
-        outfits: parsed.days || [],
-        context: { weather, location, mood },
-      }, { onConflict: "user_id,recommendation_date,recommendation_type" });
+      if (user) {
+        await supabase.from("daily_recommendations").upsert({
+          user_id: user.id,
+          recommendation_date: today.toISOString().split("T")[0],
+          recommendation_type: "weekly",
+          outfits: parsed.days || [],
+          context: { weather, location, mood, searchQuery },
+        }, { onConflict: "user_id,recommendation_date,recommendation_type" });
+      }
 
-      return new Response(JSON.stringify({ plan: parsed.days || [], cached: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-    } else {
-      // Daily: generate 3 outfits
-      const systemPrompt = `You are WARDROBE AI — a premium personal fashion stylist. Respond ONLY with valid JSON array, no markdown.`;
-
-      const userPrompt = `Generate 3 complete outfit options for today (${dayOfWeek}).
-User profile:
-- Style: ${style?.preferred_styles?.join(", ") || "minimal, clean"}
-- Disliked: ${style?.disliked_styles?.join(", ") || "none"}
-- Fit: ${style?.preferred_fit || "regular"}
-- Budget: ${style?.budget || "mid-range"}
-- Body: ${body?.height_cm || "175"}cm, ${body?.weight_kg || "70"}kg, ${body?.silhouette_type || "balanced"}
-- Weather: ${weather?.temp || 22}°C, ${weather?.condition || "clear"} in ${location || "city"}
-- Mood: ${mood || "neutral"}
-- Recent outfits (avoid repeating): ${recentOutfitSummary || "none"}
-
-Return JSON: [{ "label": "Effortless Minimal", "outfit": { "top": { "name": "...", "color": "...", "style": "..." }, "bottom": { "name": "...", "color": "...", "style": "..." }, "shoes": { "name": "...", "color": "...", "style": "..." }, "outerwear": null or { "name": "...", "color": "...", "style": "..." }, "accessories": null or { "name": "...", "color": "...", "style": "..." } }, "explanation": "2 sentences on why this look works for your mood and weather today." }]
-Make each outfit distinctly different. One casual, one polished, one creative.`;
-
-      const response = await fetch("https://api.perplexity.ai/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "sonar",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          max_tokens: 1000,
-          temperature: 0.65,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`Perplexity error ${response.status}`);
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || "";
-
-      let parsed;
-      try {
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-      } catch { parsed = []; }
-
-      // Cache
-      await supabase.from("daily_recommendations").upsert({
-        user_id: user.id,
-        recommendation_date: today.toISOString().split("T")[0],
-        recommendation_type: "daily",
-        outfits: parsed,
-        context: { weather, location, mood },
-      }, { onConflict: "user_id,recommendation_date,recommendation_type" });
-
-      return new Response(JSON.stringify({ outfits: parsed, cached: false }), {
+      return new Response(JSON.stringify({ plan: parsed.days || [], cached: false, tier: isPremium ? "premium" : (user ? "trial" : "guest") }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Daily
+    const count = searchContext ? 4 : 3;
+    const systemPrompt = `You are WARDROBE AI — a personal fashion stylist. Respond ONLY with a valid JSON array, no markdown.`;
+    const userPrompt = `Generate ${count} complete outfit options for today (${dayOfWeek}) that would look great on this person${searchContext ? " given what they're currently browsing" : ""}.
+- Style: ${styleLine}
+- Disliked: ${dislikedLine}
+- Fit: ${fitLine}
+- Budget: ${budgetLine}
+- Body: ${bodyLine}
+- Weather: ${weather?.temp || 22}°C, ${weather?.condition || "clear"} in ${location || "city"}
+- Mood: ${mood || "neutral"}
+- Recent outfits to avoid repeating: ${recentOutfitSummary || "none"}
+${searchContext ? "\n" + searchContext : ""}
+
+Return JSON array: [{ "label": "Effortless Minimal", "outfit": { "top": { "name": "...", "color": "...", "style": "..." }, "bottom": {...}, "shoes": {...}, "outerwear": null, "accessories": null }, "explanation": "Two short sentences on why this look suits them today." }]
+Each outfit must be distinctly different in vibe and color.`;
+
+    const content = await callAI(systemPrompt, userPrompt, 1000);
+    let parsed: any[];
+    try {
+      const m = content.match(/\[[\s\S]*\]/);
+      parsed = m ? JSON.parse(m[0]) : [];
+    } catch { parsed = []; }
+
+    if (user) {
+      await supabase.from("daily_recommendations").upsert({
+        user_id: user.id,
+        recommendation_date: today.toISOString().split("T")[0],
+        recommendation_type: searchQuery ? "search_recs" : "daily",
+        outfits: parsed,
+        context: { weather, location, mood, searchQuery },
+      }, { onConflict: "user_id,recommendation_date,recommendation_type" });
+    }
+
+    return new Response(JSON.stringify({ outfits: parsed, cached: false, tier: isPremium ? "premium" : (user ? "trial" : "guest") }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("daily-stylist error:", e);
     const msg = e instanceof Error ? e.message : "Unknown error";
-    const status = msg === "Unauthorized" ? 401 : msg.includes("premium") ? 403 : 500;
+    const status = msg === "rate_limited" ? 429 : msg === "payment_required" ? 402 : 500;
     return new Response(JSON.stringify({ error: msg }), {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
