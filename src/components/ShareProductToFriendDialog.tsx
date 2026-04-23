@@ -15,10 +15,10 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Search, Loader2, Check, Users, AtSign } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useConversations, openConversationWith } from "@/hooks/useMessages";
-import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 
 function buildSharePreview(product: ProductLite, note: string) {
   const trimmed = note.trim();
@@ -54,12 +54,8 @@ const MAX_NOTE = 280;
 
 export default function ShareProductToFriendDialog({ open, product, onClose }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { conversations } = useConversations();
-  const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null; otherUserId: string | null }>({
-    open: false,
-    conversationId: null,
-    otherUserId: null,
-  });
   const [tab, setTab] = useState<"search" | "circle">("search");
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<FriendOption[]>([]);
@@ -235,12 +231,10 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
         .eq("id", conversationId);
 
       toast.success(`Sent to ${picked.display_name || picked.username || "friend"}`);
-      setMessageSheet({
-        open: true,
-        conversationId,
-        otherUserId: picked.user_id,
-      });
-      queueMicrotask(() => onClose());
+      onClose();
+      navigate(
+        `/ootd?tab=mypage&chat=${encodeURIComponent(conversationId)}&user=${encodeURIComponent(picked.user_id)}`,
+      );
     } catch (e: any) {
       console.error("[ShareProduct] handleSend error", e);
       toast.error(e?.message || "Could not send");
@@ -406,12 +400,6 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
         )}
       </AnimatePresence>
 
-      <MessagesFullSheet
-        open={messageSheet.open}
-        onClose={() => setMessageSheet({ open: false, conversationId: null, otherUserId: null })}
-        initialConversationId={messageSheet.conversationId}
-        initialOtherUserId={messageSheet.otherUserId}
-      />
     </>
   );
 

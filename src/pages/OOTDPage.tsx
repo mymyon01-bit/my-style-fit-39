@@ -97,6 +97,10 @@ const OOTDPage = () => {
   // Inbox/notifications opened from My Page or the top mailbox icon
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [mailboxAnchor, setMailboxAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [initialChat, setInitialChat] = useState<{ conversationId: string | null; otherUserId: string | null }>({
+    conversationId: null,
+    otherUserId: null,
+  });
   const [notifsOpen, setNotifsOpen] = useState(false);
   const { notifUnread, totalUnread } = useNotifications();
   const { totalUnread: msgUnread } = useConversations();
@@ -169,6 +173,25 @@ const OOTDPage = () => {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get("post")]);
+
+  useEffect(() => {
+    const chatId = searchParams.get("chat");
+    const otherUserId = searchParams.get("user");
+    const nextTab = searchParams.get("tab");
+    if (!chatId || !otherUserId) return;
+
+    if (nextTab === "mypage") {
+      setActiveTabState("mypage");
+    }
+
+    setInitialChat({ conversationId: chatId, otherUserId });
+    setMessagesOpen(true);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("chat");
+    next.delete("user");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
 
   // Debounced combined search (users + hashtags)
@@ -954,7 +977,12 @@ const OOTDPage = () => {
       <MailboxPopup
         open={messagesOpen}
         anchor={mailboxAnchor}
-        onClose={() => setMessagesOpen(false)}
+        onClose={() => {
+          setMessagesOpen(false);
+          setInitialChat({ conversationId: null, otherUserId: null });
+        }}
+        initialConversationId={initialChat.conversationId}
+        initialOtherUserId={initialChat.otherUserId}
       />
       <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
     </div>
