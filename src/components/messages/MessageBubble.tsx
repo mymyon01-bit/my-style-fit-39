@@ -150,6 +150,7 @@ export default function MessageBubble({ content, isMine, createdAt, readAt, atta
                 );
               }
 
+              if (a.type === "namecard") {
                 const targetUser = a.meta?.user_id || "";
                 return (
                   <button
