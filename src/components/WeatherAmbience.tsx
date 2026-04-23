@@ -65,16 +65,35 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
     condition === "cloudy" || condition === "partly-cloudy" || condition === "overcast";
 
   // Pre-compute particle arrays (stable across rerenders for perceived realism)
+  // Layered rain — near/mid/far for parallax depth (real rain has depth)
   const rainDrops = useMemo(
     () =>
-      Array.from({ length: 80 }).map((_, i) => ({
-        left: rand(i + 1) * 100,
-        top: -rand(i + 7) * 20,
-        height: 2.5 + rand(i + 13) * 5,
-        delay: rand(i + 23) * 2,
-        duration: 0.7 + rand(i + 37) * 0.6,
-        opacity: 0.25 + rand(i + 51) * 0.35,
-        tilt: -8 - rand(i + 61) * 4,
+      Array.from({ length: 160 }).map((_, i) => {
+        const layer = i % 3; // 0=far, 1=mid, 2=near
+        const depth = layer === 0 ? 0.4 : layer === 1 ? 0.7 : 1;
+        return {
+          left: rand(i + 1) * 100,
+          top: -rand(i + 7) * 30,
+          height: (1.5 + rand(i + 13) * 4) * depth,
+          width: 0.8 + depth * 1.2,
+          delay: rand(i + 23) * 1.8,
+          duration: (0.45 + rand(i + 37) * 0.45) / depth,
+          opacity: (0.18 + rand(i + 51) * 0.4) * depth,
+          tilt: -10 - rand(i + 61) * 6,
+          blur: layer === 0 ? 1.2 : layer === 1 ? 0.4 : 0,
+        };
+      }),
+    [],
+  );
+
+  // Splash points along the bottom — where drops hit
+  const splashes = useMemo(
+    () =>
+      Array.from({ length: 24 }).map((_, i) => ({
+        left: rand(i + 401) * 100,
+        delay: rand(i + 411) * 2,
+        duration: 0.9 + rand(i + 421) * 0.6,
+        size: 8 + rand(i + 431) * 14,
       })),
     [],
   );
