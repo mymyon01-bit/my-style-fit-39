@@ -108,10 +108,7 @@ export default function FitVisual({
   const previewSrc = state.imageUrl ?? null;
   const isReady = state.stage === "ready" && !!previewSrc && !imageError;
   const isFailed = state.stage === "failed";
-  const isLoading =
-    state.stage === "generating" ||
-    state.stage === "polling" ||
-    state.stage === "validating";
+  const isLoading = state.stage === "generating" || state.stage === "polling";
   // If failure but we have a sticky last-good image, surface it as fallback.
   const showStickyFallback = isFailed && !!previewSrc && !imageError;
 
@@ -145,18 +142,14 @@ export default function FitVisual({
   const showImage = isReady || showStickyFallback;
 
   const stageMessage =
-    state.stage === "validating"
-      ? "Checking image quality…"
-      : state.stage === "polling"
+    state.stage === "polling"
       ? "Generating final fitting image…"
       : state.stage === "generating"
       ? "Preparing your fitting…"
       : "Generating final fitting image…";
 
   const stageHint =
-    state.stage === "validating"
-      ? "Rejecting broken or off-style renders before display"
-      : state.stage === "polling"
+    state.stage === "polling"
       ? "Generating fit image…"
       : state.stage === "generating"
       ? "Building a mannequin-based fit preview"

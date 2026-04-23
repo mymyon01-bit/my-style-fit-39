@@ -290,8 +290,6 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           bodyProfileSummary: args.bodyProfileSummary,
           baselineVerdict: args.baselineVerdict,
           mode: "studio",
-          safeMode: safeModeAttempt > 0,
-          forceRegenerate: safeModeAttempt > 0,
         });
         if (isStale()) return;
         if (error) throw error;
@@ -299,7 +297,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         if (data?.ok && data.imageUrl) {
           stopTimers();
           const persistentUrl = data.imageUrl;
-          log("create_ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80), safeMode: safeModeAttempt > 0 });
+          log("create_ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80) });
           await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null);
           return;
         }
@@ -315,8 +313,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             ...prev,
             stage: "polling",
             provider: data.provider ?? null,
-            retryAfterMs,
-              isUsingStableRenderMode: true,
+              retryAfterMs,
+              isUsingStableRenderMode: false,
           }));
           window.setTimeout(() => {
             if (isStale()) return;
@@ -332,7 +330,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             stage: "polling",
             provider: data.provider ?? null,
             requestId: data.requestId ?? null,
-            isUsingStableRenderMode: safeModeAttempt > 0,
+            isUsingStableRenderMode: false,
           }));
           startPolling({
             requestId: data.requestId ?? null,
