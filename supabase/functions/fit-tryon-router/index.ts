@@ -301,6 +301,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     `Background: clean seamless light-gray studio backdrop with soft even directional lighting and a subtle floor shadow for grounding. Editorial fit-preview quality, NOT fashion editorial.`,
     `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity.`,
     `Output must look like a brand-new generated studio fit visualization — never like an edit of an existing snapshot. The ONLY visual difference between size variations of this same person must be GARMENT FIT and FABRIC BEHAVIOR, never body shape, never identity.`,
+    safeModeSuffix,
   ].filter(Boolean).join(" ");
 }
 
