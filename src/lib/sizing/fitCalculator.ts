@@ -232,7 +232,11 @@ export function calculateAllSizes(input: CalcInput): SizeOutcome[] {
       ),
     );
 
-    const overall = pickOverall(regions, rule.weights);
+    let overall = pickOverall(regions, rule.weights);
+    // EXTREME-MISMATCH GUARD — heavy body + small garment must be tight,
+    // light body + large garment must be oversized, regardless of how the
+    // category-default rows happen to add up.
+    overall = applyExtremeRules(overall, regions, input.body, input.chart.category, ease);
     let score = 0;
     let weightSum = 0;
     for (const r of regions) {
