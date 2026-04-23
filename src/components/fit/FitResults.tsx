@@ -519,39 +519,27 @@ export default function FitResults({
             compact
           />
 
-          {/* Recommended size — editorial */}
+          {/* Size picker — user decides their own fit. No "recommended" badge here. */}
           <div className="border-t border-foreground/15 pt-7">
-            <div className="flex items-end justify-between gap-6">
-              <div className="space-y-1.5">
-                <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40">
-                  RECOMMENDED SIZE
-                </p>
-                <motion.p
-                  key={activeSize}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className="font-display text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground"
-                >
-                  {activeSize}
-                </motion.p>
-                <p className={`text-[15px] font-medium tracking-tight ${heroColor}`}>
-                  {heroFitType}
-                </p>
-              </div>
-              {result.alternateSize !== "N/A" && activeSize !== result.alternateSize && (
-                <div className="text-right pb-2">
-                  <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40 mb-1">
-                    ALT
-                  </p>
-                  <p className="font-display text-[36px] font-medium leading-[0.9] tracking-[-0.04em] text-foreground/70">
-                    {result.alternateSize}
-                  </p>
-                </div>
-              )}
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40">
+                CHOOSE YOUR SIZE
+              </p>
+              <motion.p
+                key={activeSize}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="font-display text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground"
+              >
+                {activeSize}
+              </motion.p>
+              <p className="text-[12px] tracking-tight text-foreground/55">
+                Tap a size below to preview how it would sit on your body.
+              </p>
             </div>
 
-            {/* Size switcher pills */}
+            {/* Size switcher pills — no recommended/alternate dot */}
             <div className="mt-6 flex flex-wrap gap-1.5">
               {result.sizeResults.map((sr) => {
                 const isActive = sr.size === activeSize;
@@ -566,19 +554,34 @@ export default function FitResults({
                     }`}
                   >
                     <span className="font-display text-[13px] font-medium leading-none tracking-tight">{sr.size}</span>
-                    {sr.recommended && !isActive && (
-                      <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-accent" />
-                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* One-line headline summary */}
+          {/* One-line headline summary — neutral, no verdict */}
           <p className="text-[13px] leading-relaxed text-foreground/75">
             {explanation || builtExplanation.headline || solver.summary}
           </p>
+
+          {/* Fit-score / data disclaimer — honesty notice */}
+          <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <Info className="h-3 w-3 text-foreground/45" />
+              <p className="text-[9px] font-bold tracking-[0.22em] text-foreground/55">FIT NOTICE</p>
+            </div>
+            <p className="text-[11px] leading-relaxed text-foreground/60">
+              Actual wear may differ from this preview. If you know the product's exact size chart or material,
+              go back to <span className="text-foreground/80 font-medium">CHECK</span> and tap{" "}
+              <span className="text-foreground/80 font-medium">"Add precise info"</span> on the selected
+              product for a more accurate result.
+            </p>
+            <p className="text-[10px] leading-relaxed text-foreground/45 pt-1 border-t border-foreground/[0.05]">
+              This is a data-driven visualization, not a guarantee. Final purchase decision and
+              responsibility rest with you.
+            </p>
+          </div>
 
           {/* Limited confidence callout — small, only when needed */}
           {confTier === "limited" && (
