@@ -13,8 +13,9 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWeather } from "@/hooks/useWeather";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Plus, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import StyleLookModal, { type StyleLookOutfit } from "./StyleLookModal";
 
 interface OutfitPiece { name: string; color: string; style: string; }
 interface StyleOutfit {
@@ -72,6 +73,7 @@ export default function StyleRecsForYou({
   const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const lastKeyRef = useRef<string>("");
+  const [expanded, setExpanded] = useState<StyleLookOutfit | null>(null);
 
   // Build a dedupe key so we don't re-fetch on every render
   const fetchKey = JSON.stringify({
@@ -191,9 +193,18 @@ export default function StyleRecsForYou({
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.3 }}
           >
-            <p className="font-display text-[18px] italic text-foreground/85 mb-3 md:text-[20px]">
-              {outfits[activeIndex].label}
-            </p>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <p className="font-display text-[18px] italic text-foreground/85 md:text-[20px]">
+                {outfits[activeIndex].label}
+              </p>
+              <button
+                onClick={() => setExpanded(outfits[activeIndex])}
+                aria-label="Expand look with AI image"
+                className="shrink-0 h-8 w-8 rounded-full border border-foreground/15 flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <div className="divide-y divide-foreground/5">
               {PIECE_LABELS.map((key) => {
                 const p = outfits[activeIndex].outfit[key];
@@ -213,6 +224,12 @@ export default function StyleRecsForYou({
           No recommendations yet — try searching for a vibe.
         </p>
       )}
+
+      <StyleLookModal
+        open={!!expanded}
+        onOpenChange={(v) => { if (!v) setExpanded(null); }}
+        baseOutfit={expanded}
+      />
     </div>
   );
 }
