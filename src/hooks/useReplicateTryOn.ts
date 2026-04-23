@@ -85,6 +85,12 @@ export interface CreateTryOnBody {
    * "vton" = legacy IDM-VTON composite onto user photo.
    */
   mode?: "studio" | "vton";
+  /**
+   * When the previous result failed the client-side quality gate, we retry
+   * with a more conservative prompt + larger output. Router uses this flag
+   * to bypass cache and force a fresh, safer render.
+   */
+  safeMode?: boolean;
 }
 
 export interface TryOnInvokeResult {

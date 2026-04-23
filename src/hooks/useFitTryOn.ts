@@ -14,8 +14,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReplicateTryOn } from "./useReplicateTryOn";
+import { validateFitImage, type FitImageValidation } from "@/lib/fit/validateFitImage";
 
-export type FitTryOnStage = "idle" | "generating" | "polling" | "ready" | "failed";
+export type FitTryOnStage = "idle" | "generating" | "polling" | "validating" | "ready" | "failed";
 
 export interface FitTryOnState {
   stage: FitTryOnStage;
@@ -77,6 +78,9 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
   const pollTimerRef = useRef<number | null>(null);
   const hardTimerRef = useRef<number | null>(null);
   const [manualReload, setManualReload] = useState(0);
+  // Quality-gate state: when the previous result fails validation, we flip
+  // this to true and force ONE retry with a safer preset before giving up.
+  const [safeModeAttempt, setSafeModeAttempt] = useState(0);
 
   const stopTimers = useCallback(() => {
     if (pollTimerRef.current) {
@@ -98,8 +102,22 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     args.enabled &&
     args.productImageUrl &&
     args.selectedSize
-      ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`
+      ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}::${safeModeAttempt}`
       : null;
+
+  // Reset the safe-mode counter whenever the user changes inputs (different
+  // product, different size, manual retry). The auto-retry-once policy must
+  // restart for each fresh user intent — otherwise a stale "already retried"
+  // flag could suppress the safe-mode pass on a brand-new request.
+  const inputsKey = `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`;
+  const lastInputsKeyRef = useRef(inputsKey);
+  if (lastInputsKeyRef.current !== inputsKey && safeModeAttempt !== 0) {
+    lastInputsKeyRef.current = inputsKey;
+    // Defer state update to next tick — we're in render phase.
+    queueMicrotask(() => setSafeModeAttempt(0));
+  } else {
+    lastInputsKeyRef.current = inputsKey;
+  }
 
   useEffect(() => {
     stopTimers();
@@ -140,6 +158,53 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       retryAfterMs: null,
     }));
 
+    // ── QUALITY GATE ──────────────────────────────────────────────────────
+    // Validate the AI image BEFORE surfacing it as final. On failure, retry
+    // ONCE with safeMode=true (router uses a more conservative prompt).
+    // The user never sees the broken intermediate.
+    const acceptOrRetry = async (
+      persistentUrl: string,
+      provider: string | null,
+      requestId: string | null,
+    ) => {
+      setState((prev) => ({
+        ...prev,
+        stage: "validating",
+        provider,
+        requestId,
+      }));
+      const verdict = await validateFitImage(persistentUrl);
+      if (isStale()) return;
+      if (verdict.ok) {
+        log("validated_ok", { width: verdict.width, height: verdict.height, variance: verdict.variance });
+        setState({
+          stage: "ready",
+          imageUrl: persistentUrl,
+          lastGoodImageUrl: persistentUrl,
+          error: null,
+          provider,
+          requestId,
+          retryAfterMs: null,
+        });
+        return;
+      }
+      log("validation_failed", { reason: verdict.reason, width: verdict.width, height: verdict.height, variance: verdict.variance, safeModeAttempt });
+      if (safeModeAttempt === 0) {
+        // Auto-retry once with safer preset. Don't show the broken image.
+        log("auto_retry_safe_mode");
+        setSafeModeAttempt(1);
+        return;
+      }
+      // Already retried — surface failure cleanly.
+      setState((prev) => ({
+        ...prev,
+        stage: "failed",
+        error: "We couldn't render a clean fitting. Please try again.",
+        provider,
+        requestId,
+      }));
+    };
+
     hardTimerRef.current = window.setTimeout(() => {
       if (isStale()) return;
       stopTimers();
@@ -172,15 +237,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             stopTimers();
             const persistentUrl = data.imageUrl;
             log("ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80) });
-            setState({
-              stage: "ready",
-              imageUrl: persistentUrl,
-              lastGoodImageUrl: persistentUrl,
-              error: null,
-              provider: data.provider ?? null,
-              requestId: data.requestId ?? null,
-              retryAfterMs: null,
-            });
+            await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null);
             return;
           }
 
@@ -251,6 +308,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           bodyProfileSummary: args.bodyProfileSummary,
           baselineVerdict: args.baselineVerdict,
           mode: "studio",
+          safeMode: safeModeAttempt > 0,
+          forceRegenerate: safeModeAttempt > 0,
         });
         if (isStale()) return;
         if (error) throw error;
@@ -258,16 +317,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         if (data?.ok && data.imageUrl) {
           stopTimers();
           const persistentUrl = data.imageUrl;
-          log("create_ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80) });
-          setState({
-            stage: "ready",
-            imageUrl: persistentUrl,
-            lastGoodImageUrl: persistentUrl,
-            error: null,
-            provider: data.provider ?? null,
-            requestId: data.requestId ?? null,
-            retryAfterMs: null,
-          });
+          log("create_ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80), safeMode: safeModeAttempt > 0 });
+          await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null);
           return;
         }
 
@@ -338,7 +389,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey]);
 
-  const retry = useCallback(() => setManualReload((n) => n + 1), []);
+  const retry = useCallback(() => {
+    setSafeModeAttempt(0);
+    setManualReload((n) => n + 1);
+  }, []);
 
   return { ...state, retry };
 }

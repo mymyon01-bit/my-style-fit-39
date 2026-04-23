@@ -83,6 +83,12 @@ interface CreateBody {
    * "vton" — legacy IDM-VTON virtual try-on (composites onto the user photo).
    */
   mode?: "studio" | "vton";
+  /**
+   * Set to true by the client when the previous render failed the quality
+   * gate (too small, blank, malformed). Triggers a more conservative prompt
+   * + cache bypass so the user gets a clean image on the second try.
+   */
+  safeMode?: boolean;
 }
 
 interface SuccessResponse {
@@ -255,6 +261,10 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   // fashion model identity.
   const facelessRule = `IDENTITY REMOVAL (MANDATORY): NO visible face, NO facial features (no eyes, no nose, no mouth, no eyebrows, no ears), NO hairstyle, NO skin texture detail on the face, NO expression, NO identity. Render either (a) a smooth featureless neutral mannequin head with no features whatsoever, or (b) crop the frame from the neck down so the head is not in view. Never render a recognizable human face. The body itself remains realistic and proportionally accurate.`;
 
+  const safeModeSuffixEarly = body.safeMode
+    ? " SAFE RENDER MODE (RETRY): previous attempt produced a malformed or low-quality image. Render with EXTRA stability — full body cleanly framed neck-down, garment fully visible with no clipping at sleeves, hem, shoulders, or sides; sharp clean edges, no torn or melted regions, no floating fabric, no duplicated limbs, no blurred or low-resolution areas. High-resolution sharp final image. Prefer simplicity and structural integrity over stylistic flourishes."
+    : "";
+
   // ── BAG / ACCESSORY CATEGORY ────────────────────────────────────────────
   if (isBag) {
     const bagScale = consequenceLine
@@ -272,9 +282,11 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       `Bag rendering: preserve the EXACT shape, color, hardware, and material of the reference product. Show worn over the shoulder, crossbody, or held in one hand naturally.`,
       `Background: clean seamless light-gray studio backdrop, soft directional lighting, subtle floor shadow.`,
       `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark.`,
+      safeModeSuffixEarly,
     ].filter(Boolean).join(" ");
   }
 
+  const safeModeSuffix = safeModeSuffixEarly;
   return [
     `A premium realistic studio fit-visualization photograph of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
     facelessRule,
@@ -292,6 +304,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     `Background: clean seamless light-gray studio backdrop with soft even directional lighting and a subtle floor shadow for grounding. Editorial fit-preview quality, NOT fashion editorial.`,
     `Strictly NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity.`,
     `Output must look like a brand-new generated studio fit visualization — never like an edit of an existing snapshot. The ONLY visual difference between size variations of this same person must be GARMENT FIT and FABRIC BEHAVIOR, never body shape, never identity.`,
+    safeModeSuffix,
   ].filter(Boolean).join(" ");
 }
 

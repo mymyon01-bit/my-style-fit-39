@@ -11,7 +11,7 @@
 // This is render-only — it does NOT replace the AI image, it transforms it.
 // If the canvas fails to draw, we fall back to the raw AI image silently.
 
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import type { SizeWarpProfile } from "@/lib/fit/sizeWarpProfile";
 
 interface Props {
@@ -92,14 +92,10 @@ function drawTensionLines(
   ctx.restore();
 }
 
-export default function FitImageCanvas({
-  src,
-  alt,
-  profile,
-  className,
-  onLoaded,
-  onError,
-}: Props) {
+const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCanvas(
+  { src, alt, profile, className, onLoaded, onError },
+  _externalRef,
+) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
@@ -134,21 +130,17 @@ export default function FitImageCanvas({
         const bodyH = H - headH;
 
         // 3. Body band — warped by profile.
-        // Compute target dimensions and offsets.
         const targetW = W * profile.scaleX;
         const offsetX = (W - targetW) / 2;
         const extraBottom = profile.hemDropPx;
         const targetH = bodyH * profile.scaleY + extraBottom;
-        // Shoulder drop is applied as a slight downward shift of the body
-        // band start; we then stretch back to fill so the upper torso looks
-        // dropped without exposing background.
         const shoulderShift = Math.max(-6, profile.shoulderDropPx * 0.5);
         const drawTopY = bodyTopY + shoulderShift;
 
         ctx.drawImage(
           img,
-          0, bodyTopY, W, bodyH,             // source: body band
-          offsetX, drawTopY, targetW, targetH, // dest: warped body band
+          0, bodyTopY, W, bodyH,
+          offsetX, drawTopY, targetW, targetH,
         );
 
         // 4. Head band — re-drawn on top so face proportions stay correct.
@@ -158,7 +150,7 @@ export default function FitImageCanvas({
           0, 0, W, headH,
         );
 
-        // 5. Optional tension / drape overlays for stronger size cue.
+        // 5. Optional tension / drape overlays.
         const cx = W / 2;
         const torsoTop = bodyTopY + bodyH * 0.05;
         const torsoH = bodyH * 0.55;
@@ -185,7 +177,6 @@ export default function FitImageCanvas({
   }, [src, profile.scaleX, profile.scaleY, profile.shoulderDropPx, profile.hemDropPx, profile.tensionOpacity, profile.drapeOpacity, onLoaded, onError]);
 
   if (failed) {
-    // Graceful fallback to plain image — the user always sees something.
     return (
       <img
         src={src}
@@ -206,4 +197,7 @@ export default function FitImageCanvas({
       style={ready ? undefined : { opacity: 0 }}
     />
   );
-}
+});
+
+export default FitImageCanvas;
+

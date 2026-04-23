@@ -108,7 +108,10 @@ export default function FitVisual({
   const previewSrc = state.imageUrl ?? null;
   const isReady = state.stage === "ready" && !!previewSrc && !imageError;
   const isFailed = state.stage === "failed";
-  const isLoading = state.stage === "generating" || state.stage === "polling";
+  const isLoading =
+    state.stage === "generating" ||
+    state.stage === "polling" ||
+    state.stage === "validating";
   // If failure but we have a sticky last-good image, surface it as fallback.
   const showStickyFallback = isFailed && !!previewSrc && !imageError;
 
@@ -141,11 +144,14 @@ export default function FitVisual({
 
   const showImage = isReady || showStickyFallback;
 
-  const stageMessage = isLoading
-    ? state.stage === "polling"
+  const stageMessage =
+    state.stage === "validating"
+      ? "Checking image quality…"
+      : state.stage === "polling"
       ? "Generating final fitting image…"
-      : "Preparing your fitting…"
-    : "Generating final fitting image…";
+      : state.stage === "generating"
+      ? "Preparing your fitting…"
+      : "Generating final fitting image…";
 
   return (
     <div className="group/visual space-y-3 overflow-hidden rounded-3xl border border-foreground/[0.08] bg-gradient-to-br from-card/80 via-card/50 to-card/20 p-3 shadow-[0_8px_40px_-16px_hsl(var(--accent)/0.18)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[0_8px_40px_-12px_hsl(var(--accent)/0.28)] sm:p-4">

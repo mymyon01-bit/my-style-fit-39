@@ -20,3 +20,4 @@ Sizing recommendations are measurement-driven (src/lib/sizing/) — do NOT bypas
 - [FIT working model](mem://features/fit-working-model) — Locked baseline for FIT visual try-on (fit-generate-v2 + Replicate IDM-VTON + canvas hooks)
 - [Sizing engine](mem://features/sizing-engine) — Measurement-driven size recommendation pipeline (body + garment chart + category rules)
 - [FIT strict rules](mem://features/fit-strict-rules) — No numeric scores in UI, body+gender always from user profile (never product), all sizes shown with distinct fit outcomes
+- [FIT quality gate](mem://features/fit-quality-gate) — Client validates AI image (dims/variance) before showing; one auto-retry in safeMode; never expose broken intermediate
