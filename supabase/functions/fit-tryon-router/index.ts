@@ -442,7 +442,7 @@ async function generateStudioFitImage(_replicateKey: string, body: CreateBody): 
 
   const prompt = [
     buildCleanStudioPrompt(body),
-    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the body wearing it and the studio setting are newly generated.",
+    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
   ].join(" ");
 
   const controller = new AbortController();
