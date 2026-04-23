@@ -215,6 +215,10 @@ const AuthPage = () => {
                 </button>
               )}
 
+              {mode === "signup" && (
+                <ConsentCheckboxes value={consents} onChange={setConsents} />
+              )}
+
               {error && <p className="text-[12px] text-destructive/70">{error}</p>}
               {message && <p className="text-[12px] text-accent/80">{message}</p>}
 
