@@ -26,6 +26,7 @@ export interface FitTryOnState {
   provider: string | null;
   requestId: string | null;
   retryAfterMs: number | null;
+  isUsingStableRenderMode: boolean;
 }
 
 export interface UseFitTryOnArgs {
@@ -72,6 +73,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     provider: null,
     requestId: null,
     retryAfterMs: null,
+    isUsingStableRenderMode: false,
   });
 
   const runIdRef = useRef(0);
@@ -129,6 +131,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         error: null,
         // Keep lastGoodImageUrl so reopening the same product still shows it.
         imageUrl: prev.lastGoodImageUrl,
+        isUsingStableRenderMode: false,
       }));
       return;
     }
@@ -156,6 +159,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       provider: null,
       requestId: null,
       retryAfterMs: null,
+      isUsingStableRenderMode: safeModeAttempt > 0,
     }));
 
     // ── QUALITY GATE ──────────────────────────────────────────────────────
@@ -185,6 +189,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           provider,
           requestId,
           retryAfterMs: null,
+          isUsingStableRenderMode: false,
         });
         return;
       }
@@ -209,6 +214,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         error: "We couldn't render a clean fitting. Please try again.",
         provider,
         requestId,
+          isUsingStableRenderMode: false,
       }));
     };
 
@@ -220,6 +226,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         ...prev,
         stage: "failed",
         error: "Generation took too long. Please retry.",
+          isUsingStableRenderMode: false,
       }));
     }, HARD_TIMEOUT_MS);
 
@@ -257,6 +264,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
               error: data.error || "Provider busy. Please retry.",
               provider: data.provider ?? null,
               retryAfterMs: data.retryAfterMs ?? null,
+              isUsingStableRenderMode: false,
             }));
             return;
           }
@@ -272,6 +280,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
               stage: "failed",
               error: cleanedError,
               provider: data.provider ?? null,
+              isUsingStableRenderMode: false,
             }));
             return;
           }
@@ -283,6 +292,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
               ...prev,
               stage: "failed",
               error: "Generation took too long. Please retry.",
+              isUsingStableRenderMode: false,
             }));
           }
         } catch (e: any) {
@@ -293,6 +303,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             ...prev,
             stage: "failed",
             error: e?.message || "Generation failed.",
+            isUsingStableRenderMode: false,
           }));
         }
       }, POLL_INTERVAL_MS);
@@ -344,6 +355,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             stage: "polling",
             provider: data.provider ?? null,
             retryAfterMs,
+              isUsingStableRenderMode: true,
           }));
           window.setTimeout(() => {
             if (isStale()) return;
@@ -359,6 +371,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             stage: "polling",
             provider: data.provider ?? null,
             requestId: data.requestId ?? null,
+            isUsingStableRenderMode: safeModeAttempt > 0,
           }));
           startPolling({
             requestId: data.requestId ?? null,
@@ -375,6 +388,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             stage: "failed",
             error: data.error || "Generation failed.",
             provider: data.provider ?? null,
+              isUsingStableRenderMode: false,
           }));
           return;
         }
@@ -391,6 +405,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           ...prev,
           stage: "failed",
           error: cleanedError,
+          isUsingStableRenderMode: false,
         }));
       }
     })();
