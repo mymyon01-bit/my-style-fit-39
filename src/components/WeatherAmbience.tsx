@@ -349,7 +349,7 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
                 "linear-gradient(180deg, hsl(215 45% 35% / 0.28) 0%, hsl(210 50% 25% / 0.18) 60%, hsl(220 55% 20% / 0.22) 100%)",
             }}
           />
-          {/* Falling rain streaks */}
+          {/* Falling rain streaks — layered with motion blur for realism */}
           {rainDrops.map((d, i) => (
             <motion.div
               key={`rain-${i}`}
@@ -357,11 +357,13 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
               style={{
                 left: `${d.left}%`,
                 top: `${d.top}%`,
-                width: 1.5,
+                width: d.width,
                 height: `${d.height}rem`,
                 transform: `rotate(${d.tilt}deg)`,
-                background: `linear-gradient(to bottom, transparent 0%, hsl(200 80% 75% / ${d.opacity}) 50%, hsl(210 90% 85% / ${d.opacity}) 100%)`,
+                background: `linear-gradient(to bottom, transparent 0%, hsl(200 85% 80% / ${d.opacity * 0.6}) 40%, hsl(210 95% 90% / ${d.opacity}) 100%)`,
                 borderRadius: 999,
+                filter: d.blur ? `blur(${d.blur}px)` : undefined,
+                willChange: "transform",
               }}
               animate={{ y: ["0vh", "118vh"] }}
               transition={{
@@ -402,27 +404,47 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
               }}
             />
           ))}
-          {/* Splash ripples at bottom */}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <motion.div
-              key={`splash-${i}`}
-              className="absolute rounded-full border"
-              style={{
-                left: `${10 + i * 11}%`,
-                bottom: `${2 + rand(i + 71) * 8}%`,
-                width: 14,
-                height: 4,
-                borderColor: "hsl(200 70% 80% / 0.5)",
-                borderWidth: 1,
-              }}
-              animate={{ scale: [0, 1.6, 0], opacity: [0, 0.7, 0] }}
-              transition={{
-                duration: 1.6,
-                repeat: Infinity,
-                delay: i * 0.3 + rand(i + 91),
-                ease: "easeOut",
-              }}
-            />
+          {/* Splash crowns at bottom — drop-impact rings + tiny rebound droplets */}
+          {splashes.map((s, i) => (
+            <div
+              key={`splash-wrap-${i}`}
+              className="absolute"
+              style={{ left: `${s.left}%`, bottom: "1%" }}
+            >
+              <motion.div
+                className="rounded-full border"
+                style={{
+                  width: s.size,
+                  height: s.size * 0.35,
+                  borderColor: "hsl(200 80% 88% / 0.7)",
+                  borderWidth: 1,
+                }}
+                animate={{ scale: [0, 1.8, 0], opacity: [0, 0.85, 0] }}
+                transition={{
+                  duration: s.duration,
+                  repeat: Infinity,
+                  delay: s.delay,
+                  ease: "easeOut",
+                }}
+              />
+              {/* Rebound mini-droplet */}
+              <motion.div
+                className="absolute left-1/2 top-0 rounded-full"
+                style={{
+                  width: 2,
+                  height: 2,
+                  marginLeft: -1,
+                  background: "hsl(205 90% 92% / 0.9)",
+                }}
+                animate={{ y: [0, -s.size * 0.6, 0], opacity: [0, 1, 0] }}
+                transition={{
+                  duration: s.duration,
+                  repeat: Infinity,
+                  delay: s.delay,
+                  ease: "easeOut",
+                }}
+              />
+            </div>
           ))}
         </>
       )}
