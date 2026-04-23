@@ -32,6 +32,10 @@ const AuthPage = () => {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    if (mode === "signup" && (!consents.terms || !consents.privacy)) {
+      setError("Please accept the required Terms and Privacy Policy to continue.");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "forgot") {
@@ -43,7 +47,16 @@ const AuthPage = () => {
       }
       const { error } = mode === "login" ? await signIn(email, password) : await signUp(email, password);
       if (error) throw error;
-      if (mode === "signup") setMessage("Check your email to confirm your account.");
+      if (mode === "signup") {
+        // Record consents (best effort) once a session exists.
+        try {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          const lang = (localStorage.getItem("wardrobe-lang") || "en") as LegalLang;
+          const docLang: LegalLang = lang === "ko" || lang === "it" ? lang : "en";
+          if (u) await recordSignupConsents(u.id, consents, docLang);
+        } catch {}
+        setMessage("Check your email to confirm your account.");
+      }
       else navigate("/onboarding", { replace: true });
     } catch (err: any) {
       const raw = (err?.message || "").toLowerCase();
