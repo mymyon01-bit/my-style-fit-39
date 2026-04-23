@@ -1,19 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
-import { Paperclip, Sparkles, UserCircle2 } from "lucide-react";
+import { Paperclip, Sparkles, UserCircle2, ShoppingBag } from "lucide-react";
 
 export interface ChatAttachment {
   /**
    * Attachment kinds:
    *  - "image" / "file" — uploaded media (legacy)
    *  - "ootd_post"     — a re-shared OOTD post (renders a preview card)
-   *  - "namecard"      — a sender/other-user namecard (renders avatar + name)
+   *  - "namecard"      — a sender/other-user namecard
+   *  - "product"       — an in-app product share (renders a tappable card)
    */
   url: string;
-  type: "image" | "file" | "ootd_post" | "namecard";
+  type: "image" | "file" | "ootd_post" | "namecard" | "product";
   name?: string;
   size?: number;
-  /** Extra metadata used by ootd_post + namecard renderers. */
+  /** Extra metadata used by ootd_post / namecard / product renderers. */
   meta?: {
     post_id?: string;
     user_id?: string;
@@ -21,6 +22,12 @@ export interface ChatAttachment {
     display_name?: string | null;
     avatar_url?: string | null;
     caption?: string | null;
+    // product
+    product_id?: string;
+    brand?: string | null;
+    name?: string | null;
+    image_url?: string | null;
+    source_url?: string | null;
   };
 }
 
