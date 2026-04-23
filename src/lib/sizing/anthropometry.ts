@@ -1,26 +1,25 @@
 // ─── ANTHROPOMETRY ──────────────────────────────────────────────────────────
-// Deterministic body-measurement estimator. Replaces BMI-curve guessing with
-// fixed, rule-based formulas the user explicitly specified. Same input MUST
-// always produce the same output.
+// Deterministic body-measurement estimator. Same input MUST always produce
+// the same output.
 //
-// Formulas (per the strict FIT spec):
+// TWO-AXIS MODEL (per strict FIT spec sections [13]–[16]):
+//   1. HEIGHT  — drives vertical length (shoulder, inseam, sleeve, torso)
+//   2. WEIGHT  — drives horizontal volume (chest, waist, hip, thigh, arm)
+//   They scale INDEPENDENTLY. A 170cm/100kg body must be SHORT + WIDE,
+//   a 190cm/60kg body must be TALL + NARROW. Never scale uniformly.
 //
-//   MALE
-//     chest    = (height * 0.52) + weight_adj
-//     waist    = (height * 0.45) + weight_adj
-//     shoulder = (height * 0.26)
-//     hip      = waist * 1.05
+// Width formula:
+//   base_width = (height * gender_ratio)        ← from spec
+//   bmi_adj    = (bmi - 22) * REGION_BMI_GAIN   ← volumetric scaling
+//   final      = base_width + body_type_adj + bmi_adj
 //
-//   FEMALE
-//     chest    = (height * 0.49) + weight_adj
-//     waist    = (height * 0.38) + weight_adj
-//     hip      = (height * 0.54) + weight_adj
-//     shoulder = (height * 0.23)
+//   body_type_adj  → slim: −3, regular: 0, solid: +5, heavy: +10  (cm)
+//   REGION_BMI_GAIN → chest 1.6, waist 2.2, hip 1.8, thigh 1.0, arm 0.6
+//     (per cm-of-circumference per BMI point above/below 22)
 //
-//   weight_adj  → slim: −3, regular: 0, solid: +5, heavy: +10
-//
-// Inseam, sleeve, thigh fall back to standard ratios since the spec doesn't
-// dictate them. Every estimate is flagged `inferred` so the UI can warn.
+// Result: at 175cm height, going from 60→100kg now adds ~26cm to waist
+// circumference (was +10cm), making the size difference visually obvious
+// in any downstream mannequin/visual rendering.
 
 import type { Gender, MeasurementValue, BodyType } from "./types";
 
