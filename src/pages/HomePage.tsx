@@ -185,7 +185,7 @@ const HomePage = () => {
               className="mt-8 flex flex-col items-center gap-2"
             >
               <p className="font-display text-[15px] italic font-light tracking-tight text-foreground/70 md:text-[17px]">
-                {t("todaysWeatherIs") ?? "today your weather is…"}
+                today your weather is<span className="text-primary">…</span>
               </p>
               <p className="label-mono text-foreground/60">
                 <span className="inline-block h-1.5 w-1.5 translate-y-[-1px] rounded-full bg-primary mr-2 animate-pulse" />
