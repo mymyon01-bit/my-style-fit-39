@@ -1,20 +1,19 @@
 /**
- * StyleMeButton — single CTA that fetches a personalised outfit recommendation
- * and opens it inside StyleLookModal (with AI lookbook image + variations).
+ * StyleMeButton — fetches ONE recommended product (from product_cache, ranked
+ * by trend + user prefs) and opens StyleLookModal which fits it on a clean
+ * mannequin via the same fit-tryon-router pipeline used on FitPage.
  *
- * Open to everyone (guests, trial, premium) — uses the daily-stylist edge
- * function which already removed the premium gate for non-authenticated users.
+ * Open to everyone (guests, trial, premium).
  */
 import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { useWeather } from "@/hooks/useWeather";
-import StyleLookModal, { type StyleLookOutfit } from "./StyleLookModal";
+import { useAuth } from "@/lib/auth";
+import StyleLookModal, { type StyleLookProduct } from "./StyleLookModal";
 import { toast } from "sonner";
 
 interface Props {
-  /** "pill" — rounded outline (matches About button); "solid" — filled CTA. */
   variant?: "pill" | "solid";
   label?: string;
   className?: string;
@@ -25,38 +24,74 @@ export default function StyleMeButton({
   label = "STYLE ME",
   className = "",
 }: Props) {
-  const weather = useWeather();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [outfit, setOutfit] = useState<StyleLookOutfit | null>(null);
+  const [product, setProduct] = useState<StyleLookProduct | null>(null);
+  const [alts, setAlts] = useState<StyleLookProduct[]>([]);
   const [open, setOpen] = useState(false);
+
+  async function pickProducts(): Promise<StyleLookProduct[]> {
+    // Read user style prefs (when signed in) to bias the pick.
+    let prefStyles: string[] = [];
+    let prefGender: string | null = null;
+    if (user) {
+      const [styleRes, profRes] = await Promise.all([
+        supabase.from("style_profiles").select("preferred_styles").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle(),
+      ]);
+      prefStyles = (styleRes.data as any)?.preferred_styles || [];
+      prefGender = (profRes.data as any)?.gender_preference || null;
+    }
+
+    // Pull a small pool of fashion items with images, prefer "top" category.
+    let q = supabase
+      .from("product_cache")
+      .select("id,name,brand,image_url,source_url,price,category,reason,style_tags")
+      .eq("is_active", true)
+      .not("image_url", "is", null)
+      .order("trend_score", { ascending: false })
+      .limit(40);
+
+    if (prefStyles.length) {
+      // Style overlap (best-effort)
+      q = q.overlaps("style_tags", prefStyles);
+    }
+    const { data } = await q;
+    let pool = (data || []) as any[];
+
+    // Prefer tops
+    const tops = pool.filter(p => /top|shirt|tee|sweater|hoodie|blouse|knit/i.test(p.category || p.name || ""));
+    if (tops.length) pool = tops.concat(pool.filter(p => !tops.includes(p)));
+
+    // Shuffle for variety, take top 4
+    pool.sort(() => Math.random() - 0.5);
+    return pool.slice(0, 4).map(p => ({
+      id: p.id,
+      name: p.name,
+      brand: p.brand,
+      image_url: p.image_url,
+      source_url: p.source_url,
+      price: p.price,
+      category: p.category,
+      reason: p.reason,
+    }));
+  }
 
   async function handleClick() {
     if (loading) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("daily-stylist", {
-        body: {
-          type: "daily",
-          weather: { temp: weather.temp, condition: weather.condition },
-          location: weather.location,
-        },
-      });
-      if (error) throw error;
-      if (data?.error === "rate_limited") {
-        toast.error("Too many requests — try again shortly.");
+      const picks = await pickProducts();
+      if (!picks.length) {
+        toast.error("No products available right now. Try discover first.");
         return;
       }
-      const arr = Array.isArray(data?.outfits) ? data.outfits : [];
-      const first = arr[0];
-      if (!first) {
-        toast.error("Couldn't generate a look. Try again.");
-        return;
-      }
-      setOutfit(first);
+      setProduct(picks[0]);
+      setAlts(picks.slice(1));
       setOpen(true);
     } catch (e) {
       console.warn("StyleMeButton failed", e);
-      toast.error("Style failed — please retry.");
+      toast.error("Couldn't fetch a look — please retry.");
     } finally {
       setLoading(false);
     }
@@ -76,7 +111,6 @@ export default function StyleMeButton({
         whileTap={{ scale: 0.96 }}
         className={`relative inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[12px] font-semibold tracking-wide transition-colors duration-200 whitespace-nowrap disabled:opacity-70 ${baseCls} ${className}`}
       >
-        {/* Pulsing aura */}
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-full bg-primary/30 animate-ping opacity-40"
@@ -87,16 +121,17 @@ export default function StyleMeButton({
         ) : (
           <Sparkles className="h-3.5 w-3.5 relative" />
         )}
-        <span className="relative">{loading ? "STYLING…" : label}</span>
+        <span className="relative">{loading ? "FINDING…" : label}</span>
       </motion.button>
 
       <StyleLookModal
         open={open}
         onOpenChange={(v) => {
           setOpen(v);
-          if (!v) setOutfit(null);
+          if (!v) { setProduct(null); setAlts([]); }
         }}
-        baseOutfit={outfit}
+        product={product}
+        alternatives={alts}
       />
     </>
   );
