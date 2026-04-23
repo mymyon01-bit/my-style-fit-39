@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
-import { Paperclip, Sparkles, UserCircle2, ShoppingBag } from "lucide-react";
+import { Paperclip, Sparkles, UserCircle2, ShoppingBag, Camera } from "lucide-react";
 
 export interface ChatAttachment {
   /**
