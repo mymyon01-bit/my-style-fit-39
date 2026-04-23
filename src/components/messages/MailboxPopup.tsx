@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Mail, X, GripHorizontal } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useConversations } from "@/hooks/useMessages";
+import { useIsMobile } from "@/hooks/use-mobile";
 import MessageThread from "./MessageThread";
 
 interface Props {
