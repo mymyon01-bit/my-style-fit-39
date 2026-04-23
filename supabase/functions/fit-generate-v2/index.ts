@@ -115,6 +115,28 @@ function buildPrompt(args: {
     OVERSIZED: "Garment is visibly OVERSIZED. Dropped shoulders past the natural shoulder line, sleeves extending over the hands, hem extended well past the hip, silhouette much larger than the body.",
   };
 
+  // ── Base coverage layer (per modesty rule) ──
+  // Determine which garment region is being tried on so the OPPOSITE region
+  // is always covered by a neutral base layer. The mannequin must NEVER be
+  // shown nude or in underwear — even in studio fit previews.
+  const label = (args.garmentLabel || "").toLowerCase();
+  const isBottom = /(pant|trouser|jean|short|skirt|legging|chino|slack|denim|cargo|joggers?)/.test(label);
+  const isFootwear = /(shoe|sneaker|boot|heel|loafer|sandal|trainer)/.test(label);
+  const isOuterOrTop = !isBottom && !isFootwear; // dress/jumpsuit also covers full body — handled below
+  const isFullBody = /(dress|jumpsuit|romper|overall|gown|coverall)/.test(label);
+
+  let baseLayerLine: string;
+  if (isFullBody) {
+    baseLayerLine = "The garment covers the full body — no additional base layer needed. Mannequin is never shown bare.";
+  } else if (isBottom) {
+    baseLayerLine = "Mannequin wears a plain neutral white short-sleeve crew T-shirt as a base layer covering the entire torso, shoulders and upper arms. The T-shirt is generic, unbranded, lightweight cotton — clearly a base layer, never the focus. The provided garment is the BOTTOM and must be the visual focus.";
+  } else if (isFootwear) {
+    baseLayerLine = "Mannequin wears a plain neutral white crew T-shirt and plain neutral light gray slim trousers as base layers. Both are generic and unbranded. The provided garment is the FOOTWEAR and must be the visual focus.";
+  } else {
+    // top, outerwear, knit, shirt, etc.
+    baseLayerLine = "Mannequin wears plain neutral light gray slim trousers as a base layer covering hips, legs and ankles. The trousers are generic, unbranded, matte fabric — clearly a base layer, never the focus. The provided garment is the TOP/OUTERWEAR and must be the visual focus.";
+  }
+
   return [
     // ── Subject (locked faceless mannequin per spec [7]) ──
     `Studio fit visualization on a FACELESS MANNEQUIN. NOT a real person, NO visible face, NO facial features, NO skin texture, NO realism noise — smooth featureless head, neutral matte body. ${bodyGender} mannequin, neutral standing pose facing camera, arms slightly apart, full body visible.`,
@@ -122,14 +144,17 @@ function buildPrompt(args: {
     // ── Body proportions (per spec [13]–[16] — height + weight independent axes) ──
     `Body proportions are LOCKED to: height ${args.body.height}cm, weight ${args.body.weight}kg, BMI ${build.bmi} → ${build.category} category. The mannequin must be a ${build.description}. Height drives vertical length; weight drives horizontal volume — DO NOT scale uniformly. Same body across all sizes; never resize the body to fit the clothing.`,
 
+    // ── Modesty / base coverage (NEVER nude, NEVER underwear) ──
+    `MODESTY RULE — STRICT: The mannequin must NEVER appear nude, in underwear, in lingerie or with bare torso/legs. ${baseLayerLine} The base layer must be visually subdued (plain, matte, neutral) so it never competes with the focus garment.`,
+
     // ── Garment ──
-    `Garment: wear the provided ${args.garmentLabel}. Preserve the garment's ORIGINAL color, structure, pattern and material EXACTLY as shown in the reference image. Do NOT redesign or restyle. Strong visual contrast between clothing and the matte mannequin body.`,
+    `Focus garment: wear the provided ${args.garmentLabel} OVER the base layer. Preserve the garment's ORIGINAL color, structure, pattern and material EXACTLY as shown in the reference image. Do NOT redesign or restyle. Strong visual contrast between the focus garment and the muted base layer/mannequin body.`,
 
     // ── Fit translation (per spec [6] + [11]) ──
     `FIT CONDITION = ${fitType} for size ${args.selectedSize}. ${fitRules[fitType]} ${regionLine}`,
 
     // ── Hard consistency rules (per spec [8] + [17] + [18]) ──
-    `CRITICAL: The BODY MUST stay identical across every size variant — only the garment changes. The clothing adapts to the body, NEVER the reverse. If the body looks slim despite a heavy weight value, regenerate.`,
+    `CRITICAL: The BODY and the BASE LAYER must stay identical across every size variant — only the focus garment changes. The clothing adapts to the body, NEVER the reverse. If the body looks slim despite a heavy weight value, regenerate. If the mannequin appears nude or in underwear, regenerate with the base layer.`,
 
     // ── Composition ──
     `Composition: plain bright studio background (white or light gray), soft even lighting, minimal shadows, full body centered. No lifestyle, no fashion editorial, no artistic effects. Goal: make the size-fit difference instantly readable.`,
