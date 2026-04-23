@@ -38,7 +38,6 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_REVIEW_MODEL = Deno.env.get("FIT_STUDIO_REVIEW_MODEL") || "google/gemini-2.5-flash";
 const STUDIO_RENDER_VERSION = "mannequin-lock-v4";
 
 type ProviderName = "lovable-ai" | "replicate";
@@ -322,24 +321,6 @@ type GenResult =
   | { kind: "credits_exhausted"; error: string }
   | { kind: "error"; code: FailureCode; error: string };
 
-type StudioReviewReason =
-  | "human_model"
-  | "visible_face"
-  | "human_skin_detail"
-  | "hybrid_human_mannequin"
-  | "broken_body"
-  | "broken_garment"
-  | "cropped_or_clipped"
-  | "blurry_or_low_detail"
-  | "wrong_pose_or_camera"
-  | "wrong_background";
-
-type StudioReviewResult = {
-  pass: boolean;
-  reasons: StudioReviewReason[];
-  summary: string;
-};
-
 function buildGarmentDescription(body: CreateBody): string {
   const label = body.productName?.trim() || body.productCategory || "garment";
   return `${label} in size ${body.selectedSize}`;
@@ -454,98 +435,6 @@ async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<
 // Default FIT mode. Uses Gemini 2.5 Flash Image (Nano Banana) via the Lovable
 // AI Gateway. The PRODUCT IMAGE is passed as visual reference so the generated
 // model wears the EXACT same garment — same color, same print, same design.
-async function reviewStudioFitImage(apiKey: string, imageUrl: string): Promise<StudioReviewResult | null> {
-  try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: STUDIO_REVIEW_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a strict FIT image QA validator. Pass ONLY if the image is a clean faceless mannequin studio render with intact garment structure. Fail for any human face, human skin realism, half-human hybrid, broken body, broken garment, clipping, blur, wrong pose/camera, or non-studio background.",
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text:
-                  "Inspect this FIT image. PASS only when ALL conditions hold: faceless mannequin only, no human identity, no visible face, no human skin detail, clean studio background, neutral straight mannequin pose, intact clothing, no clipping, no malformed limbs, no blur. Return reasons only from the allowed enum.",
-              },
-              { type: "image_url", image_url: { url: imageUrl } },
-            ],
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "grade_fit_image",
-              description: "Grade whether the FIT image is a valid mannequin-only result.",
-              parameters: {
-                type: "object",
-                properties: {
-                  pass: { type: "boolean" },
-                  reasons: {
-                    type: "array",
-                    items: {
-                      type: "string",
-                      enum: [
-                        "human_model",
-                        "visible_face",
-                        "human_skin_detail",
-                        "hybrid_human_mannequin",
-                        "broken_body",
-                        "broken_garment",
-                        "cropped_or_clipped",
-                        "blurry_or_low_detail",
-                        "wrong_pose_or_camera",
-                        "wrong_background",
-                      ],
-                    },
-                  },
-                  summary: { type: "string" },
-                },
-                required: ["pass", "reasons", "summary"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "grade_fit_image" } },
-      }),
-    });
-
-    if (!res.ok) {
-      logRouter("STUDIO_REVIEW_HTTP_FAILED", { status: res.status });
-      return null;
-    }
-
-    const data = await res.json().catch(() => ({} as any));
-    const rawArgs = data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (!rawArgs || typeof rawArgs !== "string") {
-      logRouter("STUDIO_REVIEW_PARSE_FAILED", { hasToolCall: !!data?.choices?.[0]?.message?.tool_calls?.[0] });
-      return null;
-    }
-
-    const parsed = JSON.parse(rawArgs) as StudioReviewResult;
-    if (!parsed || typeof parsed.pass !== "boolean" || !Array.isArray(parsed.reasons) || typeof parsed.summary !== "string") {
-      logRouter("STUDIO_REVIEW_INVALID_PAYLOAD", { rawArgs: rawArgs.slice(0, 220) });
-      return null;
-    }
-    return parsed;
-  } catch (error) {
-    logRouter("STUDIO_REVIEW_EXCEPTION", { error: error instanceof Error ? error.message : String(error) });
-    return null;
-  }
-}
-
 async function runStudioRenderAttempt(apiKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
@@ -625,51 +514,7 @@ async function generateStudioFitImage(_replicateKey: string, body: CreateBody): 
   if (!LOVABLE_API_KEY) {
     return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing" };
   }
-
-  const first = await runStudioRenderAttempt(LOVABLE_API_KEY, body);
-  if (first.kind !== "success") return first;
-
-  const firstReview = await reviewStudioFitImage(LOVABLE_API_KEY, first.imageUrl);
-  if (firstReview?.pass) return first;
-
-  logRouter(firstReview ? "STUDIO_REVIEW_REJECTED" : "STUDIO_REVIEW_UNAVAILABLE", {
-    productKey: body.productKey,
-    size: body.selectedSize,
-    safeMode: !!body.safeMode,
-    reasons: firstReview?.reasons ?? [],
-    summary: firstReview?.summary ?? "review_unavailable",
-  });
-
-  if (body.safeMode) {
-    return {
-      kind: "error",
-      code: "generation_failed",
-      error: `unstable_fit_render:${firstReview?.reasons.join(",") || "review_unavailable"}`,
-    };
-  }
-
-  const retry = await runStudioRenderAttempt(LOVABLE_API_KEY, {
-    ...body,
-    safeMode: true,
-    forceRegenerate: true,
-  });
-  if (retry.kind !== "success") return retry;
-
-  const retryReview = await reviewStudioFitImage(LOVABLE_API_KEY, retry.imageUrl);
-  if (retryReview?.pass) return retry;
-
-  logRouter(retryReview ? "STUDIO_REVIEW_REJECTED_SAFE_MODE" : "STUDIO_REVIEW_UNAVAILABLE_SAFE_MODE", {
-    productKey: body.productKey,
-    size: body.selectedSize,
-    reasons: retryReview?.reasons ?? [],
-    summary: retryReview?.summary ?? "review_unavailable",
-  });
-
-  return {
-    kind: "error",
-    code: "generation_failed",
-    error: `unstable_fit_render:${retryReview?.reasons.join(",") || "review_unavailable"}`,
-  };
+  return runStudioRenderAttempt(LOVABLE_API_KEY, body);
 }
 
 async function getTryOnByIdentity(admin: ReturnType<typeof createClient>, userId: string, body: CreateBody) {
@@ -794,7 +639,7 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
   const existing = userId ? await getTryOnByIdentity(admin, userId, { ...body, productKey: cacheKey }) : null;
   const existingMeta = (existing?.metadata || {}) as Record<string, unknown>;
   const studioCacheApproved = mode !== "studio"
-    || (existingMeta.renderVersion === STUDIO_RENDER_VERSION && existingMeta.reviewStatus === "passed");
+    || existingMeta.renderVersion === STUDIO_RENDER_VERSION;
 
   if (existing && !body.forceRegenerate && existing.status === "succeeded" && existing.result_image_url && studioCacheApproved) {
     logRouter("CACHE_HIT", { id: existing.id, mode });
@@ -829,7 +674,6 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
           retryAfterUntil: null,
           sourceUrl: result.imageUrl,
           renderVersion: mode === "studio" ? STUDIO_RENDER_VERSION : record.metadata?.renderVersion ?? null,
-          reviewStatus: mode === "studio" ? "passed" : "skipped",
         },
       });
       return toSuccess(record, persistedUrl);
