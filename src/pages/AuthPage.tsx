@@ -6,6 +6,10 @@ import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { captureReferralFromUrl } from "@/hooks/useReferralCode";
 import { isNativeApp, nativePlatform } from "@/lib/native/platform";
+import ConsentCheckboxes, { type ConsentState } from "@/components/legal/ConsentCheckboxes";
+import { recordSignupConsents } from "@/lib/legal/recordConsent";
+import { supabase } from "@/integrations/supabase/client";
+import type { LegalLang } from "@/lib/legal/content";
 
 const AuthPage = () => {
   const { t } = useI18n();
