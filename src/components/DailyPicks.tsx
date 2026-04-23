@@ -3,10 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useWeather } from "@/hooks/useWeather";
-import { Loader2, Sparkles, Eye, ShoppingBag, Plus } from "lucide-react";
+import { Loader2, Sparkles, Eye, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import StyleLookModal, { type StyleLookOutfit } from "./StyleLookModal";
 
 interface OutfitPiece { name: string; color: string; style: string; }
 interface DailyOutfit {
@@ -36,7 +35,7 @@ const DailyPicks = () => {
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<StyleLookOutfit | null>(null);
+  
 
   useEffect(() => {
     if (!user || !subscription.isPremium) return;
@@ -109,7 +108,7 @@ const DailyPicks = () => {
           <div>{PIECE_LABELS.map(key => { const piece = current.outfit[key]; if (!piece) return null; return <PieceRow key={key} piece={piece} label={key} />; })}</div>
           <p className="text-[12px] font-light leading-[1.9] text-foreground/80 md:text-[13px] md:leading-[2]">{current.explanation}</p>
           <div className="flex gap-7 md:gap-9">
-            <button onClick={() => setExpanded(current as StyleLookOutfit)} className="flex items-center gap-2 text-[10px] font-medium tracking-[0.15em] text-foreground/32 hover:text-foreground/80 transition-colors md:text-[11px]">
+            <button className="flex items-center gap-2 text-[10px] font-medium tracking-[0.15em] text-foreground/32 hover:text-foreground/80 transition-colors md:text-[11px]">
               <Eye className="h-3.5 w-3.5" /> TRY LOOK
             </button>
             <button className="flex items-center gap-2 text-[10px] font-medium tracking-[0.15em] text-foreground/32 hover:text-foreground/80 transition-colors md:text-[11px]">
@@ -119,11 +118,6 @@ const DailyPicks = () => {
         </motion.div>
       </AnimatePresence>
 
-      <StyleLookModal
-        open={!!expanded}
-        onOpenChange={(v) => { if (!v) setExpanded(null); }}
-        baseOutfit={expanded}
-      />
     </div>
   );
 };
