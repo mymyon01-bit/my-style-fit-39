@@ -160,17 +160,29 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                     TRY THIS ON
                   </button>
 
-                  {/* Post as OOTD */}
-                  <AuthGate action="post outfits">
-                    <button
-                      onClick={() => setPostOpen(true)}
-                      disabled={!product.image_url}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[12px] font-bold tracking-[0.15em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
-                    >
-                      <Camera className="h-4 w-4" />
-                      POST AS OOTD
-                    </button>
-                  </AuthGate>
+                  {/* OOTD actions — POST AS OOTD + SHARE IN OOTD */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <AuthGate action="post outfits">
+                      <button
+                        onClick={() => setPostOpen(true)}
+                        disabled={!product.image_url}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[11px] font-bold tracking-[0.14em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
+                      >
+                        <Camera className="h-4 w-4" />
+                        POST IN OOTD
+                      </button>
+                    </AuthGate>
+
+                    <AuthGate action="share to friends">
+                      <button
+                        onClick={() => setShareInOOTDOpen(true)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[11px] font-bold tracking-[0.14em] text-accent transition-all hover:bg-accent/15"
+                      >
+                        <Send className="h-4 w-4" />
+                        SHARE IN OOTD
+                      </button>
+                    </AuthGate>
+                  </div>
 
                   <div className="flex items-center gap-3">
                     {product.source_url && (
@@ -200,29 +212,6 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                       </button>
                     </AuthGate>
                   </div>
-
-                  {/* Share — full menu inline */}
-                  <div className="pt-1">
-                    <button
-                      onClick={() => setShareMenuOpen((v) => !v)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 py-3 text-[11px] font-semibold tracking-[0.15em] text-foreground/70 hover:bg-foreground/[0.04]"
-                    >
-                      SHARE
-                    </button>
-                    {shareMenuOpen && (
-                      <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-xl border border-border/30 bg-card/60 p-2">
-                        {shareItems.map((it) => (
-                          <button
-                            key={it.key}
-                            onClick={it.onClick}
-                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium text-foreground/75 hover:bg-foreground/[0.05] transition-colors text-left"
-                          >
-                            {it.icon} {it.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -240,6 +229,18 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
           imageUrl: product.image_url ?? null,
         }}
         onClose={() => setPostOpen(false)}
+      />
+
+      <ShareProductToFriendDialog
+        open={shareInOOTDOpen}
+        product={{
+          id: product.id,
+          name: product.name,
+          brand: product.brand,
+          image_url: product.image_url ?? null,
+          source_url: product.source_url ?? null,
+        }}
+        onClose={() => setShareInOOTDOpen(false)}
       />
 
       <MessagesFullSheet open={msgOpen} onClose={() => setMsgOpen(false)} />
