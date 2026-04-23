@@ -178,16 +178,21 @@ const HomePage = () => {
 
           {/* Weather meta */}
           {!weather.loading && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.8 }}
-              className="mt-8 text-center label-mono text-foreground/60"
+              className="mt-8 flex flex-col items-center gap-2"
             >
-              <span className="inline-block h-1.5 w-1.5 translate-y-[-1px] rounded-full bg-primary mr-2 animate-pulse" />
-              {weather.temp}° · {weatherLabel.toUpperCase()}
-              {weather.location && !weather.error ? ` · ${weather.location.toUpperCase()}` : ""}
-            </motion.p>
+              <p className="font-display text-[15px] italic font-light tracking-tight text-foreground/70 md:text-[17px]">
+                {t("todaysWeatherIs") ?? "today your weather is…"}
+              </p>
+              <p className="label-mono text-foreground/60">
+                <span className="inline-block h-1.5 w-1.5 translate-y-[-1px] rounded-full bg-primary mr-2 animate-pulse" />
+                {weather.temp}° · {weatherLabel.toUpperCase()}
+                {weather.location && !weather.error ? ` · ${weather.location.toUpperCase()}` : ""}
+              </p>
+            </motion.div>
           )}
         </div>
       </section>
