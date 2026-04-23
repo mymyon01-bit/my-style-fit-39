@@ -151,12 +151,12 @@ const HomePage = () => {
             </div>
           </motion.div>
 
-          {/* OOTD Diary entry — playful, decorative */}
+          {/* OOTD Diary — HERO centerpiece */}
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-7 flex justify-center"
+            initial={{ opacity: 0, scale: 0.85, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-12 flex justify-center"
           >
             <OOTDDiaryButton />
           </motion.div>
