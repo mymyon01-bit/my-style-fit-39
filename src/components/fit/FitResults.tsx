@@ -752,6 +752,9 @@ export default function FitResults({
               onAddMeasurements={onEditMeasurements}
               activeSize={activeSize}
               onSizeSelect={(s) => setActiveSize(s)}
+              productKey={productKey}
+              productBrand={product.brand}
+              productCategory={product.category}
             />
 
             {/* SIZE COMPARISON */}
