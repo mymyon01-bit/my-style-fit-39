@@ -162,8 +162,8 @@ export default function FitVisual({
       ? "Building a mannequin-based fit preview"
       : "Generating fit image…";
 
-  const stableModeMessage = isLoading && state.error?.includes("stable render")
-    ? state.error
+  const stableModeMessage = isLoading && state.isUsingStableRenderMode
+    ? "Using stable render mode"
     : null;
 
   return (
