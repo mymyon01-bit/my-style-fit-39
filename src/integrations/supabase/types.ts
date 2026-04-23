@@ -1054,6 +1054,42 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_documents: {
+        Row: {
+          body: string
+          created_at: string
+          doc_key: string
+          id: string
+          is_current: boolean
+          language: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          doc_key: string
+          id?: string
+          is_current?: boolean
+          language: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          doc_key?: string
+          id?: string
+          is_current?: boolean
+          language?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachments: Json
@@ -1309,6 +1345,54 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_verifications: {
+        Row: {
+          attempts: number
+          country_code: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          otp_code: string | null
+          phone_number: string
+          provider: string
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          country_code?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          otp_code?: string | null
+          phone_number: string
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          country_code?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          otp_code?: string | null
+          phone_number?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       product_cache: {
         Row: {
           brand: string | null
@@ -1522,6 +1606,9 @@ export type Database = {
           location: string | null
           onboarded: boolean | null
           phone: string | null
+          phone_number: string | null
+          phone_verified: boolean
+          phone_verified_at: string | null
           suspended_at: string | null
           suspended_by: string | null
           suspended_reason: string | null
@@ -1546,6 +1633,9 @@ export type Database = {
           location?: string | null
           onboarded?: boolean | null
           phone?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean
+          phone_verified_at?: string | null
           suspended_at?: string | null
           suspended_by?: string | null
           suspended_reason?: string | null
@@ -1570,6 +1660,9 @@ export type Database = {
           location?: string | null
           onboarded?: boolean | null
           phone?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean
+          phone_verified_at?: string | null
           suspended_at?: string | null
           suspended_by?: string | null
           suspended_reason?: string | null
@@ -2101,6 +2194,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           width?: number | null
+        }
+        Relationships: []
+      }
+      user_consents: {
+        Row: {
+          consent_type: string
+          created_at: string
+          document_version: number | null
+          granted: boolean
+          id: string
+          ip_address: string | null
+          language: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          document_version?: number | null
+          granted: boolean
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          document_version?: number | null
+          granted?: boolean
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }

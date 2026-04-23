@@ -8,6 +8,8 @@ import { prepareImage, validateMedia } from "@/lib/imageUpload";
 import { recordEvent } from "@/lib/diagnostics";
 import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import { toast } from "sonner";
+import { usePhoneVerification } from "@/hooks/usePhoneVerification";
+import PhoneVerificationModal from "@/components/legal/PhoneVerificationModal";
 
 // Sentinel topic — when present in a post's `topics` array it signals that
 // the author has disabled sharing. Stored in `topics` to avoid a schema
@@ -34,6 +36,8 @@ interface Topic {
 const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted }, ref) => {
   const { user } = useAuth();
   const weather = useWeather();
+  const { phoneVerified } = usePhoneVerification();
+  const [phoneGateOpen, setPhoneGateOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -49,6 +53,13 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [allowShares, setAllowShares] = useState(true);
+
+  // Gate: when an unverified user opens the upload sheet, show phone modal first.
+  useEffect(() => {
+    if (open && user && phoneVerified === false) {
+      setPhoneGateOpen(true);
+    }
+  }, [open, user, phoneVerified]);
 
   useEffect(() => {
     if (open) { loadTopics(); setStep(1); setAllowShares(true); }

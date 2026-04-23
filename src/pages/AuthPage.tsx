@@ -6,6 +6,10 @@ import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { captureReferralFromUrl } from "@/hooks/useReferralCode";
 import { isNativeApp, nativePlatform } from "@/lib/native/platform";
+import ConsentCheckboxes, { type ConsentState } from "@/components/legal/ConsentCheckboxes";
+import { recordSignupConsents } from "@/lib/legal/recordConsent";
+import { supabase } from "@/integrations/supabase/client";
+import type { LegalLang } from "@/lib/legal/content";
 
 const AuthPage = () => {
   const { t } = useI18n();
@@ -19,6 +23,7 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [consents, setConsents] = useState<ConsentState>({ terms: false, privacy: false, marketing: false });
 
   // Capture ?ref=CODE from URL on mount so we can claim it after signup
   useEffect(() => { captureReferralFromUrl(); }, []);
@@ -27,6 +32,10 @@ const AuthPage = () => {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    if (mode === "signup" && (!consents.terms || !consents.privacy)) {
+      setError("Please accept the required Terms and Privacy Policy to continue.");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "forgot") {
@@ -38,7 +47,16 @@ const AuthPage = () => {
       }
       const { error } = mode === "login" ? await signIn(email, password) : await signUp(email, password);
       if (error) throw error;
-      if (mode === "signup") setMessage("Check your email to confirm your account.");
+      if (mode === "signup") {
+        // Record consents (best effort) once a session exists.
+        try {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          const lang = (localStorage.getItem("wardrobe-lang") || "en") as LegalLang;
+          const docLang: LegalLang = lang === "ko" || lang === "it" ? lang : "en";
+          if (u) await recordSignupConsents(u.id, consents, docLang);
+        } catch {}
+        setMessage("Check your email to confirm your account.");
+      }
       else navigate("/onboarding", { replace: true });
     } catch (err: any) {
       const raw = (err?.message || "").toLowerCase();
@@ -195,6 +213,10 @@ const AuthPage = () => {
                 <button type="button" onClick={() => { setMode("forgot"); setError(null); setMessage(null); }} className="text-[11px] text-accent/70 hover:text-accent">
                   Forgot password?
                 </button>
+              )}
+
+              {mode === "signup" && (
+                <ConsentCheckboxes value={consents} onChange={setConsents} />
               )}
 
               {error && <p className="text-[12px] text-destructive/70">{error}</p>}
