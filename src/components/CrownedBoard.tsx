@@ -89,6 +89,7 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [dailyWinner, setDailyWinner] = useState<DailyWinner | null>(null);
   const [ads, setAds] = useState<AdProduct[]>([]);
+  const [contactOpen, setContactOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
