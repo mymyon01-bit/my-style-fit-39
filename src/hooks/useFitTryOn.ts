@@ -79,9 +79,6 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
   const pollTimerRef = useRef<number | null>(null);
   const hardTimerRef = useRef<number | null>(null);
   const [manualReload, setManualReload] = useState(0);
-  // Quality-gate state: when the previous result fails validation, we flip
-  // this to true and force ONE retry with a safer preset before giving up.
-  const [safeModeAttempt, setSafeModeAttempt] = useState(0);
 
   const stopTimers = useCallback(() => {
     if (pollTimerRef.current) {
@@ -103,22 +100,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     args.enabled &&
     args.productImageUrl &&
     args.selectedSize
-      ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}::${safeModeAttempt}`
+      ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`
       : null;
-
-  // Reset the safe-mode counter whenever the user changes inputs (different
-  // product, different size, manual retry). The auto-retry-once policy must
-  // restart for each fresh user intent — otherwise a stale "already retried"
-  // flag could suppress the safe-mode pass on a brand-new request.
-  const inputsKey = `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`;
-  const lastInputsKeyRef = useRef(inputsKey);
-  if (lastInputsKeyRef.current !== inputsKey && safeModeAttempt !== 0) {
-    lastInputsKeyRef.current = inputsKey;
-    // Defer state update to next tick — we're in render phase.
-    queueMicrotask(() => setSafeModeAttempt(0));
-  } else {
-    lastInputsKeyRef.current = inputsKey;
-  }
 
   useEffect(() => {
     stopTimers();
@@ -377,7 +360,6 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
   }, [requestKey]);
 
   const retry = useCallback(() => {
-    setSafeModeAttempt(0);
     setManualReload((n) => n + 1);
   }, []);
 
