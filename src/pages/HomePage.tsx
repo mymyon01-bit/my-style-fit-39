@@ -24,7 +24,7 @@ import Brandmark from "@/components/Brandmark";
 import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
-import StyleRecsForYou from "@/components/StyleRecsForYou";
+import StyleMeButton from "@/components/StyleMeButton";
 import { useAuth } from "@/lib/auth";
 
 const HomePage = () => {
@@ -181,6 +181,7 @@ const HomePage = () => {
             >
               {t("about")}
             </button>
+            <StyleMeButton variant="pill" />
             <ShareButton
               title="mymyon — AI fashion stylist"
               url={typeof window !== "undefined" ? window.location.origin : "https://mymyon.com"}
@@ -207,11 +208,6 @@ const HomePage = () => {
             </motion.div>
           )}
         </div>
-      </section>
-
-      {/* Style recommendations — open to all (guests + trial + premium) */}
-      <section className="relative z-10 mx-auto w-full max-w-[640px] px-5 pb-16 md:pb-24">
-        <StyleRecsForYou variant="panel" />
       </section>
 
       <Footer />
