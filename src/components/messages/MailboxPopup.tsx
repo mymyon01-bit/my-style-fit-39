@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Mail, X, GripHorizontal } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useConversations } from "@/hooks/useMessages";
+import { useIsMobile } from "@/hooks/use-mobile";
 import MessageThread from "./MessageThread";
 
 interface Props {
@@ -25,6 +26,7 @@ const POPUP_H_THREAD = 560;
 export default function MailboxPopup({
   open, onClose, anchor, initialConversationId, initialOtherUserId,
 }: Props) {
+  const isMobile = useIsMobile();
   const { conversations, loading, totalUnread } = useConversations();
   const [active, setActive] = useState<{ id: string; otherUserId: string } | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -84,7 +86,105 @@ export default function MailboxPopup({
 
   return (
     <AnimatePresence>
-      {open && pos && (
+      {open && isMobile && (
+        <motion.div
+          key="mailbox-fullscreen"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ type: "spring", damping: 26, stiffness: 320 }}
+          className="fixed inset-0 z-[120] flex flex-col bg-background"
+        >
+          {/* Mobile header with prominent close */}
+          <div className="flex items-center justify-between gap-2 px-4 py-3 bg-card border-b border-border/60">
+            <div className="flex items-center gap-2 min-w-0">
+              <Mail className="h-4 w-4 text-foreground/70 shrink-0" />
+              <span className="text-[11px] font-semibold tracking-[0.22em] text-foreground/85">
+                MESSAGES
+              </span>
+              {totalUnread > 0 && !active && (
+                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground leading-none">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => { if (active) setActive(null); else onClose(); }}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground/70 hover:bg-muted hover:text-foreground transition-colors active:scale-95"
+              aria-label="Close messages"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 bg-background">
+            {active ? (
+              <MessageThread
+                conversationId={active.id}
+                otherUserId={active.otherUserId}
+                onBack={() => setActive(null)}
+              />
+            ) : loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/40" />
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-16 text-center">
+                <Mail className="h-7 w-7 text-foreground/20" />
+                <p className="text-[12px] text-foreground/55">No messages yet</p>
+                <p className="text-[10px] text-foreground/35 max-w-[220px]">
+                  Open a profile and tap Message to start a chat
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/20 overflow-hidden rounded-xl border border-border/30 bg-card/40">
+                {conversations.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      onClick={() => setActive({ id: c.id, otherUserId: c.other_user_id })}
+                      className="flex w-full items-center gap-2.5 px-3 py-3 text-left transition-colors hover:bg-muted/40 active:bg-muted/60"
+                    >
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
+                        {c.other_avatar_url ? (
+                          <img src={c.other_avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[12px] font-bold text-muted-foreground">
+                            {(c.other_display_name || c.other_username || "?")[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        {c.unread_count > 0 && (
+                          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-accent-foreground">
+                            {c.unread_count}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-[13px] font-semibold text-foreground">
+                            {c.other_display_name || c.other_username || "User"}
+                          </p>
+                          <span className="shrink-0 text-[9px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: false })}
+                          </span>
+                        </div>
+                        <p
+                          className={`truncate text-[11px] ${
+                            c.unread_count > 0 ? "font-semibold text-foreground/85" : "text-muted-foreground"
+                          }`}
+                        >
+                          {c.last_message_preview || "—"}
+                        </p>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {open && !isMobile && pos && (
         <motion.div
           key="mailbox-popup"
           initial={{ opacity: 0, scale: 0.94, y: -6 }}
