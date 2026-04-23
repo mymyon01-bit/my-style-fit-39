@@ -230,11 +230,25 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
         } as any)
         .eq("id", conversationId);
 
+      const pendingChat = {
+        conversationId,
+        otherUserId: picked.user_id,
+        openedAt: Date.now(),
+      };
+
+      try {
+        sessionStorage.setItem("ootd:pending-chat", JSON.stringify(pendingChat));
+      } catch {
+        // ignore storage failures
+      }
+
       toast.success(`Sent to ${picked.display_name || picked.username || "friend"}`);
       onClose();
-      navigate(
-        `/ootd?tab=mypage&chat=${encodeURIComponent(conversationId)}&user=${encodeURIComponent(picked.user_id)}`,
-      );
+      navigate(`/ootd?tab=mypage`, {
+        state: {
+          openChat: pendingChat,
+        },
+      });
     } catch (e: any) {
       console.error("[ShareProduct] handleSend error", e);
       toast.error(e?.message || "Could not send");
