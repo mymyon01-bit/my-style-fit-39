@@ -16,6 +16,8 @@ interface Props {
   onWeightChange?: (weight: number) => void;
   bodyShape?: BodyShapeInput;
   onBodyShapeChange?: (next: BodyShapeInput) => void;
+  /** Notify parent when the user picks Male / Female so the visual silhouette updates immediately. */
+  onGenderChange?: (gender: "male" | "female") => void;
 }
 
 const BODY_TYPES: { key: BodyTypeKey; label: string; labelKo: string; icon: string }[] = [
