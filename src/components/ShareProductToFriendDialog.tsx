@@ -163,12 +163,20 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
       : friendsFromInbox.slice(0, 12);
 
   async function handleSend() {
-    if (!user || !product || !picked) return;
+    if (!user) {
+      toast.error("로그인이 필요해요 / Sign in required");
+      return;
+    }
+    if (!product || !picked) return;
     setSubmitting(true);
     try {
-      const conversationId =
-        picked.conversation_id || (await openConversationWith(picked.user_id));
-      if (!conversationId) throw new Error("Could not open conversation");
+      let conversationId = picked.conversation_id || null;
+      if (!conversationId) {
+        conversationId = await openConversationWith(picked.user_id);
+      }
+      if (!conversationId) {
+        throw new Error("Could not start conversation. Try again.");
+      }
 
       const attachments: any[] = [
         {
@@ -185,20 +193,25 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
         },
       ];
 
+      const fallbackText = `이 상품 어때? — ${product.brand || ""} ${product.name}`.trim();
       const { error } = await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: user.id,
         recipient_id: picked.user_id,
-        content: note.trim() || `이 상품 어때? — ${product.brand || ""} ${product.name}`.trim(),
+        content: note.trim() || fallbackText,
         tagged_user_ids: [],
         attachments,
       } as any);
-      if (error) throw error;
+      if (error) {
+        console.error("[ShareProduct] insert error", error);
+        throw new Error(error.message || "Send failed");
+      }
 
       toast.success(`Sent to ${picked.display_name || picked.username || "friend"}`);
       onClose();
     } catch (e: any) {
-      toast.error(e.message || "Could not send");
+      console.error("[ShareProduct] handleSend error", e);
+      toast.error(e?.message || "Could not send");
     } finally {
       setSubmitting(false);
     }
