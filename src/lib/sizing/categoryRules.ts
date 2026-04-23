@@ -10,6 +10,7 @@ import type {
   RegionStatus,
   SizingCategory,
   Region,
+  Gender,
 } from "./types";
 
 export interface EasePerRegion {
