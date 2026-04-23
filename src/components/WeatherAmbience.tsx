@@ -627,7 +627,7 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
             transition={{ duration: 9, repeat: Infinity, ease: "linear" }}
           />
 
-          {/* Lightning bolts — multiple branched, randomly flashing */}
+          {/* Lightning bolts — multiple branched, randomly flashing with afterglow */}
           {bolts.map((b, idx) => (
             <motion.svg
               key={`bolt-${idx}`}
@@ -635,49 +635,69 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
               style={{
                 top: b.top,
                 left: b.left,
-                width: 110 * b.scale,
-                height: 300 * b.scale,
+                width: 130 * b.scale,
+                height: 340 * b.scale,
                 filter:
-                  "drop-shadow(0 0 8px hsl(220 100% 90% / 0.95)) drop-shadow(0 0 24px hsl(230 90% 70% / 0.7))",
+                  "drop-shadow(0 0 6px hsl(0 0% 100% / 1)) drop-shadow(0 0 18px hsl(220 100% 88% / 0.95)) drop-shadow(0 0 50px hsl(230 95% 65% / 0.75))",
               }}
               viewBox="0 0 100 300"
               animate={{
                 opacity:
                   idx === 0
-                    ? [0, 0, 0, 0, 0, 1, 0, 0.85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    ? [0, 0, 0, 0, 0, 1, 0.1, 0.95, 0.05, 0.4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
                     : idx === 1
-                    ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.9, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0]
-                    : [0, 0, 0, 0, 0, 0.4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.7, 0, 0.3, 0, 0],
+                    ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.15, 0.7, 0.05, 0.3, 0, 0, 0, 0, 0, 0]
+                    : [0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0.1, 0.45, 0, 0],
               }}
               transition={{ duration: 9, repeat: Infinity, ease: "linear" }}
             >
+              {/* Outer glow halo */}
+              <path
+                d={b.main}
+                fill="none"
+                stroke="hsl(220 100% 85% / 0.6)"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Main bright bolt */}
               <path
                 d={b.main}
                 fill="none"
                 stroke="hsl(0 0% 100%)"
-                strokeWidth="2.5"
+                strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
+              {/* Inner hot core */}
               <path
                 d={b.main}
                 fill="none"
-                stroke="hsl(220 100% 92%)"
-                strokeWidth="1"
+                stroke="hsl(220 100% 96%)"
+                strokeWidth="1.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
               {b.branches.map((br, j) => (
-                <path
-                  key={`branch-${idx}-${j}`}
-                  d={br}
-                  fill="none"
-                  stroke="hsl(220 100% 95%)"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.85}
-                />
+                <g key={`branch-${idx}-${j}`}>
+                  <path
+                    d={br}
+                    fill="none"
+                    stroke="hsl(220 100% 85% / 0.5)"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={br}
+                    fill="none"
+                    stroke="hsl(0 0% 100%)"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.95}
+                  />
+                </g>
               ))}
             </motion.svg>
           ))}
