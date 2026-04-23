@@ -272,18 +272,8 @@ export default function FitVisual({
               animate={{ x: ["-100%", "100%"] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
             />
-            <div className="absolute inset-0 flex items-end justify-center">
-              <svg
-                viewBox="0 0 200 280"
-                className="h-[78%] w-auto opacity-[0.18]"
-                fill="currentColor"
-                aria-hidden
-              >
-                <ellipse cx="100" cy="44" rx="22" ry="26" />
-                <path d="M52 110 Q100 80 148 110 L160 220 Q100 240 40 220 Z" />
-                <rect x="60" y="200" width="32" height="78" rx="8" />
-                <rect x="108" y="200" width="32" height="78" rx="8" />
-              </svg>
+            <div className="absolute inset-0 flex items-end justify-center text-foreground">
+              <LoadingSilhouette gender={normalizedGender} />
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/60 backdrop-blur-md ring-1 ring-foreground/10">
