@@ -1,14 +1,12 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Heart, ExternalLink, X, Tag, Sparkles, Camera, Link2, Inbox, MessageSquare, MessageCircle, Send, Globe, Hash } from "lucide-react";
+import { Heart, ExternalLink, X, Tag, Sparkles, Camera, Send } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import SafeImage from "@/components/SafeImage";
 import { AuthGate } from "@/components/AuthGate";
 import PostProductToOOTDSheet from "@/components/profile/PostProductToOOTDSheet";
-import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
+import ShareProductToFriendDialog from "@/components/ShareProductToFriendDialog";
 import { useAuth } from "@/lib/auth";
-import { useReferralCode } from "@/hooks/useReferralCode";
 
 interface ProductDetailItem {
   id: string;
