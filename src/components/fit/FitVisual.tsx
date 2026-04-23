@@ -162,14 +162,13 @@ export default function FitVisual({
                   aria-hidden
                 />
               )}
-              <img
-                key={previewSrc}
+              <FitImageCanvas
+                key={`${previewSrc}::${warpProfile.silhouetteLabel}`}
                 src={previewSrc}
                 alt={`${productName} try-on, size ${activeSize}`}
+                profile={warpProfile}
                 className="relative h-full w-full object-cover"
-                loading="eager"
-                decoding="async"
-                onLoad={() => setLoadedSrc(previewSrc)}
+                onLoaded={() => setLoadedSrc(previewSrc)}
                 onError={() => {
                   console.warn("[FIT_TRYON] image_load_error", {
                     urlPrefix: previewSrc.slice(0, 80),
@@ -180,7 +179,7 @@ export default function FitVisual({
             </div>
             <div className="absolute bottom-3 left-3 rounded-full bg-background/70 px-2.5 py-1 backdrop-blur-md">
               <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80">
-                AI FITTING · SIZE {activeSize}
+                AI FITTING · SIZE {activeSize} · {warpProfile.silhouetteLabel}
               </span>
             </div>
             {showStickyFallback && (
