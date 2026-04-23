@@ -16,6 +16,8 @@ interface Props {
   onWeightChange?: (weight: number) => void;
   bodyShape?: BodyShapeInput;
   onBodyShapeChange?: (next: BodyShapeInput) => void;
+  /** Notify parent when the user picks Male / Female so the visual silhouette updates immediately. */
+  onGenderChange?: (gender: "male" | "female") => void;
 }
 
 const BODY_TYPES: { key: BodyTypeKey; label: string; labelKo: string; icon: string }[] = [
@@ -36,7 +38,7 @@ const BODY_HINTS: { key: BodyHint; label: string }[] = [
   { key: "slim-legs", label: "Slim legs" },
 ];
 
-export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange, bodyShape, onBodyShapeChange }: Props) {
+export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange, bodyShape, onBodyShapeChange, onGenderChange }: Props) {
   const { user } = useAuth();
   const [height, setHeight] = useState(measurements.heightCm?.value || 175);
   const [weight, setWeight] = useState<number>(weightKg ?? 70);
@@ -84,7 +86,11 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
     }
     // Load gender from profile
     const { data: profile } = await supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle();
-    if (profile?.gender_preference) setGender(profile.gender_preference);
+    if (profile?.gender_preference) {
+      setGender(profile.gender_preference);
+      const g = profile.gender_preference.toLowerCase().startsWith("f") ? "female" : "male";
+      onGenderChange?.(g);
+    }
   };
 
 
@@ -189,6 +195,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
                   key={s}
                   onClick={() => {
                     setGender(s);
+                    onGenderChange?.(s);
                     if (user) {
                       supabase.from("profiles").update({ gender_preference: s }).eq("user_id", user.id).then(() => {});
                     }
