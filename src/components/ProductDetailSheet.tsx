@@ -175,7 +175,10 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
 
                     <AuthGate action="share to friends">
                       <button
-                        onClick={() => setShareInOOTDOpen(true)}
+                        onClick={() => {
+                          setShareInOOTDOpen(true);
+                          onClose();
+                        }}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[11px] font-bold tracking-[0.14em] text-accent transition-all hover:bg-accent/15"
                       >
                         <Send className="h-4 w-4" />
