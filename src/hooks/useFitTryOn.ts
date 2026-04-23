@@ -158,6 +158,53 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       retryAfterMs: null,
     }));
 
+    // ── QUALITY GATE ──────────────────────────────────────────────────────
+    // Validate the AI image BEFORE surfacing it as final. On failure, retry
+    // ONCE with safeMode=true (router uses a more conservative prompt).
+    // The user never sees the broken intermediate.
+    const acceptOrRetry = async (
+      persistentUrl: string,
+      provider: string | null,
+      requestId: string | null,
+    ) => {
+      setState((prev) => ({
+        ...prev,
+        stage: "validating",
+        provider,
+        requestId,
+      }));
+      const verdict = await validateFitImage(persistentUrl);
+      if (isStale()) return;
+      if (verdict.ok) {
+        log("validated_ok", { width: verdict.width, height: verdict.height, variance: verdict.variance });
+        setState({
+          stage: "ready",
+          imageUrl: persistentUrl,
+          lastGoodImageUrl: persistentUrl,
+          error: null,
+          provider,
+          requestId,
+          retryAfterMs: null,
+        });
+        return;
+      }
+      log("validation_failed", { reason: verdict.reason, width: verdict.width, height: verdict.height, variance: verdict.variance, safeModeAttempt });
+      if (safeModeAttempt === 0) {
+        // Auto-retry once with safer preset. Don't show the broken image.
+        log("auto_retry_safe_mode");
+        setSafeModeAttempt(1);
+        return;
+      }
+      // Already retried — surface failure cleanly.
+      setState((prev) => ({
+        ...prev,
+        stage: "failed",
+        error: "We couldn't render a clean fitting. Please try again.",
+        provider,
+        requestId,
+      }));
+    };
+
     hardTimerRef.current = window.setTimeout(() => {
       if (isStale()) return;
       stopTimers();
