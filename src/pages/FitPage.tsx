@@ -541,23 +541,25 @@ const FitPage = () => {
                       const updates: Promise<unknown>[] = [];
                       if (bodyGender) {
                         updates.push(
-                          supabase.from("profiles")
-                            .update({ gender_preference: bodyGender })
-                            .eq("user_id", user.id)
-                            .then(() => undefined),
+                          Promise.resolve(
+                            supabase.from("profiles")
+                              .update({ gender_preference: bodyGender })
+                              .eq("user_id", user.id),
+                          ),
                         );
                       }
                       updates.push(
-                        supabase.from("body_profiles")
-                          .upsert({
-                            user_id: user.id,
-                            height_cm: measurements.heightCm.value,
-                            weight_kg: weightKg ?? undefined,
-                            shoulder_width_cm: measurements.shoulderWidthCm.value,
-                            waist_cm: measurements.waistCm.value,
-                            inseam_cm: measurements.inseamCm.value,
-                          }, { onConflict: "user_id" })
-                          .then(() => undefined),
+                        Promise.resolve(
+                          supabase.from("body_profiles")
+                            .upsert({
+                              user_id: user.id,
+                              height_cm: measurements.heightCm.value,
+                              weight_kg: weightKg ?? undefined,
+                              shoulder_width_cm: measurements.shoulderWidthCm.value,
+                              waist_cm: measurements.waistCm.value,
+                              inseam_cm: measurements.inseamCm.value,
+                            }, { onConflict: "user_id" }),
+                        ),
                       );
                       try { await Promise.all(updates); } catch { /* non-blocking */ }
                     }
