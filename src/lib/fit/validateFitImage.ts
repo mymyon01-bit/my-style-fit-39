@@ -20,17 +20,21 @@ export interface FitImageValidation {
     | "load_failed"
     | "too_small"
     | "blank"
+    | "too_blurry"
     | "bad_aspect"
     | "decode_failed";
   width?: number;
   height?: number;
   /** Variance of sampled pixels (0..~7000). Lower = blanker. */
   variance?: number;
+  /** Edge/detail score. Lower = blurrier / more smeared. */
+  sharpness?: number;
 }
 
 const MIN_WIDTH = 512;
 const MIN_HEIGHT = 640;
 const MIN_VARIANCE = 220;     // empirically: real fit photos > 600, blanks < 80
+const MIN_SHARPNESS = 7.5;    // blurred / melted generations tend to fall below this
 const MIN_ASPECT = 0.45;      // width / height
 const MAX_ASPECT = 1.30;
 const SAMPLE_GRID = 18;       // 18×18 = 324 samples — fast, robust
@@ -93,6 +97,40 @@ function computeVariance(img: HTMLImageElement): number | null {
   }
 }
 
+function computeSharpness(img: HTMLImageElement): number | null {
+  try {
+    const c = document.createElement("canvas");
+    const W = Math.min(img.naturalWidth, 256);
+    const H = Math.min(img.naturalHeight, 256);
+    c.width = W;
+    c.height = H;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, W, H);
+    const data = ctx.getImageData(0, 0, W, H).data;
+
+    const lumaAt = (x: number, y: number) => {
+      const i = (y * W + x) * 4;
+      return 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    };
+
+    let total = 0;
+    let count = 0;
+    for (let y = 1; y < H - 1; y += 2) {
+      for (let x = 1; x < W - 1; x += 2) {
+        const center = lumaAt(x, y);
+        const dx = Math.abs(center - lumaAt(x + 1, y));
+        const dy = Math.abs(center - lumaAt(x, y + 1));
+        total += dx + dy;
+        count += 2;
+      }
+    }
+    return count ? total / count : 0;
+  } catch {
+    return null;
+  }
+}
+
 export async function validateFitImage(url: string): Promise<FitImageValidation> {
   let img: HTMLImageElement;
   try {
@@ -114,5 +152,22 @@ export async function validateFitImage(url: string): Promise<FitImageValidation>
   if (variance !== null && variance < MIN_VARIANCE) {
     return { ok: false, reason: "blank", width: W, height: H, variance };
   }
-  return { ok: true, width: W, height: H, variance: variance ?? undefined };
+  const sharpness = computeSharpness(img);
+  if (sharpness !== null && sharpness < MIN_SHARPNESS) {
+    return {
+      ok: false,
+      reason: "too_blurry",
+      width: W,
+      height: H,
+      variance: variance ?? undefined,
+      sharpness,
+    };
+  }
+  return {
+    ok: true,
+    width: W,
+    height: H,
+    variance: variance ?? undefined,
+    sharpness: sharpness ?? undefined,
+  };
 }
