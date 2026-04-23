@@ -78,9 +78,25 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <Sheet
+        open={open}
+        onOpenChange={(v) => {
+          if (!v && (shareInOOTDOpen || postOpen)) return;
+          if (!v) onClose();
+        }}
+      >
         <SheetContent
           side="bottom"
+          onInteractOutside={(event) => {
+            if (shareInOOTDOpen || postOpen) {
+              event.preventDefault();
+            }
+          }}
+          onEscapeKeyDown={(event) => {
+            if (shareInOOTDOpen || postOpen) {
+              event.preventDefault();
+            }
+          }}
           className="h-[92vh] rounded-t-3xl border-t border-border/20 bg-background p-0 overflow-hidden"
         >
           <div className="relative flex h-full flex-col overflow-y-auto">
