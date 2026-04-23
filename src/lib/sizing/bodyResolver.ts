@@ -9,10 +9,12 @@ import {
   asInferred,
   asDefault,
 } from "./anthropometry";
-import type { Gender, ResolvedBody, MeasurementValue } from "./types";
+import type { Gender, BodyType, ResolvedBody, MeasurementValue } from "./types";
 
 export interface BodyResolverInput {
   gender?: string | null;
+  /** Slim / regular / solid / heavy — drives the deterministic weight_adj. */
+  bodyType?: string | null;
   heightCm?: number | null;
   weightKg?: number | null;
   shoulderCm?: number | null;
@@ -42,6 +44,16 @@ function normalizeGender(g?: string | null): Gender {
   return "neutral";
 }
 
+function normalizeBodyType(t?: string | null): BodyType | null {
+  const v = (t || "").toLowerCase().trim();
+  if (!v) return null;
+  if (/slim|lean|thin|skinny/.test(v)) return "slim";
+  if (/regular|normal|average|balanced|athletic/.test(v)) return "regular";
+  if (/solid|muscular|stocky|broad/.test(v)) return "solid";
+  if (/heavy|fuller|plus|large/.test(v)) return "heavy";
+  return null;
+}
+
 function pick(value: number | null | undefined, fallback: number, source: "inferred" | "default"): MeasurementValue {
   if (typeof value === "number" && value > 0) return asExact(value);
   return source === "inferred" ? asInferred(fallback) : asDefault(fallback);
@@ -60,13 +72,14 @@ export function resolveBody(input: BodyResolverInput): ResolvedBody {
     ? asExact(input.weightKg!)
     : null;
 
-  // Estimate every segment from height/weight + body-type as a ground-truth fallback.
-  // Body-type shape scales prevent slim vs solid vs heavy from collapsing into
-  // identical proportions when only height/weight are known.
+  // Estimate every segment with the deterministic spec formulas (height +
+  // gender + bodyType weight_adj). When bodyType is missing we derive an adj
+  // from BMI so the same H/W still always produces the same numbers.
   const est = estimateAnthropometry({
     gender,
     heightCm: heightCm.cm,
-    weightKg: weightCm?.cm ?? DEFAULT_WEIGHT,
+    weightKg: weightCm?.cm ?? null,
+    bodyType: normalizeBodyType(input.bodyType),
     shapeScales: input.shapeScales ?? null,
   });
 
