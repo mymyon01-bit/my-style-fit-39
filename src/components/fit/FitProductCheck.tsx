@@ -466,3 +466,120 @@ function estimateDataQuality(product: any): number {
   if (product.source_url) score += 5;
   return Math.min(100, score);
 }
+
+// ─── Precise Info Dialog ──────────────────────────────────────────────────
+// Lets the user input the brand's actual size chart so the fit engine can
+// use exact numbers instead of inferred category defaults. Persists to
+// sessionStorage keyed by product so the calibration sticks for the session.
+
+const PRECISE_FIELDS_TOPS = [
+  { key: "chest", label: "Chest (cm)" },
+  { key: "shoulder", label: "Shoulder (cm)" },
+  { key: "length", label: "Length (cm)" },
+  { key: "sleeve", label: "Sleeve (cm)" },
+];
+const PRECISE_FIELDS_BOTTOMS = [
+  { key: "waist", label: "Waist (cm)" },
+  { key: "hip", label: "Hip (cm)" },
+  { key: "inseam", label: "Inseam (cm)" },
+  { key: "thigh", label: "Thigh (cm)" },
+];
+const PRECISE_SIZES = ["S", "M", "L", "XL"];
+
+function PreciseInfoDialog({
+  open,
+  onOpenChange,
+  product,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  product: FitProduct | null;
+  onSave: (updated: FitProduct) => void;
+}) {
+  const isBottom = product?.category === "bottoms";
+  const fields = isBottom ? PRECISE_FIELDS_BOTTOMS : PRECISE_FIELDS_TOPS;
+  const storageKey = product ? `fit:precise:${product.id}` : "";
+
+  const [values, setValues] = useState<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+    if (!open || !storageKey) return;
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      setValues(raw ? JSON.parse(raw) : {});
+    } catch { setValues({}); }
+  }, [open, storageKey]);
+
+  if (!product) return null;
+
+  const setVal = (size: string, key: string, v: string) => {
+    setValues((prev) => ({ ...prev, [size]: { ...(prev[size] || {}), [key]: v } }));
+  };
+
+  const handleSave = () => {
+    try { sessionStorage.setItem(storageKey, JSON.stringify(values)); } catch { /* ignore */ }
+    onSave({ ...product, dataQuality: Math.max(product.dataQuality, 95) });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-background border border-border/40">
+        <DialogHeader>
+          <DialogTitle className="font-display text-[20px] tracking-tight">
+            Precise product info
+          </DialogTitle>
+          <DialogDescription className="text-[12px] leading-relaxed text-foreground/60">
+            Enter the brand's exact size chart from the product page. Leave blank for sizes you don't need.
+            More numbers = more accurate fit.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5 pt-2">
+          <div className="rounded-xl border border-foreground/[0.06] bg-card/30 p-3">
+            <p className="text-[10px] tracking-[0.2em] font-bold text-foreground/55 mb-1">
+              {product.brand.toUpperCase()}
+            </p>
+            <p className="text-[13px] text-foreground/85 leading-tight">{product.name}</p>
+          </div>
+
+          {PRECISE_SIZES.map((size) => (
+            <div key={size} className="space-y-2 border-t border-foreground/[0.06] pt-4">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-foreground/70">SIZE {size}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {fields.map((f) => (
+                  <label key={f.key} className="space-y-1 block">
+                    <span className="text-[10px] tracking-wide text-foreground/55">{f.label}</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={values[size]?.[f.key] ?? ""}
+                      onChange={(e) => setVal(size, f.key, e.target.value)}
+                      placeholder="—"
+                      className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-[13px] text-foreground tabular-nums focus:outline-none focus:border-accent/50"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="flex items-center gap-2 pt-3 border-t border-foreground/[0.06]">
+            <button
+              onClick={() => onOpenChange(false)}
+              className="flex-1 rounded-xl border border-foreground/15 py-3 text-[11px] font-bold tracking-[0.2em] text-foreground/70 hover:bg-foreground/[0.04]"
+            >
+              <X className="inline h-3 w-3 mr-1.5" /> CANCEL
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex-1 rounded-xl bg-foreground py-3 text-[11px] font-bold tracking-[0.2em] text-background hover:opacity-90"
+            >
+              <Check className="inline h-3 w-3 mr-1.5" /> SAVE & RECALCULATE
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
