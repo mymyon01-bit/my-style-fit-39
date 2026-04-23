@@ -12,4 +12,4 @@ export {
   classifyRegion,
   REGION_TOLERANCE,
 } from "./categoryRules";
-export { estimateAnthropometry } from "./anthropometry";
+export { estimateAnthropometry, bmiCategory } from "./anthropometry";

@@ -11,6 +11,7 @@ import {
   CATEGORY_RULES,
   REGION_STATUS_LABEL,
   classifyRegion,
+  type EasePerRegion,
 } from "./categoryRules";
 import type { GarmentChart, SizeMeasurements } from "./garmentChart";
 import type {
@@ -21,6 +22,7 @@ import type {
   RegionStatus,
   ResolvedBody,
   SizeOutcome,
+  SizingCategory,
 } from "./types";
 
 interface CalcInput {
@@ -122,6 +124,69 @@ function pickOverall(regions: RegionOutcome[], weights: Partial<Record<string, n
   return "regularFit";
 }
 
+/**
+ * EXTREME-MISMATCH GUARD (per spec [4] INVALID OUTPUT RULE).
+ *
+ * Compares aggregate body circumference vs aggregate garment circumference
+ * for the most weight-critical region of the category (chest for tops, waist
+ * for bottoms). Catches cases where the soft per-region status logic would
+ * still allow a 100kg user wearing S to be labeled "regularFit" because the
+ * category-default chart was filled in too generously.
+ *
+ * Hard rules:
+ *   garment_chest < body_chest − 4cm     → MUST be at least "tightFit"
+ *   garment_chest < body_chest − 10cm    → MUST be "verySmall"
+ *   garment_chest > body_chest + ease+12 → MUST be at least "oversizedFit"
+ *   garment_chest > body_chest + ease+22 → MUST be "tooLarge"
+ */
+function applyExtremeRules(
+  base: OverallFitLabel,
+  regions: RegionOutcome[],
+  body: ResolvedBody,
+  category: SizingCategory,
+  preferenceEase: EasePerRegion,
+): OverallFitLabel {
+  // Pick the dominant region for this category.
+  const isBottom = ["pants", "denim", "shorts", "skirt"].includes(category);
+  const region: Region = isBottom ? "waist" : "chest";
+
+  const garment = regions.find((r) => r.region === region);
+  if (!garment || garment.deltaCm == null) return base;
+
+  const bodyCm = region === "chest" ? body.chestCm.cm : body.waistCm.cm;
+  if (!bodyCm || bodyCm <= 0) return base;
+
+  // garment circumference - body = deltaCm  (positive = ease/room)
+  const delta = garment.deltaCm;
+  const targetEase = (preferenceEase as any)[region] ?? 4;
+
+  // ── TIGHT side ──
+  if (delta < -10) return "verySmall";        // garment is 10cm+ smaller than body
+  if (delta < -4)  return rankMin(base, "tightFit");
+  if (delta < targetEase - 6) return rankMin(base, "tightFit");
+
+  // ── LOOSE side ──
+  if (delta > targetEase + 22) return "tooLarge";
+  if (delta > targetEase + 12) return rankMax(base, "oversizedFit");
+
+  return base;
+}
+
+const TIER_ORDER: OverallFitLabel[] = [
+  "verySmall", "tightFit", "fitted", "regularFit", "relaxedFit", "oversizedFit", "tooLarge",
+];
+function tierIdx(l: OverallFitLabel): number {
+  return TIER_ORDER.indexOf(l);
+}
+/** Return the LARGER (looser) of two labels — used to push toward looser. */
+function rankMax(a: OverallFitLabel, b: OverallFitLabel): OverallFitLabel {
+  return tierIdx(a) >= tierIdx(b) ? a : b;
+}
+/** Return the SMALLER (tighter) of two labels — used to push toward tighter. */
+function rankMin(a: OverallFitLabel, b: OverallFitLabel): OverallFitLabel {
+  return tierIdx(a) <= tierIdx(b) ? a : b;
+}
+
 const OVERALL_LABEL_FRIENDLY: Record<OverallFitLabel, string> = {
   verySmall:    "Very small",
   tightFit:     "Tight fit",
@@ -167,7 +232,11 @@ export function calculateAllSizes(input: CalcInput): SizeOutcome[] {
       ),
     );
 
-    const overall = pickOverall(regions, rule.weights);
+    let overall = pickOverall(regions, rule.weights);
+    // EXTREME-MISMATCH GUARD — heavy body + small garment must be tight,
+    // light body + large garment must be oversized, regardless of how the
+    // category-default rows happen to add up.
+    overall = applyExtremeRules(overall, regions, input.body, input.chart.category, ease);
     let score = 0;
     let weightSum = 0;
     for (const r of regions) {

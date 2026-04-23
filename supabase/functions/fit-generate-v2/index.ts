@@ -36,11 +36,35 @@ function interpretFit(r: ReturnType<typeof calculateFit>) {
   return { chestFit, lengthFit, shoulderFit, sleeveFit, overall };
 }
 
-function describeBuild(b: BodyMeasurements) {
+// ─── BODY DESCRIPTION (per spec [13]–[16]) ──────────────────────────────────
+// BMI category drives a deterministic, vivid body description that the visual
+// model can render. The BODY MUST visibly differ across BMI categories so a
+// 100kg user is never shown on a slim mannequin.
+function describeBuild(b: BodyMeasurements): {
+  bmi: number;
+  category: "verySlim" | "slim" | "regular" | "solid" | "heavy";
+  description: string;
+} {
   const bmi = b.weight / Math.pow(b.height / 100, 2);
-  if (bmi < 22) return "slim";
-  if (bmi < 28) return "athletic";
-  return "heavy";
+  let category: "verySlim" | "slim" | "regular" | "solid" | "heavy";
+  let description: string;
+  if (bmi < 18.5) {
+    category = "verySlim";
+    description = "very slim build with narrow shoulders, thin chest and arms, tight small waist, slender thighs and minimal body volume";
+  } else if (bmi < 22) {
+    category = "slim";
+    description = "lean build with light frame, slim chest, thin arms and a clearly defined small waist";
+  } else if (bmi < 25) {
+    category = "regular";
+    description = "balanced regular build with proportional chest, normal arm thickness and neutral waist";
+  } else if (bmi < 30) {
+    category = "solid";
+    description = "solid build with thicker torso, wider waist, fuller chest and noticeably thicker arms and thighs";
+  } else {
+    category = "heavy";
+    description = "heavy large build with a noticeably thick chest and belly, wide waist, large arms and thick thighs — visibly heavyset";
+  }
+  return { bmi: Math.round(bmi * 10) / 10, category, description };
 }
 
 function overallToFitType(overall: string): "TIGHT" | "PERFECT" | "LOOSE" | "OVERSIZED" {
@@ -50,6 +74,13 @@ function overallToFitType(overall: string): "TIGHT" | "PERFECT" | "LOOSE" | "OVE
   return "OVERSIZED";
 }
 
+// ─── PROMPT (per spec [6]–[8], [13]–[18]) ───────────────────────────────────
+// Hard rules baked in:
+//   • body proportions follow BMI/height/weight, never aesthetics
+//   • faceless mannequin only — no human, no face, no skin texture
+//   • body identity locked across all sizes (only garment changes)
+//   • fit visibly matches the COMPUTED label (TIGHT / PERFECT / LOOSE / OVERSIZED)
+//   • per-region details: chest pulling, dropped shoulders, sleeve length, etc.
 function buildPrompt(args: {
   body: BodyMeasurements;
   analysis: ReturnType<typeof interpretFit>;
@@ -57,27 +88,51 @@ function buildPrompt(args: {
   genderPresentation?: string;
   selectedSize: string;
 }) {
-  const bodyType = args.genderPresentation === "feminine" ? "female"
+  const bodyGender = args.genderPresentation === "feminine" ? "female"
     : args.genderPresentation === "masculine" ? "male"
     : "gender-neutral";
-  const build = describeBuild(args.body); // slim | athletic | heavy
+  const build = describeBuild(args.body);
   const fitType = overallToFitType(args.analysis.overall);
 
+  // Per-region descriptors — surface the actual fit math in plain English.
+  const regionDetails: string[] = [];
+  if (args.analysis.chestFit === "tight")    regionDetails.push("fabric stretched tight across the chest with visible tension lines");
+  if (args.analysis.chestFit === "loose")    regionDetails.push("clear extra fabric around the chest");
+  if (args.analysis.shoulderFit === "tight") regionDetails.push("fabric pulling at the shoulder seams");
+  if (args.analysis.shoulderFit === "dropped") regionDetails.push("shoulder seams dropped well past the natural shoulder line");
+  if (args.analysis.sleeveFit === "short")   regionDetails.push("short sleeves that ride up");
+  if (args.analysis.sleeveFit === "long")    regionDetails.push("long sleeves extending over the hands");
+  if (args.analysis.lengthFit === "short")   regionDetails.push("short hem sitting above the natural length");
+  if (args.analysis.lengthFit === "long")    regionDetails.push("extended hem reaching well below the hip");
+  const regionLine = regionDetails.length
+    ? `Visible per-region fit details: ${regionDetails.join("; ")}.`
+    : "Per-region fit is balanced.";
+
   const fitRules: Record<typeof fitType, string> = {
-    TIGHT: "Visible fabric tension and pulling around shoulders, chest, arms and waist. Fabric is stretched against the body with subtle stress lines. Slightly compressed silhouette. NO body resizing.",
-    PERFECT: "Clean natural drape, correct proportions, balanced fit. Fabric sits smoothly with no tension and no excess volume. No distortion.",
-    LOOSE: "Clear extra space between body and fabric. Relaxed draping with soft folds at the waist, sleeves and hem. Visibly roomier than the body.",
-    OVERSIZED: "Exaggerated looseness. Dropped shoulders past the natural shoulder line, extended sleeve length covering the hands, hem extended well past the hip. Silhouette visibly much larger than the body.",
+    TIGHT:     "Garment is visibly TIGHT on this body. Fabric stretched, tension lines around chest/shoulders/arms/waist, slightly compressed silhouette. Do NOT shrink the body to 'make it fit'.",
+    PERFECT:   "Garment fits CORRECTLY. Clean natural drape, no tension and no excess volume, balanced proportions.",
+    LOOSE:     "Garment is visibly LOOSE on this body. Clear extra space between fabric and body, soft folds at waist/sleeves/hem, roomy silhouette.",
+    OVERSIZED: "Garment is visibly OVERSIZED. Dropped shoulders past the natural shoulder line, sleeves extending over the hands, hem extended well past the hip, silhouette much larger than the body.",
   };
 
   return [
-    `Clean, high-clarity clothing FIT VISUALIZATION on a neutral mannequin-style body.`,
-    `Subject: a ${bodyType} ${build}-build mannequin / fitting dummy. NOT a real person. No visible face, no facial features, no identity — smooth featureless head. No skin texture, no realism, no fashion-model styling. Neutral posture: standing straight, front-facing, arms relaxed at the sides.`,
-    `Garment: wear the provided ${args.garmentLabel}. Preserve the garment's original color, structure, pattern and material EXACTLY as shown in the reference image. Do NOT redesign or restyle the garment. Ensure strong visual contrast between the clothing and the mannequin body.`,
-    `FIT CONDITION = ${fitType} (size ${args.selectedSize}). ${fitRules[fitType]}`,
-    `CRITICAL: The body MUST stay identical regardless of size. Do NOT resize, slim or enlarge the body to fit the clothing. The clothing adapts to the body, never the reverse.`,
-    `Composition: plain bright studio background (white or light gray), soft even lighting with minimal shadows, full body visible, centered framing.`,
-    `Goal: the fit difference (TIGHT vs PERFECT vs LOOSE vs OVERSIZED) must be instantly recognizable at a glance. Communicate size and fit clearly — not fashion, not aesthetics. Avoid artistic effects, realism noise and unnecessary detail.`,
+    // ── Subject (locked faceless mannequin per spec [7]) ──
+    `Studio fit visualization on a FACELESS MANNEQUIN. NOT a real person, NO visible face, NO facial features, NO skin texture, NO realism noise — smooth featureless head, neutral matte body. ${bodyGender} mannequin, neutral standing pose facing camera, arms slightly apart, full body visible.`,
+
+    // ── Body proportions (per spec [13]–[16] — height + weight independent axes) ──
+    `Body proportions are LOCKED to: height ${args.body.height}cm, weight ${args.body.weight}kg, BMI ${build.bmi} → ${build.category} category. The mannequin must be a ${build.description}. Height drives vertical length; weight drives horizontal volume — DO NOT scale uniformly. Same body across all sizes; never resize the body to fit the clothing.`,
+
+    // ── Garment ──
+    `Garment: wear the provided ${args.garmentLabel}. Preserve the garment's ORIGINAL color, structure, pattern and material EXACTLY as shown in the reference image. Do NOT redesign or restyle. Strong visual contrast between clothing and the matte mannequin body.`,
+
+    // ── Fit translation (per spec [6] + [11]) ──
+    `FIT CONDITION = ${fitType} for size ${args.selectedSize}. ${fitRules[fitType]} ${regionLine}`,
+
+    // ── Hard consistency rules (per spec [8] + [17] + [18]) ──
+    `CRITICAL: The BODY MUST stay identical across every size variant — only the garment changes. The clothing adapts to the body, NEVER the reverse. If the body looks slim despite a heavy weight value, regenerate.`,
+
+    // ── Composition ──
+    `Composition: plain bright studio background (white or light gray), soft even lighting, minimal shadows, full body centered. No lifestyle, no fashion editorial, no artistic effects. Goal: make the size-fit difference instantly readable.`,
   ].join(" ");
 }
 
