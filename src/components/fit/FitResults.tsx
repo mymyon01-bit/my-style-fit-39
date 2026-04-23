@@ -586,6 +586,7 @@ export default function FitResults({
             }}
             fitChips={fitChipsForVisual}
             overallFit={sizingActiveOutcome?.overall ?? null}
+            bodyGender={bodyGender ?? null}
           />
         </div>
       </div>
