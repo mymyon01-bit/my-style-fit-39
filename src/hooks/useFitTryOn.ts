@@ -14,8 +14,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReplicateTryOn } from "./useReplicateTryOn";
+import { validateFitImage, type FitImageValidation } from "@/lib/fit/validateFitImage";
 
-export type FitTryOnStage = "idle" | "generating" | "polling" | "ready" | "failed";
+export type FitTryOnStage = "idle" | "generating" | "polling" | "validating" | "ready" | "failed";
 
 export interface FitTryOnState {
   stage: FitTryOnStage;
