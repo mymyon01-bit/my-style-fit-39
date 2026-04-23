@@ -7,9 +7,9 @@ interface Props {
 }
 
 /**
- * Cute on-brand mailbox icon — a little wood/postbox with a tiny envelope tab.
- * Drawn with inline SVG so it themes via currentColor. Used as the trigger
- * for the draggable MailboxPopup in the OOTD top bar.
+ * Letter / envelope icon — simpler, more legible than the mailbox.
+ * Drawn as inline SVG so it themes via currentColor and feels like
+ * a hand-drawn note. Used as the trigger for the draggable MailboxPopup.
  */
 const MailboxIcon = forwardRef<HTMLButtonElement, Props>(({ unread = 0, onClick, className = "" }, ref) => {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -21,33 +21,26 @@ const MailboxIcon = forwardRef<HTMLButtonElement, Props>(({ unread = 0, onClick,
     <button
       ref={ref}
       onClick={handleClick}
-      aria-label="Open mailbox"
+      aria-label="Open messages"
       className={`group relative inline-flex h-7 w-7 items-center justify-center text-foreground/75 hover:text-accent transition-colors ${className}`}
     >
       <svg
         viewBox="0 0 24 24"
         fill="none"
-        className="h-[18px] w-[18px] transition-transform duration-200 group-hover:-rotate-3 group-active:scale-95"
+        className="h-[18px] w-[18px] transition-transform duration-200 group-hover:-translate-y-[1px] group-active:scale-95"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {/* Mailbox body (rounded top) */}
-        <path d="M4 11.5a4 4 0 0 1 4-4h7a4 4 0 0 1 4 4V18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6.5Z" />
-        {/* Slot */}
-        <path d="M8 11h4" strokeWidth="1.4" />
-        {/* Flag (waving when unread) */}
-        <path
-          d={unread > 0
-            ? "M19 7.5h2.2a.6.6 0 0 1 .5.95l-1 1.4 1 1.4a.6.6 0 0 1-.5.95H19"
-            : "M19 8.5h2"}
-          className={unread > 0 ? "text-accent" : ""}
-          stroke={unread > 0 ? "hsl(var(--accent))" : "currentColor"}
-        />
-        <path d="M19 7.5v6" />
-        {/* Post (leg) */}
-        <path d="M11.5 19v3" />
+        {/* Envelope body */}
+        <rect x="3" y="6" width="18" height="13" rx="2.2" />
+        {/* Flap */}
+        <path d="M3.6 7.2 L12 13.2 L20.4 7.2" />
+        {/* Tiny seal dot when unread */}
+        {unread > 0 && (
+          <circle cx="12" cy="13.2" r="0.9" fill="hsl(var(--accent))" stroke="none" />
+        )}
       </svg>
 
       {unread > 0 && (

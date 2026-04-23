@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, MessageCircle, X, GripHorizontal } from "lucide-react";
+import { Loader2, Mail, X, GripHorizontal } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useConversations } from "@/hooks/useMessages";
 import MessageThread from "./MessageThread";
@@ -85,10 +85,10 @@ export default function MailboxPopup({
       {open && pos && (
         <motion.div
           key="mailbox-popup"
-          initial={{ opacity: 0, scale: 0.92, rotate: -2 }}
-          animate={{ opacity: 1, scale: 1, rotate: -1.2 }}
-          exit={{ opacity: 0, scale: 0.92, rotate: -3 }}
-          transition={{ type: "spring", damping: 22, stiffness: 320 }}
+          initial={{ opacity: 0, scale: 0.94, y: -6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.94, y: -6 }}
+          transition={{ type: "spring", damping: 24, stiffness: 340 }}
           style={{
             position: "fixed",
             top: pos.y,
@@ -97,21 +97,21 @@ export default function MailboxPopup({
             height: POPUP_H,
             zIndex: 120,
           }}
-          className="select-none rounded-2xl border border-accent/20 bg-card shadow-elevated overflow-hidden flex flex-col"
+          className="select-none rounded-xl border border-border/60 bg-background shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.25),0_0_0_1px_hsl(var(--border)/0.4)] overflow-hidden flex flex-col"
         >
-          {/* Drag handle bar — sticky-note tab look */}
+          {/* Drag handle bar — clean header */}
           <div
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            className="cursor-grab active:cursor-grabbing flex items-center justify-between gap-2 px-3.5 py-2 bg-gradient-to-b from-accent/15 to-accent/[0.05] border-b border-accent/15"
+            className="cursor-grab active:cursor-grabbing flex items-center justify-between gap-2 px-3.5 py-2.5 bg-card border-b border-border/60"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <GripHorizontal className="h-3 w-3 text-accent/60 shrink-0" />
-              <MessageCircle className="h-3.5 w-3.5 text-accent/70 shrink-0" />
+              <GripHorizontal className="h-3 w-3 text-foreground/30 shrink-0" />
+              <Mail className="h-3.5 w-3.5 text-foreground/70 shrink-0" />
               <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/85 truncate">
-                MAILBOX
+                MESSAGES
               </span>
               {totalUnread > 0 && !active && (
                 <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground leading-none">
@@ -123,14 +123,14 @@ export default function MailboxPopup({
               onClick={() => { if (active) setActive(null); else onClose(); }}
               onPointerDown={(e) => e.stopPropagation()}
               className="text-foreground/45 hover:text-foreground transition-colors"
-              aria-label="Close mailbox"
+              aria-label="Close messages"
             >
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3 bg-background">
             {active ? (
               <MessageThread
                 conversationId={active.id}
@@ -143,7 +143,7 @@ export default function MailboxPopup({
               </div>
             ) : conversations.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-12 text-center">
-                <MessageCircle className="h-7 w-7 text-foreground/20" />
+                <Mail className="h-7 w-7 text-foreground/20" />
                 <p className="text-[12px] text-foreground/55">No messages yet</p>
                 <p className="text-[10px] text-foreground/35 max-w-[220px]">
                   Open a profile and tap Message to start a chat
