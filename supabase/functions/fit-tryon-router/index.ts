@@ -316,6 +316,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
+      baseLayerLine,
       `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation — only the BAG/ACCESSORY changes between sizes.`,
       bagScale,
       consequenceLine,
