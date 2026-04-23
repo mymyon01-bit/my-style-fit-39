@@ -243,7 +243,7 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
         onClose={() => setShareInOOTDOpen(false)}
       />
 
-      <MessagesFullSheet open={msgOpen} onClose={() => setMsgOpen(false)} />
+
     </>
   );
 };
