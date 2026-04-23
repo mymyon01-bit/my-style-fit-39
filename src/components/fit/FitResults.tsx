@@ -218,16 +218,9 @@ export default function FitResults({
   // When the new engine produces a primary size that exists in the legacy
   // size ladder, prefer it as the default active size. Never override a user
   // pick — only sync once when the recommendation first arrives.
-  const syncedRecRef = useRef(false);
-  useEffect(() => {
-    if (syncedRecRef.current) return;
-    const rec = sizing.recommendation?.primarySize;
-    if (!rec) return;
-    if (result.sizeResults.some((s) => s.size === rec)) {
-      setActiveSize(rec);
-      syncedRecRef.current = true;
-    }
-  }, [sizing.recommendation?.primarySize, result.sizeResults]);
+  // (Auto-sync to "recommended" size removed — user picks their own size; we
+  // never push them toward a recommendation. The visualization simply reflects
+  // whichever size they tapped.)
 
   // Active size outcome from the new measurement-driven engine.
   // Used to feed the visual try-on with calculated per-region fit so the AI
