@@ -24,6 +24,7 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
   const navigate = useNavigate();
   const [saved, setSaved] = useState<MiniProduct[]>([]);
   const [ads, setAds] = useState<MiniProduct[]>([]);
+  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
