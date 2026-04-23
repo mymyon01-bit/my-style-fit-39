@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link2, Search, Info, Loader2, ShieldCheck, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,10 @@ import {
   genderPreferenceToFilter,
   type GenderFilter,
 } from "@/lib/discover/genderFilter";
+import { wasRecentlyShown, markProductsAsSeen } from "@/lib/search/search-session";
+
+const PAGE_SIZE = 6;
+const POOL_SIZE = 120;
 
 interface FitProduct {
   id: string;
@@ -56,13 +60,18 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
   const { user } = useAuth();
   const [url, setUrl] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [dbProducts, setDbProducts] = useState<FitProduct[]>([]);
+  // Pool of all eligible products (loaded once + on search). We page through
+  // it 6 at a time on REFRESH so users never see the same item twice in a
+  // session, and keep a shared "seen" register with Discover (search-session)
+  // so cross-tab repetition is also avoided.
+  const [pool, setPool] = useState<FitProduct[]>([]);
+  const [visible, setVisible] = useState<FitProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [searched, setSearched] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [gender, setGender] = useState<GenderFilter>("all");
   const [genderInitialized, setGenderInitialized] = useState(false);
+  const seenLocalIds = useRef<Set<string>>(new Set());
 
   // Default gender filter from the user's profile (mirrors Discover behavior).
   useEffect(() => {
@@ -81,25 +90,18 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
     return () => { cancelled = true; };
   }, [user]);
 
-  // Load products from DB on mount + on refresh
-  useEffect(() => {
-    loadDbProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshNonce]);
-
-  const loadDbProducts = async (query?: string) => {
-    const isRefresh = !query && refreshNonce > 0;
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  // Load the eligible product pool from the SAME table Discover uses
+  // (`product_cache`), so FIT and Discover share inventory.
+  const loadPool = useCallback(async (query?: string) => {
+    setLoading(true);
     try {
-      // Pull a wider pool, then sample for variety on refresh
       let q = supabase
         .from("product_cache")
         .select("id, name, brand, price, image_url, source_url, category, fit, style_tags")
         .eq("is_active", true)
         .eq("image_valid", true)
         .order("trend_score", { ascending: false })
-        .limit(query ? 24 : 60);
+        .limit(query ? 60 : POOL_SIZE);
 
       if (query) {
         q = q.or(`name.ilike.%${query}%,brand.ilike.%${query}%,category.ilike.%${query}%`);
@@ -108,10 +110,10 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
       const { data, error } = await q;
       if (!error && data) {
         const mapped: FitProduct[] = data
-          .filter(p => p.category && ["tops", "bottoms", "outerwear", "shoes"].some(c =>
+          .filter((p) => p.category && ["tops", "bottoms", "outerwear", "shoes"].some((c) =>
             (p.category || "").toLowerCase().includes(c)
           ))
-          .map(p => {
+          .map((p) => {
             const parsed = p.price ? parseFloat(String(p.price).replace(/[^0-9.]/g, "")) : NaN;
             const resolvedImage = resolveBestProductImage({
               id: p.id,
@@ -132,40 +134,75 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
               dataQuality: estimateDataQuality(p),
               source: "db" as const,
             });
-        });
-        const final = query
-          ? mapped
-          : [...mapped].sort(() => Math.random() - 0.5).slice(0, 12);
-        setDbProducts(final);
+          });
+        // Combine DB + mock for full pool
+        const full = [...mapped, ...MOCK_CATALOG]
+          .filter((p) => {
+            const hasImage = !!p.image && /^(https?:\/\/|data:image\/)/i.test(p.image);
+            const hasCategory = !!p.category && p.category !== "other";
+            return hasImage && hasCategory;
+          });
+        setPool(full);
       }
     } catch (err) {
       console.error("Error loading products:", err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
-      setSearched(true);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => { loadPool(); }, [loadPool]);
+
+  // Compute the next 6-item page from the pool whenever the pool, gender,
+  // or refresh counter changes. Skips items already shown in this FIT session
+  // and items recently shown in Discover (shared session memory).
+  useEffect(() => {
+    if (pool.length === 0) { setVisible([]); return; }
+    const eligible = pool.filter((p) => passesGenderFilter(p as any, gender));
+    const productKey = (p: FitProduct) =>
+      (p.url && p.url !== "#" ? p.url : p.id || p.image).toLowerCase();
+
+    let candidates = eligible.filter(
+      (p) => !seenLocalIds.current.has(p.id) && !wasRecentlyShown(productKey(p))
+    );
+
+    // Pool exhausted — reset local memory so user can keep refreshing.
+    if (candidates.length === 0) {
+      seenLocalIds.current.clear();
+      candidates = eligible;
+    }
+
+    // Light shuffle for variety, then take 6
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+    const next = shuffled.slice(0, PAGE_SIZE);
+
+    next.forEach((p) => seenLocalIds.current.add(p.id));
+    // Share with Discover's session memory so cross-tab repeats are avoided
+    markProductsAsSeen(next.map((p) => ({
+      id: p.id,
+      externalUrl: p.url && p.url !== "#" ? p.url : null,
+      imageUrl: p.image,
+    })) as any);
+
+    setVisible(next);
+    setRefreshing(false);
+  }, [pool, gender, refreshNonce]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      loadDbProducts(searchQuery.trim());
+      seenLocalIds.current.clear();
+      loadPool(searchQuery.trim());
     }
   };
 
   const handleRefresh = useCallback(() => {
     setSearchQuery("");
-    setRefreshNonce(n => n + 1);
+    setRefreshing(true);
+    setRefreshNonce((n) => n + 1);
   }, []);
 
-  // ── FIT READINESS GATE ─────────────────────────────────────────────────
-  const allProducts = [...dbProducts, ...MOCK_CATALOG].filter((p) => {
-    const hasImage = !!p.image && /^(https?:\/\/|data:image\/)/i.test(p.image);
-    const hasCategory = !!p.category && p.category !== "other";
-    if (!hasImage || !hasCategory) return false;
-    // Gender filter — mirror Discover so a male profile doesn't see women's items.
-    return passesGenderFilter(p as any, gender);
-  });
+  const allProducts = visible;
 
   return (
     <div className="space-y-6">
