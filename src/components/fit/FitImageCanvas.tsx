@@ -124,30 +124,42 @@ const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCan
         ctx.fillStyle = "rgba(238,236,232,1)";
         ctx.fillRect(0, 0, W, H);
 
-        // 2. Head band — drawn unwarped on top later (we draw body first).
-        const headH = H * HEAD_BAND;
-        const bodyTopY = headH;
-        const bodyH = H - headH;
+        // 2. Fit the warped composition INSIDE the canvas so oversized / dropped
+        // shoulder states never clip at the left/right edges or the top seam.
+        const rawShoulderShift = Math.max(-6, profile.shoulderDropPx * 0.5);
+        const headRatio = 1 - HEAD_BAND;
+        const hemRatio = Math.max(0, profile.hemDropPx) / Math.max(1, H);
+        const topRatio = Math.max(0, -rawShoulderShift) / Math.max(1, H);
+        const composedHeightScale = HEAD_BAND + headRatio * profile.scaleY + hemRatio + topRatio;
+        const fitScale = Math.min(1, 1 / Math.max(profile.scaleX, composedHeightScale, 1));
+
+        const baseW = W * fitScale;
+        const baseH = H * fitScale;
+        const baseX = (W - baseW) / 2;
+        const baseY = (H - baseH) / 2;
+        const headH = baseH * HEAD_BAND;
+        const bodyTopY = baseY + headH;
+        const bodyH = baseH - headH;
 
         // 3. Body band — warped by profile.
-        const targetW = W * profile.scaleX;
-        const offsetX = (W - targetW) / 2;
-        const extraBottom = profile.hemDropPx;
+        const targetW = baseW * profile.scaleX;
+        const offsetX = baseX + (baseW - targetW) / 2;
+        const extraBottom = profile.hemDropPx * fitScale;
         const targetH = bodyH * profile.scaleY + extraBottom;
-        const shoulderShift = Math.max(-6, profile.shoulderDropPx * 0.5);
+        const shoulderShift = rawShoulderShift * fitScale;
         const drawTopY = bodyTopY + shoulderShift;
 
         ctx.drawImage(
           img,
-          0, bodyTopY, W, bodyH,
+          0, H * HEAD_BAND, W, H - H * HEAD_BAND,
           offsetX, drawTopY, targetW, targetH,
         );
 
         // 4. Head band — re-drawn on top so face proportions stay correct.
         ctx.drawImage(
           img,
-          0, 0, W, headH,
-          0, 0, W, headH,
+          0, 0, W, H * HEAD_BAND,
+          baseX, baseY, baseW, headH,
         );
 
         // 5. Optional tension / drape overlays.

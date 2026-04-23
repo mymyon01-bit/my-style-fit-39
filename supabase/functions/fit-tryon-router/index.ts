@@ -630,21 +630,21 @@ async function generateStudioFitImage(_replicateKey: string, body: CreateBody): 
   if (first.kind !== "success") return first;
 
   const firstReview = await reviewStudioFitImage(LOVABLE_API_KEY, first.imageUrl);
-  if (!firstReview || firstReview.pass) return first;
+  if (firstReview?.pass) return first;
 
-  logRouter("STUDIO_REVIEW_REJECTED", {
+  logRouter(firstReview ? "STUDIO_REVIEW_REJECTED" : "STUDIO_REVIEW_UNAVAILABLE", {
     productKey: body.productKey,
     size: body.selectedSize,
     safeMode: !!body.safeMode,
-    reasons: firstReview.reasons,
-    summary: firstReview.summary,
+    reasons: firstReview?.reasons ?? [],
+    summary: firstReview?.summary ?? "review_unavailable",
   });
 
   if (body.safeMode) {
     return {
       kind: "error",
       code: "generation_failed",
-      error: `unstable_fit_render:${firstReview.reasons.join(",") || "review_failed"}`,
+      error: `unstable_fit_render:${firstReview?.reasons.join(",") || "review_unavailable"}`,
     };
   }
 
@@ -656,19 +656,19 @@ async function generateStudioFitImage(_replicateKey: string, body: CreateBody): 
   if (retry.kind !== "success") return retry;
 
   const retryReview = await reviewStudioFitImage(LOVABLE_API_KEY, retry.imageUrl);
-  if (!retryReview || retryReview.pass) return retry;
+  if (retryReview?.pass) return retry;
 
-  logRouter("STUDIO_REVIEW_REJECTED_SAFE_MODE", {
+  logRouter(retryReview ? "STUDIO_REVIEW_REJECTED_SAFE_MODE" : "STUDIO_REVIEW_UNAVAILABLE_SAFE_MODE", {
     productKey: body.productKey,
     size: body.selectedSize,
-    reasons: retryReview.reasons,
-    summary: retryReview.summary,
+    reasons: retryReview?.reasons ?? [],
+    summary: retryReview?.summary ?? "review_unavailable",
   });
 
   return {
     kind: "error",
     code: "generation_failed",
-    error: `unstable_fit_render:${retryReview.reasons.join(",") || "review_failed"}`,
+    error: `unstable_fit_render:${retryReview?.reasons.join(",") || "review_unavailable"}`,
   };
 }
 
@@ -788,10 +788,15 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
   const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : "google/gemini-2.5-flash-image";
 
   // Cache key includes mode so studio + vton results don't clobber each other.
-  const cacheKey = `${body.productKey}::${mode}`;
+  const cacheKey = mode === "studio"
+    ? `${body.productKey}::${mode}::${STUDIO_RENDER_VERSION}`
+    : `${body.productKey}::${mode}`;
   const existing = userId ? await getTryOnByIdentity(admin, userId, { ...body, productKey: cacheKey }) : null;
+  const existingMeta = (existing?.metadata || {}) as Record<string, unknown>;
+  const studioCacheApproved = mode !== "studio"
+    || (existingMeta.renderVersion === STUDIO_RENDER_VERSION && existingMeta.reviewStatus === "passed");
 
-  if (existing && !body.forceRegenerate && existing.status === "succeeded" && existing.result_image_url) {
+  if (existing && !body.forceRegenerate && existing.status === "succeeded" && existing.result_image_url && studioCacheApproved) {
     logRouter("CACHE_HIT", { id: existing.id, mode });
     return toSuccess(existing, existing.result_image_url);
   }
@@ -819,7 +824,13 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
         status: "succeeded",
         result_image_url: persistedUrl,
         error_message: null,
-        metadata: { ...(record.metadata || {}), retryAfterUntil: null, sourceUrl: result.imageUrl },
+        metadata: {
+          ...(record.metadata || {}),
+          retryAfterUntil: null,
+          sourceUrl: result.imageUrl,
+          renderVersion: mode === "studio" ? STUDIO_RENDER_VERSION : record.metadata?.renderVersion ?? null,
+          reviewStatus: mode === "studio" ? "passed" : "skipped",
+        },
       });
       return toSuccess(record, persistedUrl);
     }
