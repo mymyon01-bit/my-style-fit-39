@@ -21,8 +21,8 @@ const LANGS: { code: LegalLang; label: string }[] = [
 ];
 
 const LegalDocViewer = ({ docKey, open, onOpenChange }: Props) => {
-  const { language } = useI18n();
-  const initial: LegalLang = language === "ko" || language === "it" ? language : "en";
+  const { lang: appLang } = useI18n();
+  const initial: LegalLang = appLang === "ko" || appLang === "it" ? appLang : "en";
   const [lang, setLang] = useState<LegalLang>(initial);
   useEffect(() => { setLang(initial); }, [initial, open]);
 
