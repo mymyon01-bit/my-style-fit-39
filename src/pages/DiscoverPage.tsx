@@ -19,6 +19,7 @@ import type { Product } from "@/lib/search/types";
 import DbTopGrid from "@/components/discover/DbTopGrid";
 import StyledLooksRow from "@/components/discover/StyledLooksRow";
 import LiveResultsSection from "@/components/discover/LiveResultsSection";
+import DiscoverAdRow from "@/components/discover/DiscoverAdRow";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
 import { genderPreferenceToFilter, type GenderFilter } from "@/lib/discover/genderFilter";
 import Brandmark from "@/components/Brandmark";
@@ -584,6 +585,9 @@ export default function DiscoverPage() {
 
             {/* Layer 2 — Styled Looks shell */}
             <StyledLooksRow products={styledLooksPool} />
+
+            {/* AI AD strip — sits right above the live grid */}
+            <DiscoverAdRow pool={allLiveResults.length > 0 ? allLiveResults : dbTopProducts} />
 
             {/* Layer 3 — Live search result section (append-only) */}
             <LiveResultsSection
