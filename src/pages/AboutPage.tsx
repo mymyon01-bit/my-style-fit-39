@@ -12,12 +12,14 @@
  * Motion: SectionReveal handles the gentle fade-in-on-scroll. No heavy
  * animation libraries. Hardcoded layout, only content changes.
  */
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Megaphone } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import SectionReveal from "@/components/SectionReveal";
 import Footer from "@/components/Footer";
 import HeroTransformation from "@/components/HeroTransformation";
+import ContactUsDialog from "@/components/ContactUsDialog";
 
 const FEATURES = [
   "AI-powered product discovery",
@@ -30,6 +32,7 @@ const FEATURES = [
 const AboutPage = () => {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const [contactOpen, setContactOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,7 +145,36 @@ const AboutPage = () => {
         <div className="h-px bg-accent/10" />
       </div>
 
-      {/* Contact + CTA */}
+      {/* Affiliate / Ad */}
+      <section className="mx-auto max-w-3xl px-8 py-20 lg:py-28">
+        <SectionReveal>
+          <p className="text-[10px] font-semibold tracking-[0.3em] text-accent/60">
+            AFFILIATE / AD
+          </p>
+          <p className="mt-8 max-w-xl text-[14px] leading-[1.85] text-foreground/75 md:text-[15px]">
+            Partner with mymyon to reach a style-forward, intent-driven
+            audience. We work with brands, boutiques and creators on
+            affiliate placements and curated ad slots inside our discovery
+            and OOTD surfaces.
+          </p>
+          <ul className="mt-6 space-y-2 text-[13px] text-foreground/70 md:text-[14px]">
+            <li>— Brand affiliate partnerships</li>
+            <li>— Native ad placement (FOR YOU / discovery feed)</li>
+            <li>— Creator & boutique collaborations</li>
+          </ul>
+          <button
+            onClick={() => setContactOpen(true)}
+            className="hover-burgundy mt-10 inline-flex items-center gap-2.5 rounded-lg border border-accent/30 bg-accent/[0.06] px-7 py-3.5 text-[11px] font-semibold tracking-[0.18em] text-foreground/85 transition-all hover:bg-accent/[0.1] hover:border-accent/40"
+          >
+            <Megaphone className="h-3.5 w-3.5" />
+            CONTACT US
+          </button>
+        </SectionReveal>
+      </section>
+
+      <div className="mx-auto max-w-3xl px-8">
+        <div className="h-px bg-accent/10" />
+      </div>
       <section className="mx-auto max-w-3xl px-8 py-20 lg:py-28">
         <SectionReveal>
           <p className="text-[10px] font-semibold tracking-[0.3em] text-accent/60">
@@ -166,6 +198,7 @@ const AboutPage = () => {
       </section>
 
       <Footer />
+      <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} topic="Affiliate / Ad" />
     </div>
   );
 };
