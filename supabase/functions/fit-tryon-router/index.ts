@@ -261,6 +261,10 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   // fashion model identity.
   const facelessRule = `IDENTITY REMOVAL (MANDATORY): NO visible face, NO facial features (no eyes, no nose, no mouth, no eyebrows, no ears), NO hairstyle, NO skin texture detail on the face, NO expression, NO identity. Render either (a) a smooth featureless neutral mannequin head with no features whatsoever, or (b) crop the frame from the neck down so the head is not in view. Never render a recognizable human face. The body itself remains realistic and proportionally accurate.`;
 
+  const safeModeSuffixEarly = body.safeMode
+    ? " SAFE RENDER MODE (RETRY): previous attempt produced a malformed or low-quality image. Render with EXTRA stability — full body cleanly framed neck-down, garment fully visible with no clipping at sleeves, hem, shoulders, or sides; sharp clean edges, no torn or melted regions, no floating fabric, no duplicated limbs, no blurred or low-resolution areas. High-resolution sharp final image. Prefer simplicity and structural integrity over stylistic flourishes."
+    : "";
+
   // ── BAG / ACCESSORY CATEGORY ────────────────────────────────────────────
   if (isBag) {
     const bagScale = consequenceLine
