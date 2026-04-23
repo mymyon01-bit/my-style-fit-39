@@ -78,6 +78,9 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
   const pollTimerRef = useRef<number | null>(null);
   const hardTimerRef = useRef<number | null>(null);
   const [manualReload, setManualReload] = useState(0);
+  // Quality-gate state: when the previous result fails validation, we flip
+  // this to true and force ONE retry with a safer preset before giving up.
+  const [safeModeAttempt, setSafeModeAttempt] = useState(0);
 
   const stopTimers = useCallback(() => {
     if (pollTimerRef.current) {
