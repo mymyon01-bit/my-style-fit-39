@@ -530,8 +530,41 @@ const FitPage = () => {
                   }}
                   bodyShape={bodyShape}
                   onBodyShapeChange={setBodyShape}
+                  onGenderChange={(g) => setBodyGender(g)}
                 />
-                <NextButton onClick={() => setActiveTab("check")} label="Next: Check" />
+                <NextButton
+                  onClick={async () => {
+                    // Commit BODY page settings before moving on. Gender + height +
+                    // weight are persisted so every downstream visual (silhouette,
+                    // try-on, sizing engine) sees the user's chosen body.
+                    if (user) {
+                      const updates: Promise<unknown>[] = [];
+                      if (bodyGender) {
+                        updates.push(
+                          supabase.from("profiles")
+                            .update({ gender_preference: bodyGender })
+                            .eq("user_id", user.id)
+                            .then(() => undefined),
+                        );
+                      }
+                      updates.push(
+                        supabase.from("body_profiles")
+                          .upsert({
+                            user_id: user.id,
+                            height_cm: measurements.heightCm.value,
+                            weight_kg: weightKg ?? undefined,
+                            shoulder_width_cm: measurements.shoulderWidthCm.value,
+                            waist_cm: measurements.waistCm.value,
+                            inseam_cm: measurements.inseamCm.value,
+                          }, { onConflict: "user_id" })
+                          .then(() => undefined),
+                      );
+                      try { await Promise.all(updates); } catch { /* non-blocking */ }
+                    }
+                    setActiveTab("check");
+                  }}
+                  label="Next: Check"
+                />
               </>
             )}
             {activeTab === "check" && (
