@@ -476,6 +476,10 @@ const OOTDPage = () => {
                   <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                   <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
                 </div>
+                <MailboxIcon
+                  unread={msgUnread}
+                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                />
                 {notifUnread > 0 && (
                   <button
                     onClick={() => setNotifsOpen(true)}
