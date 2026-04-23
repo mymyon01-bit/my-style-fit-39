@@ -83,6 +83,12 @@ interface CreateBody {
    * "vton" — legacy IDM-VTON virtual try-on (composites onto the user photo).
    */
   mode?: "studio" | "vton";
+  /**
+   * Set to true by the client when the previous render failed the quality
+   * gate (too small, blank, malformed). Triggers a more conservative prompt
+   * + cache bypass so the user gets a clean image on the second try.
+   */
+  safeMode?: boolean;
 }
 
 interface SuccessResponse {
