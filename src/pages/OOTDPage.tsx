@@ -116,6 +116,29 @@ const OOTDPage = () => {
 
   useEffect(() => { loadPosts(); }, [activeTopic]);
 
+  // Tab navigation: push to history so the browser back button cycles
+  // through tabs (community → feed → ranking) before leaving the page.
+  const setActiveTab = (next: Tab) => {
+    if (next === activeTab) return;
+    setActiveTabState(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next === "ranking") params.delete("tab"); else params.set("tab", next);
+    const qs = params.toString();
+    const url = `/ootd${qs ? `?${qs}` : ""}`;
+    window.history.pushState({ ootdTab: next }, "", url);
+  };
+
+  // Sync state when the user uses the browser back/forward buttons.
+  useEffect(() => {
+    const onPop = () => {
+      const t = new URLSearchParams(window.location.search).get("tab");
+      const next: Tab = (t === "feed" || t === "community" || t === "mypage" || t === "ranking") ? t : "ranking";
+      setActiveTabState(next);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   // Deep-link: /ootd?post=<id> opens that post's detail (used by notifications
   // and the ranking board).
   useEffect(() => {
