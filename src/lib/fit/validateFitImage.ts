@@ -34,10 +34,31 @@ export interface FitImageValidation {
 const MIN_WIDTH = 512;
 const MIN_HEIGHT = 640;
 const MIN_VARIANCE = 220;     // empirically: real fit photos > 600, blanks < 80
-const MIN_SHARPNESS = 7.5;    // blurred / melted generations tend to fall below this
+const MIN_SHARPNESS = 4.2;    // measured on the cropped mannequin/garment zone, not the empty studio background
 const MIN_ASPECT = 0.45;      // width / height
 const MAX_ASPECT = 1.30;
 const SAMPLE_GRID = 18;       // 18×18 = 324 samples — fast, robust
+
+function prepareAnalysisCanvas(img: HTMLImageElement) {
+  const c = document.createElement("canvas");
+  const cropW = Math.max(64, Math.min(img.naturalWidth, 256));
+  const cropH = Math.max(64, Math.min(img.naturalHeight, 256));
+  c.width = cropW;
+  c.height = cropH;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+
+  // Focus validation on the mannequin + garment area instead of the full studio
+  // frame. A large white background can make clean renders look "blurry" even
+  // when the garment itself is sharp and intact.
+  const srcX = img.naturalWidth * 0.18;
+  const srcY = img.naturalHeight * 0.10;
+  const srcW = img.naturalWidth * 0.64;
+  const srcH = img.naturalHeight * 0.82;
+
+  ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, cropW, cropH);
+  return { ctx, width: cropW, height: cropH };
+}
 
 function loadImage(url: string, timeoutMs = 15_000): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -67,14 +88,9 @@ function loadImage(url: string, timeoutMs = 15_000): Promise<HTMLImageElement> {
 
 function computeVariance(img: HTMLImageElement): number | null {
   try {
-    const c = document.createElement("canvas");
-    const W = Math.min(img.naturalWidth, 256);
-    const H = Math.min(img.naturalHeight, 256);
-    c.width = W;
-    c.height = H;
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, W, H);
+    const prepared = prepareAnalysisCanvas(img);
+    if (!prepared) return null;
+    const { ctx, width: W, height: H } = prepared;
     const data = ctx.getImageData(0, 0, W, H).data;
 
     // Sample on a coarse grid for speed.
@@ -99,14 +115,9 @@ function computeVariance(img: HTMLImageElement): number | null {
 
 function computeSharpness(img: HTMLImageElement): number | null {
   try {
-    const c = document.createElement("canvas");
-    const W = Math.min(img.naturalWidth, 256);
-    const H = Math.min(img.naturalHeight, 256);
-    c.width = W;
-    c.height = H;
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, W, H);
+    const prepared = prepareAnalysisCanvas(img);
+    if (!prepared) return null;
+    const { ctx, width: W, height: H } = prepared;
     const data = ctx.getImageData(0, 0, W, H).data;
 
     const lumaAt = (x: number, y: number) => {
