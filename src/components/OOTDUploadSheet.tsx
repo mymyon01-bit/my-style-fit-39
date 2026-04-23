@@ -36,8 +36,8 @@ interface Topic {
 const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted }, ref) => {
   const { user } = useAuth();
   const weather = useWeather();
-  const { phoneVerified } = usePhoneVerification();
-  const [phoneGateOpen, setPhoneGateOpen] = useState(false);
+  const { verified: emailVerified } = useEmailVerified();
+  const [emailGateOpen, setEmailGateOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -54,12 +54,12 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [allowShares, setAllowShares] = useState(true);
 
-  // Gate: when an unverified user opens the upload sheet, show phone modal first.
+  // Gate: when an unverified user opens the upload sheet, show email modal first.
   useEffect(() => {
-    if (open && user && phoneVerified === false) {
-      setPhoneGateOpen(true);
+    if (open && user && emailVerified === false) {
+      setEmailGateOpen(true);
     }
-  }, [open, user, phoneVerified]);
+  }, [open, user, emailVerified]);
 
   useEffect(() => {
     if (open) { loadTopics(); setStep(1); setAllowShares(true); }
