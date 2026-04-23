@@ -13,3 +13,5 @@ export {
   REGION_TOLERANCE,
 } from "./categoryRules";
 export { estimateAnthropometry } from "./anthropometry";
+export { getBrandProfile, applyBrandCalibration } from "./brandCalibration";
+export type { BrandFitProfile, FitBias, CalibrationApplied } from "./brandCalibration";
