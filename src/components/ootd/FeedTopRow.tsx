@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Bookmark, Sparkles, ChevronRight } from "lucide-react";
+import { Bookmark, Sparkles, ChevronRight, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import ContactUsDialog from "@/components/ContactUsDialog";
 
 interface MiniProduct {
   id: string;
