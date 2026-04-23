@@ -104,8 +104,9 @@ function toCardMeta(item: DiscoverRenderableProduct) {
 export default function DiscoverPage() {
   const { user } = useAuth();
   const { t } = useI18n();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const moodParam = searchParams.get("mood");
+  const productParam = searchParams.get("p");
   const { tree: categoryTree } = useCategories();
 
   // ── UI state ──────────────────────────────────────────────────────────
@@ -122,6 +123,7 @@ export default function DiscoverPage() {
   const [feedbackMap, setFeedbackMap] = useState<Record<string, "like" | "dislike">>({});
   const [showAuthHint, setShowAuthHint] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | DiscoverRenderableProduct | null>(null);
+  const [deepLinkedProduct, setDeepLinkedProduct] = useState<DetailItem | null>(null);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
 
   // ── Live (Layer 3) state — UI only; search lives in useDiscoverSearch ──
