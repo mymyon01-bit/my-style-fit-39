@@ -915,7 +915,11 @@ const OOTDPage = () => {
         onDeleted={() => setStoriesRefreshKey(k => k + 1)}
       />
 
-      <MessagesFullSheet open={messagesOpen} onClose={() => setMessagesOpen(false)} />
+      <MailboxPopup
+        open={messagesOpen}
+        anchor={mailboxAnchor}
+        onClose={() => setMessagesOpen(false)}
+      />
       <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
     </div>
   );
