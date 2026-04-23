@@ -14,8 +14,9 @@ interface Props {
   initialOtherUserId?: string | null;
 }
 
-const POPUP_W = 340;
-const POPUP_H = 460;
+const POPUP_W = 360;
+const POPUP_H_LIST = 460;
+const POPUP_H_THREAD = 560;
 
 /**
  * Sticky-note style draggable Messages popup. Pops out near the mailbox icon
@@ -43,12 +44,13 @@ export default function MailboxPopup({
     if (pos) return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const h = active ? POPUP_H_THREAD : POPUP_H_LIST;
     let x = anchor ? Math.min(anchor.x - POPUP_W + 32, vw - POPUP_W - 12) : vw - POPUP_W - 12;
     let y = anchor ? anchor.y + 12 : 80;
     x = Math.max(8, x);
-    y = Math.max(8, Math.min(y, vh - POPUP_H - 8));
+    y = Math.max(8, Math.min(y, vh - h - 8));
     setPos({ x, y });
-  }, [open, anchor, pos]);
+  }, [open, anchor, pos, active]);
 
   // Esc to close
   useEffect(() => {
@@ -94,7 +96,7 @@ export default function MailboxPopup({
             top: pos.y,
             left: pos.x,
             width: POPUP_W,
-            height: POPUP_H,
+            height: active ? POPUP_H_THREAD : POPUP_H_LIST,
             zIndex: 120,
           }}
           className="select-none rounded-xl border border-border/60 bg-background shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.25),0_0_0_1px_hsl(var(--border)/0.4)] overflow-hidden flex flex-col"
