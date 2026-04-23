@@ -106,7 +106,50 @@ export default function MessageBubble({ content, isMine, createdAt, readAt, atta
                 );
               }
 
-              if (a.type === "namecard") {
+              if (a.type === "product") {
+                const productId = a.meta?.product_id || "";
+                const sourceUrl = a.meta?.source_url || "";
+                const img = a.meta?.image_url || a.url;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Prefer in-app deep link via Discover (?p=id); fall back to source.
+                      if (productId) navigate(`/discover?p=${productId}`);
+                      else if (sourceUrl) window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className={`flex w-full items-stretch gap-2 overflow-hidden rounded-xl border text-left transition-colors ${
+                      isMine
+                        ? "border-primary-foreground/20 bg-primary-foreground/10 hover:bg-primary-foreground/15"
+                        : "border-border/40 bg-foreground/[0.03] hover:bg-foreground/[0.06]"
+                    }`}
+                  >
+                    {img ? (
+                      <img src={img} alt={a.meta?.name || a.name || "Product"} className="h-20 w-20 flex-shrink-0 object-cover" />
+                    ) : (
+                      <div className={`flex h-20 w-20 flex-shrink-0 items-center justify-center ${isMine ? "bg-primary-foreground/10" : "bg-muted"}`}>
+                        <ShoppingBag className="h-4 w-4 opacity-60" />
+                      </div>
+                    )}
+                    <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-1.5">
+                      <p className={`text-[9px] font-semibold tracking-[0.18em] ${isMine ? "text-primary-foreground/70" : "text-foreground/55"}`}>
+                        SHARED PRODUCT
+                      </p>
+                      {a.meta?.brand && (
+                        <p className={`mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.14em] ${isMine ? "text-primary-foreground/80" : "text-foreground/65"}`}>
+                          {a.meta.brand}
+                        </p>
+                      )}
+                      <p className="line-clamp-2 text-[11.5px] font-medium">
+                        {a.meta?.name || a.name || "View product"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              }
+
                 const targetUser = a.meta?.user_id || "";
                 return (
                   <button
