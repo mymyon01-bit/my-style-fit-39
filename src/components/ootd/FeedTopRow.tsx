@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import ContactUsDialog from "@/components/ContactUsDialog";
+import ProductDetailSheet from "@/components/ProductDetailSheet";
 
 interface MiniProduct {
   id: string;
@@ -18,6 +19,9 @@ interface MiniProduct {
  *   1) "Saved" — first 6 of the user's saved items + view-all link.
  *   2) "AI AD" — placeholder personalized recommendations (so we can later
  *      swap in monetized ad inventory). Driven by user's preferred styles.
+ *
+ * Tapping any product slot opens the in-app ProductDetailSheet instead of
+ * jumping out to an external link.
  */
 export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
   const { user } = useAuth();
@@ -25,6 +29,7 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
   const [saved, setSaved] = useState<MiniProduct[]>([]);
   const [ads, setAds] = useState<MiniProduct[]>([]);
   const [contactOpen, setContactOpen] = useState(false);
+  const [activeProduct, setActiveProduct] = useState<MiniProduct | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -102,12 +107,11 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((p) => (
-          <a
+          <button
             key={p.id}
-            href={p.source_url || "#"}
-            target={p.source_url ? "_blank" : undefined}
-            rel="noopener noreferrer"
-            className="flex w-20 shrink-0 flex-col gap-1"
+            type="button"
+            onClick={() => setActiveProduct(p)}
+            className="flex w-20 shrink-0 flex-col gap-1 text-left"
           >
             <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
               {p.image_url ? (
@@ -115,7 +119,7 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
               ) : null}
             </div>
             <p className="line-clamp-1 text-[9px] text-foreground/60">{p.brand || p.name}</p>
-          </a>
+          </button>
         ))}
       </div>
     </div>
@@ -149,12 +153,11 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
           </div>
           <div className="grid grid-cols-6 gap-2">
             {adItems.map((p) => (
-              <a
+              <button
                 key={p.id}
-                href={p.source_url || "#"}
-                target={p.source_url ? "_blank" : undefined}
-                rel="noopener noreferrer"
-                className="flex flex-col gap-1"
+                type="button"
+                onClick={() => setActiveProduct(p)}
+                className="flex flex-col gap-1 text-left"
               >
                 <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
                   {p.image_url ? (
@@ -162,7 +165,7 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
                   ) : null}
                 </div>
                 <p className="line-clamp-1 text-[9px] text-foreground/60">{p.brand || p.name}</p>
-              </a>
+              </button>
             ))}
             {/* ADD YOUR AD slot — opens CONTACT US dialog (mail to mymyon.01@gmail.com hidden from UI) */}
             {Array.from({ length: Math.max(0, 5 - adItems.length) }).map((_, i) => (
@@ -182,6 +185,29 @@ export default function FeedTopRow({ styleHints }: { styleHints?: string[] }) {
         </div>
       )}
       <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} topic="Add Your Ad" />
+      <ProductDetailSheet
+        product={
+          activeProduct
+            ? {
+                id: activeProduct.id,
+                name: activeProduct.name,
+                brand: activeProduct.brand || "",
+                price: "",
+                category: "",
+                reason: "",
+                style_tags: [],
+                color: "",
+                fit: "",
+                image_url: activeProduct.image_url,
+                source_url: activeProduct.source_url,
+              }
+            : null
+        }
+        open={!!activeProduct}
+        onClose={() => setActiveProduct(null)}
+        isSaved={false}
+        onSave={() => {}}
+      />
     </div>
   );
 }
