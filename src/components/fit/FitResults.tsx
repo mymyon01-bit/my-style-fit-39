@@ -27,6 +27,7 @@ import { computeRegionFit } from "@/lib/fit/regionFitEngine";
 import { useSizeRecommendation } from "@/hooks/useSizeRecommendation";
 import SizeRecommendationPanel from "@/components/fit/SizeRecommendationPanel";
 import type { FitPreference, RegionStatus } from "@/lib/sizing";
+import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
@@ -426,6 +427,22 @@ export default function FitResults({
       build: bodyShape ? String((bodyShape as any).build ?? "") : null,
       gender: bodyGender ?? null,
     },
+    baselineVerdict: (() => {
+      const v = baselineFitVerdict(activeSize, bodyWeightKg ?? null, bodyGender ?? null);
+      return {
+        baseline: v.baseline,
+        offset: v.offset,
+        verdict: v.verdict,
+        consequence: describeBaselineConsequence({
+          weightKg: bodyWeightKg ?? null,
+          gender: bodyGender ?? null,
+          currentSize: activeSize,
+          category: product.category,
+        }),
+        // Mark as fallback when product brand-data quality is low.
+        fallbackMode: result.productDataQuality < 50,
+      };
+    })(),
     reloadToken,
   });
 
