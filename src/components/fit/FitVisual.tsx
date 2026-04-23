@@ -28,6 +28,41 @@ interface Props {
    * looks identical to S even when the AI ignores fit hints.
    */
   overallFit?: OverallFitLabel | null;
+  /**
+   * User's body gender — drives which silhouette is shown in the loading
+   * placeholder. Male → broader shoulders, narrow hips. Female → narrow
+   * shoulders, defined waist, wider hips. Never inferred from the product.
+   */
+  bodyGender?: string | null;
+}
+
+/** Gender-aware loading silhouette. Male and female read distinctly different. */
+function LoadingSilhouette({ gender }: { gender: "male" | "female" }) {
+  if (gender === "female") {
+    return (
+      <svg viewBox="0 0 200 280" className="h-[78%] w-auto opacity-[0.18]" fill="currentColor" aria-hidden>
+        {/* head */}
+        <ellipse cx="100" cy="40" rx="20" ry="24" />
+        {/* neck + shoulders (narrower) + waist (defined) + hips (wider) */}
+        <path d="M68 108 Q100 86 132 108 L138 150 Q100 158 62 150 Z" />
+        <path d="M70 150 Q100 162 130 150 L150 230 Q100 248 50 230 Z" />
+        {/* legs */}
+        <rect x="68" y="226" width="28" height="54" rx="8" />
+        <rect x="104" y="226" width="28" height="54" rx="8" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 200 280" className="h-[78%] w-auto opacity-[0.18]" fill="currentColor" aria-hidden>
+      {/* head */}
+      <ellipse cx="100" cy="44" rx="22" ry="26" />
+      {/* broader shoulders, straighter torso, narrower hips */}
+      <path d="M48 112 Q100 78 152 112 L156 226 Q100 240 44 226 Z" />
+      {/* legs */}
+      <rect x="60" y="222" width="32" height="58" rx="8" />
+      <rect x="108" y="222" width="32" height="58" rx="8" />
+    </svg>
+  );
 }
 
 const TONE_STYLE: Record<string, { dot: string; label: string }> = {
