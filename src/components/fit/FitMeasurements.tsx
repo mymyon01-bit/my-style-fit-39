@@ -38,7 +38,7 @@ const BODY_HINTS: { key: BodyHint; label: string }[] = [
   { key: "slim-legs", label: "Slim legs" },
 ];
 
-export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange, bodyShape, onBodyShapeChange }: Props) {
+export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange, bodyShape, onBodyShapeChange, onGenderChange }: Props) {
   const { user } = useAuth();
   const [height, setHeight] = useState(measurements.heightCm?.value || 175);
   const [weight, setWeight] = useState<number>(weightKg ?? 70);
