@@ -448,9 +448,40 @@ const OOTDPage = () => {
       {/* Sticky tab line — pinned directly under the main menu bar so users
           can always jump between Ranking / Feed / Community / My Page. */}
       <div className="sticky top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
-        <div className="mx-auto max-w-lg px-6 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+        <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+          {/* Mobile-only first row: brand + right-side actions. Tabs sit on a
+              SECOND row so RANKING/FEED/COMMUNITY/MY PAGE never get squeezed
+              or overlapped by the stars/mailbox/bell cluster. */}
+          <div className="flex items-center justify-between gap-2 pt-2 lg:hidden">
+            <div className="shrink-0"><Brandmark variant="inline" /></div>
+            {user && (
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                  <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
+                </div>
+                <MailboxIcon
+                  unread={msgUnread}
+                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                />
+                {notifUnread > 0 && (
+                  <button
+                    onClick={() => setNotifsOpen(true)}
+                    className="relative text-foreground/75 hover:text-foreground transition-colors"
+                    aria-label="Open notifications"
+                  >
+                    <Bell className="h-4 w-4" />
+                    <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                      {notifUnread > 99 ? "99+" : notifUnread}
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Tabs row — full width on mobile, inline next to right cluster on desktop */}
           <div className="flex items-center gap-3">
-            <div className="lg:hidden shrink-0"><Brandmark variant="inline" /></div>
             <div className="flex flex-1 min-w-0">
               {([
                 { key: "ranking" as const, label: "RANKING" },
@@ -458,8 +489,8 @@ const OOTDPage = () => {
                 { key: "community" as const, label: "COMMUNITY" },
                 { key: "mypage" as const, label: "MY PAGE" },
               ]).map(({ key, label }) => (
-                <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 py-3.5 text-center">
-                  <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+                <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 min-w-0 py-3 text-center">
+                  <span className={`block truncate text-[9.5px] md:text-[10px] font-medium tracking-[0.14em] md:tracking-[0.2em] transition-colors duration-300 ${
                     activeTab === key ? "text-foreground/90" : "text-foreground/45"
                   }`}>
                     {label}
@@ -470,8 +501,9 @@ const OOTDPage = () => {
                 </button>
               ))}
             </div>
+            {/* Desktop-only right cluster (mobile shows it on its own row above) */}
             {user && (
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden lg:flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-1.5">
                   <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                   <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
