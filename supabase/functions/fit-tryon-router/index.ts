@@ -283,6 +283,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const silhouette = sizeSilhouette(body.selectedSize);
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
+  const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory);
 
   const verdict = body.baselineVerdict;
   const consequenceLine = verdict?.consequence
