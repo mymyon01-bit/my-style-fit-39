@@ -14,6 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_role: string | null
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          reason: string | null
+          target_id: string | null
+          target_table: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_role?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          reason?: string | null
+          target_id?: string | null
+          target_table?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_role?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          reason?: string | null
+          target_id?: string | null
+          target_table?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      admin_permissions: {
+        Row: {
+          can_edit_app_config: boolean
+          can_edit_brand_calibration: boolean
+          can_edit_content: boolean
+          can_edit_fit_rules: boolean
+          can_edit_products: boolean
+          can_manage_admins: boolean
+          can_manage_flags: boolean
+          can_view_sensitive: boolean
+          created_at: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_edit_app_config?: boolean
+          can_edit_brand_calibration?: boolean
+          can_edit_content?: boolean
+          can_edit_fit_rules?: boolean
+          can_edit_products?: boolean
+          can_manage_admins?: boolean
+          can_manage_flags?: boolean
+          can_view_sensitive?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_edit_app_config?: boolean
+          can_edit_brand_calibration?: boolean
+          can_edit_content?: boolean
+          can_edit_fit_rules?: boolean
+          can_edit_products?: boolean
+          can_manage_admins?: boolean
+          can_manage_flags?: boolean
+          can_view_sensitive?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      app_config: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_secret: boolean
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_secret?: boolean
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_secret?: boolean
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
@@ -119,6 +245,57 @@ export type Database = {
           user_id?: string
           validation_notes?: string | null
           validation_status?: string | null
+        }
+        Relationships: []
+      }
+      brand_fit_profiles: {
+        Row: {
+          brand: string
+          category_overrides: Json
+          chest_adjustment_cm: number
+          created_at: string
+          fit_bias: string
+          hip_adjustment_cm: number
+          id: string
+          inseam_adjustment_cm: number
+          is_active: boolean
+          length_adjustment_cm: number
+          notes: string | null
+          shoulder_adjustment_cm: number
+          updated_at: string
+          waist_adjustment_cm: number
+        }
+        Insert: {
+          brand: string
+          category_overrides?: Json
+          chest_adjustment_cm?: number
+          created_at?: string
+          fit_bias?: string
+          hip_adjustment_cm?: number
+          id?: string
+          inseam_adjustment_cm?: number
+          is_active?: boolean
+          length_adjustment_cm?: number
+          notes?: string | null
+          shoulder_adjustment_cm?: number
+          updated_at?: string
+          waist_adjustment_cm?: number
+        }
+        Update: {
+          brand?: string
+          category_overrides?: Json
+          chest_adjustment_cm?: number
+          created_at?: string
+          fit_bias?: string
+          hip_adjustment_cm?: number
+          id?: string
+          inseam_adjustment_cm?: number
+          is_active?: boolean
+          length_adjustment_cm?: number
+          notes?: string | null
+          shoulder_adjustment_cm?: number
+          updated_at?: string
+          waist_adjustment_cm?: number
         }
         Relationships: []
       }
@@ -365,6 +542,150 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          key: string
+          metadata: Json
+          rollout_percent: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          metadata?: Json
+          rollout_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          metadata?: Json
+          rollout_percent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fit_fallback_tables: {
+        Row: {
+          category: string
+          chest_cm: number | null
+          created_at: string
+          gender: string
+          hip_cm: number | null
+          id: string
+          inseam_cm: number | null
+          length_cm: number | null
+          rise_cm: number | null
+          shoulder_cm: number | null
+          size_label: string
+          sleeve_cm: number | null
+          source: string | null
+          thigh_cm: number | null
+          updated_at: string
+          waist_cm: number | null
+        }
+        Insert: {
+          category: string
+          chest_cm?: number | null
+          created_at?: string
+          gender: string
+          hip_cm?: number | null
+          id?: string
+          inseam_cm?: number | null
+          length_cm?: number | null
+          rise_cm?: number | null
+          shoulder_cm?: number | null
+          size_label: string
+          sleeve_cm?: number | null
+          source?: string | null
+          thigh_cm?: number | null
+          updated_at?: string
+          waist_cm?: number | null
+        }
+        Update: {
+          category?: string
+          chest_cm?: number | null
+          created_at?: string
+          gender?: string
+          hip_cm?: number | null
+          id?: string
+          inseam_cm?: number | null
+          length_cm?: number | null
+          rise_cm?: number | null
+          shoulder_cm?: number | null
+          size_label?: string
+          sleeve_cm?: number | null
+          source?: string | null
+          thigh_cm?: number | null
+          updated_at?: string
+          waist_cm?: number | null
+        }
+        Relationships: []
+      }
+      fit_feedback: {
+        Row: {
+          body_cluster: string | null
+          brand: string | null
+          category: string | null
+          chosen_size: string | null
+          created_at: string
+          feedback_areas: string[] | null
+          feedback_type: string
+          id: string
+          notes: string | null
+          product_gender: string | null
+          product_key: string
+          recommended_size: string | null
+          satisfaction: number | null
+          user_gender: string | null
+          user_id: string
+        }
+        Insert: {
+          body_cluster?: string | null
+          brand?: string | null
+          category?: string | null
+          chosen_size?: string | null
+          created_at?: string
+          feedback_areas?: string[] | null
+          feedback_type: string
+          id?: string
+          notes?: string | null
+          product_gender?: string | null
+          product_key: string
+          recommended_size?: string | null
+          satisfaction?: number | null
+          user_gender?: string | null
+          user_id: string
+        }
+        Update: {
+          body_cluster?: string | null
+          brand?: string | null
+          category?: string | null
+          chosen_size?: string | null
+          created_at?: string
+          feedback_areas?: string[] | null
+          feedback_type?: string
+          id?: string
+          notes?: string | null
+          product_gender?: string | null
+          product_key?: string
+          recommended_size?: string | null
+          satisfaction?: number | null
+          user_gender?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       fit_generations_v2: {
         Row: {
           body_signature: string
@@ -410,6 +731,57 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      fit_size_rules: {
+        Row: {
+          category: string
+          created_at: string
+          ease_chest_cm: number | null
+          ease_hip_cm: number | null
+          ease_length_cm: number | null
+          ease_shoulder_cm: number | null
+          ease_waist_cm: number | null
+          fit_intent: string | null
+          gender: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          subcategory: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          ease_chest_cm?: number | null
+          ease_hip_cm?: number | null
+          ease_length_cm?: number | null
+          ease_shoulder_cm?: number | null
+          ease_waist_cm?: number | null
+          fit_intent?: string | null
+          gender: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          subcategory?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          ease_chest_cm?: number | null
+          ease_hip_cm?: number | null
+          ease_length_cm?: number | null
+          ease_shoulder_cm?: number | null
+          ease_waist_cm?: number | null
+          fit_intent?: string | null
+          gender?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          subcategory?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1791,6 +2163,19 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_admin_action: {
+        Args: {
+          _action: string
+          _after: Json
+          _before: Json
+          _reason: string
+          _target_id: string
+          _target_table: string
+        }
+        Returns: string
       }
       purge_old_seen_products: { Args: never; Returns: undefined }
       upsert_query_cluster: {
