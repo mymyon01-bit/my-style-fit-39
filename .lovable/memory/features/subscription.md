@@ -1,12 +1,9 @@
 ---
-name: Subscription & Premium Trial System
-description: 3-month free trial auto-activates on signup, gates daily/weekly AI styling
+name: Style recommendations open to all
+description: daily-stylist edge function gates removed; guests/trial/premium all get AI recs. Free tier uses Lovable AI (gemini-2.5-flash), premium uses Perplexity sonar. Component StyleRecsForYou consumes search query+tags+products as context. Mounted on HomePage (panel) and DiscoverPage top (inline).
 type: feature
 ---
-- `subscriptions` table: plan (free/premium_trial/premium), status, trial dates
-- Auto-trial: DB trigger on profile creation inserts 90-day premium_trial
-- `daily_recommendations` table caches daily/weekly AI outputs per user per day
-- Edge function `daily-stylist`: generates 3 daily outfits or 5-day weekly plan via Perplexity
-- `useSubscription` hook exposes isPremium, daysRemaining, plan
-- DailyPicks + WeeklyPlan components on HomePage, gated by subscription
-- ProfilePage shows Crown badge with trial countdown
+- Edge fn `daily-stylist`: optional auth, accepts `searchQuery`/`searchTags`/`searchProducts`. Premium → Perplexity, else → Lovable AI Gateway. Caches only when logged-in.
+- `verify_jwt = false` set in supabase/config.toml so guests can call.
+- `StyleRecsForYou` component (variant "panel" | "inline") shown on HomePage below hero AND in Discover above DbTopGrid.
+- DailyPicks/PremiumBanner gating untouched but no longer the only entry point.
