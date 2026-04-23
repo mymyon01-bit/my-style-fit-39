@@ -86,7 +86,11 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
     }
     // Load gender from profile
     const { data: profile } = await supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle();
-    if (profile?.gender_preference) setGender(profile.gender_preference);
+    if (profile?.gender_preference) {
+      setGender(profile.gender_preference);
+      const g = profile.gender_preference.toLowerCase().startsWith("f") ? "female" : "male";
+      onGenderChange?.(g);
+    }
   };
 
 
