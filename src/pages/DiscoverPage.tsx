@@ -669,10 +669,18 @@ export default function DiscoverPage() {
       )}
 
       <ProductDetailSheet
-        product={toDetailFromProduct(detailProduct)}
-        open={!!detailProduct}
-        onClose={() => setDetailProduct(null)}
-        isSaved={detailProduct ? savedIds.has(detailProduct.id) : false}
+        product={deepLinkedProduct ?? toDetailFromProduct(detailProduct)}
+        open={!!(deepLinkedProduct || detailProduct)}
+        onClose={() => {
+          setDetailProduct(null);
+          setDeepLinkedProduct(null);
+          if (productParam) {
+            const next = new URLSearchParams(searchParams);
+            next.delete("p");
+            setSearchParams(next, { replace: true });
+          }
+        }}
+        isSaved={detailProduct ? savedIds.has(detailProduct.id) : deepLinkedProduct ? savedIds.has(deepLinkedProduct.id) : false}
         onSave={handleSave}
       />
     </>
