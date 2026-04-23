@@ -34,6 +34,8 @@ interface Args {
   /** User body inputs — pass whatever you have. */
   body: {
     gender?: string | null;
+    /** slim / regular / solid / heavy — drives the deterministic weight_adj. */
+    bodyType?: string | null;
     heightCm?: number | null;
     weightKg?: number | null;
     shoulderCm?: number | null;
@@ -136,11 +138,17 @@ export function useSizeRecommendation(args: Args): State {
     : "";
   const body = useMemo<ResolvedBody | null>(() => {
     if (args.enabled === false) return null;
-    return resolveBody({ ...args.body, gender: effectiveBodyGender, shapeScales: args.body.shapeScales ?? null });
+    return resolveBody({
+      ...args.body,
+      gender: effectiveBodyGender,
+      bodyType: args.body.bodyType ?? null,
+      shapeScales: args.body.shapeScales ?? null,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     args.enabled,
     effectiveBodyGender,
+    args.body.bodyType,
     args.body.heightCm,
     args.body.weightKg,
     args.body.shoulderCm,
@@ -150,6 +158,18 @@ export function useSizeRecommendation(args: Args): State {
     args.body.inseamCm,
     shapeScalesKey,
   ]);
+
+  // 4. Infer product gender once (depends only on product strings).
+  const productGender = useMemo(
+    () => inferProductGender({
+      explicit: args.productGender ?? null,
+      category: args.category ?? null,
+      name: args.productName ?? null,
+      brand: args.brand ?? null,
+      breadcrumb: args.productBreadcrumb ?? null,
+    }),
+    [args.productGender, args.category, args.productName, args.brand, args.productBreadcrumb],
+  );
 
   // 3. Load chart (async; depends only on product identity, not preference).
   useEffect(() => {
@@ -165,6 +185,7 @@ export function useSizeRecommendation(args: Args): State {
           brand: args.brand,
           category: args.category,
           triggerScrape: true,
+          productGender,
         });
         if (!cancelled) setChart(c);
       } catch (e) {
@@ -174,19 +195,7 @@ export function useSizeRecommendation(args: Args): State {
       }
     })();
     return () => { cancelled = true; };
-  }, [args.enabled, args.productUrl, args.productName, args.brand, args.category]);
-
-  // 4. Infer product gender once (depends only on product strings).
-  const productGender = useMemo(
-    () => inferProductGender({
-      explicit: args.productGender ?? null,
-      category: args.category ?? null,
-      name: args.productName ?? null,
-      brand: args.brand ?? null,
-      breadcrumb: args.productBreadcrumb ?? null,
-    }),
-    [args.productGender, args.category, args.productName, args.brand, args.productBreadcrumb],
-  );
+  }, [args.enabled, args.productUrl, args.productName, args.brand, args.category, productGender]);
 
   // 5. Calculate + recommend (synchronous; recomputes on preference change).
   const recommendation = useMemo<SizeRecommendation | null>(() => {
