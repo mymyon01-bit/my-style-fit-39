@@ -98,6 +98,8 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
   }, []);
 
   // AI AD strip — personalized when style hints are present.
+  // Pulls a wider pool then shuffles so the Ranking ads don't echo the
+  // Discover grid (which sorts by trend_score).
   useEffect(() => {
     (async () => {
       const tags = (styleHints || []).filter(Boolean).slice(0, 3);
@@ -105,13 +107,19 @@ export default function CrownedBoard({ onPostClick, styleHints }: CrownedBoardPr
         .from("product_cache")
         .select("id, name, brand, image_url, source_url")
         .not("image_url", "is", null)
-        .order("trend_score", { ascending: false })
-        .limit(8);
+        .order("updated_at", { ascending: false })
+        .limit(40);
       if (tags.length > 0) q = q.overlaps("style_tags", tags);
       const { data } = await q;
-      setAds(((data || []) as AdProduct[]).slice(0, 6));
+      const pool = ((data || []) as AdProduct[]).slice();
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      setAds(pool.slice(0, 5));
     })();
   }, [styleHints?.join(",")]);
+
 
   const loadRankings = async () => {
     setLoading(true);
