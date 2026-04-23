@@ -96,7 +96,7 @@ export default function MailboxPopup({
             top: pos.y,
             left: pos.x,
             width: POPUP_W,
-            height: POPUP_H,
+            height: active ? POPUP_H_THREAD : POPUP_H_LIST,
             zIndex: 120,
           }}
           className="select-none rounded-xl border border-border/60 bg-background shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.25),0_0_0_1px_hsl(var(--border)/0.4)] overflow-hidden flex flex-col"
