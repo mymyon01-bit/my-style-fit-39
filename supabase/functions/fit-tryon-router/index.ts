@@ -199,10 +199,13 @@ function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
 
 function sizeSilhouette(size: string) {
   const s = (size || "M").toUpperCase();
-  if (s === "XS" || s === "S") return "tight body-skimming silhouette, sleeves hugging the arm, hem high on the hip, fabric pulled close with visible tension";
-  if (s === "L") return "relaxed silhouette with visible chest room, softer waist, slightly longer hem, soft drape";
-  if (s === "XL" || s === "XXL") return "oversized silhouette with dropped shoulders, generous chest and waist volume, hem near mid-thigh, deep folds and excess fabric";
-  return "fitted regular silhouette with natural ease, shoulder seam at the joint, hem at the hip";
+  if (s === "XS" || s === "S")
+    return "TIGHT / TOO-SMALL silhouette: fabric clearly stretched across chest and shoulders with visible horizontal tension lines, pulled seams at shoulder and underarm, sleeves visibly shorter than the arm, hem riding up high above the hip, garment looks compressed and about to burst — exaggerate the tightness, do NOT make it look comfortable";
+  if (s === "L")
+    return "RELAXED silhouette: visibly more space at chest and waist, soft natural folds, sleeves slightly longer, hem slightly past the hip, clearly roomier than a fitted size";
+  if (s === "XL" || s === "XXL")
+    return "OVERSIZED silhouette: exaggerated dropped shoulders well past the natural shoulder line, very generous chest and waist volume, sleeves extending past the mannequin's hands, hem near mid-thigh, deep heavy folds, blanket-like drape — exaggerate the looseness, garment must look intentionally much larger than the body";
+  return "FITTED silhouette: clean follow of the form with minimal natural ease, shoulder seam exactly on the joint, hem at the hip, no tension lines, no excess volume";
 }
 
 function regionPhrase(regions?: RegionFitLite[]) {
