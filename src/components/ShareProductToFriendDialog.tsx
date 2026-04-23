@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useConversations, openConversationWith } from "@/hooks/useMessages";
+import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 
 interface ProductLite {
   id: string;
@@ -46,6 +47,11 @@ const MAX_NOTE = 280;
 export default function ShareProductToFriendDialog({ open, product, onClose }: Props) {
   const { user } = useAuth();
   const { conversations } = useConversations();
+  const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null; otherUserId: string | null }>({
+    open: false,
+    conversationId: null,
+    otherUserId: null,
+  });
   const [tab, setTab] = useState<"search" | "circle">("search");
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<FriendOption[]>([]);
@@ -194,20 +200,28 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
       ];
 
       const fallbackText = `이 상품 어때? — ${product.brand || ""} ${product.name}`.trim();
-      const { error } = await supabase.from("messages").insert({
+      const { data, error } = await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: user.id,
         recipient_id: picked.user_id,
         content: note.trim() || fallbackText,
         tagged_user_ids: [],
         attachments,
-      } as any);
+      } as any).select("id").single();
       if (error) {
         console.error("[ShareProduct] insert error", error);
         throw new Error(error.message || "Send failed");
       }
+      if (!data?.id) {
+        throw new Error("Message was not created");
+      }
 
       toast.success(`Sent to ${picked.display_name || picked.username || "friend"}`);
+      setMessageSheet({
+        open: true,
+        conversationId,
+        otherUserId: picked.user_id,
+      });
       onClose();
     } catch (e: any) {
       console.error("[ShareProduct] handleSend error", e);
@@ -218,24 +232,25 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
   }
 
   const node = (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          style={{ pointerEvents: "auto" }}
-          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
-          onClick={onClose}
-        >
+    <>
+      <AnimatePresence>
+        {open && (
           <motion.div
-            initial={{ y: "100%", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 30, stiffness: 320 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl border-t border-border bg-card pb-7 sm:rounded-3xl sm:border"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ pointerEvents: "auto" }}
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
+            onClick={onClose}
           >
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-3xl border-t border-border bg-card pb-7 sm:rounded-3xl sm:border"
+            >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-5">
               <h3 className="font-display text-[15px] font-semibold tracking-[0.04em] text-foreground">
@@ -368,10 +383,18 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
                   : "PICK A FRIEND"}
               </button>
             </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+
+      <MessagesFullSheet
+        open={messageSheet.open}
+        onClose={() => setMessageSheet({ open: false, conversationId: null, otherUserId: null })}
+        initialConversationId={messageSheet.conversationId}
+        initialOtherUserId={messageSheet.otherUserId}
+      />
+    </>
   );
 
   if (typeof document === "undefined") return null;
