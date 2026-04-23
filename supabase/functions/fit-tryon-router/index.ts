@@ -282,6 +282,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       consequenceLine,
       fallbackLine,
       `Bag rendering: preserve the EXACT shape, color, hardware, and material of the reference product. Show on the mannequin's shoulder, crossbody, or held in a sculpted mannequin hand naturally.`,
+      `FRAMING: full-body shot with at least 10–14% empty headroom above the top of the head and 5–8% space below the feet. NEVER crop the head, top of skull, hands, or feet. The mannequin head must be ENTIRELY inside the frame.`,
       `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body.`,
       MANNEQUIN_NEGATIVES,
       `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the product.`,
