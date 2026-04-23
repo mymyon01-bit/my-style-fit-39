@@ -14,8 +14,9 @@ interface Props {
   initialOtherUserId?: string | null;
 }
 
-const POPUP_W = 340;
-const POPUP_H = 460;
+const POPUP_W = 360;
+const POPUP_H_LIST = 460;
+const POPUP_H_THREAD = 560;
 
 /**
  * Sticky-note style draggable Messages popup. Pops out near the mailbox icon
