@@ -198,6 +198,7 @@ const AboutPage = () => {
       </section>
 
       <Footer />
+      <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} topic="Affiliate / Ad" />
     </div>
   );
 };
