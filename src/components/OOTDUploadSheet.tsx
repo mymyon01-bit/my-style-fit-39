@@ -8,8 +8,8 @@ import { prepareImage, validateMedia } from "@/lib/imageUpload";
 import { recordEvent } from "@/lib/diagnostics";
 import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import { toast } from "sonner";
-import { usePhoneVerification } from "@/hooks/usePhoneVerification";
-import PhoneVerificationModal from "@/components/legal/PhoneVerificationModal";
+import { useEmailVerified } from "@/hooks/useEmailVerified";
+import EmailVerificationModal from "@/components/legal/EmailVerificationModal";
 
 // Sentinel topic — when present in a post's `topics` array it signals that
 // the author has disabled sharing. Stored in `topics` to avoid a schema
