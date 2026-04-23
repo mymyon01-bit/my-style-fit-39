@@ -231,7 +231,45 @@ const MANNEQUIN_STYLE_LOCK =
   "VISUAL MODEL TYPE LOCK (HARD RULE — HIGHEST PRIORITY): The subject MUST be a faceless display MANNEQUIN — a smooth matte fiberglass / plastic store-display dummy, NOT a real human. NO real person, NO human face, NO human identity, NO realistic facial features (no eyes, nose, mouth, eyebrows, ears), NO hair, NO skin pores or skin micro-detail, NO makeup, NO expression, NO lifestyle photography, NO streetwear photo, NO influencer pose, NO editorial fashion shot, NO posed model. The mannequin has a smooth featureless head OR the frame is cropped from the neck down. Body surface is uniform matte mannequin material — clearly artificial, clearly a display dummy. Studio fit-visualization aesthetic only.";
 
 const MANNEQUIN_NEGATIVES =
-  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams.";
+  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams, NUDE mannequin, BARE torso, BARE legs, underwear, lingerie, bikini, swimsuit, panties, briefs, boxers, exposed skin areas, mannequin in only the focus garment with nothing covering the rest of the body, MALE mannequin wearing a SKIRT or DRESS as base, FEMALE mannequin in only a bra.";
+
+// ── UNIVERSAL BASE LAYER LOCK ───────────────────────────────────────────────
+// HARD RULE: every mannequin — male, female, or neutral — wears the SAME
+// neutral base layer underneath / around the focus garment:
+//   • plain solid medium-gray short-sleeve crew T-shirt
+//   • plain solid medium-gray knee-length athletic shorts
+// This eliminates nudity, removes gendered base-layer mismatch (no man in a
+// skirt, no woman in only a bra), and gives every fit render an identical
+// visual baseline so size-difference is the ONLY thing that changes.
+function buildUniversalBaseLayerLine(focusCategoryRaw?: string | null): string {
+  const c = (focusCategoryRaw || "").toLowerCase();
+  const isTop = /(shirt|tee|t-?shirt|top|blouse|sweater|knit|hoodie|jacket|coat|outer|blazer|cardigan|vest)/.test(c);
+  const isBottom = /(pant|trouser|jean|short|skirt|legging|chino|slack|denim|cargo|joggers?)/.test(c);
+  const isFullBody = /(dress|gown|jumpsuit|romper|overall|coverall)/.test(c);
+  const isFootwear = /(shoe|sneaker|boot|heel|loafer|sandal|trainer)/.test(c);
+
+  // Full-body garments cover the whole body — no base layer fights with them.
+  if (isFullBody) {
+    return "BASE LAYER (universal): the focus garment is full-body and covers torso + legs by itself. Mannequin must NEVER show bare skin, NEVER show underwear, NEVER show bra/panties — if any limb (arms, legs, neck) is exposed by the garment cut, it stays as smooth matte mannequin material, NOT skin.";
+  }
+
+  // For tops, bottoms, footwear, accessories — always layer the same neutral
+  // gray T + gray shorts so nothing is ever shown nude or in underwear.
+  const baseSpec =
+    "BASE LAYER (universal, identical for every mannequin regardless of gender or product type): the mannequin ALWAYS wears a plain solid MEDIUM-GRAY (#9aa0a6 / heather gray) short-sleeve CREW T-SHIRT covering the entire torso, shoulders and upper arms, AND plain solid MEDIUM-GRAY knee-length athletic SHORTS covering the hips and upper thighs. Both base pieces are unbranded, matte cotton/jersey, generic, neutral, and visually subdued so they NEVER compete with the focus garment.";
+
+  if (isBottom) {
+    return `${baseSpec} The focus garment is the BOTTOM and is worn OVER the gray base shorts (the gray shorts may be partially visible at the waistband or hem if the focus bottom is shorter, but the mannequin is NEVER bare-legged and NEVER in underwear). The gray T-shirt covers the upper body.`;
+  }
+  if (isFootwear) {
+    return `${baseSpec} The focus garment is FOOTWEAR. The gray T-shirt covers the upper body and the gray shorts cover the hips/thighs — the mannequin is NEVER bare-torsoed or bare-legged.`;
+  }
+  if (isTop) {
+    return `${baseSpec} The focus garment is the TOP/OUTERWEAR and is worn OVER the gray base T-shirt (gray T-shirt may peek out at neckline/sleeves/hem if the focus top is shorter or open — that is fine). The gray shorts cover the lower body. The mannequin is NEVER bare-legged and NEVER shown in underwear.`;
+  }
+  // Accessories / unknown
+  return `${baseSpec} The focus item is an accessory; both gray base pieces remain fully visible on the mannequin.`;
+}
 
 function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
