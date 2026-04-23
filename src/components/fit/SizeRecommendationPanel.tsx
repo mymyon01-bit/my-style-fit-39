@@ -94,12 +94,7 @@ function SizeRow({
           )}
           <span className="text-[11px] font-medium text-foreground/55">{overallLabelText(outcome.overall)}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-sm font-bold ${
-            outcome.score >= 80 ? "text-green-500" : outcome.score >= 60 ? "text-accent" : "text-orange-500"
-          }`}>{outcome.score}</span>
-          <ChevronDown className={`h-4 w-4 text-foreground/40 transition-transform ${expanded ? "rotate-180" : ""}`} />
-        </div>
+        <ChevronDown className={`h-4 w-4 text-foreground/40 transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
       {expanded && (
         <div className="px-4 pb-4 space-y-1.5 border-t border-foreground/[0.04] pt-3">

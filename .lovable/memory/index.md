@@ -18,3 +18,4 @@ Sizing recommendations are measurement-driven (src/lib/sizing/) — do NOT bypas
 - [Star system](mem://features/stars) — 3 stars/day limit enforced by DB trigger
 - [FIT working model](mem://features/fit-working-model) — Locked baseline for FIT visual try-on (fit-generate-v2 + Replicate IDM-VTON + canvas hooks)
 - [Sizing engine](mem://features/sizing-engine) — Measurement-driven size recommendation pipeline (body + garment chart + category rules)
+- [FIT strict rules](mem://features/fit-strict-rules) — No numeric scores in UI, body+gender always from user profile (never product), all sizes shown with distinct fit outcomes
