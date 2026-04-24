@@ -333,15 +333,38 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
           </div>
           <div className="flex items-center gap-3">
             {isOwn && (
-              <button onClick={handleDelete} className="text-white/70 hover:text-white p-1">
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <>
+                <button
+                  onClick={togglePublic}
+                  disabled={pubBusy}
+                  className="text-white/70 hover:text-white p-1"
+                  aria-label={isPublic ? "Remove from your page" : "Save to your page"}
+                  title={isPublic ? "Saved to your page" : "Save to your page"}
+                >
+                  {isPublic ? <BookmarkCheck className="h-4 w-4 text-accent" /> : <Bookmark className="h-4 w-4" />}
+                </button>
+                <button onClick={handleDelete} className="text-white/70 hover:text-white p-1">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
             )}
             <button onClick={onClose} className="text-white p-1">
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
+
+        {/* Owner-only "Seen by" pill */}
+        {isOwn && (
+          <button
+            onClick={() => setViewersOpen(true)}
+            className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/10 px-3 py-1.5 text-white"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="text-[11px] font-semibold">{viewerCount}</span>
+            <span className="text-[10px] text-white/70">Seen</span>
+          </button>
+        )}
 
         {/* Media */}
         <div className="relative w-full h-full max-w-md max-h-[100dvh] flex items-center justify-center">
