@@ -330,7 +330,20 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     ].filter(Boolean).join(" ");
   }
 
+  // ── LEAD SENTENCE (per FIT spec §7) — front-loads the most important
+  // signals: GENDER → HEIGHT/WEIGHT → BUILD → SIZE → REGION FIT — so the
+  // image generator weighs them first.
+  const leadFitSummary = body.regions?.length
+    ? body.regions
+        .filter((r) => r?.region && r?.fit && !/^regular$/i.test(r.fit))
+        .slice(0, 4)
+        .map((r) => `${r.fit.replace(/-/g, " ")} at ${r.region.toLowerCase()}`)
+        .join(", ")
+    : "";
+  const leadSentence = `A ${build} ${subject}${heightLine}${weightLine} wearing ${garmentLabel} in size ${body.selectedSize}${leadFitSummary ? `, with ${leadFitSummary}` : ""}.`;
+
   return [
+    leadSentence,
     `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
     MANNEQUIN_STYLE_LOCK,
     genderLockLine,
