@@ -10,7 +10,7 @@
  * Keeps all original functions: mood query → /discover, language picker,
  * weather ambience, share-app, navigation buttons.
  */
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -27,6 +27,12 @@ import OOTDDiaryButton from "@/components/OOTDDiaryButton";
 import StyleMeButton from "@/components/StyleMeButton";
 import { useAuth } from "@/lib/auth";
 
+// PWA "Add to Home Screen" install event
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 const HomePage = () => {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -36,6 +42,48 @@ const HomePage = () => {
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const weather = useWeather();
+
+  // Capture the browser's install prompt so the download icon can offer
+  // a one-tap "Add to Home Screen" install — making the site behave like a
+  // real app once installed.
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = useCallback(async () => {
+    // Already installed (running standalone) → just confirm.
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      // iOS Safari
+      (navigator as any).standalone === true;
+    if (isStandalone) {
+      toast.success(t("appInstalled") || "Already installed");
+      return;
+    }
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === "accepted") {
+        toast.success("Added to Home Screen");
+        setInstallPrompt(null);
+      }
+      return;
+    }
+    // iOS / browsers without beforeinstallprompt — show manual instructions.
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      toast("Tap Share → Add to Home Screen", { duration: 5000 });
+    } else {
+      navigate("/install");
+    }
+  }, [installPrompt, navigate, t]);
+
 
   const handleSubmit = useCallback(async () => {
     if (!query.trim()) return;
