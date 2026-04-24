@@ -703,10 +703,10 @@ const OOTDPage = () => {
             style={cardStyle}
           >
             <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-              <p className="text-[11.5px] text-foreground/70 leading-snug">
+              <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
               </p>
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex w-full items-center gap-1.5 overflow-x-auto no-scrollbar md:w-auto md:flex-wrap md:overflow-visible">
                 <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
                 <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
                 <CardColorPicker value={cardColor} onChange={setCardColor} />
