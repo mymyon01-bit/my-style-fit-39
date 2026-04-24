@@ -10,12 +10,8 @@ import { resolveBody } from "../bodyResolver";
 import { calculateAllSizes } from "../fitCalculator";
 import { buildRecommendation } from "../recommend";
 import { CATEGORY_RULES, getDefaultChartForGender } from "../categoryRules";
-import type {
-  FitPreference,
-  Gender,
-  GarmentChart,
-  SizingCategory,
-} from "../types";
+import type { GarmentChart } from "../garmentChart";
+import type { FitPreference, Gender, SizingCategory } from "../types";
 
 function buildSyntheticChart(category: SizingCategory, gender: Gender): GarmentChart {
   const rule = CATEGORY_RULES[category];
