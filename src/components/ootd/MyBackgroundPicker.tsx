@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Sparkles, X } from "lucide-react";
-import { OOTD_BG_THEMES, type OOTDBgTheme, saveOOTDBgTheme } from "./OOTDBackground";
+import { Check, Sparkles, X, Film } from "lucide-react";
+import {
+  OOTD_BG_THEMES,
+  type OOTDBgTheme,
+  saveOOTDBgTheme,
+  loadOOTDBgRealistic,
+  saveOOTDBgRealistic,
+} from "./OOTDBackground";
 
 interface Props {
   value: OOTDBgTheme;
@@ -19,6 +25,7 @@ interface Props {
  */
 export default function MyBackgroundPicker({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const [realistic, setRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
 
   // Lock body scroll while the picker modal is open.
   useEffect(() => {
@@ -33,6 +40,12 @@ export default function MyBackgroundPicker({ value, onChange }: Props) {
   const handleSelect = (theme: OOTDBgTheme) => {
     saveOOTDBgTheme(theme);
     onChange(theme);
+  };
+
+  const toggleRealistic = () => {
+    const next = !realistic;
+    setRealistic(next);
+    saveOOTDBgRealistic(next);
   };
 
   const modal = open ? (
