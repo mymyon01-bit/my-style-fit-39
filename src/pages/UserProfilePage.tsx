@@ -28,11 +28,14 @@ interface UserProfileData {
 
 interface OOTDPost {
   id: string;
+  user_id: string;
   image_url: string;
   caption: string | null;
   style_tags: string[] | null;
+  topics: string[] | null;
   star_count: number | null;
   like_count: number | null;
+  dislike_count: number | null;
   created_at: string;
 }
 
