@@ -542,3 +542,87 @@
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { animation: none; }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Mobile alignment & overflow safety — applied globally
+ * Prevents buttons from stretching, sections from overflowing, and rows
+ * from wrapping awkwardly on small screens.
+ * ────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  html, body, #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  /* Buttons should never stretch full-width inside flex rows by default */
+  button {
+    flex-shrink: 0;
+  }
+  /* Prevent images / media from blowing out container width */
+  img, video, svg, canvas {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer utilities {
+  /* Standard safe page padding for mobile-first layouts */
+  .page-px {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  @media (min-width: 640px) {
+    .page-px { padding-left: 1.5rem; padding-right: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .page-px { padding-left: 2rem; padding-right: 2rem; }
+  }
+
+  /* Standard content max-width container */
+  .page-container {
+    width: 100%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Horizontal action row — wraps cleanly on mobile, no stretching */
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .action-row > * {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  /* Horizontal scroll row — for chips/cards that should scroll, not wrap */
+  .scroll-row {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+  }
+  .scroll-row::-webkit-scrollbar { display: none; }
+  .scroll-row > * { flex: 0 0 auto; }
+
+  /* Force a button to never grow inside a flex parent */
+  .btn-fit {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  /* Safe text — clamp long labels with ellipsis */
+  .truncate-1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+}
