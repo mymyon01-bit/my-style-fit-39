@@ -135,8 +135,16 @@ const OOTDPage = () => {
       const detail = (e as CustomEvent).detail as OOTDBgTheme | undefined;
       if (detail) setBgTheme(detail);
     };
+    const onRealistic = (e: Event) => {
+      const detail = (e as CustomEvent).detail as boolean | undefined;
+      if (typeof detail === "boolean") setBgRealistic(detail);
+    };
     window.addEventListener("ootd-bg-theme-change", onChange);
-    return () => window.removeEventListener("ootd-bg-theme-change", onChange);
+    window.addEventListener("ootd-bg-realistic-change", onRealistic);
+    return () => {
+      window.removeEventListener("ootd-bg-theme-change", onChange);
+      window.removeEventListener("ootd-bg-realistic-change", onRealistic);
+    };
   }, []);
 
   // Combined user + hashtag search
@@ -536,7 +544,7 @@ const OOTDPage = () => {
 
   return (
     <div className="relative min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
-      <OOTDBackground theme={bgTheme} />
+      <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
       {/* Sticky tab line — pinned directly under the main menu bar so users
           can always jump between Ranking / Feed / Community / My Page. */}
       <div className="sticky top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
