@@ -40,7 +40,7 @@ const BottomNav = () => {
                 onClick={() => navigate(tab.path)}
                 onMouseEnter={() => prefetchRoute(tab.path)}
                 onTouchStart={() => prefetchRoute(tab.path)}
-                className={`group relative flex flex-col items-center gap-1.5 px-4 py-1.5 transition-all duration-200 md:gap-2 md:px-6 ${
+                className={`group relative flex flex-col items-center gap-1 px-2 py-1 transition-all duration-200 md:gap-2 md:px-6 md:py-1.5 ${
                   isActive ? "text-foreground" : "text-foreground/55 hover:text-foreground"
                 }`}
               >
