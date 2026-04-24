@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, MessageCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, MessageCircle, Music } from "lucide-react";
 import { motion } from "framer-motion";
 import { AuthGate } from "@/components/AuthGate";
 import { openConversationWith } from "@/hooks/useMessages";
 import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 import { toast } from "sonner";
+import OOTDBackground, { type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import type { CardColor } from "@/components/ootd/CardColorPicker";
+import type { SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 
 interface UserProfileData {
   user_id: string;
@@ -16,6 +19,10 @@ interface UserProfileData {
   bio: string | null;
   hashtags: string[] | null;
   is_private: boolean | null;
+  ootd_bg_theme: string | null;
+  ootd_bg_realistic: boolean | null;
+  ootd_card_color: CardColor | null;
+  song_of_the_day: SongOfDay | null;
 }
 
 interface OOTDPost {
@@ -64,10 +71,10 @@ const UserProfilePage = () => {
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, bio, hashtags, is_private")
+      .select("user_id, display_name, avatar_url, bio, hashtags, is_private, ootd_bg_theme, ootd_bg_realistic, ootd_card_color, song_of_the_day")
       .eq("user_id", userId!)
       .maybeSingle();
-    setProfile(data as UserProfileData | null);
+    setProfile(data as unknown as UserProfileData | null);
   };
 
   const loadPosts = async () => {
@@ -160,18 +167,36 @@ const UserProfilePage = () => {
   const styleTags = [...new Set(posts.flatMap(p => p.style_tags || []))].slice(0, 6);
   const hashtags = profile?.hashtags || [];
 
+  // Their chosen vibe — visitors see exactly what the user picked on My Page.
+  const visitorBgTheme = (profile?.ootd_bg_theme as OOTDBgTheme | undefined) ?? "none";
+  const visitorBgRealistic = profile?.ootd_bg_realistic ?? true;
+  const visitorCard = profile?.ootd_card_color ?? null;
+  const visitorSong = profile?.song_of_the_day ?? null;
+  const cardStyle = useMemo(() => {
+    if (!visitorCard?.hex) return undefined;
+    return { background: `${visitorCard.hex}D6` } as React.CSSProperties;
+  }, [visitorCard]);
+
   return (
-    <div className="min-h-screen bg-background pb-28 lg:pb-16 lg:pt-24">
-      <div className="mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+    <div className="relative min-h-screen bg-background pb-28 lg:pb-16 lg:pt-24">
+      {visitorBgTheme !== "none" && (
+        <div className="pointer-events-none fixed inset-0 z-0">
+          <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
+        </div>
+      )}
+      <div className="relative z-10 mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         {/* Back button */}
         <button onClick={() => navigate(-1)} className="mb-6 flex items-center gap-2 text-foreground/50 hover:text-foreground/70 transition-colors">
           <ArrowLeft className="h-4 w-4" />
           <span className="text-[10px] font-medium tracking-[0.15em]">BACK</span>
         </button>
 
-        {/* Profile header */}
+        {/* Profile header — wrapped in a card tinted with the owner's chosen card color */}
         {profile ? (
-          <div className="flex items-start gap-4 mb-6">
+          <div
+            className="flex items-start gap-4 mb-6 rounded-2xl border border-border/30 p-4 backdrop-blur-md"
+            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+          >
             <div className="h-16 w-16 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -259,6 +284,26 @@ const UserProfilePage = () => {
               <div className="h-3 w-16 rounded bg-foreground/[0.04]" />
             </div>
           </div>
+        )}
+
+        {/* Song of the day — the song the profile owner picked */}
+        {visitorSong && (
+          <a
+            href={visitorSong.spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-4 flex items-center gap-3 rounded-xl border border-border/30 p-2.5 backdrop-blur-md hover:border-accent/40 transition-colors"
+            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+          >
+            <img src={visitorSong.artwork} alt="" className="h-10 w-10 rounded-md object-cover shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-[9px] font-semibold tracking-[0.2em] text-accent/80 uppercase">
+                <Music className="h-2.5 w-2.5" /> Song of the day
+              </div>
+              <p className="text-[12px] font-medium text-foreground/90 truncate">{visitorSong.title}</p>
+              <p className="text-[10px] text-foreground/55 truncate">{visitorSong.artist}</p>
+            </div>
+          </a>
         )}
 
         {/* Hashtags */}
