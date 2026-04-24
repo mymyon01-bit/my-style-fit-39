@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon } from "lucide-react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -632,26 +632,39 @@ const OOTDPage = () => {
             </div>
           </div>
 
-          {/* Tabs row — full width on mobile, inline next to right cluster on desktop.
-              On mobile we let the row scroll horizontally so RANKING/FEED/COMMUNITY
-              /SHOWROOM/MY PAGE never get squeezed below readable size. */}
+          {/* Tabs row — icon-based for a clean, balanced look on every viewport.
+              Labels appear under the icon on desktop / sm+ for clarity. */}
           <div className="flex items-center gap-3">
-            <div className="flex flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+            <div className="flex flex-1 min-w-0 items-stretch justify-around">
               {([
-                { key: "ranking" as const, label: "RANKING" },
-                { key: "feed" as const, label: "FEED" },
-                { key: "community" as const, label: "COMMUNITY" },
-                { key: "showroom" as const, label: "SHOWROOM" },
-                { key: "mypage" as const, label: "MY PAGE" },
-              ]).map(({ key, label }) => (
-                <button key={key} onClick={() => setActiveTab(key)} className="relative shrink-0 px-3 py-3 text-center md:flex-1 md:min-w-0 md:px-0">
-                  <span className={`block whitespace-nowrap text-[11px] md:text-[10px] font-medium tracking-[0.16em] md:tracking-[0.2em] transition-colors duration-300 ${
-                    activeTab === key ? "text-foreground/90" : "text-foreground/45"
-                  }`}>
+                { key: "ranking" as const, label: "RANKING", Icon: Trophy },
+                { key: "feed" as const, label: "FEED", Icon: TrendingUp },
+                { key: "community" as const, label: "COMMUNITY", Icon: Users },
+                { key: "showroom" as const, label: "SHOWROOM", Icon: LayoutGrid },
+                { key: "mypage" as const, label: "MY PAGE", Icon: UserIcon },
+              ]).map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  aria-label={label}
+                  title={label}
+                  className="relative flex flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2.5"
+                >
+                  <Icon
+                    className={`h-[18px] w-[18px] transition-colors ${
+                      activeTab === key ? "text-foreground" : "text-foreground/45"
+                    }`}
+                    strokeWidth={activeTab === key ? 2.2 : 1.6}
+                  />
+                  <span
+                    className={`hidden sm:block text-[8.5px] font-semibold tracking-[0.16em] transition-colors ${
+                      activeTab === key ? "text-foreground/90" : "text-foreground/40"
+                    }`}
+                  >
                     {label}
                   </span>
                   {activeTab === key && (
-                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-3 right-3 h-px bg-accent/60 md:left-1/4 md:right-1/4" />
+                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-accent" />
                   )}
                 </button>
               ))}
