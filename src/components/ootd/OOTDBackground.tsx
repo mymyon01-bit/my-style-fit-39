@@ -270,25 +270,46 @@ export default function OOTDBackground({ theme }: Props) {
     );
   }
 
-  // ── Sunny day ──────────────────────────────────────────────────────────
+  // ── Sunny day: blue sky + bright sun with occasional lens flare ────────
   if (theme === "sunny") {
     return (
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Crisp blue sky */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(255, 235, 180, 0.45) 0%, rgba(255, 245, 220, 0.20) 40%, transparent 100%)",
+              "linear-gradient(180deg, #6fb6ec 0%, #a5d2f0 50%, #d8ecf7 100%)",
           }}
         />
+        {/* Sun disc — top-right */}
         <div
-          className="absolute -top-1/3 left-1/2 h-[160%] w-[160%] -translate-x-1/2 opacity-60"
+          className="absolute"
+          style={{
+            top: "8%",
+            right: "10%",
+            width: "180px",
+            height: "180px",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, #fff8d8 0%, #ffe890 35%, rgba(255,225,120,0) 70%)",
+            filter: "blur(2px)",
+            animation: "ootd-sun-pulse 5s ease-in-out infinite",
+          }}
+        />
+        {/* Sun flare — periodic bright burst across the sky */}
+        <div
+          className="absolute -top-1/3 -right-1/4 h-[160%] w-[140%] opacity-0"
           style={{
             background:
-              "conic-gradient(from 0deg, transparent 0deg, rgba(255, 200, 80, 0.18) 6deg, transparent 12deg, transparent 30deg, rgba(255, 200, 80, 0.14) 36deg, transparent 42deg, transparent 60deg, rgba(255, 200, 80, 0.18) 66deg, transparent 72deg, transparent 360deg)",
-            animation: "ootd-sun-rotate 80s linear infinite",
+              "conic-gradient(from 200deg at 80% 20%, transparent 0deg, rgba(255, 240, 180, 0.45) 8deg, transparent 18deg, transparent 40deg, rgba(255, 240, 180, 0.30) 50deg, transparent 60deg, transparent 360deg)",
+            animation: "ootd-sun-flare 8s ease-in-out infinite",
           }}
         />
+        {/* Soft drifting clouds */}
+        <SoftCloud top="20%" left="-12%" size={300} delay={0} duration={140} opacity={0.85} />
+        <SoftCloud top="38%" left="40%" size={240} delay={20} duration={160} opacity={0.75} />
+        <SoftCloud top="55%" left="70%" size={280} delay={40} duration={180} opacity={0.7} />
+        {/* Sparkles in the air */}
         {particles.map((p) => (
           <span
             key={p.id}
@@ -296,8 +317,8 @@ export default function OOTDBackground({ theme }: Props) {
             style={{
               left: `${p.left}%`,
               top: `${p.top}%`,
-              fontSize: `${p.size * 10}px`,
-              color: "rgba(255, 200, 80, 0.85)",
+              fontSize: `${p.size * 9}px`,
+              color: "rgba(255, 250, 200, 0.9)",
               animation: `ootd-twinkle ${3 + p.duration / 3}s ease-in-out ${p.delay}s infinite`,
             }}
           >
@@ -305,7 +326,16 @@ export default function OOTDBackground({ theme }: Props) {
           </span>
         ))}
         <style>{`
-          @keyframes ootd-sun-rotate { to { transform: translateX(-50%) rotate(360deg); } }
+          @keyframes ootd-sun-pulse {
+            0%, 100% { transform: scale(1); filter: blur(2px) brightness(1); }
+            50% { transform: scale(1.08); filter: blur(2px) brightness(1.15); }
+          }
+          @keyframes ootd-sun-flare {
+            0%, 70%, 100% { opacity: 0; }
+            80% { opacity: 0.85; }
+            85% { opacity: 0.4; }
+            90% { opacity: 0; }
+          }
           @keyframes ootd-twinkle {
             0%, 100% { opacity: 0.2; transform: scale(0.8); }
             50% { opacity: 0.95; transform: scale(1.15); }
