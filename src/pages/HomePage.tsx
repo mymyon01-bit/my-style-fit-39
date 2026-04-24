@@ -239,8 +239,8 @@ const HomePage = () => {
                 {t("about")}
               </button>
               <ShareButton
-                title="mymyon — AI fashion stylist"
-                url={typeof window !== "undefined" ? window.location.origin : "https://mymyon.com"}
+                title="Share, Explore, and Edge your style. Join My'myon."
+                url="https://www.mymyon.com"
                 className="self-center"
               />
             </div>
