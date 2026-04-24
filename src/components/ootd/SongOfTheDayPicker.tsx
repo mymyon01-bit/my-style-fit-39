@@ -858,8 +858,8 @@ function InlinePlayerCard({
         style={{ animationPlayState: isPlaying ? "running" : "paused" }}
       />
 
-      {/* Title only — keep it tight to match the other chips */}
-      <p className="min-w-0 flex-1 truncate text-[10px] font-medium text-foreground/85 leading-tight">
+      {/* Title — hidden on mobile to keep the chip the same size as BG/Color */}
+      <p className="hidden sm:block min-w-0 flex-1 truncate text-[10px] font-medium text-foreground/85 leading-tight">
         {track.title}
       </p>
 
