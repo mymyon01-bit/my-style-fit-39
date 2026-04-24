@@ -1,22 +1,17 @@
 import { Link } from "react-router-dom";
-import { Star, Heart, Eye, Pin } from "lucide-react";
+import { Star, Heart, Eye, Pin, Sparkles } from "lucide-react";
 import { getTheme } from "@/lib/showroom/themes";
 import type { Showroom } from "@/lib/showroom/types";
 
-/**
- * Showroom card — always readable regardless of theme.
- * Banner area uses theme bg as a mood preview; title block sits below
- * on a solid card surface so text is always legible.
- */
 export const ShowroomCard = ({ room }: { room: Showroom }) => {
   const theme = getTheme(room.theme);
+
   return (
     <Link
       to={`/showroom/${room.id}`}
-      className="group relative block overflow-hidden rounded-xl border border-border/40 bg-card transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg"
+      className="group block overflow-hidden rounded-xl border border-border/40 bg-card transition-all hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-sm"
     >
-      {/* Mood banner (theme preview) */}
-      <div className={`relative aspect-[4/3] overflow-hidden ${theme.bgClass}`}>
+      <div className="relative aspect-[4/3] overflow-hidden border-b border-border/30 bg-gradient-to-br from-accent/[0.08] via-secondary/40 to-background">
         {room.banner_url ? (
           <img
             src={room.banner_url}
@@ -26,30 +21,31 @@ export const ShowroomCard = ({ room }: { room: Showroom }) => {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-display text-2xl opacity-30">{theme.label.charAt(0)}</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border/30 bg-background/70 text-accent/70 backdrop-blur-sm">
+              <Sparkles className="h-5 w-5" />
+            </div>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-        {room.is_pinned && (
-          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-background/90 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-foreground">
-            <Pin className="h-2.5 w-2.5" /> Pinned
-          </div>
-        )}
-        <div className="absolute right-2 top-2 rounded-full bg-background/80 px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-wider text-foreground/80 backdrop-blur-sm">
-          {theme.label}
+
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between p-2">
+          {room.is_pinned ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border/30 bg-background/85 px-2 py-1 text-[9px] font-medium text-foreground/75 backdrop-blur-sm">
+              <Pin className="h-2.5 w-2.5" /> Pinned
+            </span>
+          ) : <span />}
+          <span className="rounded-full border border-border/30 bg-background/85 px-2 py-1 text-[9px] font-medium uppercase tracking-[0.12em] text-foreground/65 backdrop-blur-sm">
+            {theme.label}
+          </span>
         </div>
       </div>
 
-      {/* Title block — solid surface, always readable */}
-      <div className="space-y-1 p-3">
-        <h3 className="line-clamp-1 font-display text-sm leading-tight text-foreground">{room.title}</h3>
-        {room.intro && (
-          <p className="line-clamp-1 text-[10px] leading-snug text-foreground/55">{room.intro}</p>
-        )}
+      <div className="space-y-1.5 p-3">
+        <h3 className="line-clamp-1 font-display text-sm text-foreground">{room.title}</h3>
+        <p className="line-clamp-1 text-[11px] text-foreground/55">{room.intro || "Personal taste curation"}</p>
         <div className="flex items-center gap-3 pt-1 text-[10px] text-foreground/60">
-          <span className="flex items-center gap-1"><Star className="h-3 w-3" />{room.star_count}</span>
-          <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{room.like_count}</span>
-          <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{room.view_count}</span>
+          <span className="inline-flex items-center gap-1"><Star className="h-3 w-3" />{room.star_count}</span>
+          <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" />{room.like_count}</span>
+          <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{room.view_count}</span>
         </div>
       </div>
     </Link>
