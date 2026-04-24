@@ -12,6 +12,7 @@ import OOTDBackground, { type OOTDBgTheme } from "@/components/ootd/OOTDBackgrou
 import type { CardColor } from "@/components/ootd/CardColorPicker";
 import type { SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
+import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 
 interface UserProfileData {
   user_id: string;
@@ -279,20 +280,23 @@ const UserProfilePage = () => {
             className="flex items-start gap-4 mb-6 rounded-2xl border border-border/30 p-4 backdrop-blur-md"
             style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
           >
-            <div className="h-16 w-16 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
-              {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center text-foreground/20 text-lg font-bold">
-                  {(profile.display_name || "?")[0].toUpperCase()}
-                </div>
-              )}
-            </div>
+            <OfficialAvatarRing isOfficial={profile.is_official}>
+              <div className="h-16 w-16 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+                {profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-foreground/20 text-lg font-bold">
+                    {(profile.display_name || "?")[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </OfficialAvatarRing>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-display text-base font-semibold text-foreground/90">
                   {profile.display_name || "Anonymous"}
                 </h2>
+                {profile.is_official && <OfficialBadge />}
                 {dailyWins.length > 0 && <Crown className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
                 {profile.is_private && <Lock className="h-3 w-3 text-foreground/30" />}
               </div>
