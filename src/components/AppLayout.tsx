@@ -1,16 +1,20 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useTransition } from "@/lib/transition";
 import BottomNav from "./BottomNav";
 import DailyPicksNotice from "./DailyPicksNotice";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const AppLayout = () => {
   const { transitionClass, transition } = useTransition();
+  const location = useLocation();
+  const isMobile = useIsMobile();
+
+  // Hide top notice on mobile landing page
+  const hideNotice = isMobile && location.pathname === "/";
 
   return (
     <>
-      <DailyPicksNotice />
-      {/* No remount key — keeps page chunks warm and avoids full re-renders.
-          Transition class only applies when the user opted into a non-"none" style. */}
+      {!hideNotice && <DailyPicksNotice />}
       <div className={transition === "none" ? undefined : transitionClass}>
         <Outlet />
       </div>
