@@ -56,16 +56,20 @@ export type OOTDBgTheme =
   | "leaves"
   | "sunny"
   | "rain"
-  | "storm";
+  | "storm"
+  | "snow"
+  | "sunset";
 
 export const OOTD_BG_THEMES: { id: OOTDBgTheme; label: string; emoji: string; description: string }[] = [
-  { id: "none",   label: "None",                 emoji: "○", description: "Clean — no background effect" },
-  { id: "stars",  label: "Cosmic stars",         emoji: "✦", description: "A deep-space night sky" },
+  { id: "none",   label: "None",                 emoji: "○",  description: "Clean — no background effect" },
   { id: "sakura", label: "Cherry blossoms",      emoji: "🌸", description: "Petals drifting between trees" },
-  { id: "leaves", label: "Autumn leaves",        emoji: "🍂", description: "Leaves swirling in the wind" },
+  { id: "leaves", label: "Autumn leaves",        emoji: "🍂", description: "Golden leaves swirling in the wind" },
   { id: "sunny",  label: "Sunny day",            emoji: "☀️", description: "Warm sun rays and sparkles" },
+  { id: "sunset", label: "Golden sunset",        emoji: "🌅", description: "Warm sky at golden hour" },
   { id: "rain",   label: "Soft rain",            emoji: "🌧️", description: "A quiet, steady rain" },
-  { id: "storm",  label: "Thunderstorm",         emoji: "⛈️", description: "Storm clouds with lightning" },
+  { id: "storm",  label: "Thunderstorm",         emoji: "⛈️", description: "Storm clouds with heavy rain" },
+  { id: "snow",   label: "Falling snow",         emoji: "❄️", description: "Soft snowflakes drifting down" },
+  { id: "stars",  label: "Cosmic stars",         emoji: "✦",  description: "A deep-space night sky" },
 ];
 
 const STORAGE_KEY = "ootd-bg-theme";
