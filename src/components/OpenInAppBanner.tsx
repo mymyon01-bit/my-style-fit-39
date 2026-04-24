@@ -68,7 +68,7 @@ const OpenInAppBanner = () => {
         }}
         className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-background"
       >
-        {os === "ios" ? "Install" : "Get APK"}
+        Install
       </button>
       <button
         onClick={dismiss}
