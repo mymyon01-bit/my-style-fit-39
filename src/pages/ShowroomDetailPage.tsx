@@ -168,17 +168,17 @@ const ShowroomDetailPage = () => {
   return (
     <div className={`min-h-screen ${theme.bgClass} pb-32`}>
       {/* Top bar */}
-      <div className="sticky top-0 z-20 flex items-center gap-2 bg-black/20 px-4 py-2 backdrop-blur-md">
-        <button onClick={() => navigate(-1)} className="rounded-full p-1.5 hover:bg-white/10"><ArrowLeft className="h-4 w-4" /></button>
-        <span className="ml-auto flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white"><VisIcon className="h-3 w-3" /> {room.visibility}</span>
-        <button onClick={shareLink} className="rounded-full p-1.5 hover:bg-white/10"><Share2 className="h-4 w-4" /></button>
+      <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/80 px-4 py-2 backdrop-blur-md border-b border-foreground/10">
+        <button onClick={() => navigate(-1)} className="rounded-full p-1.5 text-foreground hover:bg-foreground/10"><ArrowLeft className="h-4 w-4" /></button>
+        <span className="ml-auto flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-foreground"><VisIcon className="h-3 w-3" /> {room.visibility}</span>
+        <button onClick={shareLink} className="rounded-full p-1.5 text-foreground hover:bg-foreground/10"><Share2 className="h-4 w-4" /></button>
         {isOwner && (
           <>
-            <button onClick={togglePin} className="rounded-full p-1.5 hover:bg-white/10" title={room.is_pinned ? "Unpin" : "Pin to profile"}>
+            <button onClick={togglePin} className="rounded-full p-1.5 text-foreground hover:bg-foreground/10" title={room.is_pinned ? "Unpin" : "Pin to profile"}>
               <Pin className={`h-4 w-4 ${room.is_pinned ? "fill-current" : ""}`} />
             </button>
-            <button onClick={() => setEditing((v) => !v)} className="rounded-full p-1.5 hover:bg-white/10"><Edit3 className="h-4 w-4" /></button>
-            <button onClick={handleDeleteRoom} className="rounded-full p-1.5 hover:bg-red-500/20"><Trash2 className="h-4 w-4" /></button>
+            <button onClick={() => setEditing((v) => !v)} className="rounded-full p-1.5 text-foreground hover:bg-foreground/10"><Edit3 className="h-4 w-4" /></button>
+            <button onClick={handleDeleteRoom} className="rounded-full p-1.5 text-foreground hover:bg-red-500/20"><Trash2 className="h-4 w-4" /></button>
           </>
         )}
       </div>
@@ -191,7 +191,7 @@ const ShowroomDetailPage = () => {
         {room.hashtags.length > 0 && (
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
             {room.hashtags.map((h) => (
-              <span key={h} className="rounded-full bg-black/20 px-2 py-0.5 text-[10px] backdrop-blur-sm">#{h}</span>
+              <span key={h} className="rounded-full bg-current/10 px-2 py-0.5 text-[10px] backdrop-blur-sm">#{h}</span>
             ))}
           </div>
         )}
