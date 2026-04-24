@@ -5,12 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Star, Heart, Bookmark, Share2, Pin, Edit3, Trash2,
   Plus, Loader2, Globe, Lock, Link2, Save, X, ImagePlus, Sparkles,
+  UserPlus, UserCheck, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useShowroom } from "@/hooks/useShowrooms";
+import { useShowroomFollow } from "@/hooks/useShowroomFollow";
 import type { ShowroomItem } from "@/lib/showroom/types";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
