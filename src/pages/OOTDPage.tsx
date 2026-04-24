@@ -26,6 +26,7 @@ import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 
 interface OOTDPost {
   id: string;
@@ -113,6 +114,21 @@ const OOTDPage = () => {
   // User-selected animated background for the OOTD experience.
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
+  const [cardColor, setCardColor] = useState<CardColor>(() => {
+    const c = loadCardColor();
+    if (typeof window !== "undefined") applyCardColorToRoot(c);
+    return c;
+  });
+  // Style applied to translucent cards so the user-picked tint wins over
+  // the default `bg-background/80`. When no color is chosen we fall back
+  // to the original surface (undefined background lets the Tailwind class
+  // take effect).
+  const cardStyle = cardColor.hex
+    ? {
+        background: `${cardColor.hex}D6`, // ~84% alpha — keeps the scene faintly visible
+        color: undefined as string | undefined,
+      }
+    : undefined;
   useEffect(() => {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as OOTDBgTheme | undefined;
@@ -607,7 +623,10 @@ const OOTDPage = () => {
 
       <div className="relative mx-auto max-w-lg px-6 pt-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         {activeTab === "mypage" && user && (
-          <div className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4">
+          <div
+            className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
+            style={cardStyle}
+          >
             <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
               <p className="text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
@@ -615,6 +634,7 @@ const OOTDPage = () => {
               <div className="flex items-center gap-1.5 flex-wrap">
                 <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
                 <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
+                <CardColorPicker value={cardColor} onChange={setCardColor} />
               </div>
             </div>
             <MyPageProfileHeader
@@ -635,7 +655,10 @@ const OOTDPage = () => {
 
         {/* Stories row — Feed shows everyone, My Page shows your circle */}
         {(activeTab === "feed" || activeTab === "mypage") && (
-          <div className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-3 md:p-4 shadow-xl shadow-black/10" : ""}>
+          <div
+            className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-3 md:p-4 shadow-xl shadow-black/10" : ""}
+            style={bgTheme !== "none" ? cardStyle : undefined}
+          >
             <StoriesRow
               key={activeTab}
               refreshKey={storiesRefreshKey}
@@ -653,7 +676,10 @@ const OOTDPage = () => {
 
 
       <div className="relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-        <div className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-6 shadow-xl shadow-black/10" : ""}>
+        <div
+          className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-6 shadow-xl shadow-black/10" : ""}
+          style={bgTheme !== "none" ? cardStyle : undefined}
+        >
         <AnimatePresence mode="wait">
           {activeTab === "ranking" ? (
             <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
