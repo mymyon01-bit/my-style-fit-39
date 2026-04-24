@@ -29,7 +29,7 @@ import { useResolvedGarmentSize } from "@/hooks/useResolvedGarmentSize";
 import { computeRegionFit } from "@/lib/fit/regionFitEngine";
 import { useSizeRecommendation } from "@/hooks/useSizeRecommendation";
 import SizeRecommendationPanel from "@/components/fit/SizeRecommendationPanel";
-import type { FitPreference, RegionStatus } from "@/lib/sizing";
+import { overallLabelText, type FitPreference, type RegionStatus } from "@/lib/sizing";
 import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
