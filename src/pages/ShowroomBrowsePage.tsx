@@ -15,14 +15,14 @@ const ShowroomBrowsePage = () => {
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-foreground/10 bg-background/90 px-4 py-3 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-          <div>
-            <h1 className="font-display text-xl">Showroom</h1>
-            <p className="text-[10px] uppercase tracking-widest text-foreground/50">Curate your taste · not a store</p>
+      <div className="sticky-header sticky top-0 z-10 border-b border-foreground/10 bg-background/90 px-3 pb-2.5 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="font-display text-base sm:text-lg truncate">Showroom</h1>
+            <p className="text-[9px] uppercase tracking-widest text-foreground/50 truncate">Curate your taste · not a store</p>
           </div>
-          <Button size="sm" onClick={() => navigate("/showroom/new")} className="gap-1.5">
-            <Plus className="h-4 w-4" /> New room
+          <Button size="sm" onClick={() => navigate("/showroom/new")} className="h-8 gap-1 px-2.5 text-[11px]">
+            <Plus className="h-3.5 w-3.5" /> New
           </Button>
         </div>
       </div>
