@@ -1928,6 +1928,186 @@ export type Database = {
           },
         ]
       }
+      showroom_invites: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          expires_at: string | null
+          id: string
+          invite_token: string
+          showroom_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          expires_at?: string | null
+          id?: string
+          invite_token: string
+          showroom_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          expires_at?: string | null
+          id?: string
+          invite_token?: string
+          showroom_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showroom_invites_showroom_id_fkey"
+            columns: ["showroom_id"]
+            isOneToOne: false
+            referencedRelation: "showrooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      showroom_items: {
+        Row: {
+          brand: string | null
+          created_at: string
+          hashtags: string[]
+          id: string
+          image_url: string | null
+          note: string | null
+          position_order: number
+          product_id: string | null
+          showroom_id: string
+          source_type: string
+          title: string | null
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          image_url?: string | null
+          note?: string | null
+          position_order?: number
+          product_id?: string | null
+          showroom_id: string
+          source_type: string
+          title?: string | null
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          image_url?: string | null
+          note?: string | null
+          position_order?: number
+          product_id?: string | null
+          showroom_id?: string
+          source_type?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showroom_items_showroom_id_fkey"
+            columns: ["showroom_id"]
+            isOneToOne: false
+            referencedRelation: "showrooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      showroom_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          reaction_type: string
+          showroom_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reaction_type: string
+          showroom_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          showroom_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showroom_reactions_showroom_id_fkey"
+            columns: ["showroom_id"]
+            isOneToOne: false
+            referencedRelation: "showrooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      showrooms: {
+        Row: {
+          background_url: string | null
+          banner_url: string | null
+          created_at: string
+          hashtags: string[]
+          id: string
+          intro: string | null
+          is_pinned: boolean
+          like_count: number
+          playlist_links: Json
+          save_count: number
+          star_count: number
+          theme: string
+          theme_color: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          view_count: number
+          visibility: string
+        }
+        Insert: {
+          background_url?: string | null
+          banner_url?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          intro?: string | null
+          is_pinned?: boolean
+          like_count?: number
+          playlist_links?: Json
+          save_count?: number
+          star_count?: number
+          theme?: string
+          theme_color?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          view_count?: number
+          visibility?: string
+        }
+        Update: {
+          background_url?: string | null
+          banner_url?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          intro?: string | null
+          is_pinned?: boolean
+          like_count?: number
+          playlist_links?: Json
+          save_count?: number
+          star_count?: number
+          theme?: string
+          theme_color?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number
+          visibility?: string
+        }
+        Relationships: []
+      }
       source_ingestion_runs: {
         Row: {
           completed_at: string | null
