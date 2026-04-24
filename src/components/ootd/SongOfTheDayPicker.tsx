@@ -557,47 +557,38 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
   // ============ Trigger button + Mini-player ============
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur px-3 py-1.5 text-[10px] font-medium tracking-[0.18em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
-        aria-label="Pick song of the day"
-      >
-        <Music className="h-3 w-3" />
-        SOTD
-        {value ? (
-          <span className="text-foreground/40 normal-case tracking-normal text-[10px] truncate max-w-[120px]">
-            · {value.title}
-          </span>
-        ) : (
-          <span className="text-foreground/40 normal-case tracking-normal text-[10px]">
-            · pick a song
-          </span>
-        )}
-        {playlist.length > 0 && (
-          <span className="rounded-full bg-accent/15 px-1.5 py-px text-[9px] tracking-normal text-accent">
-            {playlist.length}
-          </span>
-        )}
-      </button>
-
-      {/* Mini-player — visible whenever a track is currently selected */}
-      {currentTrack && (
-        <MiniPlayer
-          track={currentTrack}
-          isPlaying={isPlaying}
-          progress={progress}
-          duration={duration}
-          queueIndex={currentIndex}
-          queueLength={queue.length}
-          onTogglePlay={togglePlayer}
-          onNext={next}
-          onPrev={prev}
-          onClose={() => {
-            setIsPlaying(false);
-            setCurrentIndex(-1);
+      {/* Inline player card — shows album art + title + artist + scrub bar.
+          The small icon on the right opens the search/playlist modal. */}
+      {value ? (
+        <InlinePlayerCard
+          track={value}
+          isPlaying={isPlaying && currentTrack?.id === value.id}
+          progress={currentTrack?.id === value.id ? progress : 0}
+          duration={currentTrack?.id === value.id ? duration : 30}
+          playlistCount={playlist.length}
+          onTogglePlay={() => {
+            // If the SOTD isn't the current track, switch to it (queue[0])
+            if (currentTrack?.id !== value.id) {
+              setCurrentIndex(0);
+              setIsPlaying(true);
+            } else {
+              togglePlayer();
+            }
           }}
+          onNext={queue.length > 1 ? next : undefined}
+          onPrev={queue.length > 1 ? prev : undefined}
+          onOpenLibrary={() => setOpen(true)}
         />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-3 py-1.5 text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+          aria-label="Pick song of the day"
+        >
+          <Music className="h-3 w-3" />
+          PICK A SONG
+        </button>
       )}
 
       {/* Hidden audio element that drives the mini-player */}
