@@ -781,6 +781,8 @@ const OOTDPage = () => {
                     onOpenNotifications={() => setNotifsOpen(true)}
                   />
 
+                  <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
+
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
                     <Camera className="h-5 w-5" />
                     <span className="text-[10px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
