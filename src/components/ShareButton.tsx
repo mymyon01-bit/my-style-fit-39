@@ -59,8 +59,11 @@ const ShareButton = ({ title, url, className = "" }: ShareButtonProps) => {
   const close = () => setOpen(false);
 
   const copy = async () => {
+    // Copy "title — url" so pasting anywhere shows the message + link, not
+    // just a bare URL (which previously could expose dev/preview hosts).
+    const payload = title ? `${title} ${shareUrl}` : shareUrl;
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(payload);
       toast.success("Link copied");
     } catch {
       toast.error("Could not copy");
