@@ -11,9 +11,11 @@ import { useState } from "react";
 
 interface Props {
   className?: string;
+  /** When true, scale the whole hero down ~50% (used on mobile landing). */
+  compact?: boolean;
 }
 
-export default function OOTDDiaryButton({ className = "" }: Props) {
+export default function OOTDDiaryButton({ className = "", compact = false }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [portal, setPortal] = useState(false);
@@ -27,7 +29,10 @@ export default function OOTDDiaryButton({ className = "" }: Props) {
   };
 
   return (
-    <div className={`relative flex flex-col items-center ${className}`}>
+    <div
+      className={`relative flex flex-col items-center ${className}`}
+      style={compact ? { transform: "scale(0.55)", transformOrigin: "center top" } : undefined}
+    >
       {/* Pulsing halo */}
       <motion.div
         aria-hidden
