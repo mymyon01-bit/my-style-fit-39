@@ -557,47 +557,38 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
   // ============ Trigger button + Mini-player ============
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur px-3 py-1.5 text-[10px] font-medium tracking-[0.18em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
-        aria-label="Pick song of the day"
-      >
-        <Music className="h-3 w-3" />
-        SOTD
-        {value ? (
-          <span className="text-foreground/40 normal-case tracking-normal text-[10px] truncate max-w-[120px]">
-            · {value.title}
-          </span>
-        ) : (
-          <span className="text-foreground/40 normal-case tracking-normal text-[10px]">
-            · pick a song
-          </span>
-        )}
-        {playlist.length > 0 && (
-          <span className="rounded-full bg-accent/15 px-1.5 py-px text-[9px] tracking-normal text-accent">
-            {playlist.length}
-          </span>
-        )}
-      </button>
-
-      {/* Mini-player — visible whenever a track is currently selected */}
-      {currentTrack && (
-        <MiniPlayer
-          track={currentTrack}
-          isPlaying={isPlaying}
-          progress={progress}
-          duration={duration}
-          queueIndex={currentIndex}
-          queueLength={queue.length}
-          onTogglePlay={togglePlayer}
-          onNext={next}
-          onPrev={prev}
-          onClose={() => {
-            setIsPlaying(false);
-            setCurrentIndex(-1);
+      {/* Inline player card — shows album art + title + artist + scrub bar.
+          The small icon on the right opens the search/playlist modal. */}
+      {value ? (
+        <InlinePlayerCard
+          track={value}
+          isPlaying={isPlaying && currentTrack?.id === value.id}
+          progress={currentTrack?.id === value.id ? progress : 0}
+          duration={currentTrack?.id === value.id ? duration : 30}
+          playlistCount={playlist.length}
+          onTogglePlay={() => {
+            // If the SOTD isn't the current track, switch to it (queue[0])
+            if (currentTrack?.id !== value.id) {
+              setCurrentIndex(0);
+              setIsPlaying(true);
+            } else {
+              togglePlayer();
+            }
           }}
+          onNext={queue.length > 1 ? next : undefined}
+          onPrev={queue.length > 1 ? prev : undefined}
+          onOpenLibrary={() => setOpen(true)}
         />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-3 py-1.5 text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+          aria-label="Pick song of the day"
+        >
+          <Music className="h-3 w-3" />
+          PICK A SONG
+        </button>
       )}
 
       {/* Hidden audio element that drives the mini-player */}
@@ -823,5 +814,115 @@ function MiniPlayer({
       </div>
     </div>,
     document.body,
+  );
+}
+
+// =====================================================
+// Inline player card — replaces the old SOTD pill button.
+// Shows album / title / artist, a thin scrub bar, prev/play/next,
+// and a small icon on the right that opens the search/playlist modal.
+// =====================================================
+interface InlinePlayerCardProps {
+  track: SongOfDay;
+  isPlaying: boolean;
+  progress: number;
+  duration: number;
+  playlistCount: number;
+  onTogglePlay: () => void;
+  onNext?: () => void;
+  onPrev?: () => void;
+  onOpenLibrary: () => void;
+}
+
+function InlinePlayerCard({
+  track,
+  isPlaying,
+  progress,
+  duration,
+  playlistCount,
+  onTogglePlay,
+  onNext,
+  onPrev,
+  onOpenLibrary,
+}: InlinePlayerCardProps) {
+  const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-border/40 bg-background/70 backdrop-blur pl-1 pr-1.5 py-1 shrink-0 max-w-[280px] sm:max-w-[320px]">
+      {/* Album art */}
+      <img
+        src={track.artwork}
+        alt=""
+        className={`h-7 w-7 rounded-full object-cover ring-1 ring-border/40 shrink-0 ${
+          isPlaying ? "animate-[spin_8s_linear_infinite]" : ""
+        }`}
+        style={{ animationPlayState: isPlaying ? "running" : "paused" }}
+      />
+
+      {/* Title / artist + scrub bar */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-1.5">
+          <p className="text-[11px] font-medium text-foreground/90 truncate leading-tight">
+            {track.title}
+          </p>
+          <p className="text-[9.5px] text-foreground/55 truncate leading-tight">
+            · {track.artist}
+          </p>
+        </div>
+        <div className="mt-0.5 h-[2px] w-full overflow-hidden rounded-full bg-foreground/10">
+          <div
+            className="h-full bg-accent transition-[width] duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Controls */}
+      {onPrev && (
+        <button
+          type="button"
+          onClick={onPrev}
+          className="rounded-full p-1 text-foreground/65 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+          aria-label="Previous"
+        >
+          <SkipBack className="h-3 w-3" />
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onTogglePlay}
+        disabled={!track.preview}
+        className="rounded-full bg-accent p-1.5 text-background shadow-sm hover:opacity-90 transition disabled:opacity-50 shrink-0"
+        aria-label={isPlaying ? "Pause" : "Play"}
+        title={!track.preview ? "Preview not available" : isPlaying ? "Pause" : "Play"}
+      >
+        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-px" />}
+      </button>
+      {onNext && (
+        <button
+          type="button"
+          onClick={onNext}
+          className="rounded-full p-1 text-foreground/65 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+          aria-label="Next"
+        >
+          <SkipForward className="h-3 w-3" />
+        </button>
+      )}
+
+      {/* Library / search icon — opens the modal */}
+      <button
+        type="button"
+        onClick={onOpenLibrary}
+        className="relative rounded-full p-1 text-foreground/55 hover:text-accent hover:bg-accent/10 transition-colors shrink-0"
+        aria-label="Open song library"
+        title="Search & playlist"
+      >
+        <ListMusic className="h-3.5 w-3.5" />
+        {playlistCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 rounded-full bg-accent px-1 py-px text-[8px] leading-none font-semibold text-background">
+            {playlistCount}
+          </span>
+        )}
+      </button>
+    </div>
   );
 }
