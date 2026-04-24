@@ -712,6 +712,7 @@ export default function DiscoverPage() {
         isSaved={detailProduct ? savedIds.has(detailProduct.id) : deepLinkedProduct ? savedIds.has(deepLinkedProduct.id) : false}
         onSave={handleSave}
       />
+      <SubmitProductDialog open={submitOpen} onClose={() => setSubmitOpen(false)} />
     </>
   );
 }
