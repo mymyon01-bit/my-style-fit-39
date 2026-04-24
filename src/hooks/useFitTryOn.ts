@@ -192,7 +192,24 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             selectedSize: args.selectedSize,
           });
           if (isStale()) return;
-          if (error) throw error;
+          // Transient edge-runtime hiccups (cold boot / 503 / network) — keep
+          // polling instead of failing. The async job on the server is still
+          // running and the next tick will pick up the result.
+          if (error) {
+            const msg = String((error as any)?.message ?? error ?? "");
+            const transient =
+              msg.includes("SUPABASE_EDGE_RUNTIME_ERROR") ||
+              msg.includes("temporarily unavailable") ||
+              msg.includes("Failed to fetch") ||
+              msg.includes("503") ||
+              msg.includes("502") ||
+              msg.includes("504");
+            if (transient && attempts < POLL_MAX_ATTEMPTS) {
+              log("poll_transient_skip", { message: msg });
+              return;
+            }
+            throw error;
+          }
 
           if (data?.ok && data.imageUrl) {
             stopTimers();
