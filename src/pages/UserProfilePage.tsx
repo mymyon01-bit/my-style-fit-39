@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import OOTDBackground, { type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import type { CardColor } from "@/components/ootd/CardColorPicker";
 import type { SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import OOTDPostDetail from "@/components/OOTDPostDetail";
 
 interface UserProfileData {
   user_id: string;
