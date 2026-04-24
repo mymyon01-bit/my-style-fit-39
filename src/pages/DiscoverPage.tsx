@@ -639,16 +639,6 @@ export default function DiscoverPage() {
 
           {/* ─── HARDCODED LAYERS ─────────────────────────────────────── */}
           <div className="mt-8 space-y-12">
-            {/* Style recommendations — open to everyone, driven by search signal */}
-            <StyleRecsForYou
-              variant="inline"
-              searchQuery={committedQuery || null}
-              searchTags={intentChips}
-              searchProducts={(allLiveResults.length > 0 ? allLiveResults : dbTopProducts)
-                .slice(0, 6)
-                .map((p) => ({ name: p.title, brand: p.brand }))}
-            />
-
             {/* Layer 1 — Top DB recommendation grid (instant) */}
             <DbTopGrid products={dbTopProducts} loading={dbTopLoading} onSelect={setDetailProduct} />
 
