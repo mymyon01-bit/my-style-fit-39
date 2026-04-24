@@ -36,6 +36,8 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editUsername, setEditUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [editBio, setEditBio] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editGender, setEditGender] = useState("");
@@ -88,6 +90,7 @@ const ProfilePage = () => {
     setMyOotds(ootdsRes.data || []);
     if (p) {
       setEditName(p.display_name || "");
+      setEditUsername(p.username || "");
       setEditBio(p.bio || "");
       setEditLocation(p.location || "");
       setEditGender(p.gender_preference || "");
