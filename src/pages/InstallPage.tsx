@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Download, Smartphone, Apple, Share, Plus } from "lucide-react";
+import { Download, Smartphone, Apple, Share, Plus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BeforeInstallPromptEvent extends Event {
