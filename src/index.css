@@ -650,4 +650,17 @@
     white-space: nowrap;
     min-width: 0;
   }
+
+  /* iOS notch / Dynamic Island safe-area helpers.
+     Use on any sticky header pinned to top:0 so it isn't clipped under the
+     status bar on iPhone / native shells. */
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .top-safe { top: env(safe-area-inset-top, 0px); }
+
+  /* Sticky page header — adds the status bar area to its existing top
+     padding. Apply alongside `sticky top-0`. */
+  .sticky-header {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.625rem);
+  }
 }
