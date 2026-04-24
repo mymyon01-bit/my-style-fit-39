@@ -70,18 +70,30 @@ export type OOTDBgTheme =
   | "rain"
   | "storm"
   | "snow"
-  | "sunset";
+  | "sunset"
+  // Fashion-mood scenes — live video only (require realistic mode).
+  | "runway"
+  | "neon"
+  | "desert"
+  | "cafe"
+  | "metropolis";
 
 export const OOTD_BG_THEMES: { id: OOTDBgTheme; label: string; emoji: string; description: string }[] = [
-  { id: "none",   label: "None",                 emoji: "○",  description: "Clean — no background effect" },
-  { id: "sakura", label: "Cherry blossoms",      emoji: "🌸", description: "Petals drifting between trees" },
-  { id: "leaves", label: "Autumn leaves",        emoji: "🍂", description: "Golden leaves swirling in the wind" },
-  { id: "sunny",  label: "Sunny day",            emoji: "☀️", description: "Warm sun rays and sparkles" },
-  { id: "sunset", label: "Golden sunset",        emoji: "🌅", description: "Warm sky at golden hour" },
-  { id: "rain",   label: "Soft rain",            emoji: "🌧️", description: "A quiet, steady rain" },
-  { id: "storm",  label: "Thunderstorm",         emoji: "⛈️", description: "Storm clouds with heavy rain" },
-  { id: "snow",   label: "Falling snow",         emoji: "❄️", description: "Soft snowflakes drifting down" },
-  { id: "stars",  label: "Cosmic stars",         emoji: "✦",  description: "A deep-space night sky" },
+  { id: "none",       label: "None",                 emoji: "○",  description: "Clean — no background effect" },
+  { id: "sakura",     label: "Cherry blossoms",      emoji: "🌸", description: "Petals drifting between trees" },
+  { id: "leaves",     label: "Autumn leaves",        emoji: "🍂", description: "Golden leaves swirling in the wind" },
+  { id: "sunny",      label: "Sunny day",            emoji: "☀️", description: "Warm sun rays and sparkles" },
+  { id: "sunset",     label: "Golden sunset",        emoji: "🌅", description: "Warm sky at golden hour" },
+  { id: "rain",       label: "Soft rain",            emoji: "🌧️", description: "A quiet, steady rain" },
+  { id: "storm",      label: "Thunderstorm",         emoji: "⛈️", description: "Storm clouds with heavy rain" },
+  { id: "snow",       label: "Falling snow",         emoji: "❄️", description: "Soft snowflakes drifting down" },
+  { id: "stars",      label: "Cosmic stars",         emoji: "✦",  description: "A deep-space night sky" },
+  // Fashion-mood live scenes
+  { id: "runway",     label: "Runway show",          emoji: "👠", description: "Editorial catwalk under spotlights" },
+  { id: "neon",       label: "Neon city",            emoji: "🌃", description: "Rain-soaked Tokyo, neon reflections" },
+  { id: "desert",     label: "Golden desert",        emoji: "🏜️", description: "Honey-lit dunes at golden hour" },
+  { id: "cafe",       label: "Parisian café",        emoji: "☕", description: "Soft window light, warm calm mood" },
+  { id: "metropolis", label: "Blue-hour skyline",    emoji: "🌇", description: "Cinematic drone over glass towers" },
 ];
 
 const STORAGE_KEY = "ootd-bg-theme";
