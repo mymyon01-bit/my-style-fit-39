@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Heart, Send } from "lucide-react";
+import { X, Trash2, Heart, Send, Eye, Bookmark, BookmarkCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { openConversationWith } from "@/hooks/useMessages";
+import StoryViewersSheet from "./StoryViewersSheet";
 import type { UserStories } from "./StoriesRow";
 
 interface Props {
@@ -43,6 +44,10 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
   const [likeBusy, setLikeBusy] = useState(false);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [viewersOpen, setViewersOpen] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
+  const [pubBusy, setPubBusy] = useState(false);
 
   const currentUser = userStories[userIdx];
   const currentStory = currentUser?.stories[storyIdx];
