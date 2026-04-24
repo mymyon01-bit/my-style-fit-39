@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import StoryRippleRing from "@/components/StoryRippleRing";
 import CirclesSheet from "@/components/CirclesSheet";
+import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 
 interface ProfileData {
   display_name: string | null;
@@ -14,6 +15,7 @@ interface ProfileData {
   bio: string | null;
   is_private: boolean | null;
   hashtags: string[] | null;
+  is_official?: boolean | null;
 }
 
 interface Props {
@@ -52,7 +54,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
     if (!user) return;
     setLoading(true);
     const [pRes, cRes, rRes] = await Promise.all([
-      supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags, is_official").eq("user_id", user.id).maybeSingle(),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
     ]);
@@ -129,21 +131,23 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
         <div className="relative shrink-0">
           <div className="relative h-16 w-16">
             <StoryRippleRing active={!!hasStory} unseen={!!hasUnseenStory} inset={3} />
-            <button
-              type="button"
-              onClick={() => {
-                if (hasStory && onViewMyStory) onViewMyStory();
-                else photoRef.current?.click();
-              }}
-              className="relative h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] ring-2 ring-background block"
-              aria-label={hasStory ? "View your story" : "Change profile photo"}
-            >
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-base font-semibold text-foreground/60">{initial}</div>
-              )}
-            </button>
+            <OfficialAvatarRing isOfficial={profile?.is_official} className="absolute inset-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasStory && onViewMyStory) onViewMyStory();
+                  else photoRef.current?.click();
+                }}
+                className="relative h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] ring-2 ring-background block"
+                aria-label={hasStory ? "View your story" : "Change profile photo"}
+              >
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-base font-semibold text-foreground/60">{initial}</div>
+                )}
+              </button>
+            </OfficialAvatarRing>
           </div>
           <button
             onClick={() => {
@@ -188,6 +192,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
             <>
               <div className="flex items-center gap-2">
                 <p className="font-display text-[15px] text-foreground/90 truncate">{displayName}</p>
+                {profile?.is_official && <OfficialBadge />}
                 <button onClick={() => setEditing(true)} className="text-foreground/40 hover:text-accent transition-colors">
                   <Edit3 className="h-3 w-3" />
                 </button>

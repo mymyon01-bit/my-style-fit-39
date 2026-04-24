@@ -12,6 +12,7 @@ import OOTDBackground, { type OOTDBgTheme } from "@/components/ootd/OOTDBackgrou
 import type { CardColor } from "@/components/ootd/CardColorPicker";
 import type { SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
+import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 
 interface UserProfileData {
   user_id: string;
@@ -20,6 +21,7 @@ interface UserProfileData {
   bio: string | null;
   hashtags: string[] | null;
   is_private: boolean | null;
+  is_official: boolean | null;
   ootd_bg_theme: string | null;
   ootd_bg_realistic: boolean | null;
   ootd_card_color: CardColor | null;
@@ -152,7 +154,7 @@ const UserProfilePage = () => {
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, bio, hashtags, is_private, ootd_bg_theme, ootd_bg_realistic, ootd_card_color, song_of_the_day")
+      .select("user_id, display_name, avatar_url, bio, hashtags, is_private, is_official, ootd_bg_theme, ootd_bg_realistic, ootd_card_color, song_of_the_day")
       .eq("user_id", userId!)
       .maybeSingle();
     setProfile(data as unknown as UserProfileData | null);
@@ -278,20 +280,23 @@ const UserProfilePage = () => {
             className="flex items-start gap-4 mb-6 rounded-2xl border border-border/30 p-4 backdrop-blur-md"
             style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
           >
-            <div className="h-16 w-16 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
-              {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center text-foreground/20 text-lg font-bold">
-                  {(profile.display_name || "?")[0].toUpperCase()}
-                </div>
-              )}
-            </div>
+            <OfficialAvatarRing isOfficial={profile.is_official}>
+              <div className="h-16 w-16 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+                {profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-foreground/20 text-lg font-bold">
+                    {(profile.display_name || "?")[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </OfficialAvatarRing>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-display text-base font-semibold text-foreground/90">
                   {profile.display_name || "Anonymous"}
                 </h2>
+                {profile.is_official && <OfficialBadge />}
                 {dailyWins.length > 0 && <Crown className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
                 {profile.is_private && <Lock className="h-3 w-3 text-foreground/30" />}
               </div>
@@ -468,7 +473,7 @@ const UserProfilePage = () => {
       {selectedPost && profile && (
         <OOTDPostDetail
           post={selectedPost}
-          profile={{ display_name: profile.display_name, avatar_url: profile.avatar_url }}
+          profile={{ display_name: profile.display_name, avatar_url: profile.avatar_url, is_official: profile.is_official }}
           reaction={reactions[selectedPost.id]}
           isStarred={starredPosts.has(selectedPost.id)}
           isSaved={savedPosts.has(selectedPost.id)}

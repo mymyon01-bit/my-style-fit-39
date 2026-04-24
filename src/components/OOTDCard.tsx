@@ -2,6 +2,7 @@ import { memo } from "react";
 import { motion } from "framer-motion";
 import { Heart, Star, Edit3, Trash2, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 
 /**
  * Hardcoded, reusable OOTD card frame.
@@ -28,6 +29,7 @@ export interface OOTDCardProfile {
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
+  is_official?: boolean | null;
 }
 
 interface Props {
@@ -86,21 +88,26 @@ function OOTDCardImpl({
                 className="flex items-center gap-1.5 min-w-0"
                 aria-label={profile?.display_name || "View profile"}
               >
-                <div className="h-7 w-7 rounded-full overflow-hidden ring-1 ring-white/80 shadow-md bg-foreground/20 backdrop-blur-sm shrink-0">
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt={profile.display_name || ""}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[9px] font-semibold text-white">
-                      {initial}
-                    </div>
-                  )}
-                </div>
-                <span className="text-[9px] font-medium text-white/85 truncate max-w-[80px]">
-                  {profile?.display_name || "Anonymous"}
+                <OfficialAvatarRing isOfficial={profile?.is_official}>
+                  <div className="h-7 w-7 rounded-full overflow-hidden ring-1 ring-white/80 shadow-md bg-foreground/20 backdrop-blur-sm shrink-0">
+                    {profile?.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt={profile.display_name || ""}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[9px] font-semibold text-white">
+                        {initial}
+                      </div>
+                    )}
+                  </div>
+                </OfficialAvatarRing>
+                <span className="flex items-center gap-1 min-w-0">
+                  <span className="text-[9px] font-medium text-white/85 truncate max-w-[80px]">
+                    {profile?.display_name || "Anonymous"}
+                  </span>
+                  {profile?.is_official && <OfficialBadge compact className="text-white" />}
                 </span>
               </button>
             ) : (
@@ -184,6 +191,7 @@ const OOTDCard = memo(OOTDCardImpl, (prev, next) => {
     prev.post.star_count === next.post.star_count &&
     prev.profile?.avatar_url === next.profile?.avatar_url &&
     prev.profile?.display_name === next.profile?.display_name &&
+    prev.profile?.is_official === next.profile?.is_official &&
     prev.showAuthor === next.showAuthor &&
     prev.isMyPage === next.isMyPage
   );

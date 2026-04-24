@@ -1642,6 +1642,7 @@ export type Database = {
           gender_preference: string | null
           hashtags: string[] | null
           id: string
+          is_official: boolean
           is_private: boolean | null
           language: string | null
           location: string | null
@@ -1674,6 +1675,7 @@ export type Database = {
           gender_preference?: string | null
           hashtags?: string[] | null
           id?: string
+          is_official?: boolean
           is_private?: boolean | null
           language?: string | null
           location?: string | null
@@ -1706,6 +1708,7 @@ export type Database = {
           gender_preference?: string | null
           hashtags?: string[] | null
           id?: string
+          is_official?: boolean
           is_private?: boolean | null
           language?: string | null
           location?: string | null
