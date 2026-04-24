@@ -4,10 +4,10 @@ import { useMemo } from "react";
  * Animated decorative background that lives ONLY behind the OOTD tab content.
  * Themed effects are user-selectable from My Page → "My Background".
  *
+ * Each theme is a self-contained "scene" — it owns its colors, gradients,
+ * particles, and signature flourishes (e.g. cherry trees, storm clouds).
  * Rendered as a fixed full-viewport layer with `pointer-events-none` so it
- * never interferes with scrolling, taps, or modals. All effects are subtle
- * and respect the dark/light theme by using semantic HSL tokens with low
- * opacity.
+ * never interferes with scrolling, taps, or modals.
  */
 export type OOTDBgTheme =
   | "none"
@@ -20,12 +20,12 @@ export type OOTDBgTheme =
 
 export const OOTD_BG_THEMES: { id: OOTDBgTheme; label: string; emoji: string; description: string }[] = [
   { id: "none",   label: "None",                 emoji: "○", description: "Clean — no background effect" },
-  { id: "stars",  label: "Falling stars",        emoji: "✦", description: "Gentle stars drifting down" },
-  { id: "sakura", label: "Cherry blossoms",      emoji: "🌸", description: "Petals carried on the breeze" },
+  { id: "stars",  label: "Cosmic stars",         emoji: "✦", description: "A deep-space night sky" },
+  { id: "sakura", label: "Cherry blossoms",      emoji: "🌸", description: "Petals drifting between trees" },
   { id: "leaves", label: "Autumn leaves",        emoji: "🍂", description: "Leaves swirling in the wind" },
   { id: "sunny",  label: "Sunny day",            emoji: "☀️", description: "Warm sun rays and sparkles" },
   { id: "rain",   label: "Soft rain",            emoji: "🌧️", description: "A quiet, steady rain" },
-  { id: "storm",  label: "Thunderstorm",         emoji: "⛈️", description: "Heavy rain with distant lightning" },
+  { id: "storm",  label: "Thunderstorm",         emoji: "⛈️", description: "Storm clouds with lightning" },
 ];
 
 const STORAGE_KEY = "ootd-bg-theme";
@@ -51,15 +51,16 @@ export default function OOTDBackground({ theme }: Props) {
   // Particle counts per theme. Memoized so we don't regenerate on every render.
   const particles = useMemo(() => {
     const count =
-      theme === "stars"  ? 26 :
-      theme === "sakura" ? 30 :
-      theme === "leaves" ? 22 :
-      theme === "sunny"  ? 18 :
-      theme === "rain"   ? 60 :
-      theme === "storm"  ? 90 : 0;
+      theme === "stars"  ? 140 :
+      theme === "sakura" ? 36  :
+      theme === "leaves" ? 22  :
+      theme === "sunny"  ? 18  :
+      theme === "rain"   ? 60  :
+      theme === "storm"  ? 110 : 0;
     return Array.from({ length: count }).map((_, i) => ({
       id: i,
       left: Math.random() * 100,
+      top: Math.random() * 100,
       delay: Math.random() * 8,
       duration: 4 + Math.random() * 8,
       size: 0.6 + Math.random() * 1.6,
@@ -70,27 +71,233 @@ export default function OOTDBackground({ theme }: Props) {
 
   if (theme === "none") return null;
 
+  // ── Cosmic stars: deep-space sky with twinkling stars + shooting stars ──
+  if (theme === "stars") {
+    const shooting = [0, 1, 2];
+    return (
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Deep space background — overrides app bg for true cosmic feel */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 30% 20%, #1a1148 0%, #0a0820 45%, #04030f 100%)",
+          }}
+        />
+        {/* Soft nebula clouds */}
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            background:
+              "radial-gradient(circle at 75% 60%, rgba(160, 90, 220, 0.25), transparent 45%), radial-gradient(circle at 20% 80%, rgba(80, 140, 220, 0.20), transparent 40%), radial-gradient(circle at 60% 15%, rgba(220, 110, 180, 0.15), transparent 35%)",
+          }}
+        />
+        {/* Twinkling stars */}
+        {particles.map((p) => (
+          <span
+            key={p.id}
+            className="absolute block rounded-full bg-white"
+            style={{
+              left: `${p.left}%`,
+              top: `${p.top}%`,
+              width: `${p.size * 1.4}px`,
+              height: `${p.size * 1.4}px`,
+              boxShadow: `0 0 ${p.size * 4}px rgba(255,255,255,0.9)`,
+              animation: `ootd-star-twinkle ${2 + p.duration / 2}s ease-in-out ${p.delay}s infinite`,
+            }}
+          />
+        ))}
+        {/* Shooting stars */}
+        {shooting.map((i) => (
+          <span
+            key={`shoot-${i}`}
+            className="absolute block"
+            style={{
+              top: `${10 + i * 25}%`,
+              left: "-10%",
+              width: "120px",
+              height: "1.5px",
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)",
+              filter: "drop-shadow(0 0 4px rgba(180,200,255,0.9))",
+              animation: `ootd-shoot ${6 + i * 3}s ease-in ${i * 4}s infinite`,
+              transform: "rotate(18deg)",
+            }}
+          />
+        ))}
+        <style>{`
+          @keyframes ootd-star-twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+          }
+          @keyframes ootd-shoot {
+            0%   { transform: translate3d(0, 0, 0) rotate(18deg); opacity: 0; }
+            5%   { opacity: 1; }
+            40%  { transform: translate3d(120vw, 40vh, 0) rotate(18deg); opacity: 0; }
+            100% { transform: translate3d(120vw, 40vh, 0) rotate(18deg); opacity: 0; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ── Sakura: cherry trees on both sides + drifting petals ────────────────
+  if (theme === "sakura") {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Soft pink dawn sky */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255, 226, 234, 0.55) 0%, rgba(255, 240, 245, 0.25) 45%, transparent 100%)",
+          }}
+        />
+
+        {/* LEFT cherry tree */}
+        <CherryTree side="left" />
+        {/* RIGHT cherry tree */}
+        <CherryTree side="right" />
+
+        {/* Petals drifting across */}
+        {particles.map((p) => (
+          <span
+            key={p.id}
+            className="absolute block"
+            style={{
+              left: `${p.left}%`,
+              top: "-10%",
+              fontSize: `${p.size * 14}px`,
+              color: "rgba(255, 183, 197, 0.95)",
+              animation: `ootd-petal-fall ${p.duration + 4}s linear ${p.delay}s infinite`,
+              // @ts-ignore
+              "--drift": `${p.drift * 1.5}px`,
+              "--rot": `${p.rot}deg`,
+            } as any}
+          >
+            🌸
+          </span>
+        ))}
+
+        <style>{`
+          @keyframes ootd-petal-fall {
+            0%   { transform: translate3d(0, 0, 0) rotate(var(--rot)); opacity: 0; }
+            10%  { opacity: 1; }
+            50%  { transform: translate3d(calc(var(--drift) * 0.5), 50vh, 0) rotate(calc(var(--rot) + 220deg)); }
+            90%  { opacity: 1; }
+            100% { transform: translate3d(var(--drift), 110vh, 0) rotate(calc(var(--rot) + 540deg)); opacity: 0; }
+          }
+          @keyframes ootd-tree-sway {
+            0%, 100% { transform: rotate(-1.2deg); }
+            50% { transform: rotate(1.2deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ── Storm: dark clouds + heavy rain + lightning flashes ─────────────────
+  if (theme === "storm") {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Dark stormy sky */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, #1a1f2e 0%, #2a2f3e 60%, #1f2330 100%)",
+          }}
+        />
+
+        {/* Storm clouds — drifting blobs in the upper third */}
+        <StormCloud top="4%" left="-10%" size={420} delay={0} duration={120} opacity={0.85} />
+        <StormCloud top="2%" left="30%" size={520} delay={20} duration={140} opacity={0.92} />
+        <StormCloud top="8%" left="60%" size={380} delay={5} duration={110} opacity={0.78} />
+        <StormCloud top="14%" left="85%" size={460} delay={35} duration={150} opacity={0.85} />
+        <StormCloud top="22%" left="15%" size={340} delay={50} duration={130} opacity={0.65} />
+
+        {/* Lightning flash overlay */}
+        <div className="absolute inset-0 animate-[ootd-lightning_6s_linear_infinite]" />
+
+        {/* Lightning bolts — randomly positioned, briefly visible */}
+        <Lightning left="22%" delay={2.1} />
+        <Lightning left="68%" delay={4.6} />
+        <Lightning left="45%" delay={9.2} />
+
+        {/* Heavy rain */}
+        {particles.map((p) => (
+          <span
+            key={p.id}
+            className="absolute block"
+            style={{
+              left: `${p.left}%`,
+              top: "-10%",
+              width: "1.5px",
+              height: `${16 + p.size * 12}px`,
+              background: "linear-gradient(to bottom, transparent, rgba(190, 210, 240, 0.85))",
+              transform: "rotate(14deg)",
+              animation: `ootd-rain-heavy ${0.55 + p.duration / 14}s linear ${p.delay / 2}s infinite`,
+            }}
+          />
+        ))}
+
+        <style>{`
+          @keyframes ootd-rain-heavy {
+            0%   { transform: translate3d(0, 0, 0) rotate(14deg); opacity: 0; }
+            10%  { opacity: 0.9; }
+            100% { transform: translate3d(-25vh, 115vh, 0) rotate(14deg); opacity: 0; }
+          }
+          @keyframes ootd-lightning {
+            0%, 88%, 100% { background-color: rgba(255,255,255,0); }
+            89% { background-color: rgba(220,230,255,0.28); }
+            90% { background-color: rgba(255,255,255,0); }
+            91% { background-color: rgba(220,230,255,0.18); }
+            92% { background-color: rgba(255,255,255,0); }
+            96% { background-color: rgba(220,230,255,0.10); }
+            97% { background-color: rgba(255,255,255,0); }
+          }
+          @keyframes ootd-bolt {
+            0%, 96%, 100% { opacity: 0; }
+            97% { opacity: 1; }
+            98% { opacity: 0.2; }
+            99% { opacity: 0.9; }
+          }
+          @keyframes ootd-cloud-drift {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(110vw + 600px)); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   // ── Sunny day ──────────────────────────────────────────────────────────
   if (theme === "sunny") {
     return (
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-amber-200/15 via-transparent to-transparent" />
         <div
-          className="absolute -top-1/3 left-1/2 h-[160%] w-[160%] -translate-x-1/2 opacity-50"
+          className="absolute inset-0"
           style={{
             background:
-              "conic-gradient(from 0deg, transparent 0deg, hsl(38 95% 70% / 0.10) 6deg, transparent 12deg, transparent 30deg, hsl(38 95% 70% / 0.08) 36deg, transparent 42deg, transparent 60deg, hsl(38 95% 70% / 0.10) 66deg, transparent 72deg, transparent 360deg)",
+              "linear-gradient(180deg, rgba(255, 235, 180, 0.45) 0%, rgba(255, 245, 220, 0.20) 40%, transparent 100%)",
+          }}
+        />
+        <div
+          className="absolute -top-1/3 left-1/2 h-[160%] w-[160%] -translate-x-1/2 opacity-60"
+          style={{
+            background:
+              "conic-gradient(from 0deg, transparent 0deg, rgba(255, 200, 80, 0.18) 6deg, transparent 12deg, transparent 30deg, rgba(255, 200, 80, 0.14) 36deg, transparent 42deg, transparent 60deg, rgba(255, 200, 80, 0.18) 66deg, transparent 72deg, transparent 360deg)",
             animation: "ootd-sun-rotate 80s linear infinite",
           }}
         />
         {particles.map((p) => (
           <span
             key={p.id}
-            className="absolute block text-amber-300/70"
+            className="absolute block"
             style={{
               left: `${p.left}%`,
-              top: `${(p.delay * 7) % 100}%`,
+              top: `${p.top}%`,
               fontSize: `${p.size * 10}px`,
+              color: "rgba(255, 200, 80, 0.85)",
               animation: `ootd-twinkle ${3 + p.duration / 3}s ease-in-out ${p.delay}s infinite`,
             }}
           >
@@ -101,45 +308,7 @@ export default function OOTDBackground({ theme }: Props) {
           @keyframes ootd-sun-rotate { to { transform: translateX(-50%) rotate(360deg); } }
           @keyframes ootd-twinkle {
             0%, 100% { opacity: 0.2; transform: scale(0.8); }
-            50% { opacity: 0.9; transform: scale(1.1); }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  // ── Storm (rain + lightning flashes) ───────────────────────────────────
-  if (theme === "storm") {
-    return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-slate-900/30" />
-        <div className="absolute inset-0 bg-white/0 animate-[ootd-lightning_7s_linear_infinite]" />
-        {particles.map((p) => (
-          <span
-            key={p.id}
-            className="absolute block bg-gradient-to-b from-transparent via-sky-200/70 to-sky-100/90"
-            style={{
-              left: `${p.left}%`,
-              top: "-10%",
-              width: "1.5px",
-              height: `${14 + p.size * 10}px`,
-              transform: "rotate(12deg)",
-              animation: `ootd-rain ${0.6 + p.duration / 12}s linear ${p.delay / 2}s infinite`,
-            }}
-          />
-        ))}
-        <style>{`
-          @keyframes ootd-rain {
-            0%   { transform: translate3d(0, 0, 0) rotate(12deg); opacity: 0; }
-            10%  { opacity: 0.85; }
-            100% { transform: translate3d(-20vh, 110vh, 0) rotate(12deg); opacity: 0; }
-          }
-          @keyframes ootd-lightning {
-            0%, 92%, 100% { background-color: rgba(255,255,255,0); }
-            93% { background-color: rgba(255,255,255,0.18); }
-            94% { background-color: rgba(255,255,255,0); }
-            96% { background-color: rgba(255,255,255,0.12); }
-            97% { background-color: rgba(255,255,255,0); }
+            50% { opacity: 0.95; transform: scale(1.15); }
           }
         `}</style>
       </div>
@@ -150,16 +319,23 @@ export default function OOTDBackground({ theme }: Props) {
   if (theme === "rain") {
     return (
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-500/5 via-transparent to-slate-500/10" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(120, 140, 170, 0.18) 0%, transparent 60%, rgba(120, 140, 170, 0.12) 100%)",
+          }}
+        />
         {particles.map((p) => (
           <span
             key={p.id}
-            className="absolute block bg-gradient-to-b from-transparent via-sky-300/40 to-sky-200/60"
+            className="absolute block"
             style={{
               left: `${p.left}%`,
               top: "-10%",
               width: "1px",
               height: `${10 + p.size * 6}px`,
+              background: "linear-gradient(to bottom, transparent, rgba(170, 200, 230, 0.6))",
               transform: "rotate(8deg)",
               animation: `ootd-rain-soft ${1 + p.duration / 8}s linear ${p.delay}s infinite`,
             }}
@@ -176,21 +352,16 @@ export default function OOTDBackground({ theme }: Props) {
     );
   }
 
-  // ── Particle themes: stars / sakura / leaves ───────────────────────────
-  const symbol =
-    theme === "stars"  ? "✦" :
-    theme === "sakura" ? "🌸" :
-    "🍂";
-
-  const tint =
-    theme === "stars"  ? "hsl(var(--star) / 0.85)" :
-    theme === "sakura" ? "rgba(255, 183, 197, 0.85)" :
-    "rgba(214, 138, 73, 0.85)";
-
-  const sizeBase = theme === "stars" ? 11 : 14;
-
+  // ── Autumn leaves (default fallthrough) ────────────────────────────────
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(220, 150, 80, 0.18) 0%, transparent 50%, rgba(180, 100, 50, 0.10) 100%)",
+        }}
+      />
       {particles.map((p) => (
         <span
           key={p.id}
@@ -198,19 +369,19 @@ export default function OOTDBackground({ theme }: Props) {
           style={{
             left: `${p.left}%`,
             top: "-10%",
-            fontSize: `${p.size * sizeBase}px`,
-            color: tint,
-            animation: `ootd-fall ${p.duration}s linear ${p.delay}s infinite`,
-            // @ts-ignore — custom properties consumed by the keyframes below
+            fontSize: `${p.size * 14}px`,
+            color: "rgba(214, 138, 73, 0.9)",
+            animation: `ootd-leaf-fall ${p.duration}s linear ${p.delay}s infinite`,
+            // @ts-ignore
             "--drift": `${p.drift}px`,
             "--rot": `${p.rot}deg`,
           } as any}
         >
-          {symbol}
+          🍂
         </span>
       ))}
       <style>{`
-        @keyframes ootd-fall {
+        @keyframes ootd-leaf-fall {
           0%   { transform: translate3d(0, 0, 0) rotate(var(--rot)); opacity: 0; }
           10%  { opacity: 1; }
           90%  { opacity: 1; }
@@ -218,5 +389,164 @@ export default function OOTDBackground({ theme }: Props) {
         }
       `}</style>
     </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Sakura tree — silhouette of a trunk with a pink blossom canopy. Anchored
+// to the left or right edge of the screen and gently sways.
+// ────────────────────────────────────────────────────────────────────────
+function CherryTree({ side }: { side: "left" | "right" }) {
+  const isLeft = side === "left";
+  return (
+    <div
+      className="absolute bottom-0 h-full pointer-events-none"
+      style={{
+        [isLeft ? "left" : "right"]: "-40px",
+        width: "260px",
+        transformOrigin: isLeft ? "bottom left" : "bottom right",
+        animation: "ootd-tree-sway 6s ease-in-out infinite",
+      } as any}
+    >
+      <svg
+        viewBox="0 0 260 700"
+        className="absolute bottom-0 h-full w-full"
+        style={{ transform: isLeft ? "none" : "scaleX(-1)" }}
+        preserveAspectRatio="xMinYMax meet"
+      >
+        {/* Trunk + main branches */}
+        <path
+          d="M 40 700 C 50 600, 60 520, 80 440 C 95 380, 110 320, 130 270 L 145 270 C 125 320, 115 380, 105 440 C 95 520, 85 600, 75 700 Z"
+          fill="#3a2818"
+        />
+        <path
+          d="M 95 380 C 130 350, 170 320, 210 290"
+          stroke="#3a2818"
+          strokeWidth="9"
+          fill="none"
+          strokeLinecap="round"
+        />
+        <path
+          d="M 110 310 C 140 290, 175 260, 200 220"
+          stroke="#3a2818"
+          strokeWidth="7"
+          fill="none"
+          strokeLinecap="round"
+        />
+        <path
+          d="M 120 250 C 150 230, 180 200, 210 170"
+          stroke="#3a2818"
+          strokeWidth="6"
+          fill="none"
+          strokeLinecap="round"
+        />
+
+        {/* Pink blossom canopy — clusters of soft circles */}
+        {[
+          { cx: 90, cy: 280, r: 60 },
+          { cx: 140, cy: 240, r: 70 },
+          { cx: 195, cy: 215, r: 55 },
+          { cx: 175, cy: 285, r: 65 },
+          { cx: 220, cy: 270, r: 50 },
+          { cx: 110, cy: 200, r: 50 },
+          { cx: 160, cy: 175, r: 55 },
+          { cx: 215, cy: 155, r: 50 },
+          { cx: 130, cy: 320, r: 55 },
+          { cx: 200, cy: 330, r: 50 },
+        ].map((c, i) => (
+          <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill="rgba(255, 183, 210, 0.85)" />
+        ))}
+        {/* Highlight blooms */}
+        {[
+          { cx: 130, cy: 220, r: 22 },
+          { cx: 180, cy: 250, r: 18 },
+          { cx: 105, cy: 260, r: 16 },
+          { cx: 200, cy: 195, r: 14 },
+          { cx: 150, cy: 290, r: 18 },
+        ].map((c, i) => (
+          <circle key={`h-${i}`} cx={c.cx} cy={c.cy} r={c.r} fill="rgba(255, 220, 230, 0.95)" />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Storm cloud — a soft dark blob that drifts slowly across the upper sky.
+// ────────────────────────────────────────────────────────────────────────
+function StormCloud({
+  top,
+  left,
+  size,
+  delay,
+  duration,
+  opacity,
+}: {
+  top: string;
+  left: string;
+  size: number;
+  delay: number;
+  duration: number;
+  opacity: number;
+}) {
+  return (
+    <div
+      className="absolute"
+      style={{
+        top,
+        left,
+        width: `${size}px`,
+        height: `${size * 0.55}px`,
+        opacity,
+        filter: "blur(18px)",
+        animation: `ootd-cloud-drift ${duration}s linear ${delay}s infinite`,
+      }}
+    >
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 60%, #0c1018 0%, #1a2030 40%, transparent 75%)",
+        }}
+      />
+      <div
+        className="absolute"
+        style={{
+          top: "10%",
+          left: "20%",
+          width: "60%",
+          height: "70%",
+          borderRadius: "50%",
+          background:
+            "radial-gradient(ellipse at 50% 50%, #141a28 0%, transparent 70%)",
+        }}
+      />
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Lightning bolt — jagged white line that flashes briefly.
+// ────────────────────────────────────────────────────────────────────────
+function Lightning({ left, delay }: { left: string; delay: number }) {
+  return (
+    <svg
+      className="absolute"
+      style={{
+        top: "8%",
+        left,
+        width: "60px",
+        height: "240px",
+        filter: "drop-shadow(0 0 12px rgba(200,220,255,0.95))",
+        animation: `ootd-bolt 6s linear ${delay}s infinite`,
+        opacity: 0,
+      }}
+      viewBox="0 0 60 240"
+    >
+      <path
+        d="M 30 0 L 14 90 L 28 95 L 10 200 L 38 110 L 24 105 L 44 0 Z"
+        fill="rgba(240, 245, 255, 0.95)"
+      />
+    </svg>
   );
 }
