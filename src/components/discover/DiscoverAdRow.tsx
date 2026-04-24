@@ -44,27 +44,34 @@ export default function DiscoverAdRow({ pool, styleHints }: Props) {
     let cancelled = false;
     (async () => {
       const excludeIds = excludeKey ? excludeKey.split(",") : [];
-      const tags = (styleHints || []).filter(Boolean).slice(0, 3);
 
-      let q = supabase
+      // Pull a large pool of validated, image-having products from the DB,
+      // then shuffle client-side for a fresh random set every render.
+      const { data } = await supabase
         .from("product_cache")
         .select("id, name, brand, image_url, source_url")
+        .eq("is_active", true)
+        .eq("image_valid", true)
         .not("image_url", "is", null)
         .order("trend_score", { ascending: false })
-        .limit(20);
-      if (tags.length > 0) q = q.overlaps("style_tags", tags);
+        .limit(200);
 
-      const { data } = await q;
       if (cancelled) return;
-      const filtered = ((data || []) as AdItem[])
-        .filter((p) => !excludeIds.includes(p.id))
-        .slice(0, 5);
-      setItems(filtered);
+
+      const pool = ((data || []) as AdItem[]).filter(
+        (p) => !!p.image_url && !excludeIds.includes(p.id),
+      );
+      // Fisher-Yates shuffle then take 5
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      setItems(pool.slice(0, 5));
     })();
     return () => {
       cancelled = true;
     };
-  }, [excludeKey, styleHints?.join(",")]);
+  }, [excludeKey]);
 
   return (
     <div className="space-y-1.5">
