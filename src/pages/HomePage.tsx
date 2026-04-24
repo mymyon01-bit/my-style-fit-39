@@ -162,31 +162,37 @@ const HomePage = () => {
             <OOTDDiaryButton />
           </motion.div>
 
-          {/* Single-line round button row */}
+          {/* Button rows — mobile: 2 rows (Explore+StyleMe, then About+Share); desktop: single row */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-6 flex items-center justify-center gap-2.5 flex-nowrap"
+            className="mt-6 flex flex-col items-center gap-2.5 md:flex-row md:flex-wrap md:justify-center"
           >
-            <button
-              onClick={() => navigate("/discover")}
-              className="rounded-full bg-foreground px-5 py-2.5 text-[12px] font-semibold tracking-wide text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
-            >
-              {t("exploreStyles")}
-            </button>
-            <button
-              onClick={() => navigate("/about")}
-              className="rounded-full border border-foreground/20 px-5 py-2.5 text-[12px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap"
-            >
-              {t("about")}
-            </button>
-            <StyleMeButton variant="pill" />
-            <ShareButton
-              title="mymyon — AI fashion stylist"
-              url={typeof window !== "undefined" ? window.location.origin : "https://mymyon.com"}
-              className="self-center"
-            />
+            {/* Row 1 (mobile): Explore + Style Me */}
+            <div className="flex items-center justify-center gap-2.5 flex-nowrap">
+              <button
+                onClick={() => navigate("/discover")}
+                className="rounded-full bg-foreground px-4 py-2.5 text-[12px] font-semibold tracking-wide text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
+              >
+                {t("exploreStyles")}
+              </button>
+              <StyleMeButton variant="pill" />
+            </div>
+            {/* Row 2 (mobile): About + Share */}
+            <div className="flex items-center justify-center gap-2.5 flex-nowrap">
+              <button
+                onClick={() => navigate("/about")}
+                className="rounded-full border border-foreground/20 px-4 py-2.5 text-[12px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap"
+              >
+                {t("about")}
+              </button>
+              <ShareButton
+                title="mymyon — AI fashion stylist"
+                url={typeof window !== "undefined" ? window.location.origin : "https://mymyon.com"}
+                className="self-center"
+              />
+            </div>
           </motion.div>
 
           {/* Weather meta */}
