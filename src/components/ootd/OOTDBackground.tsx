@@ -178,6 +178,9 @@ export default function OOTDBackground({ theme }: Props) {
           </span>
         ))}
 
+        {/* Subtle window beads — viewer is at a window with cherry trees outside */}
+        <WindowDroplets density={14} intensity={0.7} />
+
         <style>{`
           @keyframes ootd-petal-fall {
             0%   { transform: translate3d(0, 0, 0) rotate(var(--rot)); opacity: 0; }
