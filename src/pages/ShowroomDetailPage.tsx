@@ -73,6 +73,13 @@ const ShowroomDetailPage = () => {
   }, [user, id]);
 
   const isOwner = !!user && !!room && user.id === room.user_id;
+  const { isFollowing, count: followerCount, toggle: toggleFollow } = useShowroomFollow(room?.id, user?.id);
+
+  const handleFollowClick = async () => {
+    if (!user) { toast.error("Sign in to follow"); return; }
+    if (isOwner) return;
+    await toggleFollow();
+  };
   const bestItem = useMemo(
     () => (room?.best_item_id ? items.find((i) => i.id === room.best_item_id) ?? null : null),
     [room?.best_item_id, items],
