@@ -839,6 +839,15 @@ const translations = {
   },
 } as const;
 
+// Languages without full translations fall back to English on every key.
+// Adding them here lets the language picker switch <html lang> and remember
+// the user's choice while we ship full localizations later.
+const fallbackLangs: Language[] = ["de", "es", "fr", "ja", "zh"];
+const translationsAll: Record<Language, typeof translations.en> = {
+  ...(translations as any),
+  ...Object.fromEntries(fallbackLangs.map((l) => [l, translations.en])),
+} as Record<Language, typeof translations.en>;
+
 type TranslationKey = keyof typeof translations.en;
 
 interface I18nContextType {
@@ -868,7 +877,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const t = useCallback(
-    (key: TranslationKey) => translations[lang][key] || translations.en[key] || key,
+    (key: TranslationKey) => translationsAll[lang]?.[key] || translations.en[key] || key,
     [lang]
   );
 
