@@ -109,7 +109,7 @@ const AboutPage = () => {
       </div>
 
       {/* Sticky chip nav — quick-jump to each section */}
-      <div className="sticky top-0 z-40 mt-6 border-b border-accent/10 bg-background/85 backdrop-blur-md">
+      <div className="sticky-header sticky top-0 z-40 mt-6 border-b border-accent/10 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center gap-2 overflow-x-auto px-8 py-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {SECTIONS.map((s, i) => (
             <motion.button
