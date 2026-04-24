@@ -652,30 +652,41 @@ const OOTDPage = () => {
               ))}
             </div>
             {/* Desktop-only right cluster (mobile shows it on its own row above) */}
-            {user && (
-              <div className="hidden lg:flex items-center gap-3 shrink-0">
-                <div className="flex items-center gap-1.5">
-                  <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
-                </div>
-                <MailboxIcon
-                  unread={msgUnread}
-                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
-                />
-                {notifUnread > 0 && (
-                  <button
-                    onClick={() => setNotifsOpen(true)}
-                    className="relative text-foreground/75 hover:text-foreground transition-colors"
-                    aria-label="Open notifications"
-                  >
-                    <Bell className="h-4 w-4" />
-                    <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
-                      {notifUnread > 99 ? "99+" : notifUnread}
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="hidden lg:flex items-center gap-3 shrink-0">
+              <button
+                onClick={openOOTDWelcome}
+                className="text-foreground/55 hover:text-foreground transition-colors"
+                aria-label="OOTD 안내 보기"
+                title="OOTD 안내"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+              {user && (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                    <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
+                  </div>
+                  <MailboxIcon
+                    unread={msgUnread}
+                    onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                  />
+                  {notifUnread > 0 && (
+                    <button
+                      onClick={() => setNotifsOpen(true)}
+                      className="relative text-foreground/75 hover:text-foreground transition-colors"
+                      aria-label="Open notifications"
+                    >
+                      <Bell className="h-4 w-4" />
+                      <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                        {notifUnread > 99 ? "99+" : notifUnread}
+                      </span>
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
