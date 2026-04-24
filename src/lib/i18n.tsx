@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
-export type Language = "en" | "ko" | "it";
+export type Language = "de" | "en" | "es" | "fr" | "it" | "ja" | "ko" | "zh";
 
 const translations = {
   en: {
