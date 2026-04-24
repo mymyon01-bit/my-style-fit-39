@@ -492,54 +492,109 @@ function AutumnTree({ side }: { side: "left" | "right" }) {
     <div
       className="absolute bottom-0 h-full pointer-events-none"
       style={{
-        [isLeft ? "left" : "right"]: "-30px",
-        width: "240px",
+        [isLeft ? "left" : "right"]: "-60px",
+        width: "380px",
         transformOrigin: isLeft ? "bottom left" : "bottom right",
         animation: "ootd-tree-sway 7s ease-in-out infinite",
       } as any}
     >
       <svg
-        viewBox="0 0 240 700"
+        viewBox="0 0 380 800"
         className="absolute bottom-0 h-full w-full"
         style={{ transform: isLeft ? "none" : "scaleX(-1)" }}
         preserveAspectRatio="xMinYMax meet"
       >
-        {/* Trunk */}
+        {/* Trunk — thicker, taller */}
         <path
-          d="M 35 700 C 45 600, 55 520, 70 440 C 85 380, 100 320, 120 270 L 135 270 C 115 320, 105 380, 95 440 C 85 520, 75 600, 65 700 Z"
-          fill="#3d2814"
+          d="M 50 800 C 60 680, 75 560, 95 460 C 115 380, 140 300, 170 240 L 200 240 C 165 300, 145 380, 130 460 C 115 560, 105 680, 95 800 Z"
+          fill="#2e1d0f"
         />
-        {/* Branches */}
-        <path d="M 85 380 C 120 350, 160 320, 200 290" stroke="#3d2814" strokeWidth="8" fill="none" strokeLinecap="round" />
-        <path d="M 100 310 C 130 290, 165 260, 195 220" stroke="#3d2814" strokeWidth="6" fill="none" strokeLinecap="round" />
-        <path d="M 115 250 C 145 230, 175 200, 205 165" stroke="#3d2814" strokeWidth="5" fill="none" strokeLinecap="round" />
+        {/* Branches — more, wider spread */}
+        <path d="M 120 410 C 170 370, 230 330, 295 290" stroke="#2e1d0f" strokeWidth="11" fill="none" strokeLinecap="round" />
+        <path d="M 140 330 C 185 305, 235 270, 290 220" stroke="#2e1d0f" strokeWidth="9" fill="none" strokeLinecap="round" />
+        <path d="M 160 260 C 200 235, 250 195, 305 150" stroke="#2e1d0f" strokeWidth="7" fill="none" strokeLinecap="round" />
+        <path d="M 110 480 C 70 450, 35 410, 10 370" stroke="#2e1d0f" strokeWidth="9" fill="none" strokeLinecap="round" />
+        <path d="M 130 380 C 95 355, 55 320, 25 280" stroke="#2e1d0f" strokeWidth="7" fill="none" strokeLinecap="round" />
 
-        {/* Amber/red foliage — layered circles */}
+        {/* Yellow/gold foliage — big lush canopy */}
         {[
-          { cx: 80,  cy: 280, r: 60, c: "rgba(200, 90, 40, 0.85)" },
-          { cx: 130, cy: 240, r: 70, c: "rgba(220, 120, 50, 0.85)" },
-          { cx: 185, cy: 215, r: 55, c: "rgba(200, 80, 35, 0.85)" },
-          { cx: 165, cy: 285, r: 65, c: "rgba(230, 140, 60, 0.85)" },
-          { cx: 210, cy: 270, r: 50, c: "rgba(180, 70, 30, 0.85)" },
-          { cx: 100, cy: 200, r: 50, c: "rgba(220, 130, 55, 0.85)" },
-          { cx: 150, cy: 175, r: 55, c: "rgba(200, 95, 40, 0.85)" },
-          { cx: 205, cy: 155, r: 50, c: "rgba(230, 150, 70, 0.85)" },
-          { cx: 120, cy: 320, r: 55, c: "rgba(190, 80, 35, 0.85)" },
-          { cx: 190, cy: 330, r: 50, c: "rgba(215, 115, 50, 0.85)" },
+          { cx: 100, cy: 320, r: 85, c: "rgba(212, 165, 40, 0.92)" },
+          { cx: 175, cy: 260, r: 100, c: "rgba(232, 188, 55, 0.92)" },
+          { cx: 250, cy: 230, r: 80, c: "rgba(200, 150, 30, 0.92)" },
+          { cx: 220, cy: 320, r: 95, c: "rgba(240, 200, 70, 0.92)" },
+          { cx: 295, cy: 290, r: 70, c: "rgba(190, 140, 25, 0.92)" },
+          { cx: 130, cy: 200, r: 75, c: "rgba(225, 180, 60, 0.92)" },
+          { cx: 200, cy: 165, r: 80, c: "rgba(210, 160, 40, 0.92)" },
+          { cx: 280, cy: 140, r: 70, c: "rgba(238, 195, 75, 0.92)" },
+          { cx: 165, cy: 380, r: 80, c: "rgba(195, 145, 30, 0.92)" },
+          { cx: 260, cy: 380, r: 75, c: "rgba(225, 175, 55, 0.92)" },
+          { cx: 60, cy: 380, r: 65, c: "rgba(205, 155, 35, 0.92)" },
+          { cx: 35, cy: 320, r: 55, c: "rgba(220, 170, 50, 0.92)" },
         ].map((c, i) => (
           <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill={c.c} />
         ))}
-        {/* Bright highlight leaves */}
+        {/* Bright golden highlight leaves */}
         {[
-          { cx: 130, cy: 220, r: 22, c: "rgba(255, 190, 100, 0.95)" },
-          { cx: 175, cy: 250, r: 18, c: "rgba(255, 170, 80, 0.95)" },
-          { cx: 100, cy: 260, r: 16, c: "rgba(245, 150, 70, 0.95)" },
-          { cx: 195, cy: 195, r: 14, c: "rgba(255, 200, 110, 0.95)" },
-          { cx: 145, cy: 290, r: 18, c: "rgba(250, 160, 75, 0.95)" },
+          { cx: 175, cy: 240, r: 30, c: "rgba(255, 225, 110, 0.98)" },
+          { cx: 240, cy: 280, r: 26, c: "rgba(255, 215, 95, 0.98)" },
+          { cx: 130, cy: 290, r: 22, c: "rgba(255, 210, 90, 0.98)" },
+          { cx: 270, cy: 200, r: 20, c: "rgba(255, 230, 130, 0.98)" },
+          { cx: 200, cy: 360, r: 25, c: "rgba(255, 220, 100, 0.98)" },
+          { cx: 90, cy: 350, r: 18, c: "rgba(255, 218, 105, 0.98)" },
+          { cx: 220, cy: 180, r: 16, c: "rgba(255, 235, 140, 0.98)" },
         ].map((c, i) => (
           <circle key={`h-${i}`} cx={c.cx} cy={c.cy} r={c.r} fill={c.c} />
         ))}
       </svg>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Window droplets — fixed beads of "water" sitting on an invisible window
+// pane. Used by rain, storm, and (lightly) sakura to suggest the viewer
+// is looking outside through glass. Each droplet has a tiny highlight to
+// fake refraction and a slow downward "trail" so it feels alive.
+// ────────────────────────────────────────────────────────────────────────
+function WindowDroplets({ density = 22, intensity = 1 }: { density?: number; intensity?: number }) {
+  const beads = Array.from({ length: density }).map((_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    size: 6 + Math.random() * 18 * intensity,
+    delay: Math.random() * 10,
+    duration: 8 + Math.random() * 14,
+    trail: 30 + Math.random() * 80,
+  }));
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {beads.map((b) => (
+        <span
+          key={b.id}
+          className="absolute"
+          style={{
+            left: `${b.left}%`,
+            top: `${b.top}%`,
+            width: `${b.size}px`,
+            height: `${b.size}px`,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.85) 0%, rgba(220,235,250,0.55) 25%, rgba(180,200,225,0.30) 60%, transparent 80%)",
+            boxShadow:
+              "inset -1px -2px 3px rgba(80,100,130,0.35), 0 1px 2px rgba(255,255,255,0.4)",
+            animation: `ootd-droplet-slide ${b.duration}s ease-in ${b.delay}s infinite`,
+            // @ts-ignore
+            "--trail": `${b.trail}px`,
+          } as any}
+        />
+      ))}
+      <style>{`
+        @keyframes ootd-droplet-slide {
+          0%, 60% { transform: translateY(0); opacity: 0.95; }
+          80% { transform: translateY(calc(var(--trail) * 0.4)); opacity: 0.85; }
+          100% { transform: translateY(var(--trail)); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
