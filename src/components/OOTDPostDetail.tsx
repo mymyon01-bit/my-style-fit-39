@@ -14,6 +14,7 @@ import ShareButton from "@/components/ShareButton";
 import ShareToOOTDDialog from "@/components/ShareToOOTDDialog";
 import { Repeat2 } from "lucide-react";
 import PostThemeBackground, { POST_THEMES, loadSavedPostTheme, savePostTheme, type PostTheme } from "@/components/ootd/PostThemeBackground";
+import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 
 interface OOTDPost {
   id: string;
@@ -207,21 +208,26 @@ export default function OOTDPostDetail({
     <div key={c.id} className={`flex gap-2 group ${isReply ? "ml-6 mt-2" : ""}`}>
       <button
         onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }}
-        className="h-7 w-7 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0 mt-0.5"
+        className="flex-shrink-0 mt-0.5"
       >
-        {profileMap[c.user_id]?.avatar_url ? (
-          <img src={profileMap[c.user_id].avatar_url!} className="h-full w-full object-cover" />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/40">
-            {getCommentName(c.user_id)[0].toUpperCase()}
+        <OfficialAvatarRing isOfficial={profileMap[c.user_id]?.is_official}>
+          <div className="h-7 w-7 rounded-full bg-foreground/[0.06] overflow-hidden">
+            {profileMap[c.user_id]?.avatar_url ? (
+              <img src={profileMap[c.user_id].avatar_url!} className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/40">
+                {getCommentName(c.user_id)[0].toUpperCase()}
+              </div>
+            )}
           </div>
-        )}
+        </OfficialAvatarRing>
       </button>
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline gap-1.5 flex-wrap">
           <button onClick={() => { onClose(); navigate(`/user/${c.user_id}`); }} className="text-[12px] font-semibold text-foreground/80 hover:text-foreground">
             {getCommentName(c.user_id)}
           </button>
+          {profileMap[c.user_id]?.is_official && <OfficialBadge compact />}
           <span className="text-[10px] text-foreground/35">{timeAgo(c.created_at)}</span>
         </div>
         <p className="text-[13px] text-foreground/80 leading-relaxed ootd-text">{c.content}</p>
@@ -348,19 +354,24 @@ export default function OOTDPostDetail({
             onClick={() => { onClose(); navigate(`/user/${post.user_id}`); }}
             className="flex items-center gap-2 group"
           >
-            <div className="h-8 w-8 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/30">
-                  {(profile?.display_name || "?")[0].toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
-                {profile?.display_name || "Anonymous"}
-              </p>
+            <OfficialAvatarRing isOfficial={profile?.is_official}>
+              <div className="h-8 w-8 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/30">
+                    {(profile?.display_name || "?")[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </OfficialAvatarRing>
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
+                  {profile?.display_name || "Anonymous"}
+                </p>
+                {profile?.is_official && <OfficialBadge compact />}
+              </div>
               <p className="text-[10px] text-foreground/40">{timeAgo(post.created_at)} ago</p>
             </div>
           </button>
