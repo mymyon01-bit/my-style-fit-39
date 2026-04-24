@@ -127,6 +127,7 @@ export default function DiscoverPage() {
   const [detailProduct, setDetailProduct] = useState<Product | DiscoverRenderableProduct | null>(null);
   const [deepLinkedProduct, setDeepLinkedProduct] = useState<DetailItem | null>(null);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
+  const [submitOpen, setSubmitOpen] = useState(false);
 
   // ── Live (Layer 3) state — UI only; search lives in useDiscoverSearch ──
   const [committedQuery, setCommittedQuery] = useState(moodParam || "new arrivals");
