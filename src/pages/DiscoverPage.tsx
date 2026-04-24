@@ -23,7 +23,7 @@ import DiscoverAdRow from "@/components/discover/DiscoverAdRow";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
 import { genderPreferenceToFilter, type GenderFilter } from "@/lib/discover/genderFilter";
 import Brandmark from "@/components/Brandmark";
-import StyleRecsForYou from "@/components/StyleRecsForYou";
+
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
@@ -578,6 +578,14 @@ export default function DiscoverPage() {
               <SlidersHorizontal className="h-3.5 w-3.5" />
               {t("filters")}
             </button>
+            <button
+              type="button"
+              onClick={() => { /* placeholder action */ }}
+              className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/65"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              More
+            </button>
             {hasActiveFilters && (
               <button onClick={clearFilters} className="text-[10px] tracking-[0.15em] text-foreground/70">{t("reset").toUpperCase()}</button>
             )}
@@ -631,16 +639,6 @@ export default function DiscoverPage() {
 
           {/* ─── HARDCODED LAYERS ─────────────────────────────────────── */}
           <div className="mt-8 space-y-12">
-            {/* Style recommendations — open to everyone, driven by search signal */}
-            <StyleRecsForYou
-              variant="inline"
-              searchQuery={committedQuery || null}
-              searchTags={intentChips}
-              searchProducts={(allLiveResults.length > 0 ? allLiveResults : dbTopProducts)
-                .slice(0, 6)
-                .map((p) => ({ name: p.title, brand: p.brand }))}
-            />
-
             {/* Layer 1 — Top DB recommendation grid (instant) */}
             <DbTopGrid products={dbTopProducts} loading={dbTopLoading} onSelect={setDetailProduct} />
 
