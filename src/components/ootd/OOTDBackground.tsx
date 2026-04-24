@@ -89,9 +89,34 @@ export function saveOOTDBgTheme(theme: OOTDBgTheme) {
 
 interface Props {
   theme: OOTDBgTheme;
+  /** When true, render an AI-generated cinematic looping video instead of the
+   *  hand-drawn SVG scene. Defaults to true (the new headline experience). */
+  realistic?: boolean;
 }
 
-export default function OOTDBackground({ theme }: Props) {
+export default function OOTDBackground({ theme, realistic = true }: Props) {
+  // ── Realistic mode: cinematic looping video ─────────────────────────────
+  // Skip particle generation entirely when video mode is active for the theme.
+  const videoSrc = VIDEO_BY_THEME[theme];
+  if (theme !== "none" && realistic && videoSrc) {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <video
+          key={videoSrc}
+          src={videoSrc}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {/* Subtle dark wash so foreground UI stays legible over bright scenes */}
+        <div className="absolute inset-0 bg-background/35" />
+      </div>
+    );
+  }
+
   // Particle counts per theme. Memoized so we don't regenerate on every render.
   const particles = useMemo(() => {
     const count =
@@ -112,6 +137,7 @@ export default function OOTDBackground({ theme }: Props) {
       rot: Math.random() * 360,
     }));
   }, [theme]);
+
 
   if (theme === "none") return null;
 
