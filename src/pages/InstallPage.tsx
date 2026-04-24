@@ -39,14 +39,19 @@ const InstallPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4">
+      {/* Header — back/close on left, brand center, large tap target */}
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-background/95 px-4 py-3 backdrop-blur-md border-b border-border/30">
         <button
-          onClick={() => navigate("/")}
-          className="font-display text-[11px] font-semibold tracking-[0.35em] text-foreground/70"
+          onClick={() => navigate(-1)}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground/70 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+          aria-label="Close"
         >
-          MY'MYON
+          <X className="h-4 w-4" />
         </button>
+        <span className="font-display text-[11px] font-semibold tracking-[0.35em] text-foreground/70">
+          MY'MYON
+        </span>
+        <span className="h-9 w-9" aria-hidden />
       </div>
 
       <div className="mx-auto w-full max-w-sm px-5 pb-20 pt-6">
