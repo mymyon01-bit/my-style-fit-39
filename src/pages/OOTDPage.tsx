@@ -638,7 +638,8 @@ const OOTDPage = () => {
       </div>
 
 
-      <div className="mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+      <div className="relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+        <div className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-6 shadow-xl shadow-black/10" : ""}>
         <AnimatePresence mode="wait">
           {activeTab === "ranking" ? (
             <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
