@@ -125,12 +125,12 @@ const HomePage = () => {
           <Brandmark variant="inline" />
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => navigate("/install")}
-              aria-label="Download app"
-              className="flex h-8 items-center gap-1.5 rounded-full border border-foreground/20 bg-background/70 px-3 text-[10px] font-semibold uppercase tracking-wider text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground"
+              onClick={handleInstall}
+              aria-label="Install app to home screen"
+              title="Install app"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-foreground/20 bg-background/70 text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground"
             >
-              <Download className="h-3 w-3" />
-              <span>Get app</span>
+              <Download className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => navigate(user ? "/profile" : "/auth")}
