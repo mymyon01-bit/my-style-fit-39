@@ -41,6 +41,10 @@ export const ShowroomCard = ({ room }: { room: Showroom }) => {
           <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" />{room.like_count}</span>
           <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{room.view_count}</span>
         </div>
+        <p className="flex items-center gap-1 pt-0.5 text-[10px] text-foreground/55">
+          <Users className="h-3 w-3" />
+          {room.follower_count} {room.follower_count === 1 ? "follower" : "followers"}
+        </p>
       </div>
     </Link>
   );
