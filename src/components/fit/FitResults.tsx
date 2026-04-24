@@ -550,38 +550,6 @@ export default function FitResults({
             {explanation || builtExplanation.headline || solver.summary}
           </p>
 
-          {/* ── PARALLEL FIT EXPLANATION LAYER ──
-              Computed AFTER the existing pipeline. Recalculates instantly on
-              size/item change. Does NOT trigger image regeneration. */}
-          {bodyHeightCm ? (
-            <FitExplanationCard
-              heightCm={bodyHeightCm}
-              weightKg={bodyWeightKg ?? null}
-              category={product.category}
-              selectedSize={activeSize}
-              garment={resolvedSize.resolved ? {
-                chest:    (resolvedSize.resolved as any).chestCm,
-                shoulder: (resolvedSize.resolved as any).shoulderCm,
-                length:   (resolvedSize.resolved as any).lengthCm ?? (resolvedSize.resolved as any).totalLengthCm,
-                waist:    (resolvedSize.resolved as any).waistCm,
-                hip:      (resolvedSize.resolved as any).hipCm,
-                thigh:    (resolvedSize.resolved as any).thighCm,
-                inseam:   (resolvedSize.resolved as any).inseamCm,
-                sleeve:   (resolvedSize.resolved as any).sleeveCm,
-              } : null}
-              sizeLabel={`SIZE ${activeSize}`}
-            />
-          ) : null}
-
-          {/* ── SELECTED-SIZE-FIRST EXPLANATION (per spec §6) ──
-              Always speak about the size the user actually picked, then
-              surface the recommended alternative if it differs. */}
-          <SelectedSizeFitCard
-            recommendation={sizing.recommendation}
-            activeSize={activeSize}
-            onPickRecommended={(size) => setActiveSize(size)}
-          />
-
           {/* Fit-score / data disclaimer — honesty notice */}
           <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
             <div className="flex items-center gap-1.5">
