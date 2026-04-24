@@ -54,7 +54,7 @@ export default function DiscoverAdRow({ pool, styleHints }: Props) {
         .eq("image_valid", true)
         .not("image_url", "is", null)
         .order("trend_score", { ascending: false })
-        .limit(200);
+        .limit(500);
 
       if (cancelled) return;
 
