@@ -621,16 +621,37 @@ export default function FitResults({
               <span className="transition-transform group-hover:translate-x-0.5">→</span>
             </button>
 
-            {product.url && product.url !== "#" && (
-              <a
-                href={product.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-[11px] font-bold tracking-[0.22em] text-background transition-opacity hover:opacity-90"
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> SHOP NOW
-              </a>
-            )}
+            {product.url && product.url !== "#" && (() => {
+              const recSize = sizing.recommendation?.primarySize ?? activeSize;
+              const recOutcome = sizing.recommendation?.sizes.find((s) => s.size === recSize);
+              const score = recOutcome?.score ?? null;
+              const isMatch = recSize === activeSize;
+              const reason = recOutcome
+                ? (isMatch
+                    ? `Size ${activeSize} matches your body best.`
+                    : `Selected ${activeSize} ${overallLabelText(sizing.recommendation!.sizes.find((s) => s.size === activeSize)?.overall ?? "regularFit").toLowerCase()}. We recommend ${recSize} for a cleaner fit.`)
+                : null;
+              return (
+                <div className="space-y-2">
+                  <a
+                    href={product.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-[11px] font-bold tracking-[0.22em] text-background transition-opacity hover:opacity-90"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {recOutcome
+                      ? `BUY SIZE ${recSize}${score != null ? ` · ${score}% FIT` : ""}`
+                      : "SHOP NOW"}
+                  </a>
+                  {reason && (
+                    <p className="text-center text-[11px] leading-relaxed text-foreground/55">
+                      {reason}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Secondary actions — quiet */}
