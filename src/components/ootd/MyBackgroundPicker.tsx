@@ -77,6 +77,40 @@ export default function MyBackgroundPicker({ value, onChange }: Props) {
           Pick a scene that plays behind the OOTD tab — only you see this.
         </p>
 
+        {/* Realistic mode toggle — switches between AI cinematic video and SVG art */}
+        <button
+          type="button"
+          onClick={toggleRealistic}
+          className={`mt-3 flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 transition-all ${
+            realistic
+              ? "border-accent/60 bg-accent/10"
+              : "border-border/40 bg-background/40 hover:border-border/70"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Film className={`h-3.5 w-3.5 ${realistic ? "text-accent" : "text-foreground/60"}`} />
+            <div className="text-left">
+              <p className={`text-[11.5px] font-medium ${realistic ? "text-accent" : "text-foreground/85"}`}>
+                Cinematic real footage
+              </p>
+              <p className="text-[10px] text-foreground/45 leading-snug">
+                AI-generated video loops · feels like real life
+              </p>
+            </div>
+          </div>
+          <span
+            className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
+              realistic ? "bg-accent" : "bg-foreground/20"
+            }`}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-background transition-transform ${
+                realistic ? "translate-x-3.5" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+        </button>
+
         <div className="mt-4 grid grid-cols-2 gap-2.5 max-h-[60vh] overflow-y-auto">
           {OOTD_BG_THEMES.map((t) => {
             const active = t.id === value;
