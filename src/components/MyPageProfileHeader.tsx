@@ -14,6 +14,7 @@ interface ProfileData {
   bio: string | null;
   is_private: boolean | null;
   hashtags: string[] | null;
+  is_official?: boolean | null;
 }
 
 interface Props {
