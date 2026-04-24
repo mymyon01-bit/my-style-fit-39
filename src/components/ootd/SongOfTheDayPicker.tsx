@@ -583,11 +583,11 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-3 py-1.5 text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+          className="flex h-7 items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-2.5 text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
           aria-label="Pick song of the day"
         >
           <Music className="h-3 w-3" />
-          PICK A SONG
+          SONG
         </button>
       )}
 
