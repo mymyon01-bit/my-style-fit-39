@@ -101,6 +101,9 @@ export default function DiscoverAdRow({ pool, styleHints }: Props) {
                   alt={p.name}
                   className="h-full w-full object-cover"
                   loading="lazy"
+                  onError={() =>
+                    setItems((prev) => prev.filter((x) => x.id !== p.id))
+                  }
                 />
               ) : null}
             </div>
