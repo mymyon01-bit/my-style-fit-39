@@ -59,7 +59,7 @@ interface ProfileInfo {
   username?: string | null;
 }
 
-type Tab = "ranking" | "feed" | "community" | "mypage";
+type Tab = "ranking" | "feed" | "community" | "showroom" | "mypage";
 
 const MAX_MESSAGE = 100;
 
@@ -70,7 +70,7 @@ const OOTDPage = () => {
   const location = useLocation();
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    return (t === "feed" || t === "community" || t === "mypage" || t === "ranking") ? t : "ranking";
+    return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "ranking";
   });
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
@@ -184,7 +184,7 @@ const OOTDPage = () => {
   useEffect(() => {
     const onPop = () => {
       const t = new URLSearchParams(window.location.search).get("tab");
-      const next: Tab = (t === "feed" || t === "community" || t === "mypage" || t === "ranking") ? t : "ranking";
+      const next: Tab = (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "ranking";
       setActiveTabState(next);
     };
     window.addEventListener("popstate", onPop);
@@ -638,6 +638,7 @@ const OOTDPage = () => {
                 { key: "ranking" as const, label: "RANKING" },
                 { key: "feed" as const, label: "FEED" },
                 { key: "community" as const, label: "COMMUNITY" },
+                { key: "showroom" as const, label: "SHOWROOM" },
                 { key: "mypage" as const, label: "MY PAGE" },
               ]).map(({ key, label }) => (
                 <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 min-w-0 py-3 text-center">
