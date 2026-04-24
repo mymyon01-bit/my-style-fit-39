@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { prepareImage, validateMedia } from "@/lib/imageUpload";
 import StoryEditor from "@/components/StoryEditor";
+import SquareCropDialog from "@/components/SquareCropDialog";
 import { toast } from "sonner";
 
 interface Props {
@@ -26,6 +27,7 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string>("");
   const [editorOpen, setEditorOpen] = useState(false);
+  const [pendingCrop, setPendingCrop] = useState<File | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -44,7 +46,6 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
     try {
       const { isVideo } = validateMedia(f, { allowVideo: true, maxBytes: 60 * 1024 * 1024 });
       if (isVideo) {
-        // verify duration
         const ok = await checkVideoDuration(f);
         if (!ok) {
           toast.error(`Video must be ${MAX_VIDEO_SECONDS}s or shorter`);
@@ -54,19 +55,30 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
         setFile(f);
         setPreview(URL.createObjectURL(f));
       } else {
-        setProgress("Preparing photo…");
-        // Square-crop keeps story thumbnails consistent with the OOTD feed.
-        const prepared = await prepareImage(f, { square: true });
-        setMediaType("image");
-        setFile(prepared);
-        setPreview(URL.createObjectURL(prepared));
-        setProgress("");
+        // Photos go through the interactive crop dialog so the user can
+        // choose the framing instead of a forced center crop.
+        setPendingCrop(f);
       }
     } catch (err: any) {
       toast.error(err?.message || "Couldn't read that file");
       setProgress("");
     } finally {
       if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleCropConfirmed = async (cropped: File) => {
+    setPendingCrop(null);
+    setProgress("Preparing photo…");
+    try {
+      const prepared = await prepareImage(cropped, { square: false });
+      setMediaType("image");
+      setFile(prepared);
+      setPreview(URL.createObjectURL(prepared));
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't process that photo");
+    } finally {
+      setProgress("");
     }
   };
 
@@ -247,6 +259,13 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
           onPosted();
           onClose();
         }}
+      />
+      <SquareCropDialog
+        open={!!pendingCrop}
+        file={pendingCrop}
+        onClose={() => setPendingCrop(null)}
+        onCropped={handleCropConfirmed}
+        title="Crop your story"
       />
     </AnimatePresence>
   );

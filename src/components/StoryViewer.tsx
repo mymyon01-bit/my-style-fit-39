@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Heart, Send } from "lucide-react";
+import { X, Trash2, Heart, Send, Eye, Bookmark, BookmarkCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { openConversationWith } from "@/hooks/useMessages";
+import StoryViewersSheet from "./StoryViewersSheet";
 import type { UserStories } from "./StoriesRow";
 
 interface Props {
@@ -43,6 +44,10 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
   const [likeBusy, setLikeBusy] = useState(false);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [viewersOpen, setViewersOpen] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
+  const [pubBusy, setPubBusy] = useState(false);
 
   const currentUser = userStories[userIdx];
   const currentStory = currentUser?.stories[storyIdx];
@@ -176,11 +181,46 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
     }
   }, [open, startUserIndex]);
 
-  // Mark seen whenever we land on a story
+  // Mark seen + record view in DB + sync is_public state
   useEffect(() => {
     if (!open || !currentUser || !currentStory) return;
     markSeen(currentUser.user_id, currentStory.created_at);
-  }, [open, currentUser, currentStory]);
+    setIsPublic(!!(currentStory as any).is_public);
+    // Fire-and-forget viewer count + record-own-view
+    (async () => {
+      const { count } = await supabase
+        .from("story_views")
+        .select("id", { count: "exact", head: true })
+        .eq("story_id", currentStory.id);
+      setViewerCount(count || 0);
+      if (user && !isOwnCurrent) {
+        await supabase
+          .from("story_views")
+          .upsert(
+            { story_id: currentStory.id, viewer_id: user.id, owner_id: currentUser.user_id },
+            { onConflict: "story_id,viewer_id", ignoreDuplicates: true } as any
+          );
+      }
+    })();
+  }, [open, currentUser, currentStory, user, isOwnCurrent]);
+
+  const togglePublic = async () => {
+    if (!currentStory || !user || !isOwnCurrent || pubBusy) return;
+    setPubBusy(true);
+    const next = !isPublic;
+    setIsPublic(next);
+    const { error } = await supabase
+      .from("stories")
+      .update({ is_public: next, pinned_at: next ? new Date().toISOString() : null } as any)
+      .eq("id", currentStory.id);
+    if (error) {
+      setIsPublic(!next);
+      toast.error("Couldn't update visibility");
+    } else {
+      toast.success(next ? "Saved to your page" : "Removed from your page");
+    }
+    setPubBusy(false);
+  };
 
   // Auto-advance for images (videos are driven by their own timeupdate)
   useEffect(() => {
@@ -293,15 +333,38 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
           </div>
           <div className="flex items-center gap-3">
             {isOwn && (
-              <button onClick={handleDelete} className="text-white/70 hover:text-white p-1">
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <>
+                <button
+                  onClick={togglePublic}
+                  disabled={pubBusy}
+                  className="text-white/70 hover:text-white p-1"
+                  aria-label={isPublic ? "Remove from your page" : "Save to your page"}
+                  title={isPublic ? "Saved to your page" : "Save to your page"}
+                >
+                  {isPublic ? <BookmarkCheck className="h-4 w-4 text-accent" /> : <Bookmark className="h-4 w-4" />}
+                </button>
+                <button onClick={handleDelete} className="text-white/70 hover:text-white p-1">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
             )}
             <button onClick={onClose} className="text-white p-1">
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
+
+        {/* Owner-only "Seen by" pill */}
+        {isOwn && (
+          <button
+            onClick={() => setViewersOpen(true)}
+            className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/10 px-3 py-1.5 text-white"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="text-[11px] font-semibold">{viewerCount}</span>
+            <span className="text-[10px] text-white/70">Seen</span>
+          </button>
+        )}
 
         {/* Media */}
         <div className="relative w-full h-full max-w-md max-h-[100dvh] flex items-center justify-center">

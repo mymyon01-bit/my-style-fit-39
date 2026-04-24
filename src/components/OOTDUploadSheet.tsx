@@ -10,6 +10,7 @@ import { pickPhotoFile } from "@/lib/native/pickPhotoFile";
 import { toast } from "sonner";
 import { useEmailVerified } from "@/hooks/useEmailVerified";
 import EmailVerificationModal from "@/components/legal/EmailVerificationModal";
+import SquareCropDialog from "@/components/SquareCropDialog";
 
 // Sentinel topic — when present in a post's `topics` array it signals that
 // the author has disabled sharing. Stored in `topics` to avoid a schema
@@ -53,6 +54,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [allowShares, setAllowShares] = useState(true);
+  // Raw file the user just picked — held while the crop dialog is open.
+  const [pendingCrop, setPendingCrop] = useState<File | null>(null);
 
   // Gate: when an unverified user opens the upload sheet, show email modal first.
   useEffect(() => {
@@ -106,13 +109,25 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     try {
       validateMedia(f, { allowVideo: false, maxBytes: 50 * 1024 * 1024 });
       setError(null);
-      // Square-crop ensures the OOTD grid + ranking board never tear.
-      const prepared = await prepareImage(f, { square: true });
+      // Open the interactive 1:1 crop dialog. The user picks the framing,
+      // which we then run through prepareImage for compression / HEIC fix.
+      setPendingCrop(f);
+    } catch (err: any) {
+      const msg = err?.message || "Couldn't read that photo";
+      setError(msg);
+      toast.error(msg);
+    }
+  };
+
+  const handleCropConfirmed = async (cropped: File) => {
+    try {
+      setPendingCrop(null);
+      const prepared = await prepareImage(cropped, { square: false });
       setFile(prepared);
       setPreview(URL.createObjectURL(prepared));
       setStep(2);
     } catch (err: any) {
-      const msg = err?.message || "Couldn't read that photo";
+      const msg = err?.message || "Couldn't process that photo";
       setError(msg);
       toast.error(msg);
     }
@@ -545,6 +560,13 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
           if (!o && emailVerified === false) onClose();
         }}
         onVerified={() => setEmailGateOpen(false)}
+      />
+      <SquareCropDialog
+        open={!!pendingCrop}
+        file={pendingCrop}
+        onClose={() => setPendingCrop(null)}
+        onCropped={handleCropConfirmed}
+        title="Crop your OOTD"
       />
     </AnimatePresence>
   );
