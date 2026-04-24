@@ -55,8 +55,11 @@ export interface UseFitTryOnArgs {
   reloadToken?: number;
 }
 
-const POLL_INTERVAL_MS = 2_500;
-const POLL_MAX_ATTEMPTS = 40;       // ~100s worst case
+// Faster perceived speed: poll every 1s instead of 2.5s, and fire the first
+// status check immediately (no 2.5s blind wait) so quick generations surface
+// the moment they're ready. Pipeline / model / timeouts unchanged.
+const POLL_INTERVAL_MS = 1_000;
+const POLL_MAX_ATTEMPTS = 100;      // same ~100s worst case window
 const HARD_TIMEOUT_MS = 110_000;    // never let it hang forever
 
 export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
@@ -176,7 +179,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
 
     const startPolling = (ids: { requestId?: string | null; predictionId?: string | null }) => {
       let attempts = 0;
-      pollTimerRef.current = window.setInterval(async () => {
+      const tick = async () => {
         attempts++;
         if (isStale()) {
           stopTimers();
@@ -250,7 +253,11 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             isUsingStableRenderMode: false,
           }));
         }
-      }, POLL_INTERVAL_MS);
+      };
+      // Fire first check immediately so fast generations don't wait a full
+      // interval before being detected, then poll every POLL_INTERVAL_MS.
+      void tick();
+      pollTimerRef.current = window.setInterval(tick, POLL_INTERVAL_MS);
     };
 
     (async () => {
