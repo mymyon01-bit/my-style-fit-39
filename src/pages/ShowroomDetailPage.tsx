@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Star, Heart, Bookmark, Share2, Pin, Edit3, Trash2,
-  Plus, Loader2, Music, Globe, Lock, Link2, Save, X, ExternalLink,
+  Plus, Loader2, Globe, Lock, Link2, Save, X, ImagePlus, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useShowroom } from "@/hooks/useShowrooms";
-import { getTheme, SHOWROOM_THEMES } from "@/lib/showroom/themes";
-import { detectPlaylistProvider, type PlaylistLink, type ShowroomItem } from "@/lib/showroom/types";
-import { PlaylistEmbed } from "@/components/showroom/PlaylistEmbed";
+import type { ShowroomItem } from "@/lib/showroom/types";
+import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
+import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 
 const ShowroomDetailPage = () => {
   const { id } = useParams();
@@ -24,12 +26,24 @@ const ShowroomDetailPage = () => {
   const [reactions, setReactions] = useState<Record<string, boolean>>({});
   const [savingReaction, setSavingReaction] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
-  const [playlistInput, setPlaylistInput] = useState("");
-  const [playlistLabel, setPlaylistLabel] = useState("");
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Personalization (same pickers as OOTD My Page) — local-only per device
+  const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
+  const [bgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
+  const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
+  const [cardColor, setCardColor] = useState<CardColor>(() => {
+    const c = loadCardColor();
+    if (typeof window !== "undefined") applyCardColorToRoot(c);
+    return c;
+  });
+  const cardStyle = cardColor.hex
+    ? { background: `${cardColor.hex}D6`, color: undefined as string | undefined }
+    : undefined;
 
   const [eTitle, setETitle] = useState("");
   const [eIntro, setEIntro] = useState("");
-  const [eTheme, setETheme] = useState("");
   const [eVisibility, setEVisibility] = useState<"public" | "private" | "invite_only">("public");
   const [eHashtags, setEHashtags] = useState("");
 
@@ -37,7 +51,6 @@ const ShowroomDetailPage = () => {
     if (room) {
       setETitle(room.title);
       setEIntro(room.intro || "");
-      setETheme(room.theme);
       setEVisibility(room.visibility);
       setEHashtags(room.hashtags.join(", "));
     }
@@ -52,15 +65,16 @@ const ShowroomDetailPage = () => {
         .eq("showroom_id", id)
         .eq("user_id", user.id);
       const map: Record<string, boolean> = {};
-      (data ?? []).forEach((r: any) => {
-        map[r.reaction_type] = true;
-      });
+      (data ?? []).forEach((r: any) => { map[r.reaction_type] = true; });
       setReactions(map);
     })();
   }, [user, id]);
 
-  const theme = useMemo(() => getTheme(room?.theme), [room?.theme]);
   const isOwner = !!user && !!room && user.id === room.user_id;
+  const bestItem = useMemo(
+    () => (room?.best_item_id ? items.find((i) => i.id === room.best_item_id) ?? null : null),
+    [room?.best_item_id, items],
+  );
 
   if (loading) {
     return (
@@ -79,10 +93,7 @@ const ShowroomDetailPage = () => {
   }
 
   const toggleReaction = async (type: "like" | "star" | "save") => {
-    if (!user) {
-      toast.error("Sign in to react");
-      return;
-    }
+    if (!user) { toast.error("Sign in to react"); return; }
     if (savingReaction) return;
     setSavingReaction(true);
 
@@ -94,10 +105,7 @@ const ShowroomDetailPage = () => {
         .eq("showroom_id", room.id)
         .eq("user_id", user.id)
         .eq("reaction_type", type);
-      if (!error) {
-        setReactions((r) => ({ ...r, [type]: false }));
-        reload();
-      }
+      if (!error) { setReactions((r) => ({ ...r, [type]: false })); reload(); }
     } else {
       const { error } = await supabase
         .from("showroom_reactions")
@@ -106,11 +114,9 @@ const ShowroomDetailPage = () => {
         if (error.message.includes("Daily star limit")) toast.error("Out of stars today (3/day across OOTD + Showroom)");
         else if (!error.message.includes("duplicate")) toast.error("Couldn't react");
       } else {
-        setReactions((r) => ({ ...r, [type]: true }));
-        reload();
+        setReactions((r) => ({ ...r, [type]: true })); reload();
       }
     }
-
     setSavingReaction(false);
   };
 
@@ -126,18 +132,12 @@ const ShowroomDetailPage = () => {
       .update({
         title: eTitle.trim().slice(0, 80),
         intro: eIntro.trim().slice(0, 200) || null,
-        theme: eTheme,
         visibility: eVisibility,
         hashtags: tags,
-        theme_color: getTheme(eTheme).accentHex,
       })
       .eq("id", room.id);
 
-    if (error) {
-      toast.error("Couldn't save");
-      return;
-    }
-
+    if (error) { toast.error("Couldn't save"); return; }
     toast.success("Saved");
     setEditing(false);
     reload();
@@ -145,25 +145,19 @@ const ShowroomDetailPage = () => {
 
   const togglePin = async () => {
     const { error } = await supabase.from("showrooms").update({ is_pinned: !room.is_pinned }).eq("id", room.id);
-    if (!error) {
-      toast.success(room.is_pinned ? "Unpinned" : "Pinned to your profile");
-      reload();
-    }
+    if (!error) { toast.success(room.is_pinned ? "Unpinned" : "Pinned to your profile"); reload(); }
   };
 
   const handleDeleteRoom = async () => {
     if (!confirm("Delete this showroom? This cannot be undone.")) return;
     const { error } = await supabase.from("showrooms").delete().eq("id", room.id);
-    if (error) {
-      toast.error("Couldn't delete");
-      return;
-    }
+    if (error) { toast.error("Couldn't delete"); return; }
     toast.success("Deleted");
     navigate("/showroom");
   };
 
   const addImageItem = async () => {
-    const url = prompt("Image URL (you can paste any inspiration image)");
+    const url = prompt("Image URL (paste any inspiration image)");
     if (!url) return;
     setAddingItem(true);
     const { error } = await supabase.from("showroom_items").insert({
@@ -174,10 +168,7 @@ const ShowroomDetailPage = () => {
     });
     setAddingItem(false);
     if (error) toast.error("Couldn't add");
-    else {
-      toast.success("Added");
-      reload();
-    }
+    else { toast.success("Added"); reload(); }
   };
 
   const removeItem = async (item: ShowroomItem) => {
@@ -185,51 +176,71 @@ const ShowroomDetailPage = () => {
     if (!error) reload();
   };
 
-  const addPlaylist = async () => {
-    if (!playlistInput.trim()) return;
-    const link: PlaylistLink = {
-      url: playlistInput.trim(),
-      label: playlistLabel.trim() || undefined,
-      provider: detectPlaylistProvider(playlistInput.trim()),
-    };
-    const next = [...room.playlist_links, link].slice(0, 6);
-    const { error } = await supabase.from("showrooms").update({ playlist_links: next as any }).eq("id", room.id);
-    if (error) toast.error("Couldn't add");
-    else {
-      setPlaylistInput("");
-      setPlaylistLabel("");
+  const setBest = async (itemId: string | null) => {
+    const { error } = await supabase
+      .from("showrooms")
+      .update({ best_item_id: itemId })
+      .eq("id", room.id);
+    if (error) { toast.error("Couldn't set best"); return; }
+    toast.success(itemId ? "Marked as Best" : "Best cleared");
+    reload();
+  };
+
+  const onPickBanner = () => bannerInputRef.current?.click();
+
+  const handleBannerFile = async (file: File) => {
+    if (!user) return;
+    if (file.size > 6 * 1024 * 1024) { toast.error("Image must be under 6MB"); return; }
+    setUploadingBanner(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/showroom-banner-${room.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("ootd-photos")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("ootd-photos").getPublicUrl(path);
+      const { error: updErr } = await supabase
+        .from("showrooms")
+        .update({ banner_url: pub.publicUrl })
+        .eq("id", room.id);
+      if (updErr) throw updErr;
+      toast.success("Banner updated");
       reload();
+    } catch (e: any) {
+      toast.error(e?.message || "Upload failed");
+    } finally {
+      setUploadingBanner(false);
     }
   };
 
-  const removePlaylist = async (idx: number) => {
-    const next = room.playlist_links.filter((_, i) => i !== idx);
-    await supabase.from("showrooms").update({ playlist_links: next as any }).eq("id", room.id);
-    reload();
+  const clearBanner = async () => {
+    const { error } = await supabase.from("showrooms").update({ banner_url: null }).eq("id", room.id);
+    if (!error) { toast.success("Banner removed"); reload(); }
   };
 
   const shareLink = async () => {
     const url = `${window.location.origin}/showroom/${room.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied");
-    } catch {
-      toast.error("Copy failed");
-    }
+    try { await navigator.clipboard.writeText(url); toast.success("Link copied"); }
+    catch { toast.error("Copy failed"); }
   };
 
   const VisIcon = room.visibility === "public" ? Globe : room.visibility === "private" ? Lock : Link2;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
-      <div className="sticky top-0 z-20 border-b border-border/40 bg-background/90 backdrop-blur-md">
+    <div className="relative min-h-screen bg-background pb-32">
+      {/* Live background — same engine as OOTD */}
+      <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
+
+      {/* Sticky header */}
+      <div className="sticky top-0 z-20 border-b border-border/40 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
           <button onClick={() => navigate(-1)} className="rounded-full p-1.5 text-foreground/75 transition-colors hover:bg-foreground/5 hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
             <p className="line-clamp-1 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/45">Showroom</p>
-            <p className="line-clamp-1 text-sm text-foreground/80">{room.title}</p>
+            <p className="line-clamp-1 text-sm text-foreground/85">{room.title}</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-card px-2 py-1 text-[10px] text-foreground/65">
@@ -256,138 +267,207 @@ const ShowroomDetailPage = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
-        <section className="rounded-2xl border border-border/40 bg-card/90 p-5 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-border/40 bg-background px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.15em] text-foreground/55">
-              {theme.label}
-            </span>
-            {room.is_pinned && (
-              <span className="rounded-full border border-accent/25 bg-accent/8 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.15em] text-accent/80">
-                Pinned
-              </span>
+      <div className="relative mx-auto max-w-lg px-6 pt-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 space-y-4">
+
+        {/* Personalization card — owner only */}
+        {isOwner && (
+          <div
+            className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10"
+            style={cardStyle}
+          >
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-[11.5px] text-foreground/70 leading-snug">
+                ✨ <span className="font-medium text-foreground/85">당신의 쇼룸을 꾸며주세요</span>
+              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
+                <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
+                <CardColorPicker value={cardColor} onChange={setCardColor} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Banner */}
+        <div
+          className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10"
+          style={cardStyle}
+        >
+          <div className="relative aspect-[16/7] overflow-hidden rounded-2xl border border-border/30 bg-gradient-to-br from-accent/[0.08] via-secondary/40 to-background">
+            {room.banner_url ? (
+              <img
+                src={room.banner_url}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border/30 bg-background/70 text-accent/70 backdrop-blur-sm">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+              </div>
+            )}
+
+            {isOwner && room.banner_url && (
+              <button
+                onClick={clearBanner}
+                className="absolute right-2 top-2 rounded-full border border-border/35 bg-background/95 p-1 text-foreground/70 transition-colors hover:text-foreground"
+                aria-label="Remove banner"
+              >
+                <X className="h-3 w-3" />
+              </button>
             )}
           </div>
 
-          <h1 className="mt-4 text-3xl text-foreground md:text-4xl">{room.title}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-foreground/60">
-            {room.intro || "A personal aesthetic showroom connected to OOTD."}
-          </p>
+          {isOwner && (
+            <>
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleBannerFile(f);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={onPickBanner}
+                disabled={uploadingBanner}
+                className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md py-1 text-[10.5px] text-foreground/45 hover:text-foreground/75 transition-colors"
+              >
+                {uploadingBanner ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-3 w-3" />
+                )}
+                <span>upload your banner</span>
+              </button>
+            </>
+          )}
+
+          <h1 className="mt-3 font-display text-2xl text-foreground md:text-3xl">{room.title}</h1>
+          {room.intro && (
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-foreground/65">{room.intro}</p>
+          )}
 
           {room.hashtags.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {room.hashtags.map((h) => (
-                <span key={h} className="rounded-full border border-border/35 bg-background px-2.5 py-1 text-[10px] text-foreground/60">
+                <span key={h} className="rounded-full border border-border/35 bg-background/60 px-2.5 py-0.5 text-[10px] text-foreground/60">
                   #{h}
                 </span>
               ))}
             </div>
           )}
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <ReactBtn active={reactions.star} onClick={() => toggleReaction("star")} icon={Star} count={room.star_count} label="Star" />
             <ReactBtn active={reactions.like} onClick={() => toggleReaction("like")} icon={Heart} count={room.like_count} label="Like" />
             <ReactBtn active={reactions.save} onClick={() => toggleReaction("save")} icon={Bookmark} count={room.save_count} label="Save" />
           </div>
-        </section>
+        </div>
 
+        {/* Edit panel */}
         {editing && isOwner && (
-          <section className="rounded-2xl border border-border/40 bg-card/90 p-5 shadow-sm">
-            <h3 className="mb-4 text-lg text-foreground">Edit Showroom</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-foreground/60">Title</label>
-                <Input value={eTitle} onChange={(e) => setETitle(e.target.value)} maxLength={80} className="mt-1 bg-background" />
-              </div>
-              <div>
-                <label className="text-xs text-foreground/60">Intro</label>
-                <Textarea value={eIntro} onChange={(e) => setEIntro(e.target.value)} maxLength={200} rows={2} className="mt-1 bg-background" />
-              </div>
-              <div>
-                <label className="text-xs text-foreground/60">Theme</label>
-                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                  {SHOWROOM_THEMES.map((t) => (
-                    <button
-                      key={t.key}
-                      onClick={() => setETheme(t.key)}
-                      className={`rounded-lg border px-3 py-2 text-left text-[11px] transition-colors ${
-                        eTheme === t.key
-                          ? "border-accent/40 bg-accent/10 text-foreground"
-                          : "border-border/35 bg-background text-foreground/65 hover:border-accent/25"
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-foreground/60">Hashtags</label>
-                <Input value={eHashtags} onChange={(e) => setEHashtags(e.target.value)} className="mt-1 bg-background" />
-              </div>
-              <div>
-                <label className="text-xs text-foreground/60">Visibility</label>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(["public", "invite_only", "private"] as const).map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setEVisibility(v)}
-                      className={`rounded-full border px-3 py-1.5 text-[11px] transition-colors ${
-                        eVisibility === v
-                          ? "border-accent/40 bg-accent/10 text-foreground"
-                          : "border-border/35 bg-background text-foreground/65 hover:border-accent/25"
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-                <Button size="sm" onClick={handleSaveEdit}><Save className="mr-1 h-3.5 w-3.5" />Save</Button>
+          <div
+            className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 space-y-3"
+            style={cardStyle}
+          >
+            <h3 className="font-display text-base text-foreground">Edit</h3>
+            <div>
+              <label className="text-[11px] text-foreground/60">Title</label>
+              <Input value={eTitle} onChange={(e) => setETitle(e.target.value)} maxLength={80} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-[11px] text-foreground/60">Intro</label>
+              <Textarea value={eIntro} onChange={(e) => setEIntro(e.target.value)} maxLength={200} rows={2} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-[11px] text-foreground/60">Hashtags</label>
+              <Input value={eHashtags} onChange={(e) => setEHashtags(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-[11px] text-foreground/60">Visibility</label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["public", "invite_only", "private"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setEVisibility(v)}
+                    className={`rounded-full border px-3 py-1.5 text-[11px] transition-colors ${
+                      eVisibility === v
+                        ? "border-accent/40 bg-accent/10 text-foreground"
+                        : "border-border/35 bg-background text-foreground/65 hover:border-accent/25"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
               </div>
             </div>
-          </section>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleSaveEdit}><Save className="mr-1 h-3.5 w-3.5" />Save</Button>
+            </div>
+          </div>
         )}
 
-        <section className="rounded-2xl border border-border/40 bg-card/90 p-5 shadow-sm">
+        {/* Best pick (replaces playlist) */}
+        <div
+          className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10"
+          style={cardStyle}
+        >
           <div className="mb-3 flex items-center gap-2">
-            <Music className="h-4 w-4 text-accent/80" />
-            <h3 className="text-lg text-foreground">Playlists</h3>
+            <Star className="h-4 w-4 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+            <h3 className="font-display text-base text-foreground">Best</h3>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">owner's pick</span>
           </div>
 
-          {room.playlist_links.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {room.playlist_links.map((p, i) => (
-                <div key={i} className="relative overflow-hidden rounded-xl border border-border/35 bg-background p-2">
-                  <PlaylistEmbed link={p} />
-                  {isOwner && (
-                    <button onClick={() => removePlaylist(i)} className="absolute right-3 top-3 rounded-full border border-border/35 bg-background/95 p-1 text-foreground/65 transition-colors hover:text-foreground">
-                      <X className="h-3 w-3" />
-                    </button>
+          {bestItem ? (
+            <div className="flex items-stretch gap-3">
+              <div className="relative h-32 w-24 shrink-0 overflow-hidden rounded-xl border border-border/35 bg-muted">
+                {bestItem.image_url && (
+                  <img src={bestItem.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                )}
+              </div>
+              <div className="flex flex-1 flex-col justify-between min-w-0">
+                <div>
+                  {bestItem.brand && (
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-foreground/45">{bestItem.brand}</p>
+                  )}
+                  <p className="text-sm text-foreground/85 line-clamp-2">{bestItem.title || "Featured pick"}</p>
+                  {bestItem.note && (
+                    <p className="mt-1 text-[11px] text-foreground/55 line-clamp-2">{bestItem.note}</p>
                   )}
                 </div>
-              ))}
+                {isOwner && (
+                  <button
+                    onClick={() => setBest(null)}
+                    className="self-start rounded-full border border-border/35 bg-background/60 px-2.5 py-1 text-[10px] text-foreground/60 hover:text-foreground"
+                  >
+                    Clear best
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-border/35 bg-background p-5 text-sm text-foreground/50">
-              No playlists yet.
+            <div className="rounded-xl border border-dashed border-border/35 bg-background/40 p-5 text-center text-[12px] text-foreground/55">
+              {isOwner
+                ? "Pick one item below as your Best — others will see it featured here."
+                : "No featured pick yet."}
             </div>
           )}
+        </div>
 
-          {isOwner && room.playlist_links.length < 6 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Input value={playlistInput} onChange={(e) => setPlaylistInput(e.target.value)} placeholder="Spotify / YouTube / Apple Music link" className="min-w-[220px] flex-1 bg-background" />
-              <Input value={playlistLabel} onChange={(e) => setPlaylistLabel(e.target.value)} placeholder="Label (optional)" className="w-44 bg-background" />
-              <Button size="sm" onClick={addPlaylist}><Plus className="mr-1 h-3.5 w-3.5" />Add</Button>
-            </div>
-          )}
-        </section>
-
-        <section className="rounded-2xl border border-border/40 bg-card/90 p-5 shadow-sm">
+        {/* Items grid — upload order */}
+        <div
+          className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10"
+          style={cardStyle}
+        >
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-lg text-foreground">Items</h3>
+            <h3 className="font-display text-base text-foreground">Items</h3>
             {isOwner && (
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={addImageItem} disabled={addingItem}>
@@ -399,42 +479,59 @@ const ShowroomDetailPage = () => {
           </div>
 
           {items.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/35 bg-background p-8 text-center text-sm text-foreground/50">
-              No items yet. Add inspiration images or curate from Discover/OOTD/Saved.
+            <div className="rounded-xl border border-dashed border-border/35 bg-background/40 p-8 text-center text-sm text-foreground/55">
+              No items yet. Add inspiration images or curate from Discover.
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {items.map((item) => (
-                <div key={item.id} className="group overflow-hidden rounded-xl border border-border/35 bg-background">
-                  <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-                    {item.image_url ? (
-                      <img src={item.image_url} alt={item.title || "Showroom item"} className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-foreground/35">No image</div>
-                    )}
+              {items.map((item) => {
+                const isBest = room.best_item_id === item.id;
+                return (
+                  <div key={item.id} className="group overflow-hidden rounded-xl border border-border/35 bg-background/70">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.title || "Showroom item"} className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xs text-foreground/35">No image</div>
+                      )}
 
-                    {isOwner && (
-                      <button onClick={() => removeItem(item)} className="absolute right-2 top-2 rounded-full border border-border/35 bg-background/95 p-1 text-foreground/65 opacity-0 transition-all hover:text-foreground group-hover:opacity-100">
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
+                      {isBest && (
+                        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full border border-[hsl(var(--star))]/40 bg-background/90 px-2 py-0.5 text-[9px] font-medium text-foreground/85 backdrop-blur-sm">
+                          <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                          Best
+                        </span>
+                      )}
 
-                    {item.product_id && (
-                      <Link to={`/fit/${item.product_id}`} className="absolute left-2 top-2 rounded-full border border-border/35 bg-background/95 px-2 py-1 text-[10px] text-foreground/70 opacity-0 transition-all group-hover:opacity-100">
-                        <ExternalLink className="mr-1 inline h-2.5 w-2.5" />Fit
-                      </Link>
-                    )}
+                      {isOwner && (
+                        <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button
+                            onClick={() => setBest(isBest ? null : item.id)}
+                            className="rounded-full border border-border/35 bg-background/95 p-1 text-foreground/70 hover:text-foreground"
+                            title={isBest ? "Unset Best" : "Set as Best"}
+                          >
+                            <Star className={`h-3 w-3 ${isBest ? "fill-[hsl(var(--star))] text-[hsl(var(--star))]" : ""}`} />
+                          </button>
+                          <button
+                            onClick={() => removeItem(item)}
+                            className="rounded-full border border-border/35 bg-background/95 p-1 text-foreground/70 hover:text-destructive"
+                            title="Remove"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 p-2.5">
+                      {item.brand && <p className="text-[10px] uppercase tracking-[0.12em] text-foreground/45">{item.brand}</p>}
+                      <p className="line-clamp-1 text-[12px] text-foreground/80">{item.title || "Untitled item"}</p>
+                    </div>
                   </div>
-
-                  <div className="space-y-1 p-3">
-                    {item.brand && <p className="text-[10px] uppercase tracking-[0.12em] text-foreground/45">{item.brand}</p>}
-                    <p className="line-clamp-1 text-sm text-foreground/80">{item.title || "Untitled item"}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </section>
+        </div>
       </div>
     </div>
   );
