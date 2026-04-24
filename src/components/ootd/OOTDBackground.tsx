@@ -340,6 +340,10 @@ export default function OOTDBackground({ theme }: Props) {
             0%, 100% { opacity: 0.2; transform: scale(0.8); }
             50% { opacity: 0.95; transform: scale(1.15); }
           }
+          @keyframes ootd-cloud-drift {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(110vw + 600px)); }
+          }
         `}</style>
       </div>
     );
