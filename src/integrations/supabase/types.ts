@@ -2090,6 +2090,7 @@ export type Database = {
         Row: {
           background_url: string | null
           banner_url: string | null
+          best_item_id: string | null
           created_at: string
           hashtags: string[]
           id: string
@@ -2110,6 +2111,7 @@ export type Database = {
         Insert: {
           background_url?: string | null
           banner_url?: string | null
+          best_item_id?: string | null
           created_at?: string
           hashtags?: string[]
           id?: string
@@ -2130,6 +2132,7 @@ export type Database = {
         Update: {
           background_url?: string | null
           banner_url?: string | null
+          best_item_id?: string | null
           created_at?: string
           hashtags?: string[]
           id?: string
@@ -2147,7 +2150,15 @@ export type Database = {
           view_count?: number
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "showrooms_best_item_id_fkey"
+            columns: ["best_item_id"]
+            isOneToOne: false
+            referencedRelation: "showroom_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       source_ingestion_runs: {
         Row: {

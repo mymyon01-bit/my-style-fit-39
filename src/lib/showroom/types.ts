@@ -19,6 +19,7 @@ export interface Showroom {
   playlist_links: PlaylistLink[];
   visibility: ShowroomVisibility;
   is_pinned: boolean;
+  best_item_id: string | null;
   star_count: number;
   like_count: number;
   save_count: number;

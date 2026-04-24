@@ -6,6 +6,7 @@ const cast = (row: any): Showroom => ({
   ...row,
   hashtags: row.hashtags ?? [],
   playlist_links: Array.isArray(row.playlist_links) ? row.playlist_links : [],
+  best_item_id: row.best_item_id ?? null,
 });
 
 export function useUserShowrooms(userId: string | null | undefined) {
