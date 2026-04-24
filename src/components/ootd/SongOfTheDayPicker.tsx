@@ -726,11 +726,15 @@ function MiniPlayer({
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
           <button
             type="button"
-            onClick={onClose}
-            className="absolute right-1.5 top-1.5 rounded-full bg-background/60 p-1 text-foreground/65 hover:text-foreground hover:bg-background/80 transition-colors"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute right-1.5 top-1.5 z-20 rounded-full bg-background/80 p-1.5 text-foreground/80 hover:text-foreground hover:bg-background transition-colors shadow-md"
             aria-label="Close player"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
           <div className="absolute inset-0 flex items-center gap-3 px-3">
             <img
