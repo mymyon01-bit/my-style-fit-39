@@ -215,7 +215,7 @@
   html[lang="ko"] body,
   :lang(ko) {
     font-family: 'Noto Sans KR', var(--font-body);
-    font-size: 16.5px;
+    font-size: 17.5px;
     font-weight: 500;
     letter-spacing: -0.005em;
     word-break: keep-all;
