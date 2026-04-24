@@ -393,6 +393,7 @@ export default function OOTDBackground({ theme }: Props) {
         <WindowDroplets density={22} intensity={1} />
 
         <style>{`
+          @keyframes ootd-rain-soft {
             0%   { transform: translate3d(0, 0, 0) rotate(8deg); opacity: 0; }
             15%  { opacity: 0.7; }
             100% { transform: translate3d(-12vh, 110vh, 0) rotate(8deg); opacity: 0; }
