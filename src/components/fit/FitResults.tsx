@@ -21,6 +21,7 @@ import { buildFitExplanation as buildSizeExplanation, buildFitBreakdown } from "
 import { solveFit, FIT_TYPE_LABEL } from "@/lib/fit/fitSolver";
 import FitBreakdown from "@/components/fit/FitBreakdown";
 import FitSummaryPanel from "@/components/fit/FitSummaryPanel";
+import FitExplanationCard from "@/components/fit/FitExplanationCard";
 import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import RegionFitTable from "@/components/fit/RegionFitTable";
 import { useResolvedGarmentSize } from "@/hooks/useResolvedGarmentSize";
@@ -547,6 +548,29 @@ export default function FitResults({
           <p className="text-[13px] leading-relaxed text-foreground/75">
             {explanation || builtExplanation.headline || solver.summary}
           </p>
+
+          {/* ── PARALLEL FIT EXPLANATION LAYER ──
+              Computed AFTER the existing pipeline. Recalculates instantly on
+              size/item change. Does NOT trigger image regeneration. */}
+          {bodyHeightCm ? (
+            <FitExplanationCard
+              heightCm={bodyHeightCm}
+              weightKg={bodyWeightKg ?? null}
+              category={product.category}
+              selectedSize={activeSize}
+              garment={resolvedSize.resolved ? {
+                chest:    (resolvedSize.resolved as any).chestCm,
+                shoulder: (resolvedSize.resolved as any).shoulderCm,
+                length:   (resolvedSize.resolved as any).lengthCm ?? (resolvedSize.resolved as any).totalLengthCm,
+                waist:    (resolvedSize.resolved as any).waistCm,
+                hip:      (resolvedSize.resolved as any).hipCm,
+                thigh:    (resolvedSize.resolved as any).thighCm,
+                inseam:   (resolvedSize.resolved as any).inseamCm,
+                sleeve:   (resolvedSize.resolved as any).sleeveCm,
+              } : null}
+              sizeLabel={`SIZE ${activeSize}`}
+            />
+          ) : null}
 
           {/* Fit-score / data disclaimer — honesty notice */}
           <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
