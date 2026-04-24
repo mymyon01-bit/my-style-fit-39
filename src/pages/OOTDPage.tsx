@@ -632,9 +632,11 @@ const OOTDPage = () => {
             </div>
           </div>
 
-          {/* Tabs row — full width on mobile, inline next to right cluster on desktop */}
+          {/* Tabs row — full width on mobile, inline next to right cluster on desktop.
+              On mobile we let the row scroll horizontally so RANKING/FEED/COMMUNITY
+              /SHOWROOM/MY PAGE never get squeezed below readable size. */}
           <div className="flex items-center gap-3">
-            <div className="flex flex-1 min-w-0">
+            <div className="flex flex-1 min-w-0 overflow-x-auto no-scrollbar">
               {([
                 { key: "ranking" as const, label: "RANKING" },
                 { key: "feed" as const, label: "FEED" },
@@ -642,14 +644,14 @@ const OOTDPage = () => {
                 { key: "showroom" as const, label: "SHOWROOM" },
                 { key: "mypage" as const, label: "MY PAGE" },
               ]).map(({ key, label }) => (
-                <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 min-w-0 py-3 text-center">
-                  <span className={`block truncate text-[9.5px] md:text-[10px] font-medium tracking-[0.14em] md:tracking-[0.2em] transition-colors duration-300 ${
+                <button key={key} onClick={() => setActiveTab(key)} className="relative shrink-0 px-3 py-3 text-center md:flex-1 md:min-w-0 md:px-0">
+                  <span className={`block whitespace-nowrap text-[11px] md:text-[10px] font-medium tracking-[0.16em] md:tracking-[0.2em] transition-colors duration-300 ${
                     activeTab === key ? "text-foreground/90" : "text-foreground/45"
                   }`}>
                     {label}
                   </span>
                   {activeTab === key && (
-                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/60" />
+                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-3 right-3 h-px bg-accent/60 md:left-1/4 md:right-1/4" />
                   )}
                 </button>
               ))}
