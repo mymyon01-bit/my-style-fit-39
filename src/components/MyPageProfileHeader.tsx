@@ -213,30 +213,15 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
           )}
         </div>
 
-        {/* Top-right action cluster — Messages + Settings, always visible */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {onOpenMessages && (
-            <button
-              onClick={onOpenMessages}
-              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted/60 text-foreground/70 hover:bg-muted hover:text-foreground transition-colors active:scale-95"
-              aria-label="Open messages"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              {msgUnread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white leading-none">
-                  {msgUnread > 99 ? "99+" : msgUnread}
-                </span>
-              )}
-            </button>
-          )}
-          <button
-            onClick={() => navigate("/profile")}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/45 hover:bg-muted hover:text-foreground transition-colors"
-            aria-label="Profile settings"
-          >
-            <Settings className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        {/* Settings shortcut — Messages live in the sticky page header so we
+            don't duplicate the action here. */}
+        <button
+          onClick={() => navigate("/profile")}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/45 hover:bg-muted hover:text-foreground transition-colors shrink-0"
+          aria-label="Profile settings"
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {/* Stats + privacy */}
