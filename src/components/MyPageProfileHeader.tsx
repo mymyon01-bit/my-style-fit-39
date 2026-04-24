@@ -190,10 +190,10 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <p className="font-display text-[15px] text-foreground/90 truncate">{displayName}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[14px] font-semibold text-foreground/90 truncate">{displayName}</p>
                 {profile?.is_official && <OfficialBadge />}
-                <button onClick={() => setEditing(true)} className="text-foreground/40 hover:text-accent transition-colors">
+                <button onClick={() => setEditing(true)} className="text-foreground/40 hover:text-accent transition-colors shrink-0">
                   <Edit3 className="h-3 w-3" />
                 </button>
               </div>
@@ -213,14 +213,30 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
           )}
         </div>
 
-        {/* Settings shortcut */}
-        <button
-          onClick={() => navigate("/profile")}
-          className="text-foreground/40 hover:text-foreground transition-colors shrink-0"
-          aria-label="Profile settings"
-        >
-          <Settings className="h-4 w-4" />
-        </button>
+        {/* Top-right action cluster — Messages + Settings, always visible */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onOpenMessages && (
+            <button
+              onClick={onOpenMessages}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted/60 text-foreground/70 hover:bg-muted hover:text-foreground transition-colors active:scale-95"
+              aria-label="Open messages"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              {msgUnread > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white leading-none">
+                  {msgUnread > 99 ? "99+" : msgUnread}
+                </span>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => navigate("/profile")}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/45 hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Profile settings"
+          >
+            <Settings className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Stats + privacy */}
@@ -231,35 +247,18 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
-        <div className="flex items-center gap-2">
-          {onOpenMessages && (
-            <button
-              onClick={onOpenMessages}
-              className="relative flex items-center gap-1.5 rounded-full border border-border/40 px-2.5 py-1 text-[10px] font-medium text-foreground/55 hover:text-foreground/80 hover:border-accent/40 transition-colors"
-              aria-label="Open messages"
-            >
-              <MessageCircle className="h-3 w-3" />
-              Messages
-              {msgUnread > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white">
-                  {msgUnread > 99 ? "99+" : msgUnread}
-                </span>
-              )}
-            </button>
-          )}
-          <button
-            onClick={togglePrivate}
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
-              profile?.is_private
-                ? "border-accent/40 bg-accent/10 text-accent"
-                : "border-border/40 text-foreground/55 hover:text-foreground/80"
-            }`}
-            aria-label="Toggle private account"
-          >
-            {profile?.is_private ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-            {profile?.is_private ? "Private" : "Public"}
-          </button>
-        </div>
+        <button
+          onClick={togglePrivate}
+          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+            profile?.is_private
+              ? "border-accent/40 bg-accent/10 text-accent"
+              : "border-border/40 text-foreground/55 hover:text-foreground/80"
+          }`}
+          aria-label="Toggle private account"
+        >
+          {profile?.is_private ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+          {profile?.is_private ? "Private" : "Public"}
+        </button>
       </div>
 
       <CirclesSheet

@@ -583,11 +583,11 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-3 py-1.5 text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+          className="flex h-7 items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-2.5 text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
           aria-label="Pick song of the day"
         >
           <Music className="h-3 w-3" />
-          PICK A SONG
+          SONG
         </button>
       )}
 
@@ -847,76 +847,43 @@ function InlinePlayerCard({
 }: InlinePlayerCardProps) {
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
   return (
-    <div className="flex items-center gap-2 rounded-full border border-border/40 bg-background/70 backdrop-blur pl-1 pr-1.5 py-1 shrink-0 max-w-[280px] sm:max-w-[320px]">
+    <div className="flex h-7 items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur pl-0.5 pr-1 shrink-0 max-w-[180px] sm:max-w-[220px]">
       {/* Album art */}
       <img
         src={track.artwork}
         alt=""
-        className={`h-7 w-7 rounded-full object-cover ring-1 ring-border/40 shrink-0 ${
+        className={`h-6 w-6 rounded-full object-cover ring-1 ring-border/40 shrink-0 ${
           isPlaying ? "animate-[spin_8s_linear_infinite]" : ""
         }`}
         style={{ animationPlayState: isPlaying ? "running" : "paused" }}
       />
 
-      {/* Title / artist + scrub bar */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-1.5">
-          <p className="text-[11px] font-medium text-foreground/90 truncate leading-tight">
-            {track.title}
-          </p>
-          <p className="text-[9.5px] text-foreground/55 truncate leading-tight">
-            · {track.artist}
-          </p>
-        </div>
-        <div className="mt-0.5 h-[2px] w-full overflow-hidden rounded-full bg-foreground/10">
-          <div
-            className="h-full bg-accent transition-[width] duration-300"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
+      {/* Title only — keep it tight to match the other chips */}
+      <p className="min-w-0 flex-1 truncate text-[10px] font-medium text-foreground/85 leading-tight">
+        {track.title}
+      </p>
 
-      {/* Controls */}
-      {onPrev && (
-        <button
-          type="button"
-          onClick={onPrev}
-          className="rounded-full p-1 text-foreground/65 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
-          aria-label="Previous"
-        >
-          <SkipBack className="h-3 w-3" />
-        </button>
-      )}
+      {/* Play / pause */}
       <button
         type="button"
         onClick={onTogglePlay}
         disabled={!track.preview}
-        className="rounded-full bg-accent p-1.5 text-background shadow-sm hover:opacity-90 transition disabled:opacity-50 shrink-0"
+        className="rounded-full bg-accent p-1 text-background shadow-sm hover:opacity-90 transition disabled:opacity-50 shrink-0"
         aria-label={isPlaying ? "Pause" : "Play"}
         title={!track.preview ? "Preview not available" : isPlaying ? "Pause" : "Play"}
       >
-        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-px" />}
+        {isPlaying ? <Pause className="h-2.5 w-2.5" /> : <Play className="h-2.5 w-2.5 ml-px" />}
       </button>
-      {onNext && (
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded-full p-1 text-foreground/65 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
-          aria-label="Next"
-        >
-          <SkipForward className="h-3 w-3" />
-        </button>
-      )}
 
-      {/* Library / search icon — opens the modal */}
+      {/* Library icon — opens modal */}
       <button
         type="button"
         onClick={onOpenLibrary}
-        className="relative rounded-full p-1 text-foreground/55 hover:text-accent hover:bg-accent/10 transition-colors shrink-0"
+        className="relative rounded-full p-0.5 text-foreground/55 hover:text-accent transition-colors shrink-0"
         aria-label="Open song library"
         title="Search & playlist"
       >
-        <ListMusic className="h-3.5 w-3.5" />
+        <ListMusic className="h-3 w-3" />
         {playlistCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 rounded-full bg-accent px-1 py-px text-[8px] leading-none font-semibold text-background">
             {playlistCount}
