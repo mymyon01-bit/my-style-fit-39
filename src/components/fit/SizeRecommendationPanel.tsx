@@ -247,8 +247,55 @@ export default function SizeRecommendationPanel({
               ALT · {recommendation.alternateSize}
             </span>
           )}
+          {primary && (
+            <span className="ml-auto inline-flex items-baseline gap-1 text-foreground/70">
+              <span className="font-display text-2xl font-bold tabular-nums text-foreground">
+                {primary.score}
+              </span>
+              <span className="text-[10px] font-bold tracking-[0.18em] text-foreground/45">/100</span>
+            </span>
+          )}
         </div>
         <p className="text-[13px] leading-relaxed text-foreground/80">{recommendation.primaryReason}</p>
+
+        {/* CRITICAL POINTS — explainable per-region deltas (spec §5) */}
+        {primary && (() => {
+          const points = primary.regions
+            .filter((r) => r.status !== "regular" && r.deltaCm != null)
+            .slice(0, 4)
+            .map((r) => {
+              const d = r.deltaCm as number;
+              const verdict =
+                r.status === "tooTight" ? `${Math.abs(d)}cm tight`
+                : r.status === "slightlyTight" ? `${Math.abs(d)}cm tight`
+                : r.status === "slightlyLoose" ? `+${d}cm room`
+                : r.status === "loose" ? `+${d}cm loose`
+                : r.status === "oversized" ? `+${d}cm oversized`
+                : `${d > 0 ? "+" : ""}${d}cm`;
+              return { region: r.region, verdict, status: r.status };
+            });
+          if (points.length === 0) return null;
+          return (
+            <ul className="space-y-1 pt-1">
+              {points.map((p) => (
+                <li key={p.region} className="flex items-center gap-2 text-[11px]">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      p.status === "tooTight" || p.status === "slightlyTight"
+                        ? "bg-orange-500"
+                        : p.status === "loose" || p.status === "oversized"
+                        ? "bg-blue-500"
+                        : "bg-foreground/30"
+                    }`}
+                  />
+                  <span className="capitalize text-foreground/65">{p.region}</span>
+                  <span className="ml-auto font-medium tabular-nums text-foreground/85">{p.verdict}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
+
         <p className="text-[10px] text-foreground/45">{recommendation.confidenceReason}</p>
       </div>
 
