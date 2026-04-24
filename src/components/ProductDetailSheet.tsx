@@ -1,10 +1,10 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Heart, ExternalLink, X, Tag, Sparkles, Camera, Send } from "lucide-react";
+import { Heart, ExternalLink, X, Tag, Sparkles, LayoutGrid, Send } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SafeImage from "@/components/SafeImage";
 import { AuthGate } from "@/components/AuthGate";
-import PostProductToOOTDSheet from "@/components/profile/PostProductToOOTDSheet";
+import SendToShowroomSheet from "@/components/showroom/SendToShowroomSheet";
 import ShareProductToFriendDialog from "@/components/ShareProductToFriendDialog";
 import { useAuth } from "@/lib/auth";
 
@@ -178,14 +178,14 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
 
                   {/* OOTD actions — POST AS OOTD + SHARE IN OOTD */}
                   <div className="grid grid-cols-2 gap-2.5">
-                    <AuthGate action="post outfits">
+                    <AuthGate action="send to your Showroom">
                       <button
                         onClick={() => setPostOpen(true)}
                         disabled={!product.image_url}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[11px] font-bold tracking-[0.14em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
                       >
-                        <Camera className="h-4 w-4" />
-                        POST IN OOTD
+                        <LayoutGrid className="h-4 w-4" />
+                        SEND TO MY SHOWROOM
                       </button>
                     </AuthGate>
 
@@ -235,11 +235,10 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
         </SheetContent>
       </Sheet>
 
-      <PostProductToOOTDSheet
+      <SendToShowroomSheet
         open={postOpen}
         product={{
           id: product.id,
-          productId: product.id,
           name: product.name,
           brand: product.brand,
           imageUrl: product.image_url ?? null,
