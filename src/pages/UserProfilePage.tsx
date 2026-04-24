@@ -473,7 +473,7 @@ const UserProfilePage = () => {
       {selectedPost && profile && (
         <OOTDPostDetail
           post={selectedPost}
-          profile={{ display_name: profile.display_name, avatar_url: profile.avatar_url }}
+          profile={{ display_name: profile.display_name, avatar_url: profile.avatar_url, is_official: profile.is_official }}
           reaction={reactions[selectedPost.id]}
           isStarred={starredPosts.has(selectedPost.id)}
           isSaved={savedPosts.has(selectedPost.id)}
