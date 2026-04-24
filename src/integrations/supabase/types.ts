@@ -381,33 +381,74 @@ export type Database = {
           },
         ]
       }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string
+          created_by: string | null
           id: string
+          is_group: boolean
           last_message_at: string
           last_message_preview: string | null
+          title: string | null
           updated_at: string
-          user_a: string
-          user_b: string
+          user_a: string | null
+          user_b: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           id?: string
+          is_group?: boolean
           last_message_at?: string
           last_message_preview?: string | null
+          title?: string | null
           updated_at?: string
-          user_a: string
-          user_b: string
+          user_a?: string | null
+          user_b?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           id?: string
+          is_group?: boolean
           last_message_at?: string
           last_message_preview?: string | null
+          title?: string | null
           updated_at?: string
-          user_a?: string
-          user_b?: string
+          user_a?: string | null
+          user_b?: string | null
         }
         Relationships: []
       }
@@ -1098,7 +1139,7 @@ export type Database = {
           created_at: string
           id: string
           read_at: string | null
-          recipient_id: string
+          recipient_id: string | null
           sender_id: string
           tagged_user_ids: string[]
         }
@@ -1109,7 +1150,7 @@ export type Database = {
           created_at?: string
           id?: string
           read_at?: string | null
-          recipient_id: string
+          recipient_id?: string | null
           sender_id: string
           tagged_user_ids?: string[]
         }
@@ -1120,7 +1161,7 @@ export type Database = {
           created_at?: string
           id?: string
           read_at?: string | null
-          recipient_id?: string
+          recipient_id?: string | null
           sender_id?: string
           tagged_user_ids?: string[]
         }
@@ -2475,7 +2516,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_conversation_member: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: undefined
+      }
       claim_referral: { Args: { _code: string }; Returns: Json }
+      create_group_conversation: {
+        Args: { _member_ids: string[]; _title: string }
+        Returns: string
+      }
       delete_my_account: { Args: never; Returns: undefined }
       get_or_create_conversation: {
         Args: { _other_user: string }
@@ -2489,6 +2538,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
+      is_conversation_participant: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       log_admin_action: {
         Args: {
