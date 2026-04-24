@@ -268,6 +268,9 @@ const ProfilePage = () => {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <p className="font-display text-lg text-foreground/80">{displayName}</p>
+              {profile?.username && (
+                <span className="text-[11px] text-foreground/50">@{profile.username}</span>
+              )}
               <button onClick={() => setIsEditing(!isEditing)} className="text-foreground/70 hover:text-foreground/70">
                 <Edit3 className="h-3.5 w-3.5" />
               </button>
@@ -289,6 +292,49 @@ const ProfilePage = () => {
         {isEditing && (
           <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-4">
             <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">EDIT PROFILE</p>
+
+            {/* Username — special handling */}
+            <div>
+              <label className="text-[10px] font-medium text-foreground/75">Username (아이디)</label>
+              <div className="mt-1 flex items-center gap-1 border-b border-border/20 focus-within:border-accent/30 transition-colors">
+                <span className="text-[13px] text-foreground/50">@</span>
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={e => {
+                    // strip spaces + uppercase live; keep allowed chars only typed
+                    const v = e.target.value.toLowerCase().replace(/\s+/g, "").slice(0, 30);
+                    setEditUsername(v);
+                    if (usernameError) setUsernameError(null);
+                  }}
+                  placeholder="your_id"
+                  maxLength={30}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="flex-1 bg-transparent py-2.5 text-[13px] text-foreground outline-none placeholder:text-foreground/50"
+                />
+              </div>
+              <p className="mt-1 text-[10px] text-foreground/50">
+                1–30자 · 영문 소문자/숫자/점/밑줄만 · 공백 불가 · 1년 3회, 변경 후 30일간 잠금
+              </p>
+              {usernameError && (
+                <p className="mt-1 text-[10px] text-destructive">{usernameError}</p>
+              )}
+              {profile?.username_changes && profile.username_changes.length > 0 && (() => {
+                const yearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+                const last = new Date(profile.username_changes[profile.username_changes.length - 1]).getTime();
+                const recent = profile.username_changes.filter((t: string) => new Date(t).getTime() > yearAgo).length;
+                const daysSince = Math.floor((Date.now() - last) / (24 * 60 * 60 * 1000));
+                const remaining = Math.max(0, 30 - daysSince);
+                return (
+                  <p className="mt-1 text-[10px] text-foreground/45">
+                    올해 변경 {recent}/3회{remaining > 0 ? ` · 다음 변경까지 ${remaining}일` : " · 지금 변경 가능"}
+                  </p>
+                );
+              })()}
+            </div>
+
             {[
               { label: "Display Name", value: editName, set: setEditName, placeholder: "Your name" },
               { label: "Bio / Style Line", value: editBio, set: setEditBio, placeholder: "A short style description" },
