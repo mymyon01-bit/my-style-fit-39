@@ -516,7 +516,8 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
+    <div className="relative min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
+      <OOTDBackground theme={bgTheme} />
       {/* Sticky tab line — pinned directly under the main menu bar so users
           can always jump between Ranking / Feed / Community / My Page. */}
       <div className="sticky top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
