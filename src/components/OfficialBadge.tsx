@@ -2,21 +2,20 @@ import { BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Inline OFFICIAL badge shown next to MYMYON official account names.
- * Gold accent — uses inline color since this is a branded accent (not themable).
+ * Inline OFFICIAL verification badge — Twitter/X style blue check.
+ * White check on a solid blue circle. Uses inline color since this is a
+ * branded verification mark (not themable).
  */
 export const OfficialBadge = ({ className, compact = false }: { className?: string; compact?: boolean }) => (
   <span
-    className={cn(
-      "inline-flex items-center gap-0.5 align-middle font-semibold uppercase tracking-[0.18em] text-[#C9A227]",
-      compact ? "text-[8px]" : "text-[9px]",
-      className,
-    )}
+    className={cn("inline-flex items-center align-middle", className)}
     title="Official MYMYON account"
-    aria-label="Official account"
+    aria-label="Official verified account"
   >
-    <BadgeCheck className={cn("fill-[#C9A227]/15 stroke-[#C9A227]", compact ? "h-2.5 w-2.5" : "h-3 w-3")} strokeWidth={2.2} />
-    <span>OFFICIAL</span>
+    <BadgeCheck
+      className={cn("fill-[#1D9BF0] stroke-white", compact ? "h-3.5 w-3.5" : "h-4 w-4")}
+      strokeWidth={2.5}
+    />
   </span>
 );
 
