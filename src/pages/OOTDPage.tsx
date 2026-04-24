@@ -589,7 +589,7 @@ const OOTDPage = () => {
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
       {/* Sticky tab line — pinned directly under the main menu bar so users
           can always jump between Ranking / Feed / Community / My Page. */}
-      <div className="sticky top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
+      <div className="sticky-header sticky top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           {/* Mobile-only first row: brand + right-side actions. Tabs sit on a
               SECOND row so RANKING/FEED/COMMUNITY/MY PAGE never get squeezed
