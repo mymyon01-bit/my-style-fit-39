@@ -179,7 +179,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
 
     const startPolling = (ids: { requestId?: string | null; predictionId?: string | null }) => {
       let attempts = 0;
-      pollTimerRef.current = window.setInterval(async () => {
+      const tick = async () => {
         attempts++;
         if (isStale()) {
           stopTimers();
@@ -253,7 +253,11 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             isUsingStableRenderMode: false,
           }));
         }
-      }, POLL_INTERVAL_MS);
+      };
+      // Fire first check immediately so fast generations don't wait a full
+      // interval before being detected, then poll every POLL_INTERVAL_MS.
+      void tick();
+      pollTimerRef.current = window.setInterval(tick, POLL_INTERVAL_MS);
     };
 
     (async () => {
