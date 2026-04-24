@@ -53,6 +53,7 @@ const UserProfilePage = () => {
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [postCount, setPostCount] = useState(0);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   // Inline messages sheet — opens directly into the chat with this user.
   const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null }>({
     open: false,
@@ -178,7 +179,7 @@ const UserProfilePage = () => {
   }, [visitorCard]);
 
   return (
-    <div className="relative min-h-screen bg-background pb-28 lg:pb-16 lg:pt-24">
+    <div className={`relative min-h-screen pb-28 lg:pb-16 lg:pt-24 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
       {visitorBgTheme !== "none" && (
         <div className="pointer-events-none fixed inset-0 z-0">
           <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
@@ -360,22 +361,78 @@ const UserProfilePage = () => {
             ) : (
               <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
                 {posts.map((post, i) => (
-                  <motion.div
+                  <motion.button
                     key={post.id}
+                    type="button"
+                    onClick={() => setLightboxIdx(i)}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
+                    className="group relative overflow-hidden rounded-lg aspect-[3/4] focus:outline-none focus:ring-2 focus:ring-accent/60"
                   >
-                    <div className="overflow-hidden rounded-lg aspect-[3/4]">
-                      <img src={post.image_url} alt={post.caption || ""} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  </motion.div>
+                    <img
+                      src={post.image_url}
+                      alt={post.caption || ""}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      loading="lazy"
+                    />
+                  </motion.button>
                 ))}
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Lightbox — view photos full-size with prev/next */}
+      {lightboxIdx !== null && posts[lightboxIdx] && (
+        <div
+          className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setLightboxIdx(null)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightboxIdx(null); }}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            aria-label="Close"
+          >
+            <ArrowLeft className="h-5 w-5 rotate-45" />
+          </button>
+          {lightboxIdx > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }}
+              className="absolute left-3 md:left-8 h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+              aria-label="Previous"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
+          {lightboxIdx < posts.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }}
+              className="absolute right-3 md:right-8 h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+              aria-label="Next"
+            >
+              <ArrowLeft className="h-5 w-5 rotate-180" />
+            </button>
+          )}
+          <motion.img
+            key={posts[lightboxIdx].id}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            src={posts[lightboxIdx].image_url}
+            alt={posts[lightboxIdx].caption || ""}
+            className="max-h-[88vh] max-w-[92vw] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {posts[lightboxIdx].caption && (
+            <div className="absolute bottom-6 inset-x-6 text-center">
+              <p className="inline-block bg-black/50 backdrop-blur-md text-white text-[13px] px-4 py-2 rounded-full max-w-[90vw] truncate">
+                {posts[lightboxIdx].caption}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Direct-to-thread messages sheet — opens when MESSAGE is tapped */}
       <MessagesFullSheet
