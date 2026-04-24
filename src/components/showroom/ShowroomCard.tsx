@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Star, Heart, Eye, Pin, Sparkles } from "lucide-react";
+import { Star, Heart, Eye, Pin, Sparkles, Users } from "lucide-react";
 import type { Showroom } from "@/lib/showroom/types";
 
 export const ShowroomCard = ({ room }: { room: Showroom }) => {
