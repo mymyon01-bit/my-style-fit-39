@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
+import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 
 interface OOTDPost {
   id: string;
@@ -111,6 +112,7 @@ const OOTDPage = () => {
 
   // User-selected animated background for the OOTD experience.
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
+  const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
   useEffect(() => {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as OOTDBgTheme | undefined;
@@ -606,11 +608,14 @@ const OOTDPage = () => {
       <div className="relative mx-auto max-w-lg px-6 pt-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         {activeTab === "mypage" && user && (
           <div className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4" : "mb-2"}>
-            <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
               <p className="text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
               </p>
-              <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
+                <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
+              </div>
             </div>
             <MyPageProfileHeader
               postCount={myPosts.length}
