@@ -388,6 +388,10 @@ export default function OOTDBackground({ theme }: Props) {
             15%  { opacity: 0.7; }
             100% { transform: translate3d(-12vh, 110vh, 0) rotate(8deg); opacity: 0; }
           }
+          @keyframes ootd-cloud-drift {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(110vw + 600px)); }
+          }
         `}</style>
       </div>
     );
