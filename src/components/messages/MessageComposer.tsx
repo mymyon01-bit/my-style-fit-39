@@ -108,12 +108,17 @@ export default function MessageComposer({ onSend, disabled }: Props) {
     const usedTags = tagged.filter((u) =>
       new RegExp(`@${u.username}(?![a-zA-Z0-9_.-])`).test(content),
     );
-    await onSend(content, usedTags.map((u) => u.user_id), pending);
-    setText("");
-    setTagged([]);
-    setPending([]);
-    setMentionQuery(null);
-    setSending(false);
+    try {
+      await onSend(content, usedTags.map((u) => u.user_id), pending);
+      setText("");
+      setTagged([]);
+      setPending([]);
+      setMentionQuery(null);
+    } finally {
+      setSending(false);
+      // Refocus composer so users can keep typing without clicking back
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
   };
 
   const handleKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
