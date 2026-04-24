@@ -561,6 +561,13 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
         }}
         onVerified={() => setEmailGateOpen(false)}
       />
+      <SquareCropDialog
+        open={!!pendingCrop}
+        file={pendingCrop}
+        onClose={() => setPendingCrop(null)}
+        onCropped={handleCropConfirmed}
+        title="Crop your OOTD"
+      />
     </AnimatePresence>
   );
 });
