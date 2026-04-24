@@ -816,3 +816,113 @@ function MiniPlayer({
     document.body,
   );
 }
+
+// =====================================================
+// Inline player card — replaces the old SOTD pill button.
+// Shows album / title / artist, a thin scrub bar, prev/play/next,
+// and a small icon on the right that opens the search/playlist modal.
+// =====================================================
+interface InlinePlayerCardProps {
+  track: SongOfDay;
+  isPlaying: boolean;
+  progress: number;
+  duration: number;
+  playlistCount: number;
+  onTogglePlay: () => void;
+  onNext?: () => void;
+  onPrev?: () => void;
+  onOpenLibrary: () => void;
+}
+
+function InlinePlayerCard({
+  track,
+  isPlaying,
+  progress,
+  duration,
+  playlistCount,
+  onTogglePlay,
+  onNext,
+  onPrev,
+  onOpenLibrary,
+}: InlinePlayerCardProps) {
+  const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-border/40 bg-background/70 backdrop-blur pl-1 pr-1.5 py-1 shrink-0 max-w-[280px] sm:max-w-[320px]">
+      {/* Album art */}
+      <img
+        src={track.artwork}
+        alt=""
+        className={`h-7 w-7 rounded-full object-cover ring-1 ring-border/40 shrink-0 ${
+          isPlaying ? "animate-[spin_8s_linear_infinite]" : ""
+        }`}
+        style={{ animationPlayState: isPlaying ? "running" : "paused" }}
+      />
+
+      {/* Title / artist + scrub bar */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-1.5">
+          <p className="text-[11px] font-medium text-foreground/90 truncate leading-tight">
+            {track.title}
+          </p>
+          <p className="text-[9.5px] text-foreground/55 truncate leading-tight">
+            · {track.artist}
+          </p>
+        </div>
+        <div className="mt-0.5 h-[2px] w-full overflow-hidden rounded-full bg-foreground/10">
+          <div
+            className="h-full bg-accent transition-[width] duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Controls */}
+      {onPrev && (
+        <button
+          type="button"
+          onClick={onPrev}
+          className="rounded-full p-1 text-foreground/65 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+          aria-label="Previous"
+        >
+          <SkipBack className="h-3 w-3" />
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onTogglePlay}
+        disabled={!track.preview}
+        className="rounded-full bg-accent p-1.5 text-background shadow-sm hover:opacity-90 transition disabled:opacity-50 shrink-0"
+        aria-label={isPlaying ? "Pause" : "Play"}
+        title={!track.preview ? "Preview not available" : isPlaying ? "Pause" : "Play"}
+      >
+        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-px" />}
+      </button>
+      {onNext && (
+        <button
+          type="button"
+          onClick={onNext}
+          className="rounded-full p-1 text-foreground/65 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+          aria-label="Next"
+        >
+          <SkipForward className="h-3 w-3" />
+        </button>
+      )}
+
+      {/* Library / search icon — opens the modal */}
+      <button
+        type="button"
+        onClick={onOpenLibrary}
+        className="relative rounded-full p-1 text-foreground/55 hover:text-accent hover:bg-accent/10 transition-colors shrink-0"
+        aria-label="Open song library"
+        title="Search & playlist"
+      >
+        <ListMusic className="h-3.5 w-3.5" />
+        {playlistCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 rounded-full bg-accent px-1 py-px text-[8px] leading-none font-semibold text-background">
+            {playlistCount}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
