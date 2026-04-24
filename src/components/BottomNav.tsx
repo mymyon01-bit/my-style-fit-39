@@ -1,4 +1,4 @@
-import { Home, Compass, Camera, Scan, User, LayoutGrid } from "lucide-react";
+import { Home, Compass, Camera, Scan, User } from "lucide-react";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
@@ -17,7 +17,6 @@ const BottomNav = () => {
     { path: "/", icon: Home, label: "HOME" },
     { path: "/discover", icon: Compass, label: "DISCOVER" },
     { path: "/ootd", icon: Camera, label: "OOTD" },
-    { path: "/showroom", icon: LayoutGrid, label: "ROOM" },
     { path: "/fit", icon: Scan, label: "FIT" },
     { path: "/profile", icon: User, label: "YOU" },
   ];
