@@ -57,11 +57,11 @@ const ShowroomNewPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/40 bg-background/90 px-4 py-3 backdrop-blur-sm">
+      <div className="sticky-header sticky top-0 z-10 flex items-center gap-3 border-b border-border/40 bg-background/90 px-3 pb-2.5 backdrop-blur-sm">
         <button onClick={() => navigate(-1)} className="rounded-full p-1 hover:bg-foreground/5">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <h1 className="font-display text-lg">New Showroom</h1>
+        <h1 className="font-display text-base">New Showroom</h1>
         <span className="ml-auto text-[10px] uppercase tracking-widest text-foreground/50">Step {step}/2</span>
       </div>
 

@@ -254,12 +254,12 @@ const SubscriptionPage = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/10">
-        <div className="flex items-center gap-3 px-6 py-4 max-w-3xl mx-auto">
+      <div className="sticky-header sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/10">
+        <div className="flex items-center gap-3 px-5 pb-3 max-w-3xl mx-auto">
           <button onClick={() => navigate(-1)} className="text-foreground/75 hover:text-foreground transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <h1 className="font-display text-lg font-light text-foreground/85">Subscription</h1>
+          <h1 className="font-display text-base font-light text-foreground/85">Subscription</h1>
         </div>
       </div>
 

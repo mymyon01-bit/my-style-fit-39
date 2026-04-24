@@ -40,7 +40,7 @@ const BottomNav = () => {
                 onClick={() => navigate(tab.path)}
                 onMouseEnter={() => prefetchRoute(tab.path)}
                 onTouchStart={() => prefetchRoute(tab.path)}
-                className={`group relative flex flex-col items-center gap-1.5 px-4 py-1.5 transition-all duration-200 md:gap-2 md:px-6 ${
+                className={`group relative flex flex-col items-center gap-1 px-2 py-1 transition-all duration-200 md:gap-2 md:px-6 md:py-1.5 ${
                   isActive ? "text-foreground" : "text-foreground/55 hover:text-foreground"
                 }`}
               >
@@ -52,7 +52,7 @@ const BottomNav = () => {
                 )}
                 <span className="relative">
                   <tab.icon
-                    className={`h-[18px] w-[18px] transition-transform duration-200 md:h-5 md:w-5 ${
+                    className={`h-4 w-4 transition-transform duration-200 md:h-5 md:w-5 ${
                       isActive ? "scale-110" : "group-hover:scale-110"
                     }`}
                     strokeWidth={isActive ? 2.4 : 1.6}
