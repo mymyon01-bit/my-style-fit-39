@@ -23,7 +23,7 @@ import DiscoverAdRow from "@/components/discover/DiscoverAdRow";
 import InterpretationBanner from "@/components/discover/InterpretationBanner";
 import { genderPreferenceToFilter, type GenderFilter } from "@/lib/discover/genderFilter";
 import Brandmark from "@/components/Brandmark";
-import StyleRecsForYou from "@/components/StyleRecsForYou";
+
 
 const STYLE_FILTERS = ["minimal", "street", "classic", "casual", "formal", "vintage"];
 const FIT_FILTERS = ["oversized", "regular", "slim"];
