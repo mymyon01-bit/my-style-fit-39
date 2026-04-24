@@ -616,73 +616,139 @@ function WindowDroplets({ density = 22, intensity = 1 }: { density?: number; int
 // ────────────────────────────────────────────────────────────────────────
 function CherryTree({ side }: { side: "left" | "right" }) {
   const isLeft = side === "left";
+
+  // Dense cluster of blossom puffs — multiple shades layered for depth.
+  // Spread wide across the canvas so the canopy reads as a real, full
+  // sakura tree in bloom rather than a few floating blobs.
+  const canopyBase = [
+    // outer hazy halo (palest)
+    { cx: 80,  cy: 320, r: 78, fill: "rgba(255, 215, 230, 0.55)" },
+    { cx: 150, cy: 250, r: 95, fill: "rgba(255, 215, 230, 0.55)" },
+    { cx: 230, cy: 230, r: 82, fill: "rgba(255, 215, 230, 0.55)" },
+    { cx: 300, cy: 280, r: 70, fill: "rgba(255, 215, 230, 0.55)" },
+    { cx: 200, cy: 350, r: 88, fill: "rgba(255, 215, 230, 0.5)" },
+    { cx: 110, cy: 410, r: 65, fill: "rgba(255, 215, 230, 0.5)" },
+    // mid pink layer
+    { cx: 95,  cy: 310, r: 56, fill: "rgba(255, 183, 210, 0.85)" },
+    { cx: 145, cy: 260, r: 70, fill: "rgba(255, 183, 210, 0.88)" },
+    { cx: 200, cy: 220, r: 62, fill: "rgba(255, 183, 210, 0.88)" },
+    { cx: 250, cy: 250, r: 58, fill: "rgba(255, 183, 210, 0.85)" },
+    { cx: 290, cy: 295, r: 50, fill: "rgba(255, 183, 210, 0.82)" },
+    { cx: 175, cy: 320, r: 60, fill: "rgba(255, 183, 210, 0.88)" },
+    { cx: 225, cy: 335, r: 55, fill: "rgba(255, 183, 210, 0.85)" },
+    { cx: 120, cy: 380, r: 50, fill: "rgba(255, 183, 210, 0.82)" },
+    { cx: 75,  cy: 380, r: 42, fill: "rgba(255, 183, 210, 0.78)" },
+    { cx: 165, cy: 175, r: 45, fill: "rgba(255, 183, 210, 0.82)" },
+    { cx: 230, cy: 165, r: 42, fill: "rgba(255, 183, 210, 0.82)" },
+    { cx: 270, cy: 200, r: 40, fill: "rgba(255, 183, 210, 0.8)" },
+    // brighter top highlights
+    { cx: 130, cy: 230, r: 28, fill: "rgba(255, 210, 225, 0.95)" },
+    { cx: 185, cy: 270, r: 24, fill: "rgba(255, 210, 225, 0.95)" },
+    { cx: 110, cy: 290, r: 22, fill: "rgba(255, 220, 230, 0.95)" },
+    { cx: 215, cy: 200, r: 20, fill: "rgba(255, 220, 230, 0.95)" },
+    { cx: 250, cy: 285, r: 22, fill: "rgba(255, 220, 230, 0.95)" },
+    { cx: 160, cy: 305, r: 20, fill: "rgba(255, 225, 235, 0.95)" },
+    { cx: 270, cy: 230, r: 16, fill: "rgba(255, 230, 240, 0.95)" },
+    { cx: 195, cy: 175, r: 16, fill: "rgba(255, 230, 240, 0.92)" },
+  ];
+
+  // Small individual five-petal blossoms scattered on top for that
+  // "흐드러지게 핀" feeling — they read as actual flowers, not just blobs.
+  const flowers = [
+    { cx: 90,  cy: 270, s: 1.0 },
+    { cx: 130, cy: 200, s: 0.9 },
+    { cx: 175, cy: 240, s: 1.1 },
+    { cx: 220, cy: 195, s: 0.95 },
+    { cx: 250, cy: 260, s: 1.0 },
+    { cx: 280, cy: 220, s: 0.85 },
+    { cx: 105, cy: 360, s: 1.0 },
+    { cx: 160, cy: 350, s: 0.9 },
+    { cx: 210, cy: 305, s: 1.05 },
+    { cx: 270, cy: 320, s: 0.95 },
+    { cx: 75,  cy: 340, s: 0.8 },
+    { cx: 145, cy: 290, s: 0.9 },
+    { cx: 195, cy: 380, s: 0.95 },
+    { cx: 240, cy: 175, s: 0.8 },
+    { cx: 120, cy: 245, s: 0.85 },
+    { cx: 295, cy: 255, s: 0.85 },
+  ];
+
   return (
     <div
       className="absolute bottom-0 h-full pointer-events-none"
       style={{
-        [isLeft ? "left" : "right"]: "-40px",
-        width: "260px",
+        [isLeft ? "left" : "right"]: "-60px",
+        width: "360px",
         transformOrigin: isLeft ? "bottom left" : "bottom right",
         animation: "ootd-tree-sway 6s ease-in-out infinite",
       } as any}
     >
       <svg
-        viewBox="0 0 260 700"
+        viewBox="0 0 360 720"
         className="absolute bottom-0 h-full w-full"
         style={{ transform: isLeft ? "none" : "scaleX(-1)" }}
         preserveAspectRatio="xMinYMax meet"
       >
-        {/* Trunk + main branches */}
+        <defs>
+          <radialGradient id={`sakura-glow-${side}`} cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stopColor="rgba(255,225,235,0.45)" />
+              <stop offset="60%" stopColor="rgba(255,200,220,0.18)" />
+              <stop offset="100%" stopColor="rgba(255,200,220,0)" />
+          </radialGradient>
+          <symbol id={`sakura-flower-${side}`} viewBox="-10 -10 20 20">
+            {/* Five soft petals around a tiny golden center. */}
+            {[0, 72, 144, 216, 288].map((deg, i) => (
+              <ellipse
+                key={i}
+                cx="0"
+                cy="-5"
+                rx="3.6"
+                ry="5.2"
+                fill="rgba(255, 200, 220, 0.95)"
+                transform={`rotate(${deg})`}
+              />
+            ))}
+            <circle cx="0" cy="0" r="1.4" fill="rgba(255, 220, 120, 0.9)" />
+          </symbol>
+        </defs>
+
+        {/* Soft halo behind the canopy for atmospheric depth */}
+        <ellipse cx="180" cy="280" rx="220" ry="180" fill={`url(#sakura-glow-${side})`} />
+
+        {/* Trunk — taller, fuller silhouette */}
         <path
-          d="M 40 700 C 50 600, 60 520, 80 440 C 95 380, 110 320, 130 270 L 145 270 C 125 320, 115 380, 105 440 C 95 520, 85 600, 75 700 Z"
+          d="M 50 720 C 60 620, 75 530, 95 450 C 110 380, 130 310, 155 260 L 175 260 C 150 310, 135 380, 125 450 C 115 530, 100 620, 90 720 Z"
           fill="#3a2818"
         />
-        <path
-          d="M 95 380 C 130 350, 170 320, 210 290"
-          stroke="#3a2818"
-          strokeWidth="9"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 110 310 C 140 290, 175 260, 200 220"
-          stroke="#3a2818"
-          strokeWidth="7"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 120 250 C 150 230, 180 200, 210 170"
-          stroke="#3a2818"
-          strokeWidth="6"
-          fill="none"
-          strokeLinecap="round"
-        />
 
-        {/* Pink blossom canopy — clusters of soft circles */}
-        {[
-          { cx: 90, cy: 280, r: 60 },
-          { cx: 140, cy: 240, r: 70 },
-          { cx: 195, cy: 215, r: 55 },
-          { cx: 175, cy: 285, r: 65 },
-          { cx: 220, cy: 270, r: 50 },
-          { cx: 110, cy: 200, r: 50 },
-          { cx: 160, cy: 175, r: 55 },
-          { cx: 215, cy: 155, r: 50 },
-          { cx: 130, cy: 320, r: 55 },
-          { cx: 200, cy: 330, r: 50 },
-        ].map((c, i) => (
-          <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill="rgba(255, 183, 210, 0.85)" />
+        {/* Main branches reaching wide across the canvas */}
+        <path d="M 110 380 C 150 350, 200 320, 260 290" stroke="#3a2818" strokeWidth="11" fill="none" strokeLinecap="round" />
+        <path d="M 125 310 C 165 285, 215 250, 270 215" stroke="#3a2818" strokeWidth="9" fill="none" strokeLinecap="round" />
+        <path d="M 140 250 C 180 225, 225 195, 280 165" stroke="#3a2818" strokeWidth="7" fill="none" strokeLinecap="round" />
+        <path d="M 95 430 C 130 415, 175 395, 215 380" stroke="#3a2818" strokeWidth="9" fill="none" strokeLinecap="round" />
+        <path d="M 110 350 C 90 340, 70 335, 40 340"   stroke="#3a2818" strokeWidth="7" fill="none" strokeLinecap="round" />
+        <path d="M 165 280 C 200 260, 240 230, 290 240" stroke="#3a2818" strokeWidth="6" fill="none" strokeLinecap="round" />
+
+        {/* Twigs — thinner, weaving through the canopy */}
+        <path d="M 200 290 C 220 280, 245 270, 265 270" stroke="#3a2818" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d="M 175 220 C 195 210, 220 200, 240 195" stroke="#3a2818" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d="M 150 380 C 175 380, 200 385, 220 395" stroke="#3a2818" strokeWidth="3" fill="none" strokeLinecap="round" />
+
+        {/* Blossom canopy — layered puffs */}
+        {canopyBase.map((c, i) => (
+          <circle key={`b-${i}`} cx={c.cx} cy={c.cy} r={c.r} fill={c.fill} />
         ))}
-        {/* Highlight blooms */}
-        {[
-          { cx: 130, cy: 220, r: 22 },
-          { cx: 180, cy: 250, r: 18 },
-          { cx: 105, cy: 260, r: 16 },
-          { cx: 200, cy: 195, r: 14 },
-          { cx: 150, cy: 290, r: 18 },
-        ].map((c, i) => (
-          <circle key={`h-${i}`} cx={c.cx} cy={c.cy} r={c.r} fill="rgba(255, 220, 230, 0.95)" />
+
+        {/* Individual five-petal blossoms — sprinkled across the canopy */}
+        {flowers.map((f, i) => (
+          <use
+            key={`f-${i}`}
+            href={`#sakura-flower-${side}`}
+            x={f.cx - 10 * f.s}
+            y={f.cy - 10 * f.s}
+            width={20 * f.s}
+            height={20 * f.s}
+          />
         ))}
       </svg>
     </div>
