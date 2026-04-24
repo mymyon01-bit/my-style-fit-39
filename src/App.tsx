@@ -73,6 +73,9 @@ const AdminFallbackTables = lazyWithRetry(() => import("@/pages/admin/AdminFallb
 const AdminFitFeedback = lazyWithRetry(() => import("@/pages/admin/AdminFitFeedback"), "AdminFitFeedback");
 const AdminFeatureFlags = lazyWithRetry(() => import("@/pages/admin/AdminFeatureFlags"), "AdminFeatureFlags");
 const AdminAppConfig = lazyWithRetry(() => import("@/pages/admin/AdminAppConfig"), "AdminAppConfig");
+const ShowroomBrowsePage = lazyWithRetry(() => import("@/pages/ShowroomBrowsePage"), "ShowroomBrowsePage");
+const ShowroomNewPage = lazyWithRetry(() => import("@/pages/ShowroomNewPage"), "ShowroomNewPage");
+const ShowroomDetailPage = lazyWithRetry(() => import("@/pages/ShowroomDetailPage"), "ShowroomDetailPage");
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
@@ -200,6 +203,9 @@ const AppRoutes = () => {
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
             <Route path="/ootd" element={<OOTDPage />} />
+            <Route path="/showroom" element={<ShowroomBrowsePage />} />
+            <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
+            <Route path="/showroom/:id" element={<ShowroomDetailPage />} />
             <Route path="/user/:userId" element={<UserProfilePage />} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           </Route>
