@@ -243,6 +243,9 @@ export default function OOTDBackground({ theme }: Props) {
           />
         ))}
 
+        {/* Heavy window beads — viewer is inside, storm hammering the glass */}
+        <WindowDroplets density={36} intensity={1.4} />
+
         <style>{`
           @keyframes ootd-rain-heavy {
             0%   { transform: translate3d(0, 0, 0) rotate(14deg); opacity: 0; }
@@ -385,8 +388,11 @@ export default function OOTDBackground({ theme }: Props) {
             }}
           />
         ))}
+
+        {/* Window beads — soft rain seen from inside */}
+        <WindowDroplets density={22} intensity={1} />
+
         <style>{`
-          @keyframes ootd-rain-soft {
             0%   { transform: translate3d(0, 0, 0) rotate(8deg); opacity: 0; }
             15%  { opacity: 0.7; }
             100% { transform: translate3d(-12vh, 110vh, 0) rotate(8deg); opacity: 0; }
