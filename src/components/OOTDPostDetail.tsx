@@ -392,52 +392,89 @@ export default function OOTDPostDetail({
             </div>
           )}
 
-          {/* Interactions */}
-          <div className="flex items-center gap-4 py-2 border-y border-border/15">
+          {/* Interactions — unified pill style matching OOTD card */}
+          <div className="flex items-center flex-wrap gap-1.5 py-2.5 border-y border-border/15">
             <AuthGate action="react">
-              <button onClick={() => onReaction(post.id, "like")} className={`flex items-center gap-1 transition-colors ${reaction === "like" ? "text-rose-400" : "text-foreground/50 hover:text-foreground/80"}`}>
-                <Heart className={`h-4 w-4 ${reaction === "like" ? "fill-current" : ""}`} />
-                <span className="text-[11px]">{post.like_count || 0}</span>
+              <button
+                onClick={() => onReaction(post.id, "like")}
+                aria-label="Like"
+                className={`inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 ring-1 transition-colors ${
+                  reaction === "like"
+                    ? "bg-rose-500/15 text-rose-400 ring-rose-400/30"
+                    : "bg-foreground/[0.04] text-foreground/60 ring-border/40 hover:bg-foreground/[0.08] hover:text-foreground/80"
+                }`}
+              >
+                <Heart className={`h-3.5 w-3.5 ${reaction === "like" ? "fill-current" : ""}`} />
+                <span className="text-[11px] font-semibold tabular-nums">{post.like_count || 0}</span>
               </button>
             </AuthGate>
             <AuthGate action="react">
-              <button onClick={() => onReaction(post.id, "dislike")} className={`flex items-center gap-1 transition-colors ${reaction === "dislike" ? "text-blue-400" : "text-foreground/50 hover:text-foreground/80"}`}>
-                <HeartOff className={`h-4 w-4 ${reaction === "dislike" ? "fill-current" : ""}`} />
-                <span className="text-[11px]">{post.dislike_count || 0}</span>
+              <button
+                onClick={() => onReaction(post.id, "dislike")}
+                aria-label="Dislike"
+                className={`inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 ring-1 transition-colors ${
+                  reaction === "dislike"
+                    ? "bg-blue-500/15 text-blue-400 ring-blue-400/30"
+                    : "bg-foreground/[0.04] text-foreground/60 ring-border/40 hover:bg-foreground/[0.08] hover:text-foreground/80"
+                }`}
+              >
+                <HeartOff className={`h-3.5 w-3.5 ${reaction === "dislike" ? "fill-current" : ""}`} />
+                <span className="text-[11px] font-semibold tabular-nums">{post.dislike_count || 0}</span>
               </button>
             </AuthGate>
-            <div className="flex items-center gap-1 text-foreground/50">
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-[11px]">{comments.length}</span>
+            <div className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/[0.04] px-2.5 ring-1 ring-border/40 text-foreground/60">
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-semibold tabular-nums">{comments.length}</span>
             </div>
-            <AuthGate action="save">
-              <button onClick={() => onSave(post.id)} className={`transition-colors ${isSaved ? "text-accent/80" : "text-foreground/50 hover:text-foreground/80"}`}>
-                {isSaved ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
-              </button>
-            </AuthGate>
-            {!(post.topics || []).includes("__noshare") && (
-              <>
-                <AuthGate action="share">
-                  <button
-                    onClick={() => setShowShareDialog(true)}
-                    className="flex items-center gap-1 rounded-full border border-accent/30 bg-accent/[0.06] px-2 py-0.5 text-accent/80 transition-colors hover:bg-accent/15 hover:text-accent"
-                    aria-label="Repost or send to a friend"
-                  >
-                    <Repeat2 className="h-3.5 w-3.5" />
-                    <span className="text-[9.5px] font-semibold tracking-[0.14em] uppercase">Repost</span>
-                  </button>
-                </AuthGate>
-                <ShareButton
-                  title={post.caption || "OOTD"}
-                  url={`${window.location.origin}/user/${post.user_id}?post=${post.id}`}
-                />
-              </>
-            )}
             <AuthGate action="give stars">
-              <button onClick={() => onStar(post.id)} disabled={starsLeft <= 0 && !isStarred} className={`flex items-center gap-1 ml-auto transition-colors ${isStarred ? "text-[hsl(var(--star))]" : "text-foreground/50 hover:text-foreground/80"}`}>
-                <Star className={`h-4 w-4 ${isStarred ? "fill-current" : ""}`} />
+              <button
+                onClick={() => onStar(post.id)}
+                disabled={starsLeft <= 0 && !isStarred}
+                aria-label="Star"
+                className={`inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 ring-1 transition-colors disabled:opacity-40 ${
+                  isStarred
+                    ? "bg-[hsl(var(--star))]/15 text-[hsl(var(--star))] ring-[hsl(var(--star))]/30"
+                    : "bg-foreground/[0.04] text-foreground/60 ring-border/40 hover:bg-foreground/[0.08] hover:text-foreground/80"
+                }`}
+              >
+                <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-current" : ""}`} />
+                <span className="text-[11px] font-semibold tabular-nums">{post.star_count || 0}</span>
               </button>
             </AuthGate>
+
+            <div className="ml-auto flex items-center gap-1.5">
+              <AuthGate action="save">
+                <button
+                  onClick={() => onSave(post.id)}
+                  aria-label={isSaved ? "Saved" : "Save"}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 transition-colors ${
+                    isSaved
+                      ? "bg-accent/15 text-accent ring-accent/30"
+                      : "bg-foreground/[0.04] text-foreground/60 ring-border/40 hover:bg-foreground/[0.08] hover:text-foreground/80"
+                  }`}
+                >
+                  {isSaved ? <BookmarkCheck className="h-3.5 w-3.5 fill-current" /> : <Bookmark className="h-3.5 w-3.5" />}
+                </button>
+              </AuthGate>
+              {!(post.topics || []).includes("__noshare") && (
+                <>
+                  <AuthGate action="share">
+                    <button
+                      onClick={() => setShowShareDialog(true)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-accent/[0.08] px-2.5 ring-1 ring-accent/30 text-accent/85 hover:bg-accent/15 hover:text-accent transition-colors"
+                      aria-label="Repost"
+                    >
+                      <Repeat2 className="h-3.5 w-3.5" />
+                      <span className="text-[10px] font-semibold tracking-[0.12em] uppercase">Repost</span>
+                    </button>
+                  </AuthGate>
+                  <ShareButton
+                    title={post.caption || "OOTD"}
+                    url={`${window.location.origin}/user/${post.user_id}?post=${post.id}`}
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           {/* Threaded Comments */}
