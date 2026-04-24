@@ -495,7 +495,25 @@ export default function DiscoverPage() {
           </div>
 
           {showSuggestions && <div className="fixed inset-0 z-20" onClick={() => setShowSuggestions(false)} />}
-          <div className="mt-5 h-px bg-border/50" />
+
+          {/* User-submitted product CTA — earn ⭐ by adding any shopping URL */}
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() => {
+                if (!user) { setShowAuthHint(true); return; }
+                setSubmitOpen(true);
+              }}
+              className="group flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 px-3.5 py-1.5 text-[10.5px] font-bold tracking-[0.12em] text-foreground/80 transition hover:border-accent/60 hover:bg-accent/10 hover:text-foreground"
+            >
+              <Plus className="h-3 w-3 text-accent" />
+              상품 넣기
+              <span className="ml-1 flex items-center gap-0.5 rounded-full bg-[hsl(var(--star))]/15 px-1.5 py-0.5 text-[9px] font-bold text-[hsl(var(--star))]">
+                +1⭐
+              </span>
+            </button>
+          </div>
+
+          <div className="mt-3 h-px bg-border/50" />
 
           {/* tabs */}
           <div className="mt-4 flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide">
