@@ -52,7 +52,7 @@ const BottomNav = () => {
                 )}
                 <span className="relative">
                   <tab.icon
-                    className={`h-[18px] w-[18px] transition-transform duration-200 md:h-5 md:w-5 ${
+                    className={`h-4 w-4 transition-transform duration-200 md:h-5 md:w-5 ${
                       isActive ? "scale-110" : "group-hover:scale-110"
                     }`}
                     strokeWidth={isActive ? 2.4 : 1.6}
