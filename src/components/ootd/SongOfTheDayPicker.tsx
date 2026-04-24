@@ -630,6 +630,8 @@ interface MiniPlayerProps {
   onClose: () => void;
 }
 
+const POS_KEY = "ootd-miniplayer-pos";
+
 function MiniPlayer({
   track,
   isPlaying,
@@ -650,12 +652,70 @@ function MiniPlayer({
     return `${m}:${r.toString().padStart(2, "0")}`;
   };
 
+  // ---- Draggable position (persisted) ----
+  const PLAYER_W = 320;
+  const PLAYER_H = 230;
+  const defaultPos = () => {
+    if (typeof window === "undefined") return { x: 16, y: 80 };
+    return {
+      x: Math.max(8, window.innerWidth - PLAYER_W - 16),
+      y: Math.max(8, window.innerHeight - PLAYER_H - 80),
+    };
+  };
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
+    if (typeof window === "undefined") return { x: 16, y: 80 };
+    try {
+      const raw = localStorage.getItem(POS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p?.x === "number" && typeof p?.y === "number") return p;
+      }
+    } catch {}
+    return defaultPos();
+  });
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("button,a,input")) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    const maxX = window.innerWidth - PLAYER_W - 4;
+    const maxY = window.innerHeight - 80;
+    const nx = Math.max(4, Math.min(maxX, dragRef.current.origX + dx));
+    const ny = Math.max(4, Math.min(maxY, dragRef.current.origY + dy));
+    setPos({ x: nx, y: ny });
+  };
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current) {
+      try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch {}
+    }
+    dragRef.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+  };
+
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="fixed bottom-20 right-4 z-[180] w-[280px] sm:w-[320px] animate-scale-in">
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl">
+    <div
+      className="fixed z-[180] w-[280px] sm:w-[320px] animate-scale-in select-none"
+      style={{ left: pos.x, top: pos.y }}
+    >
+      <div
+        className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{ touchAction: "none" }}
+      >
+        {/* Drag handle hint */}
+        <div className="absolute left-1/2 top-1 z-10 -translate-x-1/2 h-1 w-8 rounded-full bg-foreground/20" />
         {/* Album art header with play overlay */}
-        <div className="relative h-24 w-full overflow-hidden">
+        <div className="relative h-24 w-full overflow-hidden cursor-grab active:cursor-grabbing">
           <img
             src={track.artwork}
             alt=""
@@ -666,11 +726,15 @@ function MiniPlayer({
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
           <button
             type="button"
-            onClick={onClose}
-            className="absolute right-1.5 top-1.5 rounded-full bg-background/60 p-1 text-foreground/65 hover:text-foreground hover:bg-background/80 transition-colors"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute right-1.5 top-1.5 z-20 rounded-full bg-background/80 p-1.5 text-foreground/80 hover:text-foreground hover:bg-background transition-colors shadow-md"
             aria-label="Close player"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
           <div className="absolute inset-0 flex items-center gap-3 px-3">
             <img
