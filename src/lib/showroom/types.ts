@@ -24,6 +24,7 @@ export interface Showroom {
   like_count: number;
   save_count: number;
   view_count: number;
+  follower_count: number;
   created_at: string;
   updated_at: string;
 }
