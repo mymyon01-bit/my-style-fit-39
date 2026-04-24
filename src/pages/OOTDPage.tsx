@@ -114,6 +114,21 @@ const OOTDPage = () => {
   // User-selected animated background for the OOTD experience.
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
+  const [cardColor, setCardColor] = useState<CardColor>(() => {
+    const c = loadCardColor();
+    if (typeof window !== "undefined") applyCardColorToRoot(c);
+    return c;
+  });
+  // Style applied to translucent cards so the user-picked tint wins over
+  // the default `bg-background/80`. When no color is chosen we fall back
+  // to the original surface (undefined background lets the Tailwind class
+  // take effect).
+  const cardStyle = cardColor.hex
+    ? {
+        background: `${cardColor.hex}D6`, // ~84% alpha — keeps the scene faintly visible
+        color: undefined as string | undefined,
+      }
+    : undefined;
   useEffect(() => {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as OOTDBgTheme | undefined;
