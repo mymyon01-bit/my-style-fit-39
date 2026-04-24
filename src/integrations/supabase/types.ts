@@ -1605,10 +1605,14 @@ export type Database = {
           language: string | null
           location: string | null
           onboarded: boolean | null
+          ootd_bg_realistic: boolean | null
+          ootd_bg_theme: string | null
+          ootd_card_color: Json | null
           phone: string | null
           phone_number: string | null
           phone_verified: boolean
           phone_verified_at: string | null
+          song_of_the_day: Json | null
           suspended_at: string | null
           suspended_by: string | null
           suspended_reason: string | null
@@ -1632,10 +1636,14 @@ export type Database = {
           language?: string | null
           location?: string | null
           onboarded?: boolean | null
+          ootd_bg_realistic?: boolean | null
+          ootd_bg_theme?: string | null
+          ootd_card_color?: Json | null
           phone?: string | null
           phone_number?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
+          song_of_the_day?: Json | null
           suspended_at?: string | null
           suspended_by?: string | null
           suspended_reason?: string | null
@@ -1659,10 +1667,14 @@ export type Database = {
           language?: string | null
           location?: string | null
           onboarded?: boolean | null
+          ootd_bg_realistic?: boolean | null
+          ootd_bg_theme?: string | null
+          ootd_card_color?: Json | null
           phone?: string | null
           phone_number?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
+          song_of_the_day?: Json | null
           suspended_at?: string | null
           suspended_by?: string | null
           suspended_reason?: string | null
