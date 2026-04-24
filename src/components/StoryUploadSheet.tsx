@@ -260,6 +260,13 @@ const StoryUploadSheet = ({ open, onClose, onPosted }: Props) => {
           onClose();
         }}
       />
+      <SquareCropDialog
+        open={!!pendingCrop}
+        file={pendingCrop}
+        onClose={() => setPendingCrop(null)}
+        onCropped={handleCropConfirmed}
+        title="Crop your story"
+      />
     </AnimatePresence>
   );
 };
