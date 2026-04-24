@@ -2257,8 +2257,10 @@ export type Database = {
           expires_at: string | null
           id: string
           is_highlight: boolean
+          is_public: boolean
           media_type: string
           media_url: string
+          pinned_at: string | null
           user_id: string
         }
         Insert: {
@@ -2268,8 +2270,10 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_highlight?: boolean
+          is_public?: boolean
           media_type?: string
           media_url: string
+          pinned_at?: string | null
           user_id: string
         }
         Update: {
@@ -2279,8 +2283,79 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_highlight?: boolean
+          is_public?: boolean
           media_type?: string
           media_url?: string
+          pinned_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_highlight_items: {
+        Row: {
+          added_at: string
+          highlight_id: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          highlight_id: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          highlight_id?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_highlight_items_highlight_id_fkey"
+            columns: ["highlight_id"]
+            isOneToOne: false
+            referencedRelation: "story_highlights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_highlight_items_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_highlights: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          id: string
+          sort_order: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -2307,6 +2382,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "story_likes_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_views: {
+        Row: {
+          id: string
+          owner_id: string
+          story_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          owner_id: string
+          story_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          owner_id?: string
+          story_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
