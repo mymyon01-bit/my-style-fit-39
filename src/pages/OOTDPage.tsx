@@ -655,7 +655,10 @@ const OOTDPage = () => {
 
         {/* Stories row — Feed shows everyone, My Page shows your circle */}
         {(activeTab === "feed" || activeTab === "mypage") && (
-          <div className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-3 md:p-4 shadow-xl shadow-black/10" : ""}>
+          <div
+            className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-3 md:p-4 shadow-xl shadow-black/10" : ""}
+            style={bgTheme !== "none" ? cardStyle : undefined}
+          >
             <StoriesRow
               key={activeTab}
               refreshKey={storiesRefreshKey}
