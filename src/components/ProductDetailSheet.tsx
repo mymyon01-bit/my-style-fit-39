@@ -235,11 +235,10 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
         </SheetContent>
       </Sheet>
 
-      <PostProductToOOTDSheet
+      <SendToShowroomSheet
         open={postOpen}
         product={{
           id: product.id,
-          productId: product.id,
           name: product.name,
           brand: product.brand,
           imageUrl: product.image_url ?? null,
