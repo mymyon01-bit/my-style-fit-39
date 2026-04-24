@@ -152,14 +152,17 @@ const HomePage = () => {
             </div>
           </motion.div>
 
-          {/* OOTD Diary — HERO centerpiece (compact, with extra breathing room) */}
+          {/* OOTD Diary — HERO centerpiece. Compact on mobile so the hero
+              fits in a single phone screen without overlapping the top bar
+              or the action buttons below. Full size on md+. */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-20 mb-16 flex justify-center"
+            className="mt-8 mb-2 flex justify-center md:mt-20 md:mb-16"
           >
-            <OOTDDiaryButton />
+            <span className="md:hidden"><OOTDDiaryButton compact /></span>
+            <span className="hidden md:block"><OOTDDiaryButton /></span>
           </motion.div>
 
           {/* Button rows — mobile: 2 rows (Explore+StyleMe, then About+Share); desktop: single row */}

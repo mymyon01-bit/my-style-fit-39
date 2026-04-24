@@ -632,9 +632,11 @@ const OOTDPage = () => {
             </div>
           </div>
 
-          {/* Tabs row — full width on mobile, inline next to right cluster on desktop */}
+          {/* Tabs row — full width on mobile, inline next to right cluster on desktop.
+              On mobile we let the row scroll horizontally so RANKING/FEED/COMMUNITY
+              /SHOWROOM/MY PAGE never get squeezed below readable size. */}
           <div className="flex items-center gap-3">
-            <div className="flex flex-1 min-w-0">
+            <div className="flex flex-1 min-w-0 overflow-x-auto scrollbar-hide">
               {([
                 { key: "ranking" as const, label: "RANKING" },
                 { key: "feed" as const, label: "FEED" },
@@ -642,14 +644,14 @@ const OOTDPage = () => {
                 { key: "showroom" as const, label: "SHOWROOM" },
                 { key: "mypage" as const, label: "MY PAGE" },
               ]).map(({ key, label }) => (
-                <button key={key} onClick={() => setActiveTab(key)} className="relative flex-1 min-w-0 py-3 text-center">
-                  <span className={`block truncate text-[9.5px] md:text-[10px] font-medium tracking-[0.14em] md:tracking-[0.2em] transition-colors duration-300 ${
+                <button key={key} onClick={() => setActiveTab(key)} className="relative shrink-0 px-3 py-3 text-center md:flex-1 md:min-w-0 md:px-0">
+                  <span className={`block whitespace-nowrap text-[11px] md:text-[10px] font-medium tracking-[0.16em] md:tracking-[0.2em] transition-colors duration-300 ${
                     activeTab === key ? "text-foreground/90" : "text-foreground/45"
                   }`}>
                     {label}
                   </span>
                   {activeTab === key && (
-                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/60" />
+                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-3 right-3 h-px bg-accent/60 md:left-1/4 md:right-1/4" />
                   )}
                 </button>
               ))}
@@ -701,10 +703,10 @@ const OOTDPage = () => {
             style={cardStyle}
           >
             <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-              <p className="text-[11.5px] text-foreground/70 leading-snug">
+              <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
               </p>
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex w-full items-center gap-1.5 overflow-x-auto scrollbar-hide md:w-auto md:flex-wrap md:overflow-visible">
                 <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
                 <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
                 <CardColorPicker value={cardColor} onChange={setCardColor} />
