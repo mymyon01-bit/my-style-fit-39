@@ -133,17 +133,63 @@ const ProfilePage = () => {
 
   const handleSaveProfile = async () => {
     if (!user) return;
+    setUsernameError(null);
     setSavingProfile(true);
     const parsedHashtags = editHashtags.split(/[,\s]+/).map(h => h.replace(/^#/, "").trim()).filter(Boolean);
+    const newUsername = editUsername.trim().toLowerCase();
+    const usernameChanged = newUsername && newUsername !== (profile?.username || "");
+
+    // Client-side username validation (mirror DB rules)
+    if (usernameChanged) {
+      if (newUsername.length < 1 || newUsername.length > 30) {
+        setUsernameError("아이디는 1-30자여야 해요");
+        setSavingProfile(false);
+        return;
+      }
+      if (!/^[a-z0-9._]+$/.test(newUsername)) {
+        setUsernameError("영문 소문자, 숫자, 점(.)과 밑줄(_)만 사용할 수 있어요");
+        setSavingProfile(false);
+        return;
+      }
+      if (/\s/.test(newUsername)) {
+        setUsernameError("공백은 사용할 수 없어요");
+        setSavingProfile(false);
+        return;
+      }
+      if (/\.{2,}/.test(newUsername) || /^[._]/.test(newUsername) || /[._]$/.test(newUsername)) {
+        setUsernameError("점(.) 또는 밑줄(_)은 처음/끝 또는 연속으로 사용할 수 없어요");
+        setSavingProfile(false);
+        return;
+      }
+    }
+
     try {
-      const { error } = await supabase.from("profiles").update({
+      const updates: any = {
         display_name: editName.trim() || null,
         bio: editBio.trim() || null,
         location: editLocation.trim() || null,
         gender_preference: editGender.trim() || null,
         hashtags: parsedHashtags.length > 0 ? parsedHashtags : null,
-      } as any).eq("user_id", user.id);
-      if (error) throw error;
+      };
+      if (usernameChanged) updates.username = newUsername;
+
+      const { error } = await supabase.from("profiles").update(updates).eq("user_id", user.id);
+      if (error) {
+        const msg = String(error.message || "");
+        if (msg.includes("username_yearly_limit")) {
+          setUsernameError("아이디는 1년에 3번까지만 변경할 수 있어요");
+        } else if (msg.includes("username_monthly_lock")) {
+          setUsernameError("아이디 변경 후 30일이 지나야 다시 바꿀 수 있어요");
+        } else if (msg.includes("username_") || msg.toLowerCase().includes("username")) {
+          setUsernameError("이 아이디는 사용할 수 없어요");
+        } else if (msg.includes("duplicate") || msg.includes("unique")) {
+          setUsernameError("이미 사용 중인 아이디예요");
+        } else {
+          toast.error("저장에 실패했어요");
+        }
+        setSavingProfile(false);
+        return;
+      }
       setProfile((p: any) => ({
         ...p,
         display_name: editName.trim(),
@@ -151,11 +197,13 @@ const ProfilePage = () => {
         location: editLocation.trim(),
         gender_preference: editGender.trim(),
         hashtags: parsedHashtags,
+        username: usernameChanged ? newUsername : p?.username,
+        username_changes: usernameChanged ? [...(p?.username_changes || []), new Date().toISOString()] : p?.username_changes,
       }));
       setIsEditing(false);
-      toast.success("Profile updated");
+      toast.success("프로필이 저장되었어요");
     } catch {
-      toast.error("Failed to save profile");
+      toast.error("저장에 실패했어요");
     } finally {
       setSavingProfile(false);
     }
