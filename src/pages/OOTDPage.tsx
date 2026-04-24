@@ -26,6 +26,7 @@ import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 
 interface OOTDPost {
   id: string;
