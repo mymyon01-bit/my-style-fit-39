@@ -179,7 +179,7 @@ const UserProfilePage = () => {
   }, [visitorCard]);
 
   return (
-    <div className="relative min-h-screen bg-background pb-28 lg:pb-16 lg:pt-24">
+    <div className={`relative min-h-screen pb-28 lg:pb-16 lg:pt-24 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
       {visitorBgTheme !== "none" && (
         <div className="pointer-events-none fixed inset-0 z-0">
           <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
