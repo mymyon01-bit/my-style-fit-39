@@ -57,7 +57,11 @@ const UserProfilePage = () => {
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [postCount, setPostCount] = useState(0);
-  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [selectedPost, setSelectedPost] = useState<OOTDPost | null>(null);
+  const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
+  const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
+  const [starsLeft, setStarsLeft] = useState(3);
   // Inline messages sheet — opens directly into the chat with this user.
   const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null }>({
     open: false,
