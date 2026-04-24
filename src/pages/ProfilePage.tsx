@@ -19,6 +19,7 @@ import SavedProductsTab from "@/components/profile/SavedProductsTab";
 import StyleMeButton from "@/components/StyleMeButton";
 // MessagesInbox moved to OOTD My Page (full-screen sheet)
 import { toast } from "sonner";
+import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 
 const ProfilePage = () => {
   const { t } = useI18n();
@@ -589,6 +590,10 @@ const ProfilePage = () => {
             <div className="h-px bg-accent/[0.12]" />
           </>
         )}
+
+        {/* Showroom block */}
+        <ShowroomMyBlock userId={user?.id} />
+        <div className="h-px bg-accent/[0.12]" />
 
         {/* Links */}
         <div className="space-y-1">

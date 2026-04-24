@@ -28,6 +28,7 @@ import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 import OOTDWelcomeModal from "@/components/ootd/OOTDWelcomeModal";
+import HotShowroomSection from "@/components/showroom/HotShowroomSection";
 
 interface OOTDPost {
   id: string;
@@ -730,11 +731,12 @@ const OOTDPage = () => {
         >
         <AnimatePresence mode="wait">
           {activeTab === "ranking" ? (
-            <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
               <CrownedBoard
                 styleHints={userPrefs?.styles}
                 onPostClick={(p) => setSelectedPost(p as unknown as OOTDPost)}
               />
+              <HotShowroomSection />
             </motion.div>
           ) : activeTab === "community" ? (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
