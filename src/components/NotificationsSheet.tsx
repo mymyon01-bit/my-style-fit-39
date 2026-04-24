@@ -102,37 +102,38 @@ export default function NotificationsSheet({ open, onClose }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[110] bg-background"
+          className="fixed inset-0 z-[200] bg-background"
+          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
           <div className="mx-auto flex h-full max-w-lg flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-foreground/70" />
-                <span className="text-[11px] font-semibold tracking-[0.25em] text-foreground/80">
+            {/* Sticky header with prominent close — always reachable */}
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border/30 bg-background/95 px-4 py-3 backdrop-blur-md">
+              <div className="flex items-center gap-2 min-w-0">
+                <Bell className="h-4 w-4 text-foreground/70 shrink-0" />
+                <span className="text-[11px] font-semibold tracking-[0.25em] text-foreground/80 truncate">
                   NOTIFICATIONS
-                  {unread.length > 0 && (
-                    <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground">
-                      {unread.length}
-                    </span>
-                  )}
                 </span>
+                {unread.length > 0 && (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground leading-none">
+                    {unread.length}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {unread.length > 0 && (
                   <button
                     onClick={async () => {
                       await markAllRead();
                       reload();
                     }}
-                    className="flex items-center gap-1 rounded-full border border-border/40 px-2.5 py-1 text-[9px] font-semibold tracking-wider text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                    className="flex items-center gap-1 rounded-full border border-border/40 px-2.5 py-1.5 text-[9px] font-semibold tracking-wider text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    <CheckCheck className="h-3 w-3" /> MARK READ
+                    <CheckCheck className="h-3 w-3" /> READ
                   </button>
                 )}
                 <button
                   onClick={onClose}
-                  className="text-foreground/50 hover:text-foreground"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground/70 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
                   aria-label="Close notifications"
                 >
                   <X className="h-4 w-4" />
@@ -140,8 +141,8 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               </div>
             </div>
 
-            {/* List */}
-            <div className="flex-1 overflow-y-auto">
+            {/* List — extra bottom padding so last item clears mobile nav */}
+            <div className="flex-1 overflow-y-auto pb-24">
               {loading ? (
                 <div className="flex justify-center py-16">
                   <Loader2 className="h-4 w-4 animate-spin text-foreground/40" />
