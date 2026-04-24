@@ -1,11 +1,8 @@
 import { Link } from "react-router-dom";
 import { Star, Heart, Eye, Pin, Sparkles } from "lucide-react";
-import { getTheme } from "@/lib/showroom/themes";
 import type { Showroom } from "@/lib/showroom/types";
 
 export const ShowroomCard = ({ room }: { room: Showroom }) => {
-  const theme = getTheme(room.theme);
-
   return (
     <Link
       to={`/showroom/${room.id}`}
@@ -27,17 +24,13 @@ export const ShowroomCard = ({ room }: { room: Showroom }) => {
           </div>
         )}
 
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between p-2">
-          {room.is_pinned ? (
+        {room.is_pinned && (
+          <div className="absolute inset-x-0 top-0 flex items-center justify-between p-2">
             <span className="inline-flex items-center gap-1 rounded-full border border-border/30 bg-background/85 px-2 py-1 text-[9px] font-medium text-foreground/75 backdrop-blur-sm">
               <Pin className="h-2.5 w-2.5" /> Pinned
             </span>
-          ) : <span />}
-          <span className="rounded-full border border-border/30 bg-background/85 px-2 py-1 text-[9px] font-medium uppercase tracking-[0.12em] text-foreground/65 backdrop-blur-sm">
-            {theme.label}
-          </span>
-        </div>
-      </div>
+          </div>
+        )}
 
       <div className="space-y-1.5 p-3">
         <h3 className="line-clamp-1 font-display text-sm text-foreground">{room.title}</h3>
