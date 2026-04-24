@@ -86,7 +86,7 @@ const UserProfilePage = () => {
     setLoading(true);
     const { data } = await supabase
       .from("ootd_posts")
-      .select("id, image_url, caption, style_tags, star_count, like_count, created_at")
+      .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, dislike_count, created_at")
       .eq("user_id", userId!)
       .order("created_at", { ascending: false })
       .limit(30);
