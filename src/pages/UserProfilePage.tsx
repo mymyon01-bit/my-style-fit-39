@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, MessageCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, MessageCircle, Music, Play, Pause } from "lucide-react";
 import { motion } from "framer-motion";
 import { AuthGate } from "@/components/AuthGate";
 import { openConversationWith } from "@/hooks/useMessages";
 import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 import { toast } from "sonner";
+import OOTDBackground, { type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import type { CardColor } from "@/components/ootd/CardColorPicker";
+import type { SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 
 interface UserProfileData {
   user_id: string;
@@ -16,6 +19,10 @@ interface UserProfileData {
   bio: string | null;
   hashtags: string[] | null;
   is_private: boolean | null;
+  ootd_bg_theme: string | null;
+  ootd_bg_realistic: boolean | null;
+  ootd_card_color: CardColor | null;
+  song_of_the_day: SongOfDay | null;
 }
 
 interface OOTDPost {
