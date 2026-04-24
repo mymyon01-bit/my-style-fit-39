@@ -31,6 +31,7 @@ export const ShowroomCard = ({ room }: { room: Showroom }) => {
             </span>
           </div>
         )}
+      </div>
 
       <div className="space-y-1.5 p-3">
         <h3 className="line-clamp-1 font-display text-sm text-foreground">{room.title}</h3>
