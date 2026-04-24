@@ -27,7 +27,10 @@ function buildSyntheticChart(category: SizingCategory, gender: Gender): GarmentC
     hasAnyRealData: false,
     usedCategoryDefaults: true,
     confidence: "low",
-    calibration: { shoulder: 0, chest: 0, waist: 0, hip: 0, thigh: 0, sleeve: 0, inseam: 0, length: 0 },
+    calibration: {
+      shoulder: 0, chest: 0, waist: 0, hip: 0, inseam: 0,
+      sources: { brandRule: false, communityFeedback: false, feedbackSampleSize: 0 },
+    },
   };
 }
 
