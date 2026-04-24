@@ -191,9 +191,12 @@ const UserProfilePage = () => {
           <span className="text-[10px] font-medium tracking-[0.15em]">BACK</span>
         </button>
 
-        {/* Profile header */}
+        {/* Profile header — wrapped in a card tinted with the owner's chosen card color */}
         {profile ? (
-          <div className="flex items-start gap-4 mb-6">
+          <div
+            className="flex items-start gap-4 mb-6 rounded-2xl border border-border/30 p-4 backdrop-blur-md"
+            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+          >
             <div className="h-16 w-16 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
