@@ -27,6 +27,7 @@ import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme 
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
+import OOTDWelcomeModal from "@/components/ootd/OOTDWelcomeModal";
 
 interface OOTDPost {
   id: string;
@@ -581,6 +582,7 @@ const OOTDPage = () => {
 
   return (
     <div className="relative min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
+      <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
       {/* Sticky tab line — pinned directly under the main menu bar so users
           can always jump between Ranking / Feed / Community / My Page. */}
