@@ -660,6 +660,34 @@ export default function FitResults({
           </div>
 
           <div className="px-6 py-6 space-y-6">
+            {/* SELECTED-SIZE-FIRST EXPLANATION */}
+            <SelectedSizeFitCard
+              recommendation={sizing.recommendation}
+              activeSize={activeSize}
+              onPickRecommended={(size) => setActiveSize(size)}
+            />
+
+            {/* PARALLEL FIT EXPLANATION LAYER */}
+            {bodyHeightCm ? (
+              <FitExplanationCard
+                heightCm={bodyHeightCm}
+                weightKg={bodyWeightKg ?? null}
+                category={product.category}
+                selectedSize={activeSize}
+                garment={resolvedSize.resolved ? {
+                  chest:    (resolvedSize.resolved as any).chestCm,
+                  shoulder: (resolvedSize.resolved as any).shoulderCm,
+                  length:   (resolvedSize.resolved as any).lengthCm ?? (resolvedSize.resolved as any).totalLengthCm,
+                  waist:    (resolvedSize.resolved as any).waistCm,
+                  hip:      (resolvedSize.resolved as any).hipCm,
+                  thigh:    (resolvedSize.resolved as any).thighCm,
+                  inseam:   (resolvedSize.resolved as any).inseamCm,
+                  sleeve:   (resolvedSize.resolved as any).sleeveCm,
+                } : null}
+                sizeLabel={`SIZE ${activeSize}`}
+              />
+            ) : null}
+
             {/* FIT SUMMARY */}
             <FitSummaryPanel
               size={activeSize}
