@@ -161,17 +161,42 @@
   /* ── User text-size preference (Settings → Text size) ──
      Scales the *root* font, so all rem-based sizes follow.
      Tailwind tracks (text-xs etc.) use rem, so they scale automatically.
-     Hard-pinned text-[10px]/[11px] etc. won't scale, but bodies and
-     comments (which use text-sm/[13px] tokens) get a CSS multiplier. */
-  html[data-fontsize="small"]  { font-size: 14px; }
-  html[data-fontsize="medium"] { font-size: 16px; }
-  html[data-fontsize="large"]  { font-size: 18px; }
-  html[data-fontsize="large"] body { font-size: 17px; }
-  html[data-fontsize="small"] body { font-size: 14px; }
+     Hard-pinned text-[10px]/[11px] etc. won't scale via rem, so we have
+     a separate global bump (see below) that auto-enlarges tiny px sizes
+     for older readers. Default is medium = 17px (was 16px). */
+  html[data-fontsize="small"]  { font-size: 15px; }
+  html[data-fontsize="medium"] { font-size: 17px; }
+  html[data-fontsize="large"]  { font-size: 19px; }
+  html[data-fontsize="large"] body { font-size: 18px; }
+  html[data-fontsize="small"] body { font-size: 15px; }
   /* OOTD comments + captions: bump readability based on user pref */
-  html[data-fontsize="large"] .ootd-text { font-size: 15px; line-height: 1.55; }
-  html[data-fontsize="medium"] .ootd-text { font-size: 13.5px; line-height: 1.5; }
-  html[data-fontsize="small"] .ootd-text { font-size: 12.5px; line-height: 1.45; }
+  html[data-fontsize="large"] .ootd-text { font-size: 16px; line-height: 1.55; }
+  html[data-fontsize="medium"] .ootd-text { font-size: 14.5px; line-height: 1.5; }
+  html[data-fontsize="small"] .ootd-text { font-size: 13px; line-height: 1.45; }
+
+  /* ── Auto-bump tiny hard-coded text sizes (~+2px) ──
+     Many components use Tailwind arbitrary values like text-[10px], text-[11px]
+     for ultra-compact UI. These don't scale via rem, so we bump them globally
+     for accessibility. Targets bracketed Tailwind classes (escaped chars). */
+  .text-\[9px\]    { font-size: 11px !important; }
+  .text-\[9\.5px\] { font-size: 11.5px !important; }
+  .text-\[10px\]   { font-size: 12px !important; }
+  .text-\[10\.5px\]{ font-size: 12.5px !important; }
+  .text-\[11px\]   { font-size: 13px !important; }
+  .text-\[11\.5px\]{ font-size: 13.5px !important; }
+  .text-\[12px\]   { font-size: 14px !important; }
+  .text-\[12\.5px\]{ font-size: 14.5px !important; }
+  .text-\[13px\]   { font-size: 14.5px !important; }
+
+  /* ── Mobile overflow guard ──
+     Prevent rogue absolute/wide elements from causing horizontal scroll
+     on small screens. Applies only at <640px. */
+  @media (max-width: 639px) {
+    html, body { overflow-x: hidden; max-width: 100vw; }
+    /* Buttons inside flex rows shouldn't shrink to lose their label, but
+       also shouldn't overflow — allow text to ellipsize gracefully. */
+    button, a { max-width: 100%; }
+  }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
@@ -190,7 +215,7 @@
   html[lang="ko"] body,
   :lang(ko) {
     font-family: 'Noto Sans KR', var(--font-body);
-    font-size: 16.5px;
+    font-size: 17.5px;
     font-weight: 500;
     letter-spacing: -0.005em;
     word-break: keep-all;
