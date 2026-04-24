@@ -30,6 +30,7 @@ import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } 
 import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcomeModal";
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
 import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
+import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 
 interface OOTDPost {
   id: string;
@@ -879,6 +880,11 @@ const OOTDPage = () => {
                   </div>
                 )}
               </div>
+            </motion.div>
+          ) : activeTab === "showroom" ? (
+            <motion.div key="showroom" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+              <ShowroomMyBlock userId={user?.id} />
+              <HotShowroomSection />
             </motion.div>
           ) : activeTab === "mypage" ? (
             <motion.div key="mypage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
