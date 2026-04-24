@@ -40,17 +40,19 @@ export default function MailboxPopup({
     if (!open) setActive(null);
   }, [open, initialConversationId, initialOtherUserId]);
 
-  // Initial position from the anchor — clamp to viewport
+  // Initial position from the anchor — clamp to viewport with safe margins
   useEffect(() => {
     if (!open) return;
     if (pos) return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const h = active ? POPUP_H_THREAD : POPUP_H_LIST;
-    let x = anchor ? Math.min(anchor.x - POPUP_W + 32, vw - POPUP_W - 12) : vw - POPUP_W - 12;
+    const margin = 16;
+    // Prefer the popup to sit just under the icon, aligned to its right edge
+    let x = anchor ? anchor.x - POPUP_W + 24 : vw - POPUP_W - margin;
     let y = anchor ? anchor.y + 12 : 80;
-    x = Math.max(8, x);
-    y = Math.max(8, Math.min(y, vh - h - 8));
+    x = Math.max(margin, Math.min(x, vw - POPUP_W - margin));
+    y = Math.max(margin, Math.min(y, vh - h - margin));
     setPos({ x, y });
   }, [open, anchor, pos, active]);
 
