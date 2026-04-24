@@ -903,6 +903,7 @@ const OOTDPage = () => {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </div>
 
       {/* Edit Post Modal */}
