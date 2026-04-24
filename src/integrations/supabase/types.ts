@@ -1969,6 +1969,35 @@ export type Database = {
           },
         ]
       }
+      showroom_followers: {
+        Row: {
+          created_at: string
+          id: string
+          showroom_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          showroom_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          showroom_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showroom_followers_showroom_id_fkey"
+            columns: ["showroom_id"]
+            isOneToOne: false
+            referencedRelation: "showrooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       showroom_invites: {
         Row: {
           created_at: string
@@ -2092,6 +2121,7 @@ export type Database = {
           banner_url: string | null
           best_item_id: string | null
           created_at: string
+          follower_count: number
           hashtags: string[]
           id: string
           intro: string | null
@@ -2113,6 +2143,7 @@ export type Database = {
           banner_url?: string | null
           best_item_id?: string | null
           created_at?: string
+          follower_count?: number
           hashtags?: string[]
           id?: string
           intro?: string | null
@@ -2134,6 +2165,7 @@ export type Database = {
           banner_url?: string | null
           best_item_id?: string | null
           created_at?: string
+          follower_count?: number
           hashtags?: string[]
           id?: string
           intro?: string | null

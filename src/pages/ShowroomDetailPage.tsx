@@ -5,12 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Star, Heart, Bookmark, Share2, Pin, Edit3, Trash2,
   Plus, Loader2, Globe, Lock, Link2, Save, X, ImagePlus, Sparkles,
+  UserPlus, UserCheck, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useShowroom } from "@/hooks/useShowrooms";
+import { useShowroomFollow } from "@/hooks/useShowroomFollow";
 import type { ShowroomItem } from "@/lib/showroom/types";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
@@ -71,6 +73,13 @@ const ShowroomDetailPage = () => {
   }, [user, id]);
 
   const isOwner = !!user && !!room && user.id === room.user_id;
+  const { isFollowing, count: followerCount, toggle: toggleFollow } = useShowroomFollow(room?.id, user?.id);
+
+  const handleFollowClick = async () => {
+    if (!user) { toast.error("Sign in to follow"); return; }
+    if (isOwner) return;
+    await toggleFollow();
+  };
   const bestItem = useMemo(
     () => (room?.best_item_id ? items.find((i) => i.id === room.best_item_id) ?? null : null),
     [room?.best_item_id, items],
@@ -367,6 +376,22 @@ const ShowroomDetailPage = () => {
             <ReactBtn active={reactions.star} onClick={() => toggleReaction("star")} icon={Star} count={room.star_count} label="Star" />
             <ReactBtn active={reactions.like} onClick={() => toggleReaction("like")} icon={Heart} count={room.like_count} label="Like" />
             <ReactBtn active={reactions.save} onClick={() => toggleReaction("save")} icon={Bookmark} count={room.save_count} label="Save" />
+            {!isOwner && (
+              <button
+                onClick={handleFollowClick}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-colors ${
+                  isFollowing
+                    ? "border-accent/40 bg-accent/10 text-foreground"
+                    : "border-border/35 bg-background text-foreground/70 hover:border-accent/30"
+                }`}
+              >
+                {isFollowing ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
+                {isFollowing ? "Following" : "Follow"}
+              </button>
+            )}
+            <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-foreground/55">
+              <Users className="h-3 w-3" /> {followerCount} {followerCount === 1 ? "follower" : "followers"}
+            </span>
           </div>
         </div>
 
