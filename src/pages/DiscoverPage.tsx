@@ -1,7 +1,8 @@
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Sparkles, SlidersHorizontal, X } from "lucide-react";
+import { Search, Sparkles, SlidersHorizontal, X, Plus } from "lucide-react";
+import SubmitProductDialog from "@/components/discover/SubmitProductDialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
