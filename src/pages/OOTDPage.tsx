@@ -23,6 +23,8 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
+import OOTDBackground, { loadOOTDBgTheme, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 
 interface OOTDPost {
   id: string;
@@ -106,6 +108,17 @@ const OOTDPage = () => {
   const { notifUnread, totalUnread } = useNotifications();
   const { totalUnread: msgUnread } = useConversations();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // User-selected animated background for the OOTD experience.
+  const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as OOTDBgTheme | undefined;
+      if (detail) setBgTheme(detail);
+    };
+    window.addEventListener("ootd-bg-theme-change", onChange);
+    return () => window.removeEventListener("ootd-bg-theme-change", onChange);
+  }, []);
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
@@ -503,7 +516,8 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
+    <div className="relative min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
+      <OOTDBackground theme={bgTheme} />
       {/* Sticky tab line — pinned directly under the main menu bar so users
           can always jump between Ranking / Feed / Community / My Page. */}
       <div className="sticky top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
@@ -766,6 +780,8 @@ const OOTDPage = () => {
                     onOpenMessages={() => setMessagesOpen(true)}
                     onOpenNotifications={() => setNotifsOpen(true)}
                   />
+
+                  <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
 
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
                     <Camera className="h-5 w-5" />
