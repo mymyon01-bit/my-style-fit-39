@@ -77,6 +77,78 @@ const UserProfilePage = () => {
     loadBlockStatus();
   }, [userId]);
 
+  // Viewer's own reactions/stars/saves so the detail sheet shows correct state
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const [{ data: rxns }, { data: stars }, { data: saved }] = await Promise.all([
+        supabase.from("ootd_reactions").select("post_id, reaction").eq("user_id", user.id),
+        supabase.from("ootd_stars").select("post_id, created_at").eq("user_id", user.id).gte("created_at", today),
+        supabase.from("saved_posts").select("post_id").eq("user_id", user.id),
+      ]);
+      const rmap: Record<string, "like" | "dislike"> = {};
+      (rxns || []).forEach((r: any) => { rmap[r.post_id] = r.reaction; });
+      setReactions(rmap);
+      setStarredPosts(new Set((stars || []).map((s: any) => s.post_id)));
+      setStarsLeft(Math.max(0, 3 - (stars?.length || 0)));
+      setSavedPosts(new Set((saved || []).map((s: any) => s.post_id)));
+    })();
+  }, [user?.id]);
+
+  const handleReaction = async (postId: string, type: "like" | "dislike") => {
+    if (!user) return;
+    const current = reactions[postId];
+    const updateLocal = (deltaLike: number, deltaDislike: number) => {
+      setPosts(prev => prev.map(p => p.id === postId ? {
+        ...p,
+        like_count: Math.max(0, (p.like_count || 0) + deltaLike),
+        dislike_count: Math.max(0, (p.dislike_count || 0) + deltaDislike),
+      } : p));
+      setSelectedPost(prev => prev && prev.id === postId ? {
+        ...prev,
+        like_count: Math.max(0, (prev.like_count || 0) + deltaLike),
+        dislike_count: Math.max(0, (prev.dislike_count || 0) + deltaDislike),
+      } : prev);
+    };
+    if (current === type) {
+      await supabase.from("ootd_reactions").delete().eq("post_id", postId).eq("user_id", user.id);
+      setReactions(prev => { const n = { ...prev }; delete n[postId]; return n; });
+      updateLocal(type === "like" ? -1 : 0, type === "dislike" ? -1 : 0);
+    } else if (current) {
+      await supabase.from("ootd_reactions").update({ reaction: type }).eq("post_id", postId).eq("user_id", user.id);
+      setReactions(prev => ({ ...prev, [postId]: type }));
+      updateLocal(type === "like" ? 1 : -1, type === "dislike" ? 1 : -1);
+    } else {
+      await supabase.from("ootd_reactions").insert({ post_id: postId, user_id: user.id, reaction: type });
+      setReactions(prev => ({ ...prev, [postId]: type }));
+      updateLocal(type === "like" ? 1 : 0, type === "dislike" ? 1 : 0);
+    }
+  };
+
+  const handleStar = async (postId: string) => {
+    if (!user || starsLeft <= 0 || starredPosts.has(postId)) return;
+    const { error } = await supabase.from("ootd_stars").insert({ user_id: user.id, post_id: postId });
+    if (!error) {
+      setStarsLeft(prev => prev - 1);
+      setStarredPosts(prev => new Set(prev).add(postId));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, star_count: (p.star_count || 0) + 1 } : p));
+      setSelectedPost(prev => prev && prev.id === postId ? { ...prev, star_count: (prev.star_count || 0) + 1 } : prev);
+    }
+  };
+
+  const handleSavePost = async (postId: string) => {
+    if (!user) return;
+    if (savedPosts.has(postId)) {
+      await supabase.from("saved_posts").delete().eq("user_id", user.id).eq("post_id", postId);
+      setSavedPosts(prev => { const n = new Set(prev); n.delete(postId); return n; });
+    } else {
+      await supabase.from("saved_posts").insert({ user_id: user.id, post_id: postId });
+      setSavedPosts(prev => new Set(prev).add(postId));
+    }
+  };
+
+
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
