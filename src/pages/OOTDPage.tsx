@@ -23,6 +23,8 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
+import OOTDBackground, { loadOOTDBgTheme, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 
 interface OOTDPost {
   id: string;
@@ -106,6 +108,17 @@ const OOTDPage = () => {
   const { notifUnread, totalUnread } = useNotifications();
   const { totalUnread: msgUnread } = useConversations();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // User-selected animated background for the OOTD experience.
+  const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as OOTDBgTheme | undefined;
+      if (detail) setBgTheme(detail);
+    };
+    window.addEventListener("ootd-bg-theme-change", onChange);
+    return () => window.removeEventListener("ootd-bg-theme-change", onChange);
+  }, []);
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
