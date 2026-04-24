@@ -71,7 +71,7 @@ const UserProfilePage = () => {
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, bio, hashtags, is_private")
+      .select("user_id, display_name, avatar_url, bio, hashtags, is_private, ootd_bg_theme, ootd_bg_realistic, ootd_card_color, song_of_the_day")
       .eq("user_id", userId!)
       .maybeSingle();
     setProfile(data as UserProfileData | null);
