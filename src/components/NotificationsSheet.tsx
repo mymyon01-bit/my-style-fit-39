@@ -32,6 +32,14 @@ export default function NotificationsSheet({ open, onClose }: Props) {
   const { items, actors, loading, markAllRead, reload } = useNotificationsList();
   const navigate = useNavigate();
 
+  // Esc closes the sheet — guarantees a keyboard exit if the X is missed
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   const { unread, earlier } = useMemo(() => {
     const u: NotificationRow[] = [];
     const e: NotificationRow[] = [];
