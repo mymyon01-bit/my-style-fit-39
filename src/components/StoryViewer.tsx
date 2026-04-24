@@ -181,11 +181,46 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
     }
   }, [open, startUserIndex]);
 
-  // Mark seen whenever we land on a story
+  // Mark seen + record view in DB + sync is_public state
   useEffect(() => {
     if (!open || !currentUser || !currentStory) return;
     markSeen(currentUser.user_id, currentStory.created_at);
-  }, [open, currentUser, currentStory]);
+    setIsPublic(!!(currentStory as any).is_public);
+    // Fire-and-forget viewer count + record-own-view
+    (async () => {
+      const { count } = await supabase
+        .from("story_views")
+        .select("id", { count: "exact", head: true })
+        .eq("story_id", currentStory.id);
+      setViewerCount(count || 0);
+      if (user && !isOwnCurrent) {
+        await supabase
+          .from("story_views")
+          .upsert(
+            { story_id: currentStory.id, viewer_id: user.id, owner_id: currentUser.user_id },
+            { onConflict: "story_id,viewer_id", ignoreDuplicates: true } as any
+          );
+      }
+    })();
+  }, [open, currentUser, currentStory, user, isOwnCurrent]);
+
+  const togglePublic = async () => {
+    if (!currentStory || !user || !isOwnCurrent || pubBusy) return;
+    setPubBusy(true);
+    const next = !isPublic;
+    setIsPublic(next);
+    const { error } = await supabase
+      .from("stories")
+      .update({ is_public: next, pinned_at: next ? new Date().toISOString() : null } as any)
+      .eq("id", currentStory.id);
+    if (error) {
+      setIsPublic(!next);
+      toast.error("Couldn't update visibility");
+    } else {
+      toast.success(next ? "Saved to your page" : "Removed from your page");
+    }
+    setPubBusy(false);
+  };
 
   // Auto-advance for images (videos are driven by their own timeupdate)
   useEffect(() => {
