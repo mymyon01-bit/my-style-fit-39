@@ -167,9 +167,24 @@ const UserProfilePage = () => {
   const styleTags = [...new Set(posts.flatMap(p => p.style_tags || []))].slice(0, 6);
   const hashtags = profile?.hashtags || [];
 
+  // Their chosen vibe — visitors see exactly what the user picked on My Page.
+  const visitorBgTheme = (profile?.ootd_bg_theme as OOTDBgTheme | undefined) ?? "none";
+  const visitorBgRealistic = profile?.ootd_bg_realistic ?? true;
+  const visitorCard = profile?.ootd_card_color ?? null;
+  const visitorSong = profile?.song_of_the_day ?? null;
+  const cardStyle = useMemo(() => {
+    if (!visitorCard?.hex) return undefined;
+    return { background: `${visitorCard.hex}D6` } as React.CSSProperties;
+  }, [visitorCard]);
+
   return (
-    <div className="min-h-screen bg-background pb-28 lg:pb-16 lg:pt-24">
-      <div className="mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
+    <div className="relative min-h-screen bg-background pb-28 lg:pb-16 lg:pt-24">
+      {visitorBgTheme !== "none" && (
+        <div className="pointer-events-none fixed inset-0 z-0">
+          <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
+        </div>
+      )}
+      <div className="relative z-10 mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         {/* Back button */}
         <button onClick={() => navigate(-1)} className="mb-6 flex items-center gap-2 text-foreground/50 hover:text-foreground/70 transition-colors">
           <ArrowLeft className="h-4 w-4" />
