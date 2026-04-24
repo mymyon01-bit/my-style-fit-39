@@ -636,7 +636,7 @@ const OOTDPage = () => {
               On mobile we let the row scroll horizontally so RANKING/FEED/COMMUNITY
               /SHOWROOM/MY PAGE never get squeezed below readable size. */}
           <div className="flex items-center gap-3">
-            <div className="flex flex-1 min-w-0 overflow-x-auto no-scrollbar">
+            <div className="flex flex-1 min-w-0 overflow-x-auto scrollbar-hide">
               {([
                 { key: "ranking" as const, label: "RANKING" },
                 { key: "feed" as const, label: "FEED" },
@@ -706,7 +706,7 @@ const OOTDPage = () => {
               <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
               </p>
-              <div className="flex w-full items-center gap-1.5 overflow-x-auto no-scrollbar md:w-auto md:flex-wrap md:overflow-visible">
+              <div className="flex w-full items-center gap-1.5 overflow-x-auto scrollbar-hide md:w-auto md:flex-wrap md:overflow-visible">
                 <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
                 <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
                 <CardColorPicker value={cardColor} onChange={setCardColor} />
