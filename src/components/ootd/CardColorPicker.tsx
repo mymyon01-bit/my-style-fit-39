@@ -308,7 +308,7 @@ export default function CardColorPicker({ value, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur px-3 py-1.5 text-[10px] font-medium tracking-[0.18em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+        className="flex h-7 items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur px-2.5 text-[10px] font-medium tracking-[0.18em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
         aria-label="Pick card color"
       >
         <Palette className="h-3 w-3" />
