@@ -242,8 +242,8 @@ const ShowroomDetailPage = () => {
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-20 border-b border-border/40 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
+      <div className="sticky-header sticky top-0 z-20 border-b border-border/40 bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center gap-2 px-3 pb-2.5">
           <button onClick={() => navigate(-1)} className="rounded-full p-1.5 text-foreground/75 transition-colors hover:bg-foreground/5 hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
           </button>
