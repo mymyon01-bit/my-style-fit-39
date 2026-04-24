@@ -384,7 +384,44 @@ const OOTDPage = () => {
         occasions: (data.occasions || []).map((s: string) => s.toLowerCase()),
       });
     }
+
+    // Pull saved profile customization (bg theme, card color, song of day)
+    // so the user's choices follow their account across devices and so
+    // visitors to their profile see the same vibe.
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("ootd_bg_theme, ootd_bg_realistic, ootd_card_color, song_of_the_day")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (prof) {
+      const p = prof as any;
+      if (p.ootd_bg_theme) setBgTheme(p.ootd_bg_theme as OOTDBgTheme);
+      if (typeof p.ootd_bg_realistic === "boolean") setBgRealistic(p.ootd_bg_realistic);
+      if (p.ootd_card_color) {
+        const cc = p.ootd_card_color as CardColor;
+        setCardColor(cc);
+        applyCardColorToRoot(cc);
+      }
+      if (p.song_of_the_day) setSongOfDay(p.song_of_the_day as SongOfDay);
+    }
   };
+
+  // Persist profile customization to the DB whenever it changes — this is
+  // what makes the user's chosen background, card tint and song-of-the-day
+  // visible to visitors on their public profile page.
+  useEffect(() => {
+    if (!user) return;
+    const t = setTimeout(() => {
+      supabase.from("profiles").update({
+        ootd_bg_theme: bgTheme,
+        ootd_bg_realistic: bgRealistic,
+        ootd_card_color: cardColor as any,
+        song_of_the_day: songOfDay as any,
+      } as any).eq("user_id", user.id).then(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, bgTheme, bgRealistic, cardColor, songOfDay]);
 
   const handleSavePost = async (postId: string) => {
     if (!user) return;
