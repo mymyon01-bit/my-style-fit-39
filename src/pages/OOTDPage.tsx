@@ -603,37 +603,46 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-6 pt-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-        {/* My Page profile header — owner-only quick edit + privacy */}
+      <div className="relative mx-auto max-w-lg px-6 pt-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
         {activeTab === "mypage" && user && (
-          <MyPageProfileHeader
-            postCount={myPosts.length}
-            totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
-            refreshKey={storiesRefreshKey}
-            hasStory={hasOwnStory}
-            hasUnseenStory={hasOwnUnseen}
-            onUploadStory={() => setStoryUploadOpen(true)}
-            onOpenMessages={() => setMessagesOpen(true)}
-            onViewMyStory={() => {
-              const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
-              if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
-            }}
-          />
+          <div className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4" : "mb-2"}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-[11.5px] text-foreground/70 leading-snug">
+                ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
+              </p>
+              <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
+            </div>
+            <MyPageProfileHeader
+              postCount={myPosts.length}
+              totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
+              refreshKey={storiesRefreshKey}
+              hasStory={hasOwnStory}
+              hasUnseenStory={hasOwnUnseen}
+              onUploadStory={() => setStoryUploadOpen(true)}
+              onOpenMessages={() => setMessagesOpen(true)}
+              onViewMyStory={() => {
+                const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
+                if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
+              }}
+            />
+          </div>
         )}
 
         {/* Stories row — Feed shows everyone, My Page shows your circle */}
         {(activeTab === "feed" || activeTab === "mypage") && (
-          <StoriesRow
-            key={activeTab}
-            refreshKey={storiesRefreshKey}
-            circlesOnly={activeTab === "mypage"}
-            onUploadClick={() => {
-              if (!user) { navigate("/auth"); return; }
-              setStoryUploadOpen(true);
-            }}
-            onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
-            onLoaded={setAllStoryUsers}
-          />
+          <div className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-3 md:p-4 shadow-xl shadow-black/10" : ""}>
+            <StoriesRow
+              key={activeTab}
+              refreshKey={storiesRefreshKey}
+              circlesOnly={activeTab === "mypage"}
+              onUploadClick={() => {
+                if (!user) { navigate("/auth"); return; }
+                setStoryUploadOpen(true);
+              }}
+              onOpenStories={(index, users) => setViewerState({ open: true, index, users })}
+              onLoaded={setAllStoryUsers}
+            />
+          </div>
         )}
       </div>
 
@@ -782,7 +791,6 @@ const OOTDPage = () => {
                     onOpenNotifications={() => setNotifsOpen(true)}
                   />
 
-                  <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
 
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
                     <Camera className="h-5 w-5" />

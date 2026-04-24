@@ -270,25 +270,46 @@ export default function OOTDBackground({ theme }: Props) {
     );
   }
 
-  // ── Sunny day ──────────────────────────────────────────────────────────
+  // ── Sunny day: blue sky + bright sun with occasional lens flare ────────
   if (theme === "sunny") {
     return (
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Crisp blue sky */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(255, 235, 180, 0.45) 0%, rgba(255, 245, 220, 0.20) 40%, transparent 100%)",
+              "linear-gradient(180deg, #6fb6ec 0%, #a5d2f0 50%, #d8ecf7 100%)",
           }}
         />
+        {/* Sun disc — top-right */}
         <div
-          className="absolute -top-1/3 left-1/2 h-[160%] w-[160%] -translate-x-1/2 opacity-60"
+          className="absolute"
+          style={{
+            top: "8%",
+            right: "10%",
+            width: "180px",
+            height: "180px",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, #fff8d8 0%, #ffe890 35%, rgba(255,225,120,0) 70%)",
+            filter: "blur(2px)",
+            animation: "ootd-sun-pulse 5s ease-in-out infinite",
+          }}
+        />
+        {/* Sun flare — periodic bright burst across the sky */}
+        <div
+          className="absolute -top-1/3 -right-1/4 h-[160%] w-[140%] opacity-0"
           style={{
             background:
-              "conic-gradient(from 0deg, transparent 0deg, rgba(255, 200, 80, 0.18) 6deg, transparent 12deg, transparent 30deg, rgba(255, 200, 80, 0.14) 36deg, transparent 42deg, transparent 60deg, rgba(255, 200, 80, 0.18) 66deg, transparent 72deg, transparent 360deg)",
-            animation: "ootd-sun-rotate 80s linear infinite",
+              "conic-gradient(from 200deg at 80% 20%, transparent 0deg, rgba(255, 240, 180, 0.45) 8deg, transparent 18deg, transparent 40deg, rgba(255, 240, 180, 0.30) 50deg, transparent 60deg, transparent 360deg)",
+            animation: "ootd-sun-flare 8s ease-in-out infinite",
           }}
         />
+        {/* Soft drifting clouds */}
+        <SoftCloud top="20%" left="-12%" size={300} delay={0} duration={140} opacity={0.85} />
+        <SoftCloud top="38%" left="40%" size={240} delay={20} duration={160} opacity={0.75} />
+        <SoftCloud top="55%" left="70%" size={280} delay={40} duration={180} opacity={0.7} />
+        {/* Sparkles in the air */}
         {particles.map((p) => (
           <span
             key={p.id}
@@ -296,8 +317,8 @@ export default function OOTDBackground({ theme }: Props) {
             style={{
               left: `${p.left}%`,
               top: `${p.top}%`,
-              fontSize: `${p.size * 10}px`,
-              color: "rgba(255, 200, 80, 0.85)",
+              fontSize: `${p.size * 9}px`,
+              color: "rgba(255, 250, 200, 0.9)",
               animation: `ootd-twinkle ${3 + p.duration / 3}s ease-in-out ${p.delay}s infinite`,
             }}
           >
@@ -305,27 +326,47 @@ export default function OOTDBackground({ theme }: Props) {
           </span>
         ))}
         <style>{`
-          @keyframes ootd-sun-rotate { to { transform: translateX(-50%) rotate(360deg); } }
+          @keyframes ootd-sun-pulse {
+            0%, 100% { transform: scale(1); filter: blur(2px) brightness(1); }
+            50% { transform: scale(1.08); filter: blur(2px) brightness(1.15); }
+          }
+          @keyframes ootd-sun-flare {
+            0%, 70%, 100% { opacity: 0; }
+            80% { opacity: 0.85; }
+            85% { opacity: 0.4; }
+            90% { opacity: 0; }
+          }
           @keyframes ootd-twinkle {
             0%, 100% { opacity: 0.2; transform: scale(0.8); }
             50% { opacity: 0.95; transform: scale(1.15); }
+          }
+          @keyframes ootd-cloud-drift {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(110vw + 600px)); }
           }
         `}</style>
       </div>
     );
   }
 
-  // ── Soft rain ──────────────────────────────────────────────────────────
+  // ── Soft rain: calm overcast clouds + steady gentle rain ───────────────
   if (theme === "rain") {
     return (
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Overcast sky */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(120, 140, 170, 0.18) 0%, transparent 60%, rgba(120, 140, 170, 0.12) 100%)",
+              "linear-gradient(180deg, #b9c4d2 0%, #ccd4de 50%, #dde2e9 100%)",
           }}
         />
+        {/* Calm drifting clouds */}
+        <SoftCloud top="6%"  left="-12%" size={360} delay={0}  duration={180} opacity={0.85} tint="#9aa6b6" />
+        <SoftCloud top="14%" left="35%"  size={420} delay={25} duration={200} opacity={0.78} tint="#8d99ab" />
+        <SoftCloud top="22%" left="70%"  size={340} delay={10} duration={170} opacity={0.82} tint="#94a0b1" />
+        <SoftCloud top="32%" left="10%"  size={300} delay={50} duration={190} opacity={0.7}  tint="#a3afc0" />
+        {/* Gentle rain */}
         {particles.map((p) => (
           <span
             key={p.id}
@@ -335,7 +376,7 @@ export default function OOTDBackground({ theme }: Props) {
               top: "-10%",
               width: "1px",
               height: `${10 + p.size * 6}px`,
-              background: "linear-gradient(to bottom, transparent, rgba(170, 200, 230, 0.6))",
+              background: "linear-gradient(to bottom, transparent, rgba(120, 145, 175, 0.65))",
               transform: "rotate(8deg)",
               animation: `ootd-rain-soft ${1 + p.duration / 8}s linear ${p.delay}s infinite`,
             }}
@@ -347,21 +388,27 @@ export default function OOTDBackground({ theme }: Props) {
             15%  { opacity: 0.7; }
             100% { transform: translate3d(-12vh, 110vh, 0) rotate(8deg); opacity: 0; }
           }
+          @keyframes ootd-cloud-drift {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(110vw + 600px)); }
+          }
         `}</style>
       </div>
     );
   }
 
-  // ── Autumn leaves (default fallthrough) ────────────────────────────────
+  // ── Autumn leaves: amber sky + maple trees on both sides + falling leaves
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(220, 150, 80, 0.18) 0%, transparent 50%, rgba(180, 100, 50, 0.10) 100%)",
+            "linear-gradient(180deg, rgba(255, 195, 130, 0.40) 0%, rgba(255, 220, 170, 0.20) 50%, rgba(180, 100, 50, 0.12) 100%)",
         }}
       />
+      <AutumnTree side="left" />
+      <AutumnTree side="right" />
       {particles.map((p) => (
         <span
           key={p.id}
@@ -388,6 +435,111 @@ export default function OOTDBackground({ theme }: Props) {
           100% { transform: translate3d(var(--drift), 110vh, 0) rotate(calc(var(--rot) + 540deg)); opacity: 0; }
         }
       `}</style>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Soft cloud — translucent blob that drifts across the sky. Used by sunny
+// + rain themes. `tint` controls the cloud's base color.
+// ────────────────────────────────────────────────────────────────────────
+function SoftCloud({
+  top,
+  left,
+  size,
+  delay,
+  duration,
+  opacity,
+  tint = "#ffffff",
+}: {
+  top: string;
+  left: string;
+  size: number;
+  delay: number;
+  duration: number;
+  opacity: number;
+  tint?: string;
+}) {
+  return (
+    <div
+      className="absolute"
+      style={{
+        top,
+        left,
+        width: `${size}px`,
+        height: `${size * 0.5}px`,
+        opacity,
+        filter: "blur(22px)",
+        animation: `ootd-cloud-drift ${duration}s linear ${delay}s infinite`,
+      }}
+    >
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `radial-gradient(ellipse at 50% 55%, ${tint} 0%, ${tint}aa 35%, transparent 75%)`,
+        }}
+      />
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Autumn tree — silhouette with amber/red canopy on left or right edge.
+// ────────────────────────────────────────────────────────────────────────
+function AutumnTree({ side }: { side: "left" | "right" }) {
+  const isLeft = side === "left";
+  return (
+    <div
+      className="absolute bottom-0 h-full pointer-events-none"
+      style={{
+        [isLeft ? "left" : "right"]: "-30px",
+        width: "240px",
+        transformOrigin: isLeft ? "bottom left" : "bottom right",
+        animation: "ootd-tree-sway 7s ease-in-out infinite",
+      } as any}
+    >
+      <svg
+        viewBox="0 0 240 700"
+        className="absolute bottom-0 h-full w-full"
+        style={{ transform: isLeft ? "none" : "scaleX(-1)" }}
+        preserveAspectRatio="xMinYMax meet"
+      >
+        {/* Trunk */}
+        <path
+          d="M 35 700 C 45 600, 55 520, 70 440 C 85 380, 100 320, 120 270 L 135 270 C 115 320, 105 380, 95 440 C 85 520, 75 600, 65 700 Z"
+          fill="#3d2814"
+        />
+        {/* Branches */}
+        <path d="M 85 380 C 120 350, 160 320, 200 290" stroke="#3d2814" strokeWidth="8" fill="none" strokeLinecap="round" />
+        <path d="M 100 310 C 130 290, 165 260, 195 220" stroke="#3d2814" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M 115 250 C 145 230, 175 200, 205 165" stroke="#3d2814" strokeWidth="5" fill="none" strokeLinecap="round" />
+
+        {/* Amber/red foliage — layered circles */}
+        {[
+          { cx: 80,  cy: 280, r: 60, c: "rgba(200, 90, 40, 0.85)" },
+          { cx: 130, cy: 240, r: 70, c: "rgba(220, 120, 50, 0.85)" },
+          { cx: 185, cy: 215, r: 55, c: "rgba(200, 80, 35, 0.85)" },
+          { cx: 165, cy: 285, r: 65, c: "rgba(230, 140, 60, 0.85)" },
+          { cx: 210, cy: 270, r: 50, c: "rgba(180, 70, 30, 0.85)" },
+          { cx: 100, cy: 200, r: 50, c: "rgba(220, 130, 55, 0.85)" },
+          { cx: 150, cy: 175, r: 55, c: "rgba(200, 95, 40, 0.85)" },
+          { cx: 205, cy: 155, r: 50, c: "rgba(230, 150, 70, 0.85)" },
+          { cx: 120, cy: 320, r: 55, c: "rgba(190, 80, 35, 0.85)" },
+          { cx: 190, cy: 330, r: 50, c: "rgba(215, 115, 50, 0.85)" },
+        ].map((c, i) => (
+          <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill={c.c} />
+        ))}
+        {/* Bright highlight leaves */}
+        {[
+          { cx: 130, cy: 220, r: 22, c: "rgba(255, 190, 100, 0.95)" },
+          { cx: 175, cy: 250, r: 18, c: "rgba(255, 170, 80, 0.95)" },
+          { cx: 100, cy: 260, r: 16, c: "rgba(245, 150, 70, 0.95)" },
+          { cx: 195, cy: 195, r: 14, c: "rgba(255, 200, 110, 0.95)" },
+          { cx: 145, cy: 290, r: 18, c: "rgba(250, 160, 75, 0.95)" },
+        ].map((c, i) => (
+          <circle key={`h-${i}`} cx={c.cx} cy={c.cy} r={c.r} fill={c.c} />
+        ))}
+      </svg>
     </div>
   );
 }
