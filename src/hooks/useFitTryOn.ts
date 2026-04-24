@@ -55,8 +55,11 @@ export interface UseFitTryOnArgs {
   reloadToken?: number;
 }
 
-const POLL_INTERVAL_MS = 2_500;
-const POLL_MAX_ATTEMPTS = 40;       // ~100s worst case
+// Faster perceived speed: poll every 1s instead of 2.5s, and fire the first
+// status check immediately (no 2.5s blind wait) so quick generations surface
+// the moment they're ready. Pipeline / model / timeouts unchanged.
+const POLL_INTERVAL_MS = 1_000;
+const POLL_MAX_ATTEMPTS = 100;      // same ~100s worst case window
 const HARD_TIMEOUT_MS = 110_000;    // never let it hang forever
 
 export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
