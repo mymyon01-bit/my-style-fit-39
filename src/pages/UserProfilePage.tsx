@@ -20,6 +20,7 @@ interface UserProfileData {
   bio: string | null;
   hashtags: string[] | null;
   is_private: boolean | null;
+  is_official: boolean | null;
   ootd_bg_theme: string | null;
   ootd_bg_realistic: boolean | null;
   ootd_card_color: CardColor | null;
