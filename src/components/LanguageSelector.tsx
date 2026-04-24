@@ -3,9 +3,14 @@ import { useI18n, type Language } from "@/lib/i18n";
 import { Globe } from "lucide-react";
 
 const languages: { code: Language; label: string; native: string }[] = [
+  { code: "de", label: "DE", native: "Deutsch" },
   { code: "en", label: "EN", native: "English" },
-  { code: "ko", label: "KO", native: "한국어" },
+  { code: "es", label: "ES", native: "Español" },
+  { code: "fr", label: "FR", native: "Français" },
   { code: "it", label: "IT", native: "Italiano" },
+  { code: "ja", label: "JA", native: "日本語" },
+  { code: "ko", label: "KO", native: "한국어" },
+  { code: "zh", label: "ZH", native: "中文" },
 ];
 
 const LanguageSelector = () => {
