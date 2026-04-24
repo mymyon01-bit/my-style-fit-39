@@ -53,7 +53,7 @@ export default function OOTDBackground({ theme }: Props) {
     const count =
       theme === "stars"  ? 140 :
       theme === "sakura" ? 36  :
-      theme === "leaves" ? 22  :
+      theme === "leaves" ? 48  :
       theme === "sunny"  ? 18  :
       theme === "rain"   ? 60  :
       theme === "storm"  ? 110 : 0;
@@ -416,15 +416,16 @@ export default function OOTDBackground({ theme }: Props) {
           style={{
             left: `${p.left}%`,
             top: "-10%",
-            fontSize: `${p.size * 14}px`,
-            color: "rgba(214, 138, 73, 0.9)",
+            fontSize: `${p.size * 16}px`,
+            color: "rgba(232, 188, 55, 0.95)",
+            filter: "drop-shadow(0 1px 2px rgba(120,80,20,0.3))",
             animation: `ootd-leaf-fall ${p.duration}s linear ${p.delay}s infinite`,
             // @ts-ignore
             "--drift": `${p.drift}px`,
             "--rot": `${p.rot}deg`,
           } as any}
         >
-          🍂
+          {p.id % 3 === 0 ? "🍁" : "🍂"}
         </span>
       ))}
       <style>{`
