@@ -23,7 +23,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
-import OOTDBackground, { loadOOTDBgTheme, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
@@ -113,6 +113,7 @@ const OOTDPage = () => {
 
   // User-selected animated background for the OOTD experience.
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
+  const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
   const [cardColor, setCardColor] = useState<CardColor>(() => {
     const c = loadCardColor();
