@@ -95,8 +95,29 @@ interface Props {
 }
 
 export default function OOTDBackground({ theme, realistic = true }: Props) {
+  // Particle counts per theme. Memoized so we don't regenerate on every render.
+  // Hook must be called unconditionally — declared before any early returns.
+  const particles = useMemo(() => {
+    const count =
+      theme === "stars"  ? 140 :
+      theme === "sakura" ? 36  :
+      theme === "leaves" ? 48  :
+      theme === "sunny"  ? 18  :
+      theme === "rain"   ? 60  :
+      theme === "storm"  ? 110 : 0;
+    return Array.from({ length: count }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 8,
+      duration: 4 + Math.random() * 8,
+      size: 0.6 + Math.random() * 1.6,
+      drift: (Math.random() - 0.5) * 60,
+      rot: Math.random() * 360,
+    }));
+  }, [theme]);
+
   // ── Realistic mode: cinematic looping video ─────────────────────────────
-  // Skip particle generation entirely when video mode is active for the theme.
   const videoSrc = VIDEO_BY_THEME[theme];
   if (theme !== "none" && realistic && videoSrc) {
     return (
@@ -117,26 +138,6 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
     );
   }
 
-  // Particle counts per theme. Memoized so we don't regenerate on every render.
-  const particles = useMemo(() => {
-    const count =
-      theme === "stars"  ? 140 :
-      theme === "sakura" ? 36  :
-      theme === "leaves" ? 48  :
-      theme === "sunny"  ? 18  :
-      theme === "rain"   ? 60  :
-      theme === "storm"  ? 110 : 0;
-    return Array.from({ length: count }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      delay: Math.random() * 8,
-      duration: 4 + Math.random() * 8,
-      size: 0.6 + Math.random() * 1.6,
-      drift: (Math.random() - 0.5) * 60,
-      rot: Math.random() * 360,
-    }));
-  }, [theme]);
 
 
   if (theme === "none") return null;
