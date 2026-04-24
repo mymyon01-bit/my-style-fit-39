@@ -578,6 +578,14 @@ export default function DiscoverPage() {
               <SlidersHorizontal className="h-3.5 w-3.5" />
               {t("filters")}
             </button>
+            <button
+              type="button"
+              onClick={() => { /* placeholder action */ }}
+              className="hover-burgundy flex items-center gap-2 rounded-full border border-border/30 px-4 py-2 text-[11px] font-semibold text-foreground/65"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              More
+            </button>
             {hasActiveFilters && (
               <button onClick={clearFilters} className="text-[10px] tracking-[0.15em] text-foreground/70">{t("reset").toUpperCase()}</button>
             )}
