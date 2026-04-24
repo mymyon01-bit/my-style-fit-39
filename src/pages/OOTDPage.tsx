@@ -27,6 +27,7 @@ import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme 
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
+import OOTDWelcomeModal from "@/components/ootd/OOTDWelcomeModal";
 
 interface OOTDPost {
   id: string;
