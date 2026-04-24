@@ -52,7 +52,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
     if (!user) return;
     setLoading(true);
     const [pRes, cRes, rRes] = await Promise.all([
-      supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags, is_official").eq("user_id", user.id).maybeSingle(),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
     ]);

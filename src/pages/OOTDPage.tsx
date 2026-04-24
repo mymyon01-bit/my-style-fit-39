@@ -298,7 +298,7 @@ const OOTDPage = () => {
           ? Promise.resolve({ data: [] as ProfileInfo[] })
           : supabase
               .from("profiles")
-              .select("user_id, display_name, avatar_url, username")
+              .select("user_id, display_name, avatar_url, username, is_official")
               .ilike("username", `${q}%`)
               .limit(15),
         intent === "user"
@@ -333,7 +333,7 @@ const OOTDPage = () => {
 
     const userIds = [...new Set(fetched.map(p => p.user_id))];
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, username").in("user_id", userIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, username, is_official").in("user_id", userIds);
       if (profiles) {
         const map: Record<string, ProfileInfo> = {};
         for (const p of profiles) map[p.user_id] = p as ProfileInfo;
