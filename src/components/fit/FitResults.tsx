@@ -22,13 +22,14 @@ import { solveFit, FIT_TYPE_LABEL } from "@/lib/fit/fitSolver";
 import FitBreakdown from "@/components/fit/FitBreakdown";
 import FitSummaryPanel from "@/components/fit/FitSummaryPanel";
 import FitExplanationCard from "@/components/fit/FitExplanationCard";
+import SelectedSizeFitCard from "@/components/fit/SelectedSizeFitCard";
 import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import RegionFitTable from "@/components/fit/RegionFitTable";
 import { useResolvedGarmentSize } from "@/hooks/useResolvedGarmentSize";
 import { computeRegionFit } from "@/lib/fit/regionFitEngine";
 import { useSizeRecommendation } from "@/hooks/useSizeRecommendation";
 import SizeRecommendationPanel from "@/components/fit/SizeRecommendationPanel";
-import type { FitPreference, RegionStatus } from "@/lib/sizing";
+import { overallLabelText, type FitPreference, type RegionStatus } from "@/lib/sizing";
 import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
@@ -572,6 +573,15 @@ export default function FitResults({
             />
           ) : null}
 
+          {/* ── SELECTED-SIZE-FIRST EXPLANATION (per spec §6) ──
+              Always speak about the size the user actually picked, then
+              surface the recommended alternative if it differs. */}
+          <SelectedSizeFitCard
+            recommendation={sizing.recommendation}
+            activeSize={activeSize}
+            onPickRecommended={(size) => setActiveSize(size)}
+          />
+
           {/* Fit-score / data disclaimer — honesty notice */}
           <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
             <div className="flex items-center gap-1.5">
@@ -611,16 +621,37 @@ export default function FitResults({
               <span className="transition-transform group-hover:translate-x-0.5">→</span>
             </button>
 
-            {product.url && product.url !== "#" && (
-              <a
-                href={product.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-[11px] font-bold tracking-[0.22em] text-background transition-opacity hover:opacity-90"
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> SHOP NOW
-              </a>
-            )}
+            {product.url && product.url !== "#" && (() => {
+              const recSize = sizing.recommendation?.primarySize ?? activeSize;
+              const recOutcome = sizing.recommendation?.sizes.find((s) => s.size === recSize);
+              const score = recOutcome?.score ?? null;
+              const isMatch = recSize === activeSize;
+              const reason = recOutcome
+                ? (isMatch
+                    ? `Size ${activeSize} matches your body best.`
+                    : `Selected ${activeSize} ${overallLabelText(sizing.recommendation!.sizes.find((s) => s.size === activeSize)?.overall ?? "regularFit").toLowerCase()}. We recommend ${recSize} for a cleaner fit.`)
+                : null;
+              return (
+                <div className="space-y-2">
+                  <a
+                    href={product.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-[11px] font-bold tracking-[0.22em] text-background transition-opacity hover:opacity-90"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {recOutcome
+                      ? `BUY SIZE ${recSize}${score != null ? ` · ${score}% FIT` : ""}`
+                      : "SHOP NOW"}
+                  </a>
+                  {reason && (
+                    <p className="text-center text-[11px] leading-relaxed text-foreground/55">
+                      {reason}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Secondary actions — quiet */}
