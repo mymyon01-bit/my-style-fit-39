@@ -82,6 +82,7 @@ const generateBoltPath = (seed: number, height = 280) => {
 
 const WeatherAmbience = ({ condition }: { condition: string }) => {
   const bgImage = weatherMap[condition] || cloudyBg;
+  const bgVideo = weatherVideoMap[condition] || cloudyVid.url;
   const isRain = condition === "rain" || condition === "light-rain" || condition === "drizzle";
   const isSnow = condition === "snow";
   const isStorm = condition === "storm" || condition === "thunderstorm";
