@@ -209,7 +209,7 @@ const HomePage = () => {
             initial={{ opacity: 0, scale: 0.85, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-4 mb-1 flex justify-center md:mt-8 md:mb-6"
+            className="mt-8 mb-3 flex justify-center md:mt-14 md:mb-8"
           >
             <span className="md:hidden"><OOTDDiaryButton compact /></span>
             <span className="hidden md:block"><OOTDDiaryButton /></span>
@@ -220,7 +220,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-4 flex flex-col items-center gap-2 md:flex-row md:flex-wrap md:justify-center"
+            className="mt-8 flex flex-col items-center gap-3 md:flex-row md:flex-wrap md:justify-center md:mt-12"
           >
             {/* Row 1 (mobile): Explore + Style Me */}
             <div className="flex items-center justify-center gap-2 flex-nowrap">
@@ -254,7 +254,7 @@ const HomePage = () => {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.8 }}
-              className="mt-4 flex flex-col items-center gap-2"
+              className="mt-8 flex flex-col items-center gap-2 md:mt-12"
             >
               <p className="font-display text-[15px] italic font-light tracking-tight text-foreground/70 md:text-[17px]">
                 today your weather is<span className="text-primary">…</span>
@@ -272,7 +272,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.0, duration: 0.6 }}
-            className="mt-4 flex justify-center"
+            className="mt-8 flex justify-center md:mt-12"
           >
             <button
               onClick={() => setAffOpen(true)}
