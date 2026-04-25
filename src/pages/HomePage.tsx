@@ -209,7 +209,7 @@ const HomePage = () => {
             initial={{ opacity: 0, scale: 0.85, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-4 mb-1 flex justify-center md:mt-8 md:mb-6"
+            className="mt-8 mb-3 flex justify-center md:mt-14 md:mb-8"
           >
             <span className="md:hidden"><OOTDDiaryButton compact /></span>
             <span className="hidden md:block"><OOTDDiaryButton /></span>
