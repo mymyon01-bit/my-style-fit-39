@@ -62,7 +62,7 @@ export default function InviteFriendsCard() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.08] via-card/40 to-card/40 p-4 backdrop-blur-md"
+      className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.08] via-card/40 to-card/40 p-3 md:p-4 backdrop-blur-md"
     >
       {/* Decorative shimmer */}
       <div
@@ -72,17 +72,17 @@ export default function InviteFriendsCard() {
 
       <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
-            <Gift className="h-4 w-4" />
-            <span className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--star))] text-background">
-              <Star className="h-2.5 w-2.5 fill-background" />
+          <div className="relative flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+            <Gift className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span className="absolute -right-1 -bottom-1 flex h-3.5 w-3.5 md:h-4 md:w-4 items-center justify-center rounded-full bg-[hsl(var(--star))] text-background">
+              <Star className="h-2 md:h-2.5 w-2 md:w-2.5 fill-background" />
             </span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold tracking-[0.18em] uppercase text-foreground/85">
+            <p className="text-[11px] md:text-[12px] font-semibold tracking-[0.18em] uppercase text-foreground/85">
               Invite friends to #OOTD
             </p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/60">
+            <p className="mt-0.5 text-[10px] md:text-[11px] leading-relaxed text-foreground/60">
               Get <span className="font-semibold text-[hsl(var(--star))]">+5 ⭐</span>{" "}
               for every friend who joins. They get{" "}
               <span className="font-semibold text-foreground/80">+3 ⭐</span> too.
@@ -95,7 +95,7 @@ export default function InviteFriendsCard() {
             type="button"
             onClick={onCopy}
             disabled={loading || !inviteUrl}
-            className="group inline-flex items-center gap-1.5 rounded-full border border-foreground/20 bg-background/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/85 hover:border-accent/50 hover:text-accent disabled:opacity-50 transition-colors"
+            className="group inline-flex items-center gap-1.5 rounded-full border border-foreground/20 bg-background/60 px-2.5 py-1.5 md:px-3 md:py-2 text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-foreground/85 hover:border-accent/50 hover:text-accent disabled:opacity-50 transition-colors"
           >
             {copied ? (
               <>
@@ -111,7 +111,7 @@ export default function InviteFriendsCard() {
             type="button"
             onClick={onShare}
             disabled={loading || !inviteUrl}
-            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-background hover:bg-accent hover:text-background disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-2.5 py-1.5 md:px-3 md:py-2 text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-background hover:bg-accent hover:text-background disabled:opacity-50 transition-colors"
           >
             <Share2 className="h-3 w-3" /> Share
           </button>

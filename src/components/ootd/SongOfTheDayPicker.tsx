@@ -583,7 +583,7 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex h-7 items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-2.5 text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+          className="flex h-6 md:h-7 items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-2 text-[9.5px] md:text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
           aria-label="Pick song of the day"
         >
           <Music className="h-3 w-3" />
@@ -847,7 +847,7 @@ function InlinePlayerCard({
 }: InlinePlayerCardProps) {
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
   return (
-    <div className="flex h-7 items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur pl-0.5 pr-1 shrink-0 max-w-[180px] sm:max-w-[220px]">
+    <div className="flex h-6 md:h-7 items-center gap-1 rounded-full border border-border/40 bg-background/60 backdrop-blur pl-0.5 pr-1 shrink-0 max-w-[160px] sm:max-w-[220px]">
       {/* Album art */}
       <img
         src={track.artwork}

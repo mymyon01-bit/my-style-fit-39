@@ -726,11 +726,11 @@ const OOTDPage = () => {
             className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
             style={cardStyle}
           >
-            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <div className="flex items-center justify-between gap-2 mb-2 md:mb-3 flex-wrap">
               <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
               </p>
-              <div className="flex w-full items-center gap-1.5 overflow-x-auto scrollbar-hide md:w-auto md:flex-wrap md:overflow-visible">
+              <div className="flex w-full items-center gap-1 overflow-x-auto scrollbar-hide md:w-auto md:flex-wrap md:overflow-visible md:gap-1.5">
                 <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
                 <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
                 <CardColorPicker value={cardColor} onChange={setCardColor} />
@@ -931,9 +931,9 @@ const OOTDPage = () => {
 
                   <CreateShowroomBanner />
 
-                  <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
-                    <Camera className="h-5 w-5" />
-                    <span className="text-[10px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
+                  <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-2 py-3 md:py-5 rounded-xl md:rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
+                    <Camera className="h-4 w-4 md:h-5 md:w-5" />
+                    <span className="text-[10px] md:text-[11px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
                   </button>
 
                   {myPosts.length === 0 ? (
