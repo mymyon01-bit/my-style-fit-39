@@ -32,7 +32,7 @@ const DesktopNav = () => {
     location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 hidden lg:block">
+    <nav className="fixed top-0 left-0 right-0 z-50 hidden md:block">
       {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
 
