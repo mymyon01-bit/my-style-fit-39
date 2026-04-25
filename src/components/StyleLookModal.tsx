@@ -10,11 +10,14 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader2, Sparkles, X, ExternalLink, RotateCw } from "lucide-react";
+import { Loader2, Sparkles, X, ExternalLink, RotateCw, Square, Circle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFitTryOn } from "@/hooks/useFitTryOn";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+
+const SHAPE_KEY = "stylelook-card-shape";
+type CardShape = "rounded" | "square";
 
 export interface StyleLookProduct {
   id: string;
