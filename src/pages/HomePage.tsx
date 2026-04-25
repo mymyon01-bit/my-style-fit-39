@@ -254,7 +254,7 @@ const HomePage = () => {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.8 }}
-              className="mt-8 flex flex-col items-center gap-2"
+              className="mt-4 flex flex-col items-center gap-2"
             >
               <p className="font-display text-[15px] italic font-light tracking-tight text-foreground/70 md:text-[17px]">
                 today your weather is<span className="text-primary">…</span>
@@ -272,11 +272,11 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.0, duration: 0.6 }}
-            className="mt-6 flex justify-center"
+            className="mt-4 flex justify-center"
           >
             <button
               onClick={() => setAffOpen(true)}
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-foreground/20 bg-background/60 px-4 py-2 text-[10px] font-bold tracking-[0.22em] text-foreground/70 backdrop-blur-md transition-all duration-300 hover:border-foreground/60 hover:text-foreground hover:scale-[1.04] active:scale-[0.97]"
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-foreground/20 bg-background/60 px-3 py-1.5 text-[9px] font-bold tracking-[0.22em] text-foreground/70 backdrop-blur-md transition-all duration-300 hover:border-foreground/60 hover:text-foreground hover:scale-[1.04] active:scale-[0.97]"
             >
               {/* Sweeping gradient sheen */}
               <span
