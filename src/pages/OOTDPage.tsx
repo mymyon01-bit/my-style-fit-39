@@ -15,6 +15,7 @@ import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
 import MyPageProfileHeader from "@/components/MyPageProfileHeader";
 import MyPageInboxCard from "@/components/ootd/MyPageInboxCard";
+import InviteFriendsCard from "@/components/ootd/InviteFriendsCard";
 import MailboxPopup from "@/components/messages/MailboxPopup";
 import MailboxIcon from "@/components/messages/MailboxIcon";
 import NotificationsSheet from "@/components/NotificationsSheet";
