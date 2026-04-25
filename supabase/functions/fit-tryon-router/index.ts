@@ -38,7 +38,7 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "mannequin-graybase-v6";
+const STUDIO_RENDER_VERSION = "mannequin-blacksport-v7";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
@@ -231,17 +231,24 @@ const MANNEQUIN_STYLE_LOCK =
   "VISUAL MODEL TYPE LOCK (HARD RULE — HIGHEST PRIORITY): The subject MUST be a faceless display MANNEQUIN — a smooth matte fiberglass / plastic store-display dummy, NOT a real human. NO real person, NO human face, NO human identity, NO realistic facial features (no eyes, nose, mouth, eyebrows, ears), NO hair, NO skin pores or skin micro-detail, NO makeup, NO expression, NO lifestyle photography, NO streetwear photo, NO influencer pose, NO editorial fashion shot, NO posed model. The mannequin has a smooth featureless head OR the frame is cropped from the neck down. Body surface is uniform matte mannequin material — clearly artificial, clearly a display dummy. Studio fit-visualization aesthetic only.";
 
 const MANNEQUIN_NEGATIVES =
-  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams, NUDE mannequin, BARE torso, BARE legs, underwear, lingerie, bikini, swimsuit, panties, briefs, boxers, exposed skin areas, mannequin in only the focus garment with nothing covering the rest of the body, MALE mannequin wearing a SKIRT or DRESS as base, FEMALE mannequin in only a bra.";
+  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams, NUDE mannequin, BARE torso, BARE legs, lingerie, bikini, swimsuit, lacy underwear, exposed skin areas, mannequin in only the focus garment with nothing covering the rest of the body, MALE mannequin wearing a SKIRT or DRESS as base, FEMALE mannequin in a bra of any color other than the specified solid black sports bra base layer, base layer in any color other than solid matte black.";
 
 // ── UNIVERSAL BASE LAYER LOCK ───────────────────────────────────────────────
-// HARD RULE: every mannequin — male, female, or neutral — wears the SAME
-// neutral base layer underneath / around the focus garment:
-//   • plain solid medium-gray short-sleeve crew T-shirt
-//   • plain solid medium-gray knee-length athletic shorts
-// This eliminates nudity, removes gendered base-layer mismatch (no man in a
-// skirt, no woman in only a bra), and gives every fit render an identical
-// visual baseline so size-difference is the ONLY thing that changes.
-function buildUniversalBaseLayerLine(focusCategoryRaw?: string | null): string {
+// HARD RULE: every mannequin wears solid MATTE BLACK athletic underlayer
+// under / around the focus garment. The base layer differs by mannequin
+// gender (sports bra + briefs for female; fitted boxer briefs for male;
+// fitted black tank + briefs for neutral) but is ALWAYS solid black.
+//   • female mannequin → solid black sports bra + solid black sports briefs
+//   • male mannequin   → solid black fitted square-cut boxer briefs (with bare
+//                         mannequin torso — still smooth matte mannequin
+//                         material, NOT real skin)
+//   • neutral mannequin → solid black fitted athletic tank + solid black briefs
+// This gives every fit render an identical visual baseline so size-difference
+// is the ONLY thing that changes between renders.
+function buildUniversalBaseLayerLine(
+  focusCategoryRaw?: string | null,
+  subject?: string,
+): string {
   const c = (focusCategoryRaw || "").toLowerCase();
   const isTop = /(shirt|tee|t-?shirt|top|blouse|sweater|knit|hoodie|jacket|coat|outer|blazer|cardigan|vest)/.test(c);
   const isBottom = /(pant|trouser|jean|short|skirt|legging|chino|slack|denim|cargo|joggers?)/.test(c);
@@ -250,25 +257,32 @@ function buildUniversalBaseLayerLine(focusCategoryRaw?: string | null): string {
 
   // Full-body garments cover the whole body — no base layer fights with them.
   if (isFullBody) {
-    return "BASE LAYER (universal): the focus garment is full-body and covers torso + legs by itself. Mannequin must NEVER show bare skin, NEVER show underwear, NEVER show bra/panties — if any limb (arms, legs, neck) is exposed by the garment cut, it stays as smooth matte mannequin material, NOT skin.";
+    return "BASE LAYER (universal): the focus garment is full-body and covers torso + legs by itself. If any limb is exposed by the garment cut, it stays as smooth matte mannequin material, NOT skin. NEVER bare skin, NEVER lingerie.";
   }
 
-  // For tops, bottoms, footwear, accessories — always layer the same neutral
-  // gray T + gray shorts so nothing is ever shown nude or in underwear.
-  const baseSpec =
-    "BASE LAYER (universal, identical for every mannequin regardless of gender or product type): the mannequin ALWAYS wears a plain solid MEDIUM-GRAY (#9aa0a6 / heather gray) short-sleeve CREW T-SHIRT covering the entire torso, shoulders and upper arms, AND plain solid MEDIUM-GRAY knee-length athletic SHORTS covering the hips and upper thighs. Both base pieces are unbranded, matte cotton/jersey, generic, neutral, and visually subdued so they NEVER compete with the focus garment.";
+  const isFemale = subject === "female mannequin";
+  const isMale = subject === "male mannequin";
+
+  // Per-gender SOLID BLACK athletic base layer description.
+  const baseSpec = isFemale
+    ? "BASE LAYER (universal, female mannequin): the mannequin ALWAYS wears a SOLID MATTE BLACK athletic SPORTS BRA (racerback or scoop-neck cut, opaque, unbranded, full chest coverage) AND SOLID MATTE BLACK athletic SPORTS BRIEFS / boyshorts (mid-rise, full hip and seat coverage, opaque, unbranded). Both pieces are plain solid pure black (#000000), matte performance fabric, generic, no logos, no patterns, no stripes."
+    : isMale
+    ? "BASE LAYER (universal, male mannequin): the mannequin ALWAYS wears SOLID MATTE BLACK fitted SQUARE-CUT BOXER BRIEFS (athletic compression cut, mid-thigh length, opaque, unbranded, sits on the natural waist with full hip and seat coverage). The torso remains smooth matte mannequin material (NOT real human skin). Plain solid pure black (#000000), matte performance fabric, generic, no logos, no patterns, no stripes."
+    : "BASE LAYER (universal, neutral mannequin): the mannequin ALWAYS wears a SOLID MATTE BLACK fitted athletic TANK TOP (full torso coverage, opaque, unbranded) AND SOLID MATTE BLACK athletic BRIEFS (mid-rise, full hip and seat coverage, opaque, unbranded). Both pieces are plain solid pure black (#000000), matte performance fabric, generic, no logos, no patterns, no stripes.";
+
+  const colorLock = "STRICT COLOR LOCK on base layer: solid pure black only — NEVER white, NEVER gray, NEVER skin tone, NEVER any other color. Base layer is visually subdued so it NEVER competes with the focus garment.";
 
   if (isBottom) {
-    return `${baseSpec} The focus garment is the BOTTOM and is worn OVER the gray base shorts (the gray shorts may be partially visible at the waistband or hem if the focus bottom is shorter, but the mannequin is NEVER bare-legged and NEVER in underwear). The gray T-shirt covers the upper body.`;
+    return `${baseSpec} ${colorLock} The focus garment is the BOTTOM and is worn OVER the black base briefs (briefs may be partially visible at the waistband or hem if the focus bottom is shorter or sheer). The mannequin is NEVER bare-legged below the briefs hem — exposed limbs stay smooth matte mannequin material.`;
   }
   if (isFootwear) {
-    return `${baseSpec} The focus garment is FOOTWEAR. The gray T-shirt covers the upper body and the gray shorts cover the hips/thighs — the mannequin is NEVER bare-torsoed or bare-legged.`;
+    return `${baseSpec} ${colorLock} The focus garment is FOOTWEAR. The black athletic base layer remains fully visible on torso and hips.`;
   }
   if (isTop) {
-    return `${baseSpec} The focus garment is the TOP/OUTERWEAR and is worn OVER the gray base T-shirt (gray T-shirt may peek out at neckline/sleeves/hem if the focus top is shorter or open — that is fine). The gray shorts cover the lower body. The mannequin is NEVER bare-legged and NEVER shown in underwear.`;
+    return `${baseSpec} ${colorLock} The focus garment is the TOP/OUTERWEAR and is worn OVER the black base layer (black base may peek out at neckline / sleeves / hem if the focus top is shorter, sheer, or open — that is fine and intended).`;
   }
   // Accessories / unknown
-  return `${baseSpec} The focus item is an accessory; both gray base pieces remain fully visible on the mannequin.`;
+  return `${baseSpec} ${colorLock} The focus item is an accessory; the black athletic base layer remains fully visible on the mannequin.`;
 }
 
 function buildCleanStudioPrompt(body: CreateBody): string {
@@ -283,7 +297,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const silhouette = sizeSilhouette(body.selectedSize);
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
-  const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory);
+  const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
 
   const verdict = body.baselineVerdict;
   const consequenceLine = verdict?.consequence
