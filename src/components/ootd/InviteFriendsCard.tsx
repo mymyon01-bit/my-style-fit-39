@@ -62,7 +62,7 @@ export default function InviteFriendsCard() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.08] via-card/40 to-card/40 p-4 backdrop-blur-md"
+      className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.08] via-card/40 to-card/40 p-3 md:p-4 backdrop-blur-md"
     >
       {/* Decorative shimmer */}
       <div
