@@ -153,7 +153,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
           loop
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           className="absolute inset-0 h-full w-full object-cover"
         />
         {/* Subtle dark wash so foreground UI stays legible over bright scenes */}

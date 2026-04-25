@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
 import MyPageProfileHeader from "@/components/MyPageProfileHeader";
 import MyPageInboxCard from "@/components/ootd/MyPageInboxCard";
+import InviteFriendsCard from "@/components/ootd/InviteFriendsCard";
 import MailboxPopup from "@/components/messages/MailboxPopup";
 import MailboxIcon from "@/components/messages/MailboxIcon";
 import NotificationsSheet from "@/components/NotificationsSheet";
@@ -71,7 +72,7 @@ const OOTDPage = () => {
   const location = useLocation();
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "ranking";
+    return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
   });
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
@@ -185,7 +186,7 @@ const OOTDPage = () => {
   useEffect(() => {
     const onPop = () => {
       const t = new URLSearchParams(window.location.search).get("tab");
-      const next: Tab = (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "ranking";
+      const next: Tab = (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
       setActiveTabState(next);
     };
     window.addEventListener("popstate", onPop);
@@ -569,6 +570,14 @@ const OOTDPage = () => {
     return { featured: scored.slice(0, 3), rest: scored.slice(3) };
   };
 
+  // Stable callbacks so memoized OOTDCards don't re-render on every parent
+  // state change (likes, stars, profile loads, etc.). Without these the
+  // 80-card ranking grid would re-render in full on every interaction
+  // and lock the page.
+  const openPost = useCallback((p: OOTDPost) => setSelectedPost(p), []);
+  const editPost = useCallback((p: OOTDPost) => handleEditPost(p), []);
+  const deletePost = useCallback((id: string) => handleDeletePost(id), []);
+
   const renderPostCard = (post: OOTDPost, index: number, showAuthor = true, isMyPage = false) => (
     <OOTDCard
       key={post.id}
@@ -577,9 +586,9 @@ const OOTDPage = () => {
       index={index}
       showAuthor={showAuthor}
       isMyPage={isMyPage}
-      onOpen={(p) => setSelectedPost(p as OOTDPost)}
-      onEdit={isMyPage ? (p) => handleEditPost(p as OOTDPost) : undefined}
-      onDelete={isMyPage ? handleDeletePost : undefined}
+      onOpen={openPost as (p: { id: string; user_id: string; image_url: string; caption: string | null; star_count: number | null; like_count: number | null; }) => void}
+      onEdit={isMyPage ? (editPost as (p: { id: string; user_id: string; image_url: string; caption: string | null; star_count: number | null; like_count: number | null; }) => void) : undefined}
+      onDelete={isMyPage ? deletePost : undefined}
     />
   );
 
@@ -917,6 +926,8 @@ const OOTDPage = () => {
                     onOpenMessages={() => setMessagesOpen(true)}
                     onOpenNotifications={() => setNotifsOpen(true)}
                   />
+
+                  <InviteFriendsCard />
 
                   <CreateShowroomBanner />
 
