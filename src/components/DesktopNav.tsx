@@ -62,7 +62,11 @@ const DesktopNav = () => {
                     active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
                   }`}
                 >
-                  {link.label}
+                  {(link as { isOotd?: boolean }).isOotd ? (
+                    <OOTDNavLabel className="text-[10px] font-semibold tracking-[0.22em]" crownSize={15} />
+                  ) : (
+                    link.label
+                  )}
                   {showOotdBadge && (
                     <span
                       aria-label={`${ootdUnread} new OOTD activity`}
