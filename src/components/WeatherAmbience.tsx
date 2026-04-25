@@ -10,12 +10,12 @@ import stormBg from "@/assets/weather/storm.jpg";
 import fogBg from "@/assets/weather/fog.jpg";
 
 // Cinematic live videos — real footage matching each weather state.
-import rainVid from "/bg-videos/rain.mp4.asset.json";
-import snowVid from "/bg-videos/snow.mp4.asset.json";
-import sunnyVid from "/bg-videos/sunny.mp4.asset.json";
-import cloudyVid from "/bg-videos/cloudy.mp4.asset.json";
-import stormVid from "/bg-videos/storm.mp4.asset.json";
-import fogVid from "/bg-videos/fog.mp4.asset.json";
+import rainVid from "../../public/bg-videos/rain.mp4.asset.json";
+import snowVid from "../../public/bg-videos/snow.mp4.asset.json";
+import sunnyVid from "../../public/bg-videos/sunny.mp4.asset.json";
+import cloudyVid from "../../public/bg-videos/cloudy.mp4.asset.json";
+import stormVid from "../../public/bg-videos/storm.mp4.asset.json";
+import fogVid from "../../public/bg-videos/fog.mp4.asset.json";
 
 const weatherMap: Record<string, string> = {
   rain: rainBg,
