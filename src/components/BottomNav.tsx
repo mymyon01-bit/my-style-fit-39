@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import { useNotifications } from "@/hooks/useNotifications";
+import OOTDNavLabel from "@/components/OOTDNavLabel";
 
 const BottomNav = () => {
   const location = useLocation();
@@ -14,11 +15,11 @@ const BottomNav = () => {
   }, []);
 
   const tabs = [
-    { path: "/", icon: Home, label: "HOME" },
-    { path: "/discover", icon: Compass, label: "DISCOVER" },
-    { path: "/ootd", icon: Camera, label: "OOTD" },
-    { path: "/fit", icon: Scan, label: "FIT" },
-    { path: "/profile", icon: User, label: "YOU" },
+    { path: "/", icon: Home, label: "HOME", isOotd: false },
+    { path: "/discover", icon: Compass, label: "DISCOVER", isOotd: false },
+    { path: "/ootd", icon: Camera, label: "OOTD", isOotd: true },
+    { path: "/fit", icon: Scan, label: "FIT", isOotd: false },
+    { path: "/profile", icon: User, label: "YOU", isOotd: false },
   ];
 
   return (
@@ -66,7 +67,11 @@ const BottomNav = () => {
                   )}
                 </span>
                 <span className="font-mono text-[8px] font-semibold tracking-[0.2em] md:text-[9px]">
-                  {tab.label}
+                  {tab.isOotd ? (
+                    <OOTDNavLabel className="text-[8px] md:text-[9px] font-semibold tracking-[0.2em]" crownSize={11} />
+                  ) : (
+                    tab.label
+                  )}
                 </span>
               </button>
             );

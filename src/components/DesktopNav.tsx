@@ -6,6 +6,7 @@ import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
+import OOTDNavLabel from "@/components/OOTDNavLabel";
 import { useNotifications } from "@/hooks/useNotifications";
 
 const DesktopNav = () => {
@@ -22,7 +23,7 @@ const DesktopNav = () => {
   const navLinks = [
     { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: t("discover").toUpperCase() },
-    { path: "/ootd", label: "OOTD" },
+    { path: "/ootd", label: "OOTD", isOotd: true },
     { path: "/fit", label: t("fit").toUpperCase() },
     { path: "/profile", label: "PROFILE" },
   ];
@@ -61,7 +62,11 @@ const DesktopNav = () => {
                     active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
                   }`}
                 >
-                  {link.label}
+                  {(link as { isOotd?: boolean }).isOotd ? (
+                    <OOTDNavLabel className="text-[10px] font-semibold tracking-[0.22em]" crownSize={15} />
+                  ) : (
+                    link.label
+                  )}
                   {showOotdBadge && (
                     <span
                       aria-label={`${ootdUnread} new OOTD activity`}
