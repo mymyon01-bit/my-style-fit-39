@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import { useNotifications } from "@/hooks/useNotifications";
+import OOTDNavLabel from "@/components/OOTDNavLabel";
 
 const BottomNav = () => {
   const location = useLocation();
