@@ -931,9 +931,9 @@ const OOTDPage = () => {
 
                   <CreateShowroomBanner />
 
-                  <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
-                    <Camera className="h-5 w-5" />
-                    <span className="text-[10px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
+                  <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-2 py-3 md:py-5 rounded-xl md:rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
+                    <Camera className="h-4 w-4 md:h-5 md:w-5" />
+                    <span className="text-[10px] md:text-[11px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
                   </button>
 
                   {myPosts.length === 0 ? (
