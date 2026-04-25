@@ -59,6 +59,10 @@ export default function StyleMeButton({
     const { data } = await q;
     let pool = (data || []) as any[];
 
+    // Only keep products with a valid http(s) image URL — the fit router
+    // rejects anything else with `missing_image` and the modal shows an error.
+    pool = pool.filter(p => typeof p.image_url === "string" && /^https?:\/\//i.test(p.image_url));
+
     // Prefer tops
     const tops = pool.filter(p => /top|shirt|tee|sweater|hoodie|blouse|knit/i.test(p.category || p.name || ""));
     if (tops.length) pool = tops.concat(pool.filter(p => !tops.includes(p)));
