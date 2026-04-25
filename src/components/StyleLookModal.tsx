@@ -106,10 +106,10 @@ export default function StyleLookModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background">
+      <DialogContent className={`max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background ${radiusClass}`}>
         <div className="grid md:grid-cols-2 max-h-[85vh] overflow-y-auto">
           {/* Mannequin image */}
-          <div className="relative aspect-[3/4] md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden">
+          <div className={`relative aspect-[3/4] md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden ${radiusClass}`}>
             <AnimatePresence mode="wait">
               {fit.imageUrl ? (
                 <motion.img
