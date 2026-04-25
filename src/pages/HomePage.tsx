@@ -272,7 +272,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.0, duration: 0.6 }}
-            className="mt-8 flex justify-center md:mt-12"
+            className="mt-10 flex justify-start md:justify-center md:mt-14"
           >
             <button
               onClick={() => setAffOpen(true)}
