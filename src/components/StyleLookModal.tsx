@@ -171,13 +171,28 @@ export default function StyleLookModal({
               </div>
             )}
 
-            <button
-              onClick={() => onOpenChange(false)}
-              className="absolute top-3 right-3 z-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {/* Top-right controls: shape toggle + close */}
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+              <button
+                onClick={() => setShape((s) => (s === "rounded" ? "square" : "rounded"))}
+                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background transition-colors"
+                aria-label={shape === "rounded" ? "Switch to square card" : "Switch to rounded card"}
+                title={shape === "rounded" ? "Square card" : "Rounded card"}
+              >
+                {shape === "rounded" ? (
+                  <Square className="h-3.5 w-3.5" />
+                ) : (
+                  <Circle className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <button
+                onClick={() => onOpenChange(false)}
+                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Details */}
