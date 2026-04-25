@@ -220,10 +220,10 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-8 flex flex-col items-center gap-3 md:flex-row md:flex-wrap md:justify-center md:mt-12"
+            className="mt-10 flex flex-col items-start gap-4 md:flex-row md:flex-wrap md:items-center md:justify-center md:mt-14"
           >
             {/* Row 1 (mobile): Explore + Style Me */}
-            <div className="flex items-center justify-center gap-2 flex-nowrap">
+            <div className="flex items-center justify-start gap-2 flex-nowrap md:justify-center">
               <button
                 onClick={() => navigate("/discover")}
                 className="rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold tracking-wide text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
@@ -233,7 +233,7 @@ const HomePage = () => {
               <StyleMeButton variant="pill" />
             </div>
             {/* Row 2 (mobile): About + Share */}
-            <div className="flex items-center justify-center gap-2 flex-nowrap">
+            <div className="flex items-center justify-start gap-2 flex-nowrap md:justify-center">
               <button
                 onClick={() => navigate("/about")}
                 className="rounded-full border border-foreground/20 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap"
