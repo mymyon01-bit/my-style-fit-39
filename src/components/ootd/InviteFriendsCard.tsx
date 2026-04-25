@@ -79,10 +79,10 @@ export default function InviteFriendsCard() {
             </span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold tracking-[0.18em] uppercase text-foreground/85">
+            <p className="text-[11px] md:text-[12px] font-semibold tracking-[0.18em] uppercase text-foreground/85">
               Invite friends to #OOTD
             </p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/60">
+            <p className="mt-0.5 text-[10px] md:text-[11px] leading-relaxed text-foreground/60">
               Get <span className="font-semibold text-[hsl(var(--star))]">+5 ⭐</span>{" "}
               for every friend who joins. They get{" "}
               <span className="font-semibold text-foreground/80">+3 ⭐</span> too.
