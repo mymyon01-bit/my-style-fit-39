@@ -10,7 +10,7 @@ interface WeatherData {
 
 const WMO_TO_CONDITION: Record<number, string> = {
   0: "clear",
-  1: "clear",
+  1: "partly-sunny",
   2: "partly-cloudy",
   3: "cloudy",
   45: "fog",

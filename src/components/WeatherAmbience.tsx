@@ -11,8 +11,11 @@ import fogBg from "@/assets/weather/fog.jpg";
 
 // Cinematic live videos — real footage matching each weather state.
 import rainVid from "../../public/bg-videos/rain.mp4.asset.json";
+import drizzleVid from "../../public/bg-videos/drizzle.mp4.asset.json";
 import snowVid from "../../public/bg-videos/snow.mp4.asset.json";
 import sunnyVid from "../../public/bg-videos/sunny.mp4.asset.json";
+import partlySunnyVid from "../../public/bg-videos/partly-sunny.mp4.asset.json";
+import partlyCloudyVid from "../../public/bg-videos/partly-cloudy.mp4.asset.json";
 import cloudyVid from "../../public/bg-videos/cloudy.mp4.asset.json";
 import stormVid from "../../public/bg-videos/storm.mp4.asset.json";
 import fogVid from "../../public/bg-videos/fog.mp4.asset.json";
@@ -26,6 +29,7 @@ const weatherMap: Record<string, string> = {
   clear: sunnyBg,
   cloudy: cloudyBg,
   "partly-cloudy": cloudyBg,
+  "partly-sunny": sunnyBg,
   overcast: cloudyBg,
   storm: stormBg,
   thunderstorm: stormBg,
@@ -34,18 +38,28 @@ const weatherMap: Record<string, string> = {
   haze: fogBg,
 };
 
+// Per-condition cinematic footage. Each video matches the *intensity* of the
+// weather: drizzle vs heavy rain, light wisps vs thick rolling clouds, etc.
 const weatherVideoMap: Record<string, string> = {
-  rain: rainVid.url,
-  "light-rain": rainVid.url,
-  drizzle: rainVid.url,
-  snow: snowVid.url,
+  // Sun
   sunny: sunnyVid.url,
   clear: sunnyVid.url,
+  // Few clouds — sun peeking through
+  "partly-sunny": partlySunnyVid.url,
+  // Light wispy clouds drifting
+  "partly-cloudy": partlyCloudyVid.url,
+  // Heavy rolling overcast
   cloudy: cloudyVid.url,
-  "partly-cloudy": cloudyVid.url,
   overcast: cloudyVid.url,
+  // Light drizzle — droplets trickling on glass
+  drizzle: drizzleVid.url,
+  "light-rain": drizzleVid.url,
+  // Heavy pouring rain streaks
+  rain: rainVid.url,
+  // Thunderstorm with lightning
   storm: stormVid.url,
   thunderstorm: stormVid.url,
+  // Fog
   fog: fogVid.url,
   mist: fogVid.url,
   haze: fogVid.url,
@@ -195,14 +209,20 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
         className="absolute inset-0"
       >
         <video
+          key={bgVideo}
           src={bgVideo}
           poster={bgImage}
           autoPlay
           loop
           muted
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           preload="auto"
-          className="h-full w-full object-cover opacity-[0.42] dark:opacity-[0.48]"
+          // High opacity so the real footage reads clearly; particle overlays
+          // (rain droplets, snow, lightning) layer on top per condition.
+          className="h-full w-full object-cover opacity-[0.55] dark:opacity-[0.6]"
+          style={{ objectPosition: "center" }}
         />
       </motion.div>
 
