@@ -1,12 +1,21 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 
+// Photo fallbacks (used while video loads, or if video fails)
 import rainBg from "@/assets/weather/rain.jpg";
 import snowBg from "@/assets/weather/snow.jpg";
 import sunnyBg from "@/assets/weather/sunny.jpg";
 import cloudyBg from "@/assets/weather/cloudy.jpg";
 import stormBg from "@/assets/weather/storm.jpg";
 import fogBg from "@/assets/weather/fog.jpg";
+
+// Cinematic live videos — real footage matching each weather state.
+import rainVid from "../../public/bg-videos/rain.mp4.asset.json";
+import snowVid from "../../public/bg-videos/snow.mp4.asset.json";
+import sunnyVid from "../../public/bg-videos/sunny.mp4.asset.json";
+import cloudyVid from "../../public/bg-videos/cloudy.mp4.asset.json";
+import stormVid from "../../public/bg-videos/storm.mp4.asset.json";
+import fogVid from "../../public/bg-videos/fog.mp4.asset.json";
 
 const weatherMap: Record<string, string> = {
   rain: rainBg,
@@ -23,6 +32,23 @@ const weatherMap: Record<string, string> = {
   fog: fogBg,
   mist: fogBg,
   haze: fogBg,
+};
+
+const weatherVideoMap: Record<string, string> = {
+  rain: rainVid.url,
+  "light-rain": rainVid.url,
+  drizzle: rainVid.url,
+  snow: snowVid.url,
+  sunny: sunnyVid.url,
+  clear: sunnyVid.url,
+  cloudy: cloudyVid.url,
+  "partly-cloudy": cloudyVid.url,
+  overcast: cloudyVid.url,
+  storm: stormVid.url,
+  thunderstorm: stormVid.url,
+  fog: fogVid.url,
+  mist: fogVid.url,
+  haze: fogVid.url,
 };
 
 // Stable pseudo-random helper so particles don't reshuffle every render
@@ -56,6 +82,7 @@ const generateBoltPath = (seed: number, height = 280) => {
 
 const WeatherAmbience = ({ condition }: { condition: string }) => {
   const bgImage = weatherMap[condition] || cloudyBg;
+  const bgVideo = weatherVideoMap[condition] || cloudyVid.url;
   const isRain = condition === "rain" || condition === "light-rain" || condition === "drizzle";
   const isSnow = condition === "snow";
   const isStorm = condition === "storm" || condition === "thunderstorm";
@@ -159,19 +186,23 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
   return (
     // z-0 keeps ambience strictly behind page content (text uses z-10+)
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      {/* Base photographic layer */}
+      {/* Base cinematic video layer — real footage matching the live weather. */}
       <motion.div
-        key={bgImage}
+        key={bgVideo}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.6, ease: "easeOut" }}
         className="absolute inset-0"
       >
-        <img
-          src={bgImage}
-          alt=""
-          className="h-full w-full object-cover opacity-[0.28] dark:opacity-[0.32]"
-          draggable={false}
+        <video
+          src={bgVideo}
+          poster={bgImage}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="h-full w-full object-cover opacity-[0.42] dark:opacity-[0.48]"
         />
       </motion.div>
 
