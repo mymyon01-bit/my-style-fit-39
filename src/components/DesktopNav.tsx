@@ -23,7 +23,7 @@ const DesktopNav = () => {
   const navLinks = [
     { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: t("discover").toUpperCase() },
-    { path: "/ootd", label: "OOTD" },
+    { path: "/ootd", label: "OOTD", isOotd: true },
     { path: "/fit", label: t("fit").toUpperCase() },
     { path: "/profile", label: "PROFILE" },
   ];
