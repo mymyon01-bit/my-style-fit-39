@@ -308,16 +308,16 @@ export default function CardColorPicker({ value, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-7 items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur px-2.5 text-[10px] font-medium tracking-[0.18em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+        className="flex h-6 md:h-7 items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur px-2 text-[9.5px] md:text-[10px] font-medium tracking-[0.18em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
         aria-label="Pick card color"
       >
         <Palette className="h-3 w-3" />
         CARD
         <span
-          className="inline-block h-3 w-3 rounded-full border border-border/60 shrink-0"
+          className="inline-block h-2.5 w-2.5 md:h-3 md:w-3 rounded-full border border-border/60 shrink-0"
           style={{ background: value.hex ?? "transparent" }}
         />
-        <span className="text-foreground/40 normal-case tracking-normal text-[10px] truncate max-w-[80px]">
+        <span className="text-foreground/40 normal-case tracking-normal text-[9.5px] md:text-[10px] truncate max-w-[60px] md:max-w-[80px]">
           · {currentLabel}
         </span>
       </button>
