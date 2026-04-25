@@ -10,7 +10,7 @@ import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 import { toast } from "sonner";
 import OOTDBackground, { type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import type { CardColor } from "@/components/ootd/CardColorPicker";
-import type { SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import { VisitorSongPlayer, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 
@@ -372,25 +372,11 @@ const UserProfilePage = () => {
           </div>
         )}
 
-        {/* Song of the day — the song the profile owner picked */}
+        {/* Song of the day — inline player so visitors can listen without leaving the page */}
         {visitorSong && (
-          <a
-            href={visitorSong.spotifyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-4 flex items-center gap-3 rounded-xl border border-border/30 p-2.5 backdrop-blur-md hover:border-accent/40 transition-colors"
-            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
-          >
-            <img src={visitorSong.artwork} alt="" className="h-10 w-10 rounded-md object-cover shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 text-[9px] font-semibold tracking-[0.2em] text-accent/80 uppercase">
-                <Music className="h-2.5 w-2.5" /> Song of the day
-              </div>
-              <p className="text-[12px] font-medium text-foreground/90 truncate">{visitorSong.title}</p>
-              <p className="text-[10px] text-foreground/55 truncate">{visitorSong.artist}</p>
-            </div>
-          </a>
+          <VisitorSongPlayer song={visitorSong} cardStyle={cardStyle ?? undefined} />
         )}
+
 
         {/* Hashtags */}
         {hashtags.length > 0 && (

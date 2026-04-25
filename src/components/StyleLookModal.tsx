@@ -10,11 +10,14 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader2, Sparkles, X, ExternalLink, RotateCw } from "lucide-react";
+import { Loader2, Sparkles, X, ExternalLink, RotateCw, Square, Circle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFitTryOn } from "@/hooks/useFitTryOn";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+
+const SHAPE_KEY = "stylelook-card-shape";
+type CardShape = "rounded" | "square";
 
 export interface StyleLookProduct {
   id: string;
@@ -43,6 +46,14 @@ export default function StyleLookModal({
 }: Props) {
   const { user } = useAuth();
   const [activeIdx, setActiveIdx] = useState(0);
+  const [shape, setShape] = useState<CardShape>(() => {
+    if (typeof window === "undefined") return "rounded";
+    return (localStorage.getItem(SHAPE_KEY) as CardShape) || "rounded";
+  });
+  useEffect(() => {
+    try { localStorage.setItem(SHAPE_KEY, shape); } catch {}
+  }, [shape]);
+  const radiusClass = shape === "rounded" ? "rounded-2xl" : "rounded-none";
   const [bodySummary, setBodySummary] = useState<{
     heightCm?: number | null;
     weightKg?: number | null;
@@ -95,10 +106,10 @@ export default function StyleLookModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background">
+      <DialogContent className={`max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background ${radiusClass}`}>
         <div className="grid md:grid-cols-2 max-h-[85vh] overflow-y-auto">
           {/* Mannequin image */}
-          <div className="relative aspect-[3/4] md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden">
+          <div className={`relative aspect-[3/4] md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden ${radiusClass}`}>
             <AnimatePresence mode="wait">
               {fit.imageUrl ? (
                 <motion.img
@@ -160,13 +171,28 @@ export default function StyleLookModal({
               </div>
             )}
 
-            <button
-              onClick={() => onOpenChange(false)}
-              className="absolute top-3 right-3 z-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {/* Top-right controls: shape toggle + close */}
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+              <button
+                onClick={() => setShape((s) => (s === "rounded" ? "square" : "rounded"))}
+                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background transition-colors"
+                aria-label={shape === "rounded" ? "Switch to square card" : "Switch to rounded card"}
+                title={shape === "rounded" ? "Square card" : "Rounded card"}
+              >
+                {shape === "rounded" ? (
+                  <Square className="h-3.5 w-3.5" />
+                ) : (
+                  <Circle className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <button
+                onClick={() => onOpenChange(false)}
+                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Details */}
