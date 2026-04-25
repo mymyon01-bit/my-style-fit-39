@@ -185,7 +185,7 @@ const OOTDPage = () => {
   useEffect(() => {
     const onPop = () => {
       const t = new URLSearchParams(window.location.search).get("tab");
-      const next: Tab = (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "ranking";
+      const next: Tab = (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
       setActiveTabState(next);
     };
     window.addEventListener("popstate", onPop);
