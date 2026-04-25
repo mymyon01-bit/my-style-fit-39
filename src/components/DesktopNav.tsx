@@ -6,6 +6,7 @@ import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
+import OOTDNavLabel from "@/components/OOTDNavLabel";
 import { useNotifications } from "@/hooks/useNotifications";
 
 const DesktopNav = () => {
