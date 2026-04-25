@@ -95,7 +95,7 @@ export default function InviteFriendsCard() {
             type="button"
             onClick={onCopy}
             disabled={loading || !inviteUrl}
-            className="group inline-flex items-center gap-1.5 rounded-full border border-foreground/20 bg-background/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/85 hover:border-accent/50 hover:text-accent disabled:opacity-50 transition-colors"
+            className="group inline-flex items-center gap-1.5 rounded-full border border-foreground/20 bg-background/60 px-2.5 py-1.5 md:px-3 md:py-2 text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-foreground/85 hover:border-accent/50 hover:text-accent disabled:opacity-50 transition-colors"
           >
             {copied ? (
               <>
@@ -111,7 +111,7 @@ export default function InviteFriendsCard() {
             type="button"
             onClick={onShare}
             disabled={loading || !inviteUrl}
-            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-background hover:bg-accent hover:text-background disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-2.5 py-1.5 md:px-3 md:py-2 text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-background hover:bg-accent hover:text-background disabled:opacity-50 transition-colors"
           >
             <Share2 className="h-3 w-3" /> Share
           </button>
