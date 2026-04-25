@@ -266,8 +266,39 @@ const HomePage = () => {
               </p>
             </motion.div>
           )}
+
+          {/* AFFILIATE / AD — fancy animated button under date */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.0, duration: 0.6 }}
+            className="mt-6 flex justify-center"
+          >
+            <button
+              onClick={() => setAffOpen(true)}
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-foreground/20 bg-background/60 px-4 py-2 text-[10px] font-bold tracking-[0.22em] text-foreground/70 backdrop-blur-md transition-all duration-300 hover:border-foreground/60 hover:text-foreground hover:scale-[1.04] active:scale-[0.97]"
+            >
+              {/* Sweeping gradient sheen */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 -left-full w-1/2 bg-gradient-to-r from-transparent via-primary/40 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[400%]"
+              />
+              {/* Pulsing dot */}
+              <span
+                aria-hidden
+                className="relative flex h-1.5 w-1.5"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+              </span>
+              <Handshake className="relative h-3 w-3 transition-transform duration-300 group-hover:rotate-[-8deg]" />
+              <span className="relative">AFFILIATE / AD</span>
+            </button>
+          </motion.div>
         </div>
       </section>
+
+      <ContactUsDialog open={affOpen} onOpenChange={setAffOpen} topic="Affiliate / Ad" />
 
       <Footer />
     </div>
