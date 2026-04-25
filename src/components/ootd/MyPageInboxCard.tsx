@@ -47,7 +47,7 @@ export default function MyPageInboxCard({ onOpenMessages, onOpenNotifications }:
   );
 
   return (
-    <div className="space-y-1 rounded-2xl border border-border/30 bg-card/40 p-2">
+    <div className="space-y-1 rounded-2xl border border-border/30 bg-card/40 p-1.5 md:p-2">
       <Row
         icon={MessageCircle}
         label="Messages"
