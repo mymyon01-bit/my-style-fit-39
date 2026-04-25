@@ -893,3 +893,96 @@ function InlinePlayerCard({
     </div>
   );
 }
+
+// =====================================================
+// Visitor inline player — used on other users' profiles.
+// Plays the 30s preview INLINE (no external link, no popup).
+// Visual mirrors the owner's profile chip but with play controls.
+// =====================================================
+export function VisitorSongPlayer({
+  song,
+  cardStyle,
+}: {
+  song: SongOfDay;
+  cardStyle?: React.CSSProperties;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  // Reset when song changes
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.pause();
+    a.currentTime = 0;
+    setPlaying(false);
+    setProgress(0);
+  }, [song.preview]);
+
+  const toggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) {
+      a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    } else {
+      a.pause();
+      setPlaying(false);
+    }
+  };
+
+  const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+
+  return (
+    <div
+      className="mb-4 flex items-center gap-3 rounded-xl border border-border/30 p-2.5 backdrop-blur-md"
+      style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+    >
+      <button
+        type="button"
+        onClick={toggle}
+        className="relative h-10 w-10 shrink-0 rounded-md overflow-hidden group"
+        aria-label={playing ? "Pause preview" : "Play preview"}
+      >
+        <img src={song.artwork} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+          {playing ? (
+            <Pause className="h-4 w-4 text-white" />
+          ) : (
+            <Play className="h-4 w-4 text-white" />
+          )}
+        </span>
+        {playing && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <Pause className="h-4 w-4 text-white" />
+          </span>
+        )}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 text-[9px] font-semibold tracking-[0.2em] text-accent/80 uppercase">
+          <Music className="h-2.5 w-2.5" /> Song of the day
+        </div>
+        <p className="text-[12px] font-medium text-foreground/90 truncate">{song.title}</p>
+        <p className="text-[10px] text-foreground/55 truncate">{song.artist}</p>
+        {/* Progress bar */}
+        <div className="mt-1.5 h-0.5 w-full rounded-full bg-foreground/10 overflow-hidden">
+          <div
+            className="h-full bg-accent transition-[width] duration-200"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+      <audio
+        ref={audioRef}
+        src={song.preview}
+        preload="metadata"
+        onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+        onEnded={() => { setPlaying(false); setProgress(0); }}
+      />
+    </div>
+  );
+}
