@@ -153,7 +153,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center font-display text-[44px] font-medium italic leading-[0.92] tracking-[-0.05em] text-foreground sm:text-[58px] md:text-[78px]"
+            className="text-center font-display text-[38px] font-medium italic leading-[1.0] tracking-[-0.05em] text-foreground sm:text-[50px] md:text-[66px]"
           >
             <span className="block">wear your</span>
             <MoodTicker
