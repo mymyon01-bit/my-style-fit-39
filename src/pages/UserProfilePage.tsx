@@ -10,7 +10,7 @@ import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
 import { toast } from "sonner";
 import OOTDBackground, { type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 import type { CardColor } from "@/components/ootd/CardColorPicker";
-import type { SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import { VisitorSongPlayer, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 
