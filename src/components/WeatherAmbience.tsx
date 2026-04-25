@@ -209,14 +209,20 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
         className="absolute inset-0"
       >
         <video
+          key={bgVideo}
           src={bgVideo}
           poster={bgImage}
           autoPlay
           loop
           muted
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           preload="auto"
-          className="h-full w-full object-cover opacity-[0.42] dark:opacity-[0.48]"
+          // High opacity so the real footage reads clearly; particle overlays
+          // (rain droplets, snow, lightning) layer on top per condition.
+          className="h-full w-full object-cover opacity-[0.55] dark:opacity-[0.6]"
+          style={{ objectPosition: "center" }}
         />
       </motion.div>
 
