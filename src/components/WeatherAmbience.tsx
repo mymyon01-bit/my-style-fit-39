@@ -1,12 +1,21 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 
+// Photo fallbacks (used while video loads, or if video fails)
 import rainBg from "@/assets/weather/rain.jpg";
 import snowBg from "@/assets/weather/snow.jpg";
 import sunnyBg from "@/assets/weather/sunny.jpg";
 import cloudyBg from "@/assets/weather/cloudy.jpg";
 import stormBg from "@/assets/weather/storm.jpg";
 import fogBg from "@/assets/weather/fog.jpg";
+
+// Cinematic live videos — real footage matching each weather state.
+import rainVid from "/bg-videos/rain.mp4.asset.json";
+import snowVid from "/bg-videos/snow.mp4.asset.json";
+import sunnyVid from "/bg-videos/sunny.mp4.asset.json";
+import cloudyVid from "/bg-videos/cloudy.mp4.asset.json";
+import stormVid from "/bg-videos/storm.mp4.asset.json";
+import fogVid from "/bg-videos/fog.mp4.asset.json";
 
 const weatherMap: Record<string, string> = {
   rain: rainBg,
@@ -23,6 +32,23 @@ const weatherMap: Record<string, string> = {
   fog: fogBg,
   mist: fogBg,
   haze: fogBg,
+};
+
+const weatherVideoMap: Record<string, string> = {
+  rain: rainVid.url,
+  "light-rain": rainVid.url,
+  drizzle: rainVid.url,
+  snow: snowVid.url,
+  sunny: sunnyVid.url,
+  clear: sunnyVid.url,
+  cloudy: cloudyVid.url,
+  "partly-cloudy": cloudyVid.url,
+  overcast: cloudyVid.url,
+  storm: stormVid.url,
+  thunderstorm: stormVid.url,
+  fog: fogVid.url,
+  mist: fogVid.url,
+  haze: fogVid.url,
 };
 
 // Stable pseudo-random helper so particles don't reshuffle every render
