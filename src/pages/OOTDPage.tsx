@@ -71,7 +71,7 @@ const OOTDPage = () => {
   const location = useLocation();
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "ranking";
+    return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
   });
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
