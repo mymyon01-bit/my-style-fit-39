@@ -220,7 +220,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-4 flex flex-col items-center gap-2 md:flex-row md:flex-wrap md:justify-center"
+            className="mt-8 flex flex-col items-center gap-3 md:flex-row md:flex-wrap md:justify-center md:mt-12"
           >
             {/* Row 1 (mobile): Explore + Style Me */}
             <div className="flex items-center justify-center gap-2 flex-nowrap">
