@@ -60,18 +60,18 @@ export default function StyleLookModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background ${radiusClass}`}>
         <div className="grid md:grid-cols-2 max-h-[85vh] overflow-y-auto">
-          {/* Mannequin image */}
+          {/* Product image */}
           <div className={`relative aspect-[3/4] md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden ${radiusClass}`}>
             <AnimatePresence mode="wait">
-              {fit.imageUrl ? (
+              {current?.image_url ? (
                 <motion.img
-                  key={fit.imageUrl}
-                  src={fit.imageUrl}
+                  key={current.id}
+                  src={current.image_url}
                   alt={current.name}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5 }}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-contain p-4"
                 />
               ) : (
                 <motion.div
@@ -80,39 +80,15 @@ export default function StyleLookModal({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  {current.image_url && (
-                    <img
-                      src={current.image_url}
-                      alt={current.name}
-                      className="h-full w-full object-contain opacity-30 blur-sm"
-                    />
-                  )}
+                  <ShoppingBag className="h-10 w-10 text-foreground/25" />
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Loading overlay */}
-            {isLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/60 backdrop-blur-sm">
-                <Loader2 className="h-5 w-5 animate-spin text-foreground/60" />
-                <p className="text-[10px] uppercase tracking-[0.22em] text-foreground/55">
-                  Fitting on mannequin…
-                </p>
-              </div>
-            )}
-
-            {/* Failed state — always show a friendly message, never raw codes */}
-            {fit.stage === "failed" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/80 p-6 text-center">
-                <p className="text-[12px] text-foreground/70 max-w-[260px]">
-                  Couldn't render your look right now. Please try again.
-                </p>
-                <button
-                  onClick={() => fit.retry()}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-foreground/25 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide hover:bg-foreground hover:text-background transition-colors"
-                >
-                  <RotateCw className="h-3 w-3" /> Retry
-                </button>
+            {typeof current?.match_score === "number" && (
+              <div className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-soft backdrop-blur">
+                <Heart className="h-3 w-3 fill-primary text-primary" />
+                {current.match_score}% match
               </div>
             )}
 
