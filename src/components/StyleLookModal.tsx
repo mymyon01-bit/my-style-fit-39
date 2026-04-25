@@ -141,8 +141,15 @@ export default function StyleLookModal({
             {/* Failed state */}
             {fit.stage === "failed" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/80 p-6 text-center">
-                <p className="text-[12px] text-foreground/70">
-                  {fit.error || "Couldn't render."}
+                <p className="text-[12px] text-foreground/70 max-w-[260px]">
+                  {(() => {
+                    const e = fit.error || "";
+                    if (!e || /unstable_fit_render|edge|fetch|503|502|504|timeout/i.test(e)) {
+                      return "Couldn't render your look. Please try again.";
+                    }
+                    // Strip any raw "code:" prefixes / JSON fragments
+                    return e.replace(/^[a-z_]+:\s*/i, "").replace(/[{}\[\]"]/g, "").slice(0, 140);
+                  })()}
                 </p>
                 <button
                   onClick={() => fit.retry()}
