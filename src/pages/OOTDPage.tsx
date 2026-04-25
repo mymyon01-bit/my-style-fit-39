@@ -570,6 +570,14 @@ const OOTDPage = () => {
     return { featured: scored.slice(0, 3), rest: scored.slice(3) };
   };
 
+  // Stable callbacks so memoized OOTDCards don't re-render on every parent
+  // state change (likes, stars, profile loads, etc.). Without these the
+  // 80-card ranking grid would re-render in full on every interaction
+  // and lock the page.
+  const openPost = useCallback((p: OOTDPost) => setSelectedPost(p), []);
+  const editPost = useCallback((p: OOTDPost) => handleEditPost(p), []);
+  const deletePost = useCallback((id: string) => handleDeletePost(id), []);
+
   const renderPostCard = (post: OOTDPost, index: number, showAuthor = true, isMyPage = false) => (
     <OOTDCard
       key={post.id}
@@ -578,9 +586,9 @@ const OOTDPage = () => {
       index={index}
       showAuthor={showAuthor}
       isMyPage={isMyPage}
-      onOpen={(p) => setSelectedPost(p as OOTDPost)}
-      onEdit={isMyPage ? (p) => handleEditPost(p as OOTDPost) : undefined}
-      onDelete={isMyPage ? handleDeletePost : undefined}
+      onOpen={openPost as (p: { id: string; user_id: string; image_url: string; caption: string | null; star_count: number | null; like_count: number | null; }) => void}
+      onEdit={isMyPage ? (editPost as (p: { id: string; user_id: string; image_url: string; caption: string | null; star_count: number | null; like_count: number | null; }) => void) : undefined}
+      onDelete={isMyPage ? deletePost : undefined}
     />
   );
 
