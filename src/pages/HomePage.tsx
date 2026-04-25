@@ -14,7 +14,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Sparkles, Download, LogIn, User as UserIcon } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Download, LogIn, User as UserIcon, Handshake } from "lucide-react";
 import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
@@ -25,6 +25,7 @@ import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
 import StyleMeButton from "@/components/StyleMeButton";
+import ContactUsDialog from "@/components/ContactUsDialog";
 import { useAuth } from "@/lib/auth";
 
 // PWA "Add to Home Screen" install event
@@ -41,6 +42,7 @@ const HomePage = () => {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [affOpen, setAffOpen] = useState(false);
   const weather = useWeather();
 
   // Capture the browser's install prompt so the download icon can offer
