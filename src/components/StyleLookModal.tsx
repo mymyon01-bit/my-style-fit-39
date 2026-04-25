@@ -199,7 +199,16 @@ export default function StyleLookModal({
                 )}
                 {current.reason && (
                   <p className="text-[12.5px] leading-[1.7] text-foreground/65 md:text-[13px] mb-5">
-                    {current.reason}
+                    {(() => {
+                      const r = String(current.reason).trim();
+                      // Strip markdown code fences / inline backticks / json blobs
+                      const clean = r
+                        .replace(/```[\s\S]*?```/g, "")
+                        .replace(/`([^`]*)`/g, "$1")
+                        .replace(/^\s*[{\[][\s\S]*[}\]]\s*$/g, "")
+                        .trim();
+                      return clean.slice(0, 280);
+                    })()}
                   </p>
                 )}
                 {current.source_url && (
