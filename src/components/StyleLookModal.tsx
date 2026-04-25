@@ -1,20 +1,11 @@
 /**
- * StyleLookModal — shows a recommended product fitted on a mannequin via the
- * same fit pipeline used by FitPage (fit-tryon-router, mode: "studio").
- *
- * Pipeline:
- *   1. Caller passes in a recommended `product` (from product_cache).
- *   2. We invoke fit-tryon-router with the product image + user body summary
- *      (or guest defaults). Provider renders the garment on a clean mannequin.
- *   3. Poll until ready, show the persistent storage URL.
+ * StyleLookModal — shows three personalized Style Me product recommendations.
+ * The ranking happens before opening, so this modal never calls try-on generation.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader2, Sparkles, X, ExternalLink, RotateCw, Square, Circle } from "lucide-react";
+import { Sparkles, X, ExternalLink, Square, Circle, Heart, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useFitTryOn } from "@/hooks/useFitTryOn";
-import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 
 const SHAPE_KEY = "stylelook-card-shape";
 type CardShape = "rounded" | "square";
@@ -28,6 +19,7 @@ export interface StyleLookProduct {
   price?: string | null;
   category?: string | null;
   reason?: string | null;
+  match_score?: number | null;
 }
 
 interface Props {
@@ -44,7 +36,6 @@ export default function StyleLookModal({
   product,
   alternatives = [],
 }: Props) {
-  const { user } = useAuth();
   const [activeIdx, setActiveIdx] = useState(0);
   const [shape, setShape] = useState<CardShape>(() => {
     if (typeof window === "undefined") return "rounded";
@@ -54,55 +45,16 @@ export default function StyleLookModal({
     try { localStorage.setItem(SHAPE_KEY, shape); } catch {}
   }, [shape]);
   const radiusClass = shape === "rounded" ? "rounded-2xl" : "rounded-none";
-  const [bodySummary, setBodySummary] = useState<{
-    heightCm?: number | null;
-    weightKg?: number | null;
-    gender?: string | null;
-  } | null>(null);
 
   const all = product ? [product, ...alternatives] : [];
   const current = all[activeIdx] || product;
-
-  // Fetch body profile once when the modal opens (logged-in users only).
-  useEffect(() => {
-    if (!open || !user) return;
-    let cancelled = false;
-    (async () => {
-      const [bodyRes, profileRes] = await Promise.all([
-        supabase.from("body_profiles").select("height_cm,weight_kg").eq("user_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle(),
-      ]);
-      if (cancelled) return;
-      setBodySummary({
-        heightCm: bodyRes.data?.height_cm ?? 172,
-        weightKg: bodyRes.data?.weight_kg ?? 68,
-        gender: profileRes.data?.gender_preference ?? "unisex",
-      });
-    })();
-    return () => { cancelled = true; };
-  }, [open, user]);
 
   // Reset to first product whenever modal re-opens or product changes.
   useEffect(() => {
     if (open) setActiveIdx(0);
   }, [open, product?.id]);
 
-  const fit = useFitTryOn({
-    enabled: !!(open && current?.image_url),
-    productKey: current?.id || "stylelook",
-    productImageUrl: current?.image_url ?? null,
-    productName: current?.name || "Recommended look",
-    productCategory: current?.category ?? "top",
-    selectedSize: "M",
-    userImageUrl: undefined, // studio mannequin — no user photo
-    bodyProfileSummary: bodySummary
-      ? { heightCm: bodySummary.heightCm, weightKg: bodySummary.weightKg, gender: bodySummary.gender }
-      : { heightCm: 172, weightKg: 68, gender: "unisex" },
-  });
-
   if (!product) return null;
-
-  const isLoading = fit.stage === "generating" || fit.stage === "polling" || fit.stage === "validating";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
