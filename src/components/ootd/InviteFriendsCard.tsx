@@ -72,10 +72,10 @@ export default function InviteFriendsCard() {
 
       <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
-            <Gift className="h-4 w-4" />
-            <span className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--star))] text-background">
-              <Star className="h-2.5 w-2.5 fill-background" />
+          <div className="relative flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+            <Gift className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span className="absolute -right-1 -bottom-1 flex h-3.5 w-3.5 md:h-4 md:w-4 items-center justify-center rounded-full bg-[hsl(var(--star))] text-background">
+              <Star className="h-2 md:h-2.5 w-2 md:w-2.5 fill-background" />
             </span>
           </div>
           <div className="min-w-0 flex-1">
