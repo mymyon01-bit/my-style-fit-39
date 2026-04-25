@@ -46,6 +46,14 @@ export default function StyleLookModal({
 }: Props) {
   const { user } = useAuth();
   const [activeIdx, setActiveIdx] = useState(0);
+  const [shape, setShape] = useState<CardShape>(() => {
+    if (typeof window === "undefined") return "rounded";
+    return (localStorage.getItem(SHAPE_KEY) as CardShape) || "rounded";
+  });
+  useEffect(() => {
+    try { localStorage.setItem(SHAPE_KEY, shape); } catch {}
+  }, [shape]);
+  const radiusClass = shape === "rounded" ? "rounded-2xl" : "rounded-none";
   const [bodySummary, setBodySummary] = useState<{
     heightCm?: number | null;
     weightKg?: number | null;
