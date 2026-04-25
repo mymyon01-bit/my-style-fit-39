@@ -186,19 +186,23 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
   return (
     // z-0 keeps ambience strictly behind page content (text uses z-10+)
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      {/* Base photographic layer */}
+      {/* Base cinematic video layer — real footage matching the live weather. */}
       <motion.div
-        key={bgImage}
+        key={bgVideo}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.6, ease: "easeOut" }}
         className="absolute inset-0"
       >
-        <img
-          src={bgImage}
-          alt=""
-          className="h-full w-full object-cover opacity-[0.28] dark:opacity-[0.32]"
-          draggable={false}
+        <video
+          src={bgVideo}
+          poster={bgImage}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="h-full w-full object-cover opacity-[0.42] dark:opacity-[0.48]"
         />
       </motion.div>
 
