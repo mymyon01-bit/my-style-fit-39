@@ -14,7 +14,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Sparkles, Download, LogIn, User as UserIcon } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Download, LogIn, User as UserIcon, Handshake } from "lucide-react";
 import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
 import { useWeather } from "@/hooks/useWeather";
@@ -25,6 +25,7 @@ import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
 import StyleMeButton from "@/components/StyleMeButton";
+import ContactUsDialog from "@/components/ContactUsDialog";
 import { useAuth } from "@/lib/auth";
 
 // PWA "Add to Home Screen" install event
@@ -41,6 +42,7 @@ const HomePage = () => {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [affOpen, setAffOpen] = useState(false);
   const weather = useWeather();
 
   // Capture the browser's install prompt so the download icon can offer
@@ -264,8 +266,39 @@ const HomePage = () => {
               </p>
             </motion.div>
           )}
+
+          {/* AFFILIATE / AD — fancy animated button under date */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.0, duration: 0.6 }}
+            className="mt-6 flex justify-center"
+          >
+            <button
+              onClick={() => setAffOpen(true)}
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-foreground/20 bg-background/60 px-4 py-2 text-[10px] font-bold tracking-[0.22em] text-foreground/70 backdrop-blur-md transition-all duration-300 hover:border-foreground/60 hover:text-foreground hover:scale-[1.04] active:scale-[0.97]"
+            >
+              {/* Sweeping gradient sheen */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 -left-full w-1/2 bg-gradient-to-r from-transparent via-primary/40 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[400%]"
+              />
+              {/* Pulsing dot */}
+              <span
+                aria-hidden
+                className="relative flex h-1.5 w-1.5"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+              </span>
+              <Handshake className="relative h-3 w-3 transition-transform duration-300 group-hover:rotate-[-8deg]" />
+              <span className="relative">AFFILIATE / AD</span>
+            </button>
+          </motion.div>
         </div>
       </section>
+
+      <ContactUsDialog open={affOpen} onOpenChange={setAffOpen} topic="Affiliate / Ad" />
 
       <Footer />
     </div>
