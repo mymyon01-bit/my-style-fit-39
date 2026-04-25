@@ -206,7 +206,7 @@ export default function StyleMeButton({
         disabled={loading}
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.96 }}
-        className={`relative inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[12px] font-semibold tracking-wide transition-colors duration-200 whitespace-nowrap disabled:opacity-70 ${baseCls} ${className}`}
+        className={`relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-wide transition-colors duration-200 whitespace-nowrap disabled:opacity-70 ${baseCls} ${className}`}
       >
         <span
           aria-hidden
@@ -214,9 +214,9 @@ export default function StyleMeButton({
           style={{ animationDuration: "2.4s" }}
         />
         {loading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin relative" />
+          <Loader2 className="h-3 w-3 animate-spin relative" />
         ) : (
-          <Sparkles className="h-3.5 w-3.5 relative" />
+          <Sparkles className="h-3 w-3 relative" />
         )}
         <span className="relative">{loading ? "FINDING…" : label}</span>
       </motion.button>

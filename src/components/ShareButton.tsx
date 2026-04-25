@@ -150,9 +150,9 @@ const ShareButton = ({ title, url, className = "" }: ShareButtonProps) => {
           onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
           onDoubleClick={nativeShare}
           aria-label="Share"
-          className="hover-burgundy flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
+          className="hover-burgundy flex h-6 w-6 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
         >
-          <Share2 className="h-3.5 w-3.5 text-foreground/75" />
+          <Share2 className="h-3 w-3 text-foreground/75" />
         </button>
       </div>
 

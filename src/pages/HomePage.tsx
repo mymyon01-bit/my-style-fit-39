@@ -153,7 +153,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center font-display text-[44px] font-medium italic leading-[0.92] tracking-[-0.05em] text-foreground sm:text-[58px] md:text-[78px]"
+            className="flex flex-col items-center text-center font-display text-[38px] font-medium italic leading-[1.15] tracking-[-0.05em] text-foreground sm:text-[50px] md:text-[66px]"
           >
             <span className="block">wear your</span>
             <MoodTicker
@@ -168,7 +168,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-10"
+            className="mt-6"
           >
             <div className="flex items-center gap-2 rounded-full border border-foreground/15 bg-background/80 px-5 py-2 shadow-sm backdrop-blur-md focus-within:border-foreground/50 transition-colors">
               <Sparkles
@@ -209,7 +209,7 @@ const HomePage = () => {
             initial={{ opacity: 0, scale: 0.85, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-8 mb-2 flex justify-center md:mt-20 md:mb-16"
+            className="mt-4 mb-1 flex justify-center md:mt-8 md:mb-6"
           >
             <span className="md:hidden"><OOTDDiaryButton compact /></span>
             <span className="hidden md:block"><OOTDDiaryButton /></span>
@@ -220,23 +220,23 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-6 flex flex-col items-center gap-2.5 md:flex-row md:flex-wrap md:justify-center"
+            className="mt-4 flex flex-col items-center gap-2 md:flex-row md:flex-wrap md:justify-center"
           >
             {/* Row 1 (mobile): Explore + Style Me */}
-            <div className="flex items-center justify-center gap-2.5 flex-nowrap">
+            <div className="flex items-center justify-center gap-2 flex-nowrap">
               <button
                 onClick={() => navigate("/discover")}
-                className="rounded-full bg-foreground px-4 py-2.5 text-[12px] font-semibold tracking-wide text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
+                className="rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold tracking-wide text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
               >
                 {t("exploreStyles")}
               </button>
               <StyleMeButton variant="pill" />
             </div>
             {/* Row 2 (mobile): About + Share */}
-            <div className="flex items-center justify-center gap-2.5 flex-nowrap">
+            <div className="flex items-center justify-center gap-2 flex-nowrap">
               <button
                 onClick={() => navigate("/about")}
-                className="rounded-full border border-foreground/20 px-4 py-2.5 text-[12px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap"
+                className="rounded-full border border-foreground/20 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap"
               >
                 {t("about")}
               </button>
@@ -254,7 +254,7 @@ const HomePage = () => {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.8 }}
-              className="mt-8 flex flex-col items-center gap-2"
+              className="mt-4 flex flex-col items-center gap-2"
             >
               <p className="font-display text-[15px] italic font-light tracking-tight text-foreground/70 md:text-[17px]">
                 today your weather is<span className="text-primary">…</span>
@@ -272,11 +272,11 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.0, duration: 0.6 }}
-            className="mt-6 flex justify-center"
+            className="mt-4 flex justify-center"
           >
             <button
               onClick={() => setAffOpen(true)}
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-foreground/20 bg-background/60 px-4 py-2 text-[10px] font-bold tracking-[0.22em] text-foreground/70 backdrop-blur-md transition-all duration-300 hover:border-foreground/60 hover:text-foreground hover:scale-[1.04] active:scale-[0.97]"
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-foreground/20 bg-background/60 px-3 py-1.5 text-[9px] font-bold tracking-[0.22em] text-foreground/70 backdrop-blur-md transition-all duration-300 hover:border-foreground/60 hover:text-foreground hover:scale-[1.04] active:scale-[0.97]"
             >
               {/* Sweeping gradient sheen */}
               <span
