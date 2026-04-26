@@ -824,9 +824,9 @@ const OOTDPage = () => {
       </div>
 
 
-      <div className="relative mx-auto max-w-lg px-6 pt-3 md:max-w-2xl md:px-10 md:pt-3 lg:max-w-4xl lg:px-12">
+      <div className={`relative mx-auto max-w-lg md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "px-4 pt-2" : "px-6 pt-3 md:pt-3"}`}>
         <div
-          className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-6 shadow-xl shadow-black/10" : ""}
+          className={bgTheme !== "none" ? `rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl shadow-xl shadow-black/10 ${mobileOOTD ? "p-3" : "p-4 md:p-6"}` : ""}
           style={bgTheme !== "none" ? cardStyle : undefined}
         >
         <AnimatePresence mode="wait">
