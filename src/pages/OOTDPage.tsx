@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send } from "lucide-react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,11 +29,13 @@ import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme 
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 import CustomizeMenu from "@/components/ootd/CustomizeMenu";
+import { loadCardShape, applyCardShapeToRoot, type CardShape } from "@/components/ootd/cardShape";
 import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcomeModal";
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
 import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
+import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
 
 interface OOTDPost {
   id: string;
@@ -124,6 +126,11 @@ const OOTDPage = () => {
   const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [cardShape, setCardShape] = useState<CardShape>(() => {
+    const s = loadCardShape();
+    if (typeof window !== "undefined") applyCardShapeToRoot(s);
+    return s;
+  });
   const [cardColor, setCardColor] = useState<CardColor>(() => {
     const c = loadCardColor();
     if (typeof window !== "undefined") applyCardColorToRoot(c);
@@ -731,34 +738,41 @@ const OOTDPage = () => {
       <div className={`relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${inModal ? "pb-24" : ""}`}>
         {activeTab === "mypage" && user && (
           <div
-            className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
-            style={cardStyle}
+            className="border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
+            style={{ ...cardStyle, borderRadius: "var(--ootd-card-radius, 1.5rem)" }}
           >
-            <div className="flex items-center justify-end gap-2 mb-2 md:mb-3 flex-wrap">
-              <div className="flex items-center gap-2 shrink-0">
-                <CustomizeMenu
-                  open={customizeOpen}
-                  onOpenChange={setCustomizeOpen}
-                  bgTheme={bgTheme}
-                  onBgThemeChange={setBgTheme}
-                  songOfDay={songOfDay}
-                  onSongOfDayChange={setSongOfDay}
-                  cardColor={cardColor}
-                  onCardColorChange={setCardColor}
-                />
-                <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
+            {/* Music + customize controls — graffiti hint nudges users toward
+                the gear, which now opens the full Customize modal. */}
+            <div className="flex items-center justify-end gap-2 mb-3">
+              <div className="flex items-center gap-2 mr-auto pl-1">
+                <span aria-hidden className="text-foreground/55 text-[14px] leading-none">↘</span>
+                <span
+                  className="text-[12px] font-black tracking-tight text-foreground/80 italic -rotate-3 select-none"
+                  style={{
+                    fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
+                    textShadow: "1px 1px 0 hsl(var(--accent) / 0.35)",
+                  }}
+                >
+                  customize!
+                </span>
               </div>
+              <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
+              <button
+                type="button"
+                onClick={() => setCustomizeOpen(true)}
+                aria-label="Open customize"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/55 hover:text-foreground hover:bg-foreground/5 transition-colors"
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </button>
             </div>
-            <p className="hidden md:flex items-center gap-1.5 text-[10.5px] text-foreground/60 leading-snug mb-3 italic">
-              <Sparkles className="h-3 w-3 text-accent/70" />
-              <span>당신만의 페이지를 꾸며보세요 — 배경, 색감, 음악까지 자유롭게.</span>
-            </p>
             <MyPageProfileHeader
               postCount={myPosts.length}
               totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
               refreshKey={storiesRefreshKey}
               hasStory={hasOwnStory}
               hasUnseenStory={hasOwnUnseen}
+              hideSettings
               onUploadStory={() => setStoryUploadOpen(true)}
               onOpenMessages={() => setMessagesOpen(true)}
               onOpenSettings={() => setCustomizeOpen(true)}
@@ -940,15 +954,6 @@ const OOTDPage = () => {
                 </div>
               ) : (
                 <>
-                  <MyPageInboxCard
-                    onOpenMessages={() => setMessagesOpen(true)}
-                    onOpenNotifications={() => setNotifsOpen(true)}
-                  />
-
-                  <InviteFriendsCard />
-
-                  <CreateShowroomBanner />
-
                   <ShowroomMyBlock userId={user.id} />
 
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-2 py-3 md:py-5 rounded-xl md:rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
@@ -968,6 +973,9 @@ const OOTDPage = () => {
                       {myPosts.map((post, i) => renderPostCard(post, i, false, true))}
                     </div>
                   )}
+
+                  {/* Bottom share CTA — animated, hashtag-driven */}
+                  <ShareOOTDWithFriendCTA />
                 </>
               )}
             </motion.div>
@@ -1206,6 +1214,19 @@ const OOTDPage = () => {
         initialOtherUserId={initialChat.otherUserId}
       />
       <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
+
+      <CustomizeMenu
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        bgTheme={bgTheme}
+        onBgThemeChange={setBgTheme}
+        songOfDay={songOfDay}
+        onSongOfDayChange={setSongOfDay}
+        cardColor={cardColor}
+        onCardColorChange={setCardColor}
+        cardShape={cardShape}
+        onCardShapeChange={setCardShape}
+      />
     </div>
   );
 };
