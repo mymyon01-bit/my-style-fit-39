@@ -4,6 +4,93 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotificationsList, type NotificationRow } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { ko as koLocale, ja as jaLocale, zhCN, es as esLocale, fr as frLocale, de as deLocale, it as itLocale } from "date-fns/locale";
+import { useI18n } from "@/lib/i18n";
+import TranslateButton from "@/components/TranslateButton";
+
+const DATE_LOCALES: Record<string, Locale | undefined> = {
+  ko: koLocale, ja: jaLocale, zh: zhCN, es: esLocale, fr: frLocale, de: deLocale, it: itLocale,
+};
+
+// Localized strings used inside this sheet only — keeps the global i18n
+// dictionary lean. Falls back to English when a locale is missing.
+const STRINGS: Record<string, Record<string, string>> = {
+  en: { title: "NOTIFICATIONS", read: "READ", unread: "UNREAD", earlier: "EARLIER", empty: "No notifications yet", emptySub: "Stars, comments, and new followers will show up here", connector: "" },
+  ko: { title: "알림", read: "모두 읽음", unread: "안 읽음", earlier: "이전", empty: "아직 알림이 없습니다", emptySub: "스타·댓글·팔로우 알림이 여기 표시됩니다", connector: "님이 " },
+  ja: { title: "通知", read: "既読にする", unread: "未読", earlier: "以前", empty: "まだ通知はありません", emptySub: "スター・コメント・フォローが表示されます", connector: "さんが" },
+  zh: { title: "通知", read: "全部已读", unread: "未读", earlier: "更早", empty: "暂无通知", emptySub: "星标、评论和新粉丝会显示在这里", connector: "" },
+  es: { title: "NOTIFICACIONES", read: "LEER", unread: "NUEVAS", earlier: "ANTERIORES", empty: "Sin notificaciones aún", emptySub: "Estrellas, comentarios y nuevos seguidores aparecerán aquí", connector: "" },
+  fr: { title: "NOTIFICATIONS", read: "LU", unread: "NON LU", earlier: "PLUS TÔT", empty: "Aucune notification", emptySub: "Étoiles, commentaires et nouveaux abonnés s'afficheront ici", connector: "" },
+  de: { title: "BENACHRICHTIGUNGEN", read: "GELESEN", unread: "NEU", earlier: "FRÜHER", empty: "Noch keine Benachrichtigungen", emptySub: "Sterne, Kommentare und neue Follower erscheinen hier", connector: "" },
+  it: { title: "NOTIFICHE", read: "LETTO", unread: "NUOVE", earlier: "PRECEDENTI", empty: "Ancora nessuna notifica", emptySub: "Stelle, commenti e nuovi follower compariranno qui", connector: "" },
+};
+
+const ACTION_LABELS: Record<string, Record<string, string>> = {
+  en: {
+    follow: "requested to circle you", circle_request: "requested to circle you",
+    star: "starred your post", ootd_star: "starred your post",
+    ootd_like: "liked your post", comment_like: "liked your comment",
+    comment: "commented on your post", ootd_comment: "commented on your post",
+    ootd_reply: "replied to your comment", ootd_mention: "mentioned you",
+    ootd_reaction: "reacted to your post", reaction: "reacted to your post",
+  },
+  ko: {
+    follow: "서클을 신청했어요", circle_request: "서클을 신청했어요",
+    star: "스타를 받았어요", ootd_star: "스타를 받았어요",
+    ootd_like: "좋아요를 받았습니다", comment_like: "댓글에 좋아요를 받았어요",
+    comment: "댓글을 남겼어요", ootd_comment: "댓글을 남겼어요",
+    ootd_reply: "답글을 남겼어요", ootd_mention: "당신을 언급했어요",
+    ootd_reaction: "반응을 남겼어요", reaction: "반응을 남겼어요",
+  },
+  ja: {
+    follow: "サークル申請しました", circle_request: "サークル申請しました",
+    star: "スターをくれました", ootd_star: "スターをくれました",
+    ootd_like: "いいねしました", comment_like: "コメントにいいねしました",
+    comment: "コメントしました", ootd_comment: "コメントしました",
+    ootd_reply: "返信しました", ootd_mention: "あなたをメンションしました",
+    ootd_reaction: "リアクションしました", reaction: "リアクションしました",
+  },
+  zh: {
+    follow: "申请加入你的圈子", circle_request: "申请加入你的圈子",
+    star: "为你点赞星标", ootd_star: "为你点赞星标",
+    ootd_like: "赞了你的帖子", comment_like: "赞了你的评论",
+    comment: "评论了你的帖子", ootd_comment: "评论了你的帖子",
+    ootd_reply: "回复了你的评论", ootd_mention: "提到了你",
+    ootd_reaction: "对你的帖子做出反应", reaction: "对你的帖子做出反应",
+  },
+  es: {
+    follow: "quiere seguirte", circle_request: "quiere seguirte",
+    star: "destacó tu publicación", ootd_star: "destacó tu publicación",
+    ootd_like: "le gustó tu publicación", comment_like: "le gustó tu comentario",
+    comment: "comentó tu publicación", ootd_comment: "comentó tu publicación",
+    ootd_reply: "respondió a tu comentario", ootd_mention: "te mencionó",
+    ootd_reaction: "reaccionó a tu publicación", reaction: "reaccionó a tu publicación",
+  },
+  fr: {
+    follow: "souhaite vous suivre", circle_request: "souhaite vous suivre",
+    star: "a mis votre publication en favori", ootd_star: "a mis votre publication en favori",
+    ootd_like: "a aimé votre publication", comment_like: "a aimé votre commentaire",
+    comment: "a commenté votre publication", ootd_comment: "a commenté votre publication",
+    ootd_reply: "a répondu à votre commentaire", ootd_mention: "vous a mentionné",
+    ootd_reaction: "a réagi à votre publication", reaction: "a réagi à votre publication",
+  },
+  de: {
+    follow: "möchte dir folgen", circle_request: "möchte dir folgen",
+    star: "hat deinen Beitrag markiert", ootd_star: "hat deinen Beitrag markiert",
+    ootd_like: "hat deinen Beitrag geliked", comment_like: "hat deinen Kommentar geliked",
+    comment: "hat deinen Beitrag kommentiert", ootd_comment: "hat deinen Beitrag kommentiert",
+    ootd_reply: "hat auf deinen Kommentar geantwortet", ootd_mention: "hat dich erwähnt",
+    ootd_reaction: "hat auf deinen Beitrag reagiert", reaction: "hat auf deinen Beitrag reagiert",
+  },
+  it: {
+    follow: "vuole seguirti", circle_request: "vuole seguirti",
+    star: "ha messo una stella al tuo post", ootd_star: "ha messo una stella al tuo post",
+    ootd_like: "ha messo mi piace al tuo post", comment_like: "ha messo mi piace al tuo commento",
+    comment: "ha commentato il tuo post", ootd_comment: "ha commentato il tuo post",
+    ootd_reply: "ha risposto al tuo commento", ootd_mention: "ti ha menzionato",
+    ootd_reaction: "ha reagito al tuo post", reaction: "ha reagito al tuo post",
+  },
+};
 
 interface Props {
   open: boolean;
