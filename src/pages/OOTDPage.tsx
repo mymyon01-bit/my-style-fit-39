@@ -628,28 +628,39 @@ const OOTDPage = () => {
                 <defs>
                   <filter id="ootd-spray" x="-20%" y="-20%" width="140%" height="140%">
                     <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="3" />
-                    <feDisplacementMap in="SourceGraphic" scale="1" />
+                    <feDisplacementMap in="SourceGraphic" scale="1.2" />
                   </filter>
                 </defs>
                 <g filter="url(#ootd-spray)" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  {/* # */}
-                  <path d="M14 14 L8 50" stroke="hsl(330 95% 60%)" strokeWidth="5" className="ootd-stroke s1" />
-                  <path d="M28 14 L22 50" stroke="hsl(330 95% 60%)" strokeWidth="5" className="ootd-stroke s2" />
-                  <path d="M6 26 L32 24" stroke="hsl(330 95% 60%)" strokeWidth="4" className="ootd-stroke s3" />
-                  <path d="M4 38 L30 36" stroke="hsl(330 95% 60%)" strokeWidth="4" className="ootd-stroke s4" />
+                  {/* # — black outline layer (drawn first, thicker) */}
+                  <path d="M14 14 L8 50" stroke="hsl(0 0% 6%)" strokeWidth="10" className="ootd-stroke s1" />
+                  <path d="M28 14 L22 50" stroke="hsl(0 0% 6%)" strokeWidth="10" className="ootd-stroke s2" />
+                  <path d="M6 26 L32 24" stroke="hsl(0 0% 6%)" strokeWidth="9" className="ootd-stroke s3" />
+                  <path d="M4 38 L30 36" stroke="hsl(0 0% 6%)" strokeWidth="9" className="ootd-stroke s4" />
+                  {/* # — pink fill layer on top */}
+                  <path d="M14 14 L8 50" stroke="hsl(330 95% 60%)" strokeWidth="6" className="ootd-stroke s1" />
+                  <path d="M28 14 L22 50" stroke="hsl(330 95% 60%)" strokeWidth="6" className="ootd-stroke s2" />
+                  <path d="M6 26 L32 24" stroke="hsl(330 95% 60%)" strokeWidth="5" className="ootd-stroke s3" />
+                  <path d="M4 38 L30 36" stroke="hsl(330 95% 60%)" strokeWidth="5" className="ootd-stroke s4" />
                   {/* O */}
-                  <path d="M52 22 C44 24 42 42 52 46 C62 48 68 36 64 26 C61 19 55 20 52 22 Z" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s5" />
+                  <path d="M52 22 C44 24 42 42 52 46 C62 48 68 36 64 26 C61 19 55 20 52 22 Z" stroke="hsl(0 0% 8%)" strokeWidth="6.5" className="ootd-stroke s5" />
                   {/* O */}
-                  <path d="M88 22 C80 24 78 42 88 46 C98 48 104 36 100 26 C97 19 91 20 88 22 Z" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s6" />
+                  <path d="M88 22 C80 24 78 42 88 46 C98 48 104 36 100 26 C97 19 91 20 88 22 Z" stroke="hsl(0 0% 8%)" strokeWidth="6.5" className="ootd-stroke s6" />
                   {/* T */}
-                  <path d="M114 18 L142 16" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s7" />
-                  <path d="M128 18 L124 48" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s8" />
+                  <path d="M114 18 L142 16" stroke="hsl(0 0% 8%)" strokeWidth="6.5" className="ootd-stroke s7" />
+                  <path d="M128 18 L124 48" stroke="hsl(0 0% 8%)" strokeWidth="6.5" className="ootd-stroke s8" />
                   {/* D */}
-                  <path d="M152 18 L148 50" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s9" />
-                  <path d="M150 18 C168 16 178 26 176 36 C174 46 162 50 148 50" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s10" />
+                  <path d="M152 18 L148 50" stroke="hsl(0 0% 8%)" strokeWidth="6.5" className="ootd-stroke s9" />
+                  <path d="M150 18 C168 16 178 26 176 36 C174 46 162 50 148 50" stroke="hsl(0 0% 8%)" strokeWidth="6.5" className="ootd-stroke s10" />
                   {/* drips */}
-                  <path d="M10 50 L9 56" stroke="hsl(330 95% 60%)" strokeWidth="2" className="ootd-stroke s11" />
-                  <path d="M126 48 L125 55" stroke="hsl(0 0% 8%)" strokeWidth="2" className="ootd-stroke s12" />
+                  <path d="M10 50 L9 56" stroke="hsl(330 95% 60%)" strokeWidth="2.5" className="ootd-stroke s11" />
+                  <path d="M126 48 L125 55" stroke="hsl(0 0% 8%)" strokeWidth="2.5" className="ootd-stroke s12" />
+                  {/* moving spray-tip dot that "writes" along the path */}
+                  <circle r="2.2" fill="hsl(330 100% 70%)" className="ootd-spray-tip" opacity="0">
+                    <animateMotion dur="2.4s" begin="0.05s" fill="freeze" rotate="auto"
+                      path="M14 14 L8 50 M28 14 L22 50 M6 26 L32 24 M4 38 L30 36 M52 22 C44 24 42 42 52 46 C62 48 68 36 64 26 C61 19 55 20 52 22 M88 22 C80 24 78 42 88 46 C98 48 104 36 100 26 C97 19 91 20 88 22 M114 18 L142 16 M128 18 L124 48 M152 18 L148 50 M150 18 C168 16 178 26 176 36 C174 46 162 50 148 50" />
+                    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.95;1" dur="2.4s" begin="0.05s" fill="freeze" />
+                  </circle>
                 </g>
               </svg>
             </span>
