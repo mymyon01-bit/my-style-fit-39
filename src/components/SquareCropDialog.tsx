@@ -69,18 +69,29 @@ const SquareCropDialog = ({ open, file, onClose, onCropped, title = "Adjust phot
           className="fixed inset-0 z-[200] bg-black/95 flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 text-white">
-            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/10">
-              <X className="h-5 w-5" />
+          <div className="flex items-center justify-between px-3 py-2.5 text-white">
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 hover:bg-white/15"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
             </button>
-            <p className="text-[12px] font-semibold tracking-[0.18em] uppercase">{title}</p>
+            <p className="text-[11px] font-semibold tracking-[0.18em] uppercase">{title}</p>
             <button
               onClick={handleConfirm}
               disabled={busy || !pixels}
-              className="p-1.5 rounded-full text-accent hover:bg-white/10 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[11px] font-bold tracking-[0.18em] uppercase text-accent-foreground shadow-lg transition-all hover:opacity-90 disabled:opacity-40"
               aria-label="Use cropped photo"
             >
-              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" strokeWidth={3} />}
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  Next
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                </>
+              )}
             </button>
           </div>
 
