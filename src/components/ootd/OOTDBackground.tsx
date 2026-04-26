@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import sakuraVideo from "../../../public/bg-videos/sakura.mp4.asset.json";
 import leavesVideo from "../../../public/bg-videos/leaves.mp4.asset.json";
 import rainVideo from "../../../public/bg-videos/rain.mp4.asset.json";
@@ -152,16 +152,7 @@ export default function OOTDBackground({ theme, realistic = true, contained = fa
   if (theme !== "none" && realistic && videoSrc) {
     return (
       <div className={`pointer-events-none ${posClass} overflow-hidden`}>
-        <video
-          key={videoSrc}
-          src={videoSrc}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <VideoBackground src={videoSrc} />
         {/* Subtle dark wash so foreground UI stays legible over bright scenes */}
         <div className="absolute inset-0 bg-background/35" />
       </div>
@@ -1058,5 +1049,62 @@ function Lightning({ left, delay }: { left: string; delay: number }) {
         fill="rgba(240, 245, 255, 0.95)"
       />
     </svg>
+  );
+}
+
+/**
+ * Looping muted video used as the cinematic background. Some mobile browsers
+ * (notably iOS Safari) ignore the `autoPlay` attribute when React hydrates
+ * the element — so we also set `muted` as a property and call `.play()`
+ * imperatively in an effect. We use `preload="auto"` so the first frames
+ * are ready when we ask the browser to play.
+ */
+function VideoBackground({ src }: { src: string }) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    // Set muted via property — required for iOS autoplay to actually fire.
+    v.muted = true;
+    v.defaultMuted = true;
+    v.setAttribute("muted", "");
+    const tryPlay = () => {
+      const p = v.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    };
+    tryPlay();
+    // Retry once metadata is ready (iOS sometimes needs this)
+    v.addEventListener("loadedmetadata", tryPlay, { once: true });
+    v.addEventListener("canplay", tryPlay, { once: true });
+    // Also retry on first user interaction (fallback if browser blocks autoplay)
+    const onInteract = () => {
+      tryPlay();
+      window.removeEventListener("touchstart", onInteract);
+      window.removeEventListener("click", onInteract);
+    };
+    window.addEventListener("touchstart", onInteract, { passive: true });
+    window.addEventListener("click", onInteract);
+    return () => {
+      window.removeEventListener("touchstart", onInteract);
+      window.removeEventListener("click", onInteract);
+    };
+  }, [src]);
+
+  return (
+    <video
+      ref={ref}
+      key={src}
+      src={src}
+      autoPlay
+      loop
+      muted
+      playsInline
+      // @ts-ignore — non-standard but recognised by WebKit
+      webkit-playsinline="true"
+      preload="auto"
+      disableRemotePlayback
+      className="absolute inset-0 h-full w-full object-cover"
+    />
   );
 }
