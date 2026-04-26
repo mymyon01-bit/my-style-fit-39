@@ -953,15 +953,6 @@ const OOTDPage = () => {
                 </div>
               ) : (
                 <>
-                  <MyPageInboxCard
-                    onOpenMessages={() => setMessagesOpen(true)}
-                    onOpenNotifications={() => setNotifsOpen(true)}
-                  />
-
-                  <InviteFriendsCard />
-
-                  <CreateShowroomBanner />
-
                   <ShowroomMyBlock userId={user.id} />
 
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-2 py-3 md:py-5 rounded-xl md:rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
@@ -981,6 +972,9 @@ const OOTDPage = () => {
                       {myPosts.map((post, i) => renderPostCard(post, i, false, true))}
                     </div>
                   )}
+
+                  {/* Bottom share CTA — animated, hashtag-driven */}
+                  <ShareOOTDWithFriendCTA />
                 </>
               )}
             </motion.div>
