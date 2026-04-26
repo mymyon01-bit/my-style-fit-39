@@ -617,46 +617,47 @@ const OOTDPage = () => {
         }
       >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-          {/* Mobile-only first row: brand + right-side actions. Tabs sit on a
-              SECOND row so RANKING/FEED/COMMUNITY/MY PAGE never get squeezed
-              or overlapped by the stars/mailbox/bell cluster. */}
-          <div className="flex items-center justify-between gap-2 pt-2 lg:hidden">
-            <div className="shrink-0"><Brandmark variant="inline" /></div>
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={openOOTDWelcome}
-                className="text-foreground/55 hover:text-foreground transition-colors"
-                aria-label="OOTD 안내 보기"
-                title="OOTD 안내"
-              >
-                <Info className="h-4 w-4" />
-              </button>
-              {user && (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
-                  </div>
-                  <MailboxIcon
-                    unread={msgUnread}
-                    onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
-                  />
-                  {notifUnread > 0 && (
-                    <button
-                      onClick={() => setNotifsOpen(true)}
-                      className="relative text-foreground/75 hover:text-foreground transition-colors"
-                      aria-label="Open notifications"
-                    >
-                      <Bell className="h-4 w-4" />
-                      <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
-                        {notifUnread > 99 ? "99+" : notifUnread}
-                      </span>
-                    </button>
-                  )}
-                </>
-              )}
+          {/* Top brand+actions row — only shown when NOT in the desktop modal
+              (the modal has its own close + the tab bar sits at bottom). */}
+          {!inModal && (
+            <div className="flex items-center justify-between gap-2 pt-2 lg:hidden">
+              <div className="shrink-0"><Brandmark variant="inline" /></div>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={openOOTDWelcome}
+                  className="text-foreground/55 hover:text-foreground transition-colors"
+                  aria-label="OOTD 안내 보기"
+                  title="OOTD 안내"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+                {user && (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                      <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
+                    </div>
+                    <MailboxIcon
+                      unread={msgUnread}
+                      onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                    />
+                    {notifUnread > 0 && (
+                      <button
+                        onClick={() => setNotifsOpen(true)}
+                        className="relative text-foreground/75 hover:text-foreground transition-colors"
+                        aria-label="Open notifications"
+                      >
+                        <Bell className="h-4 w-4" />
+                        <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                          {notifUnread > 99 ? "99+" : notifUnread}
+                        </span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Tabs row — icon-based for a clean, balanced look on every viewport.
               Labels appear under the icon on desktop / sm+ for clarity. */}
