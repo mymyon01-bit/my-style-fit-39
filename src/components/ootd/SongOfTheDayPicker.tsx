@@ -847,7 +847,7 @@ function InlinePlayerCard({
 }: InlinePlayerCardProps) {
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
   return (
-    <div className="flex h-6 md:h-7 items-center gap-1 rounded-full border border-border/40 bg-background/60 backdrop-blur pl-0.5 pr-1 shrink-0 max-w-[160px] sm:max-w-[220px]">
+    <div className="flex h-6 md:h-7 items-center gap-1 rounded-full border border-border/40 bg-background/60 backdrop-blur pl-0.5 pr-1 shrink-0 max-w-[320px] sm:max-w-[440px]">
       {/* Album art */}
       <img
         src={track.artwork}
@@ -858,10 +858,8 @@ function InlinePlayerCard({
         style={{ animationPlayState: isPlaying ? "running" : "paused" }}
       />
 
-      {/* Title — hidden on mobile to keep the chip the same size as BG/Color */}
-      <p className="hidden sm:block min-w-0 flex-1 truncate text-[10px] font-medium text-foreground/85 leading-tight">
-        {track.title}
-      </p>
+      {/* Marquee — artist + title scroll like a flow bar (visible on all sizes) */}
+      <SongMarquee artist={track.artist} title={track.title} />
 
       {/* Play / pause */}
       <button
@@ -983,6 +981,36 @@ export function VisitorSongPlayer({
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onEnded={() => { setPlaying(false); setProgress(0); }}
       />
+    </div>
+  );
+}
+
+/**
+ * Continuously scrolling "artist — title" marquee for the song chip.
+ * Mimics a now-playing flow bar; the text is duplicated so the loop seams
+ * are invisible.
+ */
+function SongMarquee({ artist, title }: { artist: string; title: string }) {
+  const label = `${artist} — ${title}`;
+  return (
+    <div className="relative min-w-0 flex-1 overflow-hidden">
+      <style>{`
+        @keyframes ootd-song-marquee {
+          0%   { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .ootd-song-marquee-track {
+          display: inline-flex;
+          gap: 1.75rem;
+          white-space: nowrap;
+          animation: ootd-song-marquee 14s linear infinite;
+          will-change: transform;
+        }
+      `}</style>
+      <div className="ootd-song-marquee-track text-[10px] font-medium text-foreground/85 leading-tight">
+        <span>{label}</span>
+        <span aria-hidden="true">{label}</span>
+      </div>
     </div>
   );
 }
