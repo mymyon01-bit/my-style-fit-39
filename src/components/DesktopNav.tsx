@@ -42,18 +42,18 @@ const DesktopNav = () => {
 
       {/* Top bar */}
       <div className="relative z-10 bg-background/90 backdrop-blur-xl border-b border-foreground/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-10 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-10 py-3">
           {/* Wordmark — italic display */}
           <button
             onClick={() => navigate("/")}
             aria-label="my'myon — home"
             className="group transition-opacity hover:opacity-80"
           >
-            <Brandmark variant="compact" className="text-[20px]" />
+            <Brandmark variant="compact" className="text-[17px]" />
           </button>
 
           {/* Center nav */}
-          <div className="flex items-center gap-10">
+          <div className="flex items-center gap-8">
             {navLinks.map((link) => {
               const active = isActive(link.path);
               const showOotdBadge = link.path === "/ootd" && !active && ootdUnread > 0;
@@ -68,19 +68,19 @@ const DesktopNav = () => {
                     }
                   }}
                   onMouseEnter={() => prefetchRoute(link.path)}
-                  className={`group relative font-mono text-[10px] font-semibold tracking-[0.22em] transition-colors ${
+                  className={`group relative font-mono text-[8.5px] font-semibold tracking-[0.22em] transition-colors ${
                     active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
                   }`}
                 >
                   {(link as { isOotd?: boolean }).isOotd ? (
-                    <OOTDNavLabel className="text-[10px] font-semibold tracking-[0.22em]" crownSize={15} />
+                    <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={13} />
                   ) : (
                     link.label
                   )}
                   {showOotdBadge && (
                     <span
                       aria-label={`${ootdUnread} new OOTD activity`}
-                      className="absolute -right-2.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground"
+                      className="absolute -right-2.5 -top-1.5 flex h-3 min-w-3 items-center justify-center rounded-full bg-destructive px-1 text-[7px] font-bold text-destructive-foreground"
                     >
                       {ootdUnread > 9 ? "9+" : ootdUnread}
                     </span>
@@ -96,23 +96,23 @@ const DesktopNav = () => {
           </div>
 
           {/* Right cluster */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/install")}
-              className={`flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.22em] transition-colors ${
+              className={`flex items-center gap-1.5 font-mono text-[8.5px] font-semibold tracking-[0.22em] transition-colors ${
                 isActive("/install") ? "text-accent" : "text-foreground/60 hover:text-accent"
               }`}
             >
-              <Download className="h-3 w-3" />
+              <Download className="h-2.5 w-2.5" />
               {t("downloadApp").toUpperCase()}
             </button>
 
-            <div className="h-3.5 w-px bg-foreground/20" />
+            <div className="h-3 w-px bg-foreground/20" />
 
             {user ? (
               <button
                 onClick={() => navigate("/settings")}
-                className="font-mono text-[10px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                className="font-mono text-[8.5px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
               >
                 SETTINGS
               </button>
@@ -120,13 +120,13 @@ const DesktopNav = () => {
               <>
                 <button
                   onClick={() => navigate("/auth")}
-                  className="font-mono text-[10px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                  className="font-mono text-[8.5px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
                 >
                   {t("logIn").toUpperCase()}
                 </button>
                 <button
                   onClick={() => navigate("/auth?mode=signup")}
-                  className="border-[1.5px] border-foreground bg-foreground px-3.5 py-2 font-mono text-[10px] font-semibold tracking-[0.22em] text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
+                  className="border-[1.5px] border-foreground bg-foreground px-3 py-1.5 font-mono text-[8.5px] font-semibold tracking-[0.22em] text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
                   style={{ borderRadius: "var(--radius)" }}
                 >
                   {t("signUp").toUpperCase()}
