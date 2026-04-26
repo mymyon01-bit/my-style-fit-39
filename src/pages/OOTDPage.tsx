@@ -32,6 +32,7 @@ import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcome
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
 import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
+import { useOOTDModal } from "@/lib/ootdModal";
 
 interface OOTDPost {
   id: string;
@@ -70,6 +71,7 @@ const OOTDPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isOpen: inModal } = useOOTDModal();
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
@@ -593,14 +595,16 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className="relative min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]">
+    <div className={`relative min-h-screen bg-background ${inModal ? "pt-4 pb-24" : "pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
-      {/* Fixed tab bar — stays under the main nav on desktop and always
-          visible at the top on mobile, even when scrolling. A matching
-          placeholder preserves document flow so content never jumps. */}
-      <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />
-      <div className="sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]">
+      {/* Tab bar — top on the standalone page, bottom (footer) when shown inside the desktop modal */}
+      {!inModal && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
+      <div className={
+        inModal
+          ? "fixed left-1/2 bottom-0 z-30 w-[min(980px,86vw)] -translate-x-1/2 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl"
+          : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
+      }>
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           {/* Mobile-only first row: brand + right-side actions. Tabs sit on a
               SECOND row so RANKING/FEED/COMMUNITY/MY PAGE never get squeezed
