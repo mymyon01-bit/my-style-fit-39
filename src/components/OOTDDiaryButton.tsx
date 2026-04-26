@@ -11,7 +11,7 @@ import { useState } from "react";
 
 interface Props {
   className?: string;
-  /** When true, scale the whole hero down ~50% (used on mobile landing). */
+  /** When true, scale the whole hero down to match bottom-nav icon size. */
   compact?: boolean;
 }
 
@@ -24,14 +24,14 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
     if (portal) return;
     setPortal(true);
     setOpen(true);
-    // Let the portal animation play, then navigate
-    setTimeout(() => navigate("/ootd"), 850);
+    // Let the full open + light burst play, then navigate
+    setTimeout(() => navigate("/ootd"), 1100);
   };
 
   return (
     <div
       className={`relative flex flex-col items-center ${className}`}
-      style={compact ? { transform: "scale(0.55)", transformOrigin: "center top" } : undefined}
+      style={compact ? { transform: "scale(0.42)", transformOrigin: "center top" } : undefined}
     >
       {/* Pulsing halo */}
       <motion.div
@@ -140,10 +140,10 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
 
       {/* Floating + breathing wrapper */}
       <motion.div
-        animate={portal ? { scale: 1.4, opacity: 0 } : { y: [0, -6, 0] }}
+        animate={portal ? { scale: [1, 1.15, 1.6], opacity: [1, 1, 0] } : { y: [0, -6, 0] }}
         transition={
           portal
-            ? { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+            ? { duration: 1.05, ease: [0.22, 1, 0.36, 1], times: [0, 0.55, 1] }
             : { duration: 4, repeat: Infinity, ease: "easeInOut" }
         }
       >
@@ -184,11 +184,34 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
               </motion.span>
             </span>
 
-            {/* Cover (opens) */}
+            {/* Light beam pouring out from inside the open book */}
+            <AnimatePresence>
+              {portal && (
+                <motion.span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-r-md rounded-l-sm"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse at center, hsl(var(--star) / 0.95) 0%, hsl(var(--accent) / 0.7) 35%, hsl(var(--primary) / 0.4) 65%, transparent 100%)",
+                    filter: "blur(6px)",
+                    mixBlendMode: "screen",
+                  }}
+                  initial={{ opacity: 0, scale: 0.3 }}
+                  animate={{ opacity: [0, 1, 1, 0.9], scale: [0.3, 1.4, 2.2, 3.5] }}
+                  transition={{ duration: 1.0, ease: "easeOut", times: [0, 0.3, 0.7, 1] }}
+                />
+              )}
+            </AnimatePresence>
+
+            {/* Cover (opens halfway on hover, FULLY on click) */}
             <motion.span
               className="absolute inset-0 origin-left rounded-r-md rounded-l-sm bg-gradient-to-br from-primary via-accent to-primary shadow-[3px_3px_0_hsl(var(--foreground)/0.85)]"
-              animate={{ rotateY: open ? -150 : -14 }}
-              transition={{ type: "spring", stiffness: 170, damping: 18 }}
+              animate={{ rotateY: portal ? -178 : open ? -150 : -14 }}
+              transition={
+                portal
+                  ? { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
+                  : { type: "spring", stiffness: 170, damping: 18 }
+              }
               style={{ transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
             >
               <span className="absolute left-0.5 top-1 bottom-1 w-px rounded-full bg-background/35" />
