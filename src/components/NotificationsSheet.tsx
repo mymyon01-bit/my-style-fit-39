@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Bell, Loader2, X, Star, MessageCircle, UserPlus, CheckCheck } from "lucide-react";
+import { Bell, Loader2, X, Star, MessageCircle, UserPlus, CheckCheck, Heart, AtSign, Smile } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotificationsList, type NotificationRow } from "@/hooks/useNotifications";
@@ -12,14 +12,32 @@ interface Props {
 
 const ICON_BY_TYPE: Record<string, any> = {
   follow: UserPlus,
+  circle_request: UserPlus,
   star: Star,
+  ootd_star: Star,
   comment: MessageCircle,
+  ootd_comment: MessageCircle,
+  ootd_reply: MessageCircle,
+  ootd_like: Heart,
+  comment_like: Heart,
+  ootd_mention: AtSign,
+  ootd_reaction: Smile,
+  reaction: Smile,
 };
 
 const LABEL_BY_TYPE: Record<string, string> = {
-  follow: "joined your circle",
-  star: "starred your post",
-  comment: "commented on your post",
+  follow: "서클을 신청했어요",
+  circle_request: "서클을 신청했어요",
+  star: "스타를 받았어요",
+  ootd_star: "스타를 받았어요",
+  ootd_like: "좋아요를 받았습니다",
+  comment_like: "댓글에 좋아요를 받았어요",
+  comment: "댓글을 남겼어요",
+  ootd_comment: "댓글을 남겼어요",
+  ootd_reply: "답글을 남겼어요",
+  ootd_mention: "당신을 언급했어요",
+  ootd_reaction: "반응을 남겼어요",
+  reaction: "반응을 남겼어요",
 };
 
 /**
