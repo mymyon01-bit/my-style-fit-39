@@ -689,12 +689,12 @@ const OOTDPage = () => {
               <div className="relative">
                 <button
                   onClick={() => setStarInfoOpen((v) => !v)}
-                  className="ootd-star-bare flex items-center gap-1 px-1"
+                  className="ootd-star-bare ootd-star-glow flex items-center gap-1 rounded-full border px-2 py-0.5"
                   aria-label={t("ootdStarInfoLabel")}
                   title={t("ootdStarInfoLabel")}
                 >
                   <Star className="h-4 w-4 fill-current ootd-star-icon" />
-                  <span className="text-[11px] font-semibold text-foreground">{formatCount(starsLeft)}</span>
+                  <span className="text-[11px] font-bold text-black tabular-nums">{formatCount(starsLeft + bonusStars)}</span>
                 </button>
                 {starInfoOpen && (
                   <>
@@ -711,7 +711,7 @@ const OOTDPage = () => {
                         {t("ootdStarInfoBody")}
                       </p>
                       <p className="mt-2 text-[10px] text-foreground/50">
-                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{formatCount(starsLeft)}</span>
+                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{formatCount(starsLeft + bonusStars)}</span>
                       </p>
                     </div>
                   </>
@@ -820,7 +820,7 @@ const OOTDPage = () => {
                 <>
                   <div className="flex items-center gap-1.5">
                     <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    <span className="text-[10px] font-medium text-foreground/80">{formatCount(starsLeft)}</span>
+                    <span className="text-[10px] font-medium text-foreground/80">{formatCount(starsLeft + bonusStars)}</span>
                   </div>
                   <div className="hidden lg:block">
                     <MailboxIcon
