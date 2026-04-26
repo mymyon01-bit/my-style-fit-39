@@ -36,6 +36,7 @@ import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
 import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface OOTDPost {
   id: string;
@@ -75,6 +76,8 @@ const OOTDPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOpen: inModal } = useOOTDModal();
+  const isMobile = useIsMobile();
+  const mobileOOTD = inModal || isMobile;
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
