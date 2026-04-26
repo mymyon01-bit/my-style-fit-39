@@ -121,6 +121,7 @@ const OOTDPage = () => {
     otherUserId: null,
   });
   const [notifsOpen, setNotifsOpen] = useState(false);
+  const [starInfoOpen, setStarInfoOpen] = useState(false);
   const { notifUnread, totalUnread } = useNotifications();
   const { totalUnread: msgUnread } = useConversations();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -621,7 +622,7 @@ const OOTDPage = () => {
           className="shrink-0 z-30"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
         >
-          <div className="mx-auto flex max-w-lg items-center justify-end gap-2.5 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16 ootd-neon-bar">
+          <div className="mx-auto flex max-w-lg items-center justify-between gap-2.5 pl-4 pr-3 pb-1 md:max-w-2xl md:pl-10 md:pr-4 ootd-neon-bar">
             <span className="ootd-graffiti-tag" aria-hidden="true">
               <svg viewBox="0 0 200 56" className="ootd-graffiti-svg" preserveAspectRatio="xMinYMid meet">
                 <defs>
@@ -652,7 +653,40 @@ const OOTDPage = () => {
                 </g>
               </svg>
             </span>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={() => setStarInfoOpen((v) => !v)}
+                  className="ootd-star-bare flex items-center gap-1 px-1"
+                  aria-label="별 사용처 안내"
+                  title="별 사용처"
+                >
+                  <Star className="h-4 w-4 fill-current ootd-star-icon" />
+                  <span className="text-[11px] font-semibold text-foreground">{starsLeft}</span>
+                </button>
+                {starInfoOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setStarInfoOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-2xl border border-border/40 bg-background/95 backdrop-blur-xl shadow-xl shadow-black/15 p-3.5 text-left">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Star className="h-3.5 w-3.5 fill-current text-amber-400" />
+                        <span className="text-[10px] font-semibold tracking-[0.18em] text-foreground/80">STARS</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-foreground/70">
+                        하루에 받은 별로 마음에 드는 OOTD에 ⭐을 줄 수 있어요. 별을 많이 받은 룩은 데일리 랭킹에 올라가요.
+                      </p>
+                      <p className="mt-2 text-[10px] text-foreground/50">
+                        오늘 남은 별: <span className="font-semibold text-foreground/80">{starsLeft}</span>
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             <button
               onClick={openOOTDWelcome}
               className="ootd-neon-icon"
@@ -663,10 +697,6 @@ const OOTDPage = () => {
             </button>
             {user && (
               <>
-                <div className="ootd-neon-icon ootd-star-glow flex items-center gap-1 px-1.5">
-                  <Star className="h-[13px] w-[13px] fill-current ootd-star-icon" />
-                  <span className="text-[10px] font-semibold">{starsLeft}</span>
-                </div>
                 <div className="ootd-neon-icon ootd-neon-icon--ink">
                   <MailboxIcon
                     unread={msgUnread}
