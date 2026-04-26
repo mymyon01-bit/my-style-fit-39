@@ -288,115 +288,97 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
               initial={{ y: "100%", opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 320 }}
+              transition={{ type: "spring", damping: 32, stiffness: 320 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-t-3xl border-t border-border bg-card pb-7 sm:rounded-3xl sm:border"
+              className="w-full max-w-md rounded-t-3xl bg-card pb-6 pt-2 shadow-2xl sm:rounded-3xl"
             >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-5">
-              <h3 className="font-display text-[15px] font-semibold tracking-[0.04em] text-foreground">
-                Share in OOTD
-              </h3>
-              <button onClick={onClose} className="text-foreground/55 hover:text-foreground" aria-label="Close">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+              {/* Drag handle (mobile) */}
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-foreground/15 sm:hidden" />
 
-            {/* Product preview */}
-            <div className="mx-6 mt-4 flex gap-3 rounded-2xl border border-border/30 bg-background/50 p-3">
-              <div className="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                {product.image_url ? (
-                  <img src={product.image_url} alt="" className="h-full w-full object-cover" />
-                ) : null}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/55">
-                  {product.brand || "Brand"}
-                </p>
-                <p className="mt-1 line-clamp-2 text-[12px] text-foreground/85">{product.name}</p>
-              </div>
-            </div>
-
-            {/* Source tabs */}
-            <div className="mx-6 mt-4 grid grid-cols-2 gap-1 rounded-full bg-foreground/[0.05] p-1">
-              <button
-                onClick={() => setTab("search")}
-                className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold tracking-[0.16em] transition-colors ${
-                  tab === "search" ? "bg-background text-foreground shadow-soft" : "text-foreground/55"
-                }`}
-              >
-                <AtSign className="h-3.5 w-3.5" />
-                SEARCH
-              </button>
-              <button
-                onClick={() => setTab("circle")}
-                className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold tracking-[0.16em] transition-colors ${
-                  tab === "circle" ? "bg-background text-foreground shadow-soft" : "text-foreground/55"
-                }`}
-              >
-                <Users className="h-3.5 w-3.5" />
-                MY CIRCLE
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3 px-6">
-              {tab === "search" && (
-                <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-background/40 px-3 py-2">
-                  <Search className="h-3.5 w-3.5 text-foreground/45" />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="@username or name…"
-                    className="flex-1 bg-transparent text-[12px] outline-none placeholder:text-foreground/35"
-                  />
-                  {searching && <Loader2 className="h-3 w-3 animate-spin text-foreground/40" />}
+              {/* Compact header — product thumb + title + close */}
+              <div className="flex items-center gap-3 px-5">
+                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt="" className="h-full w-full object-cover" />
+                  ) : null}
                 </div>
-              )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-foreground/45">
+                    Send to
+                  </p>
+                  <p className="truncate text-[13px] font-semibold text-foreground">
+                    {product.brand ? `${product.brand} · ` : ""}{product.name}
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-foreground/45 hover:bg-foreground/[0.05] hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
 
-              {/* Picker list */}
-              <div className="max-h-44 overflow-y-auto rounded-xl border border-border/30 bg-background/30">
-                {tab === "circle" && loadingCircle ? (
-                  <div className="flex justify-center py-6">
+              {/* Search field — single, always-visible */}
+              <div className="mx-5 mt-4 flex items-center gap-2 rounded-full bg-foreground/[0.05] px-3.5 py-2.5">
+                <Search className="h-3.5 w-3.5 text-foreground/45" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search a friend"
+                  className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-foreground/40"
+                />
+                {searching && <Loader2 className="h-3 w-3 animate-spin text-foreground/40" />}
+              </div>
+
+              {/* List */}
+              <div className="mt-3 max-h-[42vh] overflow-y-auto px-2">
+                {loadingCircle && visibleList.length === 0 ? (
+                  <div className="flex justify-center py-10">
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/40" />
                   </div>
                 ) : visibleList.length === 0 ? (
-                  <p className="px-3 py-4 text-center text-[11px] text-foreground/40">
-                    {tab === "circle"
-                      ? "Your circle is empty — follow some stylists first."
-                      : search.trim().length >= 2
-                      ? "No matches"
-                      : "Start typing a username or name."}
+                  <p className="px-3 py-10 text-center text-[12px] text-foreground/45">
+                    {search.trim().length >= 2 ? "No matches" : "Follow people to see them here."}
                   </p>
                 ) : (
-                  <ul className="divide-y divide-border/20">
+                  <ul>
                     {visibleList.map((f) => {
                       const isPicked = picked?.user_id === f.user_id;
                       return (
                         <li key={f.user_id}>
                           <button
-                            onClick={() => setPicked(f)}
-                            className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                              isPicked ? "bg-accent/10" : "hover:bg-foreground/[0.04]"
+                            onClick={() => setPicked(isPicked ? null : f)}
+                            className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition-colors ${
+                              isPicked ? "bg-accent/10" : "hover:bg-foreground/[0.03]"
                             }`}
                           >
-                            <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full bg-muted">
+                            <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-muted">
                               {f.avatar_url ? (
                                 <img src={f.avatar_url} alt="" className="h-full w-full object-cover" />
                               ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-muted-foreground">
+                                <div className="flex h-full w-full items-center justify-center text-[12px] font-bold text-muted-foreground">
                                   {(f.display_name || f.username || "?")[0]?.toUpperCase()}
                                 </div>
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-[12px] font-semibold text-foreground">
+                              <p className="truncate text-[13px] font-medium text-foreground">
                                 {f.display_name || f.username || "User"}
                               </p>
                               {f.username && (
-                                <p className="truncate text-[10px] text-muted-foreground">@{f.username}</p>
+                                <p className="truncate text-[10.5px] text-foreground/45">@{f.username}</p>
                               )}
                             </div>
-                            {isPicked && <Check className="h-3.5 w-3.5 text-accent" />}
+                            <span
+                              className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border transition-all ${
+                                isPicked
+                                  ? "border-accent bg-accent text-accent-foreground"
+                                  : "border-foreground/20 bg-transparent"
+                              }`}
+                            >
+                              {isPicked && <Check className="h-3 w-3" strokeWidth={3} />}
+                            </span>
                           </button>
                         </li>
                       );
@@ -405,25 +387,30 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
                 )}
               </div>
 
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE))}
-                placeholder="이 상품 어때? Add a personal note…"
-                rows={2}
-                className="w-full resize-none rounded-xl border border-border/30 bg-background/40 p-3 text-[12.5px] text-foreground outline-none placeholder:text-foreground/35 focus:border-accent/40"
-              />
+              {/* Optional note */}
+              <div className="mt-3 px-5">
+                <input
+                  type="text"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE))}
+                  placeholder="Add a message (optional)"
+                  className="w-full rounded-full bg-foreground/[0.04] px-4 py-2.5 text-[12.5px] text-foreground outline-none placeholder:text-foreground/40 focus:bg-foreground/[0.06]"
+                />
+              </div>
 
-              <button
-                onClick={handleSend}
-                disabled={submitting || !picked || !user}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-[11.5px] font-semibold tracking-[0.18em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                {picked
-                  ? `SEND TO ${(picked.display_name || picked.username || "FRIEND").toUpperCase()}`
-                  : "PICK A FRIEND"}
-              </button>
-            </div>
+              {/* Send */}
+              <div className="mt-4 px-5">
+                <button
+                  onClick={handleSend}
+                  disabled={submitting || !picked || !user}
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 text-[12px] font-semibold tracking-[0.06em] text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {picked
+                    ? `Send to ${picked.display_name || picked.username || "friend"}`
+                    : "Pick a friend"}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
