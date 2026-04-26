@@ -607,21 +607,21 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${inModal ? "flex h-dvh min-h-0 flex-col overflow-hidden pt-[max(0.75rem,env(safe-area-inset-top))]" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
+    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${mobileOOTD ? "flex h-dvh min-h-0 flex-col overflow-hidden pt-[max(0.75rem,env(safe-area-inset-top))]" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
-      <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={inModal} />
-      {/* Tab bar — bottom on mobile modal, top on standalone page. */}
-      {!inModal && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
+      <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={mobileOOTD} />
+      {/* Tab bar — bottom on mobile OOTD, top on desktop standalone page. */}
+      {!mobileOOTD && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
       <div
         className={
-          inModal
+          mobileOOTD
             ? "order-last shrink-0 z-30 bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14] md:rounded-b-2xl"
             : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
         }
       >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           {/* Top brand+actions row — only shown on the standalone OOTD page. */}
-          {!inModal && (
+          {!mobileOOTD && (
             <div className="flex items-center justify-between gap-2 pt-2 lg:hidden">
               <div className="shrink-0"><Brandmark variant="inline" /></div>
               <div className="flex items-center gap-3 shrink-0">
@@ -696,7 +696,7 @@ const OOTDPage = () => {
                 </button>
               ))}
             </div>
-            <div className={`items-center gap-3 shrink-0 ${inModal ? "hidden md:flex" : "hidden lg:flex"}`}>
+            <div className={`items-center gap-3 shrink-0 ${mobileOOTD ? "hidden md:flex" : "hidden lg:flex"}`}>
               <button
                 onClick={openOOTDWelcome}
                 className="text-foreground/55 hover:text-foreground transition-colors"
@@ -737,7 +737,7 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className={`relative mx-auto w-full max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${inModal ? "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6" : ""}`}>
+      <div className={`relative mx-auto w-full max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6" : ""}`}>
         {activeTab === "mypage" && user && (
           <div
             className="border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
