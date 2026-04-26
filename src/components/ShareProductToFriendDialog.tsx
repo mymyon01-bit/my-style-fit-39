@@ -129,7 +129,7 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
 
   // Debounced search by id / username / display_name
   useEffect(() => {
-    if (tab !== "search") return;
+    if (!open) return;
     const q = search.trim().replace(/^@/, "");
     if (q.length < 2) {
       setSearchResults([]);
