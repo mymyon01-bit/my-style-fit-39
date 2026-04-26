@@ -721,7 +721,7 @@ const OOTDPage = () => {
                         {t("ootdStarInfoBody")}
                       </p>
                       <p className="mt-2 text-[10px] text-foreground/50">
-                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{starsLeft}</span>
+                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{formatStarCount(starsLeft)}</span>
                       </p>
                     </div>
                   </>
