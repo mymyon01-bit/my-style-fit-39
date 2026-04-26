@@ -29,7 +29,7 @@ const BottomNav = () => {
       {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
       <div className="bg-background/95 backdrop-blur-xl border-t border-foreground/10">
-        <div className="mx-auto flex max-w-lg items-center justify-around px-2 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:max-w-2xl md:py-4">
+        <div className="flex w-full items-center justify-between px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
           {tabs.map((tab) => {
             const isActive =
               location.pathname === tab.path ||
