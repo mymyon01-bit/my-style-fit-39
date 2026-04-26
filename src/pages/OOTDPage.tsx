@@ -620,31 +620,33 @@ const OOTDPage = () => {
           className="shrink-0 z-30"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
         >
-          <div className="mx-auto flex max-w-lg items-center justify-end gap-3 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16">
+          <div className="mx-auto flex max-w-lg items-center justify-end gap-2.5 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16 ootd-neon-bar">
             <button
               onClick={openOOTDWelcome}
-              className="text-foreground/65 hover:text-foreground transition-colors"
+              className="ootd-neon-icon"
               aria-label="OOTD 안내 보기"
               title="OOTD 안내"
             >
-              <Info className="h-4 w-4" />
+              <Info className="h-[15px] w-[15px]" />
             </button>
             {user && (
               <>
-                <div className="flex items-center gap-1.5">
-                  <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[10px] font-medium text-foreground/85">{starsLeft}</span>
+                <div className="ootd-neon-icon flex items-center gap-1 px-1.5">
+                  <Star className="h-[13px] w-[13px] fill-current" />
+                  <span className="text-[10px] font-semibold">{starsLeft}</span>
                 </div>
-                <MailboxIcon
-                  unread={msgUnread}
-                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
-                />
+                <div className="ootd-neon-icon">
+                  <MailboxIcon
+                    unread={msgUnread}
+                    onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                  />
+                </div>
                 <button
                   onClick={() => setNotifsOpen(true)}
-                  className="relative text-foreground/75 hover:text-foreground transition-colors"
+                  className="ootd-neon-icon relative"
                   aria-label="Open notifications"
                 >
-                  <Bell className="h-4 w-4" />
+                  <Bell className="h-[15px] w-[15px]" />
                   {notifUnread > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
                       {notifUnread > 99 ? "99+" : notifUnread}
