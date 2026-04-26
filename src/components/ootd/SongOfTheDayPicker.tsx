@@ -984,3 +984,33 @@ export function VisitorSongPlayer({
     </div>
   );
 }
+
+/**
+ * Continuously scrolling "artist — title" marquee for the song chip.
+ * Mimics a now-playing flow bar; the text is duplicated so the loop seams
+ * are invisible.
+ */
+function SongMarquee({ artist, title }: { artist: string; title: string }) {
+  const label = `${artist} — ${title}`;
+  return (
+    <div className="relative min-w-0 flex-1 overflow-hidden">
+      <style>{`
+        @keyframes ootd-song-marquee {
+          0%   { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .ootd-song-marquee-track {
+          display: inline-flex;
+          gap: 1.75rem;
+          white-space: nowrap;
+          animation: ootd-song-marquee 14s linear infinite;
+          will-change: transform;
+        }
+      `}</style>
+      <div className="ootd-song-marquee-track text-[10px] font-medium text-foreground/85 leading-tight">
+        <span>{label}</span>
+        <span aria-hidden="true">{label}</span>
+      </div>
+    </div>
+  );
+}
