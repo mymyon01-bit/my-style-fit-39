@@ -18,6 +18,7 @@ const DesktopNav = () => {
   const { t } = useI18n();
   const { ootdUnread } = useNotifications();
   const { open: openOOTD, isOpen: ootdOpen } = useOOTDModal();
+  const [ootdTapped, setOotdTapped] = useState(false);
 
   useEffect(() => {
     prefetchAllTabs();
