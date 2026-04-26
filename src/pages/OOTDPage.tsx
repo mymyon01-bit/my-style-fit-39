@@ -601,11 +601,13 @@ const OOTDPage = () => {
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
       {/* Tab bar — top on the standalone page, bottom (footer) when shown inside the desktop modal */}
       {!inModal && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
-      <div className={
-        inModal
-          ? "sticky bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl"
-          : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
-      }>
+      <div
+        className={
+          inModal
+            ? "absolute left-0 right-0 bottom-0 z-30 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl"
+            : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
+        }
+      >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           {/* Mobile-only first row: brand + right-side actions. Tabs sit on a
               SECOND row so RANKING/FEED/COMMUNITY/MY PAGE never get squeezed
