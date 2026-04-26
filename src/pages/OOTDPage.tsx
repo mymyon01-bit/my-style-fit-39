@@ -121,6 +121,7 @@ const OOTDPage = () => {
     otherUserId: null,
   });
   const [notifsOpen, setNotifsOpen] = useState(false);
+  const [starInfoOpen, setStarInfoOpen] = useState(false);
   const { notifUnread, totalUnread } = useNotifications();
   const { totalUnread: msgUnread } = useConversations();
   const [searchParams, setSearchParams] = useSearchParams();
