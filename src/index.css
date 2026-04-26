@@ -440,67 +440,56 @@
     }
   }
 
-  /* ── Graffiti #OOTD tag (top-left of action bar) ── */
+  /* ── Graffiti #OOTD tag — SVG spray-paint draw-on ── */
   .ootd-graffiti-tag {
-    font-family: 'Permanent Marker', 'Caveat', 'Brush Script MT', cursive;
-    font-weight: 700;
-    font-size: 22px;
-    line-height: 1;
-    letter-spacing: 1px;
-    transform: rotate(-8deg);
+    display: inline-flex;
+    align-items: center;
+    transform: rotate(-7deg) translateY(1px);
     user-select: none;
     pointer-events: none;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 1px;
-    white-space: nowrap;
   }
-  .ootd-graffiti-hash {
-    color: hsl(330 95% 62%);
-    text-shadow:
-      0 0 8px hsl(330 100% 75% / 0.8),
-      1px 2px 0 hsl(330 80% 45% / 0.35);
-    animation: ootd-graffiti-write 2.6s ease-out forwards;
+  .ootd-graffiti-svg {
+    width: 110px;
+    height: 32px;
+    overflow: visible;
+    filter:
+      drop-shadow(0 0 3px hsl(330 100% 78% / 0.55))
+      drop-shadow(0 1px 0 hsl(0 0% 0% / 0.15));
+  }
+  .ootd-stroke {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
     opacity: 0;
+    animation: ootd-spray-draw 0.45s ease-out forwards,
+               ootd-spray-mist 3.6s ease-in-out infinite;
   }
-  .ootd-graffiti-word {
-    color: hsl(0 0% 8%);
-    text-shadow:
-      0 0 6px hsl(330 100% 78% / 0.55),
-      1px 2px 0 hsl(330 70% 55% / 0.4),
-      -1px 0 0 hsl(330 100% 88% / 0.5);
-    animation: ootd-graffiti-write 2.6s 0.25s ease-out forwards, ootd-graffiti-drip 4.5s 2.6s ease-in-out infinite;
-    opacity: 0;
-  }
-  @keyframes ootd-graffiti-write {
+  .ootd-stroke.s1  { animation-delay: 0.05s, 1.6s; }
+  .ootd-stroke.s2  { animation-delay: 0.20s, 1.7s; }
+  .ootd-stroke.s3  { animation-delay: 0.35s, 1.8s; }
+  .ootd-stroke.s4  { animation-delay: 0.45s, 1.9s; }
+  .ootd-stroke.s5  { animation-delay: 0.60s, 2.0s; }
+  .ootd-stroke.s6  { animation-delay: 0.85s, 2.1s; }
+  .ootd-stroke.s7  { animation-delay: 1.10s, 2.2s; }
+  .ootd-stroke.s8  { animation-delay: 1.25s, 2.3s; }
+  .ootd-stroke.s9  { animation-delay: 1.40s, 2.4s; }
+  .ootd-stroke.s10 { animation-delay: 1.55s, 2.5s; }
+  .ootd-stroke.s11 { animation-delay: 1.85s, 2.7s; }
+  .ootd-stroke.s12 { animation-delay: 1.95s, 2.8s; }
+
+  @keyframes ootd-spray-draw {
     0% {
+      stroke-dashoffset: 200;
       opacity: 0;
-      clip-path: inset(0 100% 0 0);
-      transform: translateY(2px) skewX(-6deg);
     }
-    60% {
-      opacity: 1;
-      clip-path: inset(0 0 0 0);
-    }
+    20% { opacity: 0.85; }
     100% {
+      stroke-dashoffset: 0;
       opacity: 1;
-      clip-path: inset(0 0 0 0);
-      transform: translateY(0) skewX(0);
     }
   }
-  @keyframes ootd-graffiti-drip {
-    0%, 100% {
-      text-shadow:
-        0 0 6px hsl(330 100% 78% / 0.55),
-        1px 2px 0 hsl(330 70% 55% / 0.4),
-        -1px 0 0 hsl(330 100% 88% / 0.5);
-    }
-    50% {
-      text-shadow:
-        0 0 12px hsl(330 100% 72% / 0.95),
-        1px 4px 0 hsl(330 80% 50% / 0.6),
-        -1px 0 0 hsl(330 100% 90% / 0.7);
-    }
+  @keyframes ootd-spray-mist {
+    0%, 100% { filter: blur(0); }
+    50%      { filter: blur(0.4px); }
   }
 
   @keyframes ootd-neon-pulse {
