@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Heart, Star, Edit3, Trash2, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
+import { formatCount } from "@/lib/formatCount";
 
 /**
  * Hardcoded, reusable OOTD card frame.
