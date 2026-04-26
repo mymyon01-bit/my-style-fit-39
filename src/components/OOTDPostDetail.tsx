@@ -384,7 +384,7 @@ export default function OOTDPostDetail({
             </AuthGate>
             <div className="inline-flex h-7 items-center gap-1 rounded-full bg-foreground/[0.04] px-2 ring-1 ring-border/40 text-foreground/60">
               <MessageCircle className="h-3 w-3" />
-              <span className="text-[10px] font-semibold tabular-nums">{comments.length}</span>
+              <span className="text-[10px] font-semibold tabular-nums">{formatCount(comments.length)}</span>
             </div>
             <AuthGate action="give stars">
               <button
