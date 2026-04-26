@@ -498,7 +498,7 @@ const FitPage = () => {
 
       <div className={`mx-auto px-8 pt-10 md:px-10 lg:px-12 lg:pt-12 ${
         activeTab === "results"
-          ? "max-w-lg md:max-w-2xl lg:max-w-6xl"
+          ? "max-w-lg md:max-w-2xl lg:max-w-5xl"
           : "max-w-lg md:max-w-2xl lg:max-w-3xl"
       }`}>
         <AnimatePresence mode="wait">
