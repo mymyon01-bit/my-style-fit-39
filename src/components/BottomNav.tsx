@@ -43,7 +43,11 @@ const BottomNav = () => {
                 key={tab.path}
                 onClick={() => {
                   if (tab.isOotd) {
-                    openOotdModal();
+                    setOotdTapped(true);
+                    setTimeout(() => {
+                      openOotdModal();
+                      setOotdTapped(false);
+                    }, 700);
                   } else {
                     navigate(tab.path);
                   }
