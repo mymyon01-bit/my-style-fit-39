@@ -341,7 +341,7 @@ export default function OOTDPostDetail({
           {(post.star_count || 0) > 0 && (
             <div className="absolute bottom-3 left-3 flex items-center gap-0.5 rounded-full bg-black/40 px-2 py-1 backdrop-blur-sm">
               <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-              <span className="text-[10px] font-medium text-white/80">{post.star_count}</span>
+              <span className="text-[10px] font-medium text-white/80">{formatCount(post.star_count)}</span>
             </div>
           )}
         </div>
