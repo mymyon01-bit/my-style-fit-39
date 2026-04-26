@@ -398,7 +398,7 @@ export default function OOTDPostDetail({
                 }`}
               >
                 <Star className={`h-3 w-3 ${isStarred ? "fill-current" : ""}`} />
-                <span className="text-[10px] font-semibold tabular-nums">{post.star_count || 0}</span>
+                <span className="text-[10px] font-semibold tabular-nums">{formatCount(post.star_count)}</span>
               </button>
             </AuthGate>
 
