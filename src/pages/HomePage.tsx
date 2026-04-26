@@ -247,7 +247,7 @@ const HomePage = () => {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.8 }}
-              className="mt-10 flex flex-col items-start gap-2 md:items-center md:mt-14"
+              className="mt-10 flex flex-col items-center gap-2 md:mt-14"
             >
               <p className="font-display text-[15px] italic font-light tracking-tight text-foreground/70 md:text-[17px]">
                 today your weather is<span className="text-primary">…</span>
