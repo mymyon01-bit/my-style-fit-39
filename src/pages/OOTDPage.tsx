@@ -805,6 +805,18 @@ const OOTDPage = () => {
             />
           </div>
         )}
+
+        {/* POST YOUR OOTD bar — sits in the gap between Stories and My Showroom on My Page */}
+        {activeTab === "mypage" && user && (
+          <button
+            onClick={() => setUploadOpen(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+            style={cardStyle}
+          >
+            <Camera className="h-4 w-4" />
+            <span className="text-[10px] font-medium tracking-[0.22em]">POST YOUR OOTD</span>
+          </button>
+        )}
       </div>
 
 
@@ -957,11 +969,6 @@ const OOTDPage = () => {
               ) : (
                 <>
                   <ShowroomMyBlock userId={user.id} />
-
-                  <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-2 py-3 md:py-5 rounded-xl md:rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
-                    <Camera className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="text-[10px] md:text-[11px] font-medium tracking-[0.2em]">POST YOUR OOTD</span>
-                  </button>
 
                   {myPosts.length === 0 ? (
                     <div className="py-16 text-center space-y-3">
