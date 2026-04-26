@@ -948,7 +948,7 @@ const translations = {
     slim: "Schmal",
     regular: "Regulär",
     relaxed: "Locker",
-    oversized: "Oversized",
+    oversized: "Übergroß",
     budgetRange: "Budgetrahmen",
     low: "Günstig",
     mid: "Mittelpreisig",
