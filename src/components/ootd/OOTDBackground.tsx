@@ -1103,7 +1103,7 @@ function VideoBackground({ src }: { src: string }) {
       // @ts-ignore — non-standard but recognised by WebKit
       webkit-playsinline="true"
       preload="auto"
-      disableRemotePlayback
+      x5-playsinline="true"
       className="absolute inset-0 h-full w-full object-cover"
     />
   );
