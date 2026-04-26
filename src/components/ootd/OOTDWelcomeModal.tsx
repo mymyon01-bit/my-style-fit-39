@@ -280,7 +280,7 @@ export default function OOTDWelcomeModal() {
                   className={`h-2 rounded-full transition-all ${
                     i === index ? "w-8 bg-foreground" : "w-2 bg-foreground/25 hover:bg-foreground/40"
                   }`}
-                  aria-label={`Go to slide ${i + 1}`}
+                  aria-label={`${t("ootdWelcomeSlideAria")} ${i + 1}`}
                 />
               ))}
             </div>
