@@ -460,8 +460,7 @@
     stroke-dasharray: 200;
     stroke-dashoffset: 200;
     opacity: 0;
-    animation: ootd-spray-draw 0.45s ease-out forwards,
-               ootd-spray-mist 3.6s ease-in-out infinite;
+    animation: ootd-spray-draw 0.45s ease-out forwards;
   }
   .ootd-stroke.s1  { animation-delay: 0.05s, 1.6s; }
   .ootd-stroke.s2  { animation-delay: 0.20s, 1.7s; }
