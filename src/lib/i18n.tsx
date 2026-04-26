@@ -850,7 +850,7 @@ const translations = {
     appearance: "Erscheinung",
     light: "Hell",
     dark: "Dunkel",
-    system: "System",
+    system: "Systemstandard",
     todaysPicks: "Heute ausgewählt",
     forYou: "Für Dich",
     recommendedBrands: "Empfohlene Marken",
