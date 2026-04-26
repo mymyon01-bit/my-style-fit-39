@@ -30,9 +30,11 @@ interface Props {
   /** When provided, the gear opens the OOTD customize modal instead of
    *  navigating to /profile. Used on mobile to keep users in the OOTD flow. */
   onOpenSettings?: () => void;
+  /** Hide the inline settings gear — useful when an external trigger handles it. */
+  hideSettings?: boolean;
 }
 
-const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings }: Props) => {
+const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings, hideSettings }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
