@@ -625,8 +625,8 @@ const OOTDPage = () => {
               <svg viewBox="0 0 200 56" className="ootd-graffiti-svg" preserveAspectRatio="xMinYMid meet">
                 <defs>
                   <filter id="ootd-spray" x="-20%" y="-20%" width="140%" height="140%">
-                    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" />
-                    <feDisplacementMap in="SourceGraphic" scale="2.2" />
+                    <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="3" />
+                    <feDisplacementMap in="SourceGraphic" scale="1" />
                   </filter>
                 </defs>
                 <g filter="url(#ootd-spray)" fill="none" strokeLinecap="round" strokeLinejoin="round">
