@@ -689,12 +689,12 @@ const OOTDPage = () => {
               <div className="relative">
                 <button
                   onClick={() => setStarInfoOpen((v) => !v)}
-                  className="ootd-star-bare ootd-star-glow flex items-center gap-1 rounded-full border px-2 py-0.5"
+                  className="ootd-star-bare flex items-center gap-1 rounded-full border-2 border-[hsl(45_100%_55%)] bg-black px-2 py-0.5 shadow-[0_0_10px_hsl(45_100%_55%/0.55)]"
                   aria-label={t("ootdStarInfoLabel")}
                   title={t("ootdStarInfoLabel")}
                 >
-                  <Star className="h-4 w-4 fill-current ootd-star-icon" />
-                  <span className="text-[11px] font-bold text-foreground tabular-nums" style={{ color: "#000" }}>{formatCount(starsLeft + bonusStars)}</span>
+                  <Star className="h-3 w-3 fill-current ootd-star-icon" />
+                  <span className="text-[10px] font-bold tabular-nums leading-none" style={{ color: "#fff" }}>{formatCount(starsLeft + bonusStars)}</span>
                 </button>
                 {starInfoOpen && (
                   <>
