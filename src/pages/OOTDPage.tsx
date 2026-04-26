@@ -88,6 +88,7 @@ const OOTDPage = () => {
   const [starsLeft, setStarsLeft] = useState(3);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [showroomOpen, setShowroomOpen] = useState(false);
   const [trendingTopics, setTrendingTopics] = useState<Topic[]>([]);
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
