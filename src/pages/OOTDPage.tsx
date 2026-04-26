@@ -604,7 +604,7 @@ const OOTDPage = () => {
       <div
         className={
           inModal
-            ? "absolute left-0 right-0 bottom-0 z-30 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl"
+            ? "sticky bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl mt-auto"
             : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
         }
       >
