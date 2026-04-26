@@ -14,7 +14,7 @@ interface Slide {
   accent: string;
 }
 
-const slides: Slide[] = [
+const buildSlides = (t: (k: any) => string): Slide[] => [
   {
     icon: <Star className="h-5 w-5" />,
     accent: "hsl(var(--star))",
@@ -43,8 +43,8 @@ const slides: Slide[] = [
         ))}
       </svg>
     ),
-    title: "별점 시스템 ⭐",
-    body: "마음에 드는 OOTD에 별을 보내주세요. 하루 3개의 별을 받고, 별을 모은 코디는 랭킹에 올라갑니다.",
+    title: t("ootdWelcomeStarsTitle"),
+    body: t("ootdWelcomeStarsBody"),
   },
   {
     icon: <Palette className="h-5 w-5" />,
@@ -69,8 +69,8 @@ const slides: Slide[] = [
         <circle cx="190" cy="105" r="3" fill="hsl(var(--accent))" opacity="0.7" />
       </svg>
     ),
-    title: "나만의 프로필 꾸미기 🎨",
-    body: "배경 테마, 카드 색상, 오늘의 노래까지 — 나만의 스타일로 프로필을 꾸미세요. 친구들도 내가 설정한 모습 그대로 봅니다.",
+    title: t("ootdWelcomeProfileTitle"),
+    body: t("ootdWelcomeProfileBody"),
   },
   {
     icon: <Users className="h-5 w-5" />,
@@ -94,8 +94,8 @@ const slides: Slide[] = [
         ))}
       </svg>
     ),
-    title: "피드 & 커뮤니티 💬",
-    body: "다른 유저들의 코디를 둘러보고, 트렌드 토픽으로 이야기를 나눠보세요. 인기 코디는 랭킹 탭에서 한눈에 확인할 수 있어요.",
+    title: t("ootdWelcomeFeedTitle"),
+    body: t("ootdWelcomeFeedBody"),
   },
   {
     icon: <Share2 className="h-5 w-5" />,
@@ -122,8 +122,8 @@ const slides: Slide[] = [
         ))}
       </svg>
     ),
-    title: "공유하면 별 +1 ✨",
-    body: "친구에게 코디를 공유할 때마다 보너스 별을 받습니다. 더 많이 나눌수록 더 많은 별로 더 많은 코디를 응원할 수 있어요.",
+    title: t("ootdWelcomeShareTitle"),
+    body: t("ootdWelcomeShareBody"),
   },
 ];
 
