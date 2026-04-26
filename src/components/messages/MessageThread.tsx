@@ -48,6 +48,23 @@ export default function MessageThread({
   const [addResults, setAddResults] = useState<ProfileLite[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Mirror the user's OOTD background preference inside the chat thread.
+  const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
+  const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("ootd_bg_theme, ootd_bg_realistic")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        if (data.ootd_bg_theme) setBgTheme(data.ootd_bg_theme as OOTDBgTheme);
+        if (typeof data.ootd_bg_realistic === "boolean") setBgRealistic(data.ootd_bg_realistic);
+      });
+  }, [user]);
+
   // Load member profiles (group) or the other user (1:1)
   useEffect(() => {
     (async () => {
