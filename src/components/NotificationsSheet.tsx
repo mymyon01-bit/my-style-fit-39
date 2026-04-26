@@ -8,7 +8,7 @@ import { ko as koLocale, ja as jaLocale, zhCN, es as esLocale, fr as frLocale, d
 import { useI18n } from "@/lib/i18n";
 import TranslateButton from "@/components/TranslateButton";
 
-const DATE_LOCALES: Record<string, Locale | undefined> = {
+const DATE_LOCALES: Record<string, any> = {
   ko: koLocale, ja: jaLocale, zh: zhCN, es: esLocale, fr: frLocale, de: deLocale, it: itLocale,
 };
 
