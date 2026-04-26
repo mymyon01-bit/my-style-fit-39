@@ -688,7 +688,7 @@ const OOTDPage = () => {
               ))}
             </div>
             {/* Desktop-only right cluster (mobile shows it on its own row above) */}
-            <div className="hidden lg:flex items-center gap-3 shrink-0">
+            <div className={`hidden lg:flex items-center gap-3 shrink-0 ${inModal ? "lg:hidden" : ""}`}>
               <button
                 onClick={openOOTDWelcome}
                 className="text-foreground/55 hover:text-foreground transition-colors"
