@@ -32,6 +32,7 @@ import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcome
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
 import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
+import { useOOTDModal } from "@/lib/ootdModal";
 
 interface OOTDPost {
   id: string;
@@ -70,6 +71,7 @@ const OOTDPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isOpen: inModal } = useOOTDModal();
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
