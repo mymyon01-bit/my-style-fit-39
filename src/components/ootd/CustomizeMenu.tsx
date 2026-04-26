@@ -203,7 +203,7 @@ const ShapeButton = ({
  *   3) wipes it away with an eraser sweep
  *   4) repeats forever
  */
-const GraffitiCustomize = () => (
+export const GraffitiCustomize = () => (
   <div className="relative h-[22px] w-[140px] overflow-visible select-none">
     <style>{`
       @keyframes ootd-gw-write {

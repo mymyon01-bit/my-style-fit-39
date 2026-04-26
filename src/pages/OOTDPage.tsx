@@ -28,7 +28,7 @@ import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme 
 
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
-import CustomizeMenu from "@/components/ootd/CustomizeMenu";
+import CustomizeMenu, { GraffitiCustomize } from "@/components/ootd/CustomizeMenu";
 import { loadCardShape, applyCardShapeToRoot, type CardShape } from "@/components/ootd/cardShape";
 import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcomeModal";
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
@@ -841,26 +841,16 @@ const OOTDPage = () => {
             {/* Music + customize controls — a soft pink gear (left) opens
                 the Customize modal. The mailbox sits next to Song of the Day
                 so messages live right above the profile, in reach of the thumb. */}
-            <div className="flex items-center justify-end gap-2 mb-3">
-              <div className="mr-auto flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCustomizeOpen(true)}
-                  aria-label="Open customize"
-                  title="Customize"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-accent shadow-sm ring-1 ring-accent/30 transition-all hover:scale-105 hover:bg-accent/25 active:scale-95"
-                >
-                  <Settings className="h-4 w-4" strokeWidth={2} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCustomizeOpen(true)}
-                  className="ootd-customize-tag"
-                  aria-label="Open customize"
-                >
-                  customize
-                </button>
-              </div>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setCustomizeOpen(true)}
+                aria-label="Open customize"
+                title="Customize"
+                className="shrink-0 transition-transform hover:scale-[1.02] active:scale-95"
+              >
+                <GraffitiCustomize />
+              </button>
               <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
             </div>
             <MyPageProfileHeader
