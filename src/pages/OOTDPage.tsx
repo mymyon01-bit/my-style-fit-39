@@ -370,9 +370,14 @@ const OOTDPage = () => {
   const loadTodayStars = async () => {
     if (!user) return;
     const today = new Date().toISOString().split("T")[0];
-    const { data } = await supabase.from("ootd_stars").select("id, post_id").eq("user_id", user.id).gte("created_at", today);
-    const given = data || [];
-    setStarsLeft(3 - given.length);
+    const [{ data: starsData }, { data: profileData }] = await Promise.all([
+      supabase.from("ootd_stars").select("id, post_id").eq("user_id", user.id).gte("created_at", today),
+      supabase.from("profiles").select("is_official").eq("user_id", user.id).maybeSingle(),
+    ]);
+    const cap = profileData?.is_official ? 1000 : 3;
+    const given = starsData || [];
+    setDailyStarCap(cap);
+    setStarsLeft(Math.max(0, cap - given.length));
     setStarredPosts(new Set(given.map(s => s.post_id)));
   };
 
