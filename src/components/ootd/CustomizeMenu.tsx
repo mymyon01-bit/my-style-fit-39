@@ -204,125 +204,108 @@ const ShapeButton = ({
  *   4) repeats forever
  */
 const GraffitiCustomize = () => (
-  <div className="relative h-[26px] w-[150px] overflow-visible select-none">
+  <div className="relative h-[22px] w-[140px] overflow-visible select-none">
     <style>{`
-      @keyframes ootd-graffiti-write {
-        0%   { stroke-dashoffset: 600; opacity: 1; }
-        25%  { stroke-dashoffset: 0;   opacity: 1; }
-        55%  { stroke-dashoffset: 0;   opacity: 1; }
-        70%  { stroke-dashoffset: 0;   opacity: 1; }
-        100% { stroke-dashoffset: 0;   opacity: 0; }
+      @keyframes ootd-gw-write {
+        0%   { stroke-dashoffset: 600; }
+        25%  { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 0; }
       }
-      @keyframes ootd-graffiti-fill {
-        0%, 28%   { opacity: 0; }
-        38%, 70%  { opacity: 1; }
-        100%      { opacity: 0; }
+      @keyframes ootd-gw-fill-in {
+        0%, 28%  { opacity: 0; }
+        38%      { opacity: 1; }
+        65%      { opacity: 1; }
+        100%     { opacity: 1; }
       }
-      @keyframes ootd-graffiti-erase {
-        0%, 70%   { transform: translateX(-110%); }
-        95%       { transform: translateX(110%); }
-        100%      { transform: translateX(110%); }
+      /* Mask reveal: starts fully white (text visible), then a black wipe
+         moves left→right turning the mask black (text vanishes → bg shows
+         through). Resets to white for the next write pass. */
+      @keyframes ootd-gw-mask-wipe {
+        0%, 65%   { transform: translateX(-110%); }
+        90%       { transform: translateX(110%); }
+        90.01%    { transform: translateX(110%); }
+        100%      { transform: translateX(-110%); }
       }
-      @keyframes ootd-graffiti-eraser-icon {
-        0%, 70%   { transform: translateX(-20px) rotate(-8deg); opacity: 0; }
-        72%       { opacity: 1; }
-        95%       { transform: translateX(140px) rotate(-8deg); opacity: 1; }
-        100%      { opacity: 0; }
+      @keyframes ootd-gw-eraser {
+        0%, 65%  { transform: translateX(-22px); opacity: 0; }
+        67%      { opacity: 1; }
+        90%      { transform: translateX(132px); opacity: 1; }
+        91%, 100%{ opacity: 0; }
       }
       .ootd-gw-stroke {
         stroke-dasharray: 600;
         stroke-dashoffset: 600;
-        animation: ootd-graffiti-write 4s ease-in-out infinite;
+        animation: ootd-gw-write 4s ease-in-out infinite;
       }
       .ootd-gw-fill {
         opacity: 0;
-        animation: ootd-graffiti-fill 4s ease-in-out infinite;
+        animation: ootd-gw-fill-in 4s ease-in-out infinite;
       }
-      .ootd-gw-erase {
-        animation: ootd-graffiti-erase 4s ease-in-out infinite;
+      .ootd-gw-mask-wipe {
+        animation: ootd-gw-mask-wipe 4s ease-in-out infinite;
       }
       .ootd-gw-eraser {
-        animation: ootd-graffiti-eraser-icon 4s ease-in-out infinite;
+        animation: ootd-gw-eraser 4s ease-in-out infinite;
       }
     `}</style>
 
     <svg
-      viewBox="0 0 150 26"
+      viewBox="0 0 140 22"
       className="absolute inset-0 h-full w-full overflow-visible"
-      style={{ transform: "rotate(-4deg)", transformOrigin: "left center" }}
+      style={{ transform: "rotate(-3deg)", transformOrigin: "left center" }}
     >
-      {/* Pass 1: stroke that "writes" — same family as the #OOTD logo (font-display = Fraunces, italic black) */}
-      <text
-        x="0"
-        y="20"
-        className="ootd-gw-stroke"
-        fontFamily="Fraunces, 'Times New Roman', serif"
-        fontStyle="italic"
-        fontSize="19"
-        fontWeight={900}
-        letterSpacing="-0.5"
-        fill="none"
-        stroke="hsl(0 0% 8%)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        Customize
-      </text>
-      {/* Pass 2: pink fill "tag" overlay added on top of the outline */}
-      <text
-        x="0"
-        y="20"
-        className="ootd-gw-fill"
-        fontFamily="Fraunces, 'Times New Roman', serif"
-        fontStyle="italic"
-        fontSize="19"
-        fontWeight={900}
-        letterSpacing="-0.5"
-        fill="hsl(330 95% 60%)"
-        stroke="hsl(0 0% 8%)"
-        strokeWidth="0.6"
-        style={{
-          filter:
-            "drop-shadow(0 0 2px hsl(330 100% 70% / 0.55)) drop-shadow(0 1px 0 hsl(0 0% 0% / 0.35))",
-        }}
-      >
-        Customize
-      </text>
+      <defs>
+        {/* Mask: white = visible, black = erased (shows underlying bg). */}
+        <mask id="ootd-customize-mask" maskUnits="userSpaceOnUse" x="-10" y="-4" width="160" height="30">
+          <rect x="-10" y="-4" width="160" height="30" fill="white" />
+          <rect
+            className="ootd-gw-mask-wipe"
+            x="-10"
+            y="-4"
+            width="60"
+            height="30"
+            fill="black"
+          />
+        </mask>
+      </defs>
 
-      {/* Eraser sweep — wipes the word away */}
-      <g className="ootd-gw-erase" style={{ transformOrigin: "0 0" }}>
-        <rect
+      <g mask="url(#ootd-customize-mask)">
+        {/* Pass 1: thin outline that "writes" */}
+        <text
           x="0"
-          y="-2"
-          width="40"
-          height="30"
-          fill="hsl(var(--background))"
-        />
+          y="16"
+          className="ootd-gw-stroke"
+          fontFamily="Inter, system-ui, -apple-system, sans-serif"
+          fontSize="14"
+          fontWeight={500}
+          letterSpacing="0.2"
+          fill="none"
+          stroke="hsl(0 0% 8%)"
+          strokeWidth="0.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          Customize
+        </text>
+        {/* Pass 2: pink fill */}
+        <text
+          x="0"
+          y="16"
+          className="ootd-gw-fill"
+          fontFamily="Inter, system-ui, -apple-system, sans-serif"
+          fontSize="14"
+          fontWeight={500}
+          letterSpacing="0.2"
+          fill="hsl(330 95% 60%)"
+        >
+          Customize
+        </text>
       </g>
 
-      {/* Eraser icon following the sweep */}
-      <g className="ootd-gw-eraser" style={{ transformOrigin: "0 0" }}>
-        <rect
-          x="-10"
-          y="6"
-          width="18"
-          height="10"
-          rx="2"
-          fill="hsl(330 60% 88%)"
-          stroke="hsl(0 0% 8%)"
-          strokeWidth="1"
-        />
-        <rect
-          x="-10"
-          y="6"
-          width="18"
-          height="4"
-          rx="2"
-          fill="hsl(220 70% 60%)"
-          stroke="hsl(0 0% 8%)"
-          strokeWidth="1"
-        />
+      {/* Eraser icon following the wipe (outside the mask so it's always visible) */}
+      <g className="ootd-gw-eraser">
+        <rect x="-10" y="4" width="16" height="9" rx="2" fill="hsl(330 60% 90%)" stroke="hsl(0 0% 8%)" strokeWidth="0.8" />
+        <rect x="-10" y="4" width="16" height="3.5" rx="2" fill="hsl(220 70% 60%)" stroke="hsl(0 0% 8%)" strokeWidth="0.8" />
       </g>
     </svg>
   </div>
