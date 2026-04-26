@@ -1502,7 +1502,7 @@ const translations = {
     relaxed: "Détendu",
     oversized: "Oversize",
     budgetRange: "Gamme de budget",
-    low: "Budget",
+    low: "Économique",
     mid: "Moyen",
     high: "Premium",
     luxury: "Luxe",
