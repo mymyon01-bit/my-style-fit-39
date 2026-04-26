@@ -598,7 +598,7 @@ const OOTDPage = () => {
   return (
     <div className={`relative bg-background ${inModal ? "flex min-h-full flex-col pt-3" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
-      <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
+      <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={inModal} />
       {/* Tab bar — top on the standalone page, bottom (footer) when shown inside the desktop modal */}
       {!inModal && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
       <div
@@ -688,7 +688,7 @@ const OOTDPage = () => {
               ))}
             </div>
             {/* Desktop-only right cluster (mobile shows it on its own row above) */}
-            <div className="hidden lg:flex items-center gap-3 shrink-0">
+            <div className={`hidden lg:flex items-center gap-3 shrink-0 ${inModal ? "lg:hidden" : ""}`}>
               <button
                 onClick={openOOTDWelcome}
                 className="text-foreground/55 hover:text-foreground transition-colors"

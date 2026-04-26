@@ -116,9 +116,15 @@ interface Props {
   /** When true, render an AI-generated cinematic looping video instead of the
    *  hand-drawn SVG scene. Defaults to true (the new headline experience). */
   realistic?: boolean;
+  /** When true, the background is positioned `absolute` (clipped to its
+   *  parent — used inside the OOTD modal card) instead of `fixed` to the
+   *  viewport. Defaults to false. */
+  contained?: boolean;
 }
 
-export default function OOTDBackground({ theme, realistic = true }: Props) {
+export default function OOTDBackground({ theme, realistic = true, contained = false }: Props) {
+  const posClass = contained ? "absolute inset-0 z-0" : "fixed inset-0 z-0";
+
   // Particle counts per theme. Memoized so we don't regenerate on every render.
   // Hook must be called unconditionally — declared before any early returns.
   const particles = useMemo(() => {
@@ -145,7 +151,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   const videoSrc = VIDEO_BY_THEME[theme];
   if (theme !== "none" && realistic && videoSrc) {
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         <video
           key={videoSrc}
           src={videoSrc}
@@ -170,7 +176,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   if (theme === "stars") {
     const shooting = [0, 1, 2];
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         {/* Deep space background — overrides app bg for true cosmic feel */}
         <div
           className="absolute inset-0"
@@ -238,7 +244,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   // ── Sakura: cherry trees on both sides + drifting petals ────────────────
   if (theme === "sakura") {
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         {/* Soft pink dawn sky */}
         <div
           className="absolute inset-0"
@@ -296,7 +302,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   // ── Storm: dark clouds + heavy rain + lightning flashes ─────────────────
   if (theme === "storm") {
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         {/* Dark stormy sky */}
         <div
           className="absolute inset-0"
@@ -374,7 +380,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   // ── Sunny day: blue sky + bright sun with occasional lens flare ────────
   if (theme === "sunny") {
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         {/* Crisp blue sky */}
         <div
           className="absolute inset-0"
@@ -453,7 +459,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   // ── Soft rain: calm overcast clouds + steady gentle rain ───────────────
   if (theme === "rain") {
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         {/* Overcast sky */}
         <div
           className="absolute inset-0"
@@ -505,7 +511,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   // ── Snow: overcast sky + drifting snowflakes (SVG fallback) ────────────
   if (theme === "snow") {
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         <div
           className="absolute inset-0"
           style={{
@@ -557,7 +563,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
   // ── Sunset: warm golden-hour sky with a glowing sun and silhouettes ────
   if (theme === "sunset") {
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         <div
           className="absolute inset-0"
           style={{
@@ -620,7 +626,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
     };
     const p = presets[theme];
     return (
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
         <div className="absolute inset-0" style={{ background: p.bg }} />
         <div className="absolute inset-0" style={{ background: p.accent }} />
       </div>
@@ -629,7 +635,7 @@ export default function OOTDBackground({ theme, realistic = true }: Props) {
 
   // ── Autumn leaves: amber sky + maple trees on both sides + falling leaves
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div className={`pointer-events-none ${posClass} overflow-hidden`}>
       <div
         className="absolute inset-0"
         style={{
