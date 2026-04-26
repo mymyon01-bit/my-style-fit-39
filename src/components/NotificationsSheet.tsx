@@ -232,7 +232,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                     }}
                     className="flex items-center gap-1 rounded-full border border-border/40 px-2.5 py-1.5 text-[9px] font-semibold tracking-wider text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    <CheckCheck className="h-3 w-3" /> READ
+                    <CheckCheck className="h-3 w-3" /> {S.read}
                   </button>
                 )}
                 <button
