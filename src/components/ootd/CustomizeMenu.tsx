@@ -274,9 +274,11 @@ const GraffitiCustomize = () => (
         x="0"
         y="20"
         className="ootd-gw-fill"
-        fontFamily="'Permanent Marker', 'Caveat', cursive"
-        fontSize="20"
+        fontFamily="Fraunces, 'Times New Roman', serif"
+        fontStyle="italic"
+        fontSize="19"
         fontWeight={900}
+        letterSpacing="-0.5"
         fill="hsl(330 95% 60%)"
         stroke="hsl(0 0% 8%)"
         strokeWidth="0.6"
