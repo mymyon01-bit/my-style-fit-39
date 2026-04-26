@@ -35,11 +35,30 @@ export interface ChatAttachment {
 }
 
 interface Props {
+  id?: string;
   content: string;
   isMine: boolean;
   createdAt: string;
   readAt?: string | null;
   attachments?: ChatAttachment[];
+}
+
+type Reaction = "like" | "dislike" | null;
+
+function readReaction(id: string | undefined): Reaction {
+  if (!id || typeof window === "undefined") return null;
+  try {
+    const v = localStorage.getItem(`msg-react:${id}`);
+    return v === "like" || v === "dislike" ? v : null;
+  } catch { return null; }
+}
+
+function writeReaction(id: string | undefined, r: Reaction) {
+  if (!id || typeof window === "undefined") return;
+  try {
+    if (r) localStorage.setItem(`msg-react:${id}`, r);
+    else localStorage.removeItem(`msg-react:${id}`);
+  } catch { /* ignore */ }
 }
 
 /**
@@ -50,9 +69,20 @@ interface Props {
  * Two new rich attachment types are also supported:
  *   - ootd_post  → preview card that deep-links to the OOTD post
  *   - namecard   → avatar + name pill that deep-links to the user profile
+ *
+ * Mobile reactions: a like/dislike row appears below each bubble. The
+ * choice is persisted locally per-message so the user gets instant feedback
+ * without waiting on backend infra.
  */
-export default function MessageBubble({ content, isMine, createdAt, readAt, attachments = [] }: Props) {
+export default function MessageBubble({ id, content, isMine, createdAt, readAt, attachments = [] }: Props) {
   const navigate = useNavigate();
+  const [reaction, setReaction] = useState<Reaction>(() => readReaction(id));
+  useEffect(() => { setReaction(readReaction(id)); }, [id]);
+  const toggle = (r: Exclude<Reaction, null>) => {
+    const next: Reaction = reaction === r ? null : r;
+    setReaction(next);
+    writeReaction(id, next);
+  };
   const parts = content.split(/(@[a-zA-Z0-9_.-]+)/g);
   const time = new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
