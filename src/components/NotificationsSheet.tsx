@@ -112,20 +112,7 @@ const ICON_BY_TYPE: Record<string, any> = {
   reaction: Smile,
 };
 
-const LABEL_BY_TYPE: Record<string, string> = {
-  follow: "서클을 신청했어요",
-  circle_request: "서클을 신청했어요",
-  star: "스타를 받았어요",
-  ootd_star: "스타를 받았어요",
-  ootd_like: "좋아요를 받았습니다",
-  comment_like: "댓글에 좋아요를 받았어요",
-  comment: "댓글을 남겼어요",
-  ootd_comment: "댓글을 남겼어요",
-  ootd_reply: "답글을 남겼어요",
-  ootd_mention: "당신을 언급했어요",
-  ootd_reaction: "반응을 남겼어요",
-  reaction: "반응을 남겼어요",
-};
+// (Legacy LABEL_BY_TYPE removed — now derived per-language from ACTION_LABELS.)
 
 /**
  * Notifications inbox: splits items into "Unread" and "Earlier" sections so
