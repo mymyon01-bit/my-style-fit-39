@@ -349,62 +349,9 @@ export default function OOTDPostDetail({
         <div className="flex flex-col flex-1 md:h-[85vh] min-h-0">
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
-          {/* Author */}
-          <button
-            onClick={() => { onClose(); navigate(`/user/${post.user_id}`); }}
-            className="flex items-center gap-2 group"
-          >
-            <OfficialAvatarRing isOfficial={profile?.is_official}>
-              <div className="h-8 w-8 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/30">
-                    {(profile?.display_name || "?")[0].toUpperCase()}
-                  </div>
-                )}
-              </div>
-            </OfficialAvatarRing>
-            <div className="text-left">
-              <div className="flex items-center gap-1.5">
-                <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
-                  {profile?.display_name || "Anonymous"}
-                </p>
-                {profile?.is_official && <OfficialBadge compact />}
-              </div>
-              <p className="text-[10px] text-foreground/40">{timeAgo(post.created_at)} ago</p>
-            </div>
-          </button>
-
-          {/* Title + Message */}
-          {post.caption && (
-            <div>
-              {title && <p className="text-[13px] font-semibold text-foreground/80 mb-1">{title}</p>}
-              <p className="text-[13px] text-foreground/75 leading-relaxed">{post.caption}</p>
-            </div>
-          )}
-
-          {/* Hashtags / Topics — hide the __noshare sentinel */}
-          {post.topics && post.topics.filter(t => t !== "__noshare").length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {post.topics.filter(t => t !== "__noshare").map(tp => (
-                <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[12px] font-medium text-accent/80 hover:text-accent transition-colors">
-                  #{tp}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Style tags */}
-          {post.style_tags && post.style_tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {post.style_tags.map(tag => (
-                <span key={tag} className="rounded-full bg-foreground/[0.05] px-2.5 py-1 text-[11px] text-foreground/60">{tag}</span>
-              ))}
-            </div>
-          )}
-
-          {/* Interactions — unified pill style matching OOTD card (20% smaller) */}
+          {/* Interactions — unified pill style matching OOTD card (20% smaller).
+              Sits directly under the photo so likes/comments/stars are the
+              first thing the viewer sees. */}
           <div className="flex items-center flex-wrap gap-1 py-2 border-y border-border/15">
             <AuthGate action="react">
               <button
@@ -488,7 +435,62 @@ export default function OOTDPostDetail({
               )}
             </div>
           </div>
+          {/* Author */}
+          <button
+            onClick={() => { onClose(); navigate(`/user/${post.user_id}`); }}
+            className="flex items-center gap-2 group"
+          >
+            <OfficialAvatarRing isOfficial={profile?.is_official}>
+              <div className="h-8 w-8 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/30">
+                    {(profile?.display_name || "?")[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </OfficialAvatarRing>
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
+                  {profile?.display_name || "Anonymous"}
+                </p>
+                {profile?.is_official && <OfficialBadge compact />}
+              </div>
+              <p className="text-[10px] text-foreground/40">{timeAgo(post.created_at)} ago</p>
+            </div>
+          </button>
 
+          {/* Title + Message */}
+          {post.caption && (
+            <div>
+              {title && <p className="text-[13px] font-semibold text-foreground/80 mb-1">{title}</p>}
+              <p className="text-[13px] text-foreground/75 leading-relaxed">{post.caption}</p>
+            </div>
+          )}
+
+          {/* Hashtags / Topics — hide the __noshare sentinel */}
+          {post.topics && post.topics.filter(t => t !== "__noshare").length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {post.topics.filter(t => t !== "__noshare").map(tp => (
+                <button key={tp} onClick={() => { onClose(); onTopicClick(tp); }} className="text-[12px] font-medium text-accent/80 hover:text-accent transition-colors">
+                  #{tp}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Style tags */}
+          {post.style_tags && post.style_tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {post.style_tags.map(tag => (
+                <span key={tag} className="rounded-full bg-foreground/[0.05] px-2.5 py-1 text-[11px] text-foreground/60">{tag}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Interactions moved to the very top of this column (right under the photo). */}
           {/* Threaded Comments */}
           <div className="space-y-3">
             <p className="text-[11px] font-semibold tracking-[0.15em] text-foreground/55 uppercase">Comments</p>
