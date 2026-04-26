@@ -39,7 +39,13 @@ const BottomNav = () => {
             return (
               <button
                 key={tab.path}
-                onClick={() => navigate(tab.path)}
+                onClick={() => {
+                  if (tab.isOotd) {
+                    openOotdModal();
+                  } else {
+                    navigate(tab.path);
+                  }
+                }}
                 onMouseEnter={() => prefetchRoute(tab.path)}
                 onTouchStart={() => prefetchRoute(tab.path)}
                 className={`group relative flex flex-col items-center gap-1 px-2 py-1 transition-all duration-200 md:gap-2 md:px-6 md:py-1.5 ${
