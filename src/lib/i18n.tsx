@@ -397,6 +397,7 @@ const translations = {
     regular: "레귤러",
     relaxed2: "릴렉스",
     oversized: "오버사이즈",
+    relaxed: "릴렉스 핏",
     budgetRange: "예산 범위",
     low: "합리적",
     mid: "중간",
