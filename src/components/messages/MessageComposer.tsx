@@ -158,7 +158,7 @@ export default function MessageComposer({ onSend, disabled }: Props) {
         </div>
       )}
 
-      <div className="flex items-end gap-2 rounded-2xl border-2 border-foreground/15 bg-card p-2 shadow-soft transition-colors focus-within:border-foreground/40">
+      <div className="flex items-end gap-2 rounded-2xl border border-border/30 bg-card/85 backdrop-blur-sm p-2 shadow-soft transition-colors focus-within:border-foreground/40">
         <input ref={imgInputRef} type="file" accept="image/*" onChange={onPickImage} className="hidden" />
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={onPickImage} className="hidden" />
         <input ref={fileInputRef} type="file" onChange={onPickFile} className="hidden" />
