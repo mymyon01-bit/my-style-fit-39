@@ -137,9 +137,16 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
   const myHasStory = !!user && grouped.some((g) => g.user_id === user.id);
   const others = grouped.filter((g) => !user || g.user_id !== user.id);
 
+  const ringSize = compact ? "h-11 w-11" : "h-16 w-16";
+  const itemWidth = compact ? "w-12" : "w-16";
+  const labelMax = compact ? "max-w-[44px]" : "max-w-[60px]";
+  const plusSize = compact ? "h-4 w-4" : "h-6 w-6";
+  const plusIcon = compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5";
+  const gapClass = compact ? "gap-3" : "gap-4";
+
   return (
-    <div className="-mx-6 md:-mx-10 lg:-mx-12 px-6 md:px-10 lg:px-12 mb-6">
-      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className={`-mx-6 md:-mx-10 lg:-mx-12 px-6 md:px-10 lg:px-12 ${compact ? "mb-3" : "mb-6"}`}>
+      <div className={`flex ${gapClass} overflow-x-auto pb-2 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
         {/* Own avatar — upload entry point */}
         {user && (
           <button
