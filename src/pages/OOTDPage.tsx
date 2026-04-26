@@ -820,7 +820,7 @@ const OOTDPage = () => {
       </div>
 
 
-      <div className="relative mx-auto max-w-lg px-6 pt-3 md:max-w-2xl md:px-10 md:pt-8 lg:max-w-4xl lg:px-12">
+      <div className="relative mx-auto max-w-lg px-6 pt-3 md:max-w-2xl md:px-10 md:pt-3 lg:max-w-4xl lg:px-12">
         <div
           className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-6 shadow-xl shadow-black/10" : ""}
           style={bgTheme !== "none" ? cardStyle : undefined}
