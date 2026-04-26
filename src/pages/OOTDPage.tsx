@@ -86,6 +86,10 @@ const OOTDPage = () => {
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [starsLeft, setStarsLeft] = useState(3);
+  // Officially-verified (blue check) accounts get a 1000/day star allowance
+  // (DB trigger also raises the cap). UI shows "1K" instead of the raw number.
+  const [isOfficial, setIsOfficial] = useState(false);
+  const dailyStarCap = isOfficial ? 1000 : 3;
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
