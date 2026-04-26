@@ -371,10 +371,20 @@ const OOTDPage = () => {
 
   const loadTodayStars = async () => {
     if (!user) return;
+    // Pull the current user's `is_official` flag so we know which daily cap
+    // to apply — officials get 1000/day (effectively unlimited).
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("is_official")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const official = Boolean((me as any)?.is_official);
+    setIsOfficial(official);
+    const cap = official ? 1000 : 3;
     const today = new Date().toISOString().split("T")[0];
     const { data } = await supabase.from("ootd_stars").select("id, post_id").eq("user_id", user.id).gte("created_at", today);
     const given = data || [];
-    setStarsLeft(3 - given.length);
+    setStarsLeft(Math.max(cap - given.length, 0));
     setStarredPosts(new Set(given.map(s => s.post_id)));
   };
 
