@@ -52,11 +52,10 @@ const OOTDModalHost = () => {
             exit={{ opacity: 0 }}
           />
 
-          {/* Mobile: sheet sits above the BottomNav so the main app navigation
-              stays visible (matches the OOTD button entry behavior). Desktop: card pop-out. */}
+          {/* Mobile: full-screen OOTD interface that covers the main BottomNav.
+              Desktop: card pop-out. */}
           <motion.div
-            className="absolute inset-x-0 top-0 z-10 overflow-hidden bg-background
-                       bottom-[calc(64px+env(safe-area-inset-bottom))]
+            className="absolute inset-0 z-10 overflow-hidden bg-background
                        md:static md:inset-auto md:mt-[5vh] md:mb-[5vh] md:h-[88vh]
                        md:w-[min(980px,86vw)] md:rounded-2xl md:border md:border-foreground/15
                        md:shadow-[0_30px_80px_-20px_hsl(var(--foreground)/0.55)]"

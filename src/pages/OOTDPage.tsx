@@ -604,21 +604,20 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${inModal ? "flex min-h-full flex-col pt-3" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
+    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${inModal ? "flex h-full min-h-full flex-col overflow-hidden pt-3" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={inModal} />
-      {/* Tab bar — top on the standalone page, bottom (footer) when shown inside the desktop modal */}
+      {/* Tab bar — bottom on mobile modal, top on standalone page. */}
       {!inModal && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
       <div
         className={
           inModal
-            ? "order-last sticky bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl"
+            ? "order-last shrink-0 z-30 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md border-t border-accent/[0.14] md:rounded-b-2xl"
             : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
         }
       >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-          {/* Top brand+actions row — only shown when NOT in the desktop modal
-              (the modal has its own close + the tab bar sits at bottom). */}
+          {/* Top brand+actions row — only shown on the standalone OOTD page. */}
           {!inModal && (
             <div className="flex items-center justify-between gap-2 pt-2 lg:hidden">
               <div className="shrink-0"><Brandmark variant="inline" /></div>
@@ -659,8 +658,6 @@ const OOTDPage = () => {
             </div>
           )}
 
-          {/* Tabs row — icon-based for a clean, balanced look on every viewport.
-              Labels appear under the icon on desktop / sm+ for clarity. */}
           <div className="flex items-center gap-3">
             <div className="flex flex-1 min-w-0 items-stretch justify-around">
               {([
@@ -696,10 +693,7 @@ const OOTDPage = () => {
                 </button>
               ))}
             </div>
-            {/* Right cluster — always visible in modal (no separate top row),
-                desktop-only on the standalone page (mobile shows it on row above).
-                Mailbox lives in the My Page card on mobile, so it's omitted here. */}
-            <div className={`items-center gap-3 shrink-0 ${inModal ? "flex" : "hidden lg:flex"}`}>
+            <div className={`items-center gap-3 shrink-0 ${inModal ? "hidden md:flex" : "hidden lg:flex"}`}>
               <button
                 onClick={openOOTDWelcome}
                 className="text-foreground/55 hover:text-foreground transition-colors"
@@ -714,7 +708,6 @@ const OOTDPage = () => {
                     <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                     <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
                   </div>
-                  {/* Mailbox shown on desktop only — mobile uses the My Page card icon. */}
                   <div className="hidden lg:block">
                     <MailboxIcon
                       unread={msgUnread}
@@ -741,7 +734,7 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className={`relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${inModal ? "pb-24" : ""}`}>
+      <div className={`relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${inModal ? "min-h-0 flex-1 overflow-y-auto pb-6" : ""}`}>
         {activeTab === "mypage" && user && (
           <div
             className="border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
@@ -756,7 +749,7 @@ const OOTDPage = () => {
                 onClick={() => setCustomizeOpen(true)}
                 aria-label="Open customize"
                 title="Customize"
-                className="mr-auto flex h-8 w-8 items-center justify-center rounded-full bg-pink-100 text-pink-500 shadow-sm ring-1 ring-pink-200/70 transition-all hover:scale-105 hover:bg-pink-200 hover:text-pink-600 active:scale-95 dark:bg-pink-500/15 dark:text-pink-300 dark:ring-pink-400/30 dark:hover:bg-pink-500/25"
+                className="mr-auto flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-accent shadow-sm ring-1 ring-accent/30 transition-all hover:scale-105 hover:bg-accent/25 active:scale-95"
               >
                 <Settings className="h-4 w-4" strokeWidth={2} />
               </button>
