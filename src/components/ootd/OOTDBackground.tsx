@@ -116,9 +116,15 @@ interface Props {
   /** When true, render an AI-generated cinematic looping video instead of the
    *  hand-drawn SVG scene. Defaults to true (the new headline experience). */
   realistic?: boolean;
+  /** When true, the background is positioned `absolute` (clipped to its
+   *  parent — used inside the OOTD modal card) instead of `fixed` to the
+   *  viewport. Defaults to false. */
+  contained?: boolean;
 }
 
-export default function OOTDBackground({ theme, realistic = true }: Props) {
+export default function OOTDBackground({ theme, realistic = true, contained = false }: Props) {
+  const posClass = contained ? "absolute inset-0 z-0" : "fixed inset-0 z-0";
+
   // Particle counts per theme. Memoized so we don't regenerate on every render.
   // Hook must be called unconditionally — declared before any early returns.
   const particles = useMemo(() => {
