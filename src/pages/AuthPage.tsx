@@ -10,6 +10,8 @@ import ConsentCheckboxes, { type ConsentState } from "@/components/legal/Consent
 import { recordSignupConsents } from "@/lib/legal/recordConsent";
 import { supabase } from "@/integrations/supabase/client";
 import type { LegalLang } from "@/lib/legal/content";
+import AccountRemovedScreen from "@/components/AccountRemovedScreen";
+import ContactUsDialog from "@/components/ContactUsDialog";
 
 const AuthPage = () => {
   const { t } = useI18n();
@@ -24,6 +26,8 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [consents, setConsents] = useState<ConsentState>({ terms: false, privacy: false, marketing: false });
+  const [removedInfo, setRemovedInfo] = useState<{ email: string; reason?: string | null } | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
 
   // Capture ?ref=CODE from URL on mount so we can claim it after signup
   useEffect(() => { captureReferralFromUrl(); }, []);
