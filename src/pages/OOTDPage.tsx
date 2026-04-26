@@ -743,39 +743,26 @@ const OOTDPage = () => {
             className="border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
             style={{ ...cardStyle, borderRadius: "var(--ootd-card-radius, 1.5rem)" }}
           >
-            {/* Music + customize controls — graffiti hint nudges users toward
-                the gear, which now opens the full Customize modal. */}
+            {/* Music + customize controls — a soft pink gear (left) opens
+                the Customize modal. The mailbox sits next to Song of the Day
+                so messages live right above the profile, in reach of the thumb. */}
             <div className="flex items-center justify-end gap-2 mb-3">
               <button
                 type="button"
                 onClick={() => setCustomizeOpen(true)}
                 aria-label="Open customize"
-                className="flex items-center gap-2 mr-auto pl-1 group"
+                title="Customize"
+                className="mr-auto flex h-8 w-8 items-center justify-center rounded-full bg-pink-100 text-pink-500 shadow-sm ring-1 ring-pink-200/70 transition-all hover:scale-105 hover:bg-pink-200 hover:text-pink-600 active:scale-95 dark:bg-pink-500/15 dark:text-pink-300 dark:ring-pink-400/30 dark:hover:bg-pink-500/25"
               >
-                <span aria-hidden className="text-accent/70 text-[14px] leading-none group-hover:text-accent transition-colors">↘</span>
-                <span
-                  className="text-[12px] font-semibold tracking-wide text-foreground/85 italic -rotate-2 select-none group-hover:text-accent transition-colors"
-                  style={{
-                    fontFamily: "'Caveat', 'Dancing Script', 'Brush Script MT', cursive",
-                    fontSize: "16px",
-                    textShadow: "1px 1px 0 hsl(var(--accent) / 0.25)",
-                  }}
-                >
-                  make it yours ♡
-                </span>
-                <span className="hidden sm:inline-flex items-center rounded-full bg-accent/15 px-1.5 py-0.5 text-[8px] font-semibold tracking-[0.18em] text-accent uppercase">
-                  tap
-                </span>
+                <Settings className="h-4 w-4" strokeWidth={2} />
               </button>
+              {user && (
+                <MailboxIcon
+                  unread={msgUnread}
+                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                />
+              )}
               <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
-              <button
-                type="button"
-                onClick={() => setCustomizeOpen(true)}
-                aria-label="Open customize"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/55 hover:text-foreground hover:bg-foreground/5 transition-colors"
-              >
-                <Settings className="h-3.5 w-3.5" />
-              </button>
             </div>
             <MyPageProfileHeader
               postCount={myPosts.length}
