@@ -148,6 +148,11 @@ const AppRoutes = () => {
     });
   }, [user]);
 
+  // Live message toasts — pop a sonner toast the moment a new message arrives,
+  // regardless of which page the user is on, so they never need to refresh
+  // to see incoming messages.
+  useMessageToasts();
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
