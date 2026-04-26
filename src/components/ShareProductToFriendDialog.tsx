@@ -165,12 +165,33 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
 
   if (!product) return null;
 
+  // Unified suggestion list:
+  //  • when searching → search results
+  //  • otherwise → people from circle merged with recent inbox conversations
+  const suggestions: FriendOption[] = useMemo(() => {
+    const seen = new Set<string>();
+    const merge = (arr: FriendOption[]) => {
+      for (const f of arr) {
+        if (!f.user_id || seen.has(f.user_id)) continue;
+        seen.add(f.user_id);
+      }
+    };
+    merge(circle);
+    merge(friendsFromInbox);
+    const ordered: FriendOption[] = [];
+    const inboxMap = new Map(friendsFromInbox.map((f) => [f.user_id, f]));
+    for (const f of circle) {
+      const m = inboxMap.get(f.user_id);
+      ordered.push(m ? { ...f, conversation_id: m.conversation_id } : f);
+    }
+    for (const f of friendsFromInbox) {
+      if (!circle.some((c) => c.user_id === f.user_id)) ordered.push(f);
+    }
+    return ordered;
+  }, [circle, friendsFromInbox]);
+
   const visibleList: FriendOption[] =
-    tab === "circle"
-      ? circle
-      : search.trim().length >= 2
-      ? searchResults
-      : friendsFromInbox.slice(0, 12);
+    search.trim().length >= 2 ? searchResults : suggestions.slice(0, 24);
 
   async function handleSend() {
     if (!user) {
