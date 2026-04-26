@@ -72,10 +72,10 @@ const OOTDModalHost = () => {
             <button
               onClick={close}
               aria-label="Close OOTD"
-              className="absolute right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-foreground/20 bg-background/95 text-foreground shadow-md backdrop-blur transition-all hover:scale-105 hover:bg-foreground hover:text-background"
-              style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+              className="fixed right-3 z-[300] flex h-10 w-10 items-center justify-center rounded-full border border-foreground/25 bg-background/95 text-foreground shadow-lg backdrop-blur transition-all hover:scale-105 hover:bg-foreground hover:text-background md:absolute md:right-4"
+              style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
 
             {/* OOTD owns its own scroll area so its bottom menu stays fixed. */}
