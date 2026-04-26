@@ -65,6 +65,23 @@ const AuthPage = () => {
     } catch (err: any) {
       const raw = (err?.message || "").toLowerCase();
       let friendly = err?.message || "An error occurred";
+      // If sign-in failed with invalid creds, check if this email was removed.
+      if (mode === "login" && raw.includes("invalid login credentials")) {
+        try {
+          const { data: removed } = await supabase
+            .from("removed_accounts")
+            .select("email, reason")
+            .ilike("email", email.trim())
+            .order("removed_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (removed) {
+            setRemovedInfo({ email: removed.email, reason: removed.reason });
+            setLoading(false);
+            return;
+          }
+        } catch {}
+      }
       if (raw.includes("invalid login credentials")) {
         friendly =
           "Email or password is incorrect. If you originally signed up with Google or Apple, use that button above instead.";
