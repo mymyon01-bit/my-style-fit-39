@@ -317,9 +317,6 @@ export default function CardColorPicker({ value, onChange }: Props) {
           className="inline-block h-2.5 w-2.5 md:h-3 md:w-3 rounded-full border border-border/60 shrink-0"
           style={{ background: value.hex ?? "transparent" }}
         />
-        <span className="text-foreground/40 normal-case tracking-normal text-[9.5px] md:text-[10px] truncate max-w-[60px] md:max-w-[80px]">
-          · {currentLabel}
-        </span>
       </button>
 
       {modal && typeof document !== "undefined" && createPortal(modal, document.body)}

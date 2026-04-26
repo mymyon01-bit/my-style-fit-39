@@ -25,9 +25,10 @@ import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
-import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
-import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
-import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
+
+import { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
+import CustomizeMenu from "@/components/ootd/CustomizeMenu";
 import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcomeModal";
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
 import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
@@ -734,10 +735,15 @@ const OOTDPage = () => {
               <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
               </p>
-              <div className="flex w-full items-center gap-1 overflow-x-auto scrollbar-hide md:w-auto md:flex-wrap md:overflow-visible md:gap-1.5">
-                <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
-                <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
-                <CardColorPicker value={cardColor} onChange={setCardColor} />
+              <div className="flex w-full items-center gap-1 md:w-auto md:gap-1.5">
+                <CustomizeMenu
+                  bgTheme={bgTheme}
+                  onBgThemeChange={setBgTheme}
+                  songOfDay={songOfDay}
+                  onSongOfDayChange={setSongOfDay}
+                  cardColor={cardColor}
+                  onCardColorChange={setCardColor}
+                />
               </div>
             </div>
             <MyPageProfileHeader
