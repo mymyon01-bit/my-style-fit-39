@@ -89,23 +89,11 @@ export default function CustomizeMenu({
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Sparkles
-              className="h-4 w-4"
+              className="h-4 w-4 shrink-0"
               strokeWidth={2}
               style={{ color: "hsl(330 95% 60%)" }}
             />
-            <h3
-              className="font-display italic font-extrabold tracking-tight text-[15px] leading-none"
-              style={{
-                color: "hsl(330 95% 60%)",
-                WebkitTextStroke: "0.6px hsl(0 0% 6%)",
-                textShadow:
-                  "0 0 2px hsl(330 100% 70% / 0.55), 0 1px 0 hsl(0 0% 0% / 0.35)",
-                transform: "rotate(-4deg)",
-                transformOrigin: "left center",
-              }}
-            >
-              Customize
-            </h3>
+            <GraffitiCustomize />
           </div>
           <button
             type="button"
@@ -206,4 +194,132 @@ const ShapeButton = ({
     {children}
     {label}
   </button>
+);
+
+/**
+ * Graffiti "Customize" tag that infinitely:
+ *   1) writes the word with a spray-paint stroke (dash-offset draw)
+ *   2) overlays a second "tag" pass on top
+ *   3) wipes it away with an eraser sweep
+ *   4) repeats forever
+ */
+const GraffitiCustomize = () => (
+  <div className="relative h-[26px] w-[150px] overflow-visible select-none">
+    <style>{`
+      @keyframes ootd-graffiti-write {
+        0%   { stroke-dashoffset: 600; opacity: 1; }
+        25%  { stroke-dashoffset: 0;   opacity: 1; }
+        55%  { stroke-dashoffset: 0;   opacity: 1; }
+        70%  { stroke-dashoffset: 0;   opacity: 1; }
+        100% { stroke-dashoffset: 0;   opacity: 0; }
+      }
+      @keyframes ootd-graffiti-fill {
+        0%, 28%   { opacity: 0; }
+        38%, 70%  { opacity: 1; }
+        100%      { opacity: 0; }
+      }
+      @keyframes ootd-graffiti-erase {
+        0%, 70%   { transform: translateX(-110%); }
+        95%       { transform: translateX(110%); }
+        100%      { transform: translateX(110%); }
+      }
+      @keyframes ootd-graffiti-eraser-icon {
+        0%, 70%   { transform: translateX(-20px) rotate(-8deg); opacity: 0; }
+        72%       { opacity: 1; }
+        95%       { transform: translateX(140px) rotate(-8deg); opacity: 1; }
+        100%      { opacity: 0; }
+      }
+      .ootd-gw-stroke {
+        stroke-dasharray: 600;
+        stroke-dashoffset: 600;
+        animation: ootd-graffiti-write 4s ease-in-out infinite;
+      }
+      .ootd-gw-fill {
+        opacity: 0;
+        animation: ootd-graffiti-fill 4s ease-in-out infinite;
+      }
+      .ootd-gw-erase {
+        animation: ootd-graffiti-erase 4s ease-in-out infinite;
+      }
+      .ootd-gw-eraser {
+        animation: ootd-graffiti-eraser-icon 4s ease-in-out infinite;
+      }
+    `}</style>
+
+    <svg
+      viewBox="0 0 150 26"
+      className="absolute inset-0 h-full w-full overflow-visible"
+      style={{ transform: "rotate(-4deg)", transformOrigin: "left center" }}
+    >
+      {/* Pass 1: stroke that "writes" */}
+      <text
+        x="0"
+        y="20"
+        className="ootd-gw-stroke"
+        fontFamily="'Permanent Marker', 'Caveat', cursive"
+        fontSize="20"
+        fontWeight={900}
+        fill="none"
+        stroke="hsl(0 0% 8%)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        Customize
+      </text>
+      {/* Pass 2: pink fill "tag" overlay added on top of the outline */}
+      <text
+        x="0"
+        y="20"
+        className="ootd-gw-fill"
+        fontFamily="'Permanent Marker', 'Caveat', cursive"
+        fontSize="20"
+        fontWeight={900}
+        fill="hsl(330 95% 60%)"
+        stroke="hsl(0 0% 8%)"
+        strokeWidth="0.6"
+        style={{
+          filter:
+            "drop-shadow(0 0 2px hsl(330 100% 70% / 0.55)) drop-shadow(0 1px 0 hsl(0 0% 0% / 0.35))",
+        }}
+      >
+        Customize
+      </text>
+
+      {/* Eraser sweep — wipes the word away */}
+      <g className="ootd-gw-erase" style={{ transformOrigin: "0 0" }}>
+        <rect
+          x="0"
+          y="-2"
+          width="40"
+          height="30"
+          fill="hsl(var(--background))"
+        />
+      </g>
+
+      {/* Eraser icon following the sweep */}
+      <g className="ootd-gw-eraser" style={{ transformOrigin: "0 0" }}>
+        <rect
+          x="-10"
+          y="6"
+          width="18"
+          height="10"
+          rx="2"
+          fill="hsl(330 60% 88%)"
+          stroke="hsl(0 0% 8%)"
+          strokeWidth="1"
+        />
+        <rect
+          x="-10"
+          y="6"
+          width="18"
+          height="4"
+          rx="2"
+          fill="hsl(220 70% 60%)"
+          stroke="hsl(0 0% 8%)"
+          strokeWidth="1"
+        />
+      </g>
+    </svg>
+  </div>
 );
