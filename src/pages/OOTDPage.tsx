@@ -622,8 +622,34 @@ const OOTDPage = () => {
         >
           <div className="mx-auto flex max-w-lg items-center justify-between gap-2.5 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16 ootd-neon-bar">
             <span className="ootd-graffiti-tag" aria-hidden="true">
-              <span className="ootd-graffiti-hash">#</span>
-              <span className="ootd-graffiti-word">OOTD</span>
+              <svg viewBox="0 0 200 56" className="ootd-graffiti-svg" preserveAspectRatio="xMinYMid meet">
+                <defs>
+                  <filter id="ootd-spray" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" />
+                    <feDisplacementMap in="SourceGraphic" scale="2.2" />
+                  </filter>
+                </defs>
+                <g filter="url(#ootd-spray)" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  {/* # */}
+                  <path d="M14 14 L8 50" stroke="hsl(330 95% 60%)" strokeWidth="5" className="ootd-stroke s1" />
+                  <path d="M28 14 L22 50" stroke="hsl(330 95% 60%)" strokeWidth="5" className="ootd-stroke s2" />
+                  <path d="M6 26 L32 24" stroke="hsl(330 95% 60%)" strokeWidth="4" className="ootd-stroke s3" />
+                  <path d="M4 38 L30 36" stroke="hsl(330 95% 60%)" strokeWidth="4" className="ootd-stroke s4" />
+                  {/* O */}
+                  <path d="M52 22 C44 24 42 42 52 46 C62 48 68 36 64 26 C61 19 55 20 52 22 Z" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s5" />
+                  {/* O */}
+                  <path d="M88 22 C80 24 78 42 88 46 C98 48 104 36 100 26 C97 19 91 20 88 22 Z" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s6" />
+                  {/* T */}
+                  <path d="M114 18 L142 16" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s7" />
+                  <path d="M128 18 L124 48" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s8" />
+                  {/* D */}
+                  <path d="M152 18 L148 50" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s9" />
+                  <path d="M150 18 C168 16 178 26 176 36 C174 46 162 50 148 50" stroke="hsl(0 0% 8%)" strokeWidth="5" className="ootd-stroke s10" />
+                  {/* drips */}
+                  <path d="M10 50 L9 56" stroke="hsl(330 95% 60%)" strokeWidth="2" className="ootd-stroke s11" />
+                  <path d="M126 48 L125 55" stroke="hsl(0 0% 8%)" strokeWidth="2" className="ootd-stroke s12" />
+                </g>
+              </svg>
             </span>
             <div className="flex items-center gap-2.5">
             <button
