@@ -39,27 +39,41 @@ export default function MessagesFullSheet({ open, onClose, initialConversationId
           className="fixed inset-0 z-[110] bg-background"
         >
           <div className="mx-auto flex h-full max-w-lg flex-col">
-            <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-foreground/70" />
-                <span className="text-[11px] font-semibold tracking-[0.25em] text-foreground/80">
-                  MESSAGES
-                  {totalUnread > 0 && (
-                    <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground">
-                      {totalUnread}
-                    </span>
-                  )}
+            <div className="relative flex items-center justify-between border-b border-border/30 bg-gradient-to-b from-card/80 to-background px-5 py-4">
+              {/* Brand stamp — graffiti-flavoured OOTD mailbox tag */}
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="relative inline-flex h-8 w-8 items-center justify-center rounded-xl"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(330 100% 65%) 100%)",
+                    boxShadow: "0 4px 14px -4px hsl(var(--accent) / 0.45)",
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4 text-white" strokeWidth={2.4} />
                 </span>
+                <div className="flex flex-col leading-none">
+                  <span className="font-display text-[15px] italic font-semibold tracking-tight text-foreground">
+                    Mailbox
+                  </span>
+                  <span className="mt-0.5 text-[8.5px] font-mono font-semibold tracking-[0.28em] text-foreground/55">
+                    OOTD · INBOX
+                    {totalUnread > 0 && (
+                      <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold text-accent-foreground">
+                        {totalUnread}
+                      </span>
+                    )}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => {
                   if (active) setActive(null);
                   else onClose();
                 }}
-                className="text-foreground/50 hover:text-foreground"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-foreground/10 text-foreground/55 hover:bg-foreground/5 hover:text-foreground"
                 aria-label="Close messages"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
 

@@ -257,6 +257,7 @@ export default function MessageThread({
                   </p>
                 )}
                 <MessageBubble
+                  id={m.id}
                   content={m.content}
                   isMine={isMine}
                   createdAt={m.created_at}
