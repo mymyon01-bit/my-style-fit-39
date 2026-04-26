@@ -600,7 +600,7 @@ const translations = {
     shoulderWidth: "Larghezza Spalle",
     waist: "Vita",
     inseam: "Cavallo",
-    budget: "Budget",
+    budget: "Fascia di prezzo",
     favoriteBrands: "Brand Preferiti",
     dislikedStyles: "Stili Non Graditi",
     occasion: "Occasione",
