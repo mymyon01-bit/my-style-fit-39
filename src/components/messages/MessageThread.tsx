@@ -223,7 +223,7 @@ export default function MessageThread({
 
       {/* Add-member tray (group only) */}
       {isGroup && showAdd && (
-        <div className="border-b border-border/30 bg-card/40 p-3">
+        <div className="relative z-10 border-b border-border/20 bg-card/40 backdrop-blur-sm p-3">
           <input
             value={addQuery}
             onChange={(e) => setAddQuery(e.target.value)}
