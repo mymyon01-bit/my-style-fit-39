@@ -1428,7 +1428,7 @@ const translations = {
     shoulderWidth: "Largeur d'épaules",
     waist: "Tour de taille",
     inseam: "Entrejambe",
-    budget: "Budget",
+    budget: "Gamme de prix",
     favoriteBrands: "Marques favorites",
     dislikedStyles: "Styles non aimés",
     occasion: "Occasion",
