@@ -846,6 +846,7 @@ const OOTDPage = () => {
               key={activeTab}
               refreshKey={storiesRefreshKey}
               circlesOnly={activeTab === "mypage"}
+              compact={activeTab === "mypage"}
               onUploadClick={() => {
                 if (!user) { navigate("/auth"); return; }
                 setStoryUploadOpen(true);
