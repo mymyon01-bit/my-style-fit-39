@@ -686,7 +686,7 @@ const translations = {
     profileGenerated: "Abbiamo creato il tuo DNA di stile personalizzato in base al tuo corpo, preferenze e direzione estetica.",
     howAreYouFeeling: "Qual è il tuo stile oggi?",
     confident: "Sicuro/a",
-    casual: "Casual",
+    casual: "Casuale",
     sharp: "Elegante",
     lazy: "Rilassato/a",
     dateReady: "Pronto/a per un appuntamento",
