@@ -53,10 +53,25 @@ const DesktopNav = () => {
             {navLinks.map((link) => {
               const active = isActive(link.path);
               const showOotdBadge = link.path === "/ootd" && !active && ootdUnread > 0;
+              const handleClick = () => {
+                // Remember where we came from BEFORE leaving — so OOTD's
+                // close button (desktop) and the back button can return
+                // the user to the page they were on instead of dumping
+                // them on Home (UrlMasker hides the real URL otherwise).
+                if (link.path === "/ootd" && location.pathname !== "/ootd") {
+                  try {
+                    sessionStorage.setItem(
+                      "ootd:return-to",
+                      location.pathname + location.search,
+                    );
+                  } catch {}
+                }
+                navigate(link.path);
+              };
               return (
                 <button
                   key={link.path}
-                  onClick={() => navigate(link.path)}
+                  onClick={handleClick}
                   onMouseEnter={() => prefetchRoute(link.path)}
                   className={`group relative font-mono text-[10px] font-semibold tracking-[0.22em] transition-colors ${
                     active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
