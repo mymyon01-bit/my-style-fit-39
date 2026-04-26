@@ -116,7 +116,12 @@ const UrlMasker = () => {
       path.startsWith("/auth") ||
       path.startsWith("/reset-password") ||
       path.startsWith("/admin") ||
-      path.startsWith("/onboarding");
+      path.startsWith("/onboarding") ||
+      // OOTD manages its own pushState history (tab → tab) so the
+      // browser back button cycles through OOTD tabs before leaving.
+      // Masking the URL would collapse that history and send the user
+      // straight back to "/" on the first back press.
+      path.startsWith("/ootd");
     if (exempt) return;
     if (
       window.location.pathname !== "/" ||
