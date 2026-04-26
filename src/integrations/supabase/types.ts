@@ -2276,6 +2276,33 @@ export type Database = {
         }
         Relationships: []
       }
+      star_grant_recipients: {
+        Row: {
+          created_at: string
+          daily_grant_amount: number
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_grant_amount?: number
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_grant_amount?: number
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           audience: string
@@ -2707,6 +2734,7 @@ export type Database = {
         Args: { _other_user: string }
         Returns: string
       }
+      grant_daily_bonus_stars: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
