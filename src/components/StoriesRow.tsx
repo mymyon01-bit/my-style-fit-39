@@ -191,8 +191,8 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
 
         {loading && others.length === 0
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16">
-                <div className="h-16 w-16 rounded-full bg-foreground/[0.05] animate-pulse" />
+              <div key={i} className={`flex flex-col items-center gap-1.5 flex-shrink-0 ${itemWidth}`}>
+                <div className={`${ringSize} rounded-full bg-foreground/[0.05] animate-pulse`} />
                 <div className="h-2 w-10 rounded bg-foreground/[0.05] animate-pulse" />
               </div>
             ))
@@ -202,11 +202,11 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                 <button
                   key={u.user_id}
                   onClick={() => onOpenStories(realIndex, grouped)}
-                  className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16 group"
+                  className={`flex flex-col items-center gap-1.5 flex-shrink-0 ${itemWidth} group`}
                 >
                   <div className="relative">
                     <RippleRing active unseen={u.hasUnseen} />
-                    <div className="relative h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background">
+                    <div className={`relative ${ringSize} rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background`}>
                       {u.profile?.avatar_url ? (
                         <img src={u.profile.avatar_url} alt={u.profile.display_name || ""} className="w-full h-full object-cover" />
                       ) : (
@@ -216,7 +216,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                       )}
                     </div>
                   </div>
-                  <span className="text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate max-w-[60px]">
+                  <span className={`text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate ${labelMax}`}>
                     {u.profile?.display_name || "User"}
                   </span>
                 </button>
