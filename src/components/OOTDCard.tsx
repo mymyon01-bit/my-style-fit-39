@@ -128,7 +128,7 @@ function OOTDCardImpl({
               {stars > 0 && (
                 <span className="flex items-center gap-1 rounded-full bg-black/35 backdrop-blur-md px-1.5 py-0.5 ring-1 ring-white/10">
                   <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[9px] font-semibold text-white tabular-nums">{stars}</span>
+                  <span className="text-[9px] font-semibold text-white tabular-nums">{formatCount(stars)}</span>
                 </span>
               )}
               <button
