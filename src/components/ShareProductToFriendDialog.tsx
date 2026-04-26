@@ -125,7 +125,7 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
     return () => {
       cancelled = true;
     };
-  }, [open, tab, user, friendsFromInbox]);
+  }, [open, user, friendsFromInbox]);
 
   // Debounced search by id / username / display_name
   useEffect(() => {
