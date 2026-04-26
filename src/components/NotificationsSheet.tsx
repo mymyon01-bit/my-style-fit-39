@@ -179,10 +179,18 @@ export default function NotificationsSheet({ open, onClose }: Props) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12px] text-foreground/90">
               <span className="font-semibold">{actorName}</span>
-              <span className="text-foreground/60">님이 {LABEL_BY_TYPE[n.type] || n.type}</span>
+              <span className="text-foreground/60">{S.connector || " "}{A[n.type] || n.type}</span>
             </p>
+            {/* Surface a translate CTA if the actor's display name is in a
+                non-UI script (e.g. Korean name shown to an English user). */}
+            <TranslateButton text={actorName} className="mt-0.5" />
+            {/* Translate the comment / message preview when present in the
+                metadata payload (e.g. comment text on a comment notif). */}
+            {typeof (n.metadata as any)?.preview === "string" && (n.metadata as any).preview.trim() && (
+              <TranslateButton text={(n.metadata as any).preview} className="mt-0.5" />
+            )}
             <p className="text-[10px] text-foreground/40">
-              {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+              {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: dateLocale })}
             </p>
           </div>
           {isUnread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
