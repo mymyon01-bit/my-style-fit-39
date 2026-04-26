@@ -746,18 +746,27 @@ const OOTDPage = () => {
             {/* Music + customize controls — graffiti hint nudges users toward
                 the gear, which now opens the full Customize modal. */}
             <div className="flex items-center justify-end gap-2 mb-3">
-              <div className="flex items-center gap-2 mr-auto pl-1">
-                <span aria-hidden className="text-foreground/55 text-[14px] leading-none">↘</span>
+              <button
+                type="button"
+                onClick={() => setCustomizeOpen(true)}
+                aria-label="Open customize"
+                className="flex items-center gap-2 mr-auto pl-1 group"
+              >
+                <span aria-hidden className="text-accent/70 text-[14px] leading-none group-hover:text-accent transition-colors">↘</span>
                 <span
-                  className="text-[12px] font-black tracking-tight text-foreground/80 italic -rotate-3 select-none"
+                  className="text-[12px] font-semibold tracking-wide text-foreground/85 italic -rotate-2 select-none group-hover:text-accent transition-colors"
                   style={{
-                    fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
-                    textShadow: "1px 1px 0 hsl(var(--accent) / 0.35)",
+                    fontFamily: "'Caveat', 'Dancing Script', 'Brush Script MT', cursive",
+                    fontSize: "16px",
+                    textShadow: "1px 1px 0 hsl(var(--accent) / 0.25)",
                   }}
                 >
-                  customize!
+                  make it yours ♡
                 </span>
-              </div>
+                <span className="hidden sm:inline-flex items-center rounded-full bg-accent/15 px-1.5 py-0.5 text-[8px] font-semibold tracking-[0.18em] text-accent uppercase">
+                  tap
+                </span>
+              </button>
               <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
               <button
                 type="button"

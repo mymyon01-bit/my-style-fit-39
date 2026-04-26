@@ -29,7 +29,7 @@ const BottomNav = () => {
       {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
       <div className="bg-background/95 backdrop-blur-xl border-t border-foreground/10">
-        <div className="flex w-full items-center justify-between px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+        <div className="flex w-full items-center justify-between px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:px-6">
           {tabs.map((tab) => {
             const isActive =
               location.pathname === tab.path ||
@@ -60,7 +60,7 @@ const BottomNav = () => {
                 )}
                 <span className="relative">
                   <tab.icon
-                    className={`h-4 w-4 transition-transform duration-200 md:h-5 md:w-5 ${
+                    className={`h-[19px] w-[19px] transition-transform duration-200 md:h-5 md:w-5 ${
                       isActive ? "scale-110" : "group-hover:scale-110"
                     }`}
                     strokeWidth={isActive ? 2.4 : 1.6}
@@ -74,9 +74,9 @@ const BottomNav = () => {
                     </span>
                   )}
                 </span>
-                <span className="font-mono text-[8px] font-semibold tracking-[0.2em] md:text-[9px]">
+                <span className="font-mono text-[9px] font-semibold tracking-[0.2em] md:text-[10px]">
                   {tab.isOotd ? (
-                    <OOTDNavLabel className="text-[8px] md:text-[9px] font-semibold tracking-[0.2em]" crownSize={11} />
+                    <OOTDNavLabel className="text-[9px] md:text-[10px] font-semibold tracking-[0.2em]" crownSize={12} />
                   ) : (
                     tab.label
                   )}
