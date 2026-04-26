@@ -78,8 +78,8 @@ const OOTDModalHost = () => {
               <X className="h-4 w-4" />
             </button>
 
-            {/* Scrollable inner content */}
-            <div className="h-full w-full overflow-y-auto">
+            {/* OOTD owns its own scroll area so its bottom menu stays fixed. */}
+            <div className="h-full w-full overflow-hidden">
               <OOTDPage />
             </div>
           </motion.div>

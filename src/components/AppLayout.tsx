@@ -11,6 +11,7 @@ const AppLayout = () => {
 
   // Hide top notice on mobile landing page
   const hideNotice = isMobile && location.pathname === "/";
+  const hideBottomNav = isMobile && location.pathname.startsWith("/ootd");
 
   return (
     <>
@@ -18,7 +19,7 @@ const AppLayout = () => {
       <div className={transition === "none" ? undefined : transitionClass}>
         <Outlet />
       </div>
-      <BottomNav />
+      {!hideBottomNav && <BottomNav />}
     </>
   );
 };
