@@ -251,14 +251,16 @@ const GraffitiCustomize = () => (
       className="absolute inset-0 h-full w-full overflow-visible"
       style={{ transform: "rotate(-4deg)", transformOrigin: "left center" }}
     >
-      {/* Pass 1: stroke that "writes" */}
+      {/* Pass 1: stroke that "writes" — same family as the #OOTD logo (font-display = Fraunces, italic black) */}
       <text
         x="0"
         y="20"
         className="ootd-gw-stroke"
-        fontFamily="'Permanent Marker', 'Caveat', cursive"
-        fontSize="20"
+        fontFamily="Fraunces, 'Times New Roman', serif"
+        fontStyle="italic"
+        fontSize="19"
         fontWeight={900}
+        letterSpacing="-0.5"
         fill="none"
         stroke="hsl(0 0% 8%)"
         strokeWidth="1.4"
