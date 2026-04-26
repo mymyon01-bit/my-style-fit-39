@@ -27,9 +27,12 @@ interface Props {
   onViewMyStory?: () => void;
   onUploadStory?: () => void;
   onOpenMessages?: () => void;
+  /** When provided, the gear opens the OOTD customize modal instead of
+   *  navigating to /profile. Used on mobile to keep users in the OOTD flow. */
+  onOpenSettings?: () => void;
 }
 
-const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages }: Props) => {
+const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
