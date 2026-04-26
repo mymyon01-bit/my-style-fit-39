@@ -88,6 +88,7 @@ const OOTDPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dailyStarCap, setDailyStarCap] = useState(3);
   const [starsLeft, setStarsLeft] = useState(3);
+  const [bonusStars, setBonusStars] = useState(0);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
@@ -372,12 +373,13 @@ const OOTDPage = () => {
     const today = new Date().toISOString().split("T")[0];
     const [{ data: starsData }, { data: profileData }] = await Promise.all([
       supabase.from("ootd_stars").select("id, post_id").eq("user_id", user.id).gte("created_at", today),
-      supabase.from("profiles").select("is_official").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("is_official, bonus_stars").eq("user_id", user.id).maybeSingle(),
     ]);
     const cap = profileData?.is_official ? 1000 : 3;
     const given = starsData || [];
     setDailyStarCap(cap);
     setStarsLeft(Math.max(0, cap - given.length));
+    setBonusStars(profileData?.bonus_stars || 0);
     setStarredPosts(new Set(given.map(s => s.post_id)));
   };
 
@@ -502,10 +504,18 @@ const OOTDPage = () => {
   };
 
   const handleStar = async (postId: string) => {
-    if (!user || starsLeft <= 0 || starredPosts.has(postId)) return;
+    if (!user || starredPosts.has(postId)) return;
+    const totalAvailable = starsLeft + bonusStars;
+    if (totalAvailable <= 0) return;
     const { error } = await supabase.from("ootd_stars").insert({ user_id: user.id, post_id: postId });
     if (!error) {
-      setStarsLeft(prev => prev - 1);
+      // Spend daily allowance first; only dip into bonus_stars when daily is exhausted.
+      if (starsLeft > 0) {
+        setStarsLeft(prev => prev - 1);
+      } else {
+        setBonusStars(prev => Math.max(0, prev - 1));
+        await supabase.from("profiles").update({ bonus_stars: Math.max(0, bonusStars - 1) }).eq("user_id", user.id);
+      }
       setStarredPosts(prev => new Set(prev).add(postId));
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, star_count: (p.star_count || 0) + 1 } : p));
     }
@@ -679,12 +689,12 @@ const OOTDPage = () => {
               <div className="relative">
                 <button
                   onClick={() => setStarInfoOpen((v) => !v)}
-                  className="ootd-star-bare flex items-center gap-1 px-1"
+                  className="ootd-star-bare ootd-star-glow flex items-center gap-1 rounded-full border px-2 py-0.5"
                   aria-label={t("ootdStarInfoLabel")}
                   title={t("ootdStarInfoLabel")}
                 >
                   <Star className="h-4 w-4 fill-current ootd-star-icon" />
-                  <span className="text-[11px] font-semibold text-foreground">{formatCount(starsLeft)}</span>
+                  <span className="text-[11px] font-bold text-foreground tabular-nums" style={{ color: "#000" }}>{formatCount(starsLeft + bonusStars)}</span>
                 </button>
                 {starInfoOpen && (
                   <>
@@ -701,7 +711,7 @@ const OOTDPage = () => {
                         {t("ootdStarInfoBody")}
                       </p>
                       <p className="mt-2 text-[10px] text-foreground/50">
-                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{formatCount(starsLeft)}</span>
+                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{formatCount(starsLeft + bonusStars)}</span>
                       </p>
                     </div>
                   </>
@@ -810,7 +820,7 @@ const OOTDPage = () => {
                 <>
                   <div className="flex items-center gap-1.5">
                     <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    <span className="text-[10px] font-medium text-foreground/80">{formatCount(starsLeft)}</span>
+                    <span className="text-[10px] font-medium text-foreground/80">{formatCount(starsLeft + bonusStars)}</span>
                   </div>
                   <div className="hidden lg:block">
                     <MailboxIcon
