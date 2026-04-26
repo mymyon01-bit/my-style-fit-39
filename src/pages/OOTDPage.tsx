@@ -688,7 +688,7 @@ const OOTDPage = () => {
                     <div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-2xl border border-border/40 bg-background/95 backdrop-blur-xl shadow-xl shadow-black/15 p-3.5 text-left">
                       <div className="flex items-center gap-1.5 mb-2">
                         <Star className="h-3.5 w-3.5 fill-current text-amber-400" />
-                        <span className="text-[10px] font-semibold tracking-[0.18em] text-foreground/80">STARS</span>
+                        <span className="text-[10px] font-semibold tracking-[0.18em] text-foreground/80">{t("ootdStarInfoTitle")}</span>
                       </div>
                       <p className="text-[11px] leading-relaxed text-foreground/70">
                         하루에 받은 별로 마음에 드는 OOTD에 ⭐을 줄 수 있어요. 별을 많이 받은 룩은 데일리 랭킹에 올라가요.
