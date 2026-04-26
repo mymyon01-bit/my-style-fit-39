@@ -697,7 +697,8 @@ const OOTDPage = () => {
               ))}
             </div>
             {/* Right cluster — always visible in modal (no separate top row),
-                desktop-only on the standalone page (mobile shows it on row above). */}
+                desktop-only on the standalone page (mobile shows it on row above).
+                Mailbox lives in the My Page card on mobile, so it's omitted here. */}
             <div className={`items-center gap-3 shrink-0 ${inModal ? "flex" : "hidden lg:flex"}`}>
               <button
                 onClick={openOOTDWelcome}
@@ -713,10 +714,13 @@ const OOTDPage = () => {
                     <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                     <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
                   </div>
-                  <MailboxIcon
-                    unread={msgUnread}
-                    onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
-                  />
+                  {/* Mailbox shown on desktop only — mobile uses the My Page card icon. */}
+                  <div className="hidden lg:block">
+                    <MailboxIcon
+                      unread={msgUnread}
+                      onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                    />
+                  </div>
                   {notifUnread > 0 && (
                     <button
                       onClick={() => setNotifsOpen(true)}
