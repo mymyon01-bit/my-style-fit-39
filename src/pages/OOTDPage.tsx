@@ -734,10 +734,15 @@ const OOTDPage = () => {
               <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
                 ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
               </p>
-              <div className="flex w-full items-center gap-1 overflow-x-auto scrollbar-hide md:w-auto md:flex-wrap md:overflow-visible md:gap-1.5">
-                <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
-                <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
-                <CardColorPicker value={cardColor} onChange={setCardColor} />
+              <div className="flex w-full items-center gap-1 md:w-auto md:gap-1.5">
+                <CustomizeMenu
+                  bgTheme={bgTheme}
+                  onBgThemeChange={setBgTheme}
+                  songOfDay={songOfDay}
+                  onSongOfDayChange={setSongOfDay}
+                  cardColor={cardColor}
+                  onCardColorChange={setCardColor}
+                />
               </div>
             </div>
             <MyPageProfileHeader
