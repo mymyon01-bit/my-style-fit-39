@@ -25,7 +25,7 @@ import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
-import { loadOOTDBgTheme as _loadBg } from "@/components/ootd/OOTDBackground";
+
 import { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 import CustomizeMenu from "@/components/ootd/CustomizeMenu";
