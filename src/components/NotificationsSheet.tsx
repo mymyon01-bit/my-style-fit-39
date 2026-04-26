@@ -100,8 +100,8 @@ export default function NotificationsSheet({ open, onClose }: Props) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12px] text-foreground/90">
-              <span className="font-semibold">{actorName}</span>{" "}
-              <span className="text-foreground/60">{LABEL_BY_TYPE[n.type] || n.type}</span>
+              <span className="font-semibold">{actorName}</span>
+              <span className="text-foreground/60">님이 {LABEL_BY_TYPE[n.type] || n.type}</span>
             </p>
             <p className="text-[10px] text-foreground/40">
               {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
