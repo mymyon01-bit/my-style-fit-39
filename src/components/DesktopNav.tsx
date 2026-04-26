@@ -64,7 +64,11 @@ const DesktopNav = () => {
                   key={link.path}
                   onClick={() => {
                     if (link.path === "/ootd") {
-                      openOOTD();
+                      setOotdTapped(true);
+                      setTimeout(() => {
+                        openOOTD();
+                        setOotdTapped(false);
+                      }, 700);
                     } else {
                       navigate(link.path);
                     }
