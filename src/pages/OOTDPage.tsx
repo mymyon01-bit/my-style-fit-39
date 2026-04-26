@@ -704,8 +704,8 @@ const OOTDPage = () => {
             <button
               onClick={openOOTDWelcome}
               className="ootd-neon-icon"
-              aria-label="OOTD 안내 보기"
-              title="OOTD 안내"
+              aria-label={t("ootdInfoOpen")}
+              title={t("ootdInfoLabel")}
             >
               <Info className="h-[15px] w-[15px]" />
             </button>
