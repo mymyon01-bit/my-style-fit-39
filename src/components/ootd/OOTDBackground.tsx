@@ -152,16 +152,7 @@ export default function OOTDBackground({ theme, realistic = true, contained = fa
   if (theme !== "none" && realistic && videoSrc) {
     return (
       <div className={`pointer-events-none ${posClass} overflow-hidden`}>
-        <video
-          key={videoSrc}
-          src={videoSrc}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <VideoBackground src={videoSrc} />
         {/* Subtle dark wash so foreground UI stays legible over bright scenes */}
         <div className="absolute inset-0 bg-background/35" />
       </div>
