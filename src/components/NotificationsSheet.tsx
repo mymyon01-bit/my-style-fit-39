@@ -123,6 +123,10 @@ const ICON_BY_TYPE: Record<string, any> = {
 export default function NotificationsSheet({ open, onClose }: Props) {
   const { items, actors, loading, markAllRead, reload } = useNotificationsList();
   const navigate = useNavigate();
+  const { lang } = useI18n();
+  const S = STRINGS[lang] || STRINGS.en;
+  const A = ACTION_LABELS[lang] || ACTION_LABELS.en;
+  const dateLocale = DATE_LOCALES[lang];
 
   // Esc closes the sheet — guarantees a keyboard exit if the X is missed
   useEffect(() => {
