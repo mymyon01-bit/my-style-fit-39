@@ -714,6 +714,25 @@ const OOTDPage = () => {
                   )}
                 </>
               )}
+              {/* Close OOTD — desktop only. Returns to the page the user
+                  came from (saved by DesktopNav/BottomNav before navigating
+                  here) so OOTD feels like a popup overlay rather than a
+                  destination that drops the user on Home when closed. */}
+              <button
+                onClick={() => {
+                  let returnTo = "/";
+                  try {
+                    returnTo = sessionStorage.getItem("ootd:return-to") || "/";
+                    sessionStorage.removeItem("ootd:return-to");
+                  } catch {}
+                  navigate(returnTo);
+                }}
+                className="ml-1 flex h-7 w-7 items-center justify-center rounded-full border border-foreground/15 text-foreground/55 transition-all hover:border-foreground/40 hover:text-foreground"
+                aria-label="Close OOTD"
+                title="Close OOTD"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
 
           </div>
