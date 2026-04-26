@@ -199,7 +199,7 @@ export default function MessageThread({
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold text-foreground">{headerTitle}</p>
+            <p className="truncate text-[12.5px] font-semibold text-foreground">{headerTitle}</p>
             {headerSubtitle && (
               <p className="truncate text-[10px] text-muted-foreground">{headerSubtitle}</p>
             )}
