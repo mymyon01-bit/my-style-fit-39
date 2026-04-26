@@ -31,7 +31,7 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
   return (
     <div
       className={`relative flex flex-col items-center ${className}`}
-      style={compact ? { transform: "scale(0.42)", transformOrigin: "center top" } : undefined}
+      style={compact ? { transform: "scale(0.48)", transformOrigin: "center top" } : undefined}
     >
       {/* Pulsing halo */}
       <motion.div

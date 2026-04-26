@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import { useNotifications } from "@/hooks/useNotifications";
 import OOTDNavLabel from "@/components/OOTDNavLabel";
+import OOTDDiaryIcon from "@/components/OOTDDiaryIcon";
 import { useOOTDModal } from "@/lib/ootdModal";
 
 const BottomNav = () => {
@@ -59,12 +60,16 @@ const BottomNav = () => {
                   />
                 )}
                 <span className="relative">
-                  <tab.icon
-                    className={`h-[22px] w-[22px] transition-transform duration-200 md:h-[17px] md:w-[17px] ${
-                      isActive ? "scale-110" : "group-hover:scale-110"
-                    }`}
-                    strokeWidth={isActive ? 2.4 : 1.6}
-                  />
+                  {tab.isOotd ? (
+                    <OOTDDiaryIcon size={24} active={isActive} />
+                  ) : (
+                    <tab.icon
+                      className={`h-[22px] w-[22px] transition-transform duration-200 md:h-[17px] md:w-[17px] ${
+                        isActive ? "scale-110" : "group-hover:scale-110"
+                      }`}
+                      strokeWidth={isActive ? 2.4 : 1.6}
+                    />
+                  )}
                   {showOotdBadge && (
                     <span
                       aria-label={`${ootdUnread} new OOTD activity`}

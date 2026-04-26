@@ -7,6 +7,7 @@ import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
 import OOTDNavLabel from "@/components/OOTDNavLabel";
+import OOTDDiaryIcon from "@/components/OOTDDiaryIcon";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useOOTDModal } from "@/lib/ootdModal";
 
@@ -73,7 +74,10 @@ const DesktopNav = () => {
                   }`}
                 >
                   {(link as { isOotd?: boolean }).isOotd ? (
-                    <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={13} />
+                    <span className="inline-flex items-center gap-1.5">
+                      <OOTDDiaryIcon size={18} active={active} />
+                      <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={13} />
+                    </span>
                   ) : (
                     link.label
                   )}
