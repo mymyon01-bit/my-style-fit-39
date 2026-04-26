@@ -1214,6 +1214,19 @@ const OOTDPage = () => {
         initialOtherUserId={initialChat.otherUserId}
       />
       <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
+
+      <CustomizeMenu
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        bgTheme={bgTheme}
+        onBgThemeChange={setBgTheme}
+        songOfDay={songOfDay}
+        onSongOfDayChange={setSongOfDay}
+        cardColor={cardColor}
+        onCardColorChange={setCardColor}
+        cardShape={cardShape}
+        onCardShapeChange={setCardShape}
+      />
     </div>
   );
 };
