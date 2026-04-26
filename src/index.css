@@ -401,6 +401,16 @@
   }
 
   /* ── Sparkly gold star (top-bar star balance) ── */
+  /* Bare star — no capsule border, just a glowing icon */
+  .ootd-star-bare {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: hsl(45 100% 50%);
+    cursor: pointer;
+    transition: transform 0.18s ease;
+  }
+  .ootd-star-bare:hover { transform: scale(1.08); }
   .ootd-star-glow {
     background: linear-gradient(135deg, hsl(48 100% 88% / 0.7), hsl(38 100% 80% / 0.55)) !important;
     border-color: hsl(45 100% 70% / 0.75) !important;
