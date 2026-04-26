@@ -161,7 +161,7 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [search, tab, user?.id, friendsFromInbox]);
+  }, [search, open, user?.id, friendsFromInbox]);
 
   // Unified suggestion list (must be declared before any early return).
   //  • when searching → search results
