@@ -140,10 +140,10 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
 
       {/* Floating + breathing wrapper */}
       <motion.div
-        animate={portal ? { scale: 1.4, opacity: 0 } : { y: [0, -6, 0] }}
+        animate={portal ? { scale: [1, 1.15, 1.6], opacity: [1, 1, 0] } : { y: [0, -6, 0] }}
         transition={
           portal
-            ? { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+            ? { duration: 1.05, ease: [0.22, 1, 0.36, 1], times: [0, 0.55, 1] }
             : { duration: 4, repeat: Infinity, ease: "easeInOut" }
         }
       >
