@@ -1878,6 +1878,30 @@ export type Database = {
         }
         Relationships: []
       }
+      removed_accounts: {
+        Row: {
+          email: string
+          id: string
+          reason: string | null
+          removed_at: string
+          removed_by: string | null
+        }
+        Insert: {
+          email: string
+          id?: string
+          reason?: string | null
+          removed_at?: string
+          removed_by?: string | null
+        }
+        Update: {
+          email?: string
+          id?: string
+          reason?: string | null
+          removed_at?: string
+          removed_by?: string | null
+        }
+        Relationships: []
+      }
       saved_folders: {
         Row: {
           created_at: string
