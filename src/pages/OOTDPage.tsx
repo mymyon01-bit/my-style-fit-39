@@ -90,6 +90,14 @@ const OOTDPage = () => {
   // (DB trigger also raises the cap). UI shows "1K" instead of the raw number.
   const [isOfficial, setIsOfficial] = useState(false);
   const dailyStarCap = isOfficial ? 1000 : 3;
+  // Compact display: 1000 → "1K", 1500 → "1.5K". Otherwise show as-is.
+  const formatStarCount = (n: number): string => {
+    if (n >= 1000) {
+      const k = n / 1000;
+      return (k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)) + "K";
+    }
+    return String(n);
+  };
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
