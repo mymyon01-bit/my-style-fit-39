@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles } from "lucide-react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 
-import { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 import CustomizeMenu from "@/components/ootd/CustomizeMenu";
 import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcomeModal";
@@ -123,6 +123,7 @@ const OOTDPage = () => {
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
   const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const [cardColor, setCardColor] = useState<CardColor>(() => {
     const c = loadCardColor();
     if (typeof window !== "undefined") applyCardColorToRoot(c);
@@ -733,12 +734,11 @@ const OOTDPage = () => {
             className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
             style={cardStyle}
           >
-            <div className="flex items-center justify-between gap-2 mb-2 md:mb-3 flex-wrap">
-              <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
-                ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
-              </p>
-              <div className="flex w-full items-center gap-1 md:w-auto md:gap-1.5">
+            <div className="flex items-center justify-end gap-2 mb-2 md:mb-3 flex-wrap">
+              <div className="flex items-center gap-2 shrink-0">
                 <CustomizeMenu
+                  open={customizeOpen}
+                  onOpenChange={setCustomizeOpen}
                   bgTheme={bgTheme}
                   onBgThemeChange={setBgTheme}
                   songOfDay={songOfDay}
@@ -746,8 +746,13 @@ const OOTDPage = () => {
                   cardColor={cardColor}
                   onCardColorChange={setCardColor}
                 />
+                <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
               </div>
             </div>
+            <p className="hidden md:flex items-center gap-1.5 text-[10.5px] text-foreground/60 leading-snug mb-3 italic">
+              <Sparkles className="h-3 w-3 text-accent/70" />
+              <span>당신만의 페이지를 꾸며보세요 — 배경, 색감, 음악까지 자유롭게.</span>
+            </p>
             <MyPageProfileHeader
               postCount={myPosts.length}
               totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
@@ -756,6 +761,7 @@ const OOTDPage = () => {
               hasUnseenStory={hasOwnUnseen}
               onUploadStory={() => setStoryUploadOpen(true)}
               onOpenMessages={() => setMessagesOpen(true)}
+              onOpenSettings={() => setCustomizeOpen(true)}
               onViewMyStory={() => {
                 const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
                 if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });

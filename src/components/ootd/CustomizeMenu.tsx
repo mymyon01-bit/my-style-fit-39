@@ -15,6 +15,11 @@ interface Props {
   onSongOfDayChange: (s: SongOfDay | null) => void;
   cardColor: CardColor;
   onCardColorChange: (c: CardColor) => void;
+  /** Hide the trigger button — useful when an external control opens this menu */
+  hideTrigger?: boolean;
+  /** Controlled open state (optional). When provided, parent owns visibility. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -30,10 +35,19 @@ export default function CustomizeMenu({
   onSongOfDayChange,
   cardColor,
   onCardColorChange,
+  hideTrigger = false,
+  open: openProp,
+  onOpenChange,
 }: Props) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openProp ?? openInternal;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setOpenInternal(next);
+    onOpenChange?.(next);
+  };
   const [isPrivate, setIsPrivate] = useState<boolean | null>(null);
+
 
   // Lazy-load privacy flag the first time the sheet opens
   useEffect(() => {
@@ -131,15 +145,17 @@ export default function CustomizeMenu({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex h-6 md:h-7 items-center gap-1.5 rounded-full border border-border/40 bg-background/60 backdrop-blur px-3 text-[9.5px] md:text-[10px] font-medium tracking-[0.18em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
-        aria-label="Customize my page"
-      >
-        <Sparkles className="h-3 w-3" />
-        CUSTOMIZE
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex h-6 items-center gap-1 rounded-full border border-border/40 bg-background/60 backdrop-blur px-2.5 text-[9px] font-medium tracking-[0.16em] text-foreground/75 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
+          aria-label="Customize my page"
+        >
+          <Sparkles className="h-2.5 w-2.5" />
+          CUSTOMIZE
+        </button>
+      )}
 
       {sheet && typeof document !== "undefined" && createPortal(sheet, document.body)}
     </>

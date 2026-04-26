@@ -27,9 +27,12 @@ interface Props {
   onViewMyStory?: () => void;
   onUploadStory?: () => void;
   onOpenMessages?: () => void;
+  /** When provided, the gear opens the OOTD customize modal instead of
+   *  navigating to /profile. Used on mobile to keep users in the OOTD flow. */
+  onOpenSettings?: () => void;
 }
 
-const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages }: Props) => {
+const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
@@ -216,7 +219,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
         {/* Settings shortcut — Messages live in the sticky page header so we
             don't duplicate the action here. */}
         <button
-          onClick={() => navigate("/profile")}
+          onClick={() => (onOpenSettings ? onOpenSettings() : navigate("/profile"))}
           className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/45 hover:bg-muted hover:text-foreground transition-colors shrink-0"
           aria-label="Profile settings"
         >
