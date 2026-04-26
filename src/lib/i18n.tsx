@@ -665,7 +665,7 @@ const translations = {
     ranking: "Classifica",
     savedLooks: "Look Salvati",
     resetProfile: "Reimposta Profilo",
-    privacy: "Privacy",
+    privacy: "Riservatezza",
     selectStylesYouLove: "Seleziona gli stili che ami",
     selectDislikedStyles: "Stili che non ti piacciono",
     preferredFit: "Vestibilità preferita",
