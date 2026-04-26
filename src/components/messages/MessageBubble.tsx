@@ -317,6 +317,38 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
           )}
         </p>
       </div>
+
+      {/* Mobile-friendly reactions row */}
+      <div className={`mt-1 flex items-center gap-1 ${isMine ? "pr-1" : "pl-1"}`}>
+        <button
+          type="button"
+          onClick={() => toggle("like")}
+          aria-label="Like message"
+          aria-pressed={reaction === "like"}
+          className={`flex h-7 min-w-[34px] items-center justify-center gap-1 rounded-full border px-2 text-[11px] transition-all active:scale-95 ${
+            reaction === "like"
+              ? "border-accent bg-accent/15 text-accent"
+              : "border-border/40 bg-background/60 text-foreground/55 hover:bg-foreground/[0.04]"
+          }`}
+        >
+          <ThumbsUp className="h-3 w-3" strokeWidth={reaction === "like" ? 2.6 : 2} />
+          {reaction === "like" && <span className="text-[10px] font-bold">1</span>}
+        </button>
+        <button
+          type="button"
+          onClick={() => toggle("dislike")}
+          aria-label="Dislike message"
+          aria-pressed={reaction === "dislike"}
+          className={`flex h-7 min-w-[34px] items-center justify-center gap-1 rounded-full border px-2 text-[11px] transition-all active:scale-95 ${
+            reaction === "dislike"
+              ? "border-destructive/60 bg-destructive/10 text-destructive"
+              : "border-border/40 bg-background/60 text-foreground/55 hover:bg-foreground/[0.04]"
+          }`}
+        >
+          <ThumbsDown className="h-3 w-3" strokeWidth={reaction === "dislike" ? 2.6 : 2} />
+          {reaction === "dislike" && <span className="text-[10px] font-bold">1</span>}
+        </button>
+      </div>
     </div>
   );
 }
