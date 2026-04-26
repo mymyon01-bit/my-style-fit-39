@@ -4,11 +4,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import { useNotifications } from "@/hooks/useNotifications";
 import OOTDNavLabel from "@/components/OOTDNavLabel";
+import { useOOTDModal } from "@/lib/ootdModal";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { ootdUnread } = useNotifications();
+  const { open: openOotdModal } = useOOTDModal();
 
   useEffect(() => {
     prefetchAllTabs();
