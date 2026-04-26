@@ -810,7 +810,7 @@ const OOTDPage = () => {
                 <>
                   <div className="flex items-center gap-1.5">
                     <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
+                    <span className="text-[10px] font-medium text-foreground/80">{formatCount(starsLeft)}</span>
                   </div>
                   <div className="hidden lg:block">
                     <MailboxIcon
