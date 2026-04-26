@@ -830,7 +830,11 @@ const OOTDPage = () => {
                 <>
                   <div className="flex items-center gap-1.5">
                     <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
+                    {/* Gold-bordered, black-text pill so the count is legible
+                        across themes. Officials see "1K" instead of 1000. */}
+                    <span className="inline-flex h-[16px] items-center justify-center rounded-full border border-[hsl(45_90%_55%)] bg-white px-1.5 text-[9.5px] font-bold tabular-nums text-black leading-none">
+                      {formatStarCount(starsLeft)}
+                    </span>
                   </div>
                   <div className="hidden lg:block">
                     <MailboxIcon
