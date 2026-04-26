@@ -232,18 +232,6 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
-        <button
-          onClick={togglePrivate}
-          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
-            profile?.is_private
-              ? "border-accent/40 bg-accent/10 text-accent"
-              : "border-border/40 text-foreground/55 hover:text-foreground/80"
-          }`}
-          aria-label="Toggle private account"
-        >
-          {profile?.is_private ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-          {profile?.is_private ? "Private" : "Public"}
-        </button>
       </div>
 
       <CirclesSheet
