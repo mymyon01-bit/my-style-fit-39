@@ -123,7 +123,7 @@ function OOTDCardImpl({
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="flex items-center gap-1 rounded-full bg-black/35 backdrop-blur-md px-1.5 py-0.5 ring-1 ring-white/10">
                 <Heart className={`h-3 w-3 ${likes > 0 ? "fill-rose-400 text-rose-400" : "text-white/80"}`} />
-                <span className="text-[9px] font-semibold text-white tabular-nums">{likes}</span>
+                <span className="text-[9px] font-semibold text-white tabular-nums">{formatCount(likes)}</span>
               </span>
               {stars > 0 && (
                 <span className="flex items-center gap-1 rounded-full bg-black/35 backdrop-blur-md px-1.5 py-0.5 ring-1 ring-white/10">
