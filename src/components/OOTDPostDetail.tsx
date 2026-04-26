@@ -379,7 +379,7 @@ export default function OOTDPostDetail({
                 }`}
               >
                 <HeartOff className={`h-3 w-3 ${reaction === "dislike" ? "fill-current" : ""}`} />
-                <span className="text-[10px] font-semibold tabular-nums">{post.dislike_count || 0}</span>
+                <span className="text-[10px] font-semibold tabular-nums">{formatCount(post.dislike_count)}</span>
               </button>
             </AuthGate>
             <div className="inline-flex h-7 items-center gap-1 rounded-full bg-foreground/[0.04] px-2 ring-1 ring-border/40 text-foreground/60">
