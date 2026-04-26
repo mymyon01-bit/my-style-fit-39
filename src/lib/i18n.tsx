@@ -876,7 +876,7 @@ const translations = {
     shoulderWidth: "Schulterbreite",
     waist: "Taille",
     inseam: "Schrittlänge",
-    budget: "Budget",
+    budget: "Preisrahmen",
     favoriteBrands: "Lieblingsmarken",
     dislikedStyles: "Ungeliebte Stile",
     occasion: "Anlass",
