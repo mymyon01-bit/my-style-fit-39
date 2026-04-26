@@ -66,7 +66,7 @@ const BottomNav = () => {
                 )}
                 <span className="relative">
                   {tab.isOotd ? (
-                    <OOTDDiaryIcon size={24} active={isActive} />
+                    <OOTDDiaryIcon size={26} active={isActive} tapped={ootdTapped} />
                   ) : (
                     <tab.icon
                       className={`h-[22px] w-[22px] transition-transform duration-200 md:h-[17px] md:w-[17px] ${
