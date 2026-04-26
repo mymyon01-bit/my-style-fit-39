@@ -660,6 +660,7 @@ const OOTDPage = () => {
                 </button>
               </>
             )}
+            </div>
           </div>
         </div>
       )}
