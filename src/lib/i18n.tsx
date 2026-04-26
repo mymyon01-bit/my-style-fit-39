@@ -882,7 +882,7 @@ const translations = {
     occasion: "Anlass",
     daily: "Alltag",
     office: "Büro",
-    date: "Date",
+    date: "Date Night",
     travel: "Reise",
     getStarted: "Los geht's",
     next: "Weiter",
