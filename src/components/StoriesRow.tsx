@@ -35,6 +35,8 @@ interface Props {
   circlesOnly?: boolean;
   /** Notifies parent whenever the grouped story list refreshes. */
   onLoaded?: (users: UserStories[]) => void;
+  /** Render smaller circles — used on My Page where space is tight. */
+  compact?: boolean;
 }
 
 const SEEN_KEY = "wardrobe.seenStories";
@@ -47,7 +49,7 @@ const getSeen = (): Record<string, string> => {
   }
 };
 
-const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded }: Props) => {
+const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded, compact = false }: Props) => {
   const { user } = useAuth();
   const [grouped, setGrouped] = useState<UserStories[]>([]);
   const [myProfile, setMyProfile] = useState<ProfileLite | null>(null);
