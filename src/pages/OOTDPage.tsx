@@ -635,7 +635,7 @@ const OOTDPage = () => {
                   <Star className="h-[13px] w-[13px] fill-current" />
                   <span className="text-[10px] font-semibold">{starsLeft}</span>
                 </div>
-                <div className="ootd-neon-icon">
+                <div className="ootd-neon-icon ootd-neon-icon--ink">
                   <MailboxIcon
                     unread={msgUnread}
                     onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
