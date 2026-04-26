@@ -596,16 +596,18 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className={`relative min-h-screen bg-background ${inModal ? "pt-4 pb-24" : "pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
+    <div className={`relative bg-background ${inModal ? "flex min-h-full flex-col pt-4 pb-4" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
       {/* Tab bar — top on the standalone page, bottom (footer) when shown inside the desktop modal */}
       {!inModal && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
-      <div className={
-        inModal
-          ? "fixed left-1/2 bottom-0 z-30 w-[min(980px,86vw)] -translate-x-1/2 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl"
-          : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
-      }>
+      <div
+        className={
+          inModal
+            ? "order-last sticky bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-accent/[0.14] rounded-b-2xl"
+            : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
+        }
+      >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           {/* Mobile-only first row: brand + right-side actions. Tabs sit on a
               SECOND row so RANKING/FEED/COMMUNITY/MY PAGE never get squeezed
