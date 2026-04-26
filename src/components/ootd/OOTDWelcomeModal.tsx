@@ -128,6 +128,8 @@ const buildSlides = (t: (k: any) => string): Slide[] => [
 ];
 
 export default function OOTDWelcomeModal() {
+  const { t, lang } = useI18n();
+  const slides = useMemo(() => buildSlides(t), [t, lang]);
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
 
