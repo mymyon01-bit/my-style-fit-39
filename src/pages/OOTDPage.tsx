@@ -604,7 +604,7 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${inModal ? "flex h-full min-h-full flex-col overflow-hidden pt-3" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
+    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${inModal ? "flex h-dvh min-h-0 flex-col overflow-hidden pt-[max(0.75rem,env(safe-area-inset-top))]" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={inModal} />
       {/* Tab bar — bottom on mobile modal, top on standalone page. */}
@@ -612,7 +612,7 @@ const OOTDPage = () => {
       <div
         className={
           inModal
-            ? "order-last shrink-0 z-30 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md border-t border-accent/[0.14] md:rounded-b-2xl"
+            ? "order-last shrink-0 z-30 bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14] md:rounded-b-2xl"
             : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
         }
       >
@@ -672,10 +672,10 @@ const OOTDPage = () => {
                   onClick={() => setActiveTab(key)}
                   aria-label={label}
                   title={label}
-                  className="relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-3"
+                  className="relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-3.5"
                 >
                   <Icon
-                    className={`h-[22px] w-[22px] transition-colors ${
+                    className={`h-[24px] w-[24px] transition-colors ${
                       activeTab === key ? "text-foreground" : "text-foreground/45"
                     }`}
                     strokeWidth={activeTab === key ? 2.2 : 1.6}
@@ -734,7 +734,7 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className={`relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${inModal ? "min-h-0 flex-1 overflow-y-auto pb-6" : ""}`}>
+      <div className={`relative mx-auto w-full max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${inModal ? "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6" : ""}`}>
         {activeTab === "mypage" && user && (
           <div
             className="border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
