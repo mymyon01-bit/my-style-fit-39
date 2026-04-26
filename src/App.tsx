@@ -15,6 +15,7 @@ import OOTDModalHost from "@/components/OOTDModalHost";
 import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
 import { initPushNotifications } from "@/lib/native/push";
+import { useMessageToasts } from "@/hooks/useMessageToasts";
 import { isNativeApp } from "@/lib/native/platform";
 import { Loader2 } from "lucide-react";
 import AuthPage from "@/pages/AuthPage";
