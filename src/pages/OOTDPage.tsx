@@ -123,6 +123,7 @@ const OOTDPage = () => {
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
   const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const [cardColor, setCardColor] = useState<CardColor>(() => {
     const c = loadCardColor();
     if (typeof window !== "undefined") applyCardColorToRoot(c);
