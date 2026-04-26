@@ -76,7 +76,7 @@ const BottomNav = () => {
                 </span>
                 <span className="font-mono text-[10px] font-semibold tracking-[0.18em] md:text-[10px]">
                   {tab.isOotd ? (
-                    <OOTDNavLabel className="text-[10px] md:text-[10px] font-semibold tracking-[0.18em]" crownSize={13} />
+                    <OOTDNavLabel className="text-[10px] md:text-[10px] font-semibold tracking-[0.18em]" crownSize={17} />
                   ) : (
                     tab.label
                   )}
