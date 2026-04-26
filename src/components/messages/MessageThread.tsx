@@ -5,6 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useThread, addConversationMember } from "@/hooks/useMessages";
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
+import OOTDBackground, {
+  loadOOTDBgTheme,
+  loadOOTDBgRealistic,
+  type OOTDBgTheme,
+} from "@/components/ootd/OOTDBackground";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -42,6 +47,23 @@ export default function MessageThread({
   const [addQuery, setAddQuery] = useState("");
   const [addResults, setAddResults] = useState<ProfileLite[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Mirror the user's OOTD background preference inside the chat thread.
+  const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
+  const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("ootd_bg_theme, ootd_bg_realistic")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        if (data.ootd_bg_theme) setBgTheme(data.ootd_bg_theme as OOTDBgTheme);
+        if (typeof data.ootd_bg_realistic === "boolean") setBgRealistic(data.ootd_bg_realistic);
+      });
+  }, [user]);
 
   // Load member profiles (group) or the other user (1:1)
   useEffect(() => {
@@ -136,9 +158,17 @@ export default function MessageThread({
     : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border-2 border-foreground/15 bg-background shadow-soft">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-border/30 bg-background/40 shadow-soft">
+      {/* OOTD background — mirrors the user's My-Page personalization */}
+      {bgTheme !== "none" && (
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-3xl">
+          <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained />
+          {/* Soft scrim so chat text stays legible on busy backgrounds */}
+          <div className="absolute inset-0 bg-background/55 backdrop-blur-[2px]" />
+        </div>
+      )}
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border/40 bg-card/60 px-4 py-3">
+      <div className="relative z-10 flex items-center gap-3 border-b border-border/20 bg-card/50 backdrop-blur-sm px-4 py-3">
         <button
           onClick={onBack}
           className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -169,7 +199,7 @@ export default function MessageThread({
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold text-foreground">{headerTitle}</p>
+            <p className="truncate text-[12.5px] font-semibold text-foreground">{headerTitle}</p>
             {headerSubtitle && (
               <p className="truncate text-[10px] text-muted-foreground">{headerSubtitle}</p>
             )}
@@ -193,7 +223,7 @@ export default function MessageThread({
 
       {/* Add-member tray (group only) */}
       {isGroup && showAdd && (
-        <div className="border-b border-border/30 bg-card/40 p-3">
+        <div className="relative z-10 border-b border-border/20 bg-card/40 backdrop-blur-sm p-3">
           <input
             value={addQuery}
             onChange={(e) => setAddQuery(e.target.value)}
@@ -236,7 +266,7 @@ export default function MessageThread({
       )}
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -270,7 +300,9 @@ export default function MessageThread({
         )}
       </div>
 
-      <MessageComposer onSend={handleSend} />
+      <div className="relative z-10">
+        <MessageComposer onSend={handleSend} />
+      </div>
     </div>
   );
 }

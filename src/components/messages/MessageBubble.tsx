@@ -89,10 +89,10 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
   return (
     <div className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-[13px] leading-snug shadow-soft ${
+        className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[12px] leading-snug shadow-soft ${
           isMine
             ? "bg-primary text-primary-foreground"
-            : "bg-card text-card-foreground border border-border/40"
+            : "bg-card/85 backdrop-blur-sm text-card-foreground border border-border/25"
         }`}
       >
         {attachments.length > 0 && (
