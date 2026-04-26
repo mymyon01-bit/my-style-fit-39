@@ -365,7 +365,7 @@ export default function OOTDPostDetail({
                 }`}
               >
                 <Heart className={`h-3 w-3 ${reaction === "like" ? "fill-current" : ""}`} />
-                <span className="text-[10px] font-semibold tabular-nums">{post.like_count || 0}</span>
+                <span className="text-[10px] font-semibold tabular-nums">{formatCount(post.like_count)}</span>
               </button>
             </AuthGate>
             <AuthGate action="react">
