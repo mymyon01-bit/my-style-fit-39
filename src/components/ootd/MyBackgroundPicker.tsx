@@ -157,9 +157,6 @@ export default function MyBackgroundPicker({ value, onChange }: Props) {
       >
         <Sparkles className="h-3 w-3" />
         BG
-        <span className="text-foreground/40 normal-case tracking-normal text-[9.5px] md:text-[10px]">
-          · {current.label}
-        </span>
       </button>
 
       {modal && typeof document !== "undefined" && createPortal(modal, document.body)}
