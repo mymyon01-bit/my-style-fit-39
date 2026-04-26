@@ -163,21 +163,10 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
     };
   }, [search, tab, user?.id, friendsFromInbox]);
 
-  if (!product) return null;
-
-  // Unified suggestion list:
+  // Unified suggestion list (must be declared before any early return).
   //  • when searching → search results
   //  • otherwise → people from circle merged with recent inbox conversations
   const suggestions: FriendOption[] = useMemo(() => {
-    const seen = new Set<string>();
-    const merge = (arr: FriendOption[]) => {
-      for (const f of arr) {
-        if (!f.user_id || seen.has(f.user_id)) continue;
-        seen.add(f.user_id);
-      }
-    };
-    merge(circle);
-    merge(friendsFromInbox);
     const ordered: FriendOption[] = [];
     const inboxMap = new Map(friendsFromInbox.map((f) => [f.user_id, f]));
     for (const f of circle) {
@@ -189,6 +178,8 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
     }
     return ordered;
   }, [circle, friendsFromInbox]);
+
+  if (!product) return null;
 
   const visibleList: FriendOption[] =
     search.trim().length >= 2 ? searchResults : suggestions.slice(0, 24);
