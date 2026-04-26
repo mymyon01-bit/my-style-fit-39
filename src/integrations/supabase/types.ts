@@ -2760,6 +2760,7 @@ export type Database = {
         Returns: string
       }
       purge_old_seen_products: { Args: never; Returns: undefined }
+      purge_user_content: { Args: { _user_id: string }; Returns: undefined }
       upsert_query_cluster: {
         Args: {
           _category: string
