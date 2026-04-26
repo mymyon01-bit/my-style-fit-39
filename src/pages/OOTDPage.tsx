@@ -696,8 +696,9 @@ const OOTDPage = () => {
                 </button>
               ))}
             </div>
-            {/* Desktop-only right cluster (mobile shows it on its own row above) */}
-            <div className={`hidden lg:flex items-center gap-3 shrink-0 ${inModal ? "lg:hidden" : ""}`}>
+            {/* Right cluster — always visible in modal (no separate top row),
+                desktop-only on the standalone page (mobile shows it on row above). */}
+            <div className={`items-center gap-3 shrink-0 ${inModal ? "flex" : "hidden lg:flex"}`}>
               <button
                 onClick={openOOTDWelcome}
                 className="text-foreground/55 hover:text-foreground transition-colors"
