@@ -691,7 +691,12 @@ const OOTDPage = () => {
                   title={t("ootdStarInfoLabel")}
                 >
                   <Star className="h-4 w-4 fill-current ootd-star-icon" />
-                  <span className="text-[11px] font-semibold text-foreground">{starsLeft}</span>
+                  {/* Star count pill — gold border + black text so it stays
+                      legible on dark / colored backgrounds. Officials show
+                      "1K" instead of the literal 1000. */}
+                  <span className="inline-flex h-[18px] items-center justify-center rounded-full border border-[hsl(45_90%_55%)] bg-white px-1.5 text-[10px] font-bold tabular-nums text-black leading-none">
+                    {formatStarCount(starsLeft)}
+                  </span>
                 </button>
                 {starInfoOpen && (
                   <>
