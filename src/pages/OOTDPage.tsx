@@ -858,17 +858,8 @@ const OOTDPage = () => {
           </div>
         )}
 
-        {/* POST YOUR OOTD bar — sits in the gap between Stories and My Showroom on My Page */}
-        {activeTab === "mypage" && user && (
-          <button
-            onClick={() => setUploadOpen(true)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
-            style={cardStyle}
-          >
-            <Camera className="h-4 w-4" />
-            <span className="text-[10px] font-medium tracking-[0.22em]">POST YOUR OOTD</span>
-          </button>
-        )}
+        {/* (POST YOUR OOTD button moved into the My Page content block below
+            so it sits between My Showroom and My Posts.) */}
       </div>
 
 
