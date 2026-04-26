@@ -11,7 +11,7 @@ import { useState } from "react";
 
 interface Props {
   className?: string;
-  /** When true, scale the whole hero down ~50% (used on mobile landing). */
+  /** When true, scale the whole hero down to match bottom-nav icon size. */
   compact?: boolean;
 }
 
@@ -24,14 +24,14 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
     if (portal) return;
     setPortal(true);
     setOpen(true);
-    // Let the portal animation play, then navigate
-    setTimeout(() => navigate("/ootd"), 850);
+    // Let the full open + light burst play, then navigate
+    setTimeout(() => navigate("/ootd"), 1100);
   };
 
   return (
     <div
       className={`relative flex flex-col items-center ${className}`}
-      style={compact ? { transform: "scale(0.55)", transformOrigin: "center top" } : undefined}
+      style={compact ? { transform: "scale(0.42)", transformOrigin: "center top" } : undefined}
     >
       {/* Pulsing halo */}
       <motion.div
