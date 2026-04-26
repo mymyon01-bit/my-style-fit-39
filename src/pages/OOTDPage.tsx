@@ -613,48 +613,6 @@ const OOTDPage = () => {
       {/* Tab bar — bottom on mobile OOTD, top on desktop standalone page. */}
       {!mobileOOTD && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
 
-      {/* Mobile-only top header (brand + stars + mailbox + bell + info).
-          Hidden when mounted inside the OOTD modal (modal owns its own X close). */}
-      {mobileOOTD && !inModal && (
-        <div className="shrink-0 z-30 px-4 pb-2 flex items-center justify-between gap-2">
-          <div className="shrink-0"><Brandmark variant="inline" /></div>
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={openOOTDWelcome}
-              className="text-foreground/55 hover:text-foreground transition-colors"
-              aria-label="OOTD 안내 보기"
-              title="OOTD 안내"
-            >
-              <Info className="h-5 w-5" />
-            </button>
-            {user && (
-              <>
-                <div className="flex items-center gap-1.5">
-                  <Star className="h-4 w-4 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[11px] font-medium text-foreground/80">{starsLeft}</span>
-                </div>
-                <MailboxIcon
-                  unread={msgUnread}
-                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
-                />
-                {notifUnread > 0 && (
-                  <button
-                    onClick={() => setNotifsOpen(true)}
-                    className="relative text-foreground/75 hover:text-foreground transition-colors"
-                    aria-label="Open notifications"
-                  >
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
-                      {notifUnread > 99 ? "99+" : notifUnread}
-                    </span>
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
       <div
         className={
           mobileOOTD
