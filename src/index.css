@@ -486,10 +486,6 @@
       opacity: 1;
     }
   }
-  @keyframes ootd-spray-mist {
-    0%, 100% { filter: blur(0); }
-    50%      { filter: blur(0.4px); }
-  }
 
   @keyframes ootd-neon-pulse {
     0%, 100% {
