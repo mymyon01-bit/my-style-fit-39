@@ -691,10 +691,10 @@ const OOTDPage = () => {
                         <span className="text-[10px] font-semibold tracking-[0.18em] text-foreground/80">{t("ootdStarInfoTitle")}</span>
                       </div>
                       <p className="text-[11px] leading-relaxed text-foreground/70">
-                        하루에 받은 별로 마음에 드는 OOTD에 ⭐을 줄 수 있어요. 별을 많이 받은 룩은 데일리 랭킹에 올라가요.
+                        {t("ootdStarInfoBody")}
                       </p>
                       <p className="mt-2 text-[10px] text-foreground/50">
-                        오늘 남은 별: <span className="font-semibold text-foreground/80">{starsLeft}</span>
+                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{starsLeft}</span>
                       </p>
                     </div>
                   </>
