@@ -119,6 +119,24 @@ const AuthPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
+      {removedInfo && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background">
+          <AccountRemovedScreen
+            email={removedInfo.email}
+            reason={removedInfo.reason}
+            onCreateNew={() => {
+              setMode("signup");
+              setPassword("");
+              setError(null);
+              setMessage(null);
+              setRemovedInfo(null);
+            }}
+            onContact={() => setContactOpen(true)}
+            onBack={() => setRemovedInfo(null)}
+          />
+          <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} />
+        </div>
+      )}
       {/* Desktop: left editorial panel */}
       <div className="hidden lg:flex lg:w-1/2 lg:flex-col lg:items-center lg:justify-center lg:bg-foreground/[0.02]">
         <div className="max-w-sm text-center space-y-8">
