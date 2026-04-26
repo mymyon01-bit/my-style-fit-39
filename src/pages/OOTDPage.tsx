@@ -621,7 +621,7 @@ const OOTDPage = () => {
       >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
           {/* Top brand+actions row — only shown on the standalone OOTD page. */}
-          {!inModal && (
+          {!mobileOOTD && (
             <div className="flex items-center justify-between gap-2 pt-2 lg:hidden">
               <div className="shrink-0"><Brandmark variant="inline" /></div>
               <div className="flex items-center gap-3 shrink-0">
