@@ -11,6 +11,8 @@ import { FontSizeProvider } from "@/lib/fontSize";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
 import DesktopNav from "@/components/DesktopNav";
+import OOTDModalHost from "@/components/OOTDModalHost";
+import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
 import { initPushNotifications } from "@/lib/native/push";
 import { isNativeApp } from "@/lib/native/platform";
@@ -116,12 +118,7 @@ const UrlMasker = () => {
       path.startsWith("/auth") ||
       path.startsWith("/reset-password") ||
       path.startsWith("/admin") ||
-      path.startsWith("/onboarding") ||
-      // OOTD manages its own pushState history (tab → tab) so the
-      // browser back button cycles through OOTD tabs before leaving.
-      // Masking the URL would collapse that history and send the user
-      // straight back to "/" on the first back press.
-      path.startsWith("/ootd");
+      path.startsWith("/onboarding");
     if (exempt) return;
     if (
       window.location.pathname !== "/" ||
@@ -168,6 +165,7 @@ const AppRoutes = () => {
     <>
       <UrlMasker />
       {!isAdmin && <DesktopNav />}
+      {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Auth */}
@@ -236,7 +234,9 @@ const App = () => {
                 <Sonner />
                 {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
                 <BrowserRouter>
-                  <AppRoutes />
+                  <OOTDModalProvider>
+                    <AppRoutes />
+                  </OOTDModalProvider>
                 </BrowserRouter>
               </TooltipProvider>
               </AuthProvider>

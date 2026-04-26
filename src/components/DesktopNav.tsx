@@ -8,6 +8,7 @@ import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
 import OOTDNavLabel from "@/components/OOTDNavLabel";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useOOTDModal } from "@/lib/ootdModal";
 
 const DesktopNav = () => {
   const location = useLocation();
@@ -15,6 +16,7 @@ const DesktopNav = () => {
   const { user } = useAuth();
   const { t } = useI18n();
   const { ootdUnread } = useNotifications();
+  const { open: openOOTD, isOpen: ootdOpen } = useOOTDModal();
 
   useEffect(() => {
     prefetchAllTabs();
@@ -28,8 +30,10 @@ const DesktopNav = () => {
     { path: "/profile", label: "PROFILE" },
   ];
 
-  const isActive = (path: string) =>
-    location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+  const isActive = (path: string) => {
+    if (path === "/ootd") return ootdOpen;
+    return location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 hidden md:block">
@@ -53,25 +57,16 @@ const DesktopNav = () => {
             {navLinks.map((link) => {
               const active = isActive(link.path);
               const showOotdBadge = link.path === "/ootd" && !active && ootdUnread > 0;
-              const handleClick = () => {
-                // Remember where we came from BEFORE leaving — so OOTD's
-                // close button (desktop) and the back button can return
-                // the user to the page they were on instead of dumping
-                // them on Home (UrlMasker hides the real URL otherwise).
-                if (link.path === "/ootd" && location.pathname !== "/ootd") {
-                  try {
-                    sessionStorage.setItem(
-                      "ootd:return-to",
-                      location.pathname + location.search,
-                    );
-                  } catch {}
-                }
-                navigate(link.path);
-              };
               return (
                 <button
                   key={link.path}
-                  onClick={handleClick}
+                  onClick={() => {
+                    if (link.path === "/ootd") {
+                      openOOTD();
+                    } else {
+                      navigate(link.path);
+                    }
+                  }}
                   onMouseEnter={() => prefetchRoute(link.path)}
                   className={`group relative font-mono text-[10px] font-semibold tracking-[0.22em] transition-colors ${
                     active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
