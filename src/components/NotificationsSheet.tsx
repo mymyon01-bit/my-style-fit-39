@@ -215,7 +215,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className="h-4 w-4 text-foreground/70 shrink-0" />
                 <span className="text-[11px] font-semibold tracking-[0.25em] text-foreground/80 truncate">
-                  NOTIFICATIONS
+                  {S.title}
                 </span>
                 {unread.length > 0 && (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground leading-none">
