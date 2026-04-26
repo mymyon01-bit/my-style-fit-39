@@ -219,7 +219,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
         {/* Settings shortcut — Messages live in the sticky page header so we
             don't duplicate the action here. */}
         <button
-          onClick={() => navigate("/profile")}
+          onClick={() => (onOpenSettings ? onOpenSettings() : navigate("/profile"))}
           className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/45 hover:bg-muted hover:text-foreground transition-colors shrink-0"
           aria-label="Profile settings"
         >
