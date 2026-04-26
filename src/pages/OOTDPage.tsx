@@ -607,60 +607,66 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${mobileOOTD ? "flex h-dvh min-h-0 flex-col overflow-hidden pt-[max(0.75rem,env(safe-area-inset-top))]" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
+    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${mobileOOTD ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={mobileOOTD} />
       {/* Tab bar — bottom on mobile OOTD, top on desktop standalone page. */}
       {!mobileOOTD && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
 
+      {/* Mobile-only translucent top action bar — sits below the modal close
+          button and houses the info / star balance / mailbox / notifications. */}
+      {mobileOOTD && (
+        <div
+          className="shrink-0 z-30 bg-background/40 backdrop-blur-md border-b border-foreground/[0.08]"
+          style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+        >
+          <div className="mx-auto flex max-w-lg items-center justify-end gap-3 px-4 pb-2 pr-14 md:max-w-2xl md:px-10 md:pr-16">
+            <button
+              onClick={openOOTDWelcome}
+              className="text-foreground/65 hover:text-foreground transition-colors"
+              aria-label="OOTD 안내 보기"
+              title="OOTD 안내"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+            {user && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                  <span className="text-[10px] font-medium text-foreground/85">{starsLeft}</span>
+                </div>
+                <MailboxIcon
+                  unread={msgUnread}
+                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+                />
+                <button
+                  onClick={() => setNotifsOpen(true)}
+                  className="relative text-foreground/75 hover:text-foreground transition-colors"
+                  aria-label="Open notifications"
+                >
+                  <Bell className="h-4 w-4" />
+                  {notifUnread > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                      {notifUnread > 99 ? "99+" : notifUnread}
+                    </span>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div
         className={
           mobileOOTD
-            ? "order-last shrink-0 z-30 bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14] md:rounded-b-2xl"
+            ? "order-last shrink-0 z-30 bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14]"
             : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
         }
       >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-          {/* Top brand+actions row — only shown on the standalone OOTD page. */}
-          {!mobileOOTD && (
-            <div className="flex items-center justify-between gap-2 pt-2 lg:hidden">
-              <div className="shrink-0"><Brandmark variant="inline" /></div>
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={openOOTDWelcome}
-                  className="text-foreground/55 hover:text-foreground transition-colors"
-                  aria-label="OOTD 안내 보기"
-                  title="OOTD 안내"
-                >
-                  <Info className="h-4 w-4" />
-                </button>
-                {user && (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                      <span className="text-[10px] font-medium text-foreground/80">{starsLeft}</span>
-                    </div>
-                    <MailboxIcon
-                      unread={msgUnread}
-                      onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
-                    />
-                    {notifUnread > 0 && (
-                      <button
-                        onClick={() => setNotifsOpen(true)}
-                        className="relative text-foreground/75 hover:text-foreground transition-colors"
-                        aria-label="Open notifications"
-                      >
-                        <Bell className="h-4 w-4" />
-                        <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
-                          {notifUnread > 99 ? "99+" : notifUnread}
-                        </span>
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
+          {/* (Top brand+actions row removed on mobile OOTD — we use the
+              translucent header above instead.) */}
 
           <div className="flex items-center gap-3">
             <div className="flex flex-1 min-w-0 items-stretch justify-around">
@@ -738,7 +744,7 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className={`relative mx-auto w-full max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6" : ""}`}>
+      <div className={`relative mx-auto w-full max-w-lg px-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "min-h-0 flex-1 overflow-y-auto overscroll-contain pt-3 pb-6" : "px-6 pt-8 md:pt-10"}`}>
         {activeTab === "mypage" && user && (
           <div
             className="border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
