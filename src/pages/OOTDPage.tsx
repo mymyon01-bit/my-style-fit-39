@@ -604,7 +604,7 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className={`relative bg-background ${inModal ? "flex min-h-full flex-col pt-3" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
+    <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${inModal ? "flex min-h-full flex-col pt-3" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={inModal} />
       {/* Tab bar — top on the standalone page, bottom (footer) when shown inside the desktop modal */}
