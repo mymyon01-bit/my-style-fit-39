@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send, ChevronDown } from "lucide-react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -88,6 +88,7 @@ const OOTDPage = () => {
   const [starsLeft, setStarsLeft] = useState(3);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [showroomOpen, setShowroomOpen] = useState(false);
   const [trendingTopics, setTrendingTopics] = useState<Topic[]>([]);
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
@@ -846,6 +847,7 @@ const OOTDPage = () => {
               key={activeTab}
               refreshKey={storiesRefreshKey}
               circlesOnly={activeTab === "mypage"}
+              compact={activeTab === "mypage"}
               onUploadClick={() => {
                 if (!user) { navigate("/auth"); return; }
                 setStoryUploadOpen(true);
@@ -856,17 +858,8 @@ const OOTDPage = () => {
           </div>
         )}
 
-        {/* POST YOUR OOTD bar — sits in the gap between Stories and My Showroom on My Page */}
-        {activeTab === "mypage" && user && (
-          <button
-            onClick={() => setUploadOpen(true)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
-            style={cardStyle}
-          >
-            <Camera className="h-4 w-4" />
-            <span className="text-[10px] font-medium tracking-[0.22em]">POST YOUR OOTD</span>
-          </button>
-        )}
+        {/* (POST YOUR OOTD button moved into the My Page content block below
+            so it sits between My Showroom and My Posts.) */}
       </div>
 
 
@@ -1018,20 +1011,68 @@ const OOTDPage = () => {
                 </div>
               ) : (
                 <>
-                  <ShowroomMyBlock userId={user.id} />
+                  {/* My Showroom — collapsible to keep the page calm */}
+                  <div className="rounded-2xl border border-border/35 bg-background/55 backdrop-blur-md overflow-hidden">
+                    <button
+                      onClick={() => setShowroomOpen((v) => !v)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent/[0.04] transition-colors"
+                      aria-expanded={showroomOpen}
+                    >
+                      <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/75">
+                        MY SHOWROOM
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-foreground/55 transition-transform duration-200 ${showroomOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {showroomOpen && (
+                        <motion.div
+                          key="showroom-body"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.22, ease: "easeOut" }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-3 pb-3 pt-1">
+                            <ShowroomMyBlock userId={user.id} />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
-                  {myPosts.length === 0 ? (
-                    <div className="py-16 text-center space-y-3">
-                      <p className="text-[13px] text-foreground/80">No outfits posted yet</p>
-                      <p className="text-[11px] text-foreground/50 max-w-[220px] mx-auto leading-relaxed">
-                        Upload daily looks to build your style identity.
-                      </p>
+                  {/* POST YOUR OOTD — sits between My Showroom and My Posts */}
+                  <button
+                    onClick={() => setUploadOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+                  >
+                    <Camera className="h-4 w-4" />
+                    <span className="text-[10px] font-medium tracking-[0.22em]">POST YOUR OOTD</span>
+                  </button>
+
+                  {/* MY POSTS */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/70">MY POSTS</span>
+                      {myPosts.length > 0 && (
+                        <span className="text-[9px] tracking-[0.2em] text-foreground/40">{myPosts.length}</span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
-                      {myPosts.map((post, i) => renderPostCard(post, i, false, true))}
-                    </div>
-                  )}
+                    {myPosts.length === 0 ? (
+                      <div className="py-12 text-center space-y-2">
+                        <p className="text-[13px] text-foreground/80">No outfits posted yet</p>
+                        <p className="text-[11px] text-foreground/50 max-w-[220px] mx-auto leading-relaxed">
+                          Upload daily looks to build your style identity.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
+                        {myPosts.map((post, i) => renderPostCard(post, i, false, true))}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Bottom share CTA — animated, hashtag-driven */}
                   <ShareOOTDWithFriendCTA />

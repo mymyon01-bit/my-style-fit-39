@@ -35,6 +35,8 @@ interface Props {
   circlesOnly?: boolean;
   /** Notifies parent whenever the grouped story list refreshes. */
   onLoaded?: (users: UserStories[]) => void;
+  /** Render smaller circles — used on My Page where space is tight. */
+  compact?: boolean;
 }
 
 const SEEN_KEY = "wardrobe.seenStories";
@@ -47,7 +49,7 @@ const getSeen = (): Record<string, string> => {
   }
 };
 
-const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded }: Props) => {
+const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded, compact = false }: Props) => {
   const { user } = useAuth();
   const [grouped, setGrouped] = useState<UserStories[]>([]);
   const [myProfile, setMyProfile] = useState<ProfileLite | null>(null);
@@ -135,9 +137,16 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
   const myHasStory = !!user && grouped.some((g) => g.user_id === user.id);
   const others = grouped.filter((g) => !user || g.user_id !== user.id);
 
+  const ringSize = compact ? "h-11 w-11" : "h-16 w-16";
+  const itemWidth = compact ? "w-12" : "w-16";
+  const labelMax = compact ? "max-w-[44px]" : "max-w-[60px]";
+  const plusSize = compact ? "h-4 w-4" : "h-6 w-6";
+  const plusIcon = compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5";
+  const gapClass = compact ? "gap-3" : "gap-4";
+
   return (
-    <div className="-mx-6 md:-mx-10 lg:-mx-12 px-6 md:px-10 lg:px-12 mb-6">
-      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className={`-mx-6 md:-mx-10 lg:-mx-12 px-6 md:px-10 lg:px-12 ${compact ? "mb-3" : "mb-6"}`}>
+      <div className={`flex ${gapClass} overflow-x-auto pb-2 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
         {/* Own avatar — upload entry point */}
         {user && (
           <button
@@ -149,11 +158,11 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                 onUploadClick();
               }
             }}
-            className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16 group"
+            className={`flex flex-col items-center gap-1.5 flex-shrink-0 ${itemWidth} group`}
           >
             <div className="relative">
               <RippleRing active={myHasStory} unseen={myHasStory && grouped.find((g) => g.user_id === user.id)?.hasUnseen} />
-              <div className="relative h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background">
+              <div className={`relative ${ringSize} rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background`}>
                 {myProfile?.avatar_url ? (
                   <img src={myProfile.avatar_url} alt="You" className="w-full h-full object-cover" />
                 ) : (
@@ -169,12 +178,12 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                 }}
                 role="button"
                 aria-label="Add story"
-                className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-tr from-accent via-pink-400 to-amber-300 text-background flex items-center justify-center border-2 border-background shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                className={`absolute -bottom-1 -right-1 ${plusSize} rounded-full bg-gradient-to-tr from-accent via-pink-400 to-amber-300 text-background flex items-center justify-center border-2 border-background shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer`}
               >
-                <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+                <Plus className={`${plusIcon}`} strokeWidth={3} />
               </span>
             </div>
-            <span className="text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate max-w-[60px]">
+            <span className={`text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate ${labelMax}`}>
               Your story
             </span>
           </button>
@@ -182,8 +191,8 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
 
         {loading && others.length === 0
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16">
-                <div className="h-16 w-16 rounded-full bg-foreground/[0.05] animate-pulse" />
+              <div key={i} className={`flex flex-col items-center gap-1.5 flex-shrink-0 ${itemWidth}`}>
+                <div className={`${ringSize} rounded-full bg-foreground/[0.05] animate-pulse`} />
                 <div className="h-2 w-10 rounded bg-foreground/[0.05] animate-pulse" />
               </div>
             ))
@@ -193,11 +202,11 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                 <button
                   key={u.user_id}
                   onClick={() => onOpenStories(realIndex, grouped)}
-                  className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16 group"
+                  className={`flex flex-col items-center gap-1.5 flex-shrink-0 ${itemWidth} group`}
                 >
                   <div className="relative">
                     <RippleRing active unseen={u.hasUnseen} />
-                    <div className="relative h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background">
+                    <div className={`relative ${ringSize} rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background`}>
                       {u.profile?.avatar_url ? (
                         <img src={u.profile.avatar_url} alt={u.profile.display_name || ""} className="w-full h-full object-cover" />
                       ) : (
@@ -207,7 +216,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                       )}
                     </div>
                   </div>
-                  <span className="text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate max-w-[60px]">
+                  <span className={`text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate ${labelMax}`}>
                     {u.profile?.display_name || "User"}
                   </span>
                 </button>
