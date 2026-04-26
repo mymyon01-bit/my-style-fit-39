@@ -1,5 +1,5 @@
 import { Home, Compass, Camera, Scan, User } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import { useNotifications } from "@/hooks/useNotifications";
