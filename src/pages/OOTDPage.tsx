@@ -596,7 +596,7 @@ const OOTDPage = () => {
   );
 
   return (
-    <div className={`relative bg-background ${inModal ? "flex min-h-full flex-col pt-4 pb-4" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
+    <div className={`relative bg-background ${inModal ? "flex min-h-full flex-col pt-3" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} />
       {/* Tab bar — top on the standalone page, bottom (footer) when shown inside the desktop modal */}
@@ -727,7 +727,7 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className="relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12">
+      <div className={`relative mx-auto max-w-lg px-6 pt-8 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-4xl lg:px-12 ${inModal ? "pb-24" : ""}`}>
         {activeTab === "mypage" && user && (
           <div
             className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
@@ -942,6 +942,8 @@ const OOTDPage = () => {
                   <InviteFriendsCard />
 
                   <CreateShowroomBanner />
+
+                  <ShowroomMyBlock userId={user.id} />
 
                   <button onClick={() => setUploadOpen(true)} className="flex w-full items-center justify-center gap-2 py-3 md:py-5 rounded-xl md:rounded-2xl border-2 border-dashed border-foreground/10 text-foreground/60 hover:text-accent/80 hover:border-accent/30 transition-colors">
                     <Camera className="h-4 w-4 md:h-5 md:w-5" />
