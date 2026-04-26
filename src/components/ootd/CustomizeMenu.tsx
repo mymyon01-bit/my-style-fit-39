@@ -89,23 +89,11 @@ export default function CustomizeMenu({
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Sparkles
-              className="h-4 w-4"
+              className="h-4 w-4 shrink-0"
               strokeWidth={2}
               style={{ color: "hsl(330 95% 60%)" }}
             />
-            <h3
-              className="font-display italic font-extrabold tracking-tight text-[15px] leading-none"
-              style={{
-                color: "hsl(330 95% 60%)",
-                WebkitTextStroke: "0.6px hsl(0 0% 6%)",
-                textShadow:
-                  "0 0 2px hsl(330 100% 70% / 0.55), 0 1px 0 hsl(0 0% 0% / 0.35)",
-                transform: "rotate(-4deg)",
-                transformOrigin: "left center",
-              }}
-            >
-              Customize
-            </h3>
+            <GraffitiCustomize />
           </div>
           <button
             type="button"
