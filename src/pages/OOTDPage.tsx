@@ -37,6 +37,7 @@ import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
 import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatCount } from "@/lib/formatCount";
 
 interface OOTDPost {
   id: string;
@@ -85,19 +86,8 @@ const OOTDPage = () => {
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dailyStarCap, setDailyStarCap] = useState(3);
   const [starsLeft, setStarsLeft] = useState(3);
-  // Officially-verified (blue check) accounts get a 1000/day star allowance
-  // (DB trigger also raises the cap). UI shows "1K" instead of the raw number.
-  const [isOfficial, setIsOfficial] = useState(false);
-  const dailyStarCap = isOfficial ? 1000 : 3;
-  // Compact display: 1000 → "1K", 1500 → "1.5K". Otherwise show as-is.
-  const formatStarCount = (n: number): string => {
-    if (n >= 1000) {
-      const k = n / 1000;
-      return (k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)) + "K";
-    }
-    return String(n);
-  };
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
@@ -379,20 +369,15 @@ const OOTDPage = () => {
 
   const loadTodayStars = async () => {
     if (!user) return;
-    // Pull the current user's `is_official` flag so we know which daily cap
-    // to apply — officials get 1000/day (effectively unlimited).
-    const { data: me } = await supabase
-      .from("profiles")
-      .select("is_official")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    const official = Boolean((me as any)?.is_official);
-    setIsOfficial(official);
-    const cap = official ? 1000 : 3;
     const today = new Date().toISOString().split("T")[0];
-    const { data } = await supabase.from("ootd_stars").select("id, post_id").eq("user_id", user.id).gte("created_at", today);
-    const given = data || [];
-    setStarsLeft(Math.max(cap - given.length, 0));
+    const [{ data: starsData }, { data: profileData }] = await Promise.all([
+      supabase.from("ootd_stars").select("id, post_id").eq("user_id", user.id).gte("created_at", today),
+      supabase.from("profiles").select("is_official").eq("user_id", user.id).maybeSingle(),
+    ]);
+    const cap = profileData?.is_official ? 1000 : 3;
+    const given = starsData || [];
+    setDailyStarCap(cap);
+    setStarsLeft(Math.max(0, cap - given.length));
     setStarredPosts(new Set(given.map(s => s.post_id)));
   };
 
@@ -699,12 +684,7 @@ const OOTDPage = () => {
                   title={t("ootdStarInfoLabel")}
                 >
                   <Star className="h-4 w-4 fill-current ootd-star-icon" />
-                  {/* Star count pill — gold border + black text so it stays
-                      legible on dark / colored backgrounds. Officials show
-                      "1K" instead of the literal 1000. */}
-                  <span className="inline-flex h-[18px] items-center justify-center rounded-full border border-[hsl(45_90%_55%)] bg-white px-1.5 text-[10px] font-bold tabular-nums text-black leading-none">
-                    {formatStarCount(starsLeft)}
-                  </span>
+                  <span className="text-[11px] font-semibold text-foreground">{formatCount(starsLeft)}</span>
                 </button>
                 {starInfoOpen && (
                   <>
@@ -721,7 +701,7 @@ const OOTDPage = () => {
                         {t("ootdStarInfoBody")}
                       </p>
                       <p className="mt-2 text-[10px] text-foreground/50">
-                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{formatStarCount(starsLeft)}</span>
+                        {t("ootdStarsLeftToday")}: <span className="font-semibold text-foreground/80">{formatCount(starsLeft)}</span>
                       </p>
                     </div>
                   </>
@@ -830,11 +810,7 @@ const OOTDPage = () => {
                 <>
                   <div className="flex items-center gap-1.5">
                     <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    {/* Gold-bordered, black-text pill so the count is legible
-                        across themes. Officials see "1K" instead of 1000. */}
-                    <span className="inline-flex h-[16px] items-center justify-center rounded-full border border-[hsl(45_90%_55%)] bg-white px-1.5 text-[9.5px] font-bold tabular-nums text-black leading-none">
-                      {formatStarCount(starsLeft)}
-                    </span>
+                    <span className="text-[10px] font-medium text-foreground/80">{formatCount(starsLeft)}</span>
                   </div>
                   <div className="hidden lg:block">
                     <MailboxIcon

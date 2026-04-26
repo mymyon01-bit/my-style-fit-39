@@ -15,6 +15,7 @@ import ShareToOOTDDialog from "@/components/ShareToOOTDDialog";
 import { Repeat2 } from "lucide-react";
 import PostThemeBackground, { POST_THEMES, loadSavedPostTheme, savePostTheme, type PostTheme } from "@/components/ootd/PostThemeBackground";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
+import { formatCount } from "@/lib/formatCount";
 
 interface OOTDPost {
   id: string;
@@ -340,7 +341,7 @@ export default function OOTDPostDetail({
           {(post.star_count || 0) > 0 && (
             <div className="absolute bottom-3 left-3 flex items-center gap-0.5 rounded-full bg-black/40 px-2 py-1 backdrop-blur-sm">
               <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-              <span className="text-[10px] font-medium text-white/80">{post.star_count}</span>
+              <span className="text-[10px] font-medium text-white/80">{formatCount(post.star_count)}</span>
             </div>
           )}
         </div>
@@ -364,7 +365,7 @@ export default function OOTDPostDetail({
                 }`}
               >
                 <Heart className={`h-3 w-3 ${reaction === "like" ? "fill-current" : ""}`} />
-                <span className="text-[10px] font-semibold tabular-nums">{post.like_count || 0}</span>
+                <span className="text-[10px] font-semibold tabular-nums">{formatCount(post.like_count)}</span>
               </button>
             </AuthGate>
             <AuthGate action="react">
@@ -378,12 +379,12 @@ export default function OOTDPostDetail({
                 }`}
               >
                 <HeartOff className={`h-3 w-3 ${reaction === "dislike" ? "fill-current" : ""}`} />
-                <span className="text-[10px] font-semibold tabular-nums">{post.dislike_count || 0}</span>
+                <span className="text-[10px] font-semibold tabular-nums">{formatCount(post.dislike_count)}</span>
               </button>
             </AuthGate>
             <div className="inline-flex h-7 items-center gap-1 rounded-full bg-foreground/[0.04] px-2 ring-1 ring-border/40 text-foreground/60">
               <MessageCircle className="h-3 w-3" />
-              <span className="text-[10px] font-semibold tabular-nums">{comments.length}</span>
+              <span className="text-[10px] font-semibold tabular-nums">{formatCount(comments.length)}</span>
             </div>
             <AuthGate action="give stars">
               <button
@@ -397,7 +398,7 @@ export default function OOTDPostDetail({
                 }`}
               >
                 <Star className={`h-3 w-3 ${isStarred ? "fill-current" : ""}`} />
-                <span className="text-[10px] font-semibold tabular-nums">{post.star_count || 0}</span>
+                <span className="text-[10px] font-semibold tabular-nums">{formatCount(post.star_count)}</span>
               </button>
             </AuthGate>
 
