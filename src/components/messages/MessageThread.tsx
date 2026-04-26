@@ -300,7 +300,9 @@ export default function MessageThread({
         )}
       </div>
 
-      <MessageComposer onSend={handleSend} />
+      <div className="relative z-10">
+        <MessageComposer onSend={handleSend} />
+      </div>
     </div>
   );
 }
