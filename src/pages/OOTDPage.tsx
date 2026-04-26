@@ -673,8 +673,8 @@ const OOTDPage = () => {
                 <button
                   onClick={() => setStarInfoOpen((v) => !v)}
                   className="ootd-star-bare flex items-center gap-1 px-1"
-                  aria-label="별 사용처 안내"
-                  title="별 사용처"
+                  aria-label={t("ootdStarInfoLabel")}
+                  title={t("ootdStarInfoLabel")}
                 >
                   <Star className="h-4 w-4 fill-current ootd-star-icon" />
                   <span className="text-[11px] font-semibold text-foreground">{starsLeft}</span>
