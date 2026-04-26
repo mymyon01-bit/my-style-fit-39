@@ -86,6 +86,7 @@ const OOTDPage = () => {
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dailyStarCap, setDailyStarCap] = useState(3);
   const [starsLeft, setStarsLeft] = useState(3);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
