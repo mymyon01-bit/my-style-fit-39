@@ -1174,7 +1174,7 @@ const translations = {
     viewProfile: "Ver Perfil",
     seeRecommendations: "Ver Recomendaciones",
     fitResult: "Resultado del FIT",
-    compatible: "Compatible",
+    compatible: "Compatible con tu cuerpo",
     notRecommended: "No Recomendado",
     whyThisSuitsYou: "Por qué te sienta bien",
     searchProducts: "Buscar productos...",
