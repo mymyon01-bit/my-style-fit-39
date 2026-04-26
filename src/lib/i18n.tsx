@@ -648,7 +648,7 @@ const translations = {
     hairStyle: "Acconciatura",
     skinTone: "Tono della Pelle",
     weatherToday: "Meteo Oggi",
-    communityFeed: "Community",
+    communityFeed: "Comunità",
     dailyTop: "Top Giornaliero",
     weeklyTop: "Top Settimanale",
     allTime: "Sempre",
