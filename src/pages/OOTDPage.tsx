@@ -757,21 +757,25 @@ const OOTDPage = () => {
                 the Customize modal. The mailbox sits next to Song of the Day
                 so messages live right above the profile, in reach of the thumb. */}
             <div className="flex items-center justify-end gap-2 mb-3">
-              <button
-                type="button"
-                onClick={() => setCustomizeOpen(true)}
-                aria-label="Open customize"
-                title="Customize"
-                className="mr-auto flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-accent shadow-sm ring-1 ring-accent/30 transition-all hover:scale-105 hover:bg-accent/25 active:scale-95"
-              >
-                <Settings className="h-4 w-4" strokeWidth={2} />
-              </button>
-              {user && (
-                <MailboxIcon
-                  unread={msgUnread}
-                  onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
-                />
-              )}
+              <div className="mr-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCustomizeOpen(true)}
+                  aria-label="Open customize"
+                  title="Customize"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-accent shadow-sm ring-1 ring-accent/30 transition-all hover:scale-105 hover:bg-accent/25 active:scale-95"
+                >
+                  <Settings className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomizeOpen(true)}
+                  className="ootd-customize-tag"
+                  aria-label="Open customize"
+                >
+                  customize
+                </button>
+              </div>
               <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
             </div>
             <MyPageProfileHeader
