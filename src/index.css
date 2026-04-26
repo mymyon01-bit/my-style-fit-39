@@ -315,6 +315,57 @@
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
 
+  /* ── OOTD top action bar — neon pastel pink, sparkly cute ── */
+  .ootd-neon-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 6px;
+    border-radius: 999px;
+    color: hsl(330 95% 78%);
+    background: linear-gradient(135deg, hsl(330 100% 92% / 0.55), hsl(290 100% 92% / 0.45));
+    border: 1px solid hsl(330 100% 85% / 0.55);
+    box-shadow:
+      0 0 6px hsl(330 100% 75% / 0.55),
+      0 0 14px hsl(320 100% 70% / 0.35),
+      inset 0 0 6px hsl(330 100% 90% / 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.18s ease, box-shadow 0.25s ease, color 0.18s ease;
+    animation: ootd-neon-pulse 3.2s ease-in-out infinite;
+  }
+  .ootd-neon-icon:hover {
+    transform: translateY(-1px) scale(1.06);
+    color: hsl(330 100% 70%);
+    box-shadow:
+      0 0 10px hsl(330 100% 75% / 0.85),
+      0 0 22px hsl(320 100% 68% / 0.55),
+      inset 0 0 8px hsl(330 100% 92% / 0.6);
+  }
+  .ootd-neon-icon svg {
+    filter: drop-shadow(0 0 3px hsl(330 100% 75% / 0.7));
+  }
+  .ootd-neon-icon button {
+    color: inherit !important;
+  }
+
+  @keyframes ootd-neon-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 6px hsl(330 100% 75% / 0.5),
+        0 0 14px hsl(320 100% 70% / 0.32),
+        inset 0 0 6px hsl(330 100% 90% / 0.45);
+    }
+    50% {
+      box-shadow:
+        0 0 10px hsl(330 100% 78% / 0.75),
+        0 0 22px hsl(310 100% 72% / 0.5),
+        inset 0 0 8px hsl(330 100% 92% / 0.55);
+    }
+  }
+
   /* ── Magenta hover system (replacing burgundy) ── */
   .hover-burgundy { @apply transition-all duration-300; }
   .hover-burgundy:hover {
