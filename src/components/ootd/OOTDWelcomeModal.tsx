@@ -301,7 +301,7 @@ export default function OOTDWelcomeModal() {
                 whileTap={{ scale: 0.96 }}
                 className="ml-auto flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-foreground px-5 text-[12px] font-bold tracking-[0.12em] text-background transition hover:opacity-90"
               >
-                {index === slides.length - 1 ? "시작하기 ✨" : "다음"}
+                {index === slides.length - 1 ? t("ootdWelcomeStart") : t("ootdWelcomeNext")}
                 {index < slides.length - 1 && <ChevronRight className="h-4 w-4" />}
               </motion.button>
             </div>
