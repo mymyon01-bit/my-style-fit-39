@@ -847,7 +847,7 @@ function InlinePlayerCard({
 }: InlinePlayerCardProps) {
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
   return (
-    <div className="flex h-6 md:h-7 items-center gap-1 rounded-full border border-border/40 bg-background/60 backdrop-blur pl-0.5 pr-1 shrink-0 max-w-[160px] sm:max-w-[220px]">
+    <div className="flex h-6 md:h-7 items-center gap-1 rounded-full border border-border/40 bg-background/60 backdrop-blur pl-0.5 pr-1 shrink-0 max-w-[320px] sm:max-w-[440px]">
       {/* Album art */}
       <img
         src={track.artwork}
@@ -858,10 +858,8 @@ function InlinePlayerCard({
         style={{ animationPlayState: isPlaying ? "running" : "paused" }}
       />
 
-      {/* Title — hidden on mobile to keep the chip the same size as BG/Color */}
-      <p className="hidden sm:block min-w-0 flex-1 truncate text-[10px] font-medium text-foreground/85 leading-tight">
-        {track.title}
-      </p>
+      {/* Marquee — artist + title scroll like a flow bar (visible on all sizes) */}
+      <SongMarquee artist={track.artist} title={track.title} />
 
       {/* Play / pause */}
       <button
