@@ -749,7 +749,7 @@ const OOTDPage = () => {
                 onClick={() => setCustomizeOpen(true)}
                 aria-label="Open customize"
                 title="Customize"
-                className="mr-auto flex h-8 w-8 items-center justify-center rounded-full bg-pink-100 text-pink-500 shadow-sm ring-1 ring-pink-200/70 transition-all hover:scale-105 hover:bg-pink-200 hover:text-pink-600 active:scale-95 dark:bg-pink-500/15 dark:text-pink-300 dark:ring-pink-400/30 dark:hover:bg-pink-500/25"
+                className="mr-auto flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-accent shadow-sm ring-1 ring-accent/30 transition-all hover:scale-105 hover:bg-accent/25 active:scale-95"
               >
                 <Settings className="h-4 w-4" strokeWidth={2} />
               </button>
