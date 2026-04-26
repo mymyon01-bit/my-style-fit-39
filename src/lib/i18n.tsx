@@ -705,7 +705,7 @@ const translations = {
     dayTime: "Giorno",
     nightTime: "Notte",
     event: "Evento",
-    casual2: "Casual",
+    casual2: "Informale",
     meeting: "Riunione",
     party: "Festa",
     generateLooks: "Genera Look",
