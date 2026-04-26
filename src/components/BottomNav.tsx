@@ -34,10 +34,21 @@ const BottomNav = () => {
               (tab.path !== "/" && location.pathname.startsWith(tab.path));
             // Only show OOTD badge when not already on the OOTD tab.
             const showOotdBadge = tab.path === "/ootd" && !isActive && ootdUnread > 0;
+            const handleClick = () => {
+              if (tab.path === "/ootd" && !isActive) {
+                try {
+                  sessionStorage.setItem(
+                    "ootd:return-to",
+                    location.pathname + location.search,
+                  );
+                } catch {}
+              }
+              navigate(tab.path);
+            };
             return (
               <button
                 key={tab.path}
-                onClick={() => navigate(tab.path)}
+                onClick={handleClick}
                 onMouseEnter={() => prefetchRoute(tab.path)}
                 onTouchStart={() => prefetchRoute(tab.path)}
                 className={`group relative flex flex-col items-center gap-1 px-2 py-1 transition-all duration-200 md:gap-2 md:px-6 md:py-1.5 ${
