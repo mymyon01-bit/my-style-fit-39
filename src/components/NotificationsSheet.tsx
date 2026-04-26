@@ -264,7 +264,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   {unread.length > 0 && (
                     <div>
                       <p className="px-5 pt-4 pb-2 text-[9px] font-semibold tracking-[0.25em] text-accent">
-                        UNREAD · {unread.length}
+                        {S.unread} · {unread.length}
                       </p>
                       <ul className="divide-y divide-border/20">{unread.map(renderItem)}</ul>
                     </div>
@@ -272,7 +272,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   {earlier.length > 0 && (
                     <div>
                       <p className="px-5 pt-5 pb-2 text-[9px] font-semibold tracking-[0.25em] text-foreground/45">
-                        EARLIER
+                        {S.earlier}
                       </p>
                       <ul className="divide-y divide-border/20">{earlier.map(renderItem)}</ul>
                     </div>
