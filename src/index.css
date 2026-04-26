@@ -400,6 +400,109 @@
       1px 2px 0 hsl(330 80% 50% / 0.3);
   }
 
+  /* ── Sparkly gold star (top-bar star balance) ── */
+  .ootd-star-glow {
+    background: linear-gradient(135deg, hsl(48 100% 88% / 0.7), hsl(38 100% 80% / 0.55)) !important;
+    border-color: hsl(45 100% 70% / 0.75) !important;
+    box-shadow:
+      0 0 8px hsl(45 100% 65% / 0.7),
+      0 0 18px hsl(40 100% 60% / 0.45),
+      inset 0 0 6px hsl(50 100% 90% / 0.6) !important;
+    animation: ootd-gold-pulse 2.4s ease-in-out infinite !important;
+  }
+  .ootd-star-icon {
+    color: hsl(45 100% 50%);
+    filter:
+      drop-shadow(0 0 3px hsl(48 100% 65% / 0.95))
+      drop-shadow(0 0 6px hsl(38 100% 55% / 0.7));
+    animation: ootd-star-shimmer 2.2s ease-in-out infinite;
+  }
+  @keyframes ootd-gold-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 8px hsl(45 100% 65% / 0.65),
+        0 0 18px hsl(40 100% 60% / 0.4),
+        inset 0 0 6px hsl(50 100% 90% / 0.55);
+    }
+    50% {
+      box-shadow:
+        0 0 14px hsl(48 100% 70% / 0.95),
+        0 0 28px hsl(38 100% 55% / 0.7),
+        inset 0 0 10px hsl(50 100% 92% / 0.75);
+    }
+  }
+  @keyframes ootd-star-shimmer {
+    0%, 100% {
+      transform: rotate(0deg) scale(1);
+    }
+    50% {
+      transform: rotate(12deg) scale(1.18);
+    }
+  }
+
+  /* ── Graffiti #OOTD tag (top-left of action bar) ── */
+  .ootd-graffiti-tag {
+    font-family: 'Permanent Marker', 'Caveat', 'Brush Script MT', cursive;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: 1px;
+    transform: rotate(-8deg);
+    user-select: none;
+    pointer-events: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    white-space: nowrap;
+  }
+  .ootd-graffiti-hash {
+    color: hsl(330 95% 62%);
+    text-shadow:
+      0 0 8px hsl(330 100% 75% / 0.8),
+      1px 2px 0 hsl(330 80% 45% / 0.35);
+    animation: ootd-graffiti-write 2.6s ease-out forwards;
+    opacity: 0;
+  }
+  .ootd-graffiti-word {
+    color: hsl(0 0% 8%);
+    text-shadow:
+      0 0 6px hsl(330 100% 78% / 0.55),
+      1px 2px 0 hsl(330 70% 55% / 0.4),
+      -1px 0 0 hsl(330 100% 88% / 0.5);
+    animation: ootd-graffiti-write 2.6s 0.25s ease-out forwards, ootd-graffiti-drip 4.5s 2.6s ease-in-out infinite;
+    opacity: 0;
+  }
+  @keyframes ootd-graffiti-write {
+    0% {
+      opacity: 0;
+      clip-path: inset(0 100% 0 0);
+      transform: translateY(2px) skewX(-6deg);
+    }
+    60% {
+      opacity: 1;
+      clip-path: inset(0 0 0 0);
+    }
+    100% {
+      opacity: 1;
+      clip-path: inset(0 0 0 0);
+      transform: translateY(0) skewX(0);
+    }
+  }
+  @keyframes ootd-graffiti-drip {
+    0%, 100% {
+      text-shadow:
+        0 0 6px hsl(330 100% 78% / 0.55),
+        1px 2px 0 hsl(330 70% 55% / 0.4),
+        -1px 0 0 hsl(330 100% 88% / 0.5);
+    }
+    50% {
+      text-shadow:
+        0 0 12px hsl(330 100% 72% / 0.95),
+        1px 4px 0 hsl(330 80% 50% / 0.6),
+        -1px 0 0 hsl(330 100% 90% / 0.7);
+    }
+  }
+
   @keyframes ootd-neon-pulse {
     0%, 100% {
       box-shadow:
