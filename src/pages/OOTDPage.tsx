@@ -75,7 +75,7 @@ const OOTDPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen: inModal } = useOOTDModal();
+  const { isOpen: inModal, close: closeOOTD } = useOOTDModal();
   const isMobile = useIsMobile();
   const mobileOOTD = inModal || isMobile;
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
@@ -620,7 +620,7 @@ const OOTDPage = () => {
           className="shrink-0 z-30"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
         >
-          <div className="mx-auto flex max-w-lg items-center justify-between gap-2.5 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16 ootd-neon-bar">
+          <div className="mx-auto flex max-w-lg items-center justify-end gap-2.5 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16 ootd-neon-bar">
             <span className="ootd-graffiti-tag" aria-hidden="true">
               <svg viewBox="0 0 200 56" className="ootd-graffiti-svg" preserveAspectRatio="xMinYMid meet">
                 <defs>
@@ -686,6 +686,14 @@ const OOTDPage = () => {
                 </button>
               </>
             )}
+            <button
+              onClick={() => { if (inModal) { closeOOTD(); } else { navigate("/"); } }}
+              className="ootd-neon-icon ootd-neon-icon--ink"
+              aria-label="OOTD 닫기"
+              title="닫기"
+            >
+              <X className="h-[15px] w-[15px]" strokeWidth={2.4} />
+            </button>
             </div>
           </div>
         </div>
