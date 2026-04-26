@@ -324,7 +324,7 @@
     min-width: 28px;
     padding: 0 6px;
     border-radius: 999px;
-    color: hsl(330 95% 78%);
+    color: hsl(0 0% 12%);
     background: linear-gradient(135deg, hsl(330 100% 92% / 0.55), hsl(290 100% 92% / 0.45));
     border: 1px solid hsl(330 100% 85% / 0.55);
     box-shadow:
@@ -338,14 +338,15 @@
   }
   .ootd-neon-icon:hover {
     transform: translateY(-1px) scale(1.06);
-    color: hsl(330 100% 70%);
+    color: hsl(0 0% 0%);
     box-shadow:
       0 0 10px hsl(330 100% 75% / 0.85),
       0 0 22px hsl(320 100% 68% / 0.55),
       inset 0 0 8px hsl(330 100% 92% / 0.6);
   }
   .ootd-neon-icon svg {
-    filter: drop-shadow(0 0 3px hsl(330 100% 75% / 0.7));
+    filter: drop-shadow(0 0 2px hsl(330 100% 85% / 0.85));
+    stroke-width: 2;
   }
   .ootd-neon-icon button {
     color: inherit !important;
