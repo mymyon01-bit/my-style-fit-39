@@ -1093,6 +1093,7 @@ const OOTDPage = () => {
         </AnimatePresence>
         </div>
       </div>
+      </div>
 
       {/* Edit Post Modal */}
       <AnimatePresence>
