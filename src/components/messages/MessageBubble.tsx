@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Fragment, useEffect, useState } from "react";
 import { Paperclip, Sparkles, UserCircle2, ShoppingBag, Camera, ThumbsUp, ThumbsDown } from "lucide-react";
+import TranslateButton from "@/components/TranslateButton";
 
 export interface ChatAttachment {
   /**
@@ -306,6 +307,15 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
               return <Fragment key={i}>{part}</Fragment>;
             })}
           </p>
+        )}
+
+        {/* Translate CTA — only renders if the text appears to be in a
+            language different from the viewer's UI locale. */}
+        {content && (
+          <TranslateButton
+            text={content}
+            className={`mt-1 ${isMine ? "text-right" : "text-left"}`}
+          />
         )}
 
         <p className={`mt-1 flex items-center justify-end gap-1.5 text-[9px] tracking-wide ${
