@@ -54,7 +54,7 @@ const OOTDModalHost = () => {
 
           {/* Card pop-out */}
           <motion.div
-            className="relative z-10 mt-6 mb-6 h-[calc(100vh-3rem)] w-[min(1180px,calc(100vw-3rem))] overflow-hidden rounded-2xl border border-foreground/15 bg-background shadow-[0_30px_80px_-20px_hsl(var(--foreground)/0.55)]"
+            className="relative z-10 mt-[5vh] mb-[5vh] h-[88vh] w-[min(980px,86vw)] overflow-hidden rounded-2xl border border-foreground/15 bg-background shadow-[0_30px_80px_-20px_hsl(var(--foreground)/0.55)]"
             initial={{ opacity: 0, scale: 0.9, y: 30, rotateX: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
