@@ -5,6 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useThread, addConversationMember } from "@/hooks/useMessages";
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
+import OOTDBackground, {
+  loadOOTDBgTheme,
+  loadOOTDBgRealistic,
+  type OOTDBgTheme,
+} from "@/components/ootd/OOTDBackground";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
