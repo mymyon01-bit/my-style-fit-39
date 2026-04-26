@@ -129,7 +129,7 @@ export default function MessageComposer({ onSend, disabled }: Props) {
   };
 
   return (
-    <div className="relative border-t border-border/40 bg-background p-3">
+    <div className="relative border-t border-border/20 bg-background/70 backdrop-blur-sm p-3">
       {mentionQuery !== null && (
         <MentionAutocomplete query={mentionQuery} onSelect={handleSelectMention} />
       )}
