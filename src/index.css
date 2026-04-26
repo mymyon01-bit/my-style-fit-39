@@ -462,18 +462,18 @@
     opacity: 0;
     animation: ootd-spray-draw 0.45s ease-out forwards;
   }
-  .ootd-stroke.s1  { animation-delay: 0.05s, 1.6s; }
-  .ootd-stroke.s2  { animation-delay: 0.20s, 1.7s; }
-  .ootd-stroke.s3  { animation-delay: 0.35s, 1.8s; }
-  .ootd-stroke.s4  { animation-delay: 0.45s, 1.9s; }
-  .ootd-stroke.s5  { animation-delay: 0.60s, 2.0s; }
-  .ootd-stroke.s6  { animation-delay: 0.85s, 2.1s; }
-  .ootd-stroke.s7  { animation-delay: 1.10s, 2.2s; }
-  .ootd-stroke.s8  { animation-delay: 1.25s, 2.3s; }
-  .ootd-stroke.s9  { animation-delay: 1.40s, 2.4s; }
-  .ootd-stroke.s10 { animation-delay: 1.55s, 2.5s; }
-  .ootd-stroke.s11 { animation-delay: 1.85s, 2.7s; }
-  .ootd-stroke.s12 { animation-delay: 1.95s, 2.8s; }
+  .ootd-stroke.s1  { animation-delay: 0.05s; }
+  .ootd-stroke.s2  { animation-delay: 0.20s; }
+  .ootd-stroke.s3  { animation-delay: 0.35s; }
+  .ootd-stroke.s4  { animation-delay: 0.45s; }
+  .ootd-stroke.s5  { animation-delay: 0.60s; }
+  .ootd-stroke.s6  { animation-delay: 0.85s; }
+  .ootd-stroke.s7  { animation-delay: 1.10s; }
+  .ootd-stroke.s8  { animation-delay: 1.25s; }
+  .ootd-stroke.s9  { animation-delay: 1.40s; }
+  .ootd-stroke.s10 { animation-delay: 1.55s; }
+  .ootd-stroke.s11 { animation-delay: 1.85s; }
+  .ootd-stroke.s12 { animation-delay: 1.95s; }
 
   @keyframes ootd-spray-draw {
     0% {
