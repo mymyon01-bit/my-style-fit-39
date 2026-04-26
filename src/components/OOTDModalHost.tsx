@@ -59,12 +59,11 @@ const OOTDModalHost = () => {
                        md:static md:inset-auto md:bottom-auto md:mt-[5vh] md:mb-[5vh] md:h-[88vh]
                        md:w-[min(980px,86vw)] md:rounded-2xl md:border md:border-foreground/15
                        md:shadow-[0_30px_80px_-20px_hsl(var(--foreground)/0.55)]"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
             transition={{ type: "spring", stiffness: 240, damping: 26 }}
-            style={{ transformPerspective: 1200 }}
+            style={{ transformPerspective: 1200, paddingBottom: "env(safe-area-inset-bottom)" }}
             role="dialog"
             aria-modal="true"
             aria-label="OOTD"
