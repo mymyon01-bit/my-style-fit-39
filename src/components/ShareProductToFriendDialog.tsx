@@ -87,9 +87,9 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
     [conversations],
   );
 
-  // Load my circle (people I follow) when the user opens the CIRCLE tab.
+  // Load my circle (people I follow) as soon as the dialog opens.
   useEffect(() => {
-    if (!open || tab !== "circle" || !user) return;
+    if (!open || !user) return;
     let cancelled = false;
     (async () => {
       setLoadingCircle(true);
