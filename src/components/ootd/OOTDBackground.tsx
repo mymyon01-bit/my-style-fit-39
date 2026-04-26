@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import sakuraVideo from "../../../public/bg-videos/sakura.mp4.asset.json";
 import leavesVideo from "../../../public/bg-videos/leaves.mp4.asset.json";
 import rainVideo from "../../../public/bg-videos/rain.mp4.asset.json";
