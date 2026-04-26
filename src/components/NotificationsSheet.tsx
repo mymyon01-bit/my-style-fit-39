@@ -254,9 +254,9 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               ) : items.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-20 text-center">
                   <Bell className="h-8 w-8 text-foreground/15" />
-                  <p className="text-[12px] text-foreground/50">No notifications yet</p>
+                  <p className="text-[12px] text-foreground/50">{S.empty}</p>
                   <p className="text-[10px] text-foreground/35">
-                    Stars, comments, and new followers will show up here
+                    {S.emptySub}
                   </p>
                 </div>
               ) : (
