@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Palette, Users, Share2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 const STORAGE_KEY = "ootd:welcome:dismissed:v1";
 export const OOTD_WELCOME_OPEN_EVENT = "ootd:open-welcome";
