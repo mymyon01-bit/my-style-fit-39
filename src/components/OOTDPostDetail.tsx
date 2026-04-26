@@ -15,6 +15,7 @@ import ShareToOOTDDialog from "@/components/ShareToOOTDDialog";
 import { Repeat2 } from "lucide-react";
 import PostThemeBackground, { POST_THEMES, loadSavedPostTheme, savePostTheme, type PostTheme } from "@/components/ootd/PostThemeBackground";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
+import { formatCount } from "@/lib/formatCount";
 
 interface OOTDPost {
   id: string;
