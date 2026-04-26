@@ -158,11 +158,11 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                 onUploadClick();
               }
             }}
-            className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16 group"
+            className={`flex flex-col items-center gap-1.5 flex-shrink-0 ${itemWidth} group`}
           >
             <div className="relative">
               <RippleRing active={myHasStory} unseen={myHasStory && grouped.find((g) => g.user_id === user.id)?.hasUnseen} />
-              <div className="relative h-16 w-16 rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background">
+              <div className={`relative ${ringSize} rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background`}>
                 {myProfile?.avatar_url ? (
                   <img src={myProfile.avatar_url} alt="You" className="w-full h-full object-cover" />
                 ) : (
@@ -178,12 +178,12 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                 }}
                 role="button"
                 aria-label="Add story"
-                className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-tr from-accent via-pink-400 to-amber-300 text-background flex items-center justify-center border-2 border-background shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                className={`absolute -bottom-1 -right-1 ${plusSize} rounded-full bg-gradient-to-tr from-accent via-pink-400 to-amber-300 text-background flex items-center justify-center border-2 border-background shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer`}
               >
-                <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+                <Plus className={`${plusIcon}`} strokeWidth={3} />
               </span>
             </div>
-            <span className="text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate max-w-[60px]">
+            <span className={`text-[9px] font-medium tracking-[0.05em] text-foreground/60 truncate ${labelMax}`}>
               Your story
             </span>
           </button>
