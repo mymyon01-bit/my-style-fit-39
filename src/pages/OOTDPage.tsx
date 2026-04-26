@@ -675,23 +675,23 @@ const OOTDPage = () => {
                   onClick={() => setActiveTab(key)}
                   aria-label={label}
                   title={label}
-                  className="relative flex flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2.5"
+                  className="relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-3"
                 >
                   <Icon
-                    className={`h-[18px] w-[18px] transition-colors ${
+                    className={`h-[22px] w-[22px] transition-colors ${
                       activeTab === key ? "text-foreground" : "text-foreground/45"
                     }`}
                     strokeWidth={activeTab === key ? 2.2 : 1.6}
                   />
                   <span
-                    className={`hidden sm:block text-[8.5px] font-semibold tracking-[0.16em] transition-colors ${
+                    className={`hidden sm:block text-[9.5px] font-semibold tracking-[0.16em] transition-colors ${
                       activeTab === key ? "text-foreground/90" : "text-foreground/40"
                     }`}
                   >
                     {label}
                   </span>
                   {activeTab === key && (
-                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-accent" />
+                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/2 h-[2px] w-7 -translate-x-1/2 rounded-full bg-accent" />
                   )}
                 </button>
               ))}
