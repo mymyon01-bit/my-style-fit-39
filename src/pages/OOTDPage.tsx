@@ -35,6 +35,7 @@ import HotShowroomSection from "@/components/showroom/HotShowroomSection";
 import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
+import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
 
 interface OOTDPost {
   id: string;
