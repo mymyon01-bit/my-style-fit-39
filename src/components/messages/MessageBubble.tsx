@@ -309,6 +309,15 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
           </p>
         )}
 
+        {/* Translate CTA — only renders if the text appears to be in a
+            language different from the viewer's UI locale. */}
+        {content && (
+          <TranslateButton
+            text={content}
+            className={`mt-1 ${isMine ? "text-right" : "text-left"}`}
+          />
+        )}
+
         <p className={`mt-1 flex items-center justify-end gap-1.5 text-[9px] tracking-wide ${
           isMine ? "text-primary-foreground/70" : "text-muted-foreground"
         }`}>
