@@ -11,6 +11,8 @@ import { FontSizeProvider } from "@/lib/fontSize";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
 import DesktopNav from "@/components/DesktopNav";
+import OOTDModalHost from "@/components/OOTDModalHost";
+import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
 import { initPushNotifications } from "@/lib/native/push";
 import { isNativeApp } from "@/lib/native/platform";
@@ -163,6 +165,7 @@ const AppRoutes = () => {
     <>
       <UrlMasker />
       {!isAdmin && <DesktopNav />}
+      {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Auth */}
@@ -231,7 +234,9 @@ const App = () => {
                 <Sonner />
                 {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
                 <BrowserRouter>
-                  <AppRoutes />
+                  <OOTDModalProvider>
+                    <AppRoutes />
+                  </OOTDModalProvider>
                 </BrowserRouter>
               </TooltipProvider>
               </AuthProvider>
