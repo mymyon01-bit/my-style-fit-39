@@ -15,6 +15,7 @@ import OOTDModalHost from "@/components/OOTDModalHost";
 import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
 import { initPushNotifications } from "@/lib/native/push";
+import { useMessageToasts } from "@/hooks/useMessageToasts";
 import { isNativeApp } from "@/lib/native/platform";
 import { Loader2 } from "lucide-react";
 import AuthPage from "@/pages/AuthPage";
@@ -146,6 +147,11 @@ const AppRoutes = () => {
       console.log("[push] device token registered", { platform, token: token.slice(0, 12) + "…" });
     });
   }, [user]);
+
+  // Live message toasts — pop a sonner toast the moment a new message arrives,
+  // regardless of which page the user is on, so they never need to refresh
+  // to see incoming messages.
+  useMessageToasts();
 
   if (loading) {
     return (
