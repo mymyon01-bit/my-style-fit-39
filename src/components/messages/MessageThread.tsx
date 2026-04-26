@@ -266,7 +266,7 @@ export default function MessageThread({
       )}
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
