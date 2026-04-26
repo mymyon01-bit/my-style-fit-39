@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Fragment, useEffect, useState } from "react";
 import { Paperclip, Sparkles, UserCircle2, ShoppingBag, Camera, ThumbsUp, ThumbsDown } from "lucide-react";
+import TranslateButton from "@/components/TranslateButton";
 
 export interface ChatAttachment {
   /**
