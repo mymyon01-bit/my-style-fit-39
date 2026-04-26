@@ -620,7 +620,12 @@ const OOTDPage = () => {
           className="shrink-0 z-30"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
         >
-          <div className="mx-auto flex max-w-lg items-center justify-end gap-2.5 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16 ootd-neon-bar">
+          <div className="mx-auto flex max-w-lg items-center justify-between gap-2.5 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16 ootd-neon-bar">
+            <span className="ootd-graffiti-tag" aria-hidden="true">
+              <span className="ootd-graffiti-hash">#</span>
+              <span className="ootd-graffiti-word">OOTD</span>
+            </span>
+            <div className="flex items-center gap-2.5">
             <button
               onClick={openOOTDWelcome}
               className="ootd-neon-icon"
@@ -631,8 +636,8 @@ const OOTDPage = () => {
             </button>
             {user && (
               <>
-                <div className="ootd-neon-icon flex items-center gap-1 px-1.5">
-                  <Star className="h-[13px] w-[13px] fill-current" />
+                <div className="ootd-neon-icon ootd-star-glow flex items-center gap-1 px-1.5">
+                  <Star className="h-[13px] w-[13px] fill-current ootd-star-icon" />
                   <span className="text-[10px] font-semibold">{starsLeft}</span>
                 </div>
                 <div className="ootd-neon-icon ootd-neon-icon--ink">
@@ -655,6 +660,7 @@ const OOTDPage = () => {
                 </button>
               </>
             )}
+            </div>
           </div>
         </div>
       )}
