@@ -12,6 +12,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const { ootdUnread } = useNotifications();
   const { open: openOotdModal } = useOOTDModal();
+  const [ootdTapped, setOotdTapped] = useState(false);
 
   useEffect(() => {
     prefetchAllTabs();
