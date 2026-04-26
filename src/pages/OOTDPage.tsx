@@ -733,12 +733,11 @@ const OOTDPage = () => {
             className="rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
             style={cardStyle}
           >
-            <div className="flex items-center justify-between gap-2 mb-2 md:mb-3 flex-wrap">
-              <p className="hidden md:block text-[11.5px] text-foreground/70 leading-snug">
-                ✨ <span className="font-medium text-foreground/85">당신의 페이지를 꾸며주세요</span>
-              </p>
-              <div className="flex w-full items-center gap-1 md:w-auto md:gap-1.5">
+            <div className="flex items-center justify-end gap-2 mb-2 md:mb-3 flex-wrap">
+              <div className="flex items-center gap-2 shrink-0">
                 <CustomizeMenu
+                  open={customizeOpen}
+                  onOpenChange={setCustomizeOpen}
                   bgTheme={bgTheme}
                   onBgThemeChange={setBgTheme}
                   songOfDay={songOfDay}
@@ -746,8 +745,13 @@ const OOTDPage = () => {
                   cardColor={cardColor}
                   onCardColorChange={setCardColor}
                 />
+                <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
               </div>
             </div>
+            <p className="hidden md:flex items-center gap-1.5 text-[10.5px] text-foreground/60 leading-snug mb-3 italic">
+              <Sparkles className="h-3 w-3 text-accent/70" />
+              <span>당신만의 페이지를 꾸며보세요 — 배경, 색감, 음악까지 자유롭게.</span>
+            </p>
             <MyPageProfileHeader
               postCount={myPosts.length}
               totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
@@ -756,6 +760,7 @@ const OOTDPage = () => {
               hasUnseenStory={hasOwnUnseen}
               onUploadStory={() => setStoryUploadOpen(true)}
               onOpenMessages={() => setMessagesOpen(true)}
+              onOpenSettings={() => setCustomizeOpen(true)}
               onViewMyStory={() => {
                 const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
                 if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
