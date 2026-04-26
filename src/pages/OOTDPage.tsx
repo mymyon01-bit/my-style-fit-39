@@ -617,10 +617,10 @@ const OOTDPage = () => {
           button and houses the info / star balance / mailbox / notifications. */}
       {mobileOOTD && (
         <div
-          className="shrink-0 z-30 bg-background/40 backdrop-blur-md border-b border-foreground/[0.08]"
+          className="shrink-0 z-30"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
         >
-          <div className="mx-auto flex max-w-lg items-center justify-end gap-3 px-4 pb-2 pr-14 md:max-w-2xl md:px-10 md:pr-16">
+          <div className="mx-auto flex max-w-lg items-center justify-end gap-3 px-4 pb-1 pr-14 md:max-w-2xl md:px-10 md:pr-16">
             <button
               onClick={openOOTDWelcome}
               className="text-foreground/65 hover:text-foreground transition-colors"
