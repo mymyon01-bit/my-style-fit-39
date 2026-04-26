@@ -75,7 +75,7 @@ const OOTDPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen: inModal } = useOOTDModal();
+  const { isOpen: inModal, close: closeOOTD } = useOOTDModal();
   const isMobile = useIsMobile();
   const mobileOOTD = inModal || isMobile;
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
