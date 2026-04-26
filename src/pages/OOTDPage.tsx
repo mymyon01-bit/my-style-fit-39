@@ -37,6 +37,7 @@ import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
 import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatCount } from "@/lib/formatCount";
 
 interface OOTDPost {
   id: string;
