@@ -158,9 +158,17 @@ export default function MessageThread({
     : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border-2 border-foreground/15 bg-background shadow-soft">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-border/30 bg-background/40 shadow-soft">
+      {/* OOTD background — mirrors the user's My-Page personalization */}
+      {bgTheme !== "none" && (
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-3xl">
+          <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained />
+          {/* Soft scrim so chat text stays legible on busy backgrounds */}
+          <div className="absolute inset-0 bg-background/55 backdrop-blur-[2px]" />
+        </div>
+      )}
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border/40 bg-card/60 px-4 py-3">
+      <div className="relative z-10 flex items-center gap-3 border-b border-border/20 bg-card/50 backdrop-blur-sm px-4 py-3">
         <button
           onClick={onBack}
           className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
