@@ -674,6 +674,7 @@ const translations = {
     regular: "Regolare",
     relaxed2: "Rilassato",
     oversized: "Oversize",
+    relaxed: "Vestibilità rilassata",
     budgetRange: "Fascia di budget",
     low: "Economico",
     mid: "Medio",
