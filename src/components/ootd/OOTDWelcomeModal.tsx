@@ -293,7 +293,7 @@ export default function OOTDWelcomeModal() {
                   className="flex h-12 items-center justify-center gap-1 rounded-2xl border border-foreground/15 px-4 text-[12px] font-bold tracking-[0.12em] text-foreground/70 transition hover:bg-foreground/[0.05]"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  이전
+                  {t("ootdWelcomePrev")}
                 </button>
               )}
               <motion.button
