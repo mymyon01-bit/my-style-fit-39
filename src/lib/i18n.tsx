@@ -1222,7 +1222,7 @@ const translations = {
     selectDislikedStyles: "Estilos que no te gustan",
     preferredFit: "Preferencia de Ajuste",
     slim: "Ajustado",
-    regular: "Regular",
+    regular: "Normal",
     relaxed: "Relajado",
     oversized: "Ancho",
     budgetRange: "Rango de Presupuesto",
