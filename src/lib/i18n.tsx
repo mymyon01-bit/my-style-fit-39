@@ -1450,7 +1450,7 @@ const translations = {
     viewProfile: "Voir le profil",
     seeRecommendations: "Voir les recommandations",
     fitResult: "Résultat de l'ajustement",
-    compatible: "Compatible",
+    compatible: "Compatible avec ton corps",
     notRecommended: "Non recommandé",
     whyThisSuitsYou: "Pourquoi cela vous convient",
     searchProducts: "Rechercher des produits...",
