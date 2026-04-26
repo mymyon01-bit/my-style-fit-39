@@ -124,6 +124,11 @@ const OOTDPage = () => {
   const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [cardShape, setCardShape] = useState<CardShape>(() => {
+    const s = loadCardShape();
+    if (typeof window !== "undefined") applyCardShapeToRoot(s);
+    return s;
+  });
   const [cardColor, setCardColor] = useState<CardColor>(() => {
     const c = loadCardColor();
     if (typeof window !== "undefined") applyCardColorToRoot(c);
