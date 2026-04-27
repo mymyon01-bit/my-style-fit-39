@@ -62,17 +62,22 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [pRes, cRes, rRes] = await Promise.all([
+    const [pRes, followingRes, followersRes] = await Promise.all([
       supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags, is_official").eq("user_id", user.id).maybeSingle(),
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+      supabase.from("circles").select("following_id").eq("follower_id", user.id),
+      supabase.from("circles").select("follower_id").eq("following_id", user.id),
     ]);
     const p = pRes.data as ProfileData | null;
     setProfile(p);
     setEditName(p?.display_name || "");
     setEditBio(p?.bio || "");
-    setCircleCount(cRes.count || 0);
-    setRippleCount(rRes.count || 0);
+    // Circle = mutual follows (you follow them AND they follow you).
+    // Ripple = people who follow you but you haven't followed back yet.
+    const following = new Set((followingRes.data || []).map((r: any) => r.following_id));
+    const followers = (followersRes.data || []).map((r: any) => r.follower_id);
+    const mutual = followers.filter(id => following.has(id)).length;
+    setCircleCount(mutual);
+    setRippleCount(followers.length - mutual);
     setLoading(false);
   };
 

@@ -58,13 +58,17 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
       const followingSet = new Set((myFollowingRes.data || []).map((r: any) => r.following_id));
       const blockedSet = new Set((myBlocksRes.data || []).map((r: any) => r.blocked_id));
 
-      const built: Row[] = (profilesRes.data || []).map((p: any) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        avatar_url: p.avatar_url,
-        followsBack: followingSet.has(p.user_id),
-        blocked: blockedSet.has(p.user_id),
-      }));
+      const built: Row[] = (profilesRes.data || [])
+        .map((p: any) => ({
+          user_id: p.user_id,
+          display_name: p.display_name,
+          avatar_url: p.avatar_url,
+          followsBack: followingSet.has(p.user_id),
+          blocked: blockedSet.has(p.user_id),
+        }))
+        // Ripple = followers you haven't followed back. Once mutual, they
+        // graduate to the Circle tab.
+        .filter(r => tab === "circle" ? true : !r.followsBack);
       setRows(built);
     } finally {
       setLoading(false);
@@ -83,8 +87,18 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
         toast.success("Added to your circle");
         claimStarAction("join_circle");
       }
-      setRows(rs => rs.map(r => r.user_id === row.user_id ? { ...r, followsBack: !r.followsBack } : r));
+      setRows(rs => {
+        const updated = rs.map(r => r.user_id === row.user_id ? { ...r, followsBack: !r.followsBack } : r);
+        // On Ripple tab, once you follow back, the row graduates to Circle.
+        // On Circle tab, if you unfollow, you no longer follow them.
+        if (tab === "ripple") return updated.filter(r => !r.followsBack);
+        if (tab === "circle") return updated.filter(r => r.followsBack);
+        return updated;
+      });
+      // Notify parent so circle/ripple counts refresh immediately
       onChanged?.();
+      // Broadcast a global event for any listeners (header counts, etc.)
+      try { window.dispatchEvent(new CustomEvent("circles:changed")); } catch {}
     } catch {
       toast.error("Something went wrong");
     } finally {
