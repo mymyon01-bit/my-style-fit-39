@@ -86,16 +86,6 @@ const DesktopNav = () => {
               );
             })}
 
-            <button
-              onClick={() => navigate("/install")}
-              className={`flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
-                isActive("/install") ? "text-accent" : "text-foreground/60 hover:text-accent"
-              }`}
-            >
-              <Download className="h-2.5 w-2.5" />
-              {t("downloadApp").toUpperCase()}
-            </button>
-
             <div className="h-3 w-px bg-foreground/20" />
 
             {user ? (
