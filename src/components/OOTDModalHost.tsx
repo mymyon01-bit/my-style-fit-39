@@ -2,6 +2,10 @@
  * OOTDModalHost — desktop-only "card pop-out" modal that mounts OOTDPage
  * inline instead of navigating to /ootd. Keeps the user's previous page
  * underneath so back-button / close returns them where they were.
+ *
+ * The modal stays open while the user navigates to OOTD-related routes
+ * (other users' profiles, OOTD detail, etc.) so the entire OOTD experience
+ * lives inside the modal on desktop.
  */
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
@@ -9,17 +13,23 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDPage from "@/pages/OOTDPage";
+import UserProfilePage from "@/pages/UserProfilePage";
+
+// Routes that should render INSIDE the OOTD modal instead of closing it.
+const isInModalRoute = (pathname: string) =>
+  pathname === "/" ||
+  pathname.startsWith("/ootd") ||
+  pathname.startsWith("/user/");
 
 const OOTDModalHost = () => {
   const { isOpen, close } = useOOTDModal();
   const location = useLocation();
 
-  // Auto-close the modal whenever the user navigates away from the home
-  // route (e.g. tapping an avatar in a feed card to view /user/:id). Without
-  // this the OOTD overlay stays mounted on top of the destination page,
-  // making it look like the click did nothing.
+  // Close only when the user navigates somewhere that's NOT part of the OOTD
+  // experience (e.g. /settings, /discover, /fit). Tapping into another user's
+  // profile keeps the modal open and shows that profile inside it.
   useEffect(() => {
-    if (isOpen && location.pathname !== "/") {
+    if (isOpen && !isInModalRoute(location.pathname)) {
       close();
     }
   }, [isOpen, location.pathname, close]);
@@ -43,6 +53,14 @@ const OOTDModalHost = () => {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, close]);
+
+  // Decide what to render inside the modal based on current route.
+  const renderInner = () => {
+    if (location.pathname.startsWith("/user/")) {
+      return <UserProfilePage />;
+    }
+    return <OOTDPage />;
+  };
 
   return (
     <AnimatePresence>
@@ -92,8 +110,8 @@ const OOTDModalHost = () => {
             </button>
 
             {/* OOTD owns its own scroll area so its bottom menu stays fixed. */}
-            <div className="h-full w-full overflow-hidden">
-              <OOTDPage />
+            <div className="h-full w-full overflow-y-auto">
+              {renderInner()}
             </div>
           </motion.div>
         </motion.div>
@@ -103,3 +121,4 @@ const OOTDModalHost = () => {
 };
 
 export default OOTDModalHost;
+
