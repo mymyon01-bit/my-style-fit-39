@@ -80,15 +80,14 @@ const OOTDModalHost = () => {
             aria-modal="true"
             aria-label="OOTD"
           >
-            {/* Close button — desktop only. On mobile, OOTDPage's own header
-                already provides a close (X) icon, so this would be a duplicate. */}
+            {/* Small corner X — top-right inside the card (desktop only).
+                Mobile uses OOTDPage's own header X. */}
             <button
               onClick={close}
               aria-label="Close OOTD"
-              className="hidden md:absolute md:right-4 md:flex h-10 w-10 items-center justify-center rounded-full border border-foreground/25 bg-background/95 text-foreground shadow-lg backdrop-blur transition-all hover:scale-105 hover:bg-foreground hover:text-background z-[300]"
-              style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
+              className="hidden md:flex absolute right-2 top-2 z-[300] h-7 w-7 items-center justify-center rounded-full bg-background/85 text-foreground/70 backdrop-blur-sm border border-foreground/10 shadow-sm transition-all hover:bg-foreground hover:text-background hover:scale-105"
             >
-              <X className="h-5 w-5" />
+              <X className="h-3.5 w-3.5" strokeWidth={2.4} />
             </button>
 
             {/* OOTD owns its own scroll area so its bottom menu stays fixed. */}
