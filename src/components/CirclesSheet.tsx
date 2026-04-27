@@ -58,13 +58,17 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
       const followingSet = new Set((myFollowingRes.data || []).map((r: any) => r.following_id));
       const blockedSet = new Set((myBlocksRes.data || []).map((r: any) => r.blocked_id));
 
-      const built: Row[] = (profilesRes.data || []).map((p: any) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        avatar_url: p.avatar_url,
-        followsBack: followingSet.has(p.user_id),
-        blocked: blockedSet.has(p.user_id),
-      }));
+      const built: Row[] = (profilesRes.data || [])
+        .map((p: any) => ({
+          user_id: p.user_id,
+          display_name: p.display_name,
+          avatar_url: p.avatar_url,
+          followsBack: followingSet.has(p.user_id),
+          blocked: blockedSet.has(p.user_id),
+        }))
+        // Ripple = followers you haven't followed back. Once mutual, they
+        // graduate to the Circle tab.
+        .filter(r => tab === "circle" ? true : !r.followsBack);
       setRows(built);
     } finally {
       setLoading(false);
