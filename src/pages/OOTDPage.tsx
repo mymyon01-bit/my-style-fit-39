@@ -951,6 +951,8 @@ const OOTDPage = () => {
         <div
           className={bgTheme !== "none" ? `rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl shadow-xl shadow-black/10 ${mobileOOTD ? "p-3" : "p-4 md:p-6"}` : ""}
           style={bgTheme !== "none" ? cardStyle : undefined}
+          onTouchStart={onTabSwipeStart}
+          onTouchEnd={onTabSwipeEnd}
         >
         <AnimatePresence mode="wait">
           {activeTab === "ranking" ? (
