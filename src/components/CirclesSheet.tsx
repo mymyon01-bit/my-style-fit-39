@@ -138,11 +138,20 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end md:items-center md:justify-center bg-background/70 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[80] flex items-end md:items-center md:justify-center bg-background/70 backdrop-blur-sm"
+      onClick={onClose}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
       <div
         className="w-full md:max-w-md max-h-[70vh] md:max-h-[85vh] overflow-hidden rounded-t-3xl md:rounded-2xl border border-border/30 bg-card shadow-2xl flex flex-col"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
         onClick={e => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/20 px-4 py-2.5">
