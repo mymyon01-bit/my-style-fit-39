@@ -76,6 +76,7 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     open: false,
     conversationId: null,
   });
+  const [circlesSheet, setCirclesSheet] = useState<{ open: boolean; tab: "circle" | "ripple" }>({ open: false, tab: "circle" });
 
   useEffect(() => {
     if (!userId) return;
