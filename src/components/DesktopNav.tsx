@@ -88,6 +88,17 @@ const DesktopNav = () => {
 
             <div className="h-3 w-px bg-foreground/20" />
 
+            <button
+              onClick={() => navigate("/install")}
+              aria-label={t("downloadApp")}
+              title={t("downloadApp")}
+              className={`flex h-7 w-7 items-center justify-center rounded-full border border-foreground/15 transition-colors ${
+                isActive("/install") ? "text-accent border-accent/40" : "text-foreground/70 hover:text-accent hover:border-accent/40"
+              }`}
+            >
+              <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </button>
+
             {user ? (
               <button
                 onClick={() => navigate("/settings")}
