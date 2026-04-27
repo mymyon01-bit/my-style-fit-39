@@ -645,7 +645,7 @@ const translations = {
     ootdStarsHowToTitle: "별 모으는 방법",
     ootdStarsLeftToday: "오늘 남은 별",
     ootdWelcomeStarsTitle: "별점 시스템 ⭐",
-    ootdWelcomeStarsBody: "마음에 드는 OOTD에 별을 보내주세요. 하루 3개의 별을 받고, 별을 모은 코디는 랭킹에 올라갑니다.",
+    ootdWelcomeStarsBody: "마음에 드는 OOTD에 별을 보내주세요. 하루 3개의 별을 받고, 별을 많이 모은 코디는 랭킹에 올라갑니다.\n\n별 늘리는 법: 내 OOTD 공유, Discover에서 룩 가져오기, 새 서클 가입 — 각각 +1.",
     ootdWelcomeProfileTitle: "나만의 프로필 꾸미기 🎨",
     ootdWelcomeProfileBody: "배경 테마, 카드 색상, 오늘의 노래까지 — 나만의 스타일로 프로필을 꾸미세요. 친구들도 내가 설정한 모습 그대로 봅니다.",
     ootdWelcomeFeedTitle: "피드 & 커뮤니티 💬",
