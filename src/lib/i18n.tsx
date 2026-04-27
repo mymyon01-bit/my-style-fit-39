@@ -2268,7 +2268,7 @@ const translations = {
     ootdStarInfoBody: "毎日もらえるスターで、お気に入りのOOTDに⭐を送れます。スターが多いルックはデイリーランキングに登場します。",
     ootdStarsLeftToday: "今日の残りスター",
     ootdWelcomeStarsTitle: "スターシステム ⭐",
-    ootdWelcomeStarsBody: "気に入ったOOTDにスターを送りましょう。1日3つもらえて、たくさん集めたルックはランキング入りします。",
+    ootdWelcomeStarsBody: "気に入ったOOTDにスターを送りましょう。1日3つもらえて、たくさん集めたルックはランキング入りします。\n\n増やし方: 自分のOOTDをシェア、Discoverからルックを取り込み、新しいCircleに参加 — それぞれ +1 スター。",
     ootdWelcomeProfileTitle: "自分らしくカスタマイズ 🎨",
     ootdWelcomeProfileBody: "背景テーマ、カードカラー、今日の一曲まで — 自分のスタイルでプロフィールを飾れます。友達もあなたが設定したままを見ます。",
     ootdWelcomeFeedTitle: "フィード & コミュニティ 💬",
