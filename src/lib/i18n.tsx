@@ -2586,7 +2586,7 @@ const translations = {
     ootdStarInfoBody: "用每天获得的星星给喜爱的OOTD送出⭐。获得星星最多的造型会登上每日排行榜。",
     ootdStarsLeftToday: "今天剩余星星",
     ootdWelcomeStarsTitle: "星星系统 ⭐",
-    ootdWelcomeStarsBody: "向你喜爱的OOTD送出星星。每天有3颗星星,星星最多的造型会进入排行榜。",
+    ootdWelcomeStarsBody: "向你喜爱的OOTD送出星星。每天有3颗星星,星星最多的造型会进入排行榜。\n\n增加余额:分享你的OOTD、从Discover导入造型、加入新Circle — 每项 +1 星。",
     ootdWelcomeProfileTitle: "打造个人风格 🎨",
     ootdWelcomeProfileBody: "背景主题、卡片配色、今日歌曲 — 用你的方式装扮个人主页。朋友看到的就是你设置的样子。",
     ootdWelcomeFeedTitle: "动态 & 社区 💬",
