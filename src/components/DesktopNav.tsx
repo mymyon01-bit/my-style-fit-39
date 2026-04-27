@@ -88,7 +88,7 @@ const DesktopNav = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/install")}
-              className={`flex items-center gap-1.5 font-mono text-[8.5px] font-semibold tracking-[0.22em] transition-colors ${
+              className={`flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
                 isActive("/install") ? "text-accent" : "text-foreground/60 hover:text-accent"
               }`}
             >
@@ -101,7 +101,7 @@ const DesktopNav = () => {
             {user ? (
               <button
                 onClick={() => navigate("/settings")}
-                className="font-mono text-[8.5px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                className="font-mono text-[11px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
               >
                 SETTINGS
               </button>
@@ -109,13 +109,13 @@ const DesktopNav = () => {
               <>
                 <button
                   onClick={() => navigate("/auth")}
-                  className="font-mono text-[8.5px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                  className="font-mono text-[11px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
                 >
                   {t("logIn").toUpperCase()}
                 </button>
                 <button
                   onClick={() => navigate("/auth?mode=signup")}
-                  className="border-[1.5px] border-foreground bg-foreground px-3 py-1.5 font-mono text-[8.5px] font-semibold tracking-[0.22em] text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
+                  className="border-[1.5px] border-foreground bg-foreground px-3 py-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
                   style={{ borderRadius: "var(--radius)" }}
                 >
                   {t("signUp").toUpperCase()}
