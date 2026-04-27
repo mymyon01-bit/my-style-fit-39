@@ -122,8 +122,7 @@ const HomePage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="absolute z-20 flex w-full items-center justify-between gap-2 px-5 lg:hidden"
-          style={{ top: "env(safe-area-inset-top, 0px)" }}
+          className="absolute top-0 z-20 flex w-full items-center justify-between gap-2 px-5 py-1 lg:hidden"
         >
           <Brandmark variant="inline" />
           <div className="flex items-center gap-1.5">
