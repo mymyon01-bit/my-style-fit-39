@@ -153,7 +153,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col items-center text-center font-display text-[38px] font-medium italic leading-[1.15] tracking-[-0.05em] text-foreground sm:text-[50px] md:text-[66px]"
+            className="flex flex-col items-center text-center font-display text-[38px] font-medium italic leading-[1.15] tracking-[-0.05em] text-foreground sm:text-[50px] md:text-[58px]"
           >
             <span className="block">wear your</span>
             <MoodTicker
