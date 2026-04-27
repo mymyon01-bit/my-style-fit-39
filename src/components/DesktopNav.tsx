@@ -43,22 +43,21 @@ const DesktopNav = () => {
       {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
 
-      {/* Top bar */}
+      {/* Top bar — 3 columns: brand | centered nav | right utilities */}
       <div className="relative z-10 bg-background/40 backdrop-blur-md border-b border-foreground/5">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-10 py-0">
-          {/* Wordmark — italic display */}
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-6 px-10 py-0">
+          {/* LEFT — Wordmark */}
           <button
             onClick={() => navigate("/")}
             aria-label="my'myon — home"
-            className="group transition-opacity hover:opacity-80"
+            className="group justify-self-start transition-opacity hover:opacity-80"
           >
             <Brandmark variant="compact" className="!h-[88px] md:!h-24" />
           </button>
 
-          {/* Center + right cluster — all menu items aligned in one row,
-              with the OOTD diary button sitting between DISCOVER and FIT. */}
-          <div className="flex items-center gap-7">
-            {navLinks.map((link, idx) => {
+          {/* CENTER — nav links with OOTD diary in the middle */}
+          <div className="flex items-center justify-center gap-7">
+            {navLinks.map((link) => {
               const active = isActive(link.path);
               const insertDiaryAfter = link.path === "/discover";
               return (
@@ -87,19 +86,21 @@ const DesktopNav = () => {
                 </div>
               );
             })}
+          </div>
 
-            <div className="h-3 w-px bg-foreground/20" />
-
+          {/* RIGHT — utilities (Download + auth/settings + language) */}
+          <div className="flex items-center justify-self-end gap-5">
             <button
               onClick={() => navigate("/install")}
-              aria-label={t("downloadApp")}
-              title={t("downloadApp")}
-              className={`flex h-7 w-7 items-center justify-center rounded-full border border-foreground/15 transition-colors ${
-                isActive("/install") ? "text-accent border-accent/40" : "text-foreground/70 hover:text-accent hover:border-accent/40"
+              className={`flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
+                isActive("/install") ? "text-accent" : "text-foreground/70 hover:text-accent"
               }`}
             >
-              <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <Download className="h-3 w-3" strokeWidth={1.75} />
+              {t("downloadApp").toUpperCase()}
             </button>
+
+            <div className="h-3 w-px bg-foreground/20" />
 
             {user ? (
               <button
