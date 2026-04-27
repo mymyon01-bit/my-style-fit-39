@@ -107,7 +107,7 @@ const HomePage = () => {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background pb-20 md:pb-0">
       {/* Hero — vibrant edge */}
-      <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden">
+      <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden md:py-32 md:pt-44">
         <WeatherAmbience condition={weather.condition} />
 
         {/* Animated color blobs — vibrancy without overwhelming */}
