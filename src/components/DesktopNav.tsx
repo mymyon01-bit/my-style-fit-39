@@ -6,8 +6,7 @@ import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
-import OOTDNavLabel from "@/components/OOTDNavLabel";
-import OOTDDiaryIcon from "@/components/OOTDDiaryIcon";
+import OOTDDiaryButton from "@/components/OOTDDiaryButton";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useOOTDModal } from "@/lib/ootdModal";
 
@@ -17,8 +16,7 @@ const DesktopNav = () => {
   const { user } = useAuth();
   const { t } = useI18n();
   const { ootdUnread } = useNotifications();
-  const { open: openOOTD, isOpen: ootdOpen } = useOOTDModal();
-  const [ootdTapped, setOotdTapped] = useState(false);
+  const { isOpen: ootdOpen } = useOOTDModal();
 
   useEffect(() => {
     prefetchAllTabs();
@@ -27,13 +25,11 @@ const DesktopNav = () => {
   const navLinks = [
     { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: t("discover").toUpperCase() },
-    { path: "/ootd", label: "OOTD", isOotd: true },
     { path: "/fit", label: t("fit").toUpperCase() },
     { path: "/profile", label: "PROFILE" },
   ];
 
   const isActive = (path: string) => {
-    if (path === "/ootd") return ootdOpen;
     return location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
   };
 
