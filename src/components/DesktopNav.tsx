@@ -55,17 +55,15 @@ const DesktopNav = () => {
             <Brandmark variant="compact" className="!h-[88px] md:!h-24" />
           </button>
 
-          {/* Center cluster — Diary button on top, nav links below */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="-mt-2 -mb-1 scale-[0.55] origin-top">
-              <OOTDDiaryButton />
-            </div>
-            <div className="flex items-center gap-8">
-              {navLinks.map((link) => {
-                const active = isActive(link.path);
-                return (
+          {/* Center + right cluster — all menu items aligned in one row,
+              with the OOTD diary button sitting between DISCOVER and FIT. */}
+          <div className="flex items-center gap-7">
+            {navLinks.map((link, idx) => {
+              const active = isActive(link.path);
+              const insertDiaryAfter = link.path === "/discover";
+              return (
+                <div key={link.path} className="flex items-center gap-7">
                   <button
-                    key={link.path}
                     onClick={() => navigate(link.path)}
                     onMouseEnter={() => prefetchRoute(link.path)}
                     className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
@@ -79,13 +77,15 @@ const DesktopNav = () => {
                       }`}
                     />
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                  {insertDiaryAfter && (
+                    <div className="scale-[0.42] origin-center -mx-6 -my-3">
+                      <OOTDDiaryButton />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
-          {/* Right cluster */}
-          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/install")}
               className={`flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
