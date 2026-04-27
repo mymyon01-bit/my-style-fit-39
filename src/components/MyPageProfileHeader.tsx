@@ -48,6 +48,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const [editBio, setEditBio] = useState("");
   const [circleCount, setCircleCount] = useState(0);
   const [rippleCount, setRippleCount] = useState(0);
+  const [starsActual, setStarsActual] = useState<number | null>(null);
   const [circlesOpen, setCirclesOpen] = useState<null | "circle" | "ripple">(null);
 
   useEffect(() => {
@@ -58,10 +59,11 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [pRes, cRes, rRes] = await Promise.all([
+    const [pRes, cRes, rRes, postsRes] = await Promise.all([
       supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags, is_official").eq("user_id", user.id).maybeSingle(),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+      supabase.from("ootd_posts").select("id").eq("user_id", user.id),
     ]);
     const p = pRes.data as ProfileData | null;
     setProfile(p);
@@ -69,6 +71,18 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
     setEditBio(p?.bio || "");
     setCircleCount(cRes.count || 0);
     setRippleCount(rRes.count || 0);
+
+    // Real star count: count rows in ootd_stars whose post belongs to me.
+    const postIds = (postsRes.data || []).map((row: { id: string }) => row.id);
+    if (postIds.length === 0) {
+      setStarsActual(0);
+    } else {
+      const { count } = await supabase
+        .from("ootd_stars")
+        .select("id", { count: "exact", head: true })
+        .in("post_id", postIds);
+      setStarsActual(count || 0);
+    }
     setLoading(false);
   };
 
