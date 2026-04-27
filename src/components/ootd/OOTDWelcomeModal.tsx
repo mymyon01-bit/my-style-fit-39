@@ -267,7 +267,7 @@ export default function OOTDWelcomeModal() {
                   </span>
                 </div>
                 <h3 className="mb-2.5 text-[22px] font-bold leading-tight text-foreground">{slide.title}</h3>
-                <p className="text-[14px] leading-relaxed text-foreground/70">{slide.body}</p>
+                <p className="text-[14px] leading-relaxed text-foreground/70 whitespace-pre-line">{slide.body}</p>
               </motion.div>
             </AnimatePresence>
 

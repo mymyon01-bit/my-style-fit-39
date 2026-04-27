@@ -702,12 +702,12 @@ const OOTDPage = () => {
                       className="fixed inset-0 z-40"
                       onClick={() => setStarInfoOpen(false)}
                     />
-                    <div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-2xl border border-border/40 bg-background/95 backdrop-blur-xl shadow-xl shadow-black/15 p-3.5 text-left">
+                    <div className="absolute right-0 top-full mt-1.5 z-50 w-72 rounded-2xl border border-border/40 bg-background/95 backdrop-blur-xl shadow-xl shadow-black/15 p-3.5 text-left">
                       <div className="flex items-center gap-1.5 mb-2">
                         <Star className="h-3.5 w-3.5 fill-current text-amber-400" />
                         <span className="text-[10px] font-semibold tracking-[0.18em] text-foreground/80">{t("ootdStarInfoTitle")}</span>
                       </div>
-                      <p className="text-[11px] leading-relaxed text-foreground/70">
+                      <p className="text-[11px] leading-relaxed text-foreground/70 whitespace-pre-line">
                         {t("ootdStarInfoBody")}
                       </p>
                       <p className="mt-2 text-[10px] text-foreground/50">
@@ -872,7 +872,7 @@ const OOTDPage = () => {
             </div>
             <MyPageProfileHeader
               postCount={myPosts.length}
-              totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
+              totalStars={starsLeft + bonusStars}
               refreshKey={storiesRefreshKey}
               hasStory={hasOwnStory}
               hasUnseenStory={hasOwnUnseen}
@@ -880,6 +880,7 @@ const OOTDPage = () => {
               onUploadStory={() => setStoryUploadOpen(true)}
               onOpenMessages={() => setMessagesOpen(true)}
               onOpenSettings={() => setCustomizeOpen(true)}
+              onOpenStarInfo={openOOTDWelcome}
               onViewMyStory={() => {
                 const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
                 if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });

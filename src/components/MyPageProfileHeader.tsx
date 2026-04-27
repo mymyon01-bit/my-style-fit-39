@@ -30,11 +30,14 @@ interface Props {
   /** When provided, the gear opens the OOTD customize modal instead of
    *  navigating to /profile. Used on mobile to keep users in the OOTD flow. */
   onOpenSettings?: () => void;
+  /** Tap-handler for the Stars stat — opens the OOTD info modal so users
+   *  learn how to collect more stars. */
+  onOpenStarInfo?: () => void;
   /** Hide the inline settings gear — useful when an external trigger handles it. */
   hideSettings?: boolean;
 }
 
-const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings, hideSettings }: Props) => {
+const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings, onOpenStarInfo, hideSettings }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
@@ -48,7 +51,6 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const [editBio, setEditBio] = useState("");
   const [circleCount, setCircleCount] = useState(0);
   const [rippleCount, setRippleCount] = useState(0);
-  const [starsActual, setStarsActual] = useState<number | null>(null);
   const [circlesOpen, setCirclesOpen] = useState<null | "circle" | "ripple">(null);
 
   useEffect(() => {
@@ -59,11 +61,10 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [pRes, cRes, rRes, postsRes] = await Promise.all([
+    const [pRes, cRes, rRes] = await Promise.all([
       supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags, is_official").eq("user_id", user.id).maybeSingle(),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
-      supabase.from("ootd_posts").select("id").eq("user_id", user.id),
     ]);
     const p = pRes.data as ProfileData | null;
     setProfile(p);
@@ -71,18 +72,6 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
     setEditBio(p?.bio || "");
     setCircleCount(cRes.count || 0);
     setRippleCount(rRes.count || 0);
-
-    // Real star count: count rows in ootd_stars whose post belongs to me.
-    const postIds = (postsRes.data || []).map((row: { id: string }) => row.id);
-    if (postIds.length === 0) {
-      setStarsActual(0);
-    } else {
-      const { count } = await supabase
-        .from("ootd_stars")
-        .select("id", { count: "exact", head: true })
-        .in("post_id", postIds);
-      setStarsActual(count || 0);
-    }
     setLoading(false);
   };
 
@@ -249,7 +238,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
       <div className="flex items-center justify-between border-t border-border/20 pt-3">
         <div className="flex gap-5">
           <Stat label="Posts" value={postCount} />
-          <Stat label="Stars" value={starsActual ?? totalStars} />
+          <Stat label="Stars" value={totalStars} onClick={onOpenStarInfo} />
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
