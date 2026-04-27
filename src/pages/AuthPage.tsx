@@ -43,9 +43,21 @@ const AuthPage = () => {
     e.preventDefault();
     setError(null);
     setMessage(null);
-    if (mode === "signup" && (!consents.terms || !consents.privacy)) {
-      setError("Please accept the required Terms and Privacy Policy to continue.");
-      return;
+    if (mode === "signup") {
+      if (!consents.terms || !consents.privacy) {
+        setError("Please accept the required Terms and Privacy Policy to continue.");
+        return;
+      }
+      if (!fullName.trim()) { setError("Please enter your full name."); return; }
+      if (!dob) { setError("Please enter your date of birth."); return; }
+      if (!gender) { setError("Please select your gender."); return; }
+      if (!location.trim()) { setError("Please select where you live."); return; }
+      // Age check (≥13)
+      const ageMs = Date.now() - new Date(dob).getTime();
+      if (!Number.isFinite(ageMs) || ageMs < 13 * 365.25 * 24 * 3600 * 1000) {
+        setError("You must be at least 13 years old to sign up.");
+        return;
+      }
     }
     setLoading(true);
     try {
@@ -56,7 +68,15 @@ const AuthPage = () => {
         setLoading(false);
         return;
       }
-      const { error } = mode === "login" ? await signIn(email, password) : await signUp(email, password);
+      const { error } =
+        mode === "login"
+          ? await signIn(email, password)
+          : await signUp(email, password, {
+              full_name: fullName.trim(),
+              date_of_birth: dob,
+              gender,
+              location: location.trim(),
+            });
       if (error) throw error;
       if (mode === "signup") {
         // Record consents (best effort) once a session exists.
@@ -66,7 +86,8 @@ const AuthPage = () => {
           const docLang: LegalLang = lang === "ko" || lang === "it" ? lang : "en";
           if (u) await recordSignupConsents(u.id, consents, docLang);
         } catch {}
-        setMessage("Check your email to confirm your account.");
+        setMessage("Account created! Please check your email and click the confirmation link to sign in.");
+        setMode("login");
       }
       else navigate("/onboarding", { replace: true });
     } catch (err: any) {
