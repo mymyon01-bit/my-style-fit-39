@@ -37,7 +37,7 @@ const Brandmark = ({
     const Tag = asHeading ? "h1" : "div";
     return (
       <Tag className={cn("flex flex-col items-center gap-3", className)}>
-        <Wordmark className="h-[280px] md:h-[360px] lg:h-[440px]" />
+        <Wordmark className="h-[420px] md:h-[540px] lg:h-[660px]" />
         {tagline ? (
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.42em] text-foreground/50">
             {tagline}
@@ -48,11 +48,11 @@ const Brandmark = ({
   }
 
   if (variant === "inline") {
-    return <Wordmark className={cn("h-[112px]", className)} />;
+    return <Wordmark className={cn("h-[168px]", className)} />;
   }
 
   // compact (default) — used in nav bars and hero captions
-  return <Wordmark className={cn("h-[136px] md:h-[160px]", className)} />;
+  return <Wordmark className={cn("h-[204px] md:h-[240px]", className)} />;
 };
 
 export default Brandmark;
