@@ -225,7 +225,7 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-  const [splashDone, setSplashDone] = useState(() => !!sessionStorage.getItem("wardrobe-splash"));
+  const [splashDone, setSplashDone] = useState(() => !!sessionStorage.getItem("wardrobe-splash-v2"));
   const handleSplashComplete = useCallback(() => setSplashDone(true), []);
 
   return (
