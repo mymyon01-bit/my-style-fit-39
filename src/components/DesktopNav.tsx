@@ -80,8 +80,8 @@ const DesktopNav = () => {
                 >
                   {(link as { isOotd?: boolean }).isOotd ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <OOTDDiaryIcon size={20} active={active} tapped={ootdTapped} />
-                      <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={13} />
+                      <OOTDDiaryIcon size={14} active={active} tapped={ootdTapped} />
+                      <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={9} />
                     </span>
                   ) : (
                     link.label
