@@ -7,7 +7,7 @@ import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
-import { useNotifications } from "@/hooks/useNotifications";
+
 import { useOOTDModal } from "@/lib/ootdModal";
 
 const DesktopNav = () => {
