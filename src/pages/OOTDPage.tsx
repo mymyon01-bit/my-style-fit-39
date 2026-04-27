@@ -770,7 +770,7 @@ const OOTDPage = () => {
       <div
         className={
           mobileOOTD
-            ? "order-last shrink-0 z-30 bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14]"
+            ? "order-last fixed bottom-0 left-0 right-0 shrink-0 z-[120] bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14]"
             : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
         }
       >
