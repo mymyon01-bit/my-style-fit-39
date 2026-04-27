@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotificationsList, type NotificationRow } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
