@@ -14,6 +14,7 @@ import { VisitorSongPlayer, type SongOfDay } from "@/components/ootd/SongOfTheDa
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { claimStarAction } from "@/lib/starGrants";
+import PublicCirclesSheet from "@/components/PublicCirclesSheet";
 
 interface UserProfileData {
   user_id: string;
@@ -75,6 +76,7 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     open: false,
     conversationId: null,
   });
+  const [circlesSheet, setCirclesSheet] = useState<{ open: boolean; tab: "circle" | "ripple" }>({ open: false, tab: "circle" });
 
   useEffect(() => {
     if (!userId) return;
@@ -316,12 +318,20 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
                 <span className="text-[10px] text-foreground/50 whitespace-nowrap">
                   <span className="font-semibold text-foreground/70">{postCount}</span> posts
                 </span>
-                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setCirclesSheet({ open: true, tab: "circle" })}
+                  className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
+                >
                   <span className="font-semibold text-foreground/70">{circleCount}</span> circle
-                </span>
-                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCirclesSheet({ open: true, tab: "ripple" })}
+                  className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
+                >
                   <span className="font-semibold text-foreground/70">{rippleCount}</span> ripple
-                </span>
+                </button>
               </div>
 
               {/* Actions — wrap so they never stretch the card at large font sizes */}
@@ -494,6 +504,17 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
         initialConversationId={messageSheet.conversationId}
         initialOtherUserId={userId || null}
       />
+
+      {/* Public Circle / Ripple viewer */}
+      {userId && (
+        <PublicCirclesSheet
+          open={circlesSheet.open}
+          onClose={() => setCirclesSheet({ open: false, tab: circlesSheet.tab })}
+          targetUserId={userId}
+          targetDisplayName={profile?.display_name}
+          initialTab={circlesSheet.tab}
+        />
+      )}
     </div>
   );
 };
