@@ -27,6 +27,7 @@ interface Row {
 const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { open: openOOTDModal } = useOOTDModal();
   const [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
