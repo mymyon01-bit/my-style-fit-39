@@ -872,7 +872,7 @@ const OOTDPage = () => {
             </div>
             <MyPageProfileHeader
               postCount={myPosts.length}
-              totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
+              totalStars={starsLeft + bonusStars}
               refreshKey={storiesRefreshKey}
               hasStory={hasOwnStory}
               hasUnseenStory={hasOwnUnseen}
@@ -880,6 +880,7 @@ const OOTDPage = () => {
               onUploadStory={() => setStoryUploadOpen(true)}
               onOpenMessages={() => setMessagesOpen(true)}
               onOpenSettings={() => setCustomizeOpen(true)}
+              onOpenStarInfo={openOOTDWelcome}
               onViewMyStory={() => {
                 const idx = allStoryUsers.findIndex((u) => u.user_id === user.id);
                 if (idx >= 0) setViewerState({ open: true, index: idx, users: allStoryUsers });
