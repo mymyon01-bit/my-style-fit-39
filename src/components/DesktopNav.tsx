@@ -44,7 +44,7 @@ const DesktopNav = () => {
 
       {/* Top bar */}
       <div className="relative z-10 bg-background/40 backdrop-blur-md border-b border-foreground/5">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-10 py-1">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-10 py-0">
           {/* Wordmark — italic display */}
           <button
             onClick={() => navigate("/")}
