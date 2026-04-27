@@ -30,8 +30,9 @@ export const Cursor: React.FC<Props> = ({ path, color = "#FF2D87" }) => {
 
   const a = path[segIdx];
   const b = path[Math.min(segIdx + 1, path.length - 1)];
-  const segDur = Math.max(1, b.at - a.at);
-  const t = interpolate(frame, [a.at, b.at], [0, 1], {
+  const aAt = a.at;
+  const bAt = b.at > a.at ? b.at : a.at + 1; // guard strictly monotonic
+  const t = interpolate(frame, [aAt, bAt], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
