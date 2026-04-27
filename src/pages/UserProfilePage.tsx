@@ -14,6 +14,7 @@ import { VisitorSongPlayer, type SongOfDay } from "@/components/ootd/SongOfTheDa
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { claimStarAction } from "@/lib/starGrants";
+import PublicCirclesSheet from "@/components/PublicCirclesSheet";
 
 interface UserProfileData {
   user_id: string;
