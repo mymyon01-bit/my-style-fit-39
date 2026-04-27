@@ -316,7 +316,18 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
 
         {/* Header */}
         <div className="absolute top-7 left-3 right-3 flex items-center justify-between z-20 pt-3">
-          <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (!currentUser) return;
+              if (isOwnCurrent) return; // own story → no nav
+              onClose();
+              navigate(`/user/${currentUser.user_id}`);
+            }}
+            disabled={isOwnCurrent}
+            className="flex items-center gap-2.5 min-w-0 max-w-[60%] text-left disabled:cursor-default"
+            aria-label={isOwnCurrent ? "Your story" : `Open ${currentUser?.profile?.display_name || "user"}'s profile`}
+          >
             <div className="h-8 w-8 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
               {currentUser.profile?.avatar_url ? (
                 <img src={currentUser.profile.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -326,14 +337,13 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
                 </div>
               )}
             </div>
-            <div>
-              <p className="text-[12px] font-semibold text-white">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-white truncate">
                 {currentUser.profile?.display_name || "User"}
               </p>
               <p className="text-[9px] text-white/60">{relativeTime(currentStory.created_at)}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
+          </button>
             {isOwn && (
               <>
                 <button
