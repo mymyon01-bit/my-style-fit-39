@@ -13,6 +13,7 @@ import type { CardColor } from "@/components/ootd/CardColorPicker";
 import { VisitorSongPlayer, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
+import { claimStarAction } from "@/lib/starGrants";
 
 interface UserProfileData {
   user_id: string;
