@@ -9,6 +9,7 @@ import StoryRippleRing from "@/components/StoryRippleRing";
 import CirclesSheet from "@/components/CirclesSheet";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { formatCount } from "@/lib/formatCount";
+import CountUp from "@/components/CountUp";
 
 interface ProfileData {
   display_name: string | null;

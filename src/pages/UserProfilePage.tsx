@@ -15,6 +15,7 @@ import OOTDPostDetail from "@/components/OOTDPostDetail";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { claimStarAction } from "@/lib/starGrants";
 import PublicCirclesSheet from "@/components/PublicCirclesSheet";
+import CountUp from "@/components/CountUp";
 
 interface UserProfileData {
   user_id: string;
@@ -326,14 +327,14 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
                   onClick={() => setCirclesSheet({ open: true, tab: "circle" })}
                   className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
                 >
-                  <span className="font-semibold text-foreground/70">{circleCount}</span> circle
+                  <CountUp value={circleCount} className="font-semibold text-foreground/70" /> circle
                 </button>
                 <button
                   type="button"
                   onClick={() => setCirclesSheet({ open: true, tab: "ripple" })}
                   className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
                 >
-                  <span className="font-semibold text-foreground/70">{rippleCount}</span> ripple
+                  <CountUp value={rippleCount} className="font-semibold text-foreground/70" /> ripple
                 </button>
               </div>
 
