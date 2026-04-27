@@ -344,6 +344,7 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
               <p className="text-[9px] text-white/60">{relativeTime(currentStory.created_at)}</p>
             </div>
           </button>
+          <div className="flex items-center gap-3">
             {isOwn && (
               <>
                 <button
