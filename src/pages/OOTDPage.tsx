@@ -20,6 +20,7 @@ import MailboxPopup from "@/components/messages/MailboxPopup";
 import MailboxIcon from "@/components/messages/MailboxIcon";
 import NotificationsSheet from "@/components/NotificationsSheet";
 import FeedTopRow from "@/components/ootd/FeedTopRow";
+import MyLocationCard from "@/components/ootd/MyLocationCard";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
