@@ -855,18 +855,18 @@ const OOTDPage = () => {
             className="border border-border/40 bg-background/80 backdrop-blur-xl p-4 md:p-5 shadow-xl shadow-black/10 mb-4"
             style={{ ...cardStyle, borderRadius: "var(--ootd-card-radius, 1.5rem)" }}
           >
-            {/* Music + customize controls — a soft pink gear (left) opens
-                the Customize modal. The mailbox sits next to Song of the Day
-                so messages live right above the profile, in reach of the thumb. */}
+            {/* Music + customize controls — a clean chip (left) opens the
+                Customize modal, matching the Song-of-the-day chip on the right. */}
             <div className="flex items-center justify-between gap-2 mb-3">
               <button
                 type="button"
                 onClick={() => setCustomizeOpen(true)}
                 aria-label="Open customize"
                 title="Customize"
-                className="shrink-0 transition-transform hover:scale-[1.02] active:scale-95"
+                className="flex h-6 md:h-7 items-center gap-1.5 rounded-full border border-dashed border-border/50 bg-background/40 backdrop-blur px-2 text-[9.5px] md:text-[10px] font-medium tracking-[0.18em] text-foreground/60 hover:border-accent/60 hover:text-accent transition-colors shrink-0"
               >
-                <GraffitiCustomize />
+                <Sparkles className="h-3 w-3" />
+                CUSTOMIZE
               </button>
               <SongOfTheDayPicker value={songOfDay} onChange={setSongOfDay} />
             </div>
