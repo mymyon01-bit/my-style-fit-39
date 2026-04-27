@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, Heart, Send, Eye, Bookmark, BookmarkCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ const markSeen = (userId: string, lastCreatedAt: string) => {
 
 const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: Props) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [userIdx, setUserIdx] = useState(startUserIndex);
   const [storyIdx, setStoryIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -314,7 +316,18 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
 
         {/* Header */}
         <div className="absolute top-7 left-3 right-3 flex items-center justify-between z-20 pt-3">
-          <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (!currentUser) return;
+              if (isOwnCurrent) return; // own story → no nav
+              onClose();
+              navigate(`/user/${currentUser.user_id}`);
+            }}
+            disabled={isOwnCurrent}
+            className="flex items-center gap-2.5 min-w-0 max-w-[60%] text-left disabled:cursor-default"
+            aria-label={isOwnCurrent ? "Your story" : `Open ${currentUser?.profile?.display_name || "user"}'s profile`}
+          >
             <div className="h-8 w-8 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
               {currentUser.profile?.avatar_url ? (
                 <img src={currentUser.profile.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -324,13 +337,13 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
                 </div>
               )}
             </div>
-            <div>
-              <p className="text-[12px] font-semibold text-white">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-white truncate">
                 {currentUser.profile?.display_name || "User"}
               </p>
               <p className="text-[9px] text-white/60">{relativeTime(currentStory.created_at)}</p>
             </div>
-          </div>
+          </button>
           <div className="flex items-center gap-3">
             {isOwn && (
               <>
