@@ -224,6 +224,7 @@ const UserProfilePage = () => {
       await supabase.from("circles").insert({ follower_id: user.id, following_id: userId! });
       setInCircle(true);
       setRippleCount(prev => prev + 1);
+      claimStarAction("join_circle");
     }
   };
 
