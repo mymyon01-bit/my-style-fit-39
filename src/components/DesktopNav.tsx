@@ -51,7 +51,7 @@ const DesktopNav = () => {
             aria-label="my'myon — home"
             className="group transition-opacity hover:opacity-80"
           >
-            <Brandmark variant="compact" className="text-[17px]" />
+            <Brandmark variant="compact" className="!h-7 md:!h-8" />
           </button>
 
           {/* Center nav */}
