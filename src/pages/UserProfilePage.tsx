@@ -231,13 +231,12 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     if (inCircle) {
       await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
       setInCircle(false);
-      setRippleCount(prev => Math.max(0, prev - 1));
     } else {
       await supabase.from("circles").insert({ follower_id: user.id, following_id: userId! });
       setInCircle(true);
-      setRippleCount(prev => prev + 1);
       claimStarAction("join_circle");
     }
+    loadCircleInfo();
   };
 
   const toggleBlock = async () => {
@@ -253,8 +252,8 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
       if (inCircle) {
         await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
         setInCircle(false);
-        setRippleCount(prev => Math.max(0, prev - 1));
       }
+      loadCircleInfo();
       toast.success("User blocked");
     }
   };
