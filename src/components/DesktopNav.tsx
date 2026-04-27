@@ -15,7 +15,6 @@ const DesktopNav = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
-  const { ootdUnread } = useNotifications();
   const { isOpen: ootdOpen } = useOOTDModal();
 
   useEffect(() => {
