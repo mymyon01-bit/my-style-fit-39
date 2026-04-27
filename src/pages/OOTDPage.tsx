@@ -854,7 +854,7 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className={mobileOOTD ? "min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-hide" : "contents"}>
+      <div className={mobileOOTD ? "min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-hide pb-[calc(72px+env(safe-area-inset-bottom))]" : "contents"}>
       <div className={`relative mx-auto w-full max-w-lg px-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "pt-2 pb-3" : "px-6 pt-8 md:pt-10"}`}>
         {activeTab === "mypage" && user && (
           <div
