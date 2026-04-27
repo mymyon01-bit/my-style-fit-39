@@ -57,7 +57,8 @@ const OOTDModalHost = () => {
   // Decide what to render inside the modal based on current route.
   const renderInner = () => {
     if (location.pathname.startsWith("/user/")) {
-      return <UserProfilePage />;
+      const userId = decodeURIComponent(location.pathname.split("/")[2] || "");
+      return <UserProfilePage key={userId} userIdOverride={userId} />;
     }
     return <OOTDPage />;
   };
@@ -110,7 +111,7 @@ const OOTDModalHost = () => {
             </button>
 
             {/* OOTD owns its own scroll area so its bottom menu stays fixed. */}
-            <div className="h-full w-full overflow-y-auto">
+            <div className="h-full w-full overflow-y-auto" key={location.pathname + location.search}>
               {renderInner()}
             </div>
           </motion.div>
