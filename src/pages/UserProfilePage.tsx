@@ -183,12 +183,16 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   };
 
   const loadCircleInfo = async () => {
-    const [{ count: following }, { count: followers }] = await Promise.all([
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", userId!),
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", userId!),
+    // Unified definition: Circle = mutual follows; Ripple = one-way followers.
+    const [followingRes, followersRes] = await Promise.all([
+      supabase.from("circles").select("following_id").eq("follower_id", userId!),
+      supabase.from("circles").select("follower_id").eq("following_id", userId!),
     ]);
-    setCircleCount(following || 0);
-    setRippleCount(followers || 0);
+    const followingSet = new Set((followingRes.data || []).map((r: any) => r.following_id));
+    const followerIds = (followersRes.data || []).map((r: any) => r.follower_id);
+    const mutual = followerIds.filter(id => followingSet.has(id)).length;
+    setCircleCount(mutual);
+    setRippleCount(Math.max(0, followerIds.length - mutual));
 
     if (user && user.id !== userId) {
       const { data } = await supabase
