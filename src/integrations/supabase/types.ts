@@ -1208,6 +1208,54 @@ export type Database = {
         }
         Relationships: []
       }
+      octoparse_tasks: {
+        Row: {
+          category: string | null
+          created_at: string
+          enabled: boolean
+          gender: string | null
+          id: string
+          label: string
+          last_error: string | null
+          last_inserted_count: number | null
+          last_run_at: string | null
+          notes: string | null
+          source_site: string | null
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          enabled?: boolean
+          gender?: string | null
+          id?: string
+          label: string
+          last_error?: string | null
+          last_inserted_count?: number | null
+          last_run_at?: string | null
+          notes?: string | null
+          source_site?: string | null
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          enabled?: boolean
+          gender?: string | null
+          id?: string
+          label?: string
+          last_error?: string | null
+          last_inserted_count?: number | null
+          last_run_at?: string | null
+          notes?: string | null
+          source_site?: string | null
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ootd_comments: {
         Row: {
           content: string
