@@ -996,7 +996,7 @@ const translations = {
     ootdStarsHowToTitle: "Come collezionare stelle",
     ootdStarsLeftToday: "Stelle rimaste oggi",
     ootdWelcomeStarsTitle: "Sistema di Stelle ⭐",
-    ootdWelcomeStarsBody: "Invia stelle agli OOTD che ami. Ricevi 3 stelle al giorno, e i look più votati entrano in classifica.",
+    ootdWelcomeStarsBody: "Invia stelle agli OOTD che ami. Ricevi 3 stelle al giorno, e i look più votati entrano in classifica.\n\nFai crescere il tuo saldo: condividi il tuo OOTD, importa un look da Discover o entra in un nuovo Circle — ognuno ti dà +1 stella.",
     ootdWelcomeProfileTitle: "Rendilo Tuo 🎨",
     ootdWelcomeProfileBody: "Temi di sfondo, colori delle card, persino la canzone del giorno — personalizza il tuo profilo. Gli amici vedranno esattamente ciò che imposti.",
     ootdWelcomeFeedTitle: "Feed & Community 💬",
