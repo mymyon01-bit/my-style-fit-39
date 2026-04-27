@@ -10,15 +10,16 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem("wardrobe-splash")) {
+    // Bumped key (v2) so users see the new "My myon #OOTD" splash once
+    if (sessionStorage.getItem("wardrobe-splash-v2")) {
       onComplete();
       return;
     }
-    const tExit = setTimeout(() => setExiting(true), 1400);
+    const tExit = setTimeout(() => setExiting(true), 1600);
     const tDone = setTimeout(() => {
-      sessionStorage.setItem("wardrobe-splash", "1");
+      sessionStorage.setItem("wardrobe-splash-v2", "1");
       onComplete();
-    }, 1900);
+    }, 2100);
     return () => {
       clearTimeout(tExit);
       clearTimeout(tDone);
