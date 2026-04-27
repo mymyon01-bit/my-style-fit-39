@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,6 +171,31 @@ const OOTDPage = () => {
       window.removeEventListener("ootd-bg-realistic-change", onRealistic);
     };
   }, []);
+
+  // Mobile swipe between tabs (left/right). Only enabled on mobile/modal.
+  const TAB_ORDER: Tab[] = ["ranking", "feed", "community", "showroom", "mypage"];
+  const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const onTabSwipeStart = (e: React.TouchEvent) => {
+    if (!mobileOOTD) return;
+    const t = e.touches[0];
+    touchRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
+  const onTabSwipeEnd = (e: React.TouchEvent) => {
+    if (!mobileOOTD || !touchRef.current) return;
+    const start = touchRef.current;
+    touchRef.current = null;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const dt = Date.now() - start.t;
+    // Require predominantly horizontal motion, not too slow, not too short.
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || dt > 600) return;
+    const idx = TAB_ORDER.indexOf(activeTab);
+    if (idx < 0) return;
+    const nextIdx = dx < 0 ? idx + 1 : idx - 1;
+    if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return;
+    setActiveTab(TAB_ORDER[nextIdx]);
+  };
 
   // Combined user + hashtag search
   const [searchQuery, setSearchQuery] = useState("");
@@ -926,6 +951,8 @@ const OOTDPage = () => {
         <div
           className={bgTheme !== "none" ? `rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl shadow-xl shadow-black/10 ${mobileOOTD ? "p-3" : "p-4 md:p-6"}` : ""}
           style={bgTheme !== "none" ? cardStyle : undefined}
+          onTouchStart={onTabSwipeStart}
+          onTouchEnd={onTabSwipeEnd}
         >
         <AnimatePresence mode="wait">
           {activeTab === "ranking" ? (
