@@ -32,6 +32,7 @@ const markSeen = (userId: string, lastCreatedAt: string) => {
 
 const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: Props) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [userIdx, setUserIdx] = useState(startUserIndex);
   const [storyIdx, setStoryIdx] = useState(0);
   const [paused, setPaused] = useState(false);
