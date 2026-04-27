@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, Heart, Send, Eye, Bookmark, BookmarkCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useOOTDModal } from "@/lib/ootdModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ const markSeen = (userId: string, lastCreatedAt: string) => {
 const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: Props) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { open: openOOTDModal } = useOOTDModal();
   const [userIdx, setUserIdx] = useState(startUserIndex);
   const [storyIdx, setStoryIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -322,6 +324,7 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
               if (!currentUser) return;
               if (isOwnCurrent) return; // own story → no nav
               onClose();
+              openOOTDModal();
               navigate(`/user/${currentUser.user_id}`);
             }}
             disabled={isOwnCurrent}
