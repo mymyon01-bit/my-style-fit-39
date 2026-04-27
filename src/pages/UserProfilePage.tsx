@@ -291,46 +291,46 @@ const UserProfilePage = () => {
                 )}
               </div>
             </OfficialAvatarRing>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-display text-base font-semibold text-foreground/90">
+                <h2 className="font-display text-base font-semibold text-foreground/90 truncate max-w-full">
                   {profile.display_name || "Anonymous"}
                 </h2>
                 {profile.is_official && <OfficialBadge />}
-                {dailyWins.length > 0 && <Crown className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
-                {profile.is_private && <Lock className="h-3 w-3 text-foreground/30" />}
+                {dailyWins.length > 0 && <Crown className="h-4 w-4 text-yellow-400 fill-yellow-400 shrink-0" />}
+                {profile.is_private && <Lock className="h-3 w-3 text-foreground/30 shrink-0" />}
               </div>
               {profile.bio && (
-                <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2">{profile.bio}</p>
+                <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2 break-words">{profile.bio}</p>
               )}
 
               {/* Stats: Posts, Circle, Ripple */}
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-[10px] text-foreground/50">
+              <div className="flex items-center gap-x-4 gap-y-1 mt-2 flex-wrap">
+                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
                   <span className="font-semibold text-foreground/70">{postCount}</span> posts
                 </span>
-                <span className="text-[10px] text-foreground/50">
+                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
                   <span className="font-semibold text-foreground/70">{circleCount}</span> circle
                 </span>
-                <span className="text-[10px] text-foreground/50">
+                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
                   <span className="font-semibold text-foreground/70">{rippleCount}</span> ripple
                 </span>
               </div>
 
-              {/* Actions */}
+              {/* Actions — wrap so they never stretch the card at large font sizes */}
               {user && user.id !== userId && (
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                   <AuthGate action="join circle">
                     <button
                       onClick={toggleCircle}
-                      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold transition-all ${
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap transition-all ${
                         inCircle
                           ? "bg-accent/10 text-accent/70 border border-accent/20"
                           : "bg-foreground/[0.06] text-foreground/60 hover:bg-accent/10 hover:text-accent/70"
                       }`}
                     >
                       {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                      {inCircle ? "IN CIRCLE" : "JOIN CIRCLE"}
+                      {inCircle ? "IN CIRCLE" : "JOIN"}
                     </button>
                   </AuthGate>
                   <AuthGate action="message">
@@ -343,7 +343,7 @@ const UserProfilePage = () => {
                           toast.error("Could not open chat");
                         }
                       }}
-                      className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground whitespace-nowrap transition-opacity hover:opacity-90"
                     >
                       <MessageCircle className="h-3 w-3" />
                       MESSAGE
@@ -351,7 +351,7 @@ const UserProfilePage = () => {
                   </AuthGate>
                   <button
                     onClick={toggleBlock}
-                    className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-medium transition-all ${
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium whitespace-nowrap transition-all ${
                       isBlocked ? "bg-destructive/10 text-destructive/60 border border-destructive/20" : "text-foreground/30 hover:text-foreground/50"
                     }`}
                   >
