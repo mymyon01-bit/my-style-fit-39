@@ -69,13 +69,17 @@ const ProfilePage = () => {
     ]);
 
     // Load circle & scrap counts
-    const [circleRes, addedByRes, scrapRes] = await Promise.all([
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+    // Circle = mutual follows. Ripple = followers you haven't followed back yet.
+    const [followingRes, followersRes, scrapRes] = await Promise.all([
+      supabase.from("circles").select("following_id").eq("follower_id", user.id),
+      supabase.from("circles").select("follower_id").eq("following_id", user.id),
       supabase.from("saved_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
     ]);
-    setCircleCount(circleRes.count || 0);
-    setAddedByCount(addedByRes.count || 0);
+    const followingSet = new Set((followingRes.data || []).map((r: any) => r.following_id));
+    const followerIds = (followersRes.data || []).map((r: any) => r.follower_id);
+    const mutualCount = followerIds.filter(id => followingSet.has(id)).length;
+    setCircleCount(mutualCount);
+    setAddedByCount(followerIds.length - mutualCount);
     setScrapCount(scrapRes.count || 0);
 
     const p = profileRes.data;
