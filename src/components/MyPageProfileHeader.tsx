@@ -48,6 +48,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const [editBio, setEditBio] = useState("");
   const [circleCount, setCircleCount] = useState(0);
   const [rippleCount, setRippleCount] = useState(0);
+  const [starsActual, setStarsActual] = useState<number | null>(null);
   const [circlesOpen, setCirclesOpen] = useState<null | "circle" | "ripple">(null);
 
   useEffect(() => {
@@ -58,10 +59,11 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [pRes, cRes, rRes] = await Promise.all([
+    const [pRes, cRes, rRes, postsRes] = await Promise.all([
       supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags, is_official").eq("user_id", user.id).maybeSingle(),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+      supabase.from("ootd_posts").select("id").eq("user_id", user.id),
     ]);
     const p = pRes.data as ProfileData | null;
     setProfile(p);
@@ -69,6 +71,18 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
     setEditBio(p?.bio || "");
     setCircleCount(cRes.count || 0);
     setRippleCount(rRes.count || 0);
+
+    // Real star count: count rows in ootd_stars whose post belongs to me.
+    const postIds = (postsRes.data || []).map((row: { id: string }) => row.id);
+    if (postIds.length === 0) {
+      setStarsActual(0);
+    } else {
+      const { count } = await supabase
+        .from("ootd_stars")
+        .select("id", { count: "exact", head: true })
+        .in("post_id", postIds);
+      setStarsActual(count || 0);
+    }
     setLoading(false);
   };
 
@@ -235,7 +249,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
       <div className="flex items-center justify-between border-t border-border/20 pt-3">
         <div className="flex gap-5">
           <Stat label="Posts" value={postCount} />
-          <Stat label="Stars" value={totalStars} />
+          <Stat label="Stars" value={starsActual ?? totalStars} />
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
@@ -255,12 +269,12 @@ const Stat = ({ label, value, onClick }: { label: string; value: number; onClick
   const inner = (
     <>
       <p className="text-[14px] font-semibold text-foreground/85 leading-none">{value}</p>
-      <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/45 mt-1">{label}</p>
+      <p className={`text-[9px] uppercase tracking-[0.15em] mt-1 ${onClick ? "text-accent/70 underline decoration-dotted underline-offset-2" : "text-foreground/45"}`}>{label}</p>
     </>
   );
   if (onClick) {
     return (
-      <button onClick={onClick} className="text-center hover:opacity-80 transition-opacity" aria-label={`View ${label}`}>
+      <button onClick={onClick} className="text-center hover:opacity-80 active:scale-95 transition-all" aria-label={`View ${label}`}>
         {inner}
       </button>
     );
