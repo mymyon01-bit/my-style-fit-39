@@ -25,7 +25,12 @@ const AppLayout = () => {
     <>
       {!hideNotice && <DailyPicksNotice />}
       <div className={transition === "none" ? undefined : transitionClass}>
-        <Outlet />
+        {/* When the OOTD modal is open it owns the full viewport on desktop
+            and renders the matched route's page itself (e.g. UserProfilePage).
+            Hide the underlying Outlet to avoid mounting the same page twice,
+            which caused crashes when navigating to /user/:id from inside the
+            modal. */}
+        {!ootdModalOpen && <Outlet />}
       </div>
       {!hideBottomNav && <BottomNav />}
     </>
