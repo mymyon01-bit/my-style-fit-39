@@ -7,10 +7,10 @@ import {
   interpolate,
   spring,
 } from "remotion";
-import { theme } from "../theme";
-import { Grid, Vignette, CornerHUD } from "../components/Grid";
-import { PhoneFrame } from "../components/PhoneFrame";
-import { TypeReveal, MonoLabel } from "../components/TypeReveal";
+import { theme } from "./theme";
+import { Grid, Vignette, CornerHUD } from "./components/Grid";
+import { PhoneFrame } from "./components/PhoneFrame";
+import { TypeReveal, MonoLabel } from "./components/TypeReveal";
 
 // OOTD — share, music, friends, showroom — 30s
 export const OotdVideo: React.FC = () => {

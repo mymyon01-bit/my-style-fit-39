@@ -7,10 +7,10 @@ import {
   interpolate,
   spring,
 } from "remotion";
-import { theme } from "../theme";
-import { Grid, Vignette, CornerHUD, Scanline } from "../components/Grid";
-import { PhoneFrame } from "../components/PhoneFrame";
-import { TypeReveal, MonoLabel } from "../components/TypeReveal";
+import { theme } from "./theme";
+import { Grid, Vignette, CornerHUD, Scanline } from "./components/Grid";
+import { PhoneFrame } from "./components/PhoneFrame";
+import { TypeReveal, MonoLabel } from "./components/TypeReveal";
 
 // Discover — AI mood + style → curated products. 30s
 export const DiscoverVideo: React.FC = () => {

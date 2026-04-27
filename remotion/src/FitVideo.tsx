@@ -7,10 +7,10 @@ import {
   interpolate,
   spring,
 } from "remotion";
-import { theme } from "../theme";
-import { Grid, Scanline, Vignette, CornerHUD } from "../components/Grid";
-import { PhoneFrame } from "../components/PhoneFrame";
-import { TypeReveal, MonoLabel } from "../components/TypeReveal";
+import { theme } from "./theme";
+import { Grid, Scanline, Vignette, CornerHUD } from "./components/Grid";
+import { PhoneFrame } from "./components/PhoneFrame";
+import { TypeReveal, MonoLabel } from "./components/TypeReveal";
 
 // FIT video — 30s @ 30fps = 900 frames
 // Story: scan body → measure → match garment → perfect fit
