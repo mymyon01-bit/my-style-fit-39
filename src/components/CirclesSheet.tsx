@@ -87,7 +87,14 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
         toast.success("Added to your circle");
         claimStarAction("join_circle");
       }
-      setRows(rs => rs.map(r => r.user_id === row.user_id ? { ...r, followsBack: !r.followsBack } : r));
+      setRows(rs => {
+        const updated = rs.map(r => r.user_id === row.user_id ? { ...r, followsBack: !r.followsBack } : r);
+        // On Ripple tab, once you follow back, the row graduates to Circle.
+        // On Circle tab, if you unfollow, you no longer follow them.
+        if (tab === "ripple") return updated.filter(r => !r.followsBack);
+        if (tab === "circle") return updated.filter(r => r.followsBack);
+        return updated;
+      });
       // Notify parent so circle/ripple counts refresh immediately
       onChanged?.();
       // Broadcast a global event for any listeners (header counts, etc.)
