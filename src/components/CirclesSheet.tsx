@@ -84,7 +84,10 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
         claimStarAction("join_circle");
       }
       setRows(rs => rs.map(r => r.user_id === row.user_id ? { ...r, followsBack: !r.followsBack } : r));
+      // Notify parent so circle/ripple counts refresh immediately
       onChanged?.();
+      // Broadcast a global event for any listeners (header counts, etc.)
+      try { window.dispatchEvent(new CustomEvent("circles:changed")); } catch {}
     } catch {
       toast.error("Something went wrong");
     } finally {
