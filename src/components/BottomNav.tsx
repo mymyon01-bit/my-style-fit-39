@@ -27,7 +27,7 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[110]">
+    <nav className="fixed bottom-0 left-0 right-0 z-[110] md:hidden">
       {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
       <div className="bg-background/95 backdrop-blur-xl border-t border-foreground/10">
