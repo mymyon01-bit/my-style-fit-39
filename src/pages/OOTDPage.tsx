@@ -28,7 +28,7 @@ import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme 
 
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
-import CustomizeMenu, { GraffitiCustomize } from "@/components/ootd/CustomizeMenu";
+import CustomizeMenu from "@/components/ootd/CustomizeMenu";
 import { loadCardShape, applyCardShapeToRoot, type CardShape } from "@/components/ootd/cardShape";
 import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcomeModal";
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
