@@ -37,7 +37,7 @@ const Brandmark = ({
     const Tag = asHeading ? "h1" : "div";
     return (
       <Tag className={cn("flex flex-col items-center gap-3", className)}>
-        <Wordmark className="h-[280px] md:h-[360px] lg:h-[440px]" />
+        <Wordmark className="h-[420px] md:h-[540px] lg:h-[660px]" />
         {tagline ? (
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.42em] text-foreground/50">
             {tagline}
