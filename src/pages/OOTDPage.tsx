@@ -195,6 +195,9 @@ const OOTDPage = () => {
   const setActiveTab = (next: Tab) => {
     if (next === activeTab) return;
     setActiveTabState(next);
+    // When opened as a modal on the home route, don't mutate the URL —
+    // the user wants the address bar to stay at the bare domain.
+    if (inModal) return;
     const params = new URLSearchParams(window.location.search);
     if (next === "ranking") params.delete("tab"); else params.set("tab", next);
     const qs = params.toString();
