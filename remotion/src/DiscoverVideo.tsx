@@ -9,8 +9,10 @@ import {
 } from "remotion";
 import { theme } from "./theme";
 import { Grid, Vignette, CornerHUD, Scanline } from "./components/Grid";
-import { PhoneFrame } from "./components/PhoneFrame";
 import { TypeReveal, MonoLabel } from "./components/TypeReveal";
+import { BrowserFrame, ZoomHighlight } from "./components/DeviceFrame";
+import { Cursor } from "./components/Cursor";
+import { Camera } from "./components/Camera";
 
 // Discover — AI mood + style → curated products. 30s
 export const DiscoverVideo: React.FC = () => {
@@ -20,28 +22,111 @@ export const DiscoverVideo: React.FC = () => {
       <Vignette />
       <CornerHUD label="MYMYON · DISCOVER · AI" />
 
-      <Sequence from={0} durationInFrames={130}>
-        <SceneOpen />
-      </Sequence>
-      <Sequence from={120} durationInFrames={180}>
+      <Sequence from={0} durationInFrames={90}><SceneOpen /></Sequence>
+      <Sequence from={80} durationInFrames={220}><SceneLiveSearch /></Sequence>
+      <Sequence from={290} durationInFrames={170}>
         <SceneMood />
       </Sequence>
-      <Sequence from={290} durationInFrames={170}>
+      <Sequence from={450} durationInFrames={150}>
         <SceneCombine />
       </Sequence>
-      <Sequence from={450} durationInFrames={200}>
+      <Sequence from={590} durationInFrames={180}>
         <SceneCurated />
       </Sequence>
-      <Sequence from={640} durationInFrames={260}>
+      <Sequence from={760} durationInFrames={140}>
         <SceneFinale />
       </Sequence>
     </AbsoluteFill>
   );
 };
 
+// Live demo: open /discover, cursor types in search, zoom into grid
+const SceneLiveSearch: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const enter = spring({ frame, fps, config: { damping: 18 } });
+  const browserY = interpolate(enter, [0, 1], [60, 0]);
+  const camKeys = [
+    { at: 0, scale: 1, x: 0, y: 0 },
+    { at: 110, scale: 1, x: 0, y: 0 },
+    { at: 160, scale: 1.5, x: 0, y: 60 },
+    { at: 200, scale: 1.5, x: 0, y: 60 },
+    { at: 220, scale: 1, x: 0, y: 0 },
+  ];
+  const cursorPath = [
+    { x: 100, y: 700, at: 0 },
+    { x: 680, y: 440, at: 50 },
+    { x: 680, y: 440, at: 60, click: true },
+    { x: 980, y: 580, at: 140 },
+    { x: 980, y: 580, at: 155, click: true },
+  ];
+  // typed text in search bar
+  const typed = "soft autumn editorial";
+  const charsShown = Math.min(typed.length, Math.max(0, Math.floor((frame - 70) / 2.5)));
+
+  return (
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
+      <Camera keys={camKeys}>
+        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
+          <div style={{ transform: `translateY(${browserY}px)`, opacity: enter, position: "relative" }}>
+            <BrowserFrame
+              src="images/discover-desktop.png"
+              width={1366}
+              height={768}
+              url="mymyon.com/discover"
+              scale={0.85}
+              glow={theme.accent2}
+            />
+            <div style={{ position: "absolute", inset: 0, transform: "scale(0.85)", transformOrigin: "center center" }}>
+              <div style={{ position: "absolute", top: 44, left: 0, width: 1366, height: 768, pointerEvents: "none" }}>
+                {/* typed query overlay on search bar */}
+                {frame > 65 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 320,
+                      top: 425,
+                      fontSize: 20,
+                      fontFamily: "'Inter', sans-serif",
+                      color: "#1a1a22",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {typed.slice(0, charsShown)}
+                    <span style={{ opacity: Math.sin(frame * 0.5) > 0 ? 1 : 0, color: theme.accent }}>|</span>
+                  </div>
+                )}
+                <Cursor path={cursorPath} color={theme.accent2} />
+                {frame > 155 && frame < 210 && (
+                  <ZoomHighlight
+                    x={250}
+                    y={510}
+                    w={840}
+                    h={210}
+                    color={theme.accent2}
+                    opacity={interpolate(frame, [155, 175, 200, 210], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </AbsoluteFill>
+      </Camera>
+      <div style={{ position: "absolute", bottom: 60, left: 120, right: 120, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <MonoLabel text="STEP 01 · DESCRIBE YOUR STYLE" delay={10} color={theme.accent2} />
+          <div style={{ marginTop: 12, fontSize: 36, fontWeight: 600 }}>
+            Type a vibe. <span style={{ color: theme.accent2, fontStyle: "italic" }}>AI does the rest.</span>
+          </div>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 const SceneOpen: React.FC = () => {
   const frame = useCurrentFrame();
-  const o = interpolate(frame, [100, 130], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const o = interpolate(frame, [60, 90], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ padding: 120, justifyContent: "center", opacity: o }}>
       <MonoLabel text="03 · DISCOVER" color={theme.accent2} />
