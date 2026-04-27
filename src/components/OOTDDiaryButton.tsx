@@ -8,6 +8,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useOOTDModal } from "@/lib/ootdModal";
 
 interface Props {
   className?: string;
@@ -17,6 +19,8 @@ interface Props {
 
 export default function OOTDDiaryButton({ className = "", compact = false }: Props) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const { open: openOOTDModal } = useOOTDModal();
   const [open, setOpen] = useState(false);
   const [portal, setPortal] = useState(false);
 
@@ -24,8 +28,16 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
     if (portal) return;
     setPortal(true);
     setOpen(true);
-    // Let the full open + light burst play, then navigate
-    setTimeout(() => navigate("/ootd"), 1100);
+    // Let the full open + light burst play, then open modal (desktop) or navigate (mobile)
+    setTimeout(() => {
+      if (isMobile) {
+        navigate("/ootd");
+      } else {
+        openOOTDModal();
+        setPortal(false);
+        setOpen(false);
+      }
+    }, 1100);
   };
 
   return (
