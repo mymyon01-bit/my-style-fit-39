@@ -20,6 +20,7 @@ import MailboxPopup from "@/components/messages/MailboxPopup";
 import MailboxIcon from "@/components/messages/MailboxIcon";
 import NotificationsSheet from "@/components/NotificationsSheet";
 import FeedTopRow from "@/components/ootd/FeedTopRow";
+import MyLocationCard from "@/components/ootd/MyLocationCard";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
@@ -1135,7 +1136,10 @@ const OOTDPage = () => {
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
               {/* Top promo strip — Saved + AI AD slots */}
               {!activeTopic && (
-                <FeedTopRow styleHints={userPrefs?.styles} />
+                <>
+                  <MyLocationCard />
+                  <FeedTopRow styleHints={userPrefs?.styles} />
+                </>
               )}
 
               {/* Preference banner — explains why these looks are surfacing */}

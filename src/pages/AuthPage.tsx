@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { LegalLang } from "@/lib/legal/content";
 import AccountRemovedScreen from "@/components/AccountRemovedScreen";
 import ContactUsDialog from "@/components/ContactUsDialog";
+import LocationSearchInput from "@/components/LocationSearchInput";
 
 const AuthPage = () => {
   const { t } = useI18n();
@@ -29,6 +30,12 @@ const AuthPage = () => {
   const [removedInfo, setRemovedInfo] = useState<{ email: string; reason?: string | null } | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
 
+  // Extra signup fields (all required)
+  const [fullName, setFullName] = useState("");
+  const [dob, setDob] = useState(""); // yyyy-mm-dd
+  const [gender, setGender] = useState<"" | "female" | "male" | "nonbinary" | "prefer_not">("");
+  const [location, setLocation] = useState(""); // human-readable
+
   // Capture ?ref=CODE from URL on mount so we can claim it after signup
   useEffect(() => { captureReferralFromUrl(); }, []);
 
@@ -36,9 +43,21 @@ const AuthPage = () => {
     e.preventDefault();
     setError(null);
     setMessage(null);
-    if (mode === "signup" && (!consents.terms || !consents.privacy)) {
-      setError("Please accept the required Terms and Privacy Policy to continue.");
-      return;
+    if (mode === "signup") {
+      if (!consents.terms || !consents.privacy) {
+        setError("Please accept the required Terms and Privacy Policy to continue.");
+        return;
+      }
+      if (!fullName.trim()) { setError("Please enter your full name."); return; }
+      if (!dob) { setError("Please enter your date of birth."); return; }
+      if (!gender) { setError("Please select your gender."); return; }
+      if (!location.trim()) { setError("Please select where you live."); return; }
+      // Age check (≥13)
+      const ageMs = Date.now() - new Date(dob).getTime();
+      if (!Number.isFinite(ageMs) || ageMs < 13 * 365.25 * 24 * 3600 * 1000) {
+        setError("You must be at least 13 years old to sign up.");
+        return;
+      }
     }
     setLoading(true);
     try {
@@ -49,7 +68,15 @@ const AuthPage = () => {
         setLoading(false);
         return;
       }
-      const { error } = mode === "login" ? await signIn(email, password) : await signUp(email, password);
+      const { error } =
+        mode === "login"
+          ? await signIn(email, password)
+          : await signUp(email, password, {
+              full_name: fullName.trim(),
+              date_of_birth: dob,
+              gender,
+              location: location.trim(),
+            });
       if (error) throw error;
       if (mode === "signup") {
         // Record consents (best effort) once a session exists.
@@ -59,7 +86,8 @@ const AuthPage = () => {
           const docLang: LegalLang = lang === "ko" || lang === "it" ? lang : "en";
           if (u) await recordSignupConsents(u.id, consents, docLang);
         } catch {}
-        setMessage("Check your email to confirm your account.");
+        setMessage("Account created! Please check your email and click the confirmation link to sign in.");
+        setMode("login");
       }
       else navigate("/onboarding", { replace: true });
     } catch (err: any) {
@@ -255,7 +283,56 @@ const AuthPage = () => {
               )}
 
               {mode === "signup" && (
-                <ConsentCheckboxes value={consents} onChange={setConsents} />
+                <div className="space-y-4 pt-2">
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    placeholder="Full name"
+                    required
+                    autoComplete="name"
+                    className="w-full bg-transparent py-4 text-[14px] text-foreground outline-none placeholder:text-foreground/80 border-b border-accent/[0.08] focus:border-foreground/18 transition-colors md:text-base"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="block">
+                      <span className="block text-[10px] uppercase tracking-[0.18em] text-foreground/55 mb-1">Date of birth</span>
+                      <input
+                        type="date"
+                        value={dob}
+                        onChange={e => setDob(e.target.value)}
+                        required
+                        max={new Date().toISOString().split("T")[0]}
+                        className="w-full bg-transparent py-2 text-[13px] text-foreground outline-none border-b border-accent/[0.08] focus:border-foreground/18 transition-colors"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-[10px] uppercase tracking-[0.18em] text-foreground/55 mb-1">Gender</span>
+                      <select
+                        value={gender}
+                        onChange={e => setGender(e.target.value as any)}
+                        required
+                        className="w-full bg-transparent py-2 text-[13px] text-foreground outline-none border-b border-accent/[0.08] focus:border-foreground/18 transition-colors"
+                      >
+                        <option value="" disabled>Select…</option>
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="nonbinary">Non-binary</option>
+                        <option value="prefer_not">Prefer not to say</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-[0.18em] text-foreground/55 mb-1">Where you live</span>
+                    <LocationSearchInput
+                      value={location}
+                      onSelect={(r) => setLocation(r.display)}
+                      onClear={() => setLocation("")}
+                      placeholder="Search city, region…"
+                      required
+                    />
+                  </div>
+                  <ConsentCheckboxes value={consents} onChange={setConsents} />
+                </div>
               )}
 
               {error && <p className="text-[12px] text-destructive/70">{error}</p>}
