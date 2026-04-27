@@ -435,7 +435,7 @@ const ProfilePage = () => {
                 onClick={stat.onClick}
                 className={`flex flex-col items-center justify-center text-center min-w-0 ${stat.onClick ? "hover:text-accent transition-colors cursor-pointer" : ""}`}
               >
-                <p className="text-xl font-light text-foreground/80 tabular-nums">{stat.value}</p>
+                <CountUp value={Number(stat.value) || 0} className="text-xl font-light text-foreground/80 tabular-nums" />
                 <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{stat.label}</p>
               </Wrap>
             );
