@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, Megaphone,
+  ArrowLeft, ArrowRight, Megaphone, X,
   Shirt, ShoppingBag, Footprints, Crown, Heart, Sparkles, Star, Gem,
 } from "lucide-react";
 import { motion } from "framer-motion";
