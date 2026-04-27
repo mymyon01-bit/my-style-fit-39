@@ -196,7 +196,7 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
                 return (
                   <li key={row.user_id} className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 hover:bg-foreground/[0.03] transition-colors">
                     <button
-                      onClick={() => { onClose(); navigate(`/user/${row.user_id}`); }}
+                      onClick={() => { onClose(); openOOTDModal(); navigate(`/user/${row.user_id}`); }}
                       className="flex flex-1 items-center gap-2.5 text-left min-w-0"
                     >
                       <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-foreground/[0.06] ring-1 ring-border/30">
