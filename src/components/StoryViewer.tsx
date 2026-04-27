@@ -324,6 +324,7 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
               if (!currentUser) return;
               if (isOwnCurrent) return; // own story → no nav
               onClose();
+              openOOTDModal();
               navigate(`/user/${currentUser.user_id}`);
             }}
             disabled={isOwnCurrent}
