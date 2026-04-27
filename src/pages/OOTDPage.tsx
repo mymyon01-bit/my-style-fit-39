@@ -1136,7 +1136,10 @@ const OOTDPage = () => {
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
               {/* Top promo strip — Saved + AI AD slots */}
               {!activeTopic && (
-                <FeedTopRow styleHints={userPrefs?.styles} />
+                <>
+                  <MyLocationCard />
+                  <FeedTopRow styleHints={userPrefs?.styles} />
+                </>
               )}
 
               {/* Preference banner — explains why these looks are surfacing */}
