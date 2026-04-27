@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.octoparse_tasks CASCADE;
