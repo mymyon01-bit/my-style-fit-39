@@ -540,16 +540,21 @@ export default function OOTDPostDetail({
                 </button>
               </div>
             )}
-            <div className="flex gap-2 p-4">
+            <div className="flex items-center gap-2 p-4">
               <input
                 type="text"
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitComment()}
                 placeholder={replyTo ? `Reply to ${replyTo.name}…` : "Add a comment…"}
-                className="flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[12px] md:text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
+                className="min-w-0 flex-1 rounded-lg border border-border/20 bg-background px-3 py-2 text-[12px] md:text-[13px] text-foreground outline-none placeholder:text-foreground/25 focus:border-accent/30"
               />
-              <button onClick={submitComment} disabled={!commentText.trim()} className="text-accent/60 hover:text-accent disabled:opacity-30">
+              <button
+                onClick={submitComment}
+                disabled={!commentText.trim()}
+                aria-label="Post comment"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-30"
+              >
                 <Send className="h-4 w-4" />
               </button>
             </div>
