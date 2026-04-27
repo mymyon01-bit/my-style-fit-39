@@ -135,7 +135,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className="h-4 w-4 text-foreground/70 shrink-0" />
                 <span className="text-[11px] font-semibold tracking-[0.25em] text-foreground/80 truncate">
-                  NOTIFICATIONS
+                  {t("notifTitle" as any)}
                 </span>
                 {unread.length > 0 && (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground leading-none">
@@ -152,13 +152,13 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                     }}
                     className="flex items-center gap-1 rounded-full border border-border/40 px-2.5 py-1.5 text-[9px] font-semibold tracking-wider text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    <CheckCheck className="h-3 w-3" /> READ
+                    <CheckCheck className="h-3 w-3" /> {t("notifMarkRead" as any)}
                   </button>
                 )}
                 <button
                   onClick={onClose}
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground/70 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
-                  aria-label="Close notifications"
+                  aria-label={t("closeNotifications" as any)}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -174,9 +174,9 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               ) : items.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-20 text-center">
                   <Bell className="h-8 w-8 text-foreground/15" />
-                  <p className="text-[12px] text-foreground/50">No notifications yet</p>
+                  <p className="text-[12px] text-foreground/50">{t("notifEmpty" as any)}</p>
                   <p className="text-[10px] text-foreground/35">
-                    Stars, comments, and new followers will show up here
+                    {t("notifEmptyHint" as any)}
                   </p>
                 </div>
               ) : (
@@ -184,7 +184,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   {unread.length > 0 && (
                     <div>
                       <p className="px-5 pt-4 pb-2 text-[9px] font-semibold tracking-[0.25em] text-accent">
-                        UNREAD · {unread.length}
+                        {t("notifUnread" as any)} · {unread.length}
                       </p>
                       <ul className="divide-y divide-border/20">{unread.map(renderItem)}</ul>
                     </div>
@@ -192,7 +192,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   {earlier.length > 0 && (
                     <div>
                       <p className="px-5 pt-5 pb-2 text-[9px] font-semibold tracking-[0.25em] text-foreground/45">
-                        EARLIER
+                        {t("notifEarlier" as any)}
                       </p>
                       <ul className="divide-y divide-border/20">{earlier.map(renderItem)}</ul>
                     </div>
