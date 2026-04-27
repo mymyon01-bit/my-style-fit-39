@@ -126,7 +126,7 @@ const SceneLiveSearch: React.FC = () => {
 
 const SceneOpen: React.FC = () => {
   const frame = useCurrentFrame();
-  const o = interpolate(frame, [100, 130], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const o = interpolate(frame, [60, 90], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ padding: 120, justifyContent: "center", opacity: o }}>
       <MonoLabel text="03 · DISCOVER" color={theme.accent2} />
