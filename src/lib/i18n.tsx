@@ -294,7 +294,6 @@ const translations = {
     ootdWelcomeStarsBody: "Send stars to the OOTDs you love. You get 3 stars a day, and the most-starred looks make the ranking.\n\nGrow your balance: share your OOTD, import a look from Discover, or join a new Circle — each gives you +1 star.",
     ootdStarsLeftToday: "Stars left today",
     ootdWelcomeStarsTitle: "Star System ⭐",
-    ootdWelcomeStarsBody: "Send stars to the OOTDs you love. You get 3 stars a day, and the most-starred looks make the ranking.",
     ootdWelcomeProfileTitle: "Make It Yours 🎨",
     ootdWelcomeProfileBody: "Background themes, card colors, even today's song — style your profile your way. Friends see exactly what you set.",
     ootdWelcomeFeedTitle: "Feed & Community 💬",
