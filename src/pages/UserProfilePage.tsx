@@ -504,6 +504,17 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
         initialConversationId={messageSheet.conversationId}
         initialOtherUserId={userId || null}
       />
+
+      {/* Public Circle / Ripple viewer */}
+      {userId && (
+        <PublicCirclesSheet
+          open={circlesSheet.open}
+          onClose={() => setCirclesSheet({ open: false, tab: circlesSheet.tab })}
+          targetUserId={userId}
+          targetDisplayName={profile?.display_name}
+          initialTab={circlesSheet.tab}
+        />
+      )}
     </div>
   );
 };
