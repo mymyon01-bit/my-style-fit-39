@@ -44,7 +44,7 @@ const DesktopNav = () => {
 
       {/* Top bar */}
       <div className="relative z-10 bg-background/40 backdrop-blur-md border-b border-foreground/5">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-10 py-1">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-10 py-0">
           {/* Wordmark — italic display */}
           <button
             onClick={() => navigate("/")}
@@ -80,8 +80,8 @@ const DesktopNav = () => {
                 >
                   {(link as { isOotd?: boolean }).isOotd ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <OOTDDiaryIcon size={20} active={active} tapped={ootdTapped} />
-                      <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={13} />
+                      <OOTDDiaryIcon size={14} active={active} tapped={ootdTapped} />
+                      <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={9} />
                     </span>
                   ) : (
                     link.label
