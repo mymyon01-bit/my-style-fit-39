@@ -293,7 +293,9 @@ const HomePage = () => {
 
       <ContactUsDialog open={affOpen} onOpenChange={setAffOpen} topic="Affiliate / Ad" />
 
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 };
