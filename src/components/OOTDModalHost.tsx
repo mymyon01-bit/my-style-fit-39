@@ -54,10 +54,11 @@ const OOTDModalHost = () => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Backdrop — desktop only (mobile is full screen) */}
+          {/* Backdrop — opaque on desktop so the page underneath is fully
+              hidden (prevents the previous "two menus stacked" look). */}
           <motion.div
             aria-hidden
-            className="absolute inset-0 hidden bg-background/70 backdrop-blur-md md:block"
+            className="absolute inset-0 hidden bg-background md:block"
             onClick={close}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

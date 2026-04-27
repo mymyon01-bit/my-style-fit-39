@@ -37,6 +37,12 @@ const DesktopNav = () => {
     return location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
   };
 
+  // When the OOTD modal is open we hide the desktop top-nav entirely so the
+  // OOTD experience owns the full viewport (its own RANKING/FEED/COMMUNITY/
+  // SHOWROOM/MY PAGE tab bar is the only menu visible). Without this, both
+  // menus stacked on top of each other and looked broken.
+  if (ootdOpen) return null;
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 hidden md:block">
       {/* Vibrant gradient hairline */}

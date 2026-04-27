@@ -11,8 +11,9 @@ const AppLayout = () => {
   const isMobile = useIsMobile();
   const { isOpen: ootdModalOpen } = useOOTDModal();
 
-  // Hide top notice on mobile landing page
-  const hideNotice = isMobile && location.pathname === "/";
+  // Hide top notice on mobile landing page, and always while the OOTD
+  // modal is open (it owns the full viewport).
+  const hideNotice = (isMobile && location.pathname === "/") || ootdModalOpen;
   // Hide bottom nav on the OOTD experience (it has its own tab bar).
   // On mobile, when the OOTD modal is open, keep the main BottomNav hidden
   // so only OOTD's own bottom tab bar shows — user must tap X to exit.
