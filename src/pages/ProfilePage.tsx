@@ -20,6 +20,7 @@ import StyleMeButton from "@/components/StyleMeButton";
 // MessagesInbox moved to OOTD My Page (full-screen sheet)
 import { toast } from "sonner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
+import CountUp from "@/components/CountUp";
 
 const ProfilePage = () => {
   const { t } = useI18n();

@@ -263,7 +263,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
 const Stat = ({ label, value, onClick }: { label: string; value: number; onClick?: () => void }) => {
   const inner = (
     <>
-      <p className="text-[14px] font-semibold text-foreground/85 leading-none tabular-nums">{formatCount(value)}</p>
+      <CountUp value={value} className="text-[14px] font-semibold text-foreground/85 leading-none tabular-nums" />
       <p className={`text-[9px] uppercase tracking-[0.15em] mt-1 ${onClick ? "text-accent/70 underline decoration-dotted underline-offset-2" : "text-foreground/45"}`}>{label}</p>
     </>
   );
