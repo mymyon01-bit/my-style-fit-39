@@ -47,8 +47,13 @@ interface DailyWin {
   title: string;
 }
 
-const UserProfilePage = () => {
-  const { userId } = useParams<{ userId: string }>();
+interface UserProfilePageProps {
+  userIdOverride?: string;
+}
+
+const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
+  const { userId: routeUserId } = useParams<{ userId: string }>();
+  const userId = userIdOverride ?? routeUserId;
   const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
