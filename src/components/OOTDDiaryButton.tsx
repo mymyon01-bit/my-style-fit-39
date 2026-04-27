@@ -229,7 +229,7 @@ export default function OOTDDiaryButton({ className = "", compact = false }: Pro
               <span className="absolute left-0.5 top-1 bottom-1 w-px rounded-full bg-background/35" />
 
               <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-                <span className="font-display text-[11px] font-black italic tracking-tight text-background drop-shadow-[1px_1px_0_hsl(var(--foreground)/0.5)]">
+                <span className="font-display text-[16px] font-black italic tracking-tight leading-none text-background drop-shadow-[1px_1px_0_hsl(var(--foreground)/0.5)]">
                   #OOTD
                 </span>
                 <span className="text-[4px] font-bold tracking-[0.32em] text-background/75">
