@@ -380,81 +380,89 @@ const UserProfilePage = () => {
         )}
 
 
-        {/* Hashtags */}
-        {hashtags.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            {hashtags.map(tag => (
-              <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
-            ))}
-          </div>
-        )}
+        {/* Hashtags + daily wins + posts grid — wrapped so they read clearly
+            against custom OOTD backgrounds (otherwise they blend into the
+            visitor's themed background). */}
+        <div
+          className="rounded-2xl border border-border/30 p-4 backdrop-blur-md"
+          style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+        >
+          {/* Hashtags */}
+          {hashtags.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {hashtags.map(tag => (
+                <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
+              ))}
+            </div>
+          )}
 
-        {/* Daily wins */}
-        {dailyWins.length > 0 && (
-          <div className="mb-6 flex items-center gap-2 flex-wrap">
-            {dailyWins.map(win => (
-              <span key={win.award_date} className="flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 text-[9px] font-semibold text-yellow-400/80">
-                <Crown className="h-2.5 w-2.5" />
-                {win.title} · {win.award_date}
-              </span>
-            ))}
-          </div>
-        )}
+          {/* Daily wins */}
+          {dailyWins.length > 0 && (
+            <div className="mb-6 flex items-center gap-2 flex-wrap">
+              {dailyWins.map(win => (
+                <span key={win.award_date} className="flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 text-[9px] font-semibold text-yellow-400/80">
+                  <Crown className="h-2.5 w-2.5" />
+                  {win.title} · {win.award_date}
+                </span>
+              ))}
+            </div>
+          )}
 
-        {/* Private profile gate */}
-        {isPrivate ? (
-          <div className="py-20 text-center space-y-4">
-            <Lock className="h-8 w-8 text-foreground/20 mx-auto" />
-            <p className="text-[13px] text-foreground/50">This account is private</p>
-            <p className="text-[10px] text-foreground/30">Join their circle to see posts</p>
-          </div>
-        ) : (
-          <>
-            {/* Style identity */}
-            {styleTags.length > 0 && (
-              <div className="mb-6">
-                <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/40 uppercase mb-2">Style Identity</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {styleTags.map(tag => (
-                    <span key={tag} className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent/70">{tag}</span>
+          {/* Private profile gate */}
+          {isPrivate ? (
+            <div className="py-20 text-center space-y-4">
+              <Lock className="h-8 w-8 text-foreground/20 mx-auto" />
+              <p className="text-[13px] text-foreground/50">This account is private</p>
+              <p className="text-[10px] text-foreground/30">Join their circle to see posts</p>
+            </div>
+          ) : (
+            <>
+              {/* Style identity */}
+              {styleTags.length > 0 && (
+                <div className="mb-6">
+                  <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/40 uppercase mb-2">Style Identity</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {styleTags.map(tag => (
+                      <span key={tag} className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent/70">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="h-px bg-border/20 mb-6" />
+
+              {/* Posts grid */}
+              {loading ? (
+                <div className="flex justify-center py-16">
+                  <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
+                </div>
+              ) : posts.length === 0 ? (
+                <p className="text-center text-[12px] text-foreground/40 py-16">No outfits posted yet</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
+                  {posts.map((post, i) => (
+                    <motion.button
+                      key={post.id}
+                      type="button"
+                      onClick={() => setSelectedPost(post)}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="group relative overflow-hidden rounded-lg aspect-[3/4] focus:outline-none focus:ring-2 focus:ring-accent/60"
+                    >
+                      <img
+                        src={post.image_url}
+                        alt={post.caption || ""}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        loading="lazy"
+                      />
+                    </motion.button>
                   ))}
                 </div>
-              </div>
-            )}
-
-            <div className="h-px bg-border/20 mb-6" />
-
-            {/* Posts grid */}
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
-              </div>
-            ) : posts.length === 0 ? (
-              <p className="text-center text-[12px] text-foreground/40 py-16">No outfits posted yet</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
-                {posts.map((post, i) => (
-                  <motion.button
-                    key={post.id}
-                    type="button"
-                    onClick={() => setSelectedPost(post)}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="group relative overflow-hidden rounded-lg aspect-[3/4] focus:outline-none focus:ring-2 focus:ring-accent/60"
-                  >
-                    <img
-                      src={post.image_url}
-                      alt={post.caption || ""}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      loading="lazy"
-                    />
-                  </motion.button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Full OOTD detail sheet — likes, stars, comments, save, share */}
