@@ -27,7 +27,7 @@ const plans = [
   {
     id: "premium",
     name: "Premium",
-    price: "$9.99",
+    price: "$3.99",
     period: "/ month",
     features: [
       "AI daily outfit picks",
@@ -44,9 +44,9 @@ const plans = [
   {
     id: "premium_yearly",
     name: "Premium Yearly",
-    price: "$79.99",
+    price: "$29.99",
     period: "/ year",
-    savings: "Save 33%",
+    savings: "Save 37%",
     features: [
       "Everything in Premium",
       "2 months free",
