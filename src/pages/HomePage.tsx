@@ -107,7 +107,7 @@ const HomePage = () => {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background pb-20 md:pb-0">
       {/* Hero — vibrant edge */}
-      <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden md:py-32 md:pt-44">
+      <section className="relative flex flex-col items-center overflow-hidden pt-32 pb-20 md:pt-64 md:pb-28">
         <WeatherAmbience condition={weather.condition} />
 
         {/* Animated color blobs — vibrancy without overwhelming */}
@@ -153,7 +153,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col items-center text-center font-display text-[38px] font-medium italic leading-[1.15] tracking-[-0.05em] text-foreground sm:text-[50px] md:text-[66px]"
+            className="flex flex-col items-center text-center font-display text-[38px] font-medium italic leading-[1.15] tracking-[-0.05em] text-foreground sm:text-[50px] md:text-[58px]"
           >
             <span className="block">wear your</span>
             <MoodTicker
