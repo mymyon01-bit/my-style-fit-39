@@ -78,8 +78,10 @@ const DesktopNav = () => {
                     />
                   </button>
                   {insertDiaryAfter && (
-                    <div className="scale-[0.42] origin-center -mx-6 -my-3">
-                      <OOTDDiaryButton />
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-primary/30 bg-gradient-to-br from-primary/10 via-accent/10 to-transparent shadow-[0_0_20px_hsl(var(--primary)/0.18)]">
+                      <div className="scale-[0.6] origin-center -m-4">
+                        <OOTDDiaryButton />
+                      </div>
                     </div>
                   )}
                 </div>
