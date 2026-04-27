@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -6,9 +6,8 @@ import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import Brandmark from "@/components/Brandmark";
-import OOTDNavLabel from "@/components/OOTDNavLabel";
-import OOTDDiaryIcon from "@/components/OOTDDiaryIcon";
-import { useNotifications } from "@/hooks/useNotifications";
+import OOTDDiaryButton from "@/components/OOTDDiaryButton";
+
 import { useOOTDModal } from "@/lib/ootdModal";
 
 const DesktopNav = () => {
@@ -16,9 +15,7 @@ const DesktopNav = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
-  const { ootdUnread } = useNotifications();
-  const { open: openOOTD, isOpen: ootdOpen } = useOOTDModal();
-  const [ootdTapped, setOotdTapped] = useState(false);
+  const { isOpen: ootdOpen } = useOOTDModal();
 
   useEffect(() => {
     prefetchAllTabs();
@@ -27,13 +24,11 @@ const DesktopNav = () => {
   const navLinks = [
     { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: t("discover").toUpperCase() },
-    { path: "/ootd", label: "OOTD", isOotd: true },
     { path: "/fit", label: t("fit").toUpperCase() },
     { path: "/profile", label: "PROFILE" },
   ];
 
   const isActive = (path: string) => {
-    if (path === "/ootd") return ootdOpen;
     return location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
   };
 
@@ -60,61 +55,40 @@ const DesktopNav = () => {
             <Brandmark variant="compact" className="!h-[88px] md:!h-24" />
           </button>
 
-          {/* Center nav */}
-          <div className="flex items-center gap-8">
-            {navLinks.map((link) => {
-              const active = isActive(link.path);
-              const showOotdBadge = link.path === "/ootd" && !active && ootdUnread > 0;
-              return (
-                <button
-                  key={link.path}
-                  onClick={() => {
-                    if (link.path === "/ootd") {
-                      setOotdTapped(true);
-                      setTimeout(() => {
-                        openOOTD();
-                        setOotdTapped(false);
-                      }, 700);
-                    } else {
-                      navigate(link.path);
-                    }
-                  }}
-                  onMouseEnter={() => prefetchRoute(link.path)}
-                  className={`group relative font-mono text-[8.5px] font-semibold tracking-[0.22em] transition-colors ${
-                    active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
-                  }`}
-                >
-                  {(link as { isOotd?: boolean }).isOotd ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <OOTDDiaryIcon size={14} active={active} tapped={ootdTapped} />
-                      <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={9} />
-                    </span>
-                  ) : (
-                    link.label
-                  )}
-                  {showOotdBadge && (
-                    <span
-                      aria-label={`${ootdUnread} new OOTD activity`}
-                      className="absolute -right-2.5 -top-1.5 flex h-3 min-w-3 items-center justify-center rounded-full bg-destructive px-1 text-[7px] font-bold text-destructive-foreground"
-                    >
-                      {ootdUnread > 9 ? "9+" : ootdUnread}
-                    </span>
-                  )}
-                  <span
-                    className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
-                      active ? "w-full" : "w-0 group-hover:w-full"
+          {/* Center cluster — Diary button on top, nav links below */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="-mt-2 -mb-1 scale-[0.55] origin-top">
+              <OOTDDiaryButton />
+            </div>
+            <div className="flex items-center gap-8">
+              {navLinks.map((link) => {
+                const active = isActive(link.path);
+                return (
+                  <button
+                    key={link.path}
+                    onClick={() => navigate(link.path)}
+                    onMouseEnter={() => prefetchRoute(link.path)}
+                    className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
+                      active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
                     }`}
-                  />
-                </button>
-              );
-            })}
+                  >
+                    {link.label}
+                    <span
+                      className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
+                        active ? "w-full" : "w-0 group-hover:w-full"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Right cluster */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/install")}
-              className={`flex items-center gap-1.5 font-mono text-[8.5px] font-semibold tracking-[0.22em] transition-colors ${
+              className={`flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
                 isActive("/install") ? "text-accent" : "text-foreground/60 hover:text-accent"
               }`}
             >
@@ -127,7 +101,7 @@ const DesktopNav = () => {
             {user ? (
               <button
                 onClick={() => navigate("/settings")}
-                className="font-mono text-[8.5px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                className="font-mono text-[11px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
               >
                 SETTINGS
               </button>
@@ -135,13 +109,13 @@ const DesktopNav = () => {
               <>
                 <button
                   onClick={() => navigate("/auth")}
-                  className="font-mono text-[8.5px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                  className="font-mono text-[11px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
                 >
                   {t("logIn").toUpperCase()}
                 </button>
                 <button
                   onClick={() => navigate("/auth?mode=signup")}
-                  className="border-[1.5px] border-foreground bg-foreground px-3 py-1.5 font-mono text-[8.5px] font-semibold tracking-[0.22em] text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
+                  className="border-[1.5px] border-foreground bg-foreground px-3 py-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
                   style={{ borderRadius: "var(--radius)" }}
                 >
                   {t("signUp").toUpperCase()}
