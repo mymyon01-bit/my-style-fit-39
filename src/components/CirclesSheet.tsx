@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { claimStarAction } from "@/lib/starGrants";
 
 type Tab = "circle" | "ripple";
 
@@ -80,6 +81,7 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
       } else {
         await supabase.from("circles").insert({ follower_id: user.id, following_id: row.user_id });
         toast.success("Added to your circle");
+        claimStarAction("join_circle");
       }
       setRows(rs => rs.map(r => r.user_id === row.user_id ? { ...r, followsBack: !r.followsBack } : r));
       onChanged?.();

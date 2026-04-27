@@ -2276,6 +2276,33 @@ export type Database = {
         }
         Relationships: []
       }
+      star_action_grants: {
+        Row: {
+          action: string
+          created_at: string
+          grant_date: string
+          id: string
+          stars_awarded: number
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          grant_date?: string
+          id?: string
+          stars_awarded?: number
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          grant_date?: string
+          id?: string
+          stars_awarded?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       star_grant_recipients: {
         Row: {
           created_at: string
@@ -2725,6 +2752,7 @@ export type Database = {
         Returns: undefined
       }
       claim_referral: { Args: { _code: string }; Returns: Json }
+      claim_star_action: { Args: { _action: string }; Returns: Json }
       create_group_conversation: {
         Args: { _member_ids: string[]; _title: string }
         Returns: string

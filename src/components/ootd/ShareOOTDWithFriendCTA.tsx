@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { claimStarAction } from "@/lib/starGrants";
 
 /**
  * "Share #OOTD with a friend" CTA — bottom-of-page invite that copies an
@@ -32,6 +33,8 @@ const ShareOOTDWithFriendCTA = () => {
         await navigator.clipboard.writeText(shareUrl);
         toast.success("Invite link copied");
       }
+      // Reward +1 star (daily, once)
+      claimStarAction("share_ootd");
     } catch {
       // user cancelled — silent
     }
