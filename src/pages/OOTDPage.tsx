@@ -752,16 +752,17 @@ const OOTDPage = () => {
                 </button>
               </>
             )}
-            {!inModal && (
-              <button
-                onClick={() => navigate("/")}
-                className="ootd-neon-icon ootd-neon-icon--ink"
-                aria-label="OOTD 닫기"
-                title="닫기"
-              >
-                <X className="h-[15px] w-[15px]" strokeWidth={2.4} />
-              </button>
-            )}
+            <button
+              onClick={() => {
+                if (inModal) closeOOTD();
+                else navigate("/");
+              }}
+              className="ootd-neon-icon ootd-neon-icon--ink"
+              aria-label="OOTD 닫기"
+              title="닫기"
+            >
+              <X className="h-[15px] w-[15px]" strokeWidth={2.4} />
+            </button>
             </div>
           </div>
         </div>
