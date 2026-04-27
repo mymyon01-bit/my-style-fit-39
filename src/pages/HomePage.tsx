@@ -107,7 +107,7 @@ const HomePage = () => {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background pb-20 md:pb-0">
       {/* Hero — vibrant edge */}
-      <section className="relative flex flex-1 flex-col items-center justify-start overflow-hidden pt-12 md:justify-center md:pt-0">
+      <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden">
         <WeatherAmbience condition={weather.condition} />
 
         {/* Animated color blobs — vibrancy without overwhelming */}
@@ -122,7 +122,7 @@ const HomePage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="absolute top-0 z-20 flex w-full items-center justify-between gap-2 px-5 py-1 lg:hidden"
+          className="absolute top-0 z-20 flex w-full items-center justify-between gap-2 px-5 py-0 lg:hidden"
         >
           <Brandmark variant="inline" />
           <div className="flex items-center gap-1.5">
