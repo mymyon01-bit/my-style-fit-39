@@ -1,11 +1,12 @@
 /**
- * Brandmark — my'myon wordmark.
+ * Brandmark — my'myon graffiti wordmark.
  *
- * Matches the landing page aesthetic: italic display type, with the second
- * "myon" rendered in the primary→accent gradient (`text-gradient`) — the same
- * treatment used for the rotating ticker word on the homepage.
+ * Now rendered as an image: hand-tagged neon spray-paint lettering with drips.
+ * Heights are tuned so that the visible glyph cap-height roughly matches what
+ * the previous text wordmark occupied at each variant size.
  */
 import { cn } from "@/lib/utils";
+import brandGraffiti from "@/assets/brand-graffiti.png";
 
 type Variant = "compact" | "stacked" | "inline";
 
@@ -17,16 +18,13 @@ interface BrandmarkProps {
 }
 
 const Wordmark = ({ className }: { className?: string }) => (
-  <span
-    className={cn(
-      "font-display italic font-medium tracking-[-0.04em] leading-none text-foreground",
-      className
-    )}
-  >
-    my
-    <span aria-hidden className="mx-[0.02em] text-foreground/40">’</span>
-    <span className="text-gradient font-semibold">myon</span>
-  </span>
+  <img
+    src={brandGraffiti}
+    alt="my'myon"
+    draggable={false}
+    className={cn("block h-auto w-auto select-none", className)}
+    style={{ filter: "drop-shadow(0 2px 6px hsl(var(--accent) / 0.25))" }}
+  />
 );
 
 const Brandmark = ({
@@ -39,7 +37,7 @@ const Brandmark = ({
     const Tag = asHeading ? "h1" : "div";
     return (
       <Tag className={cn("flex flex-col items-center gap-3", className)}>
-        <Wordmark className="text-[34px] md:text-[42px] lg:text-[52px]" />
+        <Wordmark className="h-[68px] md:h-[88px] lg:h-[112px]" />
         {tagline ? (
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.42em] text-foreground/50">
             {tagline}
@@ -50,11 +48,11 @@ const Brandmark = ({
   }
 
   if (variant === "inline") {
-    return <Wordmark className={cn("text-[15px]", className)} />;
+    return <Wordmark className={cn("h-[26px]", className)} />;
   }
 
-  // compact (default)
-  return <Wordmark className={cn("text-[18px] md:text-[20px]", className)} />;
+  // compact (default) — used in nav bars and hero captions
+  return <Wordmark className={cn("h-[34px] md:h-[40px]", className)} />;
 };
 
 export default Brandmark;
