@@ -15,6 +15,7 @@ import OOTDPostDetail from "@/components/OOTDPostDetail";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { claimStarAction } from "@/lib/starGrants";
 import PublicCirclesSheet from "@/components/PublicCirclesSheet";
+import CountUp from "@/components/CountUp";
 
 interface UserProfileData {
   user_id: string;
@@ -183,12 +184,16 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   };
 
   const loadCircleInfo = async () => {
-    const [{ count: following }, { count: followers }] = await Promise.all([
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("follower_id", userId!),
-      supabase.from("circles").select("id", { count: "exact", head: true }).eq("following_id", userId!),
+    // Unified definition: Circle = mutual follows; Ripple = one-way followers.
+    const [followingRes, followersRes] = await Promise.all([
+      supabase.from("circles").select("following_id").eq("follower_id", userId!),
+      supabase.from("circles").select("follower_id").eq("following_id", userId!),
     ]);
-    setCircleCount(following || 0);
-    setRippleCount(followers || 0);
+    const followingSet = new Set((followingRes.data || []).map((r: any) => r.following_id));
+    const followerIds = (followersRes.data || []).map((r: any) => r.follower_id);
+    const mutual = followerIds.filter(id => followingSet.has(id)).length;
+    setCircleCount(mutual);
+    setRippleCount(Math.max(0, followerIds.length - mutual));
 
     if (user && user.id !== userId) {
       const { data } = await supabase
@@ -227,13 +232,12 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     if (inCircle) {
       await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
       setInCircle(false);
-      setRippleCount(prev => Math.max(0, prev - 1));
     } else {
       await supabase.from("circles").insert({ follower_id: user.id, following_id: userId! });
       setInCircle(true);
-      setRippleCount(prev => prev + 1);
       claimStarAction("join_circle");
     }
+    loadCircleInfo();
   };
 
   const toggleBlock = async () => {
@@ -249,8 +253,8 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
       if (inCircle) {
         await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
         setInCircle(false);
-        setRippleCount(prev => Math.max(0, prev - 1));
       }
+      loadCircleInfo();
       toast.success("User blocked");
     }
   };
@@ -323,14 +327,14 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
                   onClick={() => setCirclesSheet({ open: true, tab: "circle" })}
                   className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
                 >
-                  <span className="font-semibold text-foreground/70">{circleCount}</span> circle
+                  <CountUp value={circleCount} className="font-semibold text-foreground/70" /> circle
                 </button>
                 <button
                   type="button"
                   onClick={() => setCirclesSheet({ open: true, tab: "ripple" })}
                   className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
                 >
-                  <span className="font-semibold text-foreground/70">{rippleCount}</span> ripple
+                  <CountUp value={rippleCount} className="font-semibold text-foreground/70" /> ripple
                 </button>
               </div>
 
