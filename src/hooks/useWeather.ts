@@ -39,6 +39,32 @@ const WMO_TO_CONDITION: Record<number, string> = {
   99: "thunderstorm",
 };
 
+const CACHE_KEY = "wardrobe_weather_cache_v2";
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes — real-time enough, avoids hammering APIs
+
+interface CachedWeather {
+  temp: number;
+  condition: string;
+  location: string;
+  ts: number;
+}
+
+function readCache(): CachedWeather | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw) as CachedWeather;
+    if (Date.now() - c.ts > CACHE_TTL_MS) return null;
+    return c;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(c: CachedWeather) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch {}
+}
+
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {
     const res = await fetch(
@@ -58,47 +84,111 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
   }
 }
 
-export function useWeather(): WeatherData {
-  const [weather, setWeather] = useState<WeatherData>({
-    temp: 22,
-    condition: "partly-cloudy",
-    location: "Locating…",
-    loading: true,
-    error: null,
+/**
+ * IP-based geolocation fallback. Free, no key, ~city accuracy. Used when the
+ * browser's geolocation is denied/unavailable so we still show real weather
+ * for the user's region instead of the hard-coded "partly-cloudy" default.
+ */
+async function ipGeolocate(): Promise<{ lat: number; lon: number; city: string } | null> {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (typeof d.latitude !== "number" || typeof d.longitude !== "number") return null;
+    return {
+      lat: d.latitude,
+      lon: d.longitude,
+      city: d.city || d.region || "Your Location",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchWeather(lat: number, lon: number): Promise<{ temp: number; condition: string } | null> {
+  try {
+    const r = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
+    );
+    if (!r.ok) return null;
+    const j = await r.json();
+    const code: number = j.current?.weather_code ?? -1;
+    const condition = WMO_TO_CONDITION[code];
+    if (!condition) return null;
+    const temp = Math.round(j.current?.temperature_2m ?? 0);
+    return { temp, condition };
+  } catch {
+    return null;
+  }
+}
+
+function getBrowserPosition(): Promise<GeolocationPosition | null> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve(p),
+      () => resolve(null),
+      { timeout: 6000, maximumAge: 5 * 60 * 1000, enableHighAccuracy: false },
+    );
   });
+}
+
+export function useWeather(): WeatherData {
+  // Seed from cache if fresh; otherwise show "Locating…" (no fake sun).
+  const cached = typeof window !== "undefined" ? readCache() : null;
+  const [weather, setWeather] = useState<WeatherData>(() =>
+    cached
+      ? { temp: cached.temp, condition: cached.condition, location: cached.location, loading: false, error: null }
+      : { temp: 0, condition: "loading", location: "Locating…", loading: true, error: null },
+  );
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setWeather((w) => ({ ...w, loading: false, error: "Geolocation not supported" }));
-      return;
-    }
+    let cancelled = false;
+    (async () => {
+      // 1. Try precise browser geolocation.
+      const pos = await getBrowserPosition();
+      let lat: number | null = null;
+      let lon: number | null = null;
+      let city: string | null = null;
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lon } = pos.coords;
-        try {
-          const [weatherRes, city] = await Promise.all([
-            fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
-            ).then((r) => r.json()),
-            reverseGeocode(lat, lon),
-          ]);
+      if (pos) {
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
+      } else {
+        // 2. Fallback to IP geolocation so users who deny GPS still get
+        //    real weather instead of the seeded "partly-cloudy" default.
+        const ip = await ipGeolocate();
+        if (ip) { lat = ip.lat; lon = ip.lon; city = ip.city; }
+      }
 
-          const current = weatherRes.current;
-          const code: number = current?.weather_code ?? 2;
-          const condition = WMO_TO_CONDITION[code] || "cloudy";
-          const temp = Math.round(current?.temperature_2m ?? 22);
-
-          setWeather({ temp, condition, location: city, loading: false, error: null });
-        } catch {
-          setWeather((w) => ({ ...w, loading: false, error: "Weather fetch failed" }));
+      if (lat == null || lon == null) {
+        if (!cancelled && !cached) {
+          setWeather((w) => ({ ...w, loading: false, error: "Location unavailable" }));
         }
-      },
-      () => {
-        setWeather((w) => ({ ...w, loading: false, error: "Location denied" }));
-      },
-      { timeout: 8000 }
-    );
+        return;
+      }
+
+      const [w, namedCity] = await Promise.all([
+        fetchWeather(lat, lon),
+        city ? Promise.resolve(city) : reverseGeocode(lat, lon),
+      ]);
+
+      if (cancelled) return;
+      if (!w) {
+        setWeather((prev) => ({ ...prev, loading: false, error: "Weather fetch failed" }));
+        return;
+      }
+      const next: WeatherData = {
+        temp: w.temp,
+        condition: w.condition,
+        location: namedCity,
+        loading: false,
+        error: null,
+      };
+      setWeather(next);
+      writeCache({ temp: w.temp, condition: w.condition, location: namedCity, ts: Date.now() });
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   return weather;
