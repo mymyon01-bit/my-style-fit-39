@@ -283,7 +283,56 @@ const AuthPage = () => {
               )}
 
               {mode === "signup" && (
-                <ConsentCheckboxes value={consents} onChange={setConsents} />
+                <div className="space-y-4 pt-2">
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    placeholder="Full name"
+                    required
+                    autoComplete="name"
+                    className="w-full bg-transparent py-4 text-[14px] text-foreground outline-none placeholder:text-foreground/80 border-b border-accent/[0.08] focus:border-foreground/18 transition-colors md:text-base"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="block">
+                      <span className="block text-[10px] uppercase tracking-[0.18em] text-foreground/55 mb-1">Date of birth</span>
+                      <input
+                        type="date"
+                        value={dob}
+                        onChange={e => setDob(e.target.value)}
+                        required
+                        max={new Date().toISOString().split("T")[0]}
+                        className="w-full bg-transparent py-2 text-[13px] text-foreground outline-none border-b border-accent/[0.08] focus:border-foreground/18 transition-colors"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-[10px] uppercase tracking-[0.18em] text-foreground/55 mb-1">Gender</span>
+                      <select
+                        value={gender}
+                        onChange={e => setGender(e.target.value as any)}
+                        required
+                        className="w-full bg-transparent py-2 text-[13px] text-foreground outline-none border-b border-accent/[0.08] focus:border-foreground/18 transition-colors"
+                      >
+                        <option value="" disabled>Select…</option>
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="nonbinary">Non-binary</option>
+                        <option value="prefer_not">Prefer not to say</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-[0.18em] text-foreground/55 mb-1">Where you live</span>
+                    <LocationSearchInput
+                      value={location}
+                      onSelect={(r) => setLocation(r.display)}
+                      onClear={() => setLocation("")}
+                      placeholder="Search city, region…"
+                      required
+                    />
+                  </div>
+                  <ConsentCheckboxes value={consents} onChange={setConsents} />
+                </div>
               )}
 
               {error && <p className="text-[12px] text-destructive/70">{error}</p>}
