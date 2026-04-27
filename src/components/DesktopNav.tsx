@@ -56,54 +56,33 @@ const DesktopNav = () => {
             <Brandmark variant="compact" className="!h-[88px] md:!h-24" />
           </button>
 
-          {/* Center nav */}
-          <div className="flex items-center gap-8">
-            {navLinks.map((link) => {
-              const active = isActive(link.path);
-              const showOotdBadge = link.path === "/ootd" && !active && ootdUnread > 0;
-              return (
-                <button
-                  key={link.path}
-                  onClick={() => {
-                    if (link.path === "/ootd") {
-                      setOotdTapped(true);
-                      setTimeout(() => {
-                        openOOTD();
-                        setOotdTapped(false);
-                      }, 700);
-                    } else {
-                      navigate(link.path);
-                    }
-                  }}
-                  onMouseEnter={() => prefetchRoute(link.path)}
-                  className={`group relative font-mono text-[8.5px] font-semibold tracking-[0.22em] transition-colors ${
-                    active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
-                  }`}
-                >
-                  {(link as { isOotd?: boolean }).isOotd ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <OOTDDiaryIcon size={14} active={active} tapped={ootdTapped} />
-                      <OOTDNavLabel className="text-[8.5px] font-semibold tracking-[0.22em]" crownSize={9} />
-                    </span>
-                  ) : (
-                    link.label
-                  )}
-                  {showOotdBadge && (
-                    <span
-                      aria-label={`${ootdUnread} new OOTD activity`}
-                      className="absolute -right-2.5 -top-1.5 flex h-3 min-w-3 items-center justify-center rounded-full bg-destructive px-1 text-[7px] font-bold text-destructive-foreground"
-                    >
-                      {ootdUnread > 9 ? "9+" : ootdUnread}
-                    </span>
-                  )}
-                  <span
-                    className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
-                      active ? "w-full" : "w-0 group-hover:w-full"
+          {/* Center cluster — Diary button on top, nav links below */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="-mt-2 -mb-1 scale-[0.55] origin-top">
+              <OOTDDiaryButton />
+            </div>
+            <div className="flex items-center gap-8">
+              {navLinks.map((link) => {
+                const active = isActive(link.path);
+                return (
+                  <button
+                    key={link.path}
+                    onClick={() => navigate(link.path)}
+                    onMouseEnter={() => prefetchRoute(link.path)}
+                    className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
+                      active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
                     }`}
-                  />
-                </button>
-              );
-            })}
+                  >
+                    {link.label}
+                    <span
+                      className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
+                        active ? "w-full" : "w-0 group-hover:w-full"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Right cluster */}
