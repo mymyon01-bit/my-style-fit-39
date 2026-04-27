@@ -48,11 +48,11 @@ const Brandmark = ({
   }
 
   if (variant === "inline") {
-    return <Wordmark className={cn("h-[56px]", className)} />;
+    return <Wordmark className={cn("h-[112px]", className)} />;
   }
 
   // compact (default) — used in nav bars and hero captions
-  return <Wordmark className={cn("h-[68px] md:h-[80px]", className)} />;
+  return <Wordmark className={cn("h-[136px] md:h-[160px]", className)} />;
 };
 
 export default Brandmark;
