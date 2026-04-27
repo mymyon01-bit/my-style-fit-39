@@ -269,12 +269,12 @@ const Stat = ({ label, value, onClick }: { label: string; value: number; onClick
   const inner = (
     <>
       <p className="text-[14px] font-semibold text-foreground/85 leading-none">{value}</p>
-      <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/45 mt-1">{label}</p>
+      <p className={`text-[9px] uppercase tracking-[0.15em] mt-1 ${onClick ? "text-accent/70 underline decoration-dotted underline-offset-2" : "text-foreground/45"}`}>{label}</p>
     </>
   );
   if (onClick) {
     return (
-      <button onClick={onClick} className="text-center hover:opacity-80 transition-opacity" aria-label={`View ${label}`}>
+      <button onClick={onClick} className="text-center hover:opacity-80 active:scale-95 transition-all" aria-label={`View ${label}`}>
         {inner}
       </button>
     );
