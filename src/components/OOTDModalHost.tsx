@@ -6,11 +6,23 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDPage from "@/pages/OOTDPage";
 
 const OOTDModalHost = () => {
   const { isOpen, close } = useOOTDModal();
+  const location = useLocation();
+
+  // Auto-close the modal whenever the user navigates away from the home
+  // route (e.g. tapping an avatar in a feed card to view /user/:id). Without
+  // this the OOTD overlay stays mounted on top of the destination page,
+  // making it look like the click did nothing.
+  useEffect(() => {
+    if (isOpen && location.pathname !== "/") {
+      close();
+    }
+  }, [isOpen, location.pathname, close]);
 
   // Lock body scroll while open
   useEffect(() => {
