@@ -30,6 +30,12 @@ const AuthPage = () => {
   const [removedInfo, setRemovedInfo] = useState<{ email: string; reason?: string | null } | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
 
+  // Extra signup fields (all required)
+  const [fullName, setFullName] = useState("");
+  const [dob, setDob] = useState(""); // yyyy-mm-dd
+  const [gender, setGender] = useState<"" | "female" | "male" | "nonbinary" | "prefer_not">("");
+  const [location, setLocation] = useState(""); // human-readable
+
   // Capture ?ref=CODE from URL on mount so we can claim it after signup
   useEffect(() => { captureReferralFromUrl(); }, []);
 
