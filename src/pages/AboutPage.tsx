@@ -106,6 +106,13 @@ const AboutPage = () => {
         <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/65">
           {t("about").toUpperCase()}
         </span>
+        <button
+          onClick={() => navigate("/")}
+          aria-label="Close"
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full border border-foreground/20 bg-background/80 text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground active:scale-95"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Sticky chip nav — quick-jump to each section */}
