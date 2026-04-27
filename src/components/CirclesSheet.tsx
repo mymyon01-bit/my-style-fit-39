@@ -126,17 +126,18 @@ const CirclesSheet = ({ open, onClose, initialTab = "circle", onChanged }: Props
   return (
     <div className="fixed inset-0 z-[80] flex items-end md:items-center md:justify-center bg-background/70 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full md:max-w-md max-h-[85vh] overflow-hidden rounded-t-3xl md:rounded-2xl border border-border/30 bg-card shadow-2xl flex flex-col"
+        className="w-full md:max-w-md max-h-[70vh] md:max-h-[85vh] overflow-hidden rounded-t-3xl md:rounded-2xl border border-border/30 bg-card shadow-2xl flex flex-col"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/20 px-5 py-4">
-          <div className="flex gap-1 rounded-full bg-foreground/[0.05] p-1">
+        <div className="flex items-center justify-between border-b border-border/20 px-4 py-2.5">
+          <div className="flex gap-1 rounded-full bg-foreground/[0.05] p-0.5">
             {(["circle", "ripple"] as Tab[]).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`rounded-full px-4 py-1.5 text-[11px] font-medium transition-colors ${
+                className={`rounded-full px-3 py-1 text-[10px] font-medium transition-colors ${
                   tab === t ? "bg-accent text-background" : "text-foreground/60 hover:text-foreground/85"
                 }`}
               >
