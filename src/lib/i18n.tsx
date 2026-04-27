@@ -1632,7 +1632,7 @@ const translations = {
     ootdStarInfoBody: "Usa las estrellas que recibes cada día para enviar ⭐ a los OOTD que te encantan. Los looks con más estrellas suben al ranking diario.",
     ootdStarsLeftToday: "Estrellas restantes hoy",
     ootdWelcomeStarsTitle: "Sistema de Estrellas ⭐",
-    ootdWelcomeStarsBody: "Envía estrellas a los OOTD que te gusten. Recibes 3 estrellas al día, y los looks más votados entran al ranking.",
+    ootdWelcomeStarsBody: "Envía estrellas a los OOTD que te gusten. Recibes 3 estrellas al día, y los looks más votados entran al ranking.\n\nAumenta tu saldo: comparte tu OOTD, importa un look desde Discover o únete a un nuevo Circle — cada uno te da +1 estrella.",
     ootdWelcomeProfileTitle: "Hazlo Tuyo 🎨",
     ootdWelcomeProfileBody: "Temas de fondo, colores de tarjeta, incluso la canción del día — personaliza tu perfil. Los amigos verán exactamente lo que configures.",
     ootdWelcomeFeedTitle: "Feed y Comunidad 💬",
