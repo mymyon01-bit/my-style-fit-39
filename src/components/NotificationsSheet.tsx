@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotificationsList, type NotificationRow } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
@@ -25,19 +26,23 @@ const ICON_BY_TYPE: Record<string, any> = {
   reaction: Smile,
 };
 
-const LABEL_BY_TYPE: Record<string, string> = {
-  follow: "서클을 신청했어요",
-  circle_request: "서클을 신청했어요",
-  star: "스타를 받았어요",
-  ootd_star: "스타를 받았어요",
-  ootd_like: "좋아요를 받았습니다",
-  comment_like: "댓글에 좋아요를 받았어요",
-  comment: "댓글을 남겼어요",
-  ootd_comment: "댓글을 남겼어요",
-  ootd_reply: "답글을 남겼어요",
-  ootd_mention: "당신을 언급했어요",
-  ootd_reaction: "반응을 남겼어요",
-  reaction: "반응을 남겼어요",
+const SUFFIX_KEY_BY_TYPE: Record<string, string> = {
+  follow: "notifSuffixFollow",
+  circle_request: "notifSuffixCircleRequest",
+  star: "notifSuffixStar",
+  ootd_star: "notifSuffixOotdStar",
+  ootd_like: "notifSuffixOotdLike",
+  comment_like: "notifSuffixCommentLike",
+  comment: "notifSuffixComment",
+  ootd_comment: "notifSuffixOotdComment",
+  ootd_reply: "notifSuffixOotdReply",
+  ootd_mention: "notifSuffixOotdMention",
+  ootd_reaction: "notifSuffixOotdReaction",
+  reaction: "notifSuffixReaction",
+  showroom_star: "notifSuffixShowroomStar",
+  showroom_like: "notifSuffixShowroomLike",
+  showroom_save: "notifSuffixShowroomSave",
+  showroom_follow: "notifSuffixShowroomFollow",
 };
 
 /**
@@ -49,6 +54,7 @@ const LABEL_BY_TYPE: Record<string, string> = {
 export default function NotificationsSheet({ open, onClose }: Props) {
   const { items, actors, loading, markAllRead, reload } = useNotificationsList();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   // Esc closes the sheet — guarantees a keyboard exit if the X is missed
   useEffect(() => {
@@ -68,7 +74,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
   const renderItem = (n: NotificationRow) => {
     const Icon = ICON_BY_TYPE[n.type] || Bell;
     const actor = n.actor_id ? actors[n.actor_id] : null;
-    const actorName = actor?.display_name || actor?.username || "Someone";
+    const actorName = actor?.display_name || actor?.username || t("notifSomeone" as any);
     const isUnread = !n.read_at;
     return (
       <li key={n.id}>
@@ -101,7 +107,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12px] text-foreground/90">
               <span className="font-semibold">{actorName}</span>
-              <span className="text-foreground/60">님이 {LABEL_BY_TYPE[n.type] || n.type}</span>
+              <span className="text-foreground/60"> {SUFFIX_KEY_BY_TYPE[n.type] ? t(SUFFIX_KEY_BY_TYPE[n.type] as any) : n.type}</span>
             </p>
             <p className="text-[10px] text-foreground/40">
               {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
@@ -129,7 +135,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className="h-4 w-4 text-foreground/70 shrink-0" />
                 <span className="text-[11px] font-semibold tracking-[0.25em] text-foreground/80 truncate">
-                  NOTIFICATIONS
+                  {t("notifTitle" as any)}
                 </span>
                 {unread.length > 0 && (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground leading-none">
@@ -146,13 +152,13 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                     }}
                     className="flex items-center gap-1 rounded-full border border-border/40 px-2.5 py-1.5 text-[9px] font-semibold tracking-wider text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    <CheckCheck className="h-3 w-3" /> READ
+                    <CheckCheck className="h-3 w-3" /> {t("notifMarkRead" as any)}
                   </button>
                 )}
                 <button
                   onClick={onClose}
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground/70 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
-                  aria-label="Close notifications"
+                  aria-label={t("closeNotifications" as any)}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -168,9 +174,9 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               ) : items.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-20 text-center">
                   <Bell className="h-8 w-8 text-foreground/15" />
-                  <p className="text-[12px] text-foreground/50">No notifications yet</p>
+                  <p className="text-[12px] text-foreground/50">{t("notifEmpty" as any)}</p>
                   <p className="text-[10px] text-foreground/35">
-                    Stars, comments, and new followers will show up here
+                    {t("notifEmptyHint" as any)}
                   </p>
                 </div>
               ) : (
@@ -178,7 +184,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   {unread.length > 0 && (
                     <div>
                       <p className="px-5 pt-4 pb-2 text-[9px] font-semibold tracking-[0.25em] text-accent">
-                        UNREAD · {unread.length}
+                        {t("notifUnread" as any)} · {unread.length}
                       </p>
                       <ul className="divide-y divide-border/20">{unread.map(renderItem)}</ul>
                     </div>
@@ -186,7 +192,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   {earlier.length > 0 && (
                     <div>
                       <p className="px-5 pt-5 pb-2 text-[9px] font-semibold tracking-[0.25em] text-foreground/45">
-                        EARLIER
+                        {t("notifEarlier" as any)}
                       </p>
                       <ul className="divide-y divide-border/20">{earlier.map(renderItem)}</ul>
                     </div>
