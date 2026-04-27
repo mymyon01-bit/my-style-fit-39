@@ -54,6 +54,7 @@ const SUFFIX_KEY_BY_TYPE: Record<string, string> = {
 export default function NotificationsSheet({ open, onClose }: Props) {
   const { items, actors, loading, markAllRead, reload } = useNotificationsList();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   // Esc closes the sheet — guarantees a keyboard exit if the X is missed
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
   const renderItem = (n: NotificationRow) => {
     const Icon = ICON_BY_TYPE[n.type] || Bell;
     const actor = n.actor_id ? actors[n.actor_id] : null;
-    const actorName = actor?.display_name || actor?.username || "Someone";
+    const actorName = actor?.display_name || actor?.username || t("notifSomeone" as any);
     const isUnread = !n.read_at;
     return (
       <li key={n.id}>
@@ -106,7 +107,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12px] text-foreground/90">
               <span className="font-semibold">{actorName}</span>
-              <span className="text-foreground/60">님이 {LABEL_BY_TYPE[n.type] || n.type}</span>
+              <span className="text-foreground/60"> {SUFFIX_KEY_BY_TYPE[n.type] ? t(SUFFIX_KEY_BY_TYPE[n.type] as any) : n.type}</span>
             </p>
             <p className="text-[10px] text-foreground/40">
               {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
