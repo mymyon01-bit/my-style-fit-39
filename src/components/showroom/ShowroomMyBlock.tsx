@@ -6,7 +6,14 @@ import type { Showroom } from "@/lib/showroom/types";
 const ShowroomMyBlock = ({ userId }: { userId?: string | null }) => {
   const navigate = useNavigate();
   const { rooms, loading } = useUserShowrooms(userId);
-  if (!userId || loading) return null;
+
+  const handleCreate = () => {
+    if (!userId) {
+      navigate("/auth?redirect=/showroom/new");
+      return;
+    }
+    navigate("/showroom/new");
+  };
 
   return (
     <div className="space-y-3">
@@ -15,23 +22,36 @@ const ShowroomMyBlock = ({ userId }: { userId?: string | null }) => {
           <LayoutGrid className="h-3.5 w-3.5 text-foreground/70" />
           <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">MY SHOWROOM</p>
         </div>
-      </div>
-
-      {/* BUILD YOUR OWN — gentle nudge above the + tile */}
-      <p className="text-center text-[10px] font-medium tracking-[0.22em] text-foreground/45 uppercase">
-        Build your own
-      </p>
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <button
-          onClick={() => navigate("/showroom/new")}
-          className="flex aspect-square items-center justify-center rounded-xl border border-dashed border-foreground/20 text-foreground/55 transition-colors hover:border-foreground/40 hover:text-foreground"
-          aria-label="Create new Showroom"
+          type="button"
+          onClick={handleCreate}
+          className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[9px] font-semibold tracking-[0.2em] text-accent transition-colors hover:bg-accent/20"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-3 w-3" /> NEW
         </button>
-        {rooms.slice(0, 5).map((r) => <MinimalShowroomCard key={r.id} room={r} />)}
       </div>
+
+      {/* Primary CTA — always visible, large, obvious */}
+      <button
+        type="button"
+        onClick={handleCreate}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-foreground/25 bg-background/40 py-3 text-[11px] font-medium tracking-[0.18em] text-foreground/70 uppercase transition-colors hover:border-accent/50 hover:bg-accent/[0.06] hover:text-accent"
+      >
+        <Plus className="h-4 w-4" />
+        Create New Showroom
+      </button>
+
+      {userId && !loading && rooms.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {rooms.slice(0, 6).map((r) => <MinimalShowroomCard key={r.id} room={r} />)}
+        </div>
+      )}
+
+      {!userId && (
+        <p className="text-center text-[10px] text-foreground/45">
+          Sign in to curate your own style room.
+        </p>
+      )}
     </div>
   );
 };
