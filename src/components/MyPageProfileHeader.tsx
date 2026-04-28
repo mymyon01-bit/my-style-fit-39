@@ -241,7 +241,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
       <div className="flex items-center justify-between border-t border-border/20 pt-3">
         <div className="flex gap-5">
           <Stat label="Posts" value={postCount} />
-          <Stat label={t("starsReceived")} value={totalStars} onClick={onOpenStarInfo} />
+          <StarsStat value={totalStars} receivedLabel={t("starsReceived")} onClick={onOpenStarInfo} />
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
