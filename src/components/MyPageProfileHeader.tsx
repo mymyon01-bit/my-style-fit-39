@@ -43,6 +43,7 @@ interface Props {
 
 const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings, onOpenStarInfo, hideSettings }: Props) => {
   const { user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
   const { msgUnread } = useNotifications();
