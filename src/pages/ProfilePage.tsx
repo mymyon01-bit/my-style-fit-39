@@ -81,7 +81,7 @@ const ProfilePage = () => {
     setBodyProfile(bodyRes.data);
     setSavedCount(savedRes.count || 0);
     const posts = postsRes.data || [];
-    setPostCount(posts.length);
+    setPostCount(postsRes.count ?? posts.length);
     const postStars = posts.reduce((sum: number, pt: any) => sum + (pt.star_count || 0), 0);
     setTotalStars(postStars);
     setMyOotds(ootdsRes.data || []);
