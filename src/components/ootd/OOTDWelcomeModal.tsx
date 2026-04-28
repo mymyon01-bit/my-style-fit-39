@@ -218,7 +218,7 @@ export default function OOTDWelcomeModal() {
         >
           {/* Close */}
           <button
-            onClick={close}
+            onClick={closeOnce}
             className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-foreground/10 text-foreground/70 transition hover:bg-foreground/20 hover:rotate-90 duration-300"
             aria-label="Close"
           >
