@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 
 // Photo fallbacks (used while video loads, or if video fails)
 import rainBg from "@/assets/weather/rain.jpg";
