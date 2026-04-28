@@ -9,7 +9,7 @@
  */
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDPage from "@/pages/OOTDPage";
