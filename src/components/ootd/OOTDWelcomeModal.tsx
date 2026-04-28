@@ -310,6 +310,14 @@ export default function OOTDWelcomeModal() {
                 {index < slides.length - 1 && <ChevronRight className="h-4 w-4" />}
               </motion.button>
             </div>
+
+            {/* Don't show again */}
+            <button
+              onClick={closeForever}
+              className="mt-3 w-full text-center text-[11px] text-foreground/45 hover:text-foreground/70 transition-colors underline-offset-4 hover:underline"
+            >
+              {t("ootdWelcomeDontShow")}
+            </button>
           </div>
         </motion.div>
       </motion.div>
