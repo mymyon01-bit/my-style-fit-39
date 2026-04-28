@@ -66,6 +66,7 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [postCount, setPostCount] = useState(0);
+  const [totalStars, setTotalStars] = useState(0);
   const [selectedPost, setSelectedPost] = useState<OOTDPost | null>(null);
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
@@ -171,15 +172,23 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
 
   const loadPosts = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("ootd_posts")
-      .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, dislike_count, created_at")
-      .eq("user_id", userId!)
-      .order("created_at", { ascending: false })
-      .limit(30);
+    const [{ data }, { data: allForStats, count }] = await Promise.all([
+      supabase
+        .from("ootd_posts")
+        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, dislike_count, created_at")
+        .eq("user_id", userId!)
+        .order("created_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("ootd_posts")
+        .select("star_count", { count: "exact" })
+        .eq("user_id", userId!),
+    ]);
     const fetched = (data as OOTDPost[]) || [];
     setPosts(fetched);
-    setPostCount(fetched.length);
+    setPostCount(count ?? fetched.length);
+    const stars = (allForStats || []).reduce((sum: number, p: any) => sum + (p.star_count || 0), 0);
+    setTotalStars(stars);
     setLoading(false);
   };
 
@@ -310,10 +319,13 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
                 <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2 break-words">{profile.bio}</p>
               )}
 
-              {/* Stats: Posts, Circle, Ripple */}
+              {/* Stats: Posts, Stars, Circle, Ripple */}
               <div className="flex items-center gap-x-4 gap-y-1 mt-2 flex-wrap">
                 <span className="text-[10px] text-foreground/50 whitespace-nowrap">
-                  <span className="font-semibold text-foreground/70">{postCount}</span> posts
+                  <CountUp value={postCount} className="font-semibold text-foreground/70" /> posts
+                </span>
+                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
+                  <CountUp value={totalStars} className="font-semibold text-foreground/70" /> stars
                 </span>
                 <button
                   type="button"

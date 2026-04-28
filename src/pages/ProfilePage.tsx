@@ -65,7 +65,7 @@ const ProfilePage = () => {
       supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("saved_items").select("id", { count: "exact" }).eq("user_id", user.id),
-      supabase.from("ootd_posts").select("id, star_count").eq("user_id", user.id),
+      supabase.from("ootd_posts").select("id, star_count", { count: "exact" }).eq("user_id", user.id),
       supabase.from("ootd_posts").select("id, image_url, caption, star_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
     ]);
 
@@ -81,7 +81,7 @@ const ProfilePage = () => {
     setBodyProfile(bodyRes.data);
     setSavedCount(savedRes.count || 0);
     const posts = postsRes.data || [];
-    setPostCount(posts.length);
+    setPostCount(postsRes.count ?? posts.length);
     const postStars = posts.reduce((sum: number, pt: any) => sum + (pt.star_count || 0), 0);
     setTotalStars(postStars);
     setMyOotds(ootdsRes.data || []);
