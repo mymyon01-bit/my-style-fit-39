@@ -172,15 +172,23 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
 
   const loadPosts = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("ootd_posts")
-      .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, dislike_count, created_at")
-      .eq("user_id", userId!)
-      .order("created_at", { ascending: false })
-      .limit(30);
+    const [{ data }, { data: allForStats, count }] = await Promise.all([
+      supabase
+        .from("ootd_posts")
+        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, dislike_count, created_at")
+        .eq("user_id", userId!)
+        .order("created_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("ootd_posts")
+        .select("star_count", { count: "exact" })
+        .eq("user_id", userId!),
+    ]);
     const fetched = (data as OOTDPost[]) || [];
     setPosts(fetched);
-    setPostCount(fetched.length);
+    setPostCount(count ?? fetched.length);
+    const stars = (allForStats || []).reduce((sum: number, p: any) => sum + (p.star_count || 0), 0);
+    setTotalStars(stars);
     setLoading(false);
   };
 
