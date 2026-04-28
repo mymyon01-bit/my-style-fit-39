@@ -150,14 +150,19 @@ export default function OOTDWelcomeModal() {
     return () => window.removeEventListener(OOTD_WELCOME_OPEN_EVENT, handler);
   }, []);
 
-  const close = () => {
+  const closeOnce = () => {
+    // Just hides for this session — modal will appear again next time.
+    setOpen(false);
+  };
+
+  const closeForever = () => {
     try { localStorage.setItem(STORAGE_KEY, "1"); } catch {/* ignore */}
     setOpen(false);
   };
 
   const next = () => {
     if (index < slides.length - 1) setIndex((i) => i + 1);
-    else close();
+    else closeForever();
   };
   const prev = () => index > 0 && setIndex((i) => i - 1);
 
