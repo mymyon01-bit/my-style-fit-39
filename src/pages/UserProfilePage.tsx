@@ -16,6 +16,7 @@ import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { claimStarAction } from "@/lib/starGrants";
 import PublicCirclesSheet from "@/components/PublicCirclesSheet";
 import CountUp from "@/components/CountUp";
+import { useCircleCounts } from "@/hooks/useCircleCounts";
 
 interface UserProfileData {
   user_id: string;
@@ -62,8 +63,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [inCircle, setInCircle] = useState(false);
-  const [circleCount, setCircleCount] = useState(0);
-  const [rippleCount, setRippleCount] = useState(0);
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [postCount, setPostCount] = useState(0);
@@ -78,12 +77,13 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     conversationId: null,
   });
   const [circlesSheet, setCirclesSheet] = useState<{ open: boolean; tab: "circle" | "ripple" }>({ open: false, tab: "circle" });
+  const { counts: circleCounts, refresh: refreshCircleCounts } = useCircleCounts(userId);
 
   useEffect(() => {
     if (!userId) return;
     loadProfile();
     loadPosts();
-    loadCircleInfo();
+    loadViewerCircleStatus();
     loadDailyWins();
     loadBlockStatus();
   }, [userId]);
@@ -183,18 +183,7 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     setLoading(false);
   };
 
-  const loadCircleInfo = async () => {
-    // Unified definition: Circle = mutual follows; Ripple = one-way followers.
-    const [followingRes, followersRes] = await Promise.all([
-      supabase.from("circles").select("following_id").eq("follower_id", userId!),
-      supabase.from("circles").select("follower_id").eq("following_id", userId!),
-    ]);
-    const followingSet = new Set((followingRes.data || []).map((r: any) => r.following_id));
-    const followerIds = (followersRes.data || []).map((r: any) => r.follower_id);
-    const mutual = followerIds.filter(id => followingSet.has(id)).length;
-    setCircleCount(mutual);
-    setRippleCount(Math.max(0, followerIds.length - mutual));
-
+  const loadViewerCircleStatus = async () => {
     if (user && user.id !== userId) {
       const { data } = await supabase
         .from("circles")
@@ -237,7 +226,8 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
       setInCircle(true);
       claimStarAction("join_circle");
     }
-    loadCircleInfo();
+    refreshCircleCounts();
+    try { window.dispatchEvent(new CustomEvent("circles:changed")); } catch {}
   };
 
   const toggleBlock = async () => {
@@ -254,12 +244,15 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
         await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
         setInCircle(false);
       }
-      loadCircleInfo();
+      refreshCircleCounts();
+      try { window.dispatchEvent(new CustomEvent("circles:changed")); } catch {}
       toast.success("User blocked");
     }
   };
 
   const isPrivate = profile?.is_private && user?.id !== userId && !inCircle;
+  const circleCount = circleCounts?.circle ?? 0;
+  const rippleCount = circleCounts?.ripple ?? 0;
   const styleTags = [...new Set(posts.flatMap(p => p.style_tags || []))].slice(0, 6);
   const hashtags = profile?.hashtags || [];
 

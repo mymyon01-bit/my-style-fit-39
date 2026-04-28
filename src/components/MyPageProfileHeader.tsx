@@ -10,6 +10,7 @@ import CirclesSheet from "@/components/CirclesSheet";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { formatCount } from "@/lib/formatCount";
 import CountUp from "@/components/CountUp";
+import { useCircleCounts } from "@/hooks/useCircleCounts";
 
 interface ProfileData {
   display_name: string | null;
@@ -51,9 +52,8 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const [saving, setSaving] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
-  const [circleCount, setCircleCount] = useState(0);
-  const [rippleCount, setRippleCount] = useState(0);
   const [circlesOpen, setCirclesOpen] = useState<null | "circle" | "ripple">(null);
+  const { counts: circleCounts, refresh: refreshCircleCounts } = useCircleCounts(user?.id);
 
   useEffect(() => {
     if (!user) return;
@@ -63,22 +63,13 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [pRes, followingRes, followersRes] = await Promise.all([
+    const [pRes] = await Promise.all([
       supabase.from("profiles").select("display_name, avatar_url, bio, is_private, hashtags, is_official").eq("user_id", user.id).maybeSingle(),
-      supabase.from("circles").select("following_id").eq("follower_id", user.id),
-      supabase.from("circles").select("follower_id").eq("following_id", user.id),
     ]);
     const p = pRes.data as ProfileData | null;
     setProfile(p);
     setEditName(p?.display_name || "");
     setEditBio(p?.bio || "");
-    // Circle = mutual follows (you follow them AND they follow you).
-    // Ripple = people who follow you but you haven't followed back yet.
-    const following = new Set((followingRes.data || []).map((r: any) => r.following_id));
-    const followers = (followersRes.data || []).map((r: any) => r.follower_id);
-    const mutual = followers.filter(id => following.has(id)).length;
-    setCircleCount(mutual);
-    setRippleCount(followers.length - mutual);
     setLoading(false);
   };
 
@@ -138,6 +129,8 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
 
   const displayName = profile?.display_name || user.email?.split("@")[0] || "You";
   const initial = displayName[0]?.toUpperCase() || "Y";
+  const circleCount = circleCounts?.circle ?? 0;
+  const rippleCount = circleCounts?.ripple ?? 0;
 
   return (
     <div className="mb-6 rounded-2xl border border-border/30 bg-card/40 p-4 space-y-4">
@@ -255,7 +248,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
         open={circlesOpen !== null}
         initialTab={circlesOpen ?? "circle"}
         onClose={() => setCirclesOpen(null)}
-        onChanged={load}
+        onChanged={refreshCircleCounts}
       />
     </div>
   );

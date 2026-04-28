@@ -21,6 +21,7 @@ import StyleMeButton from "@/components/StyleMeButton";
 import { toast } from "sonner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import CountUp from "@/components/CountUp";
+import { useCircleCounts } from "@/hooks/useCircleCounts";
 
 const ProfilePage = () => {
   const { t } = useI18n();
@@ -47,13 +48,12 @@ const ProfilePage = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [editingStyle, setEditingStyle] = useState(false);
   const [editHashtags, setEditHashtags] = useState("");
-  const [circleCount, setCircleCount] = useState(0);
-  const [addedByCount, setAddedByCount] = useState(0);
   const [scrapCount, setScrapCount] = useState(0);
   const [myOotds, setMyOotds] = useState<any[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [circlesSheet, setCirclesSheet] = useState<{ open: boolean; tab: "circle" | "ripple" }>({ open: false, tab: "circle" });
+  const { counts: circleCounts, refresh: refreshCircleCounts } = useCircleCounts(user?.id);
 
   useEffect(() => { if (user) loadProfileData(); }, [user]);
 
@@ -69,18 +69,10 @@ const ProfilePage = () => {
       supabase.from("ootd_posts").select("id, image_url, caption, star_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
     ]);
 
-    // Load circle & scrap counts
-    // Circle = mutual follows. Ripple = followers you haven't followed back yet.
-    const [followingRes, followersRes, scrapRes] = await Promise.all([
-      supabase.from("circles").select("following_id").eq("follower_id", user.id),
-      supabase.from("circles").select("follower_id").eq("following_id", user.id),
+    // Load scrap count. Circle/Ripple counters come from useCircleCounts.
+    const [scrapRes] = await Promise.all([
       supabase.from("saved_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
     ]);
-    const followingSet = new Set((followingRes.data || []).map((r: any) => r.following_id));
-    const followerIds = (followersRes.data || []).map((r: any) => r.follower_id);
-    const mutualCount = followerIds.filter(id => followingSet.has(id)).length;
-    setCircleCount(mutualCount);
-    setAddedByCount(followerIds.length - mutualCount);
     setScrapCount(scrapRes.count || 0);
 
     const p = profileRes.data;
@@ -228,6 +220,8 @@ const ProfilePage = () => {
   }
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "You";
+  const circleCount = circleCounts?.circle ?? 0;
+  const rippleCount = circleCounts?.ripple ?? 0;
 
   return (
     <div className="min-h-screen pb-28 bg-background md:pb-28 lg:pb-16 lg:pt-24">
@@ -426,7 +420,7 @@ const ProfilePage = () => {
             { icon: Star, label: t("stars"), value: totalStars, onClick: undefined },
             { icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
             { icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
-            { icon: Crown, label: "Ripple", value: addedByCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
+            { icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
             { icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
           ].map(stat => {
             const Wrap: any = stat.onClick ? "button" : "div";
@@ -627,7 +621,7 @@ const ProfilePage = () => {
         open={circlesSheet.open}
         initialTab={circlesSheet.tab}
         onClose={() => setCirclesSheet(s => ({ ...s, open: false }))}
-        onChanged={loadProfileData}
+        onChanged={refreshCircleCounts}
       />
     </div>
   );
