@@ -636,4 +636,33 @@ const ProfilePage = () => {
   );
 };
 
+/**
+ * Stars stat for the profile grid: shows a shooting-star icon under the
+ * count by default. Tapping reveals the localized "Received" label briefly.
+ */
+const ProfileStarsStat = ({ value, receivedLabel }: { value: number; receivedLabel: string }) => {
+  const [showLabel, setShowLabel] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowLabel(true);
+        window.setTimeout(() => setShowLabel(false), 1800);
+      }}
+      className="flex flex-col items-center justify-center text-center min-w-0 hover:opacity-80 active:scale-95 transition-all"
+      aria-label={receivedLabel}
+    >
+      <CountUp value={value} className="text-xl font-light text-foreground/80 tabular-nums" />
+      <div className="mt-1.5 flex h-[14px] items-center justify-center text-amber-400">
+        {showLabel ? (
+          <span className="text-[10px] text-accent/80 truncate whitespace-nowrap">{receivedLabel}</span>
+        ) : (
+          <ShootingStarIcon size={16} />
+        )}
+      </div>
+    </button>
+  );
+};
+
 export default ProfilePage;
