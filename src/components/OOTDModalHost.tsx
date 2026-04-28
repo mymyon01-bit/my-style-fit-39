@@ -32,7 +32,7 @@ const OOTDModalHost = () => {
   // experience (e.g. /settings, /discover, /fit). Tapping into another user's
   // profile keeps the modal open and shows that profile inside it.
   useEffect(() => {
-    if (isOpen && !isInModalRoute(location.pathname)) {
+    if (isOpen && !shouldKeepModalOpen(location.pathname)) {
       close();
     }
   }, [isOpen, location.pathname, close]);
