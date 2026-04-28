@@ -10,6 +10,7 @@ import CirclesSheet from "@/components/CirclesSheet";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { formatCount } from "@/lib/formatCount";
 import CountUp from "@/components/CountUp";
+import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
 import { useI18n } from "@/lib/i18n";
 
@@ -240,7 +241,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
       <div className="flex items-center justify-between border-t border-border/20 pt-3">
         <div className="flex gap-5">
           <Stat label="Posts" value={postCount} />
-          <Stat label={t("starsReceived")} value={totalStars} onClick={onOpenStarInfo} />
+          <StarsStat value={totalStars} receivedLabel={t("starsReceived")} onClick={onOpenStarInfo} />
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
@@ -271,6 +272,50 @@ const Stat = ({ label, value, onClick }: { label: string; value: number; onClick
     );
   }
   return <div className="text-center">{inner}</div>;
+};
+
+/**
+ * StarsStat — shows a shooting-star icon under the count by default.
+ * Tapping once swaps the icon for the localized "Received" label;
+ * tapping again opens the parent's info modal.
+ */
+const StarsStat = ({
+  value,
+  receivedLabel,
+  onClick,
+}: {
+  value: number;
+  receivedLabel: string;
+  onClick?: () => void;
+}) => {
+  const [showLabel, setShowLabel] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!showLabel) {
+          setShowLabel(true);
+          window.setTimeout(() => setShowLabel(false), 1800);
+        } else {
+          onClick?.();
+        }
+      }}
+      className="text-center hover:opacity-80 active:scale-95 transition-all"
+      aria-label={receivedLabel}
+    >
+      <CountUp value={value} className="text-[14px] font-semibold text-foreground/85 leading-none tabular-nums" />
+      <div className="mt-1 flex h-[12px] items-center justify-center text-amber-400">
+        {showLabel ? (
+          <span className="text-[9px] uppercase tracking-[0.15em] text-accent/80 underline decoration-dotted underline-offset-2 whitespace-nowrap">
+            {receivedLabel}
+          </span>
+        ) : (
+          <ShootingStarIcon size={14} />
+        )}
+      </div>
+    </button>
+  );
 };
 
 export default MyPageProfileHeader;

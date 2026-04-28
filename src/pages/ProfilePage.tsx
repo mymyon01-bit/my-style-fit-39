@@ -21,6 +21,7 @@ import StyleMeButton from "@/components/StyleMeButton";
 import { toast } from "sonner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import CountUp from "@/components/CountUp";
+import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
 
 const ProfilePage = () => {
@@ -415,17 +416,26 @@ const ProfilePage = () => {
         {/* Stats — fixed 3-column grid so labels never break the row on mobile */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
-            { icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
-            { icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
-            { icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
-            { icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
-            { icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
-            { icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
+            { key: "posts", icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
+            { key: "stars", icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
+            { key: "saved", icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
+            { key: "circle", icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
+            { key: "ripple", icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
+            { key: "scrap", icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
           ].map(stat => {
+            if (stat.key === "stars") {
+              return (
+                <ProfileStarsStat
+                  key={stat.key}
+                  value={Number(stat.value) || 0}
+                  receivedLabel={stat.label}
+                />
+              );
+            }
             const Wrap: any = stat.onClick ? "button" : "div";
             return (
               <Wrap
-                key={stat.label}
+                key={stat.key}
                 onClick={stat.onClick}
                 className={`flex flex-col items-center justify-center text-center min-w-0 ${stat.onClick ? "hover:text-accent transition-colors cursor-pointer" : ""}`}
               >
@@ -623,6 +633,35 @@ const ProfilePage = () => {
         onChanged={refreshCircleCounts}
       />
     </div>
+  );
+};
+
+/**
+ * Stars stat for the profile grid: shows a shooting-star icon under the
+ * count by default. Tapping reveals the localized "Received" label briefly.
+ */
+const ProfileStarsStat = ({ value, receivedLabel }: { value: number; receivedLabel: string }) => {
+  const [showLabel, setShowLabel] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowLabel(true);
+        window.setTimeout(() => setShowLabel(false), 1800);
+      }}
+      className="flex flex-col items-center justify-center text-center min-w-0 hover:opacity-80 active:scale-95 transition-all"
+      aria-label={receivedLabel}
+    >
+      <CountUp value={value} className="text-xl font-light text-foreground/80 tabular-nums" />
+      <div className="mt-1.5 flex h-[14px] items-center justify-center text-amber-400">
+        {showLabel ? (
+          <span className="text-[10px] text-accent/80 truncate whitespace-nowrap">{receivedLabel}</span>
+        ) : (
+          <ShootingStarIcon size={16} />
+        )}
+      </div>
+    </button>
   );
 };
 

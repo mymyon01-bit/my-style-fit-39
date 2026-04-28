@@ -16,7 +16,9 @@ import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { claimStarAction } from "@/lib/starGrants";
 import PublicCirclesSheet from "@/components/PublicCirclesSheet";
 import CountUp from "@/components/CountUp";
+import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import { useI18n } from "@/lib/i18n";
 
 interface UserProfileData {
   user_id: string;
@@ -59,6 +61,8 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const userId = userIdOverride ?? routeUserId;
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
+  const [starsLabelOpen, setStarsLabelOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -324,9 +328,23 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
                 <span className="text-[10px] text-foreground/50 whitespace-nowrap">
                   <CountUp value={postCount} className="font-semibold text-foreground/70" /> posts
                 </span>
-                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
-                  <CountUp value={totalStars} className="font-semibold text-foreground/70" /> stars
-                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setStarsLabelOpen(true);
+                    window.setTimeout(() => setStarsLabelOpen(false), 1800);
+                  }}
+                  className="inline-flex items-center gap-1 text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
+                  aria-label={t("starsReceived")}
+                >
+                  <CountUp value={totalStars} className="font-semibold text-foreground/70" />
+                  {starsLabelOpen ? (
+                    <span className="text-accent/80">{t("starsReceived")}</span>
+                  ) : (
+                    <ShootingStarIcon size={12} className="text-amber-400" />
+                  )}
+                </button>
                 <button
                   type="button"
                   onClick={() => setCirclesSheet({ open: true, tab: "circle" })}
