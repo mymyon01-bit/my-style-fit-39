@@ -197,34 +197,44 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
     [],
   );
 
+  // Imperatively kick off playback — some browsers (Safari, in-app webviews)
+  // ignore the autoPlay attribute when the element is initially mounted with
+  // opacity 0 inside a motion wrapper, so we call play() on mount + on src change.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    v.playsInline = true;
+    const tryPlay = () => v.play().catch(() => {});
+    tryPlay();
+    v.addEventListener("canplay", tryPlay);
+    return () => v.removeEventListener("canplay", tryPlay);
+  }, [bgVideo]);
+
   return (
     // z-0 keeps ambience strictly behind page content (text uses z-10+)
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      {/* Base cinematic video layer — real footage matching the live weather. */}
-      <motion.div
+      {/* Base cinematic video layer — real footage matching the live weather.
+          Rendered as a plain <video> (no motion wrapper) so the element mounts
+          immediately and the browser respects autoplay. */}
+      <video
+        ref={videoRef}
         key={bgVideo}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.6, ease: "easeOut" }}
-        className="absolute inset-0"
-      >
-        <video
-          key={bgVideo}
-          src={bgVideo}
-          poster={bgImage}
-          autoPlay
-          loop
-          muted
-          playsInline
-          disablePictureInPicture
-          disableRemotePlayback
-          preload="auto"
-          // High opacity so the real footage reads clearly; particle overlays
-          // (rain droplets, snow, lightning) layer on top per condition.
-          className="h-full w-full object-cover opacity-[0.55] dark:opacity-[0.6]"
-          style={{ objectPosition: "center" }}
-        />
-      </motion.div>
+        src={bgVideo}
+        poster={bgImage}
+        autoPlay
+        loop
+        muted
+        playsInline
+        disablePictureInPicture
+        disableRemotePlayback
+        preload="auto"
+        // High opacity so the real footage reads clearly; particle overlays
+        // (rain droplets, snow, lightning) layer on top per condition.
+        className="absolute inset-0 h-full w-full object-cover opacity-[0.55] dark:opacity-[0.6] animate-fade-in"
+        style={{ objectPosition: "center" }}
+      />
 
       {/* Slow drifting parallax layer */}
       <motion.div
