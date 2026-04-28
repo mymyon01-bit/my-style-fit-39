@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link as LinkIcon, Loader2, Sparkles, Star, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 
 interface SubmitProductDialogProps {
@@ -24,6 +25,7 @@ interface SubmittedProduct {
 
 const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
   const { user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,18 +45,18 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
 
   const handleSubmit = async () => {
     if (!user) {
-      toast.error("로그인이 필요합니다");
+      toast.error(t("submitProductLoginRequired"));
       return;
     }
     const trimmed = url.trim();
     if (!trimmed) {
-      toast.error("상품 URL을 입력해주세요");
+      toast.error(t("submitProductUrlRequired"));
       return;
     }
     try {
       new URL(trimmed);
     } catch {
-      toast.error("올바른 URL을 입력해주세요");
+      toast.error(t("submitProductInvalidUrl"));
       return;
     }
 
@@ -65,7 +67,7 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
       });
       if (error) throw error;
       if (!data?.ok) {
-        throw new Error(data?.message || data?.error || "스크래핑에 실패했어요");
+        throw new Error(data?.message || data?.error || t("submitProductFailed"));
       }
       setResult({
         product: data.product,
@@ -73,12 +75,12 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
         deduped: !!data.deduped,
       });
       if (data.awardedStars > 0) {
-        toast.success(`+${data.awardedStars} ⭐ 보너스 별을 받았어요!`);
+        toast.success(t("submitProductBonusToast").replace("{n}", String(data.awardedStars)));
       } else if (data.deduped) {
-        toast.info("이미 등록된 상품이에요");
+        toast.info(t("submitProductDuplicate"));
       }
     } catch (e: any) {
-      const msg = e?.message || "스크래핑 중 오류가 발생했어요";
+      const msg = e?.message || t("submitProductGenericError");
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -144,14 +146,14 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
                     <LinkIcon className="h-4 w-4" />
                   </span>
                   <div>
-                    <h3 className="text-[15px] font-bold leading-tight text-foreground">상품 URL 추가하기</h3>
-                    <p className="text-[10.5px] text-foreground/55">링크를 붙여넣으면 자동으로 분석돼요 · +1⭐ 보너스</p>
+                    <h3 className="text-[15px] font-bold leading-tight text-foreground">{t("submitProductTitle")}</h3>
+                    <p className="text-[10.5px] text-foreground/55">{t("submitProductSubtitle")}</p>
                   </div>
                 </div>
 
                 <label className="mb-4 block">
                   <span className="mb-1.5 block text-[10px] font-bold tracking-[0.14em] text-foreground/55">
-                    상품 페이지 URL
+                    {t("submitProductUrlLabel")}
                   </span>
                   <input
                     type="url"
@@ -165,12 +167,12 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
                 </label>
 
                 <div className="mb-5 rounded-xl bg-foreground/[0.04] px-4 py-3">
-                  <p className="mb-1.5 text-[10px] font-bold tracking-[0.14em] text-foreground/55">동작 방식</p>
+                  <p className="mb-1.5 text-[10px] font-bold tracking-[0.14em] text-foreground/55">{t("submitProductHowTitle")}</p>
                   <ul className="space-y-1 text-[11px] leading-relaxed text-foreground/65">
-                    <li>· 입력한 URL의 상품 정보를 자동 추출</li>
-                    <li>· 디스커버 DB에 저장 → 다른 유저들도 발견</li>
-                    <li>· <span className="font-bold text-foreground">+1 보너스 별</span> 즉시 지급</li>
-                    <li>· 바로 <span className="font-bold text-foreground">Fit으로 보내기</span> 가능</li>
+                    <li>{t("submitProductHow1")}</li>
+                    <li>{t("submitProductHow2")}</li>
+                    <li>{t("submitProductHow3")}</li>
+                    <li>{t("submitProductHow4")}</li>
                   </ul>
                 </div>
 
@@ -182,12 +184,12 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      분석 중... (10-20초)
+                      {t("submitProductAnalyzing")}
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4" />
-                      분석하고 별 받기
+                      {t("submitProductAnalyze")}
                     </>
                   )}
                 </button>
@@ -200,12 +202,12 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
                   </span>
                   <div>
                     <h3 className="text-[15px] font-bold leading-tight text-foreground">
-                      {result.deduped ? "이미 등록된 상품" : "등록 완료!"}
+                      {result.deduped ? t("submitProductDuplicateTitle") : t("submitProductDoneTitle")}
                     </h3>
                     {result.awardedStars > 0 && (
                       <p className="flex items-center gap-1 text-[11px] font-semibold text-[hsl(var(--star))]">
                         <Star className="h-3 w-3 fill-current" />
-                        +{result.awardedStars} 보너스 별 지급
+                        {t("submitProductBonusGiven").replace("{n}", String(result.awardedStars))}
                       </p>
                     )}
                   </div>
@@ -237,14 +239,14 @@ const SubmitProductDialog = ({ open, onClose }: SubmitProductDialogProps) => {
                     onClick={reset}
                     className="flex h-12 flex-1 items-center justify-center rounded-xl border border-foreground/15 text-[11px] font-bold tracking-[0.14em] text-foreground/75 transition hover:bg-foreground/[0.05]"
                   >
-                    하나 더 추가
+                    {t("submitProductAddAnother")}
                   </button>
                   <button
                     onClick={handleSendToFit}
                     className="flex h-12 flex-[1.5] items-center justify-center gap-1.5 rounded-xl bg-accent text-[11px] font-bold tracking-[0.14em] text-accent-foreground transition hover:opacity-90"
                   >
                     <Sparkles className="h-4 w-4" />
-                    Fit으로 보내기
+                    {t("submitProductSendToFit")}
                   </button>
                 </div>
               </>
