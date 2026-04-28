@@ -66,6 +66,7 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const [dailyWins, setDailyWins] = useState<DailyWin[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [postCount, setPostCount] = useState(0);
+  const [totalStars, setTotalStars] = useState(0);
   const [selectedPost, setSelectedPost] = useState<OOTDPost | null>(null);
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
