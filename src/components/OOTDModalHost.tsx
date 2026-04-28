@@ -15,8 +15,11 @@ import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDPage from "@/pages/OOTDPage";
 import UserProfilePage from "@/pages/UserProfilePage";
 
-// Routes that should render INSIDE the OOTD modal instead of closing it.
-const isInModalRoute = (pathname: string) =>
+// Routes that should auto-close the OOTD modal when the user navigates to them
+// (e.g. tapping another bottom-nav tab like Discover, Fit, Profile, Settings).
+// The modal stays open for OOTD-related routes so tapping into a user profile
+// from inside OOTD keeps the experience contained.
+const shouldKeepModalOpen = (pathname: string) =>
   pathname === "/" ||
   pathname.startsWith("/ootd") ||
   pathname.startsWith("/user/");
