@@ -16,7 +16,9 @@ import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { claimStarAction } from "@/lib/starGrants";
 import PublicCirclesSheet from "@/components/PublicCirclesSheet";
 import CountUp from "@/components/CountUp";
+import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import { useI18n } from "@/lib/i18n";
 
 interface UserProfileData {
   user_id: string;
