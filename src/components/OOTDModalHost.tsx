@@ -28,11 +28,15 @@ const OOTDModalHost = () => {
   const { isOpen, close } = useOOTDModal();
   const location = useLocation();
 
-  // Close only when the user navigates somewhere that's NOT part of the OOTD
-  // experience (e.g. /settings, /discover, /fit). Tapping into another user's
-  // profile keeps the modal open and shows that profile inside it.
+  // Close only when the user actually NAVIGATES to a non-OOTD route after the
+  // modal is open. Opening the modal from /discover or /fit (without navigating)
+  // should NOT immediately close it.
+  const lastPathRef = useRef(location.pathname);
   useEffect(() => {
-    if (isOpen && !shouldKeepModalOpen(location.pathname)) {
+    const prevPath = lastPathRef.current;
+    const pathChanged = prevPath !== location.pathname;
+    lastPathRef.current = location.pathname;
+    if (isOpen && pathChanged && !shouldKeepModalOpen(location.pathname)) {
       close();
     }
   }, [isOpen, location.pathname, close]);
