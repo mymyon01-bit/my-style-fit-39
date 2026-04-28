@@ -416,17 +416,26 @@ const ProfilePage = () => {
         {/* Stats — fixed 3-column grid so labels never break the row on mobile */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
-            { icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
-            { icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
-            { icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
-            { icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
-            { icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
-            { icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
+            { key: "posts", icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
+            { key: "stars", icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
+            { key: "saved", icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
+            { key: "circle", icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
+            { key: "ripple", icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
+            { key: "scrap", icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
           ].map(stat => {
+            if (stat.key === "stars") {
+              return (
+                <ProfileStarsStat
+                  key={stat.key}
+                  value={Number(stat.value) || 0}
+                  receivedLabel={stat.label}
+                />
+              );
+            }
             const Wrap: any = stat.onClick ? "button" : "div";
             return (
               <Wrap
-                key={stat.label}
+                key={stat.key}
                 onClick={stat.onClick}
                 className={`flex flex-col items-center justify-center text-center min-w-0 ${stat.onClick ? "hover:text-accent transition-colors cursor-pointer" : ""}`}
               >
