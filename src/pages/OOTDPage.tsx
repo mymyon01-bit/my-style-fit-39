@@ -904,7 +904,7 @@ const OOTDPage = () => {
             </div>
             <MyPageProfileHeader
               postCount={myPosts.length}
-              totalStars={starsLeft + bonusStars}
+              totalStars={myPosts.reduce((sum, p) => sum + (p.star_count || 0), 0)}
               refreshKey={storiesRefreshKey}
               hasStory={hasOwnStory}
               hasUnseenStory={hasOwnUnseen}
