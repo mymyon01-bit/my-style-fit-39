@@ -21,6 +21,7 @@ import StyleMeButton from "@/components/StyleMeButton";
 import { toast } from "sonner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import CountUp from "@/components/CountUp";
+import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
 
 const ProfilePage = () => {
