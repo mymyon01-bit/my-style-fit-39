@@ -10,6 +10,7 @@ import CirclesSheet from "@/components/CirclesSheet";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { formatCount } from "@/lib/formatCount";
 import CountUp from "@/components/CountUp";
+import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
 import { useI18n } from "@/lib/i18n";
 
