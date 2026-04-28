@@ -61,6 +61,8 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const userId = userIdOverride ?? routeUserId;
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
+  const [starsLabelOpen, setStarsLabelOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [loading, setLoading] = useState(true);
