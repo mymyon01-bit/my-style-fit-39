@@ -274,4 +274,48 @@ const Stat = ({ label, value, onClick }: { label: string; value: number; onClick
   return <div className="text-center">{inner}</div>;
 };
 
+/**
+ * StarsStat — shows a shooting-star icon under the count by default.
+ * Tapping once swaps the icon for the localized "Received" label;
+ * tapping again opens the parent's info modal.
+ */
+const StarsStat = ({
+  value,
+  receivedLabel,
+  onClick,
+}: {
+  value: number;
+  receivedLabel: string;
+  onClick?: () => void;
+}) => {
+  const [showLabel, setShowLabel] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!showLabel) {
+          setShowLabel(true);
+          window.setTimeout(() => setShowLabel(false), 1800);
+        } else {
+          onClick?.();
+        }
+      }}
+      className="text-center hover:opacity-80 active:scale-95 transition-all"
+      aria-label={receivedLabel}
+    >
+      <CountUp value={value} className="text-[14px] font-semibold text-foreground/85 leading-none tabular-nums" />
+      <div className="mt-1 flex h-[12px] items-center justify-center text-amber-400">
+        {showLabel ? (
+          <span className="text-[9px] uppercase tracking-[0.15em] text-accent/80 underline decoration-dotted underline-offset-2 whitespace-nowrap">
+            {receivedLabel}
+          </span>
+        ) : (
+          <ShootingStarIcon size={14} />
+        )}
+      </div>
+    </button>
+  );
+};
+
 export default MyPageProfileHeader;
