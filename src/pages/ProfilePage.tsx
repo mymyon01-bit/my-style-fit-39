@@ -416,7 +416,7 @@ const ProfilePage = () => {
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
             { icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
-            { icon: Star, label: t("stars"), value: totalStars, onClick: undefined },
+            { icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
             { icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
             { icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
             { icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },

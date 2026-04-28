@@ -150,14 +150,19 @@ export default function OOTDWelcomeModal() {
     return () => window.removeEventListener(OOTD_WELCOME_OPEN_EVENT, handler);
   }, []);
 
-  const close = () => {
+  const closeOnce = () => {
+    // Just hides for this session — modal will appear again next time.
+    setOpen(false);
+  };
+
+  const closeForever = () => {
     try { localStorage.setItem(STORAGE_KEY, "1"); } catch {/* ignore */}
     setOpen(false);
   };
 
   const next = () => {
     if (index < slides.length - 1) setIndex((i) => i + 1);
-    else close();
+    else closeForever();
   };
   const prev = () => index > 0 && setIndex((i) => i - 1);
 
@@ -171,7 +176,7 @@ export default function OOTDWelcomeModal() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
-        onClick={close}
+        onClick={closeOnce}
       >
         {/* Floating sparkle dust around the card */}
         <motion.div
@@ -213,7 +218,7 @@ export default function OOTDWelcomeModal() {
         >
           {/* Close */}
           <button
-            onClick={close}
+            onClick={closeOnce}
             className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-foreground/10 text-foreground/70 transition hover:bg-foreground/20 hover:rotate-90 duration-300"
             aria-label="Close"
           >
@@ -305,6 +310,14 @@ export default function OOTDWelcomeModal() {
                 {index < slides.length - 1 && <ChevronRight className="h-4 w-4" />}
               </motion.button>
             </div>
+
+            {/* Don't show again */}
+            <button
+              onClick={closeForever}
+              className="mt-3 w-full text-center text-[11px] text-foreground/45 hover:text-foreground/70 transition-colors underline-offset-4 hover:underline"
+            >
+              {t("ootdWelcomeDontShow")}
+            </button>
           </div>
         </motion.div>
       </motion.div>

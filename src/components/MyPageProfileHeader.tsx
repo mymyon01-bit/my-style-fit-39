@@ -11,6 +11,7 @@ import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { formatCount } from "@/lib/formatCount";
 import CountUp from "@/components/CountUp";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import { useI18n } from "@/lib/i18n";
 
 interface ProfileData {
   display_name: string | null;
@@ -42,6 +43,7 @@ interface Props {
 
 const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasUnseenStory, onViewMyStory, onUploadStory, onOpenMessages, onOpenSettings, onOpenStarInfo, hideSettings }: Props) => {
   const { user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const photoRef = useRef<HTMLInputElement>(null);
   const { msgUnread } = useNotifications();
@@ -238,7 +240,7 @@ const MyPageProfileHeader = ({ postCount, totalStars, refreshKey, hasStory, hasU
       <div className="flex items-center justify-between border-t border-border/20 pt-3">
         <div className="flex gap-5">
           <Stat label="Posts" value={postCount} />
-          <Stat label="Stars" value={totalStars} onClick={onOpenStarInfo} />
+          <Stat label={t("starsReceived")} value={totalStars} onClick={onOpenStarInfo} />
           <Stat label="Circle" value={circleCount} onClick={() => setCirclesOpen("circle")} />
           <Stat label="Ripple" value={rippleCount} onClick={() => setCirclesOpen("ripple")} />
         </div>
