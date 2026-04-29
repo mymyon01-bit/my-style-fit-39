@@ -11,6 +11,29 @@ import {
 } from "@/lib/fit/sizeWarpProfile";
 import type { OverallFitLabel } from "@/lib/sizing";
 
+// Map raw provider/router error strings to a short, human-friendly message.
+// Never show JSON payloads or upstream stack traces in the UI.
+function friendlyFitError(raw?: string | null): string {
+  if (!raw) return "The AI service is temporarily unavailable. Please retry.";
+  const s = String(raw).toLowerCase();
+  if (s.includes("429") || s.includes("rate") || s.includes("exhaust") || s.includes("throttle") || s.includes("quota") || s.includes("resource")) {
+    return "Our image service is busy right now. Please retry in a few seconds.";
+  }
+  if (s.includes("402") || s.includes("credit")) {
+    return "AI image credits are temporarily unavailable. Please try again later.";
+  }
+  if (s.includes("timeout") || s.includes("aborted")) {
+    return "The fitting took too long to render. Please retry.";
+  }
+  if (s.includes("missing_user_body_image") || s.includes("user_image")) {
+    return "We need a body photo to render your fitting. Add one and try again.";
+  }
+  if (s.includes("missing_product_image")) {
+    return "Product image is missing. Pick another product or retry.";
+  }
+  return "The AI service is temporarily unavailable. Please retry.";
+}
+
 interface Props {
   productName: string;
   activeSize: string;
