@@ -258,7 +258,7 @@ export default function FitVisual({
                   Couldn't generate your fitting
                 </p>
                 <p className="mx-auto max-w-[260px] text-[10px] leading-relaxed text-foreground/55">
-                  {state.error || "The AI service is temporarily unavailable."}
+                  {friendlyFitError(state.error)}
                 </p>
                 {onRetry && (
                   <button
