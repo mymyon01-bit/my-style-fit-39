@@ -504,16 +504,17 @@ async function generateCleanFitImage(apiKey: string, body: CreateBody): Promise<
 // Default FIT mode. Uses Gemini 2.5 Flash Image (Nano Banana) via the Lovable
 // AI Gateway. The PRODUCT IMAGE is passed as visual reference so the generated
 // model wears the EXACT same garment — same color, same print, same design.
-async function runStudioRenderAttempt(apiKey: string, body: CreateBody): Promise<GenResult> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOverride?: string): Promise<GenResult> {
+  const LOVABLE_API_KEY = apiKey || Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing" };
   }
+  const model = modelOverride || STUDIO_IMAGE_MODEL;
 
   logRouter("LOVABLE_STUDIO_START", {
     productKey: body.productKey,
     size: body.selectedSize,
-    model: STUDIO_IMAGE_MODEL,
+    model,
     safeMode: !!body.safeMode,
   });
 
@@ -535,7 +536,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody): Promise
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: STUDIO_IMAGE_MODEL,
+        model,
         messages: [
           {
             role: "user",
@@ -578,12 +579,39 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody): Promise
   }
 }
 
+// Fallback chain — primary model first, then more stable alternates if the
+// preview model is rate-limited or out of credits. Order matters.
+const STUDIO_FALLBACK_MODELS = [
+  "google/gemini-2.5-flash-image",
+  "google/gemini-3-flash-preview",
+];
+
 async function generateStudioFitImage(_replicateKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing" };
   }
-  return runStudioRenderAttempt(LOVABLE_API_KEY, body);
+
+  // Build ordered list, dedup, primary first.
+  const tried = new Set<string>();
+  const chain = [STUDIO_IMAGE_MODEL, ...STUDIO_FALLBACK_MODELS].filter((m) => {
+    if (tried.has(m)) return false;
+    tried.add(m);
+    return true;
+  });
+
+  let last: GenResult | null = null;
+  for (const model of chain) {
+    const result = await runStudioRenderAttempt(LOVABLE_API_KEY, body, model);
+    last = result;
+    // Only fall through on transient/quota issues — success or hard errors stop here.
+    if (result.kind === "throttled" || result.kind === "credits_exhausted") {
+      logRouter("LOVABLE_STUDIO_FALLBACK", { failedModel: model, reason: result.kind });
+      continue;
+    }
+    return result;
+  }
+  return last ?? { kind: "error", code: "provider_error", error: "no_studio_model_available" };
 }
 
 async function getTryOnByIdentity(admin: ReturnType<typeof createClient>, userId: string, body: CreateBody) {
