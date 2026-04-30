@@ -30,7 +30,11 @@ const AdminAppReleases = () => {
   const [loading, setLoading] = useState(true);
 
   // Form state
+  const [mode, setMode] = useState<"upload" | "url">("url");
   const [file, setFile] = useState<File | null>(null);
+  const [externalUrl, setExternalUrl] = useState(
+    "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk"
+  );
   const [versionName, setVersionName] = useState("");
   const [versionCode, setVersionCode] = useState("");
   const [notes, setNotes] = useState("");
