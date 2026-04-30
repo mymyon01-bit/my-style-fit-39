@@ -220,6 +220,9 @@ const ProfilePage = () => {
   }
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "You";
+  // OOTD에서는 표시 이름으로 username(@핸들)을 사용 — 공백이 있는 display_name을
+  // 가진 사용자에게는 멘션 가능한 짧은 아이디로 정리하라고 안내한다.
+  const displayNameHasSpace = !!profile?.display_name && /\s/.test(profile.display_name);
   const circleCount = circleCounts?.circle ?? 0;
   const rippleCount = circleCounts?.ripple ?? 0;
 
