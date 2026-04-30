@@ -367,6 +367,27 @@ const SettingsPage = () => {
           </button>
         </div>
 
+        {/* Admin entry — visible only to admins */}
+        {user && isAdmin && (
+          <div className="border-t border-border/30 pt-6">
+            <button
+              onClick={() => navigate("/admin")}
+              className="group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.08] via-accent/[0.04] to-transparent px-5 py-4 transition-all hover:border-accent/40 hover:shadow-[0_8px_30px_-12px_hsl(var(--accent)/0.4)] md:py-5"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent transition-transform group-hover:scale-110 md:h-11 md:w-11">
+                <Shield className="h-5 w-5" strokeWidth={1.6} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[10px] font-bold tracking-[0.25em] text-accent">ADMIN</p>
+                <p className="mt-0.5 text-[13px] font-medium text-foreground/85 md:text-[14px]">
+                  Admin Console
+                </p>
+              </div>
+              <ArrowLeft className="h-4 w-4 rotate-180 text-foreground/40 transition-transform group-hover:translate-x-1 group-hover:text-accent" />
+            </button>
+          </div>
+        )}
+
         {/* Sign out + Delete account */}
         {user && (
           <div className="space-y-2 border-t border-border/30 pt-6">
