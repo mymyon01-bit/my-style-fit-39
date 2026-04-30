@@ -57,7 +57,7 @@ const DesktopNav = () => {
             aria-label="my'myon — home"
             className="group absolute left-10 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-80"
           >
-            <Brandmark variant="compact" className="!h-16" />
+            <Brandmark variant="compact" size={42} />
           </button>
 
           {/* CENTER — symmetric nav: 2 links | OOTD diary | 2 links */}
