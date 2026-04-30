@@ -249,6 +249,22 @@ const ProfilePage = () => {
       </div>
 
       <div className="mx-auto max-w-lg px-8 space-y-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
+        {/* OOTD 멘션용 아이디 안내 — 표시 이름에 공백이 있으면 username 정리 권유 */}
+        {displayNameHasSpace && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="w-full rounded-xl border border-accent/25 bg-accent/[0.04] px-4 py-3 text-left transition-colors hover:bg-accent/[0.08]"
+          >
+            <p className="text-[11px] font-semibold text-accent/80">
+              OOTD에서 사용할 아이디를 설정해 주세요
+            </p>
+            <p className="mt-1 text-[10px] leading-snug text-foreground/60">
+              현재 이름 “{profile?.display_name}”에 공백이 있어 다른 사용자가 @로 멘션할 수 없어요.
+              아래 EDIT PROFILE에서 공백 없는 아이디(@username)를 정해주세요.
+            </p>
+          </button>
+        )}
+
         {/* Identity + Photo Upload */}
         <div className="flex items-center gap-6">
           <div className="relative">
