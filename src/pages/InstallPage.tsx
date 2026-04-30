@@ -163,11 +163,6 @@ const InstallPage = () => {
               </p>
             </div>
 
-            {!isIOS && !deferredPrompt && (
-              <p className="px-2 pt-1 text-center text-[10.5px] leading-relaxed text-foreground/50">
-                Install option appears in your browser menu.
-              </p>
-            )}
           </motion.div>
         )}
       </div>
