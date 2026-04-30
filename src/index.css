@@ -488,9 +488,9 @@
     stroke-dasharray: 220;
     stroke-dashoffset: 220;
     opacity: 0;
-    /* 15s cycle: draw quickly within the first ~3s window, hold the finished
-       tag visible for the remainder, then loop and re-draw. Per-stroke
-       animation-delay below staggers the start so each glyph paints in turn. */
+    /* 15s cycle: spray-paint draw → hold → squeegee wipe → redraw.
+       Each stroke is staggered so the wordmark wipes clean glyph-by-glyph
+       like wiping a mirror, then re-paints itself in the same order. */
     animation: ootd-spray-cycle 15s linear infinite;
   }
   .ootd-stroke.s1  { animation-delay: 0.05s; }
@@ -506,14 +506,17 @@
   .ootd-stroke.s11 { animation-delay: 2.45s; }
   .ootd-stroke.s12 { animation-delay: 2.55s; }
 
-  /* Total 15s cycle — drawing happens in the first ~3.7% (~0.55s of 15s),
-     stroke stays fully visible until the final 1% where it resets to redraw. */
+  /* 15s cycle — draw → hold → mirror-wipe → empty → redraw.
+     Mirror-wipe: dashoffset slides to -220 so the visible portion
+     shrinks from the *opposite* end, like a squeegee on glass. */
   @keyframes ootd-spray-cycle {
-    0%   { stroke-dashoffset: 220; opacity: 0; }
-    0.4% { opacity: 0.7; }
-    3.7% { stroke-dashoffset: 0; opacity: 1; }
-    99%  { stroke-dashoffset: 0; opacity: 1; }
-    100% { stroke-dashoffset: 220; opacity: 0; }
+    0%    { stroke-dashoffset: 220;  opacity: 0; }
+    0.4%  { opacity: 0.85; }
+    4%    { stroke-dashoffset: 0;    opacity: 1; }
+    78%   { stroke-dashoffset: 0;    opacity: 1; }
+    92%   { stroke-dashoffset: -220; opacity: 1; }
+    92.5% { stroke-dashoffset: -220; opacity: 0; }
+    100%  { stroke-dashoffset: 220;  opacity: 0; }
   }
 
   @keyframes ootd-neon-pulse {
