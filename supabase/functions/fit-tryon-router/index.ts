@@ -192,11 +192,17 @@ function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
   // BODY GENDER LOCK: subject gender comes ONLY from the user's body profile.
   // It is never inferred from the product. A male user wearing a women's
   // garment must still be rendered as a male-proportioned MANNEQUIN wearing
-  // that garment.
+  // that garment, and vice-versa.
+  //
+  // FALLBACK: when the body profile is missing a gender (anonymous visitor,
+  // or the user skipped the BODY tab), default to a MALE mannequin instead
+  // of "neutral". A neutral subject lets the image model silently infer the
+  // mannequin's sex from the garment, which produced unwanted female
+  // mannequins for male users picking women's items. The male base is the
+  // explicit absolute fallback per product spec.
   const g = (b?.gender || "").toLowerCase();
   if (g === "female" || g === "feminine" || g === "woman") return "female mannequin";
-  if (g === "male" || g === "masculine" || g === "man") return "male mannequin";
-  return "neutral mannequin";
+  return "male mannequin";
 }
 
 function sizeSilhouette(size: string) {
@@ -354,7 +360,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
         .map((r) => `${r.fit.replace(/-/g, " ")} at ${r.region.toLowerCase()}`)
         .join(", ")
     : "";
-  const leadSentence = `A ${build} ${subject}${heightLine}${weightLine} wearing ${garmentLabel} in size ${body.selectedSize}${leadFitSummary ? `, with ${leadFitSummary}` : ""}.`;
+  const leadSentence = `A ${build} ${subject}${heightLine}${weightLine} wearing ${garmentLabel} in size ${body.selectedSize}${leadFitSummary ? `, with ${leadFitSummary}` : ""}. The mannequin's sex is ${subject} regardless of which gender the garment was originally designed for.`;
 
   return [
     leadSentence,

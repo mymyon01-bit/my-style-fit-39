@@ -414,7 +414,13 @@ export default function FitResults({
       gender: bodyGender ?? null,
     },
     baselineVerdict: (() => {
-      const v = baselineFitVerdict(activeSize, bodyWeightKg ?? null, bodyGender ?? null);
+      // Cross-gender support: compute baseline against the GARMENT's gender
+      // chart when the user's body gender differs from the product's intended
+      // audience. A 80kg male picking a women's L gets a verdict reflecting
+      // women's L (≈ tops out at 75kg) — i.e. one step undersized — instead
+      // of being silently mapped to a men's L.
+      const productGender = (product as any).gender ?? null;
+      const v = baselineFitVerdict(activeSize, bodyWeightKg ?? null, bodyGender ?? null, productGender);
       return {
         baseline: v.baseline,
         offset: v.offset,
@@ -424,6 +430,7 @@ export default function FitResults({
           gender: bodyGender ?? null,
           currentSize: activeSize,
           category: product.category,
+          productGender,
         }),
         // Mark as fallback when product brand-data quality is low.
         fallbackMode: result.productDataQuality < 50,
