@@ -406,6 +406,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
 
   return [
     leadSentence,
+    bodyTabBlock,
     `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
     MANNEQUIN_STYLE_LOCK,
     genderLockLine,
