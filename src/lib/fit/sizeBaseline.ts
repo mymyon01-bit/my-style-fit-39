@@ -126,8 +126,15 @@ export function describeBaselineConsequence(args: {
   gender: string | null | undefined;
   currentSize: string;
   category?: string | null;
+  /** Gender the garment is cut for (drives cross-gender baseline). */
+  productGender?: string | null;
 }): string {
-  const { baseline, offset, verdict } = baselineFitVerdict(args.currentSize, args.weightKg, args.gender);
+  const { baseline, offset, verdict } = baselineFitVerdict(
+    args.currentSize,
+    args.weightKg,
+    args.gender,
+    args.productGender,
+  );
   const cat = (args.category || "").toLowerCase();
   const isBag = /bag|backpack|tote|purse|clutch/.test(cat);
   const isPants = /pant|trouser|jean|short|skirt|legging/.test(cat);
