@@ -140,9 +140,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-apk
-          name: Latest Android APK
+          name: ${{ steps.version.outputs.version_name }}
           body: |
-            Auto-built debug APK from commit ${{ github.sha }}.
-            Install on Android: enable "Install unknown apps" for your browser, then open the file.
+            versionCode: ${{ steps.version.outputs.version_code }}
+            versionName: ${{ steps.version.outputs.version_name }}
+            commit: ${{ github.sha }}
           files: artifacts/mymyon.apk
           make_latest: "false"
