@@ -11,7 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import Brandmark from "@/components/Brandmark";
 import discoverImg from "@/assets/tour-discover.jpg";
@@ -77,153 +77,159 @@ const WelcomeTour = () => {
   const slide = slides[index];
   const isLast = index === slides.length - 1;
 
+  const dismiss = () => {
+    localStorage.setItem(STORAGE_KEY, "completed");
+    setOpen(false);
+  };
+
   return (
     <AnimatePresence>
+      {/* Backdrop */}
       <motion.div
-        key="tour"
-        className="fixed inset-0 z-[70] flex flex-col bg-background overflow-hidden"
+        key="tour-backdrop"
+        className="fixed inset-0 z-[70] bg-background/80 backdrop-blur-md"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        {/* Full-bleed hero illustration */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`bg-${index}`}
-            className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <img
-              src={slide.image}
-              alt=""
-              className="h-full w-full object-cover object-center"
-              draggable={false}
-            />
-            {/* Bottom-up scrim for legibility */}
-            <div
-              className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${slide.scrim}`}
-            />
-            {/* Subtle top scrim so brand bar reads */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background/85 to-transparent" />
-          </motion.div>
-        </AnimatePresence>
+        transition={{ duration: 0.25 }}
+        onClick={dismiss}
+      />
 
-        {/* Top bar — Brandmark + dots + Skip */}
-        <div className="relative z-10 flex items-center justify-between px-6 pt-[max(env(safe-area-inset-top,0px),20px)] sm:px-8">
-          <Brandmark variant="inline" size={22} />
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
+      {/* Centered popup card */}
+      <motion.div
+        key="tour-card"
+        className="fixed inset-0 z-[71] flex items-center justify-center p-4 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <motion.div
+          className="pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-3xl border border-foreground/10 bg-card shadow-[0_30px_80px_-20px_hsl(var(--accent)/0.45)]"
+          initial={{ scale: 0.92, y: 20, opacity: 0 }}
+          animate={{ scale: 1, y: 0, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 280, damping: 28 }}
+        >
+          {/* Hero image */}
+          <div className="relative h-56 w-full overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={`bg-${index}`}
+                src={slide.image}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                draggable={false}
+                initial={{ opacity: 0, scale: 1.08 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </AnimatePresence>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent" />
+
+            {/* Top bar */}
+            <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between p-4">
+              <Brandmark variant="inline" size={18} />
+              <button
+                onClick={dismiss}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50"
+                aria-label="Close"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {slide.showOotdSticker && (
+              <motion.img
+                src={ootdSticker}
+                alt="OOTD"
+                className="absolute bottom-3 right-3 h-12 w-auto -rotate-6 drop-shadow-[0_4px_12px_rgba(255,61,154,0.55)]"
+                initial={{ scale: 0.6, opacity: 0, rotate: -20 }}
+                animate={{ scale: 1, opacity: 1, rotate: -6 }}
+                transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.15 }}
+              />
+            )}
+          </div>
+
+          {/* Body */}
+          <div className="px-6 pb-6 pt-4">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`txt-${index}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+              >
+                <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-accent">
+                  {slide.kicker}
+                </p>
+                <h2 className="mt-2 font-display text-[24px] font-medium italic leading-[1.1] tracking-tight text-foreground">
+                  {slide.title}
+                </h2>
+                <p className="mt-2.5 text-[12.5px] leading-relaxed text-foreground/70">
+                  {slide.body}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Dots */}
+            <div className="mt-5 flex items-center justify-center gap-1.5">
               {slides.map((_, i) => (
                 <span
                   key={i}
                   className={`h-1 rounded-full transition-all duration-300 ${
-                    i === index ? "w-6 bg-foreground" : "w-1.5 bg-foreground/30"
+                    i === index ? "w-5 bg-accent" : "w-1.5 bg-foreground/25"
                   }`}
                 />
               ))}
             </div>
-            <button
-              onClick={() => {
-                localStorage.setItem(STORAGE_KEY, "completed");
-                setOpen(false);
-              }}
-              className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 transition-colors hover:text-foreground"
-            >
-              {t("tourSkip")}
-            </button>
+
+            {/* Actions */}
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                onClick={dismiss}
+                className="flex-1 rounded-full border border-foreground/15 px-4 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-foreground/70 transition-colors hover:bg-foreground/5"
+              >
+                {t("tourSkip")}
+              </button>
+              <button
+                onClick={next}
+                className="group flex flex-[1.4] items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[10px] font-bold tracking-[0.2em] text-accent-foreground transition-opacity hover:opacity-90"
+              >
+                {isLast ? t("tourGetStarted") : t("tourNext")}
+                <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </button>
+            </div>
+
+            {/* Don't show again */}
+            <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 text-[10.5px] tracking-[0.1em] text-foreground/55 hover:text-foreground/85">
+              <span
+                className={`flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border transition-colors ${
+                  neverShow
+                    ? "border-accent bg-accent text-accent-foreground"
+                    : "border-foreground/30 bg-transparent"
+                }`}
+                aria-hidden
+              >
+                {neverShow ? (
+                  <svg viewBox="0 0 12 12" className="h-2 w-2">
+                    <path d="M2 6.2 L5 9 L10 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : null}
+              </span>
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={neverShow}
+                onChange={(e) => setNeverShow(e.target.checked)}
+              />
+              {t("tourDontShowAgain")}
+            </label>
           </div>
-        </div>
-
-        {/* Spacer to let hero breathe in upper area */}
-        <div className="relative z-10 flex-1" />
-
-        {/* Bottom content card */}
-        <div className="relative z-10 px-6 pb-[max(env(safe-area-inset-bottom,0px),24px)] sm:px-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`txt-${index}`}
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-auto w-full max-w-md"
-            >
-              <div className="flex items-center gap-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-accent">
-                  {slide.kicker}
-                </p>
-                {slide.showOotdSticker && (
-                  <motion.img
-                    src={ootdSticker}
-                    alt="OOTD"
-                    className="h-7 w-auto -rotate-6 drop-shadow-[0_4px_10px_rgba(255,61,154,0.45)]"
-                    initial={{ scale: 0.6, opacity: 0, rotate: -20 }}
-                    animate={{ scale: 1, opacity: 1, rotate: -6 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 260,
-                      damping: 16,
-                      delay: 0.15,
-                    }}
-                  />
-                )}
-              </div>
-
-              <h2 className="mt-3 font-display text-[34px] font-medium italic leading-[1.05] tracking-tight text-foreground sm:text-[40px]">
-                {slide.title}
-              </h2>
-
-              <p className="mt-4 max-w-[420px] text-[14px] leading-relaxed text-foreground/75">
-                {slide.body}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* CTA */}
-          <button
-            onClick={next}
-            className="group mx-auto mt-7 flex w-full max-w-md items-center justify-center gap-3 rounded-full bg-accent px-7 py-4 text-[12px] font-bold tracking-[0.25em] text-accent-foreground shadow-[0_18px_50px_-12px_hsl(var(--accent)/0.55)] transition-opacity hover:opacity-90"
-          >
-            {isLast ? t("tourGetStarted") : t("tourNext")}
-            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-          </button>
-
-          {/* Don't show again */}
-          <label className="mx-auto mt-4 flex w-full max-w-md cursor-pointer items-center justify-center gap-2.5 text-[11px] tracking-[0.12em] text-foreground/60 hover:text-foreground/85">
-            <span
-              className={`flex h-4 w-4 items-center justify-center rounded-[4px] border transition-colors ${
-                neverShow
-                  ? "border-accent bg-accent text-accent-foreground"
-                  : "border-foreground/30 bg-transparent"
-              }`}
-              aria-hidden
-            >
-              {neverShow ? (
-                <svg viewBox="0 0 12 12" className="h-2.5 w-2.5">
-                  <path
-                    d="M2 6.2 L5 9 L10 3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : null}
-            </span>
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={neverShow}
-              onChange={(e) => setNeverShow(e.target.checked)}
-            />
-            {t("tourDontShowAgain")}
-          </label>
-        </div>
+        </motion.div>
       </motion.div>
     </AnimatePresence>
   );
