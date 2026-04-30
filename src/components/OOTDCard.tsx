@@ -59,7 +59,9 @@ function OOTDCardImpl({
   const likes = post.like_count || 0;
   const stars = post.star_count || 0;
   const title = post.caption ? post.caption.split(/\s+/)[0] : null;
-  const initial = (profile?.display_name?.[0] || "?").toUpperCase();
+  // OOTD 표시 이름은 항상 username(@핸들). display_name은 폴백/이니셜용.
+  const handleName = profile?.username || profile?.display_name || "anonymous";
+  const initial = (profile?.username?.[0] || profile?.display_name?.[0] || "?").toUpperCase();
 
   return (
     <motion.div
