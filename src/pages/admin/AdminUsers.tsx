@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Loader2, Ban, Trash2, RotateCcw } from "lucide-react";
+import { Search, Loader2, Ban, Trash2, RotateCcw, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 const AdminUsers = () => {
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -125,10 +127,31 @@ const AdminUsers = () => {
                 return (
                   <tr
                     key={p.id}
-                    className="border-b border-border/10 hover:bg-foreground/[0.02] transition-colors"
+                    onClick={() => navigate(`/admin/users/${p.user_id}`)}
+                    className="border-b border-border/10 hover:bg-foreground/[0.04] transition-colors cursor-pointer"
                   >
-                    <td className="py-3 pr-4 text-foreground/70">
-                      {p.display_name || "—"}
+                    <td className="py-3 pr-4 text-foreground/85">
+                      <div className="flex items-center gap-2">
+                        {p.avatar_url ? (
+                          <img
+                            src={p.avatar_url}
+                            alt=""
+                            className="h-7 w-7 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-7 w-7 rounded-full bg-foreground/10" />
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-foreground/90">
+                            {p.display_name || "—"}
+                          </span>
+                          {p.username && (
+                            <span className="text-[10px] text-foreground/55">
+                              @{p.username}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="py-3 pr-4 text-foreground/75 font-mono text-[10px]">
                       {p.user_id?.slice(0, 8)}…
@@ -145,7 +168,7 @@ const AdminUsers = () => {
                     <td className="py-3 pr-4 text-foreground/75">
                       {new Date(p.created_at).toLocaleDateString()}
                     </td>
-                    <td className="py-3 text-right">
+                    <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="inline-flex items-center gap-1">
                         {suspended ? (
                           <button
@@ -171,6 +194,7 @@ const AdminUsers = () => {
                         >
                           <Trash2 className="h-3 w-3" /> Delete
                         </button>
+                        <ChevronRight className="h-3.5 w-3.5 text-foreground/40 ml-1" />
                       </div>
                     </td>
                   </tr>
