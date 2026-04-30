@@ -549,6 +549,12 @@ export function useCanvasTryOn(args: Args): CanvasTryOnState {
             heightCm: args.body.heightCm ?? null,
             weightKg: args.body.weightKg ?? null,
             gender: args.body.gender ?? null,
+            shoulderCm: args.body.shoulderWidthCm ?? null,
+            chestCm: args.body.chestCm ?? null,
+            waistCm: args.body.waistCm ?? null,
+            hipCm: args.body.hipCm ?? null,
+            inseamCm: args.body.inseamCm ?? null,
+            userBodyImageUrl: args.userImageUrl ?? null,
           },
           mode: "studio",
         });
