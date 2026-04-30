@@ -32,6 +32,7 @@ interface OOTDPost {
 
 interface ProfileInfo {
   display_name: string | null;
+  username?: string | null;
   avatar_url: string | null;
   is_official?: boolean | null;
 }
