@@ -140,6 +140,51 @@ export type Database = {
         }
         Relationships: []
       }
+      app_releases: {
+        Row: {
+          apk_url: string
+          created_at: string
+          id: string
+          is_critical: boolean
+          is_published: boolean
+          min_supported_version_code: number
+          platform: string
+          release_notes: string | null
+          released_at: string
+          updated_at: string
+          version_code: number
+          version_name: string
+        }
+        Insert: {
+          apk_url: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean
+          is_published?: boolean
+          min_supported_version_code?: number
+          platform?: string
+          release_notes?: string | null
+          released_at?: string
+          updated_at?: string
+          version_code: number
+          version_name: string
+        }
+        Update: {
+          apk_url?: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean
+          is_published?: boolean
+          min_supported_version_code?: number
+          platform?: string
+          release_notes?: string | null
+          released_at?: string
+          updated_at?: string
+          version_code?: number
+          version_name?: string
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
