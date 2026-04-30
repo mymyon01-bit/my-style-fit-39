@@ -63,6 +63,14 @@ interface CreateBody {
     weightKg?: number | null;
     build?: string | null;
     gender?: string | null;
+    bodyType?: string | null;
+    shoulderCm?: number | null;
+    chestCm?: number | null;
+    waistCm?: number | null;
+    hipCm?: number | null;
+    armLengthCm?: number | null;
+    inseamCm?: number | null;
+    userBodyImageUrl?: string | null;
   };
   /**
    * Pre-computed baseline-vs-current-size verdict from the client. When the
