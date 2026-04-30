@@ -105,7 +105,7 @@ const PermissionsPrompt = () => {
     <AnimatePresence>
       <motion.div
         key="perm-backdrop"
-        className="fixed inset-0 z-[80] bg-background/80 backdrop-blur-md"
+        className="fixed inset-0 z-[120] bg-background/80 backdrop-blur-md"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -113,7 +113,10 @@ const PermissionsPrompt = () => {
       />
       <motion.div
         key="perm-sheet"
-        className="fixed inset-x-0 bottom-0 z-[81] mx-auto max-w-md rounded-t-3xl border border-foreground/10 bg-card p-7 pb-10 shadow-[0_-12px_60px_-12px_hsl(var(--accent)/0.35)] sm:bottom-6 sm:rounded-3xl sm:p-8"
+        // Mobile: float ABOVE the bottom nav (~64px tall + safe-area inset).
+        // Desktop (sm+): center near the bottom as a floating card.
+        // z-[121] sits above BottomNav (z-[110]) so the sheet is never clipped.
+        className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom)+12px)] z-[121] mx-auto max-w-md rounded-3xl border border-foreground/10 bg-card p-7 pb-8 shadow-[0_-12px_60px_-12px_hsl(var(--accent)/0.35)] sm:bottom-6 sm:p-8"
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
