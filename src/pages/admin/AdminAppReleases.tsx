@@ -30,7 +30,11 @@ const AdminAppReleases = () => {
   const [loading, setLoading] = useState(true);
 
   // Form state
+  const [mode, setMode] = useState<"upload" | "url">("url");
   const [file, setFile] = useState<File | null>(null);
+  const [externalUrl, setExternalUrl] = useState(
+    "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk"
+  );
   const [versionName, setVersionName] = useState("");
   const [versionCode, setVersionCode] = useState("");
   const [notes, setNotes] = useState("");
@@ -70,10 +74,6 @@ const AdminAppReleases = () => {
   };
 
   const handlePublish = async () => {
-    if (!file) {
-      toast({ title: "Pick an APK file first", variant: "destructive" });
-      return;
-    }
     const code = parseInt(versionCode, 10);
     if (!Number.isFinite(code) || code < 1) {
       toast({ title: "version_code must be a positive integer", variant: "destructive" });
@@ -86,23 +86,36 @@ const AdminAppReleases = () => {
 
     setBusy(true);
     try {
-      // 1. Upload APK
-      const path = `android/mymyon-v${code}-${Date.now()}.apk`;
-      setProgress("Uploading APK…");
-      const { error: upErr } = await supabase.storage
-        .from("app-downloads")
-        .upload(path, file, {
-          contentType: "application/vnd.android.package-archive",
-          cacheControl: "3600",
-          upsert: false,
-        });
-      if (upErr) throw upErr;
+      let apkUrl: string;
 
-      // 2. Get public URL
-      const { data: urlData } = supabase.storage.from("app-downloads").getPublicUrl(path);
-      const apkUrl = urlData.publicUrl;
+      if (mode === "upload") {
+        if (!file) {
+          toast({ title: "Pick an APK file first", variant: "destructive" });
+          setBusy(false);
+          return;
+        }
+        const path = `android/mymyon-v${code}-${Date.now()}.apk`;
+        setProgress("Uploading APK…");
+        const { error: upErr } = await supabase.storage
+          .from("app-downloads")
+          .upload(path, file, {
+            contentType: "application/vnd.android.package-archive",
+            cacheControl: "3600",
+            upsert: false,
+          });
+        if (upErr) throw upErr;
+        const { data: urlData } = supabase.storage.from("app-downloads").getPublicUrl(path);
+        apkUrl = urlData.publicUrl;
+      } else {
+        if (!externalUrl.trim().startsWith("http")) {
+          toast({ title: "Enter a valid https:// URL", variant: "destructive" });
+          setBusy(false);
+          return;
+        }
+        apkUrl = externalUrl.trim();
+      }
 
-      // 3. Insert release row
+      // Insert release row
       setProgress("Publishing release…");
       const { error: insErr } = await supabase.from("app_releases").insert({
         platform: "android",
@@ -165,22 +178,63 @@ const AdminAppReleases = () => {
           <h2 className="text-[13px] font-semibold tracking-wide">Publish new release</h2>
         </div>
 
-        <div>
-          <label className="block text-[11px] font-medium text-foreground/70 mb-2">APK File</label>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".apk,application/vnd.android.package-archive"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        {/* Mode toggle */}
+        <div className="flex gap-2 rounded-lg bg-background/40 p-1 w-fit">
+          <button
+            onClick={() => setMode("url")}
             disabled={busy}
-            className="block w-full text-[12px] text-foreground/80 file:mr-4 file:rounded-md file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-[11px] file:font-medium file:text-accent hover:file:bg-accent/20"
-          />
-          {file && (
-            <p className="mt-2 text-[11px] text-foreground/60">
-              {file.name} — {(file.size / 1024 / 1024).toFixed(2)} MB
-            </p>
-          )}
+            className={`px-4 py-1.5 rounded-md text-[11px] font-semibold tracking-wide transition-colors ${
+              mode === "url" ? "bg-accent/20 text-accent" : "text-foreground/60 hover:text-foreground/80"
+            }`}
+          >
+            GitHub URL
+          </button>
+          <button
+            onClick={() => setMode("upload")}
+            disabled={busy}
+            className={`px-4 py-1.5 rounded-md text-[11px] font-semibold tracking-wide transition-colors ${
+              mode === "upload" ? "bg-accent/20 text-accent" : "text-foreground/60 hover:text-foreground/80"
+            }`}
+          >
+            Upload File
+          </button>
         </div>
+
+        {mode === "url" ? (
+          <div>
+            <label className="block text-[11px] font-medium text-foreground/70 mb-2">
+              APK URL <span className="text-foreground/40">(GitHub Release direct link)</span>
+            </label>
+            <input
+              type="url"
+              value={externalUrl}
+              onChange={(e) => setExternalUrl(e.target.value)}
+              placeholder="https://github.com/.../releases/download/latest-apk/mymyon.apk"
+              disabled={busy}
+              className="w-full rounded-md border border-border/40 bg-background px-3 py-2 text-[11px] text-foreground font-mono"
+            />
+            <p className="mt-2 text-[10px] text-foreground/50">
+              💡 GitHub Actions가 매 push마다 새 APK를 만들어서 위 URL에 올려놓아요. 그냥 URL 그대로 쓰고 version_code만 올리면 됨.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-[11px] font-medium text-foreground/70 mb-2">APK File</label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".apk,application/vnd.android.package-archive"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              disabled={busy}
+              className="block w-full text-[12px] text-foreground/80 file:mr-4 file:rounded-md file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-[11px] file:font-medium file:text-accent hover:file:bg-accent/20"
+            />
+            {file && (
+              <p className="mt-2 text-[11px] text-foreground/60">
+                {file.name} — {(file.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -238,7 +292,7 @@ const AdminAppReleases = () => {
 
         <button
           onClick={handlePublish}
-          disabled={busy || !file}
+          disabled={busy || (mode === "upload" && !file) || (mode === "url" && !externalUrl.trim())}
           className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-[11px] font-bold tracking-[0.2em] text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
