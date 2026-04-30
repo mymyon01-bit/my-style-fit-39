@@ -299,7 +299,37 @@ function buildUniversalBaseLayerLine(
   return `${baseSpec} ${colorLock} The focus item is an accessory; the black athletic base layer remains fully visible on the mannequin.`;
 }
 
-function buildCleanStudioPrompt(body: CreateBody): string {
+// ── BODY TAB PROFILE BLOCK ──────────────────────────────────────────────────
+// Dedicated block that surfaces the user's saved Body tab values verbatim
+// to the image model. The mannequin must match these proportions instead of
+// defaulting to a generic display dummy. Body gender is the source of truth
+// for the rendered body — never inferred from the garment.
+function buildBodyTabBlock(b?: CreateBody["bodyProfileSummary"]): string {
+  if (!b) return "";
+  const fmt = (v: number | null | undefined, unit: string) =>
+    typeof v === "number" && Number.isFinite(v) ? `${v} ${unit}` : "not specified";
+  const lines = [
+    `- Gender: ${b.gender ?? "not specified"}`,
+    `- Height: ${fmt(b.heightCm ?? null, "cm")}`,
+    `- Weight: ${fmt(b.weightKg ?? null, "kg")}`,
+    `- Body type: ${b.bodyType ?? b.build ?? "not specified"}`,
+    `- Shoulder width: ${fmt(b.shoulderCm ?? null, "cm")}`,
+    `- Chest/Bust: ${fmt(b.chestCm ?? null, "cm")}`,
+    `- Waist: ${fmt(b.waistCm ?? null, "cm")}`,
+    `- Hips: ${fmt(b.hipCm ?? null, "cm")}`,
+    `- Arm length: ${fmt(b.armLengthCm ?? null, "cm")}`,
+    `- Inseam / leg length: ${fmt(b.inseamCm ?? null, "cm")}`,
+  ].join("\n");
+  const refImageNote = b.userBodyImageUrl
+    ? "USER BODY REFERENCE IMAGE PROVIDED: use the uploaded reference only for body proportions, posture, silhouette, and scale. Do NOT copy face identity. Crop or hide the face. Keep the final image clean and fashion-studio-like."
+    : "No body reference image provided — use the numeric values above as the source of truth for the mannequin proportions.";
+  return [
+    "USER BODY PROFILE (from the Body tab — source of truth for the rendered body):",
+    lines,
+    "Generate the mannequin/body using these proportions. Do NOT create an ideal fashion model. Do NOT slim down, stretch, feminize, masculinize, or beautify the body. Match the saved body profile as closely as possible. Body gender comes ONLY from this profile — if the garment is for the opposite gender, still render this body wearing that garment (cross-gender wear is allowed; gender swap of the body is FORBIDDEN).",
+    refImageNote,
+  ].join(" ");
+}
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
   const h = body.bodyProfileSummary?.heightCm;
