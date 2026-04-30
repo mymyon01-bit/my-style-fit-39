@@ -579,7 +579,7 @@ export default function OOTDPostDetail({
           image_url: post.image_url,
           caption: post.caption,
         }}
-        author={profile ? { display_name: profile.display_name, username: null, avatar_url: profile.avatar_url } : null}
+        author={profile ? { display_name: profile.display_name, username: profile.username ?? null, avatar_url: profile.avatar_url } : null}
       />
     </motion.div>
   );
