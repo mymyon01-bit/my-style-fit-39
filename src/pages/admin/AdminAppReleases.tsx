@@ -292,7 +292,7 @@ const AdminAppReleases = () => {
 
         <button
           onClick={handlePublish}
-          disabled={busy || !file}
+          disabled={busy || (mode === "upload" && !file) || (mode === "url" && !externalUrl.trim())}
           className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-[11px] font-bold tracking-[0.2em] text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
