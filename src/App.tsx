@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
 import DesktopNav from "@/components/DesktopNav";
 import OOTDModalHost from "@/components/OOTDModalHost";
+import UpdateBanner from "@/components/UpdateBanner";
 import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
 import { initPushNotifications } from "@/lib/native/push";
@@ -171,6 +172,7 @@ const AppRoutes = () => {
   return (
     <>
       <UrlMasker />
+      <UpdateBanner />
       {!isAdmin && <DesktopNav />}
       {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
