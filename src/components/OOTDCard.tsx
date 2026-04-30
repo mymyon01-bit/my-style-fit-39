@@ -97,7 +97,7 @@ function OOTDCardImpl({
                     {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
-                        alt={profile.display_name || ""}
+                        alt={`@${handleName}`}
                         className="w-full h-full object-cover"
                       />
                     ) : (
