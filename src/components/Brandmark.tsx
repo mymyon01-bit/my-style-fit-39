@@ -84,29 +84,31 @@ const Wordmark = ({
           strokeLinejoin="round"
         >
           {/* BLACK OUTLINE LAYER — drawn first, slightly thicker */}
-          {Object.entries(PATHS).map(([k, d]) => (
+          {Object.entries(PATHS).map(([k, d], i) => (
             <path
               key={`out-${k}`}
               d={d}
               stroke="hsl(0 0% 6%)"
               strokeWidth={k === "apos" ? 5 : 8}
+              className={`ootd-stroke s${(i % 12) + 1}`}
             />
           ))}
 
           {/* PINK FILL LAYER — on top, thinner */}
-          {Object.entries(PATHS).map(([k, d]) => (
+          {Object.entries(PATHS).map(([k, d], i) => (
             <path
               key={`fill-${k}`}
               d={d}
               stroke="hsl(330 95% 60%)"
               strokeWidth={k === "apos" ? 2.5 : 4.5}
+              className={`ootd-stroke s${(i % 12) + 1}`}
             />
           ))}
 
-          {/* Drip details */}
-          <path d="M10 52 L9 60" stroke="hsl(330 95% 60%)" strokeWidth="2.2" />
-          <path d="M104 52 L103 58" stroke="hsl(0 0% 8%)" strokeWidth="2" />
-          <path d="M178 52 L177 60" stroke="hsl(330 95% 60%)" strokeWidth="2" />
+          {/* Drip details — also wipe + redraw with the rest */}
+          <path d="M10 52 L9 60" stroke="hsl(330 95% 60%)" strokeWidth="2.2" className="ootd-stroke s11" />
+          <path d="M104 52 L103 58" stroke="hsl(0 0% 8%)" strokeWidth="2" className="ootd-stroke s12" />
+          <path d="M178 52 L177 60" stroke="hsl(330 95% 60%)" strokeWidth="2" className="ootd-stroke s12" />
 
           {/* Moving spray-tip dot that "writes" along the path */}
           <circle r="2" fill="hsl(330 100% 70%)" className="ootd-spray-tip" opacity="0">
