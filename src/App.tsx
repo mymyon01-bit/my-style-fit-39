@@ -218,6 +218,7 @@ const AppRoutes = () => {
             <Route path="fit-feedback" element={<AdminFitFeedback />} />
             <Route path="feature-flags" element={<AdminFeatureFlags />} />
             <Route path="app-config" element={<AdminAppConfig />} />
+            <Route path="app-releases" element={<AdminAppReleases />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
 
