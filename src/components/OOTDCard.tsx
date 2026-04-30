@@ -108,8 +108,8 @@ function OOTDCardImpl({
                   </div>
                 </OfficialAvatarRing>
                 <span className="flex items-center gap-1 min-w-0">
-                  <span className="text-[9px] font-medium text-white/85 truncate max-w-[80px]">
-                    {profile?.display_name || "Anonymous"}
+                  <span className="text-[9px] font-medium text-white/85 truncate max-w-[100px]">
+                    @{handleName}
                   </span>
                   {profile?.is_official && <OfficialBadge compact className="text-white" />}
                 </span>
