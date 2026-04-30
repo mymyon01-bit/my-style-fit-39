@@ -105,14 +105,14 @@ const WelcomeTour = () => {
         transition={{ duration: 0.3 }}
       >
         <motion.div
-          className="pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-3xl border border-foreground/10 bg-card shadow-[0_30px_80px_-20px_hsl(var(--accent)/0.45)]"
+          className="pointer-events-auto relative w-[88%] max-w-[300px] sm:max-w-sm overflow-hidden rounded-3xl border border-foreground/10 bg-card shadow-[0_30px_80px_-20px_hsl(var(--accent)/0.45)]"
           initial={{ scale: 0.92, y: 20, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
         >
           {/* Hero image */}
-          <div className="relative h-56 w-full overflow-hidden">
+          <div className="relative h-40 sm:h-56 w-full overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.img
                 key={`bg-${index}`}
@@ -154,7 +154,7 @@ const WelcomeTour = () => {
           </div>
 
           {/* Body */}
-          <div className="px-6 pb-6 pt-4">
+          <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`txt-${index}`}
