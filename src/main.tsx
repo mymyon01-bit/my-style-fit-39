@@ -20,4 +20,15 @@ try {
   // ignore
 }
 
+// Safety net: hide the native Capacitor splash once the JS bundle is parsed.
+// Capacitor config sets `launchAutoHide: false` so the native splash stays up
+// until we explicitly hide it — guaranteeing no white flash. We hide it here
+// (and again from <SplashScreen/>) so even sessions that skip the web splash
+// (cached) still dismiss the native one immediately.
+if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.()) {
+  import("@capacitor/splash-screen")
+    .then(({ SplashScreen }) => SplashScreen.hide({ fadeOutDuration: 250 }))
+    .catch(() => { /* plugin missing in web build — ignore */ });
+}
+
 createRoot(document.getElementById("root")!).render(<App />);

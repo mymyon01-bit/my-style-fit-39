@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import splashImg from "/icons/splash.png?url";
+import { isNativeApp } from "@/lib/native/platform";
 
 /**
  * SplashScreen — pastel gradient backdrop with the hand-lettered "My" mark.
  * Matches the new app icon. Auto-dismisses ~1.6s; cached per session.
+ *
+ * On native (Capacitor) we ALSO hide the native Android/iOS splash here so
+ * there's no white flash between the native splash and this web splash.
  */
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
+    // Hand off from native splash → web splash without a white frame.
+    if (isNativeApp()) {
+      import("@capacitor/splash-screen")
+        .then(({ SplashScreen: NativeSplash }) => NativeSplash.hide({ fadeOutDuration: 200 }))
+        .catch(() => { /* not available — ignore */ });
+    }
+
     // Bumped key (v2) so users see the new "My myon #OOTD" splash once
     if (sessionStorage.getItem("wardrobe-splash-v2")) {
       onComplete();
