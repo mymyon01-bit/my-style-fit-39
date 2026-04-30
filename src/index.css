@@ -882,4 +882,13 @@
   .sticky-header {
     padding-top: calc(env(safe-area-inset-top, 0px) + 0.625rem);
   }
+
+  /* Native shell (Capacitor APK / iOS app): always reserve the status-bar
+     area at the very top of the document so the OS clock/battery never
+     overlap content. main.tsx adds the `native-app` class on boot. */
+  html.native-app body {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
 }
