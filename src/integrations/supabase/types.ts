@@ -1208,6 +1208,30 @@ export type Database = {
         }
         Relationships: []
       }
+      oauth_token_exchange: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          nonce: string
+          refresh_token: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at?: string
+          nonce: string
+          refresh_token: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          nonce?: string
+          refresh_token?: string
+        }
+        Relationships: []
+      }
       ootd_comments: {
         Row: {
           content: string
@@ -2787,6 +2811,7 @@ export type Database = {
         }
         Returns: string
       }
+      purge_expired_oauth_exchange: { Args: never; Returns: undefined }
       purge_old_seen_products: { Args: never; Returns: undefined }
       purge_user_content: { Args: { _user_id: string }; Returns: undefined }
       upsert_query_cluster: {
