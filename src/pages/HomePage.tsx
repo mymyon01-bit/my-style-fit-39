@@ -127,9 +127,9 @@ const HomePage = () => {
           <Brandmark variant="inline" size={20} />
           <div className="flex items-center gap-1">
             <button
-              onClick={handleInstall}
-              aria-label="Install app to home screen"
-              title="Install app"
+              onClick={() => navigate("/install")}
+              aria-label="Download app"
+              title="Download app"
               className="flex h-7 w-7 items-center justify-center rounded-full border border-foreground/20 bg-background/70 text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground"
             >
               <Download className="h-3 w-3" />
