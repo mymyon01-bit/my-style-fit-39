@@ -454,7 +454,7 @@ export default function OOTDPostDetail({
                   <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/30">
-                    {(profile?.display_name || "?")[0].toUpperCase()}
+                    {(profile?.username || profile?.display_name || "?")[0].toUpperCase()}
                   </div>
                 )}
               </div>
