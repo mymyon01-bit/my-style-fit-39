@@ -1,41 +1,19 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Download, Smartphone, Apple, Share, Plus, X, ShieldCheck, FolderDown, CheckCircle2 } from "lucide-react";
-
-const APK_URL = "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk";
 import { useNavigate } from "react-router-dom";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+const APK_URL = "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk";
 
 const InstallPage = () => {
   const navigate = useNavigate();
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
     }
-
-    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setIsInstalled(true);
-    setDeferredPrompt(null);
-  };
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -68,10 +46,10 @@ const InstallPage = () => {
             <img src="/icons/icon-192.png" alt="my'myon" className="h-11 w-11 rounded-xl" />
           </div>
           <h1 className="font-display text-xl font-bold tracking-wide text-foreground">
-            Add to Home Screen
+            Download my'myon
           </h1>
           <p className="mt-2 text-[12px] leading-relaxed text-foreground/65">
-            Install my'myon on your phone. Opens full-screen, works offline.
+            Get the native Android app, or add to your iPhone home screen.
           </p>
         </motion.div>
 
@@ -90,17 +68,6 @@ const InstallPage = () => {
             transition={{ delay: 0.2 }}
             className="mt-8 space-y-3"
           >
-            {/* Native install prompt (Android Chrome / Desktop) */}
-            {deferredPrompt && (
-              <button
-                onClick={handleInstall}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-[12px] font-semibold tracking-wide text-background transition-opacity hover:opacity-90"
-              >
-                <Download className="h-4 w-4" />
-                Install now
-              </button>
-            )}
-
             {/* iOS instructions */}
             <div className="rounded-2xl border border-border/30 bg-card/40 p-4">
               <div className="mb-3 flex items-center gap-2">
@@ -196,11 +163,6 @@ const InstallPage = () => {
               </p>
             </div>
 
-            {!isIOS && !deferredPrompt && (
-              <p className="px-2 pt-1 text-center text-[10.5px] leading-relaxed text-foreground/50">
-                Install option appears in your browser menu.
-              </p>
-            )}
           </motion.div>
         )}
       </div>
