@@ -374,6 +374,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       : `Scale the bag naturally to the mannequin — small mannequin makes a large bag look oversized; large mannequin makes a small bag look dwarfed.`;
     return [
       `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
+      bodyTabBlock,
       MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
