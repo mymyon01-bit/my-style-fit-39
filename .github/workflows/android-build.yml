@@ -75,6 +75,17 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Print debug keystore SHA-1 (for Google OAuth setup)
+        run: |
+          echo "===== Debug keystore SHA-1 (use this in Google Cloud Console → OAuth Android client) ====="
+          keytool -list -v \
+            -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey \
+            -storepass android \
+            -keypass android | grep -E "SHA1|SHA-1" || true
+          echo "Package name: com.mymyon.app"
+          echo "=========================================================================================="
+
       - name: Rename APK
         run: |
           mkdir -p artifacts
