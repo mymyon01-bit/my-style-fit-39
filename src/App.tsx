@@ -28,6 +28,7 @@ import AboutPage from "@/pages/AboutPage";
 import NotFound from "@/pages/NotFound";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import InstallPage from "@/pages/InstallPage";
+import OAuthBridge from "@/pages/OAuthBridge";
 
 const lazyWithRetry = <T extends ComponentType<any>>(
   importer: () => Promise<{ default: T }>,
@@ -202,6 +203,7 @@ const AppRoutes = () => {
           {/* Public routes */}
           <Route path="/about" element={<AboutPage />} />
           <Route path="/install" element={<InstallPage />} />
+          <Route path="/~oauth-bridge" element={<OAuthBridge />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route element={<AppLayout />}>
