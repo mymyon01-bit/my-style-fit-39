@@ -29,6 +29,23 @@ if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform
   import("@capacitor/splash-screen")
     .then(({ SplashScreen }) => SplashScreen.hide({ fadeOutDuration: 250 }))
     .catch(() => { /* plugin missing in web build — ignore */ });
+
+  // Mark the native shell on <html> so CSS can add status-bar safe-area
+  // padding only on the APK (web stays unpadded).
+  document.documentElement.classList.add("native-app");
+
+  // Configure the status bar so the OS time/battery are NOT drawn on top
+  // of our content. setOverlaysWebView(false) reserves the status-bar area
+  // and pushes the WebView down. Style 'Light' = light icons on dark bg.
+  import("@capacitor/status-bar")
+    .then(async ({ StatusBar, Style }) => {
+      try {
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.setStyle({ style: Style.Dark });
+        await StatusBar.setBackgroundColor({ color: "#0a0a0a" });
+      } catch { /* ignore */ }
+    })
+    .catch(() => { /* plugin missing — ignore */ });
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
