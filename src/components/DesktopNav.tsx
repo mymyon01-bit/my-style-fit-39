@@ -43,7 +43,6 @@ const DesktopNav = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 hidden md:block">
-    <nav className="fixed top-0 left-0 right-0 z-50 hidden md:block">
       {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
 
