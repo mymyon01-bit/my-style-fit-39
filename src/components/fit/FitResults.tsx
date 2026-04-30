@@ -463,7 +463,7 @@ export default function FitResults({
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-7">
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 overflow-x-hidden">
       {/* Mode + Confidence row — slim, single line */}
       <div className="flex items-center justify-between">
         {isRefined ? (
@@ -498,7 +498,7 @@ export default function FitResults({
         </div>
 
         {/* RIGHT — minimalist verdict block */}
-        <div className="space-y-7">
+        <div className="min-w-0 space-y-7">
           {/* Product header */}
           <SelectedProductCard
             brand={product.brand}
@@ -522,7 +522,7 @@ export default function FitResults({
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="font-display text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground"
+                className="font-display text-[64px] sm:text-[76px] lg:text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground break-words"
               >
                 {activeSize}
               </motion.p>
