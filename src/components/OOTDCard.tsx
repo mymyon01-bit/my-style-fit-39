@@ -29,6 +29,7 @@ export interface OOTDCardPost {
 export interface OOTDCardProfile {
   user_id: string;
   display_name: string | null;
+  username?: string | null;
   avatar_url: string | null;
   is_official?: boolean | null;
 }
@@ -58,7 +59,9 @@ function OOTDCardImpl({
   const likes = post.like_count || 0;
   const stars = post.star_count || 0;
   const title = post.caption ? post.caption.split(/\s+/)[0] : null;
-  const initial = (profile?.display_name?.[0] || "?").toUpperCase();
+  // OOTD 표시 이름은 항상 username(@핸들). display_name은 폴백/이니셜용.
+  const handleName = profile?.username || profile?.display_name || "anonymous";
+  const initial = (profile?.username?.[0] || profile?.display_name?.[0] || "?").toUpperCase();
 
   return (
     <motion.div
@@ -87,14 +90,14 @@ function OOTDCardImpl({
                   navigate(`/user/${post.user_id}`);
                 }}
                 className="flex items-center gap-1.5 min-w-0"
-                aria-label={profile?.display_name || "View profile"}
+                aria-label={`@${handleName}`}
               >
                 <OfficialAvatarRing isOfficial={profile?.is_official}>
                   <div className="h-7 w-7 rounded-full overflow-hidden ring-1 ring-white/80 shadow-md bg-foreground/20 backdrop-blur-sm shrink-0">
                     {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
-                        alt={profile.display_name || ""}
+                        alt={`@${handleName}`}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -105,8 +108,8 @@ function OOTDCardImpl({
                   </div>
                 </OfficialAvatarRing>
                 <span className="flex items-center gap-1 min-w-0">
-                  <span className="text-[9px] font-medium text-white/85 truncate max-w-[80px]">
-                    {profile?.display_name || "Anonymous"}
+                  <span className="text-[9px] font-medium text-white/85 truncate max-w-[100px]">
+                    @{handleName}
                   </span>
                   {profile?.is_official && <OfficialBadge compact className="text-white" />}
                 </span>
@@ -192,6 +195,7 @@ const OOTDCard = memo(OOTDCardImpl, (prev, next) => {
     prev.post.star_count === next.post.star_count &&
     prev.profile?.avatar_url === next.profile?.avatar_url &&
     prev.profile?.display_name === next.profile?.display_name &&
+    prev.profile?.username === next.profile?.username &&
     prev.profile?.is_official === next.profile?.is_official &&
     prev.showAuthor === next.showAuthor &&
     prev.isMyPage === next.isMyPage

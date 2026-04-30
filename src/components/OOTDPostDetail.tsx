@@ -32,6 +32,7 @@ interface OOTDPost {
 
 interface ProfileInfo {
   display_name: string | null;
+  username?: string | null;
   avatar_url: string | null;
   is_official?: boolean | null;
 }
@@ -96,7 +97,7 @@ export default function OOTDPostDetail({
     const fetched = (data || []) as Comment[];
     const userIds = [...new Set(fetched.map(c => c.user_id))];
     if (userIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, is_official").in("user_id", userIds);
+      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, username, avatar_url, is_official").in("user_id", userIds);
       if (profs) {
         const map: Record<string, ProfileInfo> = {};
         for (const p of profs) map[(p as any).user_id] = p as ProfileInfo;
@@ -190,8 +191,14 @@ export default function OOTDPostDetail({
     return user.id === comment.user_id || user.id === post.user_id;
   };
 
-  const getCommentName = (userId: string) =>
-    profileMap[userId]?.display_name || (userId === post.user_id ? (profile?.display_name || "Author") : "User");
+  // OOTD에서는 항상 username(@핸들)을 노출. display_name은 폴백.
+  const getCommentName = (userId: string) => {
+    const p = profileMap[userId];
+    if (p?.username) return `@${p.username}`;
+    if (p?.display_name) return p.display_name;
+    if (userId === post.user_id) return profile?.username ? `@${profile.username}` : (profile?.display_name || "Author");
+    return "User";
+  };
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -447,7 +454,7 @@ export default function OOTDPostDetail({
                   <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-foreground/30">
-                    {(profile?.display_name || "?")[0].toUpperCase()}
+                    {(profile?.username || profile?.display_name || "?")[0].toUpperCase()}
                   </div>
                 )}
               </div>
@@ -455,7 +462,7 @@ export default function OOTDPostDetail({
             <div className="text-left">
               <div className="flex items-center gap-1.5">
                 <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
-                  {profile?.display_name || "Anonymous"}
+                  {profile?.username ? `@${profile.username}` : (profile?.display_name || "Anonymous")}
                 </p>
                 {profile?.is_official && <OfficialBadge compact />}
               </div>
@@ -572,7 +579,7 @@ export default function OOTDPostDetail({
           image_url: post.image_url,
           caption: post.caption,
         }}
-        author={profile ? { display_name: profile.display_name, username: null, avatar_url: profile.avatar_url } : null}
+        author={profile ? { display_name: profile.display_name, username: profile.username ?? null, avatar_url: profile.avatar_url } : null}
       />
     </motion.div>
   );

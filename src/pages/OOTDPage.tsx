@@ -66,6 +66,7 @@ interface ProfileInfo {
   display_name: string | null;
   avatar_url: string | null;
   username?: string | null;
+  is_official?: boolean | null;
 }
 
 type Tab = "ranking" | "feed" | "community" | "showroom" | "mypage";
