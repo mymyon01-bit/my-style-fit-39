@@ -29,6 +29,7 @@ export interface OOTDCardPost {
 export interface OOTDCardProfile {
   user_id: string;
   display_name: string | null;
+  username?: string | null;
   avatar_url: string | null;
   is_official?: boolean | null;
 }
