@@ -97,7 +97,7 @@ export default function OOTDPostDetail({
     const fetched = (data || []) as Comment[];
     const userIds = [...new Set(fetched.map(c => c.user_id))];
     if (userIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, is_official").in("user_id", userIds);
+      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, username, avatar_url, is_official").in("user_id", userIds);
       if (profs) {
         const map: Record<string, ProfileInfo> = {};
         for (const p of profs) map[(p as any).user_id] = p as ProfileInfo;
