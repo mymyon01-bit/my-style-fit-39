@@ -227,8 +227,8 @@ export default function FitVisual({
       </div>
 
       <div
-        className="relative w-full overflow-hidden rounded-2xl border border-foreground/[0.06] bg-muted/20"
-        style={{ aspectRatio: "3 / 4", maxHeight: 560 }}
+        className="relative mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-foreground/[0.06] bg-muted/20"
+        style={{ aspectRatio: "3 / 4", maxHeight: "min(560px, 60dvh)" }}
       >
         {showImage && previewSrc ? (
           <>
