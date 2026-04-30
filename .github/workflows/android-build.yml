@@ -68,6 +68,28 @@ jobs:
             }
           "
 
+      - name: Patch AndroidManifest for mymyon:// deep link (OAuth callback)
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'android/app/src/main/AndroidManifest.xml';
+            let xml = fs.readFileSync(path, 'utf8');
+            if (xml.includes('android:scheme=\"mymyon\"')) {
+              console.log('Deep link already present');
+              process.exit(0);
+            }
+            const intentFilter = \`
+                <intent-filter>
+                    <action android:name=\\\"android.intent.action.VIEW\\\" />
+                    <category android:name=\\\"android.intent.category.DEFAULT\\\" />
+                    <category android:name=\\\"android.intent.category.BROWSABLE\\\" />
+                    <data android:scheme=\\\"mymyon\\\" android:host=\\\"auth-callback\\\" />
+                </intent-filter>\`;
+            xml = xml.replace(/(<\/activity>)/, intentFilter + '\\n            \$1');
+            fs.writeFileSync(path, xml);
+            console.log('Added mymyon:// deep link intent filter');
+          "
+
       - name: Grant gradlew permission
         run: chmod +x android/gradlew
 
