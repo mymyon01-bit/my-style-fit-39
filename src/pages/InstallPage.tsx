@@ -135,34 +135,65 @@ const InstallPage = () => {
               </ol>
             </div>
 
-            {/* Android instructions */}
+            {/* Android — direct APK download */}
             <div className="rounded-2xl border border-border/30 bg-card/40 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Smartphone className="h-4 w-4 text-foreground/70" />
                 <span className="text-[11px] font-semibold tracking-[0.15em] text-foreground/75">
-                  ANDROID
+                  ANDROID — NATIVE APP
                 </span>
               </div>
-              <ol className="space-y-2.5 text-[12px] leading-relaxed text-foreground/70">
-                <li className="flex items-center gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
+
+              <a
+                href={APK_URL}
+                className="mb-4 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-[12px] font-semibold tracking-wide text-accent-foreground transition-opacity hover:opacity-90"
+              >
+                <Download className="h-4 w-4" />
+                Download APK (latest)
+              </a>
+
+              <ol className="space-y-3 text-[12px] leading-relaxed text-foreground/70">
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
                     1
                   </span>
-                  <span>Open in Chrome</span>
+                  <span className="flex items-center gap-1.5">
+                    <Download className="h-3.5 w-3.5 shrink-0" />
+                    Tap "Download APK" above on your Android phone.
+                  </span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
                     2
                   </span>
-                  <span>Tap menu (⋮) top right</span>
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                    Allow "Install from unknown sources" when prompted (Settings → Security).
+                  </span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
                     3
                   </span>
-                  <span>Add to Home screen</span>
+                  <span className="flex items-center gap-1.5">
+                    <FolderDown className="h-3.5 w-3.5 shrink-0" />
+                    Open <code className="rounded bg-muted/60 px-1 py-0.5 text-[10.5px]">mymyon.apk</code> from Downloads.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
+                    4
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    Tap Install — the my'myon app is on your home screen.
+                  </span>
                 </li>
               </ol>
+
+              <p className="mt-3 border-t border-border/30 pt-3 text-[10.5px] leading-relaxed text-foreground/50">
+                Prefer a browser install instead? Open in Chrome → menu (⋮) → "Add to Home screen".
+              </p>
             </div>
 
             {!isIOS && !deferredPrompt && (
