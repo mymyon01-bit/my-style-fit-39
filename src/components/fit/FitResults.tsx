@@ -412,6 +412,13 @@ export default function FitResults({
       weightKg: bodyWeightKg ?? null,
       build: bodyShape ? String((bodyShape as any).build ?? "") : null,
       gender: bodyGender ?? null,
+      bodyType: bodyShape ? String((bodyShape as any).build ?? "") : null,
+      shoulderCm: bodyShoulderCm ?? null,
+      chestCm: bodyChestCm ?? null,
+      waistCm: bodyWaistCm ?? null,
+      hipCm: bodyHipCm ?? null,
+      inseamCm: bodyInseamCm ?? null,
+      userBodyImageUrl: resolvedUserImageUrl ?? null,
     },
     baselineVerdict: (() => {
       // Cross-gender support: compute baseline against the GARMENT's gender

@@ -63,6 +63,14 @@ interface CreateBody {
     weightKg?: number | null;
     build?: string | null;
     gender?: string | null;
+    bodyType?: string | null;
+    shoulderCm?: number | null;
+    chestCm?: number | null;
+    waistCm?: number | null;
+    hipCm?: number | null;
+    armLengthCm?: number | null;
+    inseamCm?: number | null;
+    userBodyImageUrl?: string | null;
   };
   /**
    * Pre-computed baseline-vs-current-size verdict from the client. When the
@@ -291,6 +299,38 @@ function buildUniversalBaseLayerLine(
   return `${baseSpec} ${colorLock} The focus item is an accessory; the black athletic base layer remains fully visible on the mannequin.`;
 }
 
+// ── BODY TAB PROFILE BLOCK ──────────────────────────────────────────────────
+// Dedicated block that surfaces the user's saved Body tab values verbatim
+// to the image model. The mannequin must match these proportions instead of
+// defaulting to a generic display dummy. Body gender is the source of truth
+// for the rendered body — never inferred from the garment.
+function buildBodyTabBlock(b?: CreateBody["bodyProfileSummary"]): string {
+  if (!b) return "";
+  const fmt = (v: number | null | undefined, unit: string) =>
+    typeof v === "number" && Number.isFinite(v) ? `${v} ${unit}` : "not specified";
+  const lines = [
+    `- Gender: ${b.gender ?? "not specified"}`,
+    `- Height: ${fmt(b.heightCm ?? null, "cm")}`,
+    `- Weight: ${fmt(b.weightKg ?? null, "kg")}`,
+    `- Body type: ${b.bodyType ?? b.build ?? "not specified"}`,
+    `- Shoulder width: ${fmt(b.shoulderCm ?? null, "cm")}`,
+    `- Chest/Bust: ${fmt(b.chestCm ?? null, "cm")}`,
+    `- Waist: ${fmt(b.waistCm ?? null, "cm")}`,
+    `- Hips: ${fmt(b.hipCm ?? null, "cm")}`,
+    `- Arm length: ${fmt(b.armLengthCm ?? null, "cm")}`,
+    `- Inseam / leg length: ${fmt(b.inseamCm ?? null, "cm")}`,
+  ].join("\n");
+  const refImageNote = b.userBodyImageUrl
+    ? "USER BODY REFERENCE IMAGE PROVIDED: use the uploaded reference only for body proportions, posture, silhouette, and scale. Do NOT copy face identity. Crop or hide the face. Keep the final image clean and fashion-studio-like."
+    : "No body reference image provided — use the numeric values above as the source of truth for the mannequin proportions.";
+  return [
+    "USER BODY PROFILE (from the Body tab — source of truth for the rendered body):",
+    lines,
+    "Generate the mannequin/body using these proportions. Do NOT create an ideal fashion model. Do NOT slim down, stretch, feminize, masculinize, or beautify the body. Match the saved body profile as closely as possible. Body gender comes ONLY from this profile — if the garment is for the opposite gender, still render this body wearing that garment (cross-gender wear is allowed; gender swap of the body is FORBIDDEN).",
+    refImageNote,
+  ].join(" ");
+}
+
 function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
@@ -304,6 +344,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
   const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
+  const bodyTabBlock = buildBodyTabBlock(body.bodyProfileSummary);
 
   const verdict = body.baselineVerdict;
   const consequenceLine = verdict?.consequence
@@ -333,6 +374,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       : `Scale the bag naturally to the mannequin — small mannequin makes a large bag look oversized; large mannequin makes a small bag look dwarfed.`;
     return [
       `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
+      bodyTabBlock,
       MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
@@ -364,6 +406,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
 
   return [
     leadSentence,
+    bodyTabBlock,
     `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
     MANNEQUIN_STYLE_LOCK,
     genderLockLine,
@@ -529,6 +572,12 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
     buildCleanStudioPrompt(body),
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
   ].join(" ");
+
+  // ── DEBUG: confirm Body tab values reach AI generation ──────────────────
+  console.log("[FIT_IMAGE_BODY_PROFILE]", body.bodyProfileSummary);
+  console.log("[FIT_IMAGE_SELECTED_SIZE]", body.selectedSize);
+  console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
+  console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
