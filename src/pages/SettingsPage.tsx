@@ -14,6 +14,7 @@ import {
 import { useFontSize, type FontSize } from "@/lib/fontSize";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAdmin } from "@/hooks/useAdmin";
 
 const languages: { code: Language; label: string; native: string }[] = [
   { code: "en", label: "English", native: "English" },
