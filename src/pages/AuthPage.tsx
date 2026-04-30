@@ -125,11 +125,20 @@ const AuthPage = () => {
     setLoading(false);
   };
 
+  // Map cryptic native-OAuth error codes to friendly UI messages.
+  const friendlyAuthError = (raw: string): string => {
+    const m = raw.toLowerCase();
+    if (m.includes("browser_closed") || m.includes("cancel")) return "Sign-in was cancelled. Please try again.";
+    if (m.includes("timeout")) return "Sign-in timed out. Please try again.";
+    if (m.includes("no_tokens")) return "Sign-in didn't complete. Please try again.";
+    return raw;
+  };
+
   const handleGoogle = async () => {
     setError(null);
     setLoading(true);
     const { error } = await signInWithGoogle();
-    if (error) setError(error.message);
+    if (error) setError(friendlyAuthError(error.message));
     setLoading(false);
   };
 
@@ -137,7 +146,7 @@ const AuthPage = () => {
     setError(null);
     setLoading(true);
     const { error } = await signInWithApple();
-    if (error) setError(error.message);
+    if (error) setError(friendlyAuthError(error.message));
     setLoading(false);
   };
 
