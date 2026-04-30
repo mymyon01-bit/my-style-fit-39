@@ -30,9 +30,9 @@ const LanguageSelector = () => {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="hover-burgundy flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] text-foreground/75 transition-colors hover:text-foreground/75"
+        className="hover-burgundy flex items-center gap-1 font-sans text-[10px] font-medium tracking-[0.05em] text-foreground/60 transition-colors hover:text-foreground"
       >
-        <Globe className="h-3.5 w-3.5" strokeWidth={1.5} />
+        <Globe className="h-3 w-3" strokeWidth={1.5} />
         {lang.toUpperCase()}
       </button>
 

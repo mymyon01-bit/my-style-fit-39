@@ -111,41 +111,41 @@ const DesktopNav = () => {
             })}
           </div>
 
-          {/* RIGHT — utilities (absolute, vertically centered) */}
-          <div className="absolute right-10 top-1/2 flex -translate-y-1/2 items-center gap-5">
+          {/* RIGHT — utilities (different typeface from main nav for clear hierarchy) */}
+          <div className="absolute right-10 top-1/2 flex -translate-y-1/2 items-center gap-4">
             <button
               onClick={() => navigate("/install")}
-              className={`flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
-                isActive("/install") ? "text-accent" : "text-foreground/70 hover:text-accent"
+              className={`flex items-center gap-1 font-sans text-[10px] font-medium tracking-[0.05em] capitalize transition-colors ${
+                isActive("/install") ? "text-accent" : "text-foreground/60 hover:text-accent"
               }`}
             >
-              <Download className="h-3 w-3" strokeWidth={1.75} />
-              {t("downloadApp").toUpperCase()}
+              <Download className="h-2.5 w-2.5" strokeWidth={1.75} />
+              {t("downloadApp")}
             </button>
 
-            <div className="h-3 w-px bg-foreground/20" />
+            <div className="h-2.5 w-px bg-foreground/15" />
 
             {user ? (
               <button
                 onClick={() => navigate("/settings")}
-                className="font-mono text-[11px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                className="font-sans text-[10px] font-medium tracking-[0.05em] capitalize text-foreground/60 transition-colors hover:text-foreground"
               >
-                SETTINGS
+                Settings
               </button>
             ) : (
               <>
                 <button
                   onClick={() => navigate("/auth")}
-                  className="font-mono text-[11px] font-semibold tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                  className="font-sans text-[10px] font-medium tracking-[0.05em] capitalize text-foreground/60 transition-colors hover:text-foreground"
                 >
-                  {t("logIn").toUpperCase()}
+                  {t("logIn")}
                 </button>
                 <button
                   onClick={() => navigate("/auth?mode=signup")}
-                  className="border-[1.5px] border-foreground bg-foreground px-3 py-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
+                  className="border border-foreground bg-foreground px-2.5 py-1 font-sans text-[10px] font-semibold tracking-[0.05em] capitalize text-background transition-all hover:bg-primary hover:text-primary-foreground hover:border-foreground"
                   style={{ borderRadius: "var(--radius)" }}
                 >
-                  {t("signUp").toUpperCase()}
+                  {t("signUp")}
                 </button>
               </>
             )}
