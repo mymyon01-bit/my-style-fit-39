@@ -462,7 +462,7 @@ export default function OOTDPostDetail({
             <div className="text-left">
               <div className="flex items-center gap-1.5">
                 <p className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
-                  {profile?.display_name || "Anonymous"}
+                  {profile?.username ? `@${profile.username}` : (profile?.display_name || "Anonymous")}
                 </p>
                 {profile?.is_official && <OfficialBadge compact />}
               </div>
