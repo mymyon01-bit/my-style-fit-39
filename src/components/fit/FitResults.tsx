@@ -522,7 +522,7 @@ export default function FitResults({
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="font-display text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground"
+                className="font-display text-[64px] sm:text-[76px] lg:text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground break-words"
               >
                 {activeSize}
               </motion.p>
