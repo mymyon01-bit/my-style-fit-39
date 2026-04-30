@@ -171,6 +171,7 @@ const AppRoutes = () => {
   return (
     <>
       <UrlMasker />
+      <UpdateBanner />
       {!isAdmin && <DesktopNav />}
       {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
