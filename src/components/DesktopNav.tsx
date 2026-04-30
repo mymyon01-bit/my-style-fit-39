@@ -21,9 +21,12 @@ const DesktopNav = () => {
     prefetchAllTabs();
   }, []);
 
-  const navLinks = [
+  // Two link groups symmetric around the centered OOTD diary button.
+  const leftLinks = [
     { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: t("discover").toUpperCase() },
+  ];
+  const rightLinks = [
     { path: "/fit", label: t("fit").toUpperCase() },
     { path: "/profile", label: "PROFILE" },
   ];
