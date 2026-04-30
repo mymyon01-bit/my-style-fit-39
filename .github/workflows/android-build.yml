@@ -90,6 +90,23 @@ jobs:
             console.log('Added mymyon:// deep link intent filter');
           "
 
+      - name: Compute version (timestamp + short SHA)
+        id: version
+        run: |
+          # versionCode = unix epoch (monotonically increasing)
+          VC=$(date +%s)
+          # versionName = YYYY.MM.DD-shortsha (human-readable)
+          VN="$(date +%Y.%m.%d)-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "version_code=$VC" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VN" >> "$GITHUB_OUTPUT"
+          echo "Version: $VN ($VC)"
+
+      - name: Inject versionCode/versionName into build.gradle
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.version_code }}/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.version_name }}\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
       - name: Grant gradlew permission
         run: chmod +x android/gradlew
 
