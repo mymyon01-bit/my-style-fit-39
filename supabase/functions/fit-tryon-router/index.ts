@@ -344,6 +344,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
   const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
+  const bodyTabBlock = buildBodyTabBlock(body.bodyProfileSummary);
 
   const verdict = body.baselineVerdict;
   const consequenceLine = verdict?.consequence
