@@ -463,7 +463,7 @@ export default function FitResults({
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-7">
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 overflow-x-hidden">
       {/* Mode + Confidence row — slim, single line */}
       <div className="flex items-center justify-between">
         {isRefined ? (
