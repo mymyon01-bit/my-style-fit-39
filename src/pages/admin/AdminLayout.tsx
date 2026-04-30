@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { path: "/admin/fit-feedback", icon: MessageSquare, label: "Fit Feedback" },
   { path: "/admin/feature-flags", icon: ToggleLeft, label: "Feature Flags" },
   { path: "/admin/app-config", icon: Cog, label: "App Config" },
+  { path: "/admin/app-releases", icon: Download, label: "App Releases" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
