@@ -481,7 +481,7 @@ export default function FitResults({
       {/* ══ HERO — clean editorial layout. Big visual + size + verdict only ══ */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:items-start">
         {/* LEFT — AI fitting visual */}
-        <div className="lg:sticky lg:top-24">
+        <div className="min-w-0 lg:sticky lg:top-24">
           <FitVisual
             productName={product.name}
             activeSize={activeSize}
