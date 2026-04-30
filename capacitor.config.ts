@@ -33,10 +33,10 @@ const config: CapacitorConfig = {
       launchAutoHide: false,
       backgroundColor: "#0a0a0a",
       androidSplashResourceName: "splash",
-      // FIT_CENTER scales the entire splash image to fit inside the screen
-      // without cropping. CENTER_CROP (default) was clipping the edges of
-      // the square 2732×2732 artwork on tall phone screens.
-      androidScaleType: "FIT_CENTER",
+      // CENTER_CROP fills the entire screen by cropping overflow. The new
+      // splash artwork is portrait (phone-aspect) so cropping is minimal and
+      // there are no pink/black bars on the sides.
+      androidScaleType: "CENTER_CROP",
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true,
