@@ -21,9 +21,12 @@ const DesktopNav = () => {
     prefetchAllTabs();
   }, []);
 
-  const navLinks = [
+  // Two link groups symmetric around the centered OOTD diary button.
+  const leftLinks = [
     { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: t("discover").toUpperCase() },
+  ];
+  const rightLinks = [
     { path: "/fit", label: t("fit").toUpperCase() },
     { path: "/profile", label: "PROFILE" },
   ];
@@ -43,53 +46,73 @@ const DesktopNav = () => {
       {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
 
-      {/* Top bar — 3 columns: brand | centered nav | right utilities */}
+      {/* Top bar — brand absolute-left, utilities absolute-right,
+          nav links + OOTD diary truly centered in the viewport so they
+          align with the hero content below. */}
       <div className="relative z-10 bg-background/40 backdrop-blur-md border-b border-foreground/5">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-6 px-10 py-0">
-          {/* LEFT — Wordmark */}
+        <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-center px-10">
+          {/* LEFT — Wordmark (absolute, vertically centered) */}
           <button
             onClick={() => navigate("/")}
             aria-label="my'myon — home"
-            className="group justify-self-start transition-opacity hover:opacity-80"
+            className="group absolute left-10 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-80"
           >
-            <Brandmark variant="compact" className="!h-[88px] md:!h-24" />
+            <Brandmark variant="compact" className="!h-16" />
           </button>
 
-          {/* CENTER — nav links with OOTD diary in the middle */}
-          <div className="flex items-center justify-center gap-7">
-            {navLinks.map((link) => {
+          {/* CENTER — symmetric nav: 2 links | OOTD diary | 2 links */}
+          <div className="flex items-center gap-7">
+            {leftLinks.map((link) => {
               const active = isActive(link.path);
-              const insertDiaryAfter = link.path === "/discover";
               return (
-                <div key={link.path} className="flex items-center gap-7">
-                  <button
-                    onClick={() => navigate(link.path)}
-                    onMouseEnter={() => prefetchRoute(link.path)}
-                    className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
-                      active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
+                <button
+                  key={link.path}
+                  onClick={() => navigate(link.path)}
+                  onMouseEnter={() => prefetchRoute(link.path)}
+                  className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
+                    active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  {link.label}
+                  <span
+                    className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
+                      active ? "w-full" : "w-0 group-hover:w-full"
                     }`}
-                  >
-                    {link.label}
-                    <span
-                      className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
-                        active ? "w-full" : "w-0 group-hover:w-full"
-                      }`}
-                    />
-                  </button>
-                  {insertDiaryAfter && (
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-primary/30 bg-gradient-to-br from-primary/10 via-accent/10 to-transparent shadow-[0_0_20px_hsl(var(--primary)/0.18)]">
-                      <div className="scale-[0.6] origin-center -m-4">
-                        <OOTDDiaryButton />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  />
+                </button>
+              );
+            })}
+
+            <div className="relative mx-2 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-gradient-to-br from-primary/10 via-accent/10 to-transparent shadow-[0_0_20px_hsl(var(--primary)/0.18)]">
+              <div className="-m-4 origin-center scale-[0.55]">
+                <OOTDDiaryButton />
+              </div>
+            </div>
+
+            {rightLinks.map((link) => {
+              const active = isActive(link.path);
+              return (
+                <button
+                  key={link.path}
+                  onClick={() => navigate(link.path)}
+                  onMouseEnter={() => prefetchRoute(link.path)}
+                  className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
+                    active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  {link.label}
+                  <span
+                    className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
+                      active ? "w-full" : "w-0 group-hover:w-full"
+                    }`}
+                  />
+                </button>
               );
             })}
           </div>
 
-          {/* RIGHT — utilities (Download + auth/settings + language) */}
-          <div className="flex items-center justify-self-end gap-5">
+          {/* RIGHT — utilities (absolute, vertically centered) */}
+          <div className="absolute right-10 top-1/2 flex -translate-y-1/2 items-center gap-5">
             <button
               onClick={() => navigate("/install")}
               className={`flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
