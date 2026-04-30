@@ -188,8 +188,16 @@ export function useWeather(): WeatherData {
       };
       setWeather(next);
       writeCache({ temp: w.temp, condition: w.condition, location: namedCity, ts: Date.now() });
-    })();
-    return () => { cancelled = true; };
+    };
+    void run();
+    // Re-run when the user grants location after launch (PermissionsPrompt
+    // dispatches this event so the home screen updates without a reload).
+    const onGranted = () => { void run(); };
+    window.addEventListener("wardrobe:location-granted", onGranted);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("wardrobe:location-granted", onGranted);
+    };
   }, []);
 
   return weather;
