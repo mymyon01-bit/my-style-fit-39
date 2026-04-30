@@ -244,7 +244,11 @@ export default function FitVisual({
                 src={previewSrc}
                 alt={`${productName} try-on, size ${activeSize}`}
                 profile={warpProfile}
-                className="relative h-full w-full object-cover"
+                // `object-contain` + `object-center` guarantees the AI mannequin
+                // is fully visible AND horizontally centered inside the 3:4
+                // frame on every device, including narrow Android WebViews
+                // where `object-cover` was clipping the figure off to one side.
+                className="relative h-full w-full object-contain object-center"
                 onLoaded={() => setLoadedSrc(previewSrc)}
                 onError={() => {
                   console.warn("[FIT_TRYON] image_load_error", {
