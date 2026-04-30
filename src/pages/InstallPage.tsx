@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Download, Smartphone, Apple, Share, Plus, X } from "lucide-react";
+import { Download, Smartphone, Apple, Share, Plus, X, ShieldCheck, FolderDown, CheckCircle2 } from "lucide-react";
+
+const APK_URL = "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk";
 import { useNavigate } from "react-router-dom";
 
 interface BeforeInstallPromptEvent extends Event {
