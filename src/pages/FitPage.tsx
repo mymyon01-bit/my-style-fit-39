@@ -468,7 +468,7 @@ const FitPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
-      <div className="mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
+      <div className="mx-auto max-w-lg px-4 pt-10 sm:px-6 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
           <div className="lg:hidden"><Brandmark variant="inline" /></div>
           <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT</span>
@@ -496,7 +496,7 @@ const FitPage = () => {
           useFitTryOn → fit-tryon-router (studio mode), which returns a
           persistent public URL that works for every visitor and device. */}
 
-      <div className={`mx-auto px-8 pt-10 md:px-10 lg:px-12 lg:pt-12 ${
+      <div className={`mx-auto px-4 pt-10 sm:px-6 md:px-10 lg:px-12 lg:pt-12 ${
         activeTab === "results"
           ? "max-w-lg md:max-w-2xl lg:max-w-5xl"
           : "max-w-lg md:max-w-2xl lg:max-w-3xl"
