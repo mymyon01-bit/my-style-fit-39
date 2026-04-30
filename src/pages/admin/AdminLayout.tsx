@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Users, Package, FolderTree, Camera, Star, BarChart3, Settings, Home, Activity, ShieldCheck, FileSearch, Ruler, Tag, Database, MessageSquare, ToggleLeft, Cog } from "lucide-react";
+import { Loader2, Users, Package, FolderTree, Camera, Star, BarChart3, Settings, Home, Activity, ShieldCheck, FileSearch, Ruler, Tag, Database, MessageSquare, ToggleLeft, Cog, Download } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/admin", icon: BarChart3, label: "Overview", exact: true },
