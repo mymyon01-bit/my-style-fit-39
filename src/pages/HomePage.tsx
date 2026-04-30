@@ -122,24 +122,24 @@ const HomePage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="absolute -top-8 z-20 flex w-full items-center justify-between gap-2 px-5 py-0 lg:hidden"
+          className="absolute top-3 z-20 flex w-full items-center justify-between gap-2 px-4 py-0 lg:hidden"
         >
-          <Brandmark variant="inline" />
-          <div className="flex items-center gap-1.5">
+          <Brandmark variant="inline" size={20} />
+          <div className="flex items-center gap-1">
             <button
               onClick={handleInstall}
               aria-label="Install app to home screen"
               title="Install app"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-foreground/20 bg-background/70 text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-foreground/20 bg-background/70 text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground"
             >
-              <Download className="h-3.5 w-3.5" />
+              <Download className="h-3 w-3" />
             </button>
             <button
               onClick={() => navigate(user ? "/profile" : "/auth")}
               aria-label={user ? "Profile" : "Sign in"}
-              className="flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-[10px] font-semibold uppercase tracking-wider text-background transition-all hover:bg-primary hover:text-primary-foreground"
+              className="flex h-7 items-center gap-1 rounded-full bg-foreground px-2.5 text-[9px] font-semibold uppercase tracking-wider text-background transition-all hover:bg-primary hover:text-primary-foreground"
             >
-              {user ? <UserIcon className="h-3 w-3" /> : <LogIn className="h-3 w-3" />}
+              {user ? <UserIcon className="h-2.5 w-2.5" /> : <LogIn className="h-2.5 w-2.5" />}
               <span>{user ? "Me" : "Sign in"}</span>
             </button>
             <LanguageSelector />
