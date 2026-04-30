@@ -360,7 +360,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
         .map((r) => `${r.fit.replace(/-/g, " ")} at ${r.region.toLowerCase()}`)
         .join(", ")
     : "";
-  const leadSentence = `A ${build} ${subject}${heightLine}${weightLine} wearing ${garmentLabel} in size ${body.selectedSize}${leadFitSummary ? `, with ${leadFitSummary}` : ""}.`;
+  const leadSentence = `A ${build} ${subject}${heightLine}${weightLine} wearing ${garmentLabel} in size ${body.selectedSize}${leadFitSummary ? `, with ${leadFitSummary}` : ""}. The mannequin's sex is ${subject} regardless of which gender the garment was originally designed for.`;
 
   return [
     leadSentence,
