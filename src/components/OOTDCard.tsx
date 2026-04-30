@@ -90,7 +90,7 @@ function OOTDCardImpl({
                   navigate(`/user/${post.user_id}`);
                 }}
                 className="flex items-center gap-1.5 min-w-0"
-                aria-label={profile?.display_name || "View profile"}
+                aria-label={`@${handleName}`}
               >
                 <OfficialAvatarRing isOfficial={profile?.is_official}>
                   <div className="h-7 w-7 rounded-full overflow-hidden ring-1 ring-white/80 shadow-md bg-foreground/20 backdrop-blur-sm shrink-0">
