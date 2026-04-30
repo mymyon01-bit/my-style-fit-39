@@ -48,9 +48,12 @@ jobs:
 
       - name: Add Android platform
         run: |
-          npm install --no-save --legacy-peer-deps @capacitor/android
+          npm install --no-save --legacy-peer-deps @capacitor/android @capacitor/assets
           npx cap add android || echo "android already added"
           npx cap sync android
+
+      - name: Generate Android icons & splash from /resources
+        run: npx @capacitor/assets generate --android --assetPath resources
 
       - name: Patch capacitor.config for production (remove server.url)
         run: |
