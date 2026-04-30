@@ -76,13 +76,40 @@ export type BaselineFitVerdict =
   | "loose"          // offset == -1
   | "blanket";       // offset <= -2
 
-export function baselineFitVerdict(currentSize: string, weightKg: number | null | undefined, gender: string | null | undefined): {
+/**
+ * Compute the baseline-vs-current-size verdict.
+ *
+ * `bodyGender`    = the user's actual body (drives the mannequin).
+ * `productGender` = the garment's intended audience.
+ *
+ * CROSS-GENDER RULE:
+ *   When a user wears a garment cut for the opposite gender, the size letters
+ *   on that garment scale to the OPPOSITE gender's body. A 80 kg male picking
+ *   a women's "L" is NOT a male L — women's L tops out around 75 kg, so the
+ *   garment is one full step undersized for him. We therefore compute the
+ *   baseline against the GARMENT's gender chart whenever it differs from the
+ *   user's body, so the resulting offset honestly reflects how the labelled
+ *   size will run on the user.
+ */
+export function baselineFitVerdict(
+  currentSize: string,
+  weightKg: number | null | undefined,
+  bodyGender: string | null | undefined,
+  productGender?: string | null | undefined,
+): {
   baseline: BaselineSize;
   offset: number;
   verdict: BaselineFitVerdict;
   isUnrealistic: boolean;
 } {
-  const baseline = baselineSizeForBody(weightKg, gender);
+  const bg = normalizeGender(bodyGender);
+  const pg = normalizeGender(productGender);
+  // Use the garment's chart when the product is explicitly gendered AND it
+  // differs from the user's body. Otherwise fall back to the user's body
+  // gender (or neutral when neither is known).
+  const chartGender: BaselineGender =
+    pg !== "neutral" && bg !== "neutral" && pg !== bg ? pg : bg;
+  const baseline = baselineSizeForBody(weightKg, chartGender);
   const offset = sizeOffsetFromBaseline(currentSize, baseline);
   const verdict: BaselineFitVerdict =
     offset >= 2 ? "way-too-tight" :
