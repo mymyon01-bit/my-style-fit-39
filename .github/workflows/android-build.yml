@@ -90,6 +90,27 @@ jobs:
             console.log('Added mymyon:// deep link intent filter');
           "
 
+      - name: Patch AndroidManifest with notification + location permissions
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'android/app/src/main/AndroidManifest.xml';
+            let xml = fs.readFileSync(path, 'utf8');
+            const perms = [
+              'android.permission.POST_NOTIFICATIONS',
+              'android.permission.ACCESS_COARSE_LOCATION',
+              'android.permission.ACCESS_FINE_LOCATION',
+            ];
+            for (const p of perms) {
+              if (!xml.includes('android:name=\\\"' + p + '\\\"')) {
+                const tag = '    <uses-permission android:name=\\\"' + p + '\\\" />';
+                xml = xml.replace(/(<application )/, tag + '\\n\\n    \$1');
+                console.log('Added permission:', p);
+              }
+            }
+            fs.writeFileSync(path, xml);
+          "
+
       - name: Compute version (timestamp + short SHA)
         id: version
         run: |

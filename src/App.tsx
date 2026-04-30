@@ -15,7 +15,8 @@ import OOTDModalHost from "@/components/OOTDModalHost";
 import UpdateBanner from "@/components/UpdateBanner";
 import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
-import { initPushNotifications } from "@/lib/native/push";
+import PermissionsPrompt from "@/components/PermissionsPrompt";
+import WelcomeTour from "@/components/WelcomeTour";
 import { useMessageToasts } from "@/hooks/useMessageToasts";
 import { isNativeApp } from "@/lib/native/platform";
 import { Loader2 } from "lucide-react";
@@ -140,14 +141,27 @@ const UrlMasker = () => {
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
-  // Init push notifications once a user is signed in (no-op on web).
-  // The push helper POSTs the device token to the `register-device-token`
-  // edge function, which upserts it into push_device_tokens (RLS-scoped).
+  // Push notifications are NOT auto-initialized on launch anymore — that
+  // caused the WebView to freeze on some Android builds because the system
+  // permission dialog blocked the first paint. The PermissionsPrompt
+  // component requests them only after the user explicitly opts in, and
+  // re-binds listeners on subsequent launches if permission is already
+  // granted.
   useEffect(() => {
     if (!user || !isNativeApp()) return;
-    initPushNotifications((token, platform) => {
-      console.log("[push] device token registered", { platform, token: token.slice(0, 12) + "…" });
-    });
+    (async () => {
+      try {
+        const { getPushPermissionStatus, initPushNotifications } = await import("@/lib/native/push");
+        const status = await getPushPermissionStatus();
+        if (status === "granted") {
+          await initPushNotifications((token, platform) => {
+            console.log("[push] device token re-registered", { platform, token: token.slice(0, 12) + "…" });
+          });
+        }
+      } catch (e) {
+        console.warn("[push] silent init skipped", e);
+      }
+    })();
   }, [user]);
 
   // Live message toasts — pop a sonner toast the moment a new message arrives,
@@ -173,6 +187,8 @@ const AppRoutes = () => {
     <>
       <UrlMasker />
       <UpdateBanner />
+      <WelcomeTour />
+      <PermissionsPrompt />
       {!isAdmin && <DesktopNav />}
       {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
