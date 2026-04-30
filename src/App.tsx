@@ -79,6 +79,7 @@ const AdminFallbackTables = lazyWithRetry(() => import("@/pages/admin/AdminFallb
 const AdminFitFeedback = lazyWithRetry(() => import("@/pages/admin/AdminFitFeedback"), "AdminFitFeedback");
 const AdminFeatureFlags = lazyWithRetry(() => import("@/pages/admin/AdminFeatureFlags"), "AdminFeatureFlags");
 const AdminAppConfig = lazyWithRetry(() => import("@/pages/admin/AdminAppConfig"), "AdminAppConfig");
+const AdminAppReleases = lazyWithRetry(() => import("@/pages/admin/AdminAppReleases"), "AdminAppReleases");
 const ShowroomBrowsePage = lazyWithRetry(() => import("@/pages/ShowroomBrowsePage"), "ShowroomBrowsePage");
 const ShowroomNewPage = lazyWithRetry(() => import("@/pages/ShowroomNewPage"), "ShowroomNewPage");
 const ShowroomDetailPage = lazyWithRetry(() => import("@/pages/ShowroomDetailPage"), "ShowroomDetailPage");
