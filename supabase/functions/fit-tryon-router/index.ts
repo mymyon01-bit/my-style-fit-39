@@ -330,6 +330,8 @@ function buildBodyTabBlock(b?: CreateBody["bodyProfileSummary"]): string {
     refImageNote,
   ].join(" ");
 }
+
+function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
   const h = body.bodyProfileSummary?.heightCm;
