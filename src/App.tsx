@@ -65,6 +65,7 @@ const UserProfilePage = lazyWithRetry(() => import("@/pages/UserProfilePage"), "
 const AdminLayout = lazyWithRetry(() => import("@/pages/admin/AdminLayout"), "AdminLayout");
 const AdminOverview = lazyWithRetry(() => import("@/pages/admin/AdminOverview"), "AdminOverview");
 const AdminUsers = lazyWithRetry(() => import("@/pages/admin/AdminUsers"), "AdminUsers");
+const AdminUserDetail = lazyWithRetry(() => import("@/pages/admin/AdminUserDetail"), "AdminUserDetail");
 const AdminProducts = lazyWithRetry(() => import("@/pages/admin/AdminProducts"), "AdminProducts");
 const AdminCategories = lazyWithRetry(() => import("@/pages/admin/AdminCategories"), "AdminCategories");
 const AdminOOTD = lazyWithRetry(() => import("@/pages/admin/AdminOOTD"), "AdminOOTD");
@@ -206,6 +207,7 @@ const AppRoutes = () => {
             <Route index element={<AdminOverview />} />
             <Route path="diagnostics" element={<AdminDiagnostics />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="admins" element={<AdminAdmins />} />
             <Route path="audit" element={<AdminAuditLog />} />
             <Route path="products" element={<AdminProducts />} />
