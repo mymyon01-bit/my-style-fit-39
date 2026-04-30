@@ -11,7 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import Brandmark from "@/components/Brandmark";
 import discoverImg from "@/assets/tour-discover.jpg";
