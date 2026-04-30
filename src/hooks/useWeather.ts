@@ -122,15 +122,16 @@ async function fetchWeather(lat: number, lon: number): Promise<{ temp: number; c
   }
 }
 
-function getBrowserPosition(): Promise<GeolocationPosition | null> {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve(p),
-      () => resolve(null),
-      { timeout: 6000, maximumAge: 5 * 60 * 1000, enableHighAccuracy: false },
-    );
-  });
+// Cross-platform position fetch — uses Capacitor Geolocation on the native
+// APK (so the proper Android system permission dialog fires) and the browser
+// API everywhere else. Always returns null instead of throwing.
+async function getPosition(): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const { getCurrentCoords } = await import("@/lib/native/location");
+    return await getCurrentCoords();
+  } catch {
+    return null;
+  }
 }
 
 export function useWeather(): WeatherData {
@@ -144,16 +145,16 @@ export function useWeather(): WeatherData {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      // 1. Try precise browser geolocation.
-      const pos = await getBrowserPosition();
+    const run = async () => {
+      // 1. Try precise device geolocation (native Capacitor or browser).
+      const pos = await getPosition();
       let lat: number | null = null;
       let lon: number | null = null;
       let city: string | null = null;
 
       if (pos) {
-        lat = pos.coords.latitude;
-        lon = pos.coords.longitude;
+        lat = pos.lat;
+        lon = pos.lon;
       } else {
         // 2. Fallback to IP geolocation so users who deny GPS still get
         //    real weather instead of the seeded "partly-cloudy" default.
