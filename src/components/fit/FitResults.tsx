@@ -498,7 +498,7 @@ export default function FitResults({
         </div>
 
         {/* RIGHT — minimalist verdict block */}
-        <div className="space-y-7">
+        <div className="min-w-0 space-y-7">
           {/* Product header */}
           <SelectedProductCard
             brand={product.brand}
