@@ -496,7 +496,7 @@ const FitPage = () => {
           useFitTryOn → fit-tryon-router (studio mode), which returns a
           persistent public URL that works for every visitor and device. */}
 
-      <div className={`mx-auto px-8 pt-10 md:px-10 lg:px-12 lg:pt-12 ${
+      <div className={`mx-auto px-4 pt-10 sm:px-6 md:px-10 lg:px-12 lg:pt-12 ${
         activeTab === "results"
           ? "max-w-lg md:max-w-2xl lg:max-w-5xl"
           : "max-w-lg md:max-w-2xl lg:max-w-3xl"
