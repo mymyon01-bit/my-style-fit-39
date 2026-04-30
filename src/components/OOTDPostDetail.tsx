@@ -191,8 +191,14 @@ export default function OOTDPostDetail({
     return user.id === comment.user_id || user.id === post.user_id;
   };
 
-  const getCommentName = (userId: string) =>
-    profileMap[userId]?.display_name || (userId === post.user_id ? (profile?.display_name || "Author") : "User");
+  // OOTD에서는 항상 username(@핸들)을 노출. display_name은 폴백.
+  const getCommentName = (userId: string) => {
+    const p = profileMap[userId];
+    if (p?.username) return `@${p.username}`;
+    if (p?.display_name) return p.display_name;
+    if (userId === post.user_id) return profile?.username ? `@${profile.username}` : (profile?.display_name || "Author");
+    return "User";
+  };
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
