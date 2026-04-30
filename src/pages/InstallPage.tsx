@@ -1,41 +1,19 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Download, Smartphone, Apple, Share, Plus, X, ShieldCheck, FolderDown, CheckCircle2 } from "lucide-react";
-
-const APK_URL = "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk";
 import { useNavigate } from "react-router-dom";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+const APK_URL = "https://github.com/mymyon01-bit/my-style-fit-39/releases/download/latest-apk/mymyon.apk";
 
 const InstallPage = () => {
   const navigate = useNavigate();
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
     }
-
-    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setIsInstalled(true);
-    setDeferredPrompt(null);
-  };
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
