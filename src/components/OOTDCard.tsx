@@ -195,6 +195,7 @@ const OOTDCard = memo(OOTDCardImpl, (prev, next) => {
     prev.post.star_count === next.post.star_count &&
     prev.profile?.avatar_url === next.profile?.avatar_url &&
     prev.profile?.display_name === next.profile?.display_name &&
+    prev.profile?.username === next.profile?.username &&
     prev.profile?.is_official === next.profile?.is_official &&
     prev.showAuthor === next.showAuthor &&
     prev.isMyPage === next.isMyPage
