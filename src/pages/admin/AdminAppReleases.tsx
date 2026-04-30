@@ -178,22 +178,63 @@ const AdminAppReleases = () => {
           <h2 className="text-[13px] font-semibold tracking-wide">Publish new release</h2>
         </div>
 
-        <div>
-          <label className="block text-[11px] font-medium text-foreground/70 mb-2">APK File</label>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".apk,application/vnd.android.package-archive"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        {/* Mode toggle */}
+        <div className="flex gap-2 rounded-lg bg-background/40 p-1 w-fit">
+          <button
+            onClick={() => setMode("url")}
             disabled={busy}
-            className="block w-full text-[12px] text-foreground/80 file:mr-4 file:rounded-md file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-[11px] file:font-medium file:text-accent hover:file:bg-accent/20"
-          />
-          {file && (
-            <p className="mt-2 text-[11px] text-foreground/60">
-              {file.name} — {(file.size / 1024 / 1024).toFixed(2)} MB
-            </p>
-          )}
+            className={`px-4 py-1.5 rounded-md text-[11px] font-semibold tracking-wide transition-colors ${
+              mode === "url" ? "bg-accent/20 text-accent" : "text-foreground/60 hover:text-foreground/80"
+            }`}
+          >
+            GitHub URL
+          </button>
+          <button
+            onClick={() => setMode("upload")}
+            disabled={busy}
+            className={`px-4 py-1.5 rounded-md text-[11px] font-semibold tracking-wide transition-colors ${
+              mode === "upload" ? "bg-accent/20 text-accent" : "text-foreground/60 hover:text-foreground/80"
+            }`}
+          >
+            Upload File
+          </button>
         </div>
+
+        {mode === "url" ? (
+          <div>
+            <label className="block text-[11px] font-medium text-foreground/70 mb-2">
+              APK URL <span className="text-foreground/40">(GitHub Release direct link)</span>
+            </label>
+            <input
+              type="url"
+              value={externalUrl}
+              onChange={(e) => setExternalUrl(e.target.value)}
+              placeholder="https://github.com/.../releases/download/latest-apk/mymyon.apk"
+              disabled={busy}
+              className="w-full rounded-md border border-border/40 bg-background px-3 py-2 text-[11px] text-foreground font-mono"
+            />
+            <p className="mt-2 text-[10px] text-foreground/50">
+              💡 GitHub Actions가 매 push마다 새 APK를 만들어서 위 URL에 올려놓아요. 그냥 URL 그대로 쓰고 version_code만 올리면 됨.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-[11px] font-medium text-foreground/70 mb-2">APK File</label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".apk,application/vnd.android.package-archive"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              disabled={busy}
+              className="block w-full text-[12px] text-foreground/80 file:mr-4 file:rounded-md file:border-0 file:bg-accent/10 file:px-3 file:py-2 file:text-[11px] file:font-medium file:text-accent hover:file:bg-accent/20"
+            />
+            {file && (
+              <p className="mt-2 text-[11px] text-foreground/60">
+                {file.name} — {(file.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
