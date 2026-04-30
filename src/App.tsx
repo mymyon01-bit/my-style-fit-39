@@ -16,6 +16,7 @@ import UpdateBanner from "@/components/UpdateBanner";
 import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
 import PermissionsPrompt from "@/components/PermissionsPrompt";
+import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import WelcomeTour from "@/components/WelcomeTour";
 import { useMessageToasts } from "@/hooks/useMessageToasts";
 import { isNativeApp } from "@/lib/native/platform";
@@ -189,6 +190,7 @@ const AppRoutes = () => {
       <UpdateBanner />
       <WelcomeTour />
       <PermissionsPrompt />
+      <AppUpdatePrompt />
       {!isAdmin && <DesktopNav />}
       {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
