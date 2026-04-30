@@ -33,16 +33,22 @@ const openOAuthInBrowser = async (
     // with the session tokens in the URL hash.
     const bridgeUrl = `${WEB_ORIGIN}/~oauth-bridge?provider=${provider}&return=${encodeURIComponent(APP_SCHEME)}`;
 
-    // Promise that resolves when the deep link comes back to the app.
+    // Promise that resolves when the deep link comes back to the app, OR
+    // when the user closes the in-app browser. The deep-link path is the
+    // happy path; the browser-finished path is a fallback so we don't hang
+    // forever if the deep link scheme isn't registered on the device.
     const tokenPromise = new Promise<{ access_token?: string; refresh_token?: string; error?: string }>(
       (resolve) => {
-        const handle = App.addListener("appUrlOpen", async ({ url }) => {
+        let settled = false;
+        const settle = (v: { access_token?: string; refresh_token?: string; error?: string }) => {
+          if (settled) return;
+          settled = true;
+          resolve(v);
+        };
+
+        const urlHandle = App.addListener("appUrlOpen", async ({ url }) => {
           if (!url.startsWith("mymyon://auth-callback")) return;
-          try {
-            await Browser.close();
-          } catch {
-            /* noop */
-          }
+          try { await Browser.close(); } catch { /* noop */ }
           // Tokens come back in the URL hash (#access_token=...&refresh_token=...)
           // or as ?error=... on failure.
           const u = new URL(url);
@@ -51,8 +57,19 @@ const openOAuthInBrowser = async (
           const access_token = hashParams.get("access_token") ?? queryParams.get("access_token") ?? undefined;
           const refresh_token = hashParams.get("refresh_token") ?? queryParams.get("refresh_token") ?? undefined;
           const error = queryParams.get("error") ?? hashParams.get("error") ?? undefined;
-          handle.then((h) => h.remove());
-          resolve({ access_token, refresh_token, error: error || undefined });
+          urlHandle.then((h) => h.remove());
+          settle({ access_token, refresh_token, error: error || undefined });
+        });
+
+        // Fallback: if the user closes the browser without the deep link
+        // firing (e.g. cancelled, or scheme not registered), fail fast so
+        // the UI can show "sign-in cancelled" instead of spinning forever.
+        const closeHandle = Browser.addListener("browserFinished", () => {
+          // Give the deep-link handler a beat to win the race.
+          setTimeout(() => {
+            settle({ error: "browser_closed" });
+            closeHandle.then((h) => h.remove());
+          }, 600);
         });
       },
     );
