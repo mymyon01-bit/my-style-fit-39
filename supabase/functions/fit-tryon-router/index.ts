@@ -573,6 +573,12 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
   ].join(" ");
 
+  // ── DEBUG: confirm Body tab values reach AI generation ──────────────────
+  console.log("[FIT_IMAGE_BODY_PROFILE]", body.bodyProfileSummary);
+  console.log("[FIT_IMAGE_SELECTED_SIZE]", body.selectedSize);
+  console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
+  console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
 
