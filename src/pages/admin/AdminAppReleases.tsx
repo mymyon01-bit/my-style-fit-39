@@ -74,10 +74,6 @@ const AdminAppReleases = () => {
   };
 
   const handlePublish = async () => {
-    if (!file) {
-      toast({ title: "Pick an APK file first", variant: "destructive" });
-      return;
-    }
     const code = parseInt(versionCode, 10);
     if (!Number.isFinite(code) || code < 1) {
       toast({ title: "version_code must be a positive integer", variant: "destructive" });
@@ -90,23 +86,36 @@ const AdminAppReleases = () => {
 
     setBusy(true);
     try {
-      // 1. Upload APK
-      const path = `android/mymyon-v${code}-${Date.now()}.apk`;
-      setProgress("Uploading APK…");
-      const { error: upErr } = await supabase.storage
-        .from("app-downloads")
-        .upload(path, file, {
-          contentType: "application/vnd.android.package-archive",
-          cacheControl: "3600",
-          upsert: false,
-        });
-      if (upErr) throw upErr;
+      let apkUrl: string;
 
-      // 2. Get public URL
-      const { data: urlData } = supabase.storage.from("app-downloads").getPublicUrl(path);
-      const apkUrl = urlData.publicUrl;
+      if (mode === "upload") {
+        if (!file) {
+          toast({ title: "Pick an APK file first", variant: "destructive" });
+          setBusy(false);
+          return;
+        }
+        const path = `android/mymyon-v${code}-${Date.now()}.apk`;
+        setProgress("Uploading APK…");
+        const { error: upErr } = await supabase.storage
+          .from("app-downloads")
+          .upload(path, file, {
+            contentType: "application/vnd.android.package-archive",
+            cacheControl: "3600",
+            upsert: false,
+          });
+        if (upErr) throw upErr;
+        const { data: urlData } = supabase.storage.from("app-downloads").getPublicUrl(path);
+        apkUrl = urlData.publicUrl;
+      } else {
+        if (!externalUrl.trim().startsWith("http")) {
+          toast({ title: "Enter a valid https:// URL", variant: "destructive" });
+          setBusy(false);
+          return;
+        }
+        apkUrl = externalUrl.trim();
+      }
 
-      // 3. Insert release row
+      // Insert release row
       setProgress("Publishing release…");
       const { error: insErr } = await supabase.from("app_releases").insert({
         platform: "android",
