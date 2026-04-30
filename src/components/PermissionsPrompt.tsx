@@ -58,13 +58,17 @@ const PermissionsPrompt = () => {
 
   const handleEnableNotif = async () => {
     setBusy(true);
+    let result: "granted" | "denied" | "error" = "error";
     try {
-      const result = await initPushNotifications((token, platform) => {
+      result = await initPushNotifications((token, platform) => {
         console.log("[push] device token registered", { platform, token: token.slice(0, 12) + "…" });
       });
-      setNotifGranted(result === "granted");
+    } catch (e) {
+      console.error("[push] enable failed", e);
     } finally {
       setBusy(false);
+      setNotifGranted(result === "granted");
+      // Move on regardless — denied/error users can re-enable from Settings.
       setStep("location");
     }
   };
