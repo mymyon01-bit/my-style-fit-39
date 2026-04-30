@@ -30,6 +30,7 @@ const SettingsPage = () => {
   const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
   const [resendingVerification, setResendingVerification] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
