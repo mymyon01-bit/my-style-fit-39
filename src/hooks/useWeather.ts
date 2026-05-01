@@ -6,6 +6,12 @@ interface WeatherData {
   location: string;
   loading: boolean;
   error: string | null;
+  /** True when local time is between sunset and sunrise. */
+  isNight: boolean;
+  /** ISO local time of today's sunrise, if known. */
+  sunrise: string | null;
+  /** ISO local time of today's sunset, if known. */
+  sunset: string | null;
 }
 
 const WMO_TO_CONDITION: Record<number, string> = {
@@ -47,6 +53,9 @@ interface CachedWeather {
   condition: string;
   location: string;
   ts: number;
+  sunrise?: string | null;
+  sunset?: string | null;
+  isDay?: boolean;
 }
 
 function readCache(): CachedWeather | null {
@@ -63,6 +72,24 @@ function readCache(): CachedWeather | null {
 
 function writeCache(c: CachedWeather) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch {}
+}
+
+/**
+ * Determine whether it's currently night at the given coordinates using
+ * today's sunrise/sunset. Falls back to a simple 6am-6pm rule if either
+ * timestamp is missing.
+ */
+function computeIsNight(sunrise: string | null, sunset: string | null): boolean {
+  const now = Date.now();
+  if (sunrise && sunset) {
+    const sr = new Date(sunrise).getTime();
+    const ss = new Date(sunset).getTime();
+    if (!Number.isNaN(sr) && !Number.isNaN(ss)) {
+      return now < sr || now > ss;
+    }
+  }
+  const h = new Date().getHours();
+  return h < 6 || h >= 19;
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
@@ -105,10 +132,13 @@ async function ipGeolocate(): Promise<{ lat: number; lon: number; city: string }
   }
 }
 
-async function fetchWeather(lat: number, lon: number): Promise<{ temp: number; condition: string } | null> {
+async function fetchWeather(
+  lat: number,
+  lon: number,
+): Promise<{ temp: number; condition: string; sunrise: string | null; sunset: string | null; isDay: boolean | null } | null> {
   try {
     const r = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day&daily=sunrise,sunset&timezone=auto`,
     );
     if (!r.ok) return null;
     const j = await r.json();
@@ -116,7 +146,11 @@ async function fetchWeather(lat: number, lon: number): Promise<{ temp: number; c
     const condition = WMO_TO_CONDITION[code];
     if (!condition) return null;
     const temp = Math.round(j.current?.temperature_2m ?? 0);
-    return { temp, condition };
+    const isDayRaw = j.current?.is_day;
+    const isDay = typeof isDayRaw === "number" ? isDayRaw === 1 : null;
+    const sunrise: string | null = j.daily?.sunrise?.[0] ?? null;
+    const sunset: string | null = j.daily?.sunset?.[0] ?? null;
+    return { temp, condition, sunrise, sunset, isDay };
   } catch {
     return null;
   }
@@ -139,8 +173,29 @@ export function useWeather(): WeatherData {
   const cached = typeof window !== "undefined" ? readCache() : null;
   const [weather, setWeather] = useState<WeatherData>(() =>
     cached
-      ? { temp: cached.temp, condition: cached.condition, location: cached.location, loading: false, error: null }
-      : { temp: 0, condition: "loading", location: "Locating…", loading: true, error: null },
+      ? {
+          temp: cached.temp,
+          condition: cached.condition,
+          location: cached.location,
+          loading: false,
+          error: null,
+          sunrise: cached.sunrise ?? null,
+          sunset: cached.sunset ?? null,
+          isNight:
+            typeof cached.isDay === "boolean"
+              ? !cached.isDay
+              : computeIsNight(cached.sunrise ?? null, cached.sunset ?? null),
+        }
+      : {
+          temp: 0,
+          condition: "loading",
+          location: "Locating…",
+          loading: true,
+          error: null,
+          sunrise: null,
+          sunset: null,
+          isNight: computeIsNight(null, null),
+        },
   );
 
   useEffect(() => {
@@ -179,15 +234,28 @@ export function useWeather(): WeatherData {
         setWeather((prev) => ({ ...prev, loading: false, error: "Weather fetch failed" }));
         return;
       }
+      const isNight =
+        w.isDay === null ? computeIsNight(w.sunrise, w.sunset) : !w.isDay;
       const next: WeatherData = {
         temp: w.temp,
         condition: w.condition,
         location: namedCity,
         loading: false,
         error: null,
+        sunrise: w.sunrise,
+        sunset: w.sunset,
+        isNight,
       };
       setWeather(next);
-      writeCache({ temp: w.temp, condition: w.condition, location: namedCity, ts: Date.now() });
+      writeCache({
+        temp: w.temp,
+        condition: w.condition,
+        location: namedCity,
+        ts: Date.now(),
+        sunrise: w.sunrise,
+        sunset: w.sunset,
+        isDay: w.isDay ?? !isNight,
+      });
     };
     void run();
     // Re-run when the user grants location after launch (PermissionsPrompt

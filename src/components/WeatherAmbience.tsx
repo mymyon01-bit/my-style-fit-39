@@ -19,6 +19,10 @@ import partlyCloudyVid from "../../public/bg-videos/partly-cloudy.mp4.asset.json
 import cloudyVid from "../../public/bg-videos/cloudy.mp4.asset.json";
 import stormVid from "../../public/bg-videos/storm.mp4.asset.json";
 import fogVid from "../../public/bg-videos/fog.mp4.asset.json";
+// Night-time footage — used when sun is below horizon.
+import starsVid from "../../public/bg-videos/stars.mp4.asset.json";
+import metropolisVid from "../../public/bg-videos/metropolis.mp4.asset.json";
+import neonCityVid from "../../public/bg-videos/neon-city.mp4.asset.json";
 
 const weatherMap: Record<string, string> = {
   rain: rainBg,
@@ -65,6 +69,28 @@ const weatherVideoMap: Record<string, string> = {
   haze: fogVid.url,
 };
 
+// Per-condition NIGHT footage — replaces the daytime video when the sun is
+// below the horizon. Clear/sunny nights show real starfield footage; cloudy
+// nights show city lights through atmosphere; partly-cloudy nights blend the
+// neon-city skyline with drifting clouds. Rain/snow/storm/fog keep their own
+// footage but get a strong dark overlay applied below.
+const weatherVideoMapNight: Record<string, string> = {
+  sunny: starsVid.url,
+  clear: starsVid.url,
+  "partly-sunny": neonCityVid.url,
+  "partly-cloudy": metropolisVid.url,
+  cloudy: metropolisVid.url,
+  overcast: metropolisVid.url,
+  drizzle: drizzleVid.url,
+  "light-rain": drizzleVid.url,
+  rain: rainVid.url,
+  storm: stormVid.url,
+  thunderstorm: stormVid.url,
+  fog: fogVid.url,
+  mist: fogVid.url,
+  haze: fogVid.url,
+};
+
 // Stable pseudo-random helper so particles don't reshuffle every render
 const rand = (seed: number) => {
   const x = Math.sin(seed * 9301 + 49297) * 233280;
@@ -94,9 +120,18 @@ const generateBoltPath = (seed: number, height = 280) => {
   return { main: path, branches };
 };
 
-const WeatherAmbience = ({ condition }: { condition: string }) => {
+const WeatherAmbience = ({
+  condition,
+  isNight = false,
+}: {
+  condition: string;
+  /** When true, swap to night footage and overlay starfield + moon. */
+  isNight?: boolean;
+}) => {
   const bgImage = weatherMap[condition] || cloudyBg;
-  const bgVideo = weatherVideoMap[condition] || cloudyVid.url;
+  const bgVideo = isNight
+    ? weatherVideoMapNight[condition] || metropolisVid.url
+    : weatherVideoMap[condition] || cloudyVid.url;
   const isRain = condition === "rain" || condition === "light-rain" || condition === "drizzle";
   const isSnow = condition === "snow";
   const isStorm = condition === "storm" || condition === "thunderstorm";
@@ -104,6 +139,9 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
   const isFog = condition === "fog" || condition === "mist" || condition === "haze";
   const isCloudy =
     condition === "cloudy" || condition === "partly-cloudy" || condition === "overcast";
+  // Clear-sky night → show twinkling stars + moon overlay on top of footage
+  const isClearNight = isNight && (isSunny || condition === "partly-sunny");
+  const isCloudyNight = isNight && (isCloudy || condition === "partly-cloudy");
 
   // Pre-compute particle arrays (stable across rerenders for perceived realism)
   // Layered rain — near/mid/far for parallax depth (real rain has depth)
@@ -197,6 +235,33 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
     [],
   );
 
+  // Twinkling stars for clear-sky nights — distributed mostly in the upper
+  // 60% of the sky so they read as actual stars and not snow.
+  const stars = useMemo(
+    () =>
+      Array.from({ length: 90 }).map((_, i) => ({
+        left: rand(i + 901) * 100,
+        top: rand(i + 911) * 65,
+        size: 1 + rand(i + 921) * 2.4,
+        opacity: 0.45 + rand(i + 931) * 0.55,
+        twinkleDelay: rand(i + 941) * 4,
+        twinkleDuration: 2.4 + rand(i + 951) * 3.2,
+      })),
+    [],
+  );
+
+  // A handful of brighter "hero" stars with a soft glow halo.
+  const brightStars = useMemo(
+    () =>
+      Array.from({ length: 6 }).map((_, i) => ({
+        left: 8 + rand(i + 1001) * 84,
+        top: 4 + rand(i + 1011) * 38,
+        size: 3 + rand(i + 1021) * 2,
+        delay: rand(i + 1031) * 5,
+      })),
+    [],
+  );
+
   // Imperatively kick off playback — some browsers (Safari, in-app webviews)
   // ignore the autoPlay attribute when the element is initially mounted with
   // opacity 0 inside a motion wrapper, so we call play() on mount + on src change.
@@ -232,7 +297,11 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
         preload="auto"
         // High opacity so the real footage reads clearly; particle overlays
         // (rain droplets, snow, lightning) layer on top per condition.
-        className="absolute inset-0 h-full w-full object-cover opacity-[0.55] dark:opacity-[0.6] animate-fade-in"
+        // At night we push the footage a touch brighter so the city lights /
+        // starfield stay legible under the dark-sky wash applied below.
+        className={`absolute inset-0 h-full w-full object-cover animate-fade-in ${
+          isNight ? "opacity-[0.7] dark:opacity-[0.78]" : "opacity-[0.55] dark:opacity-[0.6]"
+        }`}
         style={{ objectPosition: "center" }}
       />
 
@@ -250,8 +319,127 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
         />
       </motion.div>
 
-      {/* ======================== SUNNY ======================== */}
-      {isSunny && (
+      {/* ======================== NIGHT SKY ========================
+          Applied across all conditions when the sun is down. A deep blue
+          gradient washes the footage cooler/darker, then a starfield +
+          moon glow for clear-sky nights only (rain/snow/storm/fog at night
+          keep their existing particle layers but sit on the dark wash). */}
+      {isNight && (
+        <>
+          {/* Dark sky wash — deep navy at top fading toward horizon */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, hsl(232 55% 6% / 0.62) 0%, hsl(228 50% 10% / 0.48) 45%, hsl(225 45% 14% / 0.36) 80%, hsl(222 40% 18% / 0.28) 100%)",
+            }}
+          />
+          {/* Subtle horizon glow so silhouettes don't go pure black */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-1/2"
+            style={{
+              background:
+                "radial-gradient(ellipse at 50% 110%, hsl(220 60% 35% / 0.22) 0%, transparent 60%)",
+            }}
+          />
+        </>
+      )}
+
+      {/* Stars — only shown on clear nights (no thick clouds blocking them) */}
+      {isClearNight && (
+        <>
+          {stars.map((s, i) => (
+            <motion.div
+              key={`star-${i}`}
+              className="absolute rounded-full"
+              style={{
+                left: `${s.left}%`,
+                top: `${s.top}%`,
+                width: s.size,
+                height: s.size,
+                background: "hsl(210 100% 96%)",
+                boxShadow: `0 0 ${s.size * 2}px hsl(210 100% 90% / 0.7)`,
+              }}
+              animate={{ opacity: [s.opacity * 0.35, s.opacity, s.opacity * 0.35] }}
+              transition={{
+                duration: s.twinkleDuration,
+                repeat: Infinity,
+                delay: s.twinkleDelay,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+          {brightStars.map((s, i) => (
+            <motion.div
+              key={`bright-star-${i}`}
+              className="absolute rounded-full"
+              style={{
+                left: `${s.left}%`,
+                top: `${s.top}%`,
+                width: s.size,
+                height: s.size,
+                background: "hsl(48 100% 92%)",
+                boxShadow:
+                  "0 0 8px hsl(48 100% 85% / 0.95), 0 0 22px hsl(45 100% 80% / 0.55)",
+              }}
+              animate={{ opacity: [0.55, 1, 0.55], scale: [0.9, 1.15, 0.9] }}
+              transition={{
+                duration: 3.5 + s.delay,
+                repeat: Infinity,
+                delay: s.delay,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+          {/* Moon — soft luminous disc with halo */}
+          <motion.div
+            className="absolute"
+            style={{
+              top: "8%",
+              right: "10%",
+              width: 140,
+              height: 140,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle at 38% 38%, hsl(48 30% 96%) 0%, hsl(45 20% 88%) 40%, hsl(220 25% 70%) 75%, transparent 100%)",
+              boxShadow:
+                "0 0 60px hsl(48 60% 90% / 0.45), 0 0 140px hsl(220 50% 70% / 0.25)",
+            }}
+            animate={{ opacity: [0.85, 1, 0.85] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </>
+      )}
+
+      {/* Cloudy nights — a few faint stars peeking through the gaps */}
+      {isCloudyNight && !isClearNight && (
+        <>
+          {stars.slice(0, 18).map((s, i) => (
+            <motion.div
+              key={`cloudy-night-star-${i}`}
+              className="absolute rounded-full"
+              style={{
+                left: `${s.left}%`,
+                top: `${s.top * 0.7}%`,
+                width: s.size * 0.8,
+                height: s.size * 0.8,
+                background: "hsl(210 80% 92%)",
+                boxShadow: `0 0 ${s.size * 1.6}px hsl(210 90% 88% / 0.55)`,
+              }}
+              animate={{ opacity: [0, s.opacity * 0.6, 0] }}
+              transition={{
+                duration: s.twinkleDuration * 1.4,
+                repeat: Infinity,
+                delay: s.twinkleDelay,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+        </>
+      )}
+
+      {/* ======================== SUNNY (daytime only) ======================== */}
+      {isSunny && !isNight && (
         <>
           <div
             className="absolute inset-0"
