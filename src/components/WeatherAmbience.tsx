@@ -235,6 +235,33 @@ const WeatherAmbience = ({
     [],
   );
 
+  // Twinkling stars for clear-sky nights — distributed mostly in the upper
+  // 60% of the sky so they read as actual stars and not snow.
+  const stars = useMemo(
+    () =>
+      Array.from({ length: 90 }).map((_, i) => ({
+        left: rand(i + 901) * 100,
+        top: rand(i + 911) * 65,
+        size: 1 + rand(i + 921) * 2.4,
+        opacity: 0.45 + rand(i + 931) * 0.55,
+        twinkleDelay: rand(i + 941) * 4,
+        twinkleDuration: 2.4 + rand(i + 951) * 3.2,
+      })),
+    [],
+  );
+
+  // A handful of brighter "hero" stars with a soft glow halo.
+  const brightStars = useMemo(
+    () =>
+      Array.from({ length: 6 }).map((_, i) => ({
+        left: 8 + rand(i + 1001) * 84,
+        top: 4 + rand(i + 1011) * 38,
+        size: 3 + rand(i + 1021) * 2,
+        delay: rand(i + 1031) * 5,
+      })),
+    [],
+  );
+
   // Imperatively kick off playback — some browsers (Safari, in-app webviews)
   // ignore the autoPlay attribute when the element is initially mounted with
   // opacity 0 inside a motion wrapper, so we call play() on mount + on src change.
