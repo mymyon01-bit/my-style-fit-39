@@ -682,7 +682,20 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   ].join(" ");
 
   // ── DEBUG: confirm Body tab values reach AI generation ──────────────────
-  console.log("[FIT_IMAGE_BODY_PROFILE]", body.bodyProfileSummary);
+  const dbgB = body.bodyProfileSummary;
+  const dbgBmi = dbgB?.heightCm && dbgB?.weightKg
+    ? dbgB.weightKg / Math.pow(dbgB.heightCm / 100, 2)
+    : null;
+  console.log("[BODY_TAB_RAW]", body.bodyProfileSummary);
+  console.log("[FIT_IMAGE_BODY_LOCK]", {
+    gender: dbgB?.gender ?? null,
+    height_cm: dbgB?.heightCm ?? null,
+    weight_kg: dbgB?.weightKg ?? null,
+    body_type: dbgB?.bodyType ?? dbgB?.build ?? null,
+    body_reference_image_url: dbgB?.userBodyImageUrl ?? null,
+  });
+  console.log("[FIT_IMAGE_BMI]", dbgBmi);
+  console.log("[FIT_IMAGE_BODY_MASS_CLASS]", dbgBmi != null ? classifyBodyMass(dbgBmi) : null);
   console.log("[FIT_IMAGE_SELECTED_SIZE]", body.selectedSize);
   console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
   console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
