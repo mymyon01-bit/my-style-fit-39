@@ -945,6 +945,8 @@ serve(async (req) => {
       sourceEnabled("sb_asos") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_asos", query, krCap) : skip(),
       sourceEnabled("sb_zalando") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_zalando", query, krCap) : skip(),
       sourceEnabled("sb_ssense") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_ssense", query, krCap) : skip(),
+      // DataForSEO Google Shopping — additional provider, never blocks others.
+      sourceEnabled("dataforseo") ? fetchDataForSeo(query, intensity === "cron" ? 40 : 20) : skip(),
     ]);
 
     const labels = [
@@ -952,6 +954,7 @@ serve(async (req) => {
       "crawlbase_farfetch",
       "apify_musinsa", "apify_29cm", "apify_wconcept", "apify_ssg", "apify_naver",
       "sb_asos", "sb_zalando", "sb_ssense",
+      "dataforseo",
     ];
     const perSource: Record<string, number> = {};
     const fallbackUsed: string[] = [];
