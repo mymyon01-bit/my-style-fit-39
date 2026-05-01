@@ -983,9 +983,33 @@ serve(async (req) => {
       });
     }
 
+    // ── ScraperAPI top-up: if combined sources are still thin, augment with
+    // ScraperAPI (Google Shopping + site-restricted luxury queries). Capped at
+    // 3 calls per query. Image-less / titleless results are dropped inside.
+    const preDedupedCount = dedupe(merged).length;
+    let scraperapiAdded = 0;
+    if (SCRAPERAPI_KEY && preDedupedCount < 24) {
+      const deficit = Math.max(0, 60 - preDedupedCount);
+      const calls = deficit >= 40 ? 3 : deficit >= 20 ? 2 : 1;
+      const sapi = await fetchScraperApiTopUp(query, calls);
+      scraperapiAdded = sapi.length;
+      perSource["scraperapi"] = scraperapiAdded;
+      if (scraperapiAdded) {
+        fallbackUsed.push("scraperapi");
+        merged.push(...sapi);
+      }
+      console.log(`[MYMYON SOURCING] scraperapi calls=${calls} added=${scraperapiAdded} preDedupe=${preDedupedCount}`);
+    }
+
     const deduped = dedupe(merged);
+    const duplicatesRemoved = merged.length - deduped.length;
     const shuffled = shuffle(deduped);
     const inserted = await upsertCache(shuffled, query);
+
+    console.log(
+      `[MYMYON SOURCING] existing_provider=${preDedupedCount} scraperapi_added=${scraperapiAdded} ` +
+      `final_normalized=${deduped.length} duplicates_removed=${duplicatesRemoved} inserted=${inserted}`,
+    );
 
     const result = {
       query,
