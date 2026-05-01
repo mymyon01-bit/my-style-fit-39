@@ -216,10 +216,14 @@ Deno.serve(async (req) => {
     const brand = (meta.ogSiteName || extractBrandFromUrl(rawUrl)).slice(0, 80);
 
     if (!image_url) {
+      // Return 200 (not 422) with ok:false so supabase.functions.invoke does
+      // not throw — the client reads `data.message` and shows a friendly toast
+      // instead of the generic "Edge function returned 422" error + blank UI.
       return new Response(JSON.stringify({
+        ok: false,
         error: "no_image_found",
         message: "이 페이지에서 상품 이미지를 찾을 수 없어요. 상품 상세 페이지 URL을 직접 입력해 주세요.",
-      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const insertRow = {
