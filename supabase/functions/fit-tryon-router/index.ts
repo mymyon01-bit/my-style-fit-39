@@ -331,7 +331,103 @@ function buildBodyTabBlock(b?: CreateBody["bodyProfileSummary"]): string {
   ].join(" ");
 }
 
-function buildCleanStudioPrompt(body: CreateBody): string {
+// ── BODY MASS CLASSIFICATION + USER BODY LOCK (spec patch) ──────────────────
+// Per FIT IMAGE GENERATION PATCH — height/weight body proportion lock.
+// The Body tab is the ONLY source of truth for the rendered body.
+function classifyBodyMass(bmi: number): string {
+  if (!Number.isFinite(bmi)) return "normal body";
+  if (bmi < 18.5) return "very slim / underweight body";
+  if (bmi < 22.5) return "slim to normal body";
+  if (bmi < 25) return "normal body";
+  if (bmi < 28) return "slightly overweight body";
+  if (bmi < 32) return "overweight body with visible body mass";
+  return "large heavy body with clear volume";
+}
+
+function buildBodyProportionPrompt(b?: CreateBody["bodyProfileSummary"]): string {
+  if (!b?.heightCm || !b?.weightKg) return "";
+  const heightM = b.heightCm / 100;
+  const bmi = b.weightKg / (heightM * heightM);
+  const massClass = classifyBodyMass(bmi);
+  const gender = b.gender || "not specified";
+  return [
+    "USER BODY LOCK (NON-NEGOTIABLE — overrides any default fashion-model proportions):",
+    `- Gender: ${gender}`,
+    `- Height: ${b.heightCm} cm`,
+    `- Weight: ${b.weightKg} kg`,
+    `- BMI: ${bmi.toFixed(1)}`,
+    `- Body mass class: ${massClass}`,
+    "Generate the body using realistic proportions for this exact height and weight.",
+    "Do not create a generic fashion model.",
+    "Do not slim down the body.",
+    "Do not beautify, stretch, lengthen legs, narrow waist, reduce belly, reduce thighs, or reduce shoulders.",
+    "Do not normalize the body toward an average mannequin.",
+    "The generated body must visually communicate:",
+    `- the real mass implied by ${b.weightKg} kg`,
+    `- the real vertical scale implied by ${b.heightCm} cm`,
+    "- realistic torso width",
+    "- realistic shoulder width",
+    "- realistic waist and hip volume",
+    "- realistic arm and thigh thickness",
+    "- realistic neck-to-leg proportions",
+    "If the user is heavy for their height, show visible body volume.",
+    "If the user is slim for their height, show a naturally slim frame.",
+    "If the user is tall and light, show a long but thin body.",
+    "If the user is short and heavy, show a compact body with more volume.",
+  ].join(" ");
+}
+
+function buildBodyTypeModifier(b?: CreateBody["bodyProfileSummary"]): string {
+  const bt = b?.bodyType || b?.build || null;
+  return [
+    "Body type modifier:",
+    bt ? bt : "not specified",
+    "Use this only to refine the height/weight-based body.",
+    "Do not ignore height and weight. Height and weight are more important than body type.",
+  ].join(" ");
+}
+
+function buildFitVisualPrompt(body: CreateBody): string {
+  const sel = body.selectedSize;
+  const regions = (body.regions || []).filter((r) => r?.region && r?.fit);
+  const findFit = (key: RegExp) => regions.find((r) => key.test(r.region))?.fit || "regular";
+  const chest = findFit(/chest|bust/i);
+  const waist = findFit(/waist/i);
+  const shoulder = findFit(/shoulder/i);
+  const length = findFit(/length|hem|inseam/i);
+  return [
+    "CALCULATED CLOTHING FIT (visualize on top of the LOCKED user body — never resize the body):",
+    `- Selected size: ${sel}`,
+    `- Chest fit: ${chest}`,
+    `- Waist fit: ${waist}`,
+    `- Shoulder fit: ${shoulder}`,
+    `- Length fit: ${length}`,
+    "If tight: show fabric tension; show pulling around chest, waist, shoulder, arms, or hips; show shorter-looking garment coverage if the body volume stretches the garment.",
+    "If loose: show extra fabric volume; show relaxed drape; show dropped shoulder when applicable.",
+    "If oversized: show visibly oversized silhouette; show larger garment volume over the same locked body.",
+    "The body must NOT shrink or expand to fit the clothes. Only the clothing changes around the fixed body.",
+  ].join(" ");
+}
+
+// Spec-mandated extra negative rules layered ON TOP of MANNEQUIN_NEGATIVES.
+const SPEC_NEGATIVE_BODY_RULES = [
+  "NEGATIVE BODY RULES (HARD):",
+  "Do not generate a model-like body unless the Body tab values actually imply it.",
+  "Do not generate a slim mannequin when BMI is high.",
+  "Do not generate a muscular/athletic body unless body_type explicitly says athletic.",
+  "Do not generate a tall body when height_cm is short.",
+  "Do not generate a short body when height_cm is tall.",
+  "Do not use default runway proportions.",
+  "Do not use anime, doll, avatar, or idealized body proportions.",
+  "Do not make the waist artificially small.",
+  "Do not make legs artificially long.",
+  "Do not hide body mass under perfect clothing drape.",
+  "Do not change the user's body gender.",
+  "Do not change the user's body size.",
+  "Do not make the body slimmer to make the garment look better.",
+  "Do not resize the body to match the selected clothing size.",
+  "Do not hide tightness. Do not hide looseness.",
+].join(" ");
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
   const h = body.bodyProfileSummary?.heightCm;
