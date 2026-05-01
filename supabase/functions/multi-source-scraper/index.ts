@@ -1074,7 +1074,9 @@ serve(async (req) => {
 
     const deduped = dedupe(merged);
     const duplicatesRemoved = merged.length - deduped.length;
-    const shuffled = shuffle(deduped);
+    // Source-balanced interleave: round-robin across platforms with a soft
+    // 30% cap per source so no single provider (incl. ScraperAPI) dominates.
+    const shuffled = balancedInterleave(deduped, 0.3);
     const inserted = await upsertCache(shuffled, query);
 
     console.log(
