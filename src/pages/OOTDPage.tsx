@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 
-import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import SongOfTheDayPicker, { loadSongOfDay, saveSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 import CustomizeMenu from "@/components/ootd/CustomizeMenu";
 import { loadCardShape, applyCardShapeToRoot, type CardShape } from "@/components/ootd/cardShape";
