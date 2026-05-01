@@ -41,7 +41,7 @@ const APIFY_ENABLED = (Deno.env.get("APIFY_ENABLED") || "false").toLowerCase() =
 // To re-enable an Apify source, set APIFY_ENABLED=true AND list the label here.
 // KR routes via ScrapingBee + Global routes (ASOS / Zalando / SSENSE) via direct ScrapingBee.
 // Global labels share the apify_* prefix for legacy compatibility but actually run via ScrapingBee.
-const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver,sb_asos,sb_zalando,sb_ssense";
+const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver,sb_asos,sb_zalando,sb_ssense,dataforseo";
 const ENABLED_SOURCES = new Set(
   (Deno.env.get("ENABLED_SOURCES") || DEFAULT_ENABLED)
     .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
