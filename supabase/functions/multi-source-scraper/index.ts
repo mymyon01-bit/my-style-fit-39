@@ -27,6 +27,9 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN");
 const CRAWLBASE_TOKEN = Deno.env.get("CRAWLBASE_TOKEN");
 const SCRAPINGBEE_API_KEY = Deno.env.get("SCRAPINGBEE_API_KEY");
+const DATAFORSEO_LOGIN = Deno.env.get("DATAFORSEO_LOGIN");
+const DATAFORSEO_PASSWORD = Deno.env.get("DATAFORSEO_PASSWORD");
+const DATAFORSEO_BASIC_AUTH = Deno.env.get("DATAFORSEO_BASIC_AUTH");
 
 // ── APIFY GATE (stabilization pass 2026-04-19) ─────────────────────────────
 // Apify is disabled by default. When false, every fetchApify* call short-
@@ -38,7 +41,7 @@ const APIFY_ENABLED = (Deno.env.get("APIFY_ENABLED") || "false").toLowerCase() =
 // To re-enable an Apify source, set APIFY_ENABLED=true AND list the label here.
 // KR routes via ScrapingBee + Global routes (ASOS / Zalando / SSENSE) via direct ScrapingBee.
 // Global labels share the apify_* prefix for legacy compatibility but actually run via ScrapingBee.
-const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver,sb_asos,sb_zalando,sb_ssense";
+const DEFAULT_ENABLED = "apify_musinsa,apify_29cm,apify_wconcept,apify_ssg,apify_naver,sb_asos,sb_zalando,sb_ssense,dataforseo";
 const ENABLED_SOURCES = new Set(
   (Deno.env.get("ENABLED_SOURCES") || DEFAULT_ENABLED)
     .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
@@ -705,6 +708,139 @@ async function fetchCrawlbaseFarfetch(query: string): Promise<RawProduct[]> {
   }
 }
 
+// ── DataForSEO — Google Shopping merchant API ───────────────────────────────
+// Runs as one additional provider in the parallel multi-source fan-out.
+// Uses task_post + task_get/advanced. Never throws — returns [] on any
+// failure so Discovery keeps working from the other sources.
+
+function dataForSeoAuthHeader(): string | null {
+  if (DATAFORSEO_BASIC_AUTH) return `Basic ${DATAFORSEO_BASIC_AUTH}`;
+  if (DATAFORSEO_LOGIN && DATAFORSEO_PASSWORD) {
+    return `Basic ${btoa(`${DATAFORSEO_LOGIN}:${DATAFORSEO_PASSWORD}`)}`;
+  }
+  return null;
+}
+
+function parseDfsPrice(v: unknown): string | null {
+  if (v == null) return null;
+  if (typeof v === "number") return String(v);
+  if (typeof v === "string") {
+    const m = v.replace(/[, ]/g, "").match(/(\d+(?:\.\d+)?)/);
+    return m ? m[1] : null;
+  }
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if (o.current != null) return parseDfsPrice(o.current);
+    if (o.value != null) return parseDfsPrice(o.value);
+  }
+  return null;
+}
+
+async function callDataForSeo(url: string, body: unknown, auth: string, label: string): Promise<{ ok: boolean; status: number; data: any }> {
+  const res = await withTimeout(
+    fetch(url, {
+      method: "POST",
+      headers: { "Authorization": auth, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    SOURCE_BUDGET_MS,
+    label,
+  );
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
+}
+
+async function fetchDataForSeo(query: string, max: number): Promise<RawProduct[]> {
+  const auth = dataForSeoAuthHeader();
+  if (!auth) {
+    console.warn("[DATAFORSEO_DISABLED] Missing credentials");
+    return [];
+  }
+  try {
+    const payload = [{
+      location_name: "United States",
+      language_name: "English",
+      keyword: query,
+      depth: Math.min(max * 2, 100),
+    }];
+
+    // Endpoint cascade — different DataForSEO plans expose different APIs.
+    // We try in order; first non-empty result wins.
+    const endpoints = [
+      { url: "https://api.dataforseo.com/v3/merchant/google/products/live/advanced", label: "merchant_live" },
+      { url: "https://api.dataforseo.com/v3/serp/google/shopping/live/advanced", label: "serp_shopping_live" },
+    ];
+
+    let items: unknown[] = [];
+    let usedEndpoint = "";
+    for (const ep of endpoints) {
+      const r = await callDataForSeo(ep.url, payload, auth, `dataforseo_${ep.label}`);
+      if (!r.ok) {
+        console.warn(`[dataforseo:${ep.label}] HTTP ${r.status}`, r.data?.status_message ?? "");
+        continue;
+      }
+      const taskStatus = r.data?.tasks?.[0]?.status_code;
+      const taskMsg = r.data?.tasks?.[0]?.status_message;
+      const result = r.data?.tasks?.[0]?.result?.[0];
+      const candidate: unknown[] =
+        result?.items || result?.products || [];
+      if (taskStatus && taskStatus >= 40000) {
+        console.warn(`[dataforseo:${ep.label}] task error ${taskStatus} ${taskMsg}`);
+      }
+      if (Array.isArray(candidate) && candidate.length) {
+        items = candidate;
+        usedEndpoint = ep.label;
+        break;
+      } else {
+        console.log(`[dataforseo:${ep.label}] empty result`, { taskStatus, taskMsg });
+      }
+    }
+
+    if (!items.length) return [];
+
+    const out: RawProduct[] = [];
+    for (const it of items.slice(0, max)) {
+      const o = it as Record<string, unknown>;
+      // SERP shopping items wrap product fields under various keys; flatten.
+      const name = String(o.title ?? o.product_title ?? o.name ?? "").trim();
+      const link = (typeof o.url === "string" ? o.url
+        : typeof o.product_url === "string" ? o.product_url
+        : typeof o.shop_ad_aclk === "string" ? o.shop_ad_aclk
+        : typeof o.link === "string" ? o.link : null);
+      const img = safeImage(
+        o.image_url ?? o.thumbnail ?? o.image ??
+        (Array.isArray(o.images) ? (o.images as unknown[])[0] : null),
+      );
+      if (!name || !link || !img) continue;
+      if (!isFashion(name)) continue;
+      const id = String(o.product_id ?? o.product_seller_id ?? o.id ?? link);
+      const merchant = (typeof o.seller === "string" ? o.seller
+        : typeof o.shop === "string" ? o.shop
+        : typeof o.source === "string" ? o.source
+        : typeof o.domain === "string" ? o.domain : "Google Shopping");
+      out.push({
+        external_id: `dfs-${id}`.slice(0, 120),
+        name,
+        brand: typeof o.brand === "string" ? o.brand : null,
+        price: parseDfsPrice(o.price ?? o.price_value),
+        currency: typeof o.currency === "string" ? o.currency : "USD",
+        image_url: img,
+        source_url: link,
+        store_name: typeof merchant === "string" ? merchant : "Google Shopping",
+        platform: String(merchant).toLowerCase().replace(/\s+/g, "_").slice(0, 32) || "google_shopping",
+        source_type: "scraper",
+        source_trust_level: link && img ? "high" : "medium",
+        category: typeof o.category === "string" ? o.category : null,
+      });
+    }
+    console.log("[DATAFORSEO_RESULT_COUNT]", { query, count: out.length, endpoint: usedEndpoint });
+    return out;
+  } catch (e) {
+    console.warn("[DATAFORSEO_SKIPPED_OR_FAILED]", (e as Error).message);
+    return [];
+  }
+}
+
 // ── Dedupe (URL + normalized title + image host) ────────────────────────────
 
 function imageHostKey(u: string): string {
@@ -841,6 +977,8 @@ serve(async (req) => {
       sourceEnabled("sb_asos") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_asos", query, krCap) : skip(),
       sourceEnabled("sb_zalando") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_zalando", query, krCap) : skip(),
       sourceEnabled("sb_ssense") && SCRAPINGBEE_API_KEY ? scrapingBeeFallbackFor("sb_ssense", query, krCap) : skip(),
+      // DataForSEO Google Shopping — additional provider, never blocks others.
+      sourceEnabled("dataforseo") ? fetchDataForSeo(query, intensity === "cron" ? 40 : 20) : skip(),
     ]);
 
     const labels = [
@@ -848,6 +986,7 @@ serve(async (req) => {
       "crawlbase_farfetch",
       "apify_musinsa", "apify_29cm", "apify_wconcept", "apify_ssg", "apify_naver",
       "sb_asos", "sb_zalando", "sb_ssense",
+      "dataforseo",
     ];
     const perSource: Record<string, number> = {};
     const fallbackUsed: string[] = [];
