@@ -832,20 +832,49 @@ function urlKey(u: string): string {
   }
 }
 
+// Score how "rich" a product row is — used to pick the better duplicate.
+function richness(p: RawProduct): number {
+  let s = 0;
+  if (p.brand && p.brand.trim().length > 1) s += 3;
+  if (p.price && p.price.toString().trim().length) s += 2;
+  if (p.category) s += 1;
+  if (p.name && p.name.length > 25) s += 1;
+  if (p.source_trust_level === "high") s += 2;
+  else if (p.source_trust_level === "medium") s += 1;
+  return s;
+}
+
+// Dedupe across URL / title / image-host keys. When duplicates collide, keep
+// the row with the richest metadata (brand+price+category+trust). This means
+// a sparse ScraperAPI hit won't displace an Apify/ScrapingBee row that already
+// has full data — and vice versa.
 function dedupe(items: RawProduct[]): RawProduct[] {
-  const seenUrl = new Set<string>();
-  const seenTitle = new Set<string>();
-  const seenImage = new Set<string>();
-  const out: RawProduct[] = [];
+  const byKey = new Map<string, RawProduct>();
+  const keyToCanonical = new Map<string, string>(); // any-key -> canonical key
   for (const p of items) {
-    const u = urlKey(p.source_url);
-    const t = normalizedTitleKey(p.name);
-    const i = imageHostKey(p.image_url);
-    if (seenUrl.has(u) || seenTitle.has(t) || seenImage.has(i)) continue;
-    seenUrl.add(u); seenTitle.add(t); seenImage.add(i);
-    out.push(p);
+    const keys = [
+      `u:${urlKey(p.source_url)}`,
+      `t:${normalizedTitleKey(p.name)}`,
+      `i:${imageHostKey(p.image_url)}`,
+    ];
+    // Find any existing canonical bucket this product collides with.
+    let canonical: string | null = null;
+    for (const k of keys) {
+      const c = keyToCanonical.get(k);
+      if (c) { canonical = c; break; }
+    }
+    if (canonical) {
+      const existing = byKey.get(canonical)!;
+      if (richness(p) > richness(existing)) byKey.set(canonical, p);
+      // Map any new keys this product introduces back to the canonical bucket.
+      for (const k of keys) if (!keyToCanonical.has(k)) keyToCanonical.set(k, canonical);
+    } else {
+      const c = keys[0];
+      byKey.set(c, p);
+      for (const k of keys) keyToCanonical.set(k, c);
+    }
   }
-  return out;
+  return [...byKey.values()];
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -855,6 +884,48 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// Source-balanced interleave: groups items by platform, shuffles within each
+// group, then round-robins across groups so the top of the feed always mixes
+// sources instead of being dominated by whichever provider returned most rows.
+// Also enforces a soft per-platform cap (default ~30% of total) so a single
+// source can never crowd out everything else.
+function balancedInterleave(items: RawProduct[], maxShareOfTotal = 0.3): RawProduct[] {
+  if (items.length <= 1) return items;
+  const groups = new Map<string, RawProduct[]>();
+  for (const p of items) {
+    const key = (p.platform || p.source_type || "unknown").toLowerCase();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(p);
+  }
+  // Shuffle within each platform bucket so we don't always show the same row first.
+  const buckets = [...groups.entries()].map(([k, list]) => ({ key: k, list: shuffle(list) }));
+  // Per-platform cap: at most maxShareOfTotal of total items (rounded up, min 4).
+  const cap = Math.max(4, Math.ceil(items.length * maxShareOfTotal));
+  const taken: Record<string, number> = {};
+  const overflow: RawProduct[] = [];
+  // Randomize the round-robin start order each call to vary which source leads.
+  const order = shuffle(buckets);
+  const out: RawProduct[] = [];
+  let added = true;
+  while (added) {
+    added = false;
+    for (const b of order) {
+      const next = b.list.shift();
+      if (!next) continue;
+      added = true;
+      const used = taken[b.key] ?? 0;
+      if (used >= cap) {
+        overflow.push(next);
+      } else {
+        out.push(next);
+        taken[b.key] = used + 1;
+      }
+    }
+  }
+  // Append any overflow at the tail (still better than dropping them entirely).
+  return out.concat(overflow);
 }
 
 // ── Persist into product_cache (with normalized_title in search_query) ──────
