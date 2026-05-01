@@ -53,6 +53,69 @@ function originWeight(origin: ResultOrigin): number {
   return 0.82;
 }
 
+/**
+ * Per-session rotation salt. Generated once per page load so the same query
+ * deterministically reorders items within a session but produces a NEW order
+ * on the next session/page-load. Prevents the "same products at top" feeling
+ * when the cache is static.
+ */
+let __sessionSalt: number | null = null;
+function getSessionSalt(): number {
+  if (__sessionSalt !== null) return __sessionSalt;
+  try {
+    const stored = sessionStorage.getItem("wardrobe_discover_salt_v1");
+    if (stored) {
+      __sessionSalt = Number(stored);
+      if (Number.isFinite(__sessionSalt!)) return __sessionSalt!;
+    }
+  } catch { /* sessionStorage unavailable */ }
+  __sessionSalt = Math.floor(Math.random() * 1_000_000) + 1;
+  try { sessionStorage.setItem("wardrobe_discover_salt_v1", String(__sessionSalt)); } catch {}
+  return __sessionSalt;
+}
+
+/** Deterministic 0..1 hash from a string + the session salt. */
+function rotationJitter(key: string): number {
+  const salt = getSessionSalt();
+  let h = salt >>> 0;
+  for (let i = 0; i < key.length; i++) {
+    h = ((h << 5) - h + key.charCodeAt(i)) | 0;
+  }
+  // Map to 0.85 .. 1.15 so it nudges ranking without overpowering signal.
+  const u = ((h >>> 0) % 1000) / 1000;
+  return 0.85 + u * 0.30;
+}
+
+/**
+ * Platform-diversity weight. The cache is ~86% google_shopping; without a
+ * counter-weight that single source dominates every grid. Boost minor
+ * platforms (musinsa, ssense, asos, naver, kream, farfetch, ssg) so the
+ * feed surfaces a wider mix of retailers.
+ */
+const MAJOR_PLATFORMS = new Set(["google_shopping", "web_search", "ai_search"]);
+function platformDiversityWeight(product: Product): number {
+  const platform = (product.platform || "").toLowerCase();
+  if (!platform) return 1;
+  if (MAJOR_PLATFORMS.has(platform)) return 0.92;
+  // Minor / specialized retailers — give them a visible lift.
+  return 1.18;
+}
+
+/**
+ * Stale penalty based on `lastValidated`. Rows that haven't been re-validated
+ * in a long time are likely the ones already shown to the user repeatedly.
+ * Capped so they never disappear, just slide down.
+ */
+function stalePenalty(product: Product, now: number = Date.now()): number {
+  const ts = product.lastValidated ? Date.parse(product.lastValidated) : NaN;
+  if (!Number.isFinite(ts)) return 1;
+  const ageDays = (now - ts) / (1000 * 60 * 60 * 24);
+  if (ageDays <= 7) return 1;
+  if (ageDays >= 60) return 0.75;
+  // Linear decay 7d → 60d : 1.0 → 0.75
+  return 1 - ((ageDays - 7) / 53) * 0.25;
+}
+
 function computeBaseScore(product: Product, index: number, total: number): number {
   const trend = typeof product.trendScore === "number" ? Math.max(product.trendScore, 0) : 0;
   const position = total > 0 ? (total - index) / total : 0.5;
