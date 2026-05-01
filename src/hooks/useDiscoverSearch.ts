@@ -218,6 +218,15 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
       void supabase.functions.invoke("discover-search-engine", { body: { query: trimmed } })
         .catch((err) => console.warn("[useDiscoverSearch] discover-search-engine kick failed", err));
 
+      // Luxury brand boost — only triggers when query mentions a known luxury
+      // brand (e.g. "Gucci shirt", "버버리 트렌치"). Reuses legal sources
+      // (SerpAPI / Apify / Perplexity+Firecrawl) and caches results 6h.
+      const luxury = detectLuxuryBrand(trimmed);
+      if (luxury.isLuxury) {
+        void supabase.functions.invoke("discover-luxury", { body: { query: trimmed } })
+          .catch((err) => console.warn("[useDiscoverSearch] discover-luxury kick failed", err));
+      }
+
       // Ladder seed — paint Live grid INSTANTLY from cache while runSearch warms up.
       void runSearchLadder(intent).then((ladder) => {
         if (runIdRef.current !== runId) return;
