@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 /**
- * Cyworld-style "Song of the Day" + mini playlist.
+ * "Song of the Day" + mini playlist — a personal mood soundtrack.
  *
  * - Pick a featured song (the SOTD), shown in the profile chip.
  * - Build a small playlist on top of that, persisted to localStorage.
@@ -304,7 +304,7 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
           </button>
         </div>
         <p className="text-[11px] text-foreground/55 leading-relaxed mb-3 shrink-0">
-          Pick the track that scores your day — Cyworld-style.
+          오늘 내 기분을 표현한 노래로 바꿔줘.
         </p>
 
         {/* Currently selected SOTD */}
