@@ -4,6 +4,7 @@ import type { ResultOrigin, SearchSession } from "./search-session";
 import { wasRecentlyShown } from "./search-session";
 import { sourceOf } from "./sources";
 import type { Product } from "./types";
+import { brandBoost, detectLuxuryBrand } from "@/lib/discover/luxuryBrands";
 
 const FIRST_ROW_MEMORY_KEY = "wardrobe_discover_first_row_v1";
 
@@ -62,6 +63,10 @@ export function buildDiscoverRenderables(
   session: SearchSession,
   dbSeen: Set<string>,
 ): DiscoverRenderableProduct[] {
+  // If user typed a luxury brand (e.g. "Gucci shirt"), apply an extra
+  // multiplicative push to matching-brand items so they surface to the top
+  // even when the cache already has many items from other brands.
+  const luxuryIntent = detectLuxuryBrand(session.query);
   return session.results.map((product, index) => {
     const key = productKey(product);
     const localSeen = key ? wasRecentlyShown(key) : false;
@@ -74,12 +79,26 @@ export function buildDiscoverRenderables(
         : 0.7
       : 1;
     const unseenWeight = !localSeen && !dbSeenHit ? 1.25 : localSeen ? 0.58 : 0.68;
+    // Brand-tier boost: every recognized luxury brand gets its tier weight
+    // (Hermès=1.4, LV/Chanel/Gucci=1.3, contemporary=1.15, others=1.0).
+    const brandTierBoost = brandBoost(product.brand);
+    // Query-intent boost: when user's query mentioned a specific luxury
+    // brand, push exact-match products much harder.
+    const queryBrandBoost =
+      luxuryIntent.isLuxury &&
+      luxuryIntent.brand &&
+      typeof product.brand === "string" &&
+      product.brand.toLowerCase().includes(luxuryIntent.brand.toLowerCase())
+        ? 1.8
+        : 1;
     const finalScore =
       computeBaseScore(product, index, session.results.length) *
       categoryScore *
       freshnessScore *
       unseenWeight *
-      originWeight(origin);
+      originWeight(origin) *
+      brandTierBoost *
+      queryBrandBoost;
 
     return {
       ...product,
