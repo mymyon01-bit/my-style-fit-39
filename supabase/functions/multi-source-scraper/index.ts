@@ -708,6 +708,107 @@ async function fetchCrawlbaseFarfetch(query: string): Promise<RawProduct[]> {
   }
 }
 
+// ── DataForSEO — Google Shopping merchant API ───────────────────────────────
+// Runs as one additional provider in the parallel multi-source fan-out.
+// Uses task_post + task_get/advanced. Never throws — returns [] on any
+// failure so Discovery keeps working from the other sources.
+
+function dataForSeoAuthHeader(): string | null {
+  if (DATAFORSEO_BASIC_AUTH) return `Basic ${DATAFORSEO_BASIC_AUTH}`;
+  if (DATAFORSEO_LOGIN && DATAFORSEO_PASSWORD) {
+    return `Basic ${btoa(`${DATAFORSEO_LOGIN}:${DATAFORSEO_PASSWORD}`)}`;
+  }
+  return null;
+}
+
+function parseDfsPrice(v: unknown): string | null {
+  if (v == null) return null;
+  if (typeof v === "number") return String(v);
+  if (typeof v === "string") {
+    const m = v.replace(/[, ]/g, "").match(/(\d+(?:\.\d+)?)/);
+    return m ? m[1] : null;
+  }
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if (o.current != null) return parseDfsPrice(o.current);
+    if (o.value != null) return parseDfsPrice(o.value);
+  }
+  return null;
+}
+
+async function fetchDataForSeo(query: string, max: number): Promise<RawProduct[]> {
+  const auth = dataForSeoAuthHeader();
+  if (!auth) {
+    console.warn("[DATAFORSEO_DISABLED] Missing credentials");
+    return [];
+  }
+  try {
+    // 1) Try the live/advanced endpoint first (single round-trip, ~10-15s).
+    const liveRes = await withTimeout(
+      fetch("https://api.dataforseo.com/v3/merchant/google/products/live/advanced", {
+        method: "POST",
+        headers: { "Authorization": auth, "Content-Type": "application/json" },
+        body: JSON.stringify([{
+          location_name: "United States",
+          language_name: "English",
+          keyword: query,
+          depth: Math.min(max * 2, 100),
+        }]),
+      }),
+      SOURCE_BUDGET_MS,
+      "dataforseo_live",
+    );
+
+    if (!liveRes.ok) {
+      console.warn(`[dataforseo:live] HTTP ${liveRes.status}`);
+      return [];
+    }
+    const liveData = await liveRes.json().catch(() => null);
+    const items: unknown[] =
+      liveData?.tasks?.[0]?.result?.[0]?.items ||
+      liveData?.tasks?.[0]?.result?.[0]?.products ||
+      [];
+
+    const out: RawProduct[] = [];
+    for (const it of items.slice(0, max)) {
+      const o = it as Record<string, unknown>;
+      const name = String(o.title ?? o.product_title ?? o.name ?? "").trim();
+      const link = (typeof o.url === "string" ? o.url
+        : typeof o.product_url === "string" ? o.product_url
+        : typeof o.link === "string" ? o.link : null);
+      const img = safeImage(
+        o.image_url ?? o.thumbnail ?? o.image ??
+        (Array.isArray(o.images) ? (o.images as unknown[])[0] : null),
+      );
+      if (!name || !link || !img) continue;
+      if (!isFashion(name)) continue;
+      const id = String(o.product_id ?? o.product_seller_id ?? o.id ?? link);
+      const merchant = (typeof o.seller === "string" ? o.seller
+        : typeof o.shop === "string" ? o.shop
+        : typeof o.source === "string" ? o.source : "Google Shopping");
+      out.push({
+        external_id: `dfs-${id}`.slice(0, 120),
+        name,
+        brand: typeof o.brand === "string" ? o.brand : null,
+        price: parseDfsPrice(o.price ?? o.price_value),
+        currency: typeof o.currency === "string" ? o.currency : "USD",
+        image_url: img,
+        source_url: link,
+        store_name: typeof merchant === "string" ? merchant : "Google Shopping",
+        platform: String(merchant).toLowerCase().replace(/\s+/g, "_").slice(0, 32) || "google_shopping",
+        source_type: "scraper",
+        source_trust_level: link && img ? "high" : "medium",
+        category: typeof o.category === "string" ? o.category : null,
+      });
+    }
+    console.log("[dataforseo] fetched", { query, count: out.length });
+    return out;
+  } catch (e) {
+    console.warn("[DATAFORSEO_SKIPPED_OR_FAILED]", (e as Error).message);
+    return [];
+  }
+}
+
 // ── Dedupe (URL + normalized title + image host) ────────────────────────────
 
 function imageHostKey(u: string): string {
