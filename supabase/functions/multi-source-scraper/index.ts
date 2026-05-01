@@ -1017,6 +1017,7 @@ serve(async (req) => {
       sources: perSource,
       fallback_used: fallbackUsed,
       scrapingbee_available: !!SCRAPINGBEE_API_KEY,
+      scraperapi_available: !!SCRAPERAPI_KEY,
       merged: merged.length,
       deduped: deduped.length,
       inserted,
