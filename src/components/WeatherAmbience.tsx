@@ -120,9 +120,18 @@ const generateBoltPath = (seed: number, height = 280) => {
   return { main: path, branches };
 };
 
-const WeatherAmbience = ({ condition }: { condition: string }) => {
+const WeatherAmbience = ({
+  condition,
+  isNight = false,
+}: {
+  condition: string;
+  /** When true, swap to night footage and overlay starfield + moon. */
+  isNight?: boolean;
+}) => {
   const bgImage = weatherMap[condition] || cloudyBg;
-  const bgVideo = weatherVideoMap[condition] || cloudyVid.url;
+  const bgVideo = isNight
+    ? weatherVideoMapNight[condition] || metropolisVid.url
+    : weatherVideoMap[condition] || cloudyVid.url;
   const isRain = condition === "rain" || condition === "light-rain" || condition === "drizzle";
   const isSnow = condition === "snow";
   const isStorm = condition === "storm" || condition === "thunderstorm";
@@ -130,6 +139,9 @@ const WeatherAmbience = ({ condition }: { condition: string }) => {
   const isFog = condition === "fog" || condition === "mist" || condition === "haze";
   const isCloudy =
     condition === "cloudy" || condition === "partly-cloudy" || condition === "overcast";
+  // Clear-sky night → show twinkling stars + moon overlay on top of footage
+  const isClearNight = isNight && (isSunny || condition === "partly-sunny");
+  const isCloudyNight = isNight && (isCloudy || condition === "partly-cloudy");
 
   // Pre-compute particle arrays (stable across rerenders for perceived realism)
   // Layered rain — near/mid/far for parallax depth (real rain has depth)
