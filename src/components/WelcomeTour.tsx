@@ -141,6 +141,12 @@ const WelcomeTour = () => {
               </button>
             </div>
 
+            {/* New signup bonus badge — shown on every slide */}
+            <div className="absolute left-3 bottom-3 z-10 flex items-center gap-1.5 rounded-full bg-accent/95 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-accent-foreground shadow-[0_4px_14px_-2px_hsl(var(--accent)/0.6)] backdrop-blur-sm">
+              <span aria-hidden>✨</span>
+              <span>신규 가입자 +10 ⭐</span>
+            </div>
+
             {slide.showOotdSticker && (
               <motion.img
                 src={ootdSticker}
