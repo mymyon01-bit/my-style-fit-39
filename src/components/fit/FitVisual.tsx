@@ -227,8 +227,8 @@ export default function FitVisual({
       </div>
 
       <div
-        className="relative mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-foreground/[0.06] bg-muted/20"
-        style={{ aspectRatio: "3 / 4", maxHeight: "min(560px, 60dvh)" }}
+        className="relative mx-auto w-full overflow-hidden rounded-2xl border border-foreground/[0.06] bg-muted/20"
+        style={{ aspectRatio: "3 / 5", maxWidth: "min(420px, 100%)", maxHeight: "min(680px, 72dvh)" }}
       >
         {showImage && previewSrc ? (
           <>
@@ -244,11 +244,11 @@ export default function FitVisual({
                 src={previewSrc}
                 alt={`${productName} try-on, size ${activeSize}`}
                 profile={warpProfile}
-                // `object-contain` + `object-center` guarantees the AI mannequin
-                // is fully visible AND horizontally centered inside the 3:4
-                // frame on every device, including narrow Android WebViews
-                // where `object-cover` was clipping the figure off to one side.
-                className="relative h-full w-full object-contain object-center"
+                // `object-cover` + `object-top` crops empty background on the
+                // left/right while keeping the mannequin's head anchored, so
+                // the figure fills the tall 3:5 frame and the garment becomes
+                // the dominant visual element.
+                className="relative h-full w-full object-cover object-top"
                 onLoaded={() => setLoadedSrc(previewSrc)}
                 onError={() => {
                   console.warn("[FIT_TRYON] image_load_error", {
