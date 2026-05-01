@@ -476,6 +476,8 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     return [
       `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
       bodyTabBlock,
+      bodyProportionPrompt,
+      bodyTypePrompt,
       MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
@@ -488,6 +490,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       `FRAMING: full-body shot with at least 10–14% empty headroom above the top of the head and 5–8% space below the feet. NEVER crop the head, top of skull, hands, or feet. The mannequin head must be ENTIRELY inside the frame.`,
       `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body.`,
       MANNEQUIN_NEGATIVES,
+      SPEC_NEGATIVE_BODY_RULES,
       `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the product.`,
       safeModeSuffixEarly,
     ].filter(Boolean).join(" ");
