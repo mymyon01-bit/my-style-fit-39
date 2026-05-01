@@ -265,16 +265,30 @@ const WeatherAmbience = ({
   // Imperatively kick off playback — some browsers (Safari, in-app webviews)
   // ignore the autoPlay attribute when the element is initially mounted with
   // opacity 0 inside a motion wrapper, so we call play() on mount + on src change.
+  // Imperatively kick off playback so the same footage plays consistently
+  // across desktop browsers, mobile web (Safari/Chrome), and the Android
+  // APK WebView. Some webviews refuse the initial autoplay until the
+  // element is visible or the tab regains focus, so we re-attempt on
+  // canplay, visibility change, and window focus.
   const videoRef = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     v.muted = true;
     v.playsInline = true;
-    const tryPlay = () => v.play().catch(() => {});
+    const tryPlay = () => {
+      const p = v.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    };
     tryPlay();
     v.addEventListener("canplay", tryPlay);
-    return () => v.removeEventListener("canplay", tryPlay);
+    document.addEventListener("visibilitychange", tryPlay);
+    window.addEventListener("focus", tryPlay);
+    return () => {
+      v.removeEventListener("canplay", tryPlay);
+      document.removeEventListener("visibilitychange", tryPlay);
+      window.removeEventListener("focus", tryPlay);
+    };
   }, [bgVideo]);
 
   return (
