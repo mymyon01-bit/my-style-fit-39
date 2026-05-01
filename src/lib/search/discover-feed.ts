@@ -4,6 +4,7 @@ import type { ResultOrigin, SearchSession } from "./search-session";
 import { wasRecentlyShown } from "./search-session";
 import { sourceOf } from "./sources";
 import type { Product } from "./types";
+import { brandBoost, detectLuxuryBrand } from "@/lib/discover/luxuryBrands";
 
 const FIRST_ROW_MEMORY_KEY = "wardrobe_discover_first_row_v1";
 
