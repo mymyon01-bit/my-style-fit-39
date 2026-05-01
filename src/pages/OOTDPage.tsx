@@ -135,6 +135,12 @@ const OOTDPage = () => {
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
   const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
+  // Tracks whether `loadProfileCustomization` has hydrated state from the
+  // DB. Until then, the persistence effect must NOT write — otherwise an
+  // empty post-install localStorage state would clobber the user's
+  // saved Song-of-the-Day in the cloud. See loadProfileCustomization +
+  // the debounced update effect below.
+  const prefsLoadedRef = useRef(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [cardShape, setCardShape] = useState<CardShape>(() => {
     const s = loadCardShape();
@@ -462,8 +468,19 @@ const OOTDPage = () => {
         setCardColor(cc);
         applyCardColorToRoot(cc);
       }
-      if (p.song_of_the_day) setSongOfDay(p.song_of_the_day as SongOfDay);
+      if (p.song_of_the_day) {
+        const dbSong = p.song_of_the_day as SongOfDay;
+        setSongOfDay(dbSong);
+        // Mirror to localStorage so the floating mini-player + sibling
+        // pages (Showroom, profile) see it instantly on next render.
+        try { saveSongOfDay(dbSong); } catch {}
+      }
     }
+    // Mark prefs as loaded AFTER the DB read returns. The persistence
+    // effect above will refuse to write until this flips true, so empty
+    // initial state can no longer overwrite the DB-saved Song-of-the-Day
+    // on a fresh install.
+    prefsLoadedRef.current = true;
   };
 
   // Persist profile customization to the DB whenever it changes — this is
