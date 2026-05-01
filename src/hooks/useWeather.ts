@@ -6,6 +6,12 @@ interface WeatherData {
   location: string;
   loading: boolean;
   error: string | null;
+  /** True when local time is between sunset and sunrise. */
+  isNight: boolean;
+  /** ISO local time of today's sunrise, if known. */
+  sunrise: string | null;
+  /** ISO local time of today's sunset, if known. */
+  sunset: string | null;
 }
 
 const WMO_TO_CONDITION: Record<number, string> = {
@@ -47,6 +53,9 @@ interface CachedWeather {
   condition: string;
   location: string;
   ts: number;
+  sunrise?: string | null;
+  sunset?: string | null;
+  isDay?: boolean;
 }
 
 function readCache(): CachedWeather | null {
@@ -63,6 +72,24 @@ function readCache(): CachedWeather | null {
 
 function writeCache(c: CachedWeather) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch {}
+}
+
+/**
+ * Determine whether it's currently night at the given coordinates using
+ * today's sunrise/sunset. Falls back to a simple 6am-6pm rule if either
+ * timestamp is missing.
+ */
+function computeIsNight(sunrise: string | null, sunset: string | null): boolean {
+  const now = Date.now();
+  if (sunrise && sunset) {
+    const sr = new Date(sunrise).getTime();
+    const ss = new Date(sunset).getTime();
+    if (!Number.isNaN(sr) && !Number.isNaN(ss)) {
+      return now < sr || now > ss;
+    }
+  }
+  const h = new Date().getHours();
+  return h < 6 || h >= 19;
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
