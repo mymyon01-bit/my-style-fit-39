@@ -161,7 +161,10 @@ export function buildDiscoverRenderables(
       unseenWeight *
       originWeight(origin) *
       brandTierBoost *
-      queryBrandBoost;
+      queryBrandBoost *
+      platformDiversityWeight(product) *
+      stalePenalty(product) *
+      rotationJitter(key || product.id);
 
     return {
       ...product,
