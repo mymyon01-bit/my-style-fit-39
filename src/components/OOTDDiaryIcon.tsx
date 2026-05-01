@@ -70,9 +70,9 @@ export default function OOTDDiaryIcon({
           )}
         </AnimatePresence>
 
-        {/* Cover (gradient + #OOTD label) */}
+        {/* Cover (gradient + #OOTD label) — black outline for light-mode legibility */}
         <motion.span
-          className="absolute inset-0 origin-left rounded-r-[3px] rounded-l-[1px] bg-gradient-to-br from-primary via-accent to-primary"
+          className="absolute inset-0 origin-left rounded-r-[3px] rounded-l-[1px] bg-gradient-to-br from-primary via-accent to-primary ring-[1.2px] ring-black/85 shadow-[0_0_0_0.5px_rgba(0,0,0,0.6)]"
           animate={{ rotateY: tapped ? -178 : active ? -65 : [-12, -22, -12] }}
           transition={
             tapped
@@ -94,15 +94,21 @@ export default function OOTDDiaryIcon({
                 fontSize: labelSize,
                 lineHeight: 1,
                 letterSpacing: "-0.02em",
-                textShadow: "0.5px 0.5px 0 hsl(var(--foreground) / 0.5)",
+                WebkitTextStroke: "0.6px #000",
+                textShadow:
+                  "0.5px 0.5px 0 #000, -0.5px 0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px -0.5px 0 #000",
               }}
             >
               #OOTD
             </span>
             {size >= 20 && (
               <span
-                className="font-bold tracking-[0.28em] text-background/75"
-                style={{ fontSize: subSize, lineHeight: 1 }}
+                className="font-bold tracking-[0.28em] text-background/90"
+                style={{
+                  fontSize: subSize,
+                  lineHeight: 1,
+                  WebkitTextStroke: "0.4px #000",
+                }}
               >
                 DIARY
               </span>
