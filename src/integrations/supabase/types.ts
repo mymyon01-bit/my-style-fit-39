@@ -595,6 +595,42 @@ export type Database = {
         }
         Relationships: []
       }
+      discovery_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          gender: string | null
+          hit_count: number
+          lang: string
+          product_ids: string[]
+          query: string
+          query_key: string
+          source_breakdown: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          gender?: string | null
+          hit_count?: number
+          lang?: string
+          product_ids?: string[]
+          query: string
+          query_key: string
+          source_breakdown?: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          gender?: string | null
+          hit_count?: number
+          lang?: string
+          product_ids?: string[]
+          query?: string
+          query_key?: string
+          source_breakdown?: Json
+        }
+        Relationships: []
+      }
       extraction_domain_cache: {
         Row: {
           created_at: string
@@ -2856,6 +2892,7 @@ export type Database = {
         }
         Returns: string
       }
+      purge_expired_discovery_cache: { Args: never; Returns: undefined }
       purge_expired_oauth_exchange: { Args: never; Returns: undefined }
       purge_old_seen_products: { Args: never; Returns: undefined }
       purge_user_content: { Args: { _user_id: string }; Returns: undefined }
