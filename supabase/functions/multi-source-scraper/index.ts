@@ -705,6 +705,111 @@ async function fetchCrawlbaseFarfetch(query: string): Promise<RawProduct[]> {
   }
 }
 
+// ── ScraperAPI provider (extra source for product diversity) ────────────────
+// Hits Google Shopping + targeted retailer site: queries via ScraperAPI render.
+// Used as a TOP-UP source: only fires when other providers underperform.
+const SCRAPERAPI_KEY = Deno.env.get("SCRAPERAPI_KEY");
+const SCRAPERAPI_TIMEOUT_MS = 20_000;
+const SCRAPERAPI_MAX_CALLS_PER_QUERY = 3;
+
+const SCRAPERAPI_TARGETS: Array<(q: string) => { url: string; retailer: string }> = [
+  (q) => ({
+    url: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(q + " fashion")}`,
+    retailer: "google_shopping",
+  }),
+  (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:ssense.com")}`,
+    retailer: "ssense",
+  }),
+  (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:farfetch.com")}`,
+    retailer: "farfetch",
+  }),
+  (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:asos.com")}`,
+    retailer: "asos",
+  }),
+  (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:mrporter.com")}`,
+    retailer: "mrporter",
+  }),
+  (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:net-a-porter.com")}`,
+    retailer: "netaporter",
+  }),
+  (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:matchesfashion.com")}`,
+    retailer: "matches",
+  }),
+  (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:endclothing.com")}`,
+    retailer: "endclothing",
+  }),
+];
+
+async function fetchScraperApiOnce(target: { url: string; retailer: string }): Promise<RawProduct[]> {
+  if (!SCRAPERAPI_KEY) return [];
+  const apiUrl = `https://api.scraperapi.com/?api_key=${SCRAPERAPI_KEY}&url=${encodeURIComponent(target.url)}&render=true&country_code=us`;
+  let attempt = 0;
+  while (attempt < 2) {
+    attempt++;
+    try {
+      const res = await withTimeout(fetch(apiUrl), SCRAPERAPI_TIMEOUT_MS, `scraperapi:${target.retailer}`);
+      if (!res.ok) {
+        console.warn(`[scraperapi:${target.retailer}] HTTP ${res.status}`);
+        if (attempt >= 2) return [];
+        continue;
+      }
+      const html = await res.text();
+      const extracted = extractProductsFromHtml(html, target.url);
+      const out: RawProduct[] = [];
+      for (const e of extracted) {
+        // Mandatory: image + product url + non-trivial title
+        if (!e.image || !e.url) continue;
+        if (!e.title || e.title.trim().length < 3) continue;
+        // Reject obvious ads / navigation cruft
+        if (/^(shop|sale|new in|sign in|menu|home)$/i.test(e.title.trim())) continue;
+        out.push({
+          external_id: `scraperapi-${target.retailer}-${urlKey(e.url).slice(0, 80)}`,
+          name: e.title,
+          brand: e.brand,
+          price: e.price,
+          currency: e.currency || "USD",
+          image_url: e.image,
+          source_url: e.url,
+          store_name: target.retailer.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          platform: `scraperapi_${target.retailer}`,
+          source_type: "scraperapi",
+          source_trust_level: "medium" as const,
+          category: null,
+        });
+      }
+      console.log(`[scraperapi:${target.retailer}] parsed=${extracted.length} validated=${out.length}`);
+      return out;
+    } catch (e) {
+      console.warn(`[scraperapi:${target.retailer}] error attempt=${attempt} ${(e as Error).message}`);
+      if (attempt >= 2) return [];
+    }
+  }
+  return [];
+}
+
+async function fetchScraperApiTopUp(query: string, maxCalls: number): Promise<RawProduct[]> {
+  if (!SCRAPERAPI_KEY) {
+    console.log("[scraperapi] skipped — no SCRAPERAPI_KEY");
+    return [];
+  }
+  const calls = Math.min(maxCalls, SCRAPERAPI_MAX_CALLS_PER_QUERY, SCRAPERAPI_TARGETS.length);
+  // Pick first N targets — Google Shopping first (broadest), then luxury/site-restricted searches.
+  const targets = SCRAPERAPI_TARGETS.slice(0, calls).map((fn) => fn(query));
+  const settled = await Promise.allSettled(targets.map((t) => fetchScraperApiOnce(t)));
+  const merged: RawProduct[] = [];
+  settled.forEach((r) => {
+    if (r.status === "fulfilled") merged.push(...r.value);
+  });
+  return merged;
+}
+
 // ── Dedupe (URL + normalized title + image host) ────────────────────────────
 
 function imageHostKey(u: string): string {
@@ -878,9 +983,33 @@ serve(async (req) => {
       });
     }
 
+    // ── ScraperAPI top-up: if combined sources are still thin, augment with
+    // ScraperAPI (Google Shopping + site-restricted luxury queries). Capped at
+    // 3 calls per query. Image-less / titleless results are dropped inside.
+    const preDedupedCount = dedupe(merged).length;
+    let scraperapiAdded = 0;
+    if (SCRAPERAPI_KEY && preDedupedCount < 24) {
+      const deficit = Math.max(0, 60 - preDedupedCount);
+      const calls = deficit >= 40 ? 3 : deficit >= 20 ? 2 : 1;
+      const sapi = await fetchScraperApiTopUp(query, calls);
+      scraperapiAdded = sapi.length;
+      perSource["scraperapi"] = scraperapiAdded;
+      if (scraperapiAdded) {
+        fallbackUsed.push("scraperapi");
+        merged.push(...sapi);
+      }
+      console.log(`[MYMYON SOURCING] scraperapi calls=${calls} added=${scraperapiAdded} preDedupe=${preDedupedCount}`);
+    }
+
     const deduped = dedupe(merged);
+    const duplicatesRemoved = merged.length - deduped.length;
     const shuffled = shuffle(deduped);
     const inserted = await upsertCache(shuffled, query);
+
+    console.log(
+      `[MYMYON SOURCING] existing_provider=${preDedupedCount} scraperapi_added=${scraperapiAdded} ` +
+      `final_normalized=${deduped.length} duplicates_removed=${duplicatesRemoved} inserted=${inserted}`,
+    );
 
     const result = {
       query,
@@ -888,6 +1017,7 @@ serve(async (req) => {
       sources: perSource,
       fallback_used: fallbackUsed,
       scrapingbee_available: !!SCRAPINGBEE_API_KEY,
+      scraperapi_available: !!SCRAPERAPI_KEY,
       merged: merged.length,
       deduped: deduped.length,
       inserted,
