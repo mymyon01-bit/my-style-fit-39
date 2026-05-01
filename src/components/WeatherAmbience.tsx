@@ -19,6 +19,10 @@ import partlyCloudyVid from "../../public/bg-videos/partly-cloudy.mp4.asset.json
 import cloudyVid from "../../public/bg-videos/cloudy.mp4.asset.json";
 import stormVid from "../../public/bg-videos/storm.mp4.asset.json";
 import fogVid from "../../public/bg-videos/fog.mp4.asset.json";
+// Night-time footage — used when sun is below horizon.
+import starsVid from "../../public/bg-videos/stars.mp4.asset.json";
+import metropolisVid from "../../public/bg-videos/metropolis.mp4.asset.json";
+import neonCityVid from "../../public/bg-videos/neon-city.mp4.asset.json";
 
 const weatherMap: Record<string, string> = {
   rain: rainBg,
@@ -60,6 +64,28 @@ const weatherVideoMap: Record<string, string> = {
   storm: stormVid.url,
   thunderstorm: stormVid.url,
   // Fog
+  fog: fogVid.url,
+  mist: fogVid.url,
+  haze: fogVid.url,
+};
+
+// Per-condition NIGHT footage — replaces the daytime video when the sun is
+// below the horizon. Clear/sunny nights show real starfield footage; cloudy
+// nights show city lights through atmosphere; partly-cloudy nights blend the
+// neon-city skyline with drifting clouds. Rain/snow/storm/fog keep their own
+// footage but get a strong dark overlay applied below.
+const weatherVideoMapNight: Record<string, string> = {
+  sunny: starsVid.url,
+  clear: starsVid.url,
+  "partly-sunny": neonCityVid.url,
+  "partly-cloudy": metropolisVid.url,
+  cloudy: metropolisVid.url,
+  overcast: metropolisVid.url,
+  drizzle: drizzleVid.url,
+  "light-rain": drizzleVid.url,
+  rain: rainVid.url,
+  storm: stormVid.url,
+  thunderstorm: stormVid.url,
   fog: fogVid.url,
   mist: fogVid.url,
   haze: fogVid.url,
