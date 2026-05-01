@@ -23,7 +23,15 @@ const ShootingStarIcon = ({ size = 16, className = "" }: Props) => (
         <stop offset="1" stopColor="currentColor" stopOpacity="0.95" />
       </linearGradient>
     </defs>
-    {/* Comet tail */}
+    {/* Comet tail — black outline underneath for light-mode legibility */}
+    <path
+      d="M2 30 Q10 24 18 16"
+      stroke="#000"
+      strokeWidth="3.4"
+      strokeLinecap="round"
+      fill="none"
+      opacity="0.9"
+    />
     <path
       d="M2 30 Q10 24 18 16"
       stroke="url(#ss-tail)"
@@ -39,10 +47,15 @@ const ShootingStarIcon = ({ size = 16, className = "" }: Props) => (
       fill="none"
       opacity="0.6"
     />
-    {/* Star */}
+    {/* Star — black stroke for light-mode legibility */}
     <path
       d="M22 4 l2.4 5.4 5.6 .6 -4.2 4.0 1.2 5.6 -5 -2.9 -5 2.9 1.2 -5.6 -4.2 -4.0 5.6 -.6 z"
       fill="currentColor"
+      stroke="#000"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      paintOrder="stroke fill"
     />
   </svg>
 );
