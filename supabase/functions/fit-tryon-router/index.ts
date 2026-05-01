@@ -38,7 +38,7 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "mannequin-blacksport-v7";
+const STUDIO_RENDER_VERSION = "mannequin-bodylock-v8";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
@@ -331,6 +331,104 @@ function buildBodyTabBlock(b?: CreateBody["bodyProfileSummary"]): string {
   ].join(" ");
 }
 
+// ── BODY MASS CLASSIFICATION + USER BODY LOCK (spec patch) ──────────────────
+// Per FIT IMAGE GENERATION PATCH — height/weight body proportion lock.
+// The Body tab is the ONLY source of truth for the rendered body.
+function classifyBodyMass(bmi: number): string {
+  if (!Number.isFinite(bmi)) return "normal body";
+  if (bmi < 18.5) return "very slim / underweight body";
+  if (bmi < 22.5) return "slim to normal body";
+  if (bmi < 25) return "normal body";
+  if (bmi < 28) return "slightly overweight body";
+  if (bmi < 32) return "overweight body with visible body mass";
+  return "large heavy body with clear volume";
+}
+
+function buildBodyProportionPrompt(b?: CreateBody["bodyProfileSummary"]): string {
+  if (!b?.heightCm || !b?.weightKg) return "";
+  const heightM = b.heightCm / 100;
+  const bmi = b.weightKg / (heightM * heightM);
+  const massClass = classifyBodyMass(bmi);
+  const gender = b.gender || "not specified";
+  return [
+    "USER BODY LOCK (NON-NEGOTIABLE — overrides any default fashion-model proportions):",
+    `- Gender: ${gender}`,
+    `- Height: ${b.heightCm} cm`,
+    `- Weight: ${b.weightKg} kg`,
+    `- BMI: ${bmi.toFixed(1)}`,
+    `- Body mass class: ${massClass}`,
+    "Generate the body using realistic proportions for this exact height and weight.",
+    "Do not create a generic fashion model.",
+    "Do not slim down the body.",
+    "Do not beautify, stretch, lengthen legs, narrow waist, reduce belly, reduce thighs, or reduce shoulders.",
+    "Do not normalize the body toward an average mannequin.",
+    "The generated body must visually communicate:",
+    `- the real mass implied by ${b.weightKg} kg`,
+    `- the real vertical scale implied by ${b.heightCm} cm`,
+    "- realistic torso width",
+    "- realistic shoulder width",
+    "- realistic waist and hip volume",
+    "- realistic arm and thigh thickness",
+    "- realistic neck-to-leg proportions",
+    "If the user is heavy for their height, show visible body volume.",
+    "If the user is slim for their height, show a naturally slim frame.",
+    "If the user is tall and light, show a long but thin body.",
+    "If the user is short and heavy, show a compact body with more volume.",
+  ].join(" ");
+}
+
+function buildBodyTypeModifier(b?: CreateBody["bodyProfileSummary"]): string {
+  const bt = b?.bodyType || b?.build || null;
+  return [
+    "Body type modifier:",
+    bt ? bt : "not specified",
+    "Use this only to refine the height/weight-based body.",
+    "Do not ignore height and weight. Height and weight are more important than body type.",
+  ].join(" ");
+}
+
+function buildFitVisualPrompt(body: CreateBody): string {
+  const sel = body.selectedSize;
+  const regions = (body.regions || []).filter((r) => r?.region && r?.fit);
+  const findFit = (key: RegExp) => regions.find((r) => key.test(r.region))?.fit || "regular";
+  const chest = findFit(/chest|bust/i);
+  const waist = findFit(/waist/i);
+  const shoulder = findFit(/shoulder/i);
+  const length = findFit(/length|hem|inseam/i);
+  return [
+    "CALCULATED CLOTHING FIT (visualize on top of the LOCKED user body — never resize the body):",
+    `- Selected size: ${sel}`,
+    `- Chest fit: ${chest}`,
+    `- Waist fit: ${waist}`,
+    `- Shoulder fit: ${shoulder}`,
+    `- Length fit: ${length}`,
+    "If tight: show fabric tension; show pulling around chest, waist, shoulder, arms, or hips; show shorter-looking garment coverage if the body volume stretches the garment.",
+    "If loose: show extra fabric volume; show relaxed drape; show dropped shoulder when applicable.",
+    "If oversized: show visibly oversized silhouette; show larger garment volume over the same locked body.",
+    "The body must NOT shrink or expand to fit the clothes. Only the clothing changes around the fixed body.",
+  ].join(" ");
+}
+
+// Spec-mandated extra negative rules layered ON TOP of MANNEQUIN_NEGATIVES.
+const SPEC_NEGATIVE_BODY_RULES = [
+  "NEGATIVE BODY RULES (HARD):",
+  "Do not generate a model-like body unless the Body tab values actually imply it.",
+  "Do not generate a slim mannequin when BMI is high.",
+  "Do not generate a muscular/athletic body unless body_type explicitly says athletic.",
+  "Do not generate a tall body when height_cm is short.",
+  "Do not generate a short body when height_cm is tall.",
+  "Do not use default runway proportions.",
+  "Do not use anime, doll, avatar, or idealized body proportions.",
+  "Do not make the waist artificially small.",
+  "Do not make legs artificially long.",
+  "Do not hide body mass under perfect clothing drape.",
+  "Do not change the user's body gender.",
+  "Do not change the user's body size.",
+  "Do not make the body slimmer to make the garment look better.",
+  "Do not resize the body to match the selected clothing size.",
+  "Do not hide tightness. Do not hide looseness.",
+].join(" ");
+
 function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
@@ -345,6 +443,9 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const isBag = isBagCategory(body.productCategory);
   const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
   const bodyTabBlock = buildBodyTabBlock(body.bodyProfileSummary);
+  const bodyProportionPrompt = buildBodyProportionPrompt(body.bodyProfileSummary);
+  const bodyTypePrompt = buildBodyTypeModifier(body.bodyProfileSummary);
+  const fitVisualPrompt = buildFitVisualPrompt(body);
 
   const verdict = body.baselineVerdict;
   const consequenceLine = verdict?.consequence
@@ -375,6 +476,8 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     return [
       `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
       bodyTabBlock,
+      bodyProportionPrompt,
+      bodyTypePrompt,
       MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
@@ -387,6 +490,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       `FRAMING: full-body shot with at least 10–14% empty headroom above the top of the head and 5–8% space below the feet. NEVER crop the head, top of skull, hands, or feet. The mannequin head must be ENTIRELY inside the frame.`,
       `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body.`,
       MANNEQUIN_NEGATIVES,
+      SPEC_NEGATIVE_BODY_RULES,
       `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the product.`,
       safeModeSuffixEarly,
     ].filter(Boolean).join(" ");
@@ -407,6 +511,8 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   return [
     leadSentence,
     bodyTabBlock,
+    bodyProportionPrompt,
+    bodyTypePrompt,
     `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, wearing ${garmentLabel} in size ${body.selectedSize}.`,
     MANNEQUIN_STYLE_LOCK,
     genderLockLine,
@@ -417,6 +523,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     `Mannequin proportions must match the height and weight specified — do NOT default to a slim display dummy, but also do NOT modify the mannequin to compensate for a tighter or looser garment.`,
     `Preserve the EXACT style, color, print, and construction of the garment shown in the reference image.`,
     `Render the garment with a ${silhouette}.`,
+    fitVisualPrompt,
     consequenceLine,
     fallbackLine,
     `SIZE EXAGGERATION ENGINE (MANDATORY): each size MUST look obviously different at a glance — do NOT keep differences subtle for aesthetic reasons. TIGHT/too-small = stretched fabric, chest pulling, shoulder tension, sleeves visibly short, visible compression. FITTED = clean close-to-body silhouette, no wrinkles. REGULAR = balanced ease, natural drape. RELAXED = clear extra space at torso and arms. OVERSIZED = exaggerated volume, dropped shoulders, sleeves past hands, extended length, intentionally much larger than the body. Extreme cases: small mannequin + XL must look blanket-like; large mannequin + S must look about to burst. Differences MUST be visible at chest, shoulders, waist, sleeve width, sleeve length, and hem length.`,
@@ -426,6 +533,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     `FRAMING + COMPOSITION (HARD RULE — HIGHEST PRIORITY): Render a COMPLETE FULL-BODY shot. The ENTIRE mannequin must fit inside the frame from the TOP OF THE HEAD down to BELOW THE FEET, with clear empty studio space (HEADROOM) of at least 10–14% of the image height ABOVE the top of the head, and at least 5–8% below the feet. NEVER crop, cut, chop, slice, or clip the head, top of skull, neck, shoulders, hands, fingers, hips, knees, ankles, or feet. The top of the mannequin's head MUST be clearly visible with breathing room above it — it MUST NOT touch or exceed the top edge of the frame. Camera is centered at chest height, slightly pulled back so the full standing figure is visible. The smooth featureless mannequin head must be ENTIRELY inside the frame; a half-cropped or partially-decapitated head is FORBIDDEN. Alternative neck-down crop is acceptable ONLY if cleanly cut at the lower neck — never mid-head, never mid-skull.`,
     `Background: plain seamless white or light-gray studio backdrop, soft even studio lighting, subtle grounding shadow only — NO harsh shadows cutting the body, NO environment, NO lifestyle context.`,
     MANNEQUIN_NEGATIVES,
+    SPEC_NEGATIVE_BODY_RULES,
     `Strictly NO cropped head, NO chopped head, NO half-head, NO decapitated mannequin, NO head touching the top edge, NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity, NO real person.`,
     `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base, same camera, same pose, same lighting across all sizes; only the garment fit and fabric behavior change. Visual clarity of the size difference is more important than photographic realism. Model-type consistency (faceless mannequin) is mandatory.`,
     safeModeSuffixEarly,
@@ -574,7 +682,20 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   ].join(" ");
 
   // ── DEBUG: confirm Body tab values reach AI generation ──────────────────
-  console.log("[FIT_IMAGE_BODY_PROFILE]", body.bodyProfileSummary);
+  const dbgB = body.bodyProfileSummary;
+  const dbgBmi = dbgB?.heightCm && dbgB?.weightKg
+    ? dbgB.weightKg / Math.pow(dbgB.heightCm / 100, 2)
+    : null;
+  console.log("[BODY_TAB_RAW]", body.bodyProfileSummary);
+  console.log("[FIT_IMAGE_BODY_LOCK]", {
+    gender: dbgB?.gender ?? null,
+    height_cm: dbgB?.heightCm ?? null,
+    weight_kg: dbgB?.weightKg ?? null,
+    body_type: dbgB?.bodyType ?? dbgB?.build ?? null,
+    body_reference_image_url: dbgB?.userBodyImageUrl ?? null,
+  });
+  console.log("[FIT_IMAGE_BMI]", dbgBmi);
+  console.log("[FIT_IMAGE_BODY_MASS_CLASS]", dbgBmi != null ? classifyBodyMass(dbgBmi) : null);
   console.log("[FIT_IMAGE_SELECTED_SIZE]", body.selectedSize);
   console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
   console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
