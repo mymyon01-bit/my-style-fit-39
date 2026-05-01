@@ -314,7 +314,7 @@ const WeatherAmbience = ({
         <img
           src={bgImage}
           alt=""
-          className="h-full w-full object-cover opacity-[0.10] blur-2xl dark:opacity-[0.14]"
+          className="h-full w-full object-cover opacity-[0.12] blur-2xl"
           draggable={false}
         />
       </motion.div>
