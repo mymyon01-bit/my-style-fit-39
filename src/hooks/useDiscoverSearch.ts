@@ -38,6 +38,7 @@ import { parseIntent, summarizeIntent, type ParsedIntent } from "@/lib/discover/
 import { runSearchLadder, type LadderStage } from "@/lib/discover/discover-search-ladder";
 import { shouldUseAiFallback, expandIntentWithAi, mergeAiIntoIntent } from "@/lib/discover/discover-intent-ai";
 import { enforceDiversity } from "@/lib/discover/rankResults";
+import { detectLuxuryBrand } from "@/lib/discover/luxuryBrands";
 import { assessQueryCoverage } from "@/lib/discover/queryHealth";
 import { interpretQueryWithAI } from "@/lib/discover/aiQueryInterpreter";
 import { triggerAutoDiscovery, loadCachedInterpretation } from "@/lib/discover/triggerAutoDiscovery";
@@ -216,6 +217,15 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
       // Fire-and-forget cache warmer (Apify/CSE).
       void supabase.functions.invoke("discover-search-engine", { body: { query: trimmed } })
         .catch((err) => console.warn("[useDiscoverSearch] discover-search-engine kick failed", err));
+
+      // Luxury brand boost — only triggers when query mentions a known luxury
+      // brand (e.g. "Gucci shirt", "버버리 트렌치"). Reuses legal sources
+      // (SerpAPI / Apify / Perplexity+Firecrawl) and caches results 6h.
+      const luxury = detectLuxuryBrand(trimmed);
+      if (luxury.isLuxury) {
+        void supabase.functions.invoke("discover-luxury", { body: { query: trimmed } })
+          .catch((err) => console.warn("[useDiscoverSearch] discover-luxury kick failed", err));
+      }
 
       // Ladder seed — paint Live grid INSTANTLY from cache while runSearch warms up.
       void runSearchLadder(intent).then((ladder) => {
