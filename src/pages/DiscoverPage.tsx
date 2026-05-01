@@ -506,7 +506,7 @@ export default function DiscoverPage() {
               className="group flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 px-3.5 py-1.5 text-[10.5px] font-bold tracking-[0.12em] text-foreground/80 transition hover:border-accent/60 hover:bg-accent/10 hover:text-foreground"
             >
               <Plus className="h-3 w-3 text-accent" />
-              상품 넣기
+              {t("submitProductCta")}
               <span className="ml-1 flex items-center gap-0.5 rounded-full bg-[hsl(var(--star))]/15 px-1.5 py-0.5 text-[9px] font-bold text-[hsl(var(--star))]">
                 +1⭐
               </span>
