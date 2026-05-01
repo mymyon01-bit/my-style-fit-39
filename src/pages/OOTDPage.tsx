@@ -469,8 +469,16 @@ const OOTDPage = () => {
   // Persist profile customization to the DB whenever it changes — this is
   // what makes the user's chosen background, card tint and song-of-the-day
   // visible to visitors on their public profile page.
+  //
+  // IMPORTANT: gate writes behind `prefsLoadedRef` so we don't overwrite
+  // the saved DB values with empty defaults during the initial mount
+  // (before `loadProfileCustomization` has returned). This was the cause
+  // of the "song resets after reinstall" bug on mobile — localStorage was
+  // empty after install, the empty state hit the DB before the DB read
+  // finished, and the user's saved Song-of-the-Day got wiped.
   useEffect(() => {
     if (!user) return;
+    if (!prefsLoadedRef.current) return;
     const t = setTimeout(() => {
       supabase.from("profiles").update({
         ootd_bg_theme: bgTheme,
