@@ -27,9 +27,6 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN");
 const CRAWLBASE_TOKEN = Deno.env.get("CRAWLBASE_TOKEN");
 const SCRAPINGBEE_API_KEY = Deno.env.get("SCRAPINGBEE_API_KEY");
-const DATAFORSEO_LOGIN = Deno.env.get("DATAFORSEO_LOGIN");
-const DATAFORSEO_PASSWORD = Deno.env.get("DATAFORSEO_PASSWORD");
-const DATAFORSEO_BASIC_AUTH = Deno.env.get("DATAFORSEO_BASIC_AUTH");
 
 // ── APIFY GATE (stabilization pass 2026-04-19) ─────────────────────────────
 // Apify is disabled by default. When false, every fetchApify* call short-
