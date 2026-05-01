@@ -428,6 +428,8 @@ const SPEC_NEGATIVE_BODY_RULES = [
   "Do not resize the body to match the selected clothing size.",
   "Do not hide tightness. Do not hide looseness.",
 ].join(" ");
+
+function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
   const h = body.bodyProfileSummary?.heightCm;
@@ -441,6 +443,9 @@ const SPEC_NEGATIVE_BODY_RULES = [
   const isBag = isBagCategory(body.productCategory);
   const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
   const bodyTabBlock = buildBodyTabBlock(body.bodyProfileSummary);
+  const bodyProportionPrompt = buildBodyProportionPrompt(body.bodyProfileSummary);
+  const bodyTypePrompt = buildBodyTypeModifier(body.bodyProfileSummary);
+  const fitVisualPrompt = buildFitVisualPrompt(body);
 
   const verdict = body.baselineVerdict;
   const consequenceLine = verdict?.consequence
