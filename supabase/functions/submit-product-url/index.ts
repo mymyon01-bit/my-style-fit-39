@@ -221,8 +221,8 @@ Deno.serve(async (req) => {
       // instead of the generic "Edge function returned 422" error + blank UI.
       return new Response(JSON.stringify({
         ok: false,
-        error: "no_image_found",
-        message: "이 페이지에서 상품 이미지를 찾을 수 없어요. 상품 상세 페이지 URL을 직접 입력해 주세요.",
+        error: "site_blocked",
+        message: "이 사이트는 외부 접근을 허용하지 않아요. 다른 상품 URL을 시도해 주세요.",
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
