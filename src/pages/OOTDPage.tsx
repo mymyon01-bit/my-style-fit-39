@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 
-import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
+import SongOfTheDayPicker, { loadSongOfDay, saveSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
 import CustomizeMenu from "@/components/ootd/CustomizeMenu";
 import { loadCardShape, applyCardShapeToRoot, type CardShape } from "@/components/ootd/cardShape";
@@ -135,6 +135,12 @@ const OOTDPage = () => {
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
   const [bgRealistic, setBgRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
   const [songOfDay, setSongOfDay] = useState<SongOfDay | null>(() => loadSongOfDay());
+  // Tracks whether `loadProfileCustomization` has hydrated state from the
+  // DB. Until then, the persistence effect must NOT write — otherwise an
+  // empty post-install localStorage state would clobber the user's
+  // saved Song-of-the-Day in the cloud. See loadProfileCustomization +
+  // the debounced update effect below.
+  const prefsLoadedRef = useRef(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [cardShape, setCardShape] = useState<CardShape>(() => {
     const s = loadCardShape();
@@ -462,15 +468,34 @@ const OOTDPage = () => {
         setCardColor(cc);
         applyCardColorToRoot(cc);
       }
-      if (p.song_of_the_day) setSongOfDay(p.song_of_the_day as SongOfDay);
+      if (p.song_of_the_day) {
+        const dbSong = p.song_of_the_day as SongOfDay;
+        setSongOfDay(dbSong);
+        // Mirror to localStorage so the floating mini-player + sibling
+        // pages (Showroom, profile) see it instantly on next render.
+        try { saveSongOfDay(dbSong); } catch {}
+      }
     }
+    // Mark prefs as loaded AFTER the DB read returns. The persistence
+    // effect above will refuse to write until this flips true, so empty
+    // initial state can no longer overwrite the DB-saved Song-of-the-Day
+    // on a fresh install.
+    prefsLoadedRef.current = true;
   };
 
   // Persist profile customization to the DB whenever it changes — this is
   // what makes the user's chosen background, card tint and song-of-the-day
   // visible to visitors on their public profile page.
+  //
+  // IMPORTANT: gate writes behind `prefsLoadedRef` so we don't overwrite
+  // the saved DB values with empty defaults during the initial mount
+  // (before `loadProfileCustomization` has returned). This was the cause
+  // of the "song resets after reinstall" bug on mobile — localStorage was
+  // empty after install, the empty state hit the DB before the DB read
+  // finished, and the user's saved Song-of-the-Day got wiped.
   useEffect(() => {
     if (!user) return;
+    if (!prefsLoadedRef.current) return;
     const t = setTimeout(() => {
       supabase.from("profiles").update({
         ootd_bg_theme: bgTheme,
