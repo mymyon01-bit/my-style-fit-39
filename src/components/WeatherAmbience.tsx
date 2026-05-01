@@ -295,12 +295,12 @@ const WeatherAmbience = ({
         disablePictureInPicture
         disableRemotePlayback
         preload="auto"
-        // High opacity so the real footage reads clearly; particle overlays
-        // (rain droplets, snow, lightning) layer on top per condition.
-        // At night we push the footage a touch brighter so the city lights /
-        // starfield stay legible under the dark-sky wash applied below.
+        // Single opacity across web (light/dark), mobile web, and the Android
+        // APK WebView — no theme branching so every platform shows the exact
+        // same footage intensity. Night gets a touch brighter so city lights
+        // and stars stay legible under the dark-sky wash applied below.
         className={`absolute inset-0 h-full w-full object-cover animate-fade-in ${
-          isNight ? "opacity-[0.7] dark:opacity-[0.78]" : "opacity-[0.55] dark:opacity-[0.6]"
+          isNight ? "opacity-[0.72]" : "opacity-[0.58]"
         }`}
         style={{ objectPosition: "center" }}
       />
