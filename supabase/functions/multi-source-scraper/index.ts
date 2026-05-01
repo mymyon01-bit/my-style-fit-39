@@ -736,6 +736,20 @@ function parseDfsPrice(v: unknown): string | null {
   return null;
 }
 
+async function callDataForSeo(url: string, body: unknown, auth: string, label: string): Promise<{ ok: boolean; status: number; data: any }> {
+  const res = await withTimeout(
+    fetch(url, {
+      method: "POST",
+      headers: { "Authorization": auth, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    SOURCE_BUDGET_MS,
+    label,
+  );
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
+}
+
 async function fetchDataForSeo(query: string, max: number): Promise<RawProduct[]> {
   const auth = dataForSeoAuthHeader();
   if (!auth) {
@@ -743,38 +757,55 @@ async function fetchDataForSeo(query: string, max: number): Promise<RawProduct[]
     return [];
   }
   try {
-    // 1) Try the live/advanced endpoint first (single round-trip, ~10-15s).
-    const liveRes = await withTimeout(
-      fetch("https://api.dataforseo.com/v3/merchant/google/products/live/advanced", {
-        method: "POST",
-        headers: { "Authorization": auth, "Content-Type": "application/json" },
-        body: JSON.stringify([{
-          location_name: "United States",
-          language_name: "English",
-          keyword: query,
-          depth: Math.min(max * 2, 100),
-        }]),
-      }),
-      SOURCE_BUDGET_MS,
-      "dataforseo_live",
-    );
+    const payload = [{
+      location_name: "United States",
+      language_name: "English",
+      keyword: query,
+      depth: Math.min(max * 2, 100),
+    }];
 
-    if (!liveRes.ok) {
-      console.warn(`[dataforseo:live] HTTP ${liveRes.status}`);
-      return [];
+    // Endpoint cascade — different DataForSEO plans expose different APIs.
+    // We try in order; first non-empty result wins.
+    const endpoints = [
+      { url: "https://api.dataforseo.com/v3/merchant/google/products/live/advanced", label: "merchant_live" },
+      { url: "https://api.dataforseo.com/v3/serp/google/shopping/live/advanced", label: "serp_shopping_live" },
+    ];
+
+    let items: unknown[] = [];
+    let usedEndpoint = "";
+    for (const ep of endpoints) {
+      const r = await callDataForSeo(ep.url, payload, auth, `dataforseo_${ep.label}`);
+      if (!r.ok) {
+        console.warn(`[dataforseo:${ep.label}] HTTP ${r.status}`, r.data?.status_message ?? "");
+        continue;
+      }
+      const taskStatus = r.data?.tasks?.[0]?.status_code;
+      const taskMsg = r.data?.tasks?.[0]?.status_message;
+      const result = r.data?.tasks?.[0]?.result?.[0];
+      const candidate: unknown[] =
+        result?.items || result?.products || [];
+      if (taskStatus && taskStatus >= 40000) {
+        console.warn(`[dataforseo:${ep.label}] task error ${taskStatus} ${taskMsg}`);
+      }
+      if (Array.isArray(candidate) && candidate.length) {
+        items = candidate;
+        usedEndpoint = ep.label;
+        break;
+      } else {
+        console.log(`[dataforseo:${ep.label}] empty result`, { taskStatus, taskMsg });
+      }
     }
-    const liveData = await liveRes.json().catch(() => null);
-    const items: unknown[] =
-      liveData?.tasks?.[0]?.result?.[0]?.items ||
-      liveData?.tasks?.[0]?.result?.[0]?.products ||
-      [];
+
+    if (!items.length) return [];
 
     const out: RawProduct[] = [];
     for (const it of items.slice(0, max)) {
       const o = it as Record<string, unknown>;
+      // SERP shopping items wrap product fields under various keys; flatten.
       const name = String(o.title ?? o.product_title ?? o.name ?? "").trim();
       const link = (typeof o.url === "string" ? o.url
         : typeof o.product_url === "string" ? o.product_url
+        : typeof o.shop_ad_aclk === "string" ? o.shop_ad_aclk
         : typeof o.link === "string" ? o.link : null);
       const img = safeImage(
         o.image_url ?? o.thumbnail ?? o.image ??
@@ -785,7 +816,8 @@ async function fetchDataForSeo(query: string, max: number): Promise<RawProduct[]
       const id = String(o.product_id ?? o.product_seller_id ?? o.id ?? link);
       const merchant = (typeof o.seller === "string" ? o.seller
         : typeof o.shop === "string" ? o.shop
-        : typeof o.source === "string" ? o.source : "Google Shopping");
+        : typeof o.source === "string" ? o.source
+        : typeof o.domain === "string" ? o.domain : "Google Shopping");
       out.push({
         external_id: `dfs-${id}`.slice(0, 120),
         name,
@@ -801,7 +833,7 @@ async function fetchDataForSeo(query: string, max: number): Promise<RawProduct[]
         category: typeof o.category === "string" ? o.category : null,
       });
     }
-    console.log("[dataforseo] fetched", { query, count: out.length });
+    console.log("[DATAFORSEO_RESULT_COUNT]", { query, count: out.length, endpoint: usedEndpoint });
     return out;
   } catch (e) {
     console.warn("[DATAFORSEO_SKIPPED_OR_FAILED]", (e as Error).message);
