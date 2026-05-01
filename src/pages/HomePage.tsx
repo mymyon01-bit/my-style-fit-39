@@ -108,7 +108,7 @@ const HomePage = () => {
     <div className="flex min-h-[100dvh] flex-col bg-background pb-20 md:pb-0">
       {/* Hero — vibrant edge */}
       <section className="relative flex flex-1 flex-col items-center overflow-hidden pt-32 pb-20 md:pt-64 md:pb-28 md:flex-none">
-        <WeatherAmbience condition={weather.condition} />
+        <WeatherAmbience condition={weather.condition} isNight={weather.isNight} />
 
         {/* Animated color blobs — vibrancy without overwhelming */}
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
