@@ -233,8 +233,8 @@ export function composeDiscoverGrid(
 
   const windowSize = Math.min(opts.windowSize ?? 24, items.length);
   const minFreshRatio = opts.minFreshRatio ?? 0.4;
-  const maxPerSource = Math.max(2, Math.floor(windowSize * 0.35));
-  const maxPerBrand = Math.max(2, Math.floor(windowSize * 0.30));
+  const maxPerSource = Math.max(2, Math.floor(windowSize * 0.30));
+  const maxPerBrand = Math.max(2, Math.floor(windowSize * 0.20));
   const maxRepeatedFirstRow = 2;
   const firstRowSize = 4;
 
