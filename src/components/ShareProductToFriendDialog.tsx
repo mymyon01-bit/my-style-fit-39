@@ -281,7 +281,7 @@ export default function ShareProductToFriendDialog({ open, product, onClose }: P
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={{ pointerEvents: "auto" }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/55 backdrop-blur-sm "
             onClick={onClose}
           >
             <motion.div

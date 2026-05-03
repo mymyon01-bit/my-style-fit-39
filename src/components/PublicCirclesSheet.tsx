@@ -101,7 +101,7 @@ const PublicCirclesSheet = ({ open, onClose, targetUserId, targetDisplayName, in
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-end md:items-center md:justify-center bg-background/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-background/70 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
