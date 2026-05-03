@@ -284,12 +284,15 @@ jobs:
           make_latest: "false"
 
       - name: Register release in app_releases (triggers in-app update prompt)
-        if: ${{ secrets.APP_RELEASE_REGISTER_TOKEN != '' }}
         env:
           REGISTER_TOKEN: ${{ secrets.APP_RELEASE_REGISTER_TOKEN }}
           VERSION_CODE: ${{ steps.version.outputs.version_code }}
           VERSION_NAME: ${{ steps.version.outputs.version_name }}
         run: |
+          if [ -z "$REGISTER_TOKEN" ]; then
+            echo "APP_RELEASE_REGISTER_TOKEN not set — skipping auto-register"
+            exit 0
+          fi
           APK_URL="https://github.com/${{ github.repository }}/releases/download/latest-apk/mymyon.apk"
           curl -sS -X POST \
             "https://nuakdesqmxkxjwedjeaz.supabase.co/functions/v1/register-app-release" \
