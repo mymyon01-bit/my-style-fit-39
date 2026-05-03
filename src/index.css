@@ -242,17 +242,27 @@
   .font-body { font-family: var(--font-body); }
   .font-mono { font-family: var(--font-mono); }
 
-  /* ── Pink blink animation ──
-     Unified animated pink background that fades on/off behind hero text.
-     Always on (no font-detection); ensures consistent brand vibe across
-     web/app/mobile regardless of whether custom fonts have loaded. */
-  @keyframes font-blink-bg {
-    0%, 100% { background-color: hsl(var(--edge-pink) / 0.55); }
-    50%      { background-color: hsl(var(--edge-pink) / 0); }
+  /* ── Neon pink glow ──
+     Soft pink neon halo pulsing around hero text. Unified across
+     web/app/mobile so the brand vibe is consistent regardless of
+     whether the custom display font has loaded. */
+  @keyframes neon-pink-pulse {
+    0%, 100% {
+      text-shadow:
+        0 0 4px hsl(var(--edge-pink) / 0.55),
+        0 0 12px hsl(var(--edge-pink) / 0.45),
+        0 0 28px hsl(var(--edge-pink) / 0.25);
+    }
+    50% {
+      text-shadow:
+        0 0 2px hsl(var(--edge-pink) / 0.25),
+        0 0 6px hsl(var(--edge-pink) / 0.15),
+        0 0 14px hsl(var(--edge-pink) / 0.08);
+    }
   }
-  .font-blink-target {
-    border-radius: 8px;
-    animation: font-blink-bg 1.6s ease-in-out infinite;
+  .font-blink-target,
+  .font-blink-target * {
+    animation: neon-pink-pulse 2.2s ease-in-out infinite;
   }
 
   .shadow-soft { box-shadow: var(--shadow-soft); }
