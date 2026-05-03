@@ -167,6 +167,7 @@ jobs:
 
       - name: Patch AndroidManifest with notification + location permissions
         run: |
+          test -f android/app/src/main/AndroidManifest.xml
           node -e "
             const fs = require('fs');
             const path = 'android/app/src/main/AndroidManifest.xml';
