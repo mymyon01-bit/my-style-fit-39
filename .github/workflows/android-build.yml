@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # Opt into Node.js 24 for JS-based actions (checkout, setup-node, etc.)
+      # to silence Node 20 deprecation warnings ahead of June 2026.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
