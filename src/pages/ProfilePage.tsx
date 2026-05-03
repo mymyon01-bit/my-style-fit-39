@@ -33,6 +33,15 @@ const ProfilePage = () => {
   const { isAdmin } = useAdmin();
   const [userCount, setUserCount] = useState<number | null>(null);
   const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .then(({ count }) => setUserCount(count ?? 0));
+  }, [isAdmin]);
+
   const [styleProfile, setStyleProfile] = useState<any>(null);
   const [bodyProfile, setBodyProfile] = useState<any>(null);
   const [savedCount, setSavedCount] = useState(0);
