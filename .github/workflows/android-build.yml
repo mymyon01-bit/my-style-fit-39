@@ -115,7 +115,15 @@ jobs:
       - name: Add Android platform
         run: |
           npm install --no-save --legacy-peer-deps @capacitor/android @capacitor/assets
-          npx cap add android || echo "android already added"
+          if [ ! -f android/app/src/main/AndroidManifest.xml ]; then
+            rm -rf android
+            npx cap add android
+          else
+            echo "Android platform already present"
+          fi
+          if [ -f "$RUNNER_TEMP/release.keystore" ]; then
+            cp "$RUNNER_TEMP/release.keystore" android/app/release.keystore
+          fi
           npx cap sync android
 
       - name: Generate Android icons & splash from /resources
@@ -136,6 +144,7 @@ jobs:
 
       - name: Patch AndroidManifest for mymyon:// deep link (OAuth callback)
         run: |
+          test -f android/app/src/main/AndroidManifest.xml
           node -e "
             const fs = require('fs');
             const path = 'android/app/src/main/AndroidManifest.xml';
