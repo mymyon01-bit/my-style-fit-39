@@ -31,7 +31,17 @@ const ProfilePage = () => {
   const { subscription } = useSubscription();
   const { folders, loading: foldersLoading } = useSavedFolders();
   const { isAdmin } = useAdmin();
+  const [userCount, setUserCount] = useState<number | null>(null);
   const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .then(({ count }) => setUserCount(count ?? 0));
+  }, [isAdmin]);
+
   const [styleProfile, setStyleProfile] = useState<any>(null);
   const [bodyProfile, setBodyProfile] = useState<any>(null);
   const [savedCount, setSavedCount] = useState(0);
@@ -237,9 +247,14 @@ const ProfilePage = () => {
           </span>
           <div className="flex items-center gap-4">
             {isAdmin && (
-              <button onClick={() => navigate("/admin")} className="text-accent/60 hover:text-accent/80 transition-colors">
-                <Shield className="h-[18px] w-[18px]" />
-              </button>
+              <>
+                <span className="rounded-full border border-accent/30 bg-accent/[0.06] px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-accent/80">
+                  USERS {userCount !== null ? userCount.toLocaleString() : "…"}
+                </span>
+                <button onClick={() => navigate("/admin")} className="text-accent/60 hover:text-accent/80 transition-colors">
+                  <Shield className="h-[18px] w-[18px]" />
+                </button>
+              </>
             )}
             <button onClick={() => navigate("/settings")} className="text-foreground/75 hover:text-foreground/70 transition-colors">
               <Settings className="h-[18px] w-[18px]" />
