@@ -423,7 +423,7 @@ const translations = {
     updateAvailableBody: "A newer version of mymyon is ready to install.",
     updateLater: "LATER",
     updateInstall: "INSTALL",
-    updateInstallHint: "Your phone will open the system installer to update the app. Your data and settings stay intact.",
+    updateInstallHint: "Please uninstall the previous version first, then reinstall the new one.",
   },
   ko: {
     appName: "WARDROBE",
