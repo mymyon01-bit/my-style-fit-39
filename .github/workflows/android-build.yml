@@ -50,7 +50,7 @@ jobs:
           echo "version_name=$VN" >> "$GITHUB_OUTPUT"
 
       - name: Decode release keystore (early — needed for SHA fingerprint)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
@@ -186,7 +186,7 @@ jobs:
 
 
       - name: Configure release signing in build.gradle
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         run: |
           python3 <<'PY'
           import re
