@@ -389,6 +389,9 @@ const SettingsPage = () => {
           </div>
         )}
 
+        <div className="h-px bg-border/30" />
+        <SettingsAboutSection />
+
         {/* Sign out + Delete account */}
         {user && (
           <div className="space-y-2 border-t border-border/30 pt-6">
