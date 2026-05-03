@@ -226,23 +226,14 @@ jobs:
             ./gradlew assembleDebug --no-daemon
           fi
 
-      - name: Print signing SHA-1 (for Google OAuth setup)
+      - name: Print signing fingerprints (also baked into Settings → About)
         run: |
-          echo "===== Signing SHA-1 ====="
-          if [ -f android/app/release.keystore ]; then
-            keytool -list -v \
-              -keystore android/app/release.keystore \
-              -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
-              -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" | grep -E "SHA1|SHA-1" || true
-          else
-            keytool -list -v \
-              -keystore ~/.android/debug.keystore \
-              -alias androiddebugkey \
-              -storepass android \
-              -keypass android | grep -E "SHA1|SHA-1" || true
-          fi
-          echo "Package name: com.mymyon.app"
-          echo "========================="
+          echo "===== Signing fingerprints ====="
+          echo "SHA-1:   ${{ steps.sha.outputs.sha1 }}"
+          echo "SHA-256: ${{ steps.sha.outputs.sha256 }}"
+          echo "Package: com.mymyon.app"
+          echo "================================"
+
 
       - name: Rename APK
         run: |
