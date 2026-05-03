@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.daily-stylist]
 verify_jwt = false
+
+[functions.register-app-release]
+verify_jwt = false

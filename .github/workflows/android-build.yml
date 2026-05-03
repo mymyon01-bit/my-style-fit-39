@@ -282,3 +282,21 @@ jobs:
             commit: ${{ github.sha }}
           files: artifacts/mymyon.apk
           make_latest: "false"
+
+      - name: Register release in app_releases (triggers in-app update prompt)
+        if: ${{ secrets.APP_RELEASE_REGISTER_TOKEN != '' }}
+        env:
+          REGISTER_TOKEN: ${{ secrets.APP_RELEASE_REGISTER_TOKEN }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+        run: |
+          APK_URL="https://github.com/${{ github.repository }}/releases/download/latest-apk/mymyon.apk"
+          curl -sS -X POST \
+            "https://nuakdesqmxkxjwedjeaz.supabase.co/functions/v1/register-app-release" \
+            -H "Content-Type: application/json" \
+            -H "x-register-token: $REGISTER_TOKEN" \
+            -d "{\"version_code\":${VERSION_CODE},\"version_name\":\"${VERSION_NAME}\",\"apk_url\":\"${APK_URL}\",\"release_notes\":\"Auto build ${VERSION_NAME}\"}" \
+            | tee /tmp/register.json
+          echo ""
+          grep -q '"ok":true' /tmp/register.json || (echo "Register failed" && exit 1)
+
