@@ -303,6 +303,9 @@ export default function MessageThread({
                   createdAt={m.created_at}
                   readAt={m.read_at}
                   attachments={(m.attachments as any[]) || []}
+                  shake={shakingId === m.id}
+                  onUnsend={isMine ? () => deleteMessage(m.id) : undefined}
+                  onNudge={isMine ? () => nudgeMessage(m.id) : undefined}
                 />
               </div>
             );
