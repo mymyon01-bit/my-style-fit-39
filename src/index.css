@@ -242,6 +242,27 @@
   .font-body { font-family: var(--font-body); }
   .font-mono { font-family: var(--font-mono); }
 
+  /* ── Font-loading placeholder ──
+     When the display font isn't ready yet (or isn't installed on the
+     viewer's machine), `html.fonts-loading .font-blink-target` swaps the
+     glyphs out for an animated pink block that blinks on/off — much nicer
+     than weird system-font fallbacks rendering at the wrong size. */
+  @keyframes font-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  html.fonts-loading .font-blink-target {
+    color: transparent !important;
+    background: hsl(var(--accent));
+    border-radius: 6px;
+    animation: font-blink 0.9s ease-in-out infinite;
+    -webkit-text-fill-color: transparent;
+  }
+  html.fonts-loading .font-blink-target * {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+  }
+
   .shadow-soft { box-shadow: var(--shadow-soft); }
   .shadow-elevated { box-shadow: var(--shadow-elevated); }
   .shadow-d1 { box-shadow: var(--shadow-1); }

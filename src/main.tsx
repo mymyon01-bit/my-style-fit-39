@@ -2,6 +2,24 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+// Font-loading guard — while the display font (Fraunces / Noto Serif KR) is
+// still loading, computers without the font installed render the headline in
+// a weird fallback. We mark <html class="fonts-loading"> so CSS can replace
+// the headline text with an animated pink blink block until the font arrives.
+if (typeof document !== "undefined") {
+  document.documentElement.classList.add("fonts-loading");
+  const clear = () => document.documentElement.classList.remove("fonts-loading");
+  const fonts = (document as any).fonts;
+  if (fonts?.ready) {
+    Promise.race([
+      fonts.ready,
+      new Promise((r) => setTimeout(r, 4000)),
+    ]).then(clear).catch(clear);
+  } else {
+    setTimeout(clear, 1500);
+  }
+}
+
 // One-time purge of locally cached fit/cutout/try-on images so previously
 // generated photos don't reappear after the server-side reset.
 try {
