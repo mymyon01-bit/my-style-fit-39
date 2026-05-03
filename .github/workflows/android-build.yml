@@ -131,25 +131,86 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Print debug keystore SHA-1 (for Google OAuth setup)
+      - name: Decode release keystore
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        env:
+          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          echo "===== Debug keystore SHA-1 (use this in Google Cloud Console → OAuth Android client) ====="
-          keytool -list -v \
-            -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey \
-            -storepass android \
-            -keypass android | grep -E "SHA1|SHA-1" || true
+          echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+          echo "Keystore decoded ($(wc -c < android/app/release.keystore) bytes)"
+
+      - name: Configure release signing in build.gradle
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          node -e "
+            const fs=require('fs');
+            const p='android/app/build.gradle';
+            let g=fs.readFileSync(p,'utf8');
+            if (!g.includes('signingConfigs {')) {
+              const block = \`
+    signingConfigs {
+        release {
+            storeFile file('release.keystore')
+            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            keyAlias System.getenv('ANDROID_KEY_ALIAS')
+            keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+        }
+    }
+\`;
+              g = g.replace(/(android \\{)/, '\$1' + block);
+            }
+            g = g.replace(/buildTypes \\{[\\s\\S]*?release \\{[\\s\\S]*?\\}/, m => {
+              if (m.includes('signingConfig')) return m;
+              return m.replace(/release \\{/, 'release {\\n            signingConfig signingConfigs.release');
+            });
+            fs.writeFileSync(p,g);
+            console.log('Configured release signing');
+          "
+
+      - name: Build APK (release if keystore present, else debug)
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -f app/release.keystore ]; then
+            echo "Building signed release APK"
+            ./gradlew assembleRelease --no-daemon
+          else
+            echo "No keystore secret — falling back to debug APK"
+            ./gradlew assembleDebug --no-daemon
+          fi
+
+      - name: Print signing SHA-1 (for Google OAuth setup)
+        run: |
+          echo "===== Signing SHA-1 ====="
+          if [ -f android/app/release.keystore ]; then
+            keytool -list -v \
+              -keystore android/app/release.keystore \
+              -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
+              -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" | grep -E "SHA1|SHA-1" || true
+          else
+            keytool -list -v \
+              -keystore ~/.android/debug.keystore \
+              -alias androiddebugkey \
+              -storepass android \
+              -keypass android | grep -E "SHA1|SHA-1" || true
+          fi
           echo "Package name: com.mymyon.app"
-          echo "=========================================================================================="
+          echo "========================="
 
       - name: Rename APK
         run: |
           mkdir -p artifacts
-          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/mymyon.apk
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk artifacts/mymyon.apk
+          elif [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk artifacts/mymyon.apk
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/mymyon.apk
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
