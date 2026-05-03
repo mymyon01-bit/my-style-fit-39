@@ -127,15 +127,21 @@ export default function NotificationsSheet({ open, onClose }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] bg-background"
+          className="fixed inset-0 z-[200] flex items-start justify-center bg-black/55 backdrop-blur-sm p-3 md:p-8"
           onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-          <div className="mx-auto flex h-full max-w-lg flex-col">
-            {/* Sticky header with prominent close — always reachable */}
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border/30 bg-background/95 px-4 py-3 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, y: -16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.97 }}
+            transition={{ type: "spring", damping: 26, stiffness: 320 }}
+            className="mt-12 flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border/50 bg-background shadow-2xl"
+          >
+            {/* Slim header */}
+            <div className="flex items-center justify-between gap-2 border-b border-border/30 bg-card/60 px-3.5 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <Bell className="h-4 w-4 text-foreground/70 shrink-0" />
-                <span className="text-[11px] font-semibold tracking-[0.25em] text-foreground/80 truncate">
+                <Bell className="h-3.5 w-3.5 text-foreground/70 shrink-0" />
+                <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/80 truncate">
                   {t("notifTitle" as any)}
                 </span>
                 {unread.length > 0 && (
@@ -144,47 +150,51 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 {unread.length > 0 && (
                   <button
-                    onClick={async () => {
-                      await markAllRead();
-                      reload();
-                    }}
-                    className="flex items-center gap-1 rounded-full border border-border/40 px-2.5 py-1.5 text-[9px] font-semibold tracking-wider text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                    onClick={async () => { await markAllRead(); reload(); }}
+                    className="flex items-center gap-1 rounded-full border border-border/40 px-2 py-1 text-[9px] font-semibold tracking-wider text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                   >
                     <CheckCheck className="h-3 w-3" /> {t("notifMarkRead" as any)}
                   </button>
                 )}
+                {items.length > 0 && (
+                  <button
+                    onClick={() => setConfirmClear(true)}
+                    className="flex items-center gap-1 rounded-full border border-destructive/40 px-2 py-1 text-[9px] font-semibold tracking-wider text-destructive/80 transition-colors hover:bg-destructive/10"
+                    title="Clear all"
+                  >
+                    <Trash2 className="h-3 w-3" /> CLEAR
+                  </button>
+                )}
                 <button
                   onClick={onClose}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/60 text-foreground/70 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
                   aria-label={t("closeNotifications" as any)}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* List — extra bottom padding so last item clears mobile nav */}
-            <div className="flex-1 overflow-y-auto pb-24">
+            {/* List */}
+            <div className="flex-1 overflow-y-auto">
               {loading ? (
-                <div className="flex justify-center py-16">
+                <div className="flex justify-center py-12">
                   <Loader2 className="h-4 w-4 animate-spin text-foreground/40" />
                 </div>
               ) : items.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-20 text-center">
-                  <Bell className="h-8 w-8 text-foreground/15" />
-                  <p className="text-[12px] text-foreground/50">{t("notifEmpty" as any)}</p>
-                  <p className="text-[10px] text-foreground/35">
-                    {t("notifEmptyHint" as any)}
-                  </p>
+                <div className="flex flex-col items-center gap-2 py-14 text-center">
+                  <Bell className="h-7 w-7 text-foreground/15" />
+                  <p className="text-[11.5px] text-foreground/50">{t("notifEmpty" as any)}</p>
+                  <p className="text-[10px] text-foreground/35">{t("notifEmptyHint" as any)}</p>
                 </div>
               ) : (
                 <>
                   {unread.length > 0 && (
                     <div>
-                      <p className="px-5 pt-4 pb-2 text-[9px] font-semibold tracking-[0.25em] text-accent">
+                      <p className="px-4 pt-3 pb-1.5 text-[9px] font-semibold tracking-[0.22em] text-accent">
                         {t("notifUnread" as any)} · {unread.length}
                       </p>
                       <ul className="divide-y divide-border/20">{unread.map(renderItem)}</ul>
@@ -192,7 +202,7 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                   )}
                   {earlier.length > 0 && (
                     <div>
-                      <p className="px-5 pt-5 pb-2 text-[9px] font-semibold tracking-[0.25em] text-foreground/45">
+                      <p className="px-4 pt-3 pb-1.5 text-[9px] font-semibold tracking-[0.22em] text-foreground/45">
                         {t("notifEarlier" as any)}
                       </p>
                       <ul className="divide-y divide-border/20">{earlier.map(renderItem)}</ul>
@@ -201,7 +211,32 @@ export default function NotificationsSheet({ open, onClose }: Props) {
                 </>
               )}
             </div>
-          </div>
+
+            {/* Confirm clear-all overlay */}
+            {confirmClear && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/85 backdrop-blur-sm p-6">
+                <div className="w-full max-w-xs rounded-2xl border border-border/60 bg-card p-5 text-center shadow-xl">
+                  <Trash2 className="mx-auto mb-2 h-6 w-6 text-destructive" />
+                  <p className="text-[13px] font-semibold text-foreground">Clear all notifications?</p>
+                  <p className="mt-1 text-[11px] text-foreground/55">This cannot be undone.</p>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={() => setConfirmClear(false)}
+                      className="flex-1 rounded-full border border-border/50 py-2 text-[11px] font-semibold text-foreground/70 hover:bg-muted"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => { await deleteAll(); setConfirmClear(false); }}
+                      className="flex-1 rounded-full bg-destructive py-2 text-[11px] font-semibold text-destructive-foreground hover:opacity-90"
+                    >
+                      Delete all
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
