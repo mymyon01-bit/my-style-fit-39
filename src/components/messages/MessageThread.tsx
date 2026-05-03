@@ -41,7 +41,17 @@ export default function MessageThread({
 }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { messages, loading, sendMessage } = useThread(conversationId);
+  const { messages, loading, sendMessage, deleteMessage, nudgeMessage } = useThread(conversationId);
+  const [shakingId, setShakingId] = useState<string | null>(null);
+
+  // Listen for incoming nudges → shake the matching bubble
+  useEffect(() => {
+    if (!conversationId) return;
+    return subscribeNudges(conversationId, (messageId) => {
+      setShakingId(messageId);
+      setTimeout(() => setShakingId((cur) => (cur === messageId ? null : cur)), 800);
+    });
+  }, [conversationId]);
   const [participants, setParticipants] = useState<ProfileLite[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [addQuery, setAddQuery] = useState("");
