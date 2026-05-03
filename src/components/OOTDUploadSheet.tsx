@@ -253,17 +253,17 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-sm sm:p-4"
             onClick={onClose}
           >
             <motion.div
               key="ootd-upload-sheet"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              initial={{ y: 24, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 24, opacity: 0, scale: 0.98 }}
+              transition={{ type: "spring", damping: 26, stiffness: 280 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg rounded-t-3xl bg-card border-t border-border p-6 pb-10 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-card border border-border p-6 pb-10 sm:my-6 sm:max-h-[90vh] sm:overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-display text-lg font-semibold text-foreground">Post Your OOTD</h3>

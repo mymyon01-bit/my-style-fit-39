@@ -60,16 +60,16 @@ export const SignUpPrompt = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm sm:p-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        initial={{ y: 24, opacity: 0, scale: 0.98 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 24, opacity: 0, scale: 0.98 }}
+        transition={{ type: "spring", damping: 26, stiffness: 280 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-t-3xl bg-card border-t border-border p-6 pb-10 shadow-elevated"
+        className="relative w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-card border border-border p-6 pb-10 shadow-elevated sm:my-6 sm:max-h-[90vh] sm:overflow-y-auto"
       >
         <button onClick={onClose} className="absolute right-4 top-4 text-muted-foreground">
           <X className="h-5 w-5" />
