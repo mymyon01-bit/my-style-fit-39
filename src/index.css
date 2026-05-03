@@ -251,8 +251,6 @@
     50%      { background-color: hsl(var(--edge-pink) / 0); }
   }
   .font-blink-target {
-    display: inline-block;
-    padding: 0.05em 0.25em;
     border-radius: 8px;
     animation: font-blink-bg 1.6s ease-in-out infinite;
   }
