@@ -160,5 +160,14 @@ export function useNotificationsList() {
     load();
   }, [user, load]);
 
-  return { items, actors, loading, reload: load, markAllRead };
+  const deleteAll = useCallback(async () => {
+    if (!user) return;
+    await supabase
+      .from("notifications" as any)
+      .delete()
+      .eq("recipient_id", user.id);
+    setItems([]);
+  }, [user]);
+
+  return { items, actors, loading, reload: load, markAllRead, deleteAll };
 }
