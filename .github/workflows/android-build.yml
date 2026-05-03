@@ -186,39 +186,34 @@ jobs:
       - name: Configure release signing in build.gradle
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
-          GRADLE=android/app/build.gradle
-          if ! grep -q "signingConfigs {" "$GRADLE"; then
-            # Insert signingConfigs block right after the opening "android {" line.
-            python3 - <<'PY'
+          python3 <<'PY'
           import re
           p = "android/app/build.gradle"
           with open(p) as f:
               g = f.read()
-          block = """
-              signingConfigs {
-                  release {
-                      storeFile file('release.keystore')
-                      storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
-                      keyAlias System.getenv('ANDROID_KEY_ALIAS')
-                      keyPassword System.getenv('ANDROID_KEY_PASSWORD')
-                  }
-              }
-          """
-          g = g.replace("android {", "android {" + block, 1)
-          # Add signingConfig signingConfigs.release inside buildTypes.release { ... }
-          g = re.sub(
-              r"(buildTypes\s*\{\s*release\s*\{)",
-              r"\1\n            signingConfig signingConfigs.release",
-              g,
-              count=1,
-          )
+          if "signingConfigs {" not in g:
+              block = (
+                  "\n    signingConfigs {\n"
+                  "        release {\n"
+                  "            storeFile file('release.keystore')\n"
+                  "            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')\n"
+                  "            keyAlias System.getenv('ANDROID_KEY_ALIAS')\n"
+                  "            keyPassword System.getenv('ANDROID_KEY_PASSWORD')\n"
+                  "        }\n"
+                  "    }\n"
+              )
+              g = g.replace("android {", "android {" + block, 1)
+          if "signingConfig signingConfigs.release" not in g:
+              g = re.sub(
+                  r"(buildTypes\s*\{\s*release\s*\{)",
+                  r"\1\n            signingConfig signingConfigs.release",
+                  g,
+                  count=1,
+              )
           with open(p, "w") as f:
               f.write(g)
           print("Configured release signing")
           PY
-          else
-            echo "signingConfigs already present"
-          fi
 
 
       - name: Build APK (release if keystore present, else debug)
