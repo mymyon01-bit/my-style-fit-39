@@ -287,6 +287,19 @@ export function useThread(conversationId: string | null) {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const old = (payload.old as unknown) as { id?: string };
+          if (old?.id) setMessages((prev) => prev.filter((m) => m.id !== old.id));
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -339,7 +352,65 @@ export function useThread(conversationId: string | null) {
     [user, conversationId],
   );
 
-  return { messages, loading, sendMessage, markRead };
+  /**
+   * Unsend (delete) one of my own messages. Realtime will remove it from the
+   * other participant's view as well.
+   */
+  const deleteMessage = useCallback(
+    async (messageId: string) => {
+      if (!user || !conversationId) return false;
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageId)
+        .eq("sender_id", user.id);
+      if (error) {
+        console.error("delete message failed", error);
+        return false;
+      }
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      return true;
+    },
+    [user, conversationId],
+  );
+
+  /**
+   * Broadcast a "nudge" — the other participant's bubble for this message
+   * shakes briefly. Uses Supabase Realtime broadcast (no DB writes).
+   */
+  const nudgeMessage = useCallback(
+    async (messageId: string) => {
+      if (!conversationId) return;
+      const channel = supabase.channel(`nudge-${conversationId}`);
+      await channel.subscribe();
+      await channel.send({
+        type: "broadcast",
+        event: "nudge",
+        payload: { messageId },
+      });
+      setTimeout(() => supabase.removeChannel(channel), 500);
+    },
+    [conversationId],
+  );
+
+  return { messages, loading, sendMessage, markRead, deleteMessage, nudgeMessage };
+}
+
+/** Subscribe to incoming nudges for a conversation. */
+export function subscribeNudges(
+  conversationId: string,
+  onNudge: (messageId: string) => void,
+) {
+  const channel = supabase
+    .channel(`nudge-${conversationId}`)
+    .on("broadcast", { event: "nudge" }, (payload: any) => {
+      const id = payload?.payload?.messageId;
+      if (id) onNudge(id);
+    })
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 /**

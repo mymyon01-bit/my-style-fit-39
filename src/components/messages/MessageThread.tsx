@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { useThread, addConversationMember } from "@/hooks/useMessages";
+import { useThread, addConversationMember, subscribeNudges } from "@/hooks/useMessages";
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
 import OOTDBackground, {
@@ -41,7 +41,17 @@ export default function MessageThread({
 }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { messages, loading, sendMessage } = useThread(conversationId);
+  const { messages, loading, sendMessage, deleteMessage, nudgeMessage } = useThread(conversationId);
+  const [shakingId, setShakingId] = useState<string | null>(null);
+
+  // Listen for incoming nudges → shake the matching bubble
+  useEffect(() => {
+    if (!conversationId) return;
+    return subscribeNudges(conversationId, (messageId) => {
+      setShakingId(messageId);
+      setTimeout(() => setShakingId((cur) => (cur === messageId ? null : cur)), 800);
+    });
+  }, [conversationId]);
   const [participants, setParticipants] = useState<ProfileLite[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [addQuery, setAddQuery] = useState("");
@@ -293,6 +303,9 @@ export default function MessageThread({
                   createdAt={m.created_at}
                   readAt={m.read_at}
                   attachments={(m.attachments as any[]) || []}
+                  shake={shakingId === m.id}
+                  onUnsend={isMine ? () => deleteMessage(m.id) : undefined}
+                  onNudge={isMine ? () => nudgeMessage(m.id) : undefined}
                 />
               </div>
             );

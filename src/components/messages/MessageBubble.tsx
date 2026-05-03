@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Fragment, useEffect, useState } from "react";
-import { Paperclip, Sparkles, UserCircle2, ShoppingBag, Camera, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { Paperclip, Sparkles, UserCircle2, ShoppingBag, Camera, ThumbsUp, ThumbsDown, Trash2, Zap } from "lucide-react";
 
 export interface ChatAttachment {
   /**
@@ -41,6 +41,12 @@ interface Props {
   createdAt: string;
   readAt?: string | null;
   attachments?: ChatAttachment[];
+  /** Externally triggered shake (e.g. nudge from other user). */
+  shake?: boolean;
+  /** Sender unsends own message. */
+  onUnsend?: () => void;
+  /** Sender nudges this message — wiggle on the recipient side. */
+  onNudge?: () => void;
 }
 
 type Reaction = "like" | "dislike" | null;
@@ -74,14 +80,40 @@ function writeReaction(id: string | undefined, r: Reaction) {
  * choice is persisted locally per-message so the user gets instant feedback
  * without waiting on backend infra.
  */
-export default function MessageBubble({ id, content, isMine, createdAt, readAt, attachments = [] }: Props) {
+export default function MessageBubble({ id, content, isMine, createdAt, readAt, attachments = [], shake, onUnsend, onNudge }: Props) {
   const navigate = useNavigate();
   const [reaction, setReaction] = useState<Reaction>(() => readReaction(id));
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [shaking, setShaking] = useState(false);
+  const bubbleRef = useRef<HTMLDivElement>(null);
   useEffect(() => { setReaction(readReaction(id)); }, [id]);
+  useEffect(() => {
+    if (!shake) return;
+    setShaking(true);
+    const t = setTimeout(() => setShaking(false), 750);
+    return () => clearTimeout(t);
+  }, [shake]);
+  // Close context menu on outside click / Esc
+  useEffect(() => {
+    if (!menu) return;
+    const onDown = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(null); };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
   const toggle = (r: Exclude<Reaction, null>) => {
     const next: Reaction = reaction === r ? null : r;
     setReaction(next);
     writeReaction(id, next);
+  };
+  const handleContext = (e: React.MouseEvent) => {
+    if (!isMine || (!onUnsend && !onNudge)) return;
+    e.preventDefault();
+    setMenu({ x: e.clientX, y: e.clientY });
   };
   const parts = content.split(/(@[a-zA-Z0-9_.-]+)/g);
   const time = new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -89,7 +121,11 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
   return (
     <div className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[12px] leading-snug shadow-soft ${
+        ref={bubbleRef}
+        onContextMenu={handleContext}
+        className={`relative max-w-[78%] rounded-2xl px-3.5 py-2 text-[12px] leading-snug shadow-soft ${
+          shaking ? "animate-nudge" : ""
+        } ${
           isMine
             ? "bg-primary text-primary-foreground"
             : "bg-card/85 backdrop-blur-sm text-card-foreground border border-border/25"
@@ -349,6 +385,36 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
           {reaction === "dislike" && <span className="text-[10px] font-bold">1</span>}
         </button>
       </div>
+
+      {/* Right-click context menu (own messages) */}
+      {menu && (
+        <div
+          style={{ position: "fixed", top: menu.y, left: menu.x, zIndex: 200 }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="min-w-[180px] overflow-hidden rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl animate-fade-in"
+        >
+          {onNudge && (
+            <button
+              type="button"
+              onClick={() => { onNudge(); setMenu(null); setShaking(true); setTimeout(() => setShaking(false), 750); }}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[12px] text-popover-foreground hover:bg-foreground/[0.06]"
+            >
+              <Zap className="h-3.5 w-3.5 text-accent" />
+              Nudge (shake)
+            </button>
+          )}
+          {onUnsend && (
+            <button
+              type="button"
+              onClick={() => { onUnsend(); setMenu(null); }}
+              className="flex w-full items-center gap-2.5 border-t border-border/40 px-3.5 py-2.5 text-left text-[12px] text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Unsend
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
