@@ -89,20 +89,20 @@ export default function NotificationsSheet({ open, onClose }: Props) {
               navigate(`/ootd?post=${n.target_id}`);
             }
           }}
-          className={`flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-accent/5 ${
+          className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-accent/5 ${
             isUnread ? "bg-accent/[0.06]" : "opacity-75"
           }`}
         >
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-foreground/[0.06]">
+          <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-foreground/[0.06]">
             {actor?.avatar_url ? (
               <img src={actor.avatar_url} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-[12px] font-semibold text-foreground/50">
+              <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-foreground/50">
                 {actorName[0].toUpperCase()}
               </div>
             )}
-            <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-background">
-              <Icon className="h-2.5 w-2.5 text-accent" />
+            <div className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-background">
+              <Icon className="h-2 w-2 text-accent" />
             </div>
           </div>
           <div className="min-w-0 flex-1">
