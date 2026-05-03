@@ -52,7 +52,8 @@ const SUFFIX_KEY_BY_TYPE: Record<string, string> = {
  * what's new on open.
  */
 export default function NotificationsSheet({ open, onClose }: Props) {
-  const { items, actors, loading, markAllRead, reload } = useNotificationsList();
+  const { items, actors, loading, markAllRead, reload, deleteAll } = useNotificationsList();
+  const [confirmClear, setConfirmClear] = useState(false);
   const navigate = useNavigate();
   const { t } = useI18n();
 
