@@ -31,6 +31,7 @@ const ProfilePage = () => {
   const { subscription } = useSubscription();
   const { folders, loading: foldersLoading } = useSavedFolders();
   const { isAdmin } = useAdmin();
+  const [userCount, setUserCount] = useState<number | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [styleProfile, setStyleProfile] = useState<any>(null);
   const [bodyProfile, setBodyProfile] = useState<any>(null);
