@@ -675,11 +675,17 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
     safeMode: !!body.safeMode,
   });
 
+  const userBodyRef = body.bodyProfileSummary?.userBodyImageUrl || body.userImageUrl || null;
+  const bodyRefLine = userBodyRef
+    ? "SECOND REFERENCE IMAGE = the user's actual body photo. Use it to LOCK the mannequin's body proportions (height, weight, shoulder width, torso, waist, hips, arms, legs) so the mannequin matches the real user. Convert the person to a faceless smooth mannequin (NO face, NO skin texture, NO identity), but PRESERVE the exact body silhouette, mass and proportions. The body MUST stay identical across every size — only the garment changes."
+    : "";
+
   const prompt = [
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
     buildCleanStudioPrompt(body),
-    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the reference product image EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the reference product image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
-  ].join(" ");
+    bodyRefLine,
+    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
+  ].filter(Boolean).join(" ");
 
   // ── DEBUG: confirm Body tab values reach AI generation ──────────────────
   const dbgB = body.bodyProfileSummary;
@@ -698,10 +704,19 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   console.log("[FIT_IMAGE_BODY_MASS_CLASS]", dbgBmi != null ? classifyBodyMass(dbgBmi) : null);
   console.log("[FIT_IMAGE_SELECTED_SIZE]", body.selectedSize);
   console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
+  console.log("[FIT_IMAGE_USER_BODY_REF]", userBodyRef ? userBodyRef.slice(0, 80) : null);
   console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
+
+  const messageContent: Array<Record<string, unknown>> = [
+    { type: "text", text: prompt },
+    { type: "image_url", image_url: { url: body.productImageUrl } },
+  ];
+  if (userBodyRef) {
+    messageContent.push({ type: "image_url", image_url: { url: userBodyRef } });
+  }
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -714,13 +729,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
       body: JSON.stringify({
         model,
         messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: body.productImageUrl } },
-            ],
-          },
+          { role: "user", content: messageContent },
         ],
         modalities: ["image", "text"],
       }),
