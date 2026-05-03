@@ -106,11 +106,11 @@ export default function NotificationsSheet({ open, onClose }: Props) {
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] text-foreground/90">
+            <p className="truncate text-[11.5px] text-foreground/90">
               <span className="font-semibold">{actorName}</span>
               <span className="text-foreground/60"> {SUFFIX_KEY_BY_TYPE[n.type] ? t(SUFFIX_KEY_BY_TYPE[n.type] as any) : n.type}</span>
             </p>
-            <p className="text-[10px] text-foreground/40">
+            <p className="text-[9.5px] text-foreground/40">
               {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
             </p>
           </div>
