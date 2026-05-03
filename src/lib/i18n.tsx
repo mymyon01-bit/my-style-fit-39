@@ -1222,7 +1222,7 @@ const translations = {
     updateAvailableBody: "Una nuova versione di mymyon è pronta per l'installazione.",
     updateLater: "PIÙ TARDI",
     updateInstall: "INSTALLA",
-    updateInstallHint: "Il telefono aprirà il programma di installazione del sistema. Dati e impostazioni rimangono intatti.",
+    updateInstallHint: "Disinstalla prima la versione precedente, poi reinstalla la nuova.",
   },
   de: {
     appName: "WARDROBE",
