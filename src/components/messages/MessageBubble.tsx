@@ -385,6 +385,36 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
           {reaction === "dislike" && <span className="text-[10px] font-bold">1</span>}
         </button>
       </div>
+
+      {/* Right-click context menu (own messages) */}
+      {menu && (
+        <div
+          style={{ position: "fixed", top: menu.y, left: menu.x, zIndex: 200 }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="min-w-[180px] overflow-hidden rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl animate-fade-in"
+        >
+          {onNudge && (
+            <button
+              type="button"
+              onClick={() => { onNudge(); setMenu(null); setShaking(true); setTimeout(() => setShaking(false), 750); }}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[12px] text-popover-foreground hover:bg-foreground/[0.06]"
+            >
+              <Zap className="h-3.5 w-3.5 text-accent" />
+              Nudge (shake)
+            </button>
+          )}
+          {onUnsend && (
+            <button
+              type="button"
+              onClick={() => { onUnsend(); setMenu(null); }}
+              className="flex w-full items-center gap-2.5 border-t border-border/40 px-3.5 py-2.5 text-left text-[12px] text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Unsend
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
