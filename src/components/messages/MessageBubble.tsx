@@ -41,6 +41,12 @@ interface Props {
   createdAt: string;
   readAt?: string | null;
   attachments?: ChatAttachment[];
+  /** Externally triggered shake (e.g. nudge from other user). */
+  shake?: boolean;
+  /** Sender unsends own message. */
+  onUnsend?: () => void;
+  /** Sender nudges this message — wiggle on the recipient side. */
+  onNudge?: () => void;
 }
 
 type Reaction = "like" | "dislike" | null;
