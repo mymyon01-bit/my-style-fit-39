@@ -186,30 +186,35 @@ jobs:
       - name: Configure release signing in build.gradle
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
-          node -e "
-            const fs=require('fs');
-            const p='android/app/build.gradle';
-            let g=fs.readFileSync(p,'utf8');
-            if (!g.includes('signingConfigs {')) {
-              const block = \`
-    signingConfigs {
-        release {
-            storeFile file('release.keystore')
-            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
-            keyAlias System.getenv('ANDROID_KEY_ALIAS')
-            keyPassword System.getenv('ANDROID_KEY_PASSWORD')
-        }
-    }
-\`;
-              g = g.replace(/(android \\{)/, '\$1' + block);
-            }
-            g = g.replace(/buildTypes \\{[\\s\\S]*?release \\{[\\s\\S]*?\\}/, m => {
-              if (m.includes('signingConfig')) return m;
-              return m.replace(/release \\{/, 'release {\\n            signingConfig signingConfigs.release');
-            });
-            fs.writeFileSync(p,g);
-            console.log('Configured release signing');
-          "
+          python3 <<'PY'
+          import re
+          p = "android/app/build.gradle"
+          with open(p) as f:
+              g = f.read()
+          if "signingConfigs {" not in g:
+              block = (
+                  "\n    signingConfigs {\n"
+                  "        release {\n"
+                  "            storeFile file('release.keystore')\n"
+                  "            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')\n"
+                  "            keyAlias System.getenv('ANDROID_KEY_ALIAS')\n"
+                  "            keyPassword System.getenv('ANDROID_KEY_PASSWORD')\n"
+                  "        }\n"
+                  "    }\n"
+              )
+              g = g.replace("android {", "android {" + block, 1)
+          if "signingConfig signingConfigs.release" not in g:
+              g = re.sub(
+                  r"(buildTypes\s*\{\s*release\s*\{)",
+                  r"\1\n            signingConfig signingConfigs.release",
+                  g,
+                  count=1,
+              )
+          with open(p, "w") as f:
+              f.write(g)
+          print("Configured release signing")
+          PY
+
 
       - name: Build APK (release if keystore present, else debug)
         working-directory: android
