@@ -594,15 +594,6 @@ export default function FitResults({
 
           {/* Primary action row */}
           <div className="space-y-2.5">
-            <button
-              onClick={() => setAnalyzeOpen(true)}
-              className="group flex w-full items-center justify-center gap-2.5 rounded-xl border border-accent/30 bg-accent/[0.06] py-3.5 text-[11px] font-bold tracking-[0.22em] text-accent transition-all hover:bg-accent/[0.14]"
-            >
-              <BarChart3 className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
-              ANALYZE FIT
-              <span className="transition-transform group-hover:translate-x-0.5">→</span>
-            </button>
-
             {product.url && product.url !== "#" && (() => {
               const recSize = sizing.recommendation?.primarySize ?? activeSize;
               const recOutcome = sizing.recommendation?.sizes.find((s) => s.size === recSize);
