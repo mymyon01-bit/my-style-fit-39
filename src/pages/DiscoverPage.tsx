@@ -287,15 +287,16 @@ export default function DiscoverPage() {
     [activeSubcategory, quizAnswers, runDiscoverSearch, selectedFit, selectedStyles],
   );
 
-  // initial load + tab change
+  // initial load + mood param change (re-runs when ?mood= updates from HomePage)
   useEffect(() => {
     if (moodParam) {
+      setTextInput(moodParam);
       runDiscover(moodParam);
       return;
     }
     runDiscover(activeTab === "for-you" ? "new arrivals" : activeTabData?.label || "new arrivals");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [moodParam]);
 
   useEffect(() => {
     if (activeTab === "for-you") return;
