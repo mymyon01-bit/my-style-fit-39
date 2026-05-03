@@ -68,16 +68,16 @@ export default function PostProductToOOTDSheet({ open, product, onClose, onPoste
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-sm sm:p-4"
           onClick={onClose}
         >
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            initial={{ y: 24, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 24, opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", damping: 26, stiffness: 280 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-t-3xl border-t border-border bg-card p-6 pb-10"
+            className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-border bg-card p-6 pb-10 sm:my-6 sm:max-h-[90vh] sm:overflow-y-auto"
           >
             <div className="mb-5 flex items-center justify-between">
               <h3 className="font-display text-base font-semibold text-foreground">Post to OOTD</h3>
