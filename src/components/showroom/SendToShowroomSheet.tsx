@@ -27,6 +27,7 @@ const SendToShowroomSheet = ({ open, onClose, product }: Props) => {
   const { rooms, loading, reload } = useUserShowrooms(user?.id);
   const [selected, setSelected] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [creatingDefault, setCreatingDefault] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -39,6 +40,35 @@ const SendToShowroomSheet = ({ open, onClose, product }: Props) => {
   useEffect(() => {
     if (open && !selected && rooms.length > 0) setSelected(rooms[0].id);
   }, [open, rooms, selected]);
+
+  // If user has zero showrooms, auto-create a default "My Showroom" so the
+  // "Send to Showroom" action always succeeds without forcing a detour.
+  useEffect(() => {
+    if (!open || loading || creatingDefault || !user) return;
+    if (rooms.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      setCreatingDefault(true);
+      const { data, error } = await supabase
+        .from("showrooms")
+        .insert({
+          user_id: user.id,
+          title: "My Showroom",
+          intro: null,
+          visibility: "private",
+          hashtags: [],
+        })
+        .select("id")
+        .single();
+      if (cancelled) return;
+      if (!error && data) {
+        await reload();
+        setSelected(data.id);
+      }
+      setCreatingDefault(false);
+    })();
+    return () => { cancelled = true; };
+  }, [open, loading, rooms.length, user, creatingDefault, reload]);
 
   const handleSend = async () => {
     if (!user || !product || !selected) return;
