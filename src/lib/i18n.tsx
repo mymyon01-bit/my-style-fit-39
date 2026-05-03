@@ -838,7 +838,7 @@ const translations = {
     updateAvailableBody: "mymyon 새 버전을 설치할 수 있어요.",
     updateLater: "나중에",
     updateInstall: "설치",
-    updateInstallHint: "시스템 설치 화면이 열려서 앱이 업데이트돼요. 데이터와 설정은 그대로 유지됩니다.",
+    updateInstallHint: "이전 버전을 삭제한 후 새 버전을 다시 설치해주세요.",
   },
   it: {
     appName: "WARDROBE",
