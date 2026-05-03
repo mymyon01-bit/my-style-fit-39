@@ -398,6 +398,7 @@ export function subscribeNudges(
   return () => {
     supabase.removeChannel(channel);
   };
+}
 
 /**
  * Get-or-create a 1:1 conversation between the current user and another.
