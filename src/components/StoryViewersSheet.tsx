@@ -78,16 +78,16 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[140] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4"
           onClick={onClose}
         >
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            initial={{ y: 24, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 24, opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", damping: 26, stiffness: 280 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl bg-card border-t border-border max-h-[70vh] flex flex-col"
+            className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-card border border-border max-h-[85vh] sm:max-h-[80vh] flex flex-col"
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
               <div className="flex items-center gap-2">
