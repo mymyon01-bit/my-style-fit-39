@@ -280,7 +280,7 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
   // ============ MODAL ============
   const modal = open ? (
     <div
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/65 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 backdrop-blur-sm animate-fade-in"
       onClick={() => setOpen(false)}
     >
       <div

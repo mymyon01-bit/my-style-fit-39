@@ -60,7 +60,7 @@ export const SignUpPrompt = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm sm:p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm sm:p-4"
       onClick={onClose}
     >
       <motion.div

@@ -78,7 +78,7 @@ export default function CustomizeMenu({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-foreground/40 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-foreground/40 backdrop-blur-md animate-fade-in"
       onClick={() => onOpenChange(false)}
     >
       <div
