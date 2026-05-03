@@ -138,7 +138,11 @@ export default function OOTDWelcomeModal() {
     if (typeof window === "undefined") return;
     const seen = localStorage.getItem(STORAGE_KEY);
     if (!seen) {
-      const timer = setTimeout(() => setOpen(true), 600);
+      const timer = setTimeout(() => {
+        setOpen(true);
+        // Mark as seen immediately so it auto-shows only once.
+        try { localStorage.setItem(STORAGE_KEY, "1"); } catch {/* ignore */}
+      }, 600);
       return () => clearTimeout(timer);
     }
   }, []);
