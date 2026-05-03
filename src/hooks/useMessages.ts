@@ -287,6 +287,19 @@ export function useThread(conversationId: string | null) {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const old = (payload.old as unknown) as { id?: string };
+          if (old?.id) setMessages((prev) => prev.filter((m) => m.id !== old.id));
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
