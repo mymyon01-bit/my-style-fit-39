@@ -173,17 +173,6 @@ jobs:
             fs.writeFileSync(path, xml);
           "
 
-      - name: Compute version (timestamp + short SHA)
-        id: version
-        run: |
-          # versionCode = unix epoch (monotonically increasing)
-          VC=$(date +%s)
-          # versionName = YYYY.MM.DD-shortsha (human-readable)
-          VN="$(date +%Y.%m.%d)-$(echo ${{ github.sha }} | cut -c1-7)"
-          echo "version_code=$VC" >> "$GITHUB_OUTPUT"
-          echo "version_name=$VN" >> "$GITHUB_OUTPUT"
-          echo "Version: $VN ($VC)"
-
       - name: Inject versionCode/versionName into build.gradle
         run: |
           sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.version_code }}/" android/app/build.gradle
@@ -193,14 +182,6 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x android/gradlew
 
-      - name: Decode release keystore
-        if: ${{ env.HAS_KEYSTORE == 'true' }}
-        env:
-          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
-          echo "Keystore decoded ($(wc -c < android/app/release.keystore) bytes)"
 
       - name: Configure release signing in build.gradle
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
