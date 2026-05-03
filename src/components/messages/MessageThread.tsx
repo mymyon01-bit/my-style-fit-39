@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { useThread, addConversationMember } from "@/hooks/useMessages";
+import { useThread, addConversationMember, subscribeNudges } from "@/hooks/useMessages";
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
 import OOTDBackground, {
