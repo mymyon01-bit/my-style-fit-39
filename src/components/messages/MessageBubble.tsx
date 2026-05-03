@@ -80,14 +80,40 @@ function writeReaction(id: string | undefined, r: Reaction) {
  * choice is persisted locally per-message so the user gets instant feedback
  * without waiting on backend infra.
  */
-export default function MessageBubble({ id, content, isMine, createdAt, readAt, attachments = [] }: Props) {
+export default function MessageBubble({ id, content, isMine, createdAt, readAt, attachments = [], shake, onUnsend, onNudge }: Props) {
   const navigate = useNavigate();
   const [reaction, setReaction] = useState<Reaction>(() => readReaction(id));
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [shaking, setShaking] = useState(false);
+  const bubbleRef = useRef<HTMLDivElement>(null);
   useEffect(() => { setReaction(readReaction(id)); }, [id]);
+  useEffect(() => {
+    if (!shake) return;
+    setShaking(true);
+    const t = setTimeout(() => setShaking(false), 750);
+    return () => clearTimeout(t);
+  }, [shake]);
+  // Close context menu on outside click / Esc
+  useEffect(() => {
+    if (!menu) return;
+    const onDown = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(null); };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
   const toggle = (r: Exclude<Reaction, null>) => {
     const next: Reaction = reaction === r ? null : r;
     setReaction(next);
     writeReaction(id, next);
+  };
+  const handleContext = (e: React.MouseEvent) => {
+    if (!isMine || (!onUnsend && !onNudge)) return;
+    e.preventDefault();
+    setMenu({ x: e.clientX, y: e.clientY });
   };
   const parts = content.split(/(@[a-zA-Z0-9_.-]+)/g);
   const time = new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -95,7 +121,11 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
   return (
     <div className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[12px] leading-snug shadow-soft ${
+        ref={bubbleRef}
+        onContextMenu={handleContext}
+        className={`relative max-w-[78%] rounded-2xl px-3.5 py-2 text-[12px] leading-snug shadow-soft ${
+          shaking ? "animate-nudge" : ""
+        } ${
           isMine
             ? "bg-primary text-primary-foreground"
             : "bg-card/85 backdrop-blur-sm text-card-foreground border border-border/25"
