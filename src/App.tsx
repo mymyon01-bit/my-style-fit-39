@@ -167,6 +167,34 @@ const AppRoutes = () => {
     })();
   }, [user]);
 
+  // Enable Android immersive fullscreen (hides status & navigation bars).
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    import("@/lib/native/fullscreen").then(({ installFullscreen }) => installFullscreen());
+  }, []);
+
+  // Android hardware back button — if OOTD modal is open, close it instead
+  // of leaving the app / going home. Otherwise let the browser handle it
+  // (which will navigate the React Router history back).
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    let remove: (() => void) | undefined;
+    import("@capacitor/app").then(({ App: CapApp }) => {
+      CapApp.addListener("backButton", ({ canGoBack }) => {
+        // OOTD modal handling is done via a global event so we don't need
+        // to import the modal context here (which lives below this hook).
+        const handled = window.dispatchEvent(new CustomEvent("app:backbutton", { cancelable: true }));
+        const ev = new Event("app:backbutton-check");
+        (ev as any).handledRef = { handled: false };
+        window.dispatchEvent(ev);
+        if ((ev as any).handledRef.handled) return;
+        if (canGoBack) window.history.back();
+        else CapApp.exitApp();
+      }).then((h) => { remove = () => h.remove(); });
+    });
+    return () => { remove?.(); };
+  }, []);
+
   // Live message toasts — pop a sonner toast the moment a new message arrives,
   // regardless of which page the user is on, so they never need to refresh
   // to see incoming messages.
