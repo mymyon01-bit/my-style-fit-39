@@ -58,10 +58,10 @@ export default function StyleLookModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background ${radiusClass}`}>
-        <div className="grid md:grid-cols-2 max-h-[85vh] overflow-y-auto">
+      <DialogContent className={`max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background w-[calc(100vw-1.5rem)] sm:w-auto max-h-[calc(100dvh-6rem)] md:max-h-[85vh] ${radiusClass}`}>
+        <div className="grid md:grid-cols-2 max-h-[calc(100dvh-6rem)] md:max-h-[85vh] overflow-y-auto">
           {/* Product image */}
-          <div className={`relative aspect-[3/4] md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden ${radiusClass}`}>
+          <div className={`relative aspect-square md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden ${radiusClass}`}>
             <AnimatePresence mode="wait">
               {current?.image_url ? (
                 <motion.img
@@ -86,7 +86,7 @@ export default function StyleLookModal({
             </AnimatePresence>
 
             {typeof current?.match_score === "number" && (
-              <div className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-soft backdrop-blur">
+              <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-soft backdrop-blur">
                 <Heart className="h-3 w-3 fill-primary text-primary" />
                 {current.match_score}% match
               </div>
@@ -117,7 +117,7 @@ export default function StyleLookModal({
           </div>
 
           {/* Details */}
-          <div className="p-6 md:p-7 flex flex-col">
+          <div className="p-5 md:p-7 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               <p className="text-[10px] font-semibold tracking-[0.22em] uppercase text-foreground/55">
