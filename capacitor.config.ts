@@ -26,6 +26,12 @@ const config: CapacitorConfig = {
     backgroundColor: "#0a0a0a",
   },
   plugins: {
+    StatusBar: {
+      // Hide entirely; the WebView paints under the status bar.
+      overlaysWebView: true,
+      style: "DARK",
+      backgroundColor: "#00000000",
+    },
     SplashScreen: {
       // Keep splash visible until the React app explicitly hides it.
       // Prevents the white flash between native splash and JS bundle load.
