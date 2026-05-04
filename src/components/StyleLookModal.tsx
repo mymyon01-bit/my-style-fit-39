@@ -86,7 +86,7 @@ export default function StyleLookModal({
             </AnimatePresence>
 
             {typeof current?.match_score === "number" && (
-              <div className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-soft backdrop-blur">
+              <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-background/85 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-soft backdrop-blur">
                 <Heart className="h-3 w-3 fill-primary text-primary" />
                 {current.match_score}% match
               </div>
