@@ -58,10 +58,10 @@ export default function StyleLookModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background ${radiusClass}`}>
-        <div className="grid md:grid-cols-2 max-h-[85vh] overflow-y-auto">
+      <DialogContent className={`max-w-3xl p-0 overflow-hidden border-foreground/10 bg-background w-[calc(100vw-1.5rem)] sm:w-auto max-h-[calc(100dvh-6rem)] md:max-h-[85vh] ${radiusClass}`}>
+        <div className="grid md:grid-cols-2 max-h-[calc(100dvh-6rem)] md:max-h-[85vh] overflow-y-auto">
           {/* Product image */}
-          <div className={`relative aspect-[3/4] md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden ${radiusClass}`}>
+          <div className={`relative aspect-square md:aspect-auto md:min-h-[520px] bg-foreground/[0.04] overflow-hidden ${radiusClass}`}>
             <AnimatePresence mode="wait">
               {current?.image_url ? (
                 <motion.img
