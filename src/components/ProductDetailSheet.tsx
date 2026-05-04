@@ -176,26 +176,26 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                     TRY THIS ON
                   </button>
 
-                  {/* OOTD actions — POST AS OOTD + SHARE IN OOTD */}
+                  {/* Showroom + Share — compact labels for mobile */}
                   <div className="grid grid-cols-2 gap-2.5">
                     <AuthGate action="send to your Showroom">
                       <button
                         onClick={() => setPostOpen(true)}
                         disabled={!product.image_url}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[11px] font-bold tracking-[0.14em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
+                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[11px] font-bold tracking-[0.14em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
                       >
                         <LayoutGrid className="h-4 w-4" />
-                        SEND TO MY SHOWROOM
+                        TO SHOWROOM
                       </button>
                     </AuthGate>
 
                     <AuthGate action="share to friends">
                       <button
                         onClick={() => setShareInOOTDOpen(true)}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[11px] font-bold tracking-[0.14em] text-accent transition-all hover:bg-accent/15"
+                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[11px] font-bold tracking-[0.14em] text-accent transition-all hover:bg-accent/15"
                       >
                         <Send className="h-4 w-4" />
-                        SHARE IN OOTD
+                        SHARE
                       </button>
                     </AuthGate>
                   </div>

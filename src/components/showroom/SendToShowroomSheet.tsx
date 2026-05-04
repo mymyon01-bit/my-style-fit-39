@@ -90,7 +90,18 @@ const SendToShowroomSheet = ({ open, onClose, product }: Props) => {
         position_order: count ?? 0,
       });
       if (error) throw error;
-      toast.success("Sent to your Showroom");
+      // Bump showroom updated_at so listing re-orders and any cached fetch refreshes
+      await supabase
+        .from("showrooms")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", selected);
+      const roomId = selected;
+      toast.success("Sent to your Showroom", {
+        action: {
+          label: "View",
+          onClick: () => { window.location.href = `/showroom/${roomId}`; },
+        },
+      });
       onClose();
     } catch (e: any) {
       toast.error(e?.message || "Couldn't send");
