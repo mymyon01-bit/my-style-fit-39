@@ -187,34 +187,38 @@ jobs:
             fs.writeFileSync(path, xml);
           "
 
-      - name: Patch styles.xml + MainActivity for fullscreen / immersive mode
+      - name: Patch styles.xml for fullscreen / immersive mode
         run: |
-          # 1) Make the AppTheme fullscreen (no status bar / no nav bar window flags)
           STYLES=android/app/src/main/res/values/styles.xml
           if [ -f "$STYLES" ]; then
-            node -e "
-              const fs = require('fs');
-              let s = fs.readFileSync('$STYLES','utf8');
-              const inject = \`
-        <item name=\\\"android:windowTranslucentStatus\\\">true</item>
-        <item name=\\\"android:windowTranslucentNavigation\\\">true</item>
-        <item name=\\\"android:windowDrawsSystemBarBackgrounds\\\">false</item>
-        <item name=\\\"android:windowLayoutInDisplayCutoutMode\\\">shortEdges</item>
-              \`;
-              if (!s.includes('windowTranslucentStatus')) {
-                s = s.replace(/<style name=\\\"AppTheme.NoActionBar[^\\\"]*\\\"[^>]*>/, m => m + inject);
-                fs.writeFileSync('$STYLES', s);
-                console.log('Patched styles.xml for fullscreen');
-              }
-            "
+            cat > /tmp/patch-styles.js <<'JSEOF'
+          const fs = require('fs');
+          const path = process.argv[1];
+          let s = fs.readFileSync(path, 'utf8');
+          const inject = [
+            '        <item name="android:windowTranslucentStatus">true</item>',
+            '        <item name="android:windowTranslucentNavigation">true</item>',
+            '        <item name="android:windowDrawsSystemBarBackgrounds">false</item>',
+            '        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>',
+          ].join('\n') + '\n';
+          if (!s.includes('windowTranslucentStatus')) {
+            s = s.replace(/<style name="AppTheme.NoActionBar[^"]*"[^>]*>/, m => m + '\n' + inject);
+            fs.writeFileSync(path, s);
+            console.log('Patched styles.xml for fullscreen');
+          } else {
+            console.log('styles.xml already patched');
+          }
+          JSEOF
+            node /tmp/patch-styles.js "$STYLES"
           fi
 
-          # 2) Inject immersive sticky flags into MainActivity.java
+      - name: Patch MainActivity.java for immersive sticky flags
+        run: |
           MA=$(find android/app/src/main/java -name MainActivity.java | head -1)
           if [ -n "$MA" ] && ! grep -q "SYSTEM_UI_FLAG_IMMERSIVE_STICKY" "$MA"; then
-            python3 <<PY
-          import re
-          p = "$MA"
+            cat > /tmp/patch-mainactivity.py <<'PYEOF'
+          import re, sys
+          p = sys.argv[1]
           src = open(p).read()
           if "import android.os.Bundle" not in src:
               src = src.replace("import com.getcapacitor.BridgeActivity;",
@@ -249,7 +253,8 @@ jobs:
           src = re.sub(r"(public class MainActivity extends BridgeActivity\s*\{)", r"\1\n" + method, src, count=1)
           open(p, "w").write(src)
           print("Patched MainActivity for immersive fullscreen")
-          PY
+          PYEOF
+            python3 /tmp/patch-mainactivity.py "$MA"
           fi
 
       - name: Inject versionCode/versionName into build.gradle
