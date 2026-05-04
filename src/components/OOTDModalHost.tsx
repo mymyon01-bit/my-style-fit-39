@@ -60,6 +60,25 @@ const OOTDModalHost = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, close]);
 
+  // Android hardware back button — close the modal (or step back through
+  // nested user-profile routes inside it) instead of leaving the app or
+  // dropping the user back on Home.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onBack = (e: Event) => {
+      const detail = (e as CustomEvent<{ handled: boolean }>).detail;
+      if (!detail) return;
+      detail.handled = true;
+      if (location.pathname.startsWith("/user/")) {
+        window.history.back();
+      } else {
+        close();
+      }
+    };
+    window.addEventListener("app:backbutton", onBack as EventListener);
+    return () => window.removeEventListener("app:backbutton", onBack as EventListener);
+  }, [isOpen, location.pathname, close]);
+
   // Decide what to render inside the modal based on current route.
   const renderInner = () => {
     if (location.pathname.startsWith("/user/")) {
