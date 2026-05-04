@@ -167,6 +167,30 @@ const AppRoutes = () => {
     })();
   }, [user]);
 
+  // Enable Android immersive fullscreen (hides status & navigation bars).
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    import("@/lib/native/fullscreen").then(({ installFullscreen }) => installFullscreen());
+  }, []);
+
+  // Android hardware back button — listeners (e.g. OOTD modal) can intercept
+  // by setting detail.handled = true. Otherwise navigate browser history back,
+  // and exit the app when there's nothing to go back to.
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    let remove: (() => void) | undefined;
+    import("@capacitor/app").then(({ App: CapApp }) => {
+      CapApp.addListener("backButton", ({ canGoBack }) => {
+        const detail = { handled: false };
+        window.dispatchEvent(new CustomEvent("app:backbutton", { detail }));
+        if (detail.handled) return;
+        if (canGoBack) window.history.back();
+        else CapApp.exitApp();
+      }).then((h) => { remove = () => h.remove(); });
+    });
+    return () => { remove?.(); };
+  }, []);
+
   // Live message toasts — pop a sonner toast the moment a new message arrives,
   // regardless of which page the user is on, so they never need to refresh
   // to see incoming messages.
