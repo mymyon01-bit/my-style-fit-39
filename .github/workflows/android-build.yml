@@ -187,6 +187,71 @@ jobs:
             fs.writeFileSync(path, xml);
           "
 
+      - name: Patch styles.xml + MainActivity for fullscreen / immersive mode
+        run: |
+          # 1) Make the AppTheme fullscreen (no status bar / no nav bar window flags)
+          STYLES=android/app/src/main/res/values/styles.xml
+          if [ -f "$STYLES" ]; then
+            node -e "
+              const fs = require('fs');
+              let s = fs.readFileSync('$STYLES','utf8');
+              const inject = \`
+        <item name=\\\"android:windowTranslucentStatus\\\">true</item>
+        <item name=\\\"android:windowTranslucentNavigation\\\">true</item>
+        <item name=\\\"android:windowDrawsSystemBarBackgrounds\\\">false</item>
+        <item name=\\\"android:windowLayoutInDisplayCutoutMode\\\">shortEdges</item>
+              \`;
+              if (!s.includes('windowTranslucentStatus')) {
+                s = s.replace(/<style name=\\\"AppTheme.NoActionBar[^\\\"]*\\\"[^>]*>/, m => m + inject);
+                fs.writeFileSync('$STYLES', s);
+                console.log('Patched styles.xml for fullscreen');
+              }
+            "
+          fi
+
+          # 2) Inject immersive sticky flags into MainActivity.java
+          MA=$(find android/app/src/main/java -name MainActivity.java | head -1)
+          if [ -n "$MA" ] && ! grep -q "SYSTEM_UI_FLAG_IMMERSIVE_STICKY" "$MA"; then
+            python3 <<PY
+          import re
+          p = "$MA"
+          src = open(p).read()
+          if "import android.os.Bundle" not in src:
+              src = src.replace("import com.getcapacitor.BridgeActivity;",
+                                "import android.os.Bundle;\nimport android.view.View;\nimport android.view.WindowManager;\nimport com.getcapacitor.BridgeActivity;")
+          else:
+              if "import android.view.View;" not in src:
+                  src = src.replace("import android.os.Bundle;", "import android.os.Bundle;\nimport android.view.View;\nimport android.view.WindowManager;")
+          method = '''
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                  applyImmersive();
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) applyImmersive();
+              }
+
+              private void applyImmersive() {
+                  getWindow().getDecorView().setSystemUiVisibility(
+                      View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                      | View.SYSTEM_UI_FLAG_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+              }
+          '''
+          src = re.sub(r"(public class MainActivity extends BridgeActivity\s*\{)", r"\1\n" + method, src, count=1)
+          open(p, "w").write(src)
+          print("Patched MainActivity for immersive fullscreen")
+          PY
+          fi
+
       - name: Inject versionCode/versionName into build.gradle
         run: |
           sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.version_code }}/" android/app/build.gradle
