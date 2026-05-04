@@ -52,15 +52,14 @@ if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform
   // padding only on the APK (web stays unpadded).
   document.documentElement.classList.add("native-app");
 
-  // Configure the status bar so the OS time/battery are NOT drawn on top
-  // of our content. setOverlaysWebView(false) reserves the status-bar area
-  // and pushes the WebView down. Style 'Light' = light icons on dark bg.
+  // Hide the OS status bar entirely so the app runs in true fullscreen.
+  // Combined with the immersive flags injected into MainActivity (Android)
+  // this also keeps the bottom navigation bar hidden.
   import("@capacitor/status-bar")
-    .then(async ({ StatusBar, Style }) => {
+    .then(async ({ StatusBar }) => {
       try {
-        await StatusBar.setOverlaysWebView({ overlay: false });
-        await StatusBar.setStyle({ style: Style.Dark });
-        await StatusBar.setBackgroundColor({ color: "#0a0a0a" });
+        await StatusBar.setOverlaysWebView({ overlay: true });
+        await StatusBar.hide();
       } catch { /* ignore */ }
     })
     .catch(() => { /* plugin missing — ignore */ });
