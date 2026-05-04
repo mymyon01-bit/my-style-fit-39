@@ -173,21 +173,17 @@ const AppRoutes = () => {
     import("@/lib/native/fullscreen").then(({ installFullscreen }) => installFullscreen());
   }, []);
 
-  // Android hardware back button — if OOTD modal is open, close it instead
-  // of leaving the app / going home. Otherwise let the browser handle it
-  // (which will navigate the React Router history back).
+  // Android hardware back button — listeners (e.g. OOTD modal) can intercept
+  // by setting detail.handled = true. Otherwise navigate browser history back,
+  // and exit the app when there's nothing to go back to.
   useEffect(() => {
     if (!isNativeApp()) return;
     let remove: (() => void) | undefined;
     import("@capacitor/app").then(({ App: CapApp }) => {
       CapApp.addListener("backButton", ({ canGoBack }) => {
-        // OOTD modal handling is done via a global event so we don't need
-        // to import the modal context here (which lives below this hook).
-        const handled = window.dispatchEvent(new CustomEvent("app:backbutton", { cancelable: true }));
-        const ev = new Event("app:backbutton-check");
-        (ev as any).handledRef = { handled: false };
-        window.dispatchEvent(ev);
-        if ((ev as any).handledRef.handled) return;
+        const detail = { handled: false };
+        window.dispatchEvent(new CustomEvent("app:backbutton", { detail }));
+        if (detail.handled) return;
         if (canGoBack) window.history.back();
         else CapApp.exitApp();
       }).then((h) => { remove = () => h.remove(); });
