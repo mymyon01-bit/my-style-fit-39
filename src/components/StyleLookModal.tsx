@@ -117,7 +117,7 @@ export default function StyleLookModal({
           </div>
 
           {/* Details */}
-          <div className="p-6 md:p-7 flex flex-col">
+          <div className="p-5 md:p-7 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               <p className="text-[10px] font-semibold tracking-[0.22em] uppercase text-foreground/55">
