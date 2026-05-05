@@ -587,14 +587,14 @@ const ShowroomDetailPage = () => {
                       {isOwner && (
                         <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <button
-                            onClick={() => setBest(isBest ? null : item.id)}
+                            onClick={(e) => { e.stopPropagation(); setBest(isBest ? null : item.id); }}
                             className="rounded-full border border-border/35 bg-background/95 p-1 text-foreground/70 hover:text-foreground"
                             title={isBest ? "Unset Best" : "Set as Best"}
                           >
                             <Star className={`h-3 w-3 ${isBest ? "fill-[hsl(var(--star))] text-[hsl(var(--star))]" : ""}`} />
                           </button>
                           <button
-                            onClick={() => removeItem(item)}
+                            onClick={(e) => { e.stopPropagation(); removeItem(item); }}
                             className="rounded-full border border-border/35 bg-background/95 p-1 text-foreground/70 hover:text-destructive"
                             title="Remove"
                           >
