@@ -319,6 +319,7 @@ const SCOPED_SOURCES: Array<{ site: string; label: string }> = [
   { site: "farfetch.com", label: "farfetch" },
   { site: "yoox.com", label: "yoox" },
   { site: "zalando.com", label: "zalando" },
+  { site: "mytheresa.com", label: "mytheresa" },
 ];
 
 async function discoverScopedUrls(rawQuery: string): Promise<DiscoveredCandidate[]> {
