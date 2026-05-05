@@ -31,6 +31,63 @@ const ShowroomDetailPage = () => {
   const [addingItem, setAddingItem] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
+  const [detailProduct, setDetailProduct] = useState<any | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  const openItem = async (item: ShowroomItem) => {
+    if (item.product_id) {
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", item.product_id)
+        .maybeSingle();
+      if (data) {
+        setDetailProduct({
+          id: data.id,
+          name: data.title || item.title || "",
+          brand: data.brand || item.brand || "",
+          price: data.price ? String(data.price) : "",
+          category: data.category || "",
+          reason: "From this Showroom",
+          style_tags: data.style_tags || [],
+          color: data.color || "",
+          fit: data.fit || "regular",
+          image_url: data.image_url || item.image_url,
+          source_url: data.source_url,
+          store_name: data.store_name,
+          platform: data.platform,
+        });
+        return;
+      }
+    }
+    setDetailProduct({
+      id: item.id,
+      name: item.title || "Item",
+      brand: item.brand || "",
+      price: "",
+      category: "",
+      reason: item.note || "From this Showroom",
+      style_tags: item.hashtags || [],
+      color: "",
+      fit: "regular",
+      image_url: item.image_url,
+      source_url: null,
+      store_name: null,
+      platform: null,
+    });
+  };
+
+  const handleSaveProduct = async (productId: string) => {
+    if (!user) { toast.error("Sign in to save"); return; }
+    const has = savedIds.has(productId);
+    if (has) {
+      await supabase.from("saved_items").delete().eq("user_id", user.id).eq("product_id", productId);
+      setSavedIds((s) => { const n = new Set(s); n.delete(productId); return n; });
+    } else {
+      await supabase.from("saved_items").insert({ user_id: user.id, product_id: productId });
+      setSavedIds((s) => new Set(s).add(productId));
+    }
+  };
 
   // Personalization (same pickers as OOTD My Page) — local-only per device
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
