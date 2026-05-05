@@ -15,6 +15,7 @@ import { useShowroom } from "@/hooks/useShowrooms";
 import { useShowroomFollow } from "@/hooks/useShowroomFollow";
 import type { ShowroomItem } from "@/lib/showroom/types";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import ProductDetailSheet from "@/components/ProductDetailSheet";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
