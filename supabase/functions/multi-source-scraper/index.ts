@@ -742,6 +742,10 @@ const SCRAPERAPI_TARGETS: Array<(q: string) => { url: string; retailer: string }
     retailer: "matches",
   }),
   (q) => ({
+    url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:mytheresa.com")}`,
+    retailer: "mytheresa",
+  }),
+  (q) => ({
     url: `https://www.google.com/search?q=${encodeURIComponent(q + " site:endclothing.com")}`,
     retailer: "endclothing",
   }),
