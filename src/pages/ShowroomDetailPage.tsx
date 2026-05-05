@@ -615,6 +615,14 @@ const ShowroomDetailPage = () => {
           )}
         </div>
       </div>
+
+      <ProductDetailSheet
+        product={detailProduct}
+        open={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        isSaved={detailProduct ? savedIds.has(detailProduct.id) : false}
+        onSave={handleSaveProduct}
+      />
     </div>
   );
 };
