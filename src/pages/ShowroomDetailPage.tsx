@@ -15,6 +15,7 @@ import { useShowroom } from "@/hooks/useShowrooms";
 import { useShowroomFollow } from "@/hooks/useShowroomFollow";
 import type { ShowroomItem } from "@/lib/showroom/types";
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
+import ProductDetailSheet from "@/components/ProductDetailSheet";
 import MyBackgroundPicker from "@/components/ootd/MyBackgroundPicker";
 import SongOfTheDayPicker, { loadSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";
 import CardColorPicker, { loadCardColor, applyCardColorToRoot, type CardColor } from "@/components/ootd/CardColorPicker";
@@ -30,6 +31,62 @@ const ShowroomDetailPage = () => {
   const [addingItem, setAddingItem] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
+  const [detailProduct, setDetailProduct] = useState<any | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  const openItem = async (item: ShowroomItem) => {
+    let detail: any = {
+      id: item.product_id || item.id,
+      name: item.title || "Item",
+      brand: item.brand || "",
+      price: "",
+      category: "",
+      reason: item.note || "From this Showroom",
+      style_tags: item.hashtags || [],
+      color: "",
+      fit: "regular",
+      image_url: item.image_url,
+      source_url: null,
+      store_name: null,
+      platform: null,
+    };
+    if (item.product_id) {
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", item.product_id)
+        .maybeSingle();
+      if (data) {
+        const d: any = data;
+        detail = {
+          ...detail,
+          name: d.name || d.title || detail.name,
+          brand: d.brand || detail.brand,
+          price: d.price ? String(d.price) : "",
+          category: d.category || d.category_id || "",
+          color: d.color || (d.color_tags?.[0] ?? ""),
+          fit: d.fit || d.fit_type || "regular",
+          image_url: d.image_url || d.images?.[0] || detail.image_url,
+          source_url: d.source_url || d.external_url || null,
+          store_name: d.store_name || null,
+          platform: d.platform || null,
+        };
+      }
+    }
+    setDetailProduct(detail);
+  };
+
+  const handleSaveProduct = async (productId: string) => {
+    if (!user) { toast.error("Sign in to save"); return; }
+    const has = savedIds.has(productId);
+    if (has) {
+      await supabase.from("saved_items").delete().eq("user_id", user.id).eq("product_id", productId);
+      setSavedIds((s) => { const n = new Set(s); n.delete(productId); return n; });
+    } else {
+      await supabase.from("saved_items").insert({ user_id: user.id, product_id: productId });
+      setSavedIds((s) => new Set(s).add(productId));
+    }
+  };
 
   // Personalization (same pickers as OOTD My Page) — local-only per device
   const [bgTheme, setBgTheme] = useState<OOTDBgTheme>(() => loadOOTDBgTheme());
@@ -512,7 +569,7 @@ const ShowroomDetailPage = () => {
               {items.map((item) => {
                 const isBest = room.best_item_id === item.id;
                 return (
-                  <div key={item.id} className="group overflow-hidden rounded-xl border border-border/35 bg-background/70">
+                  <div key={item.id} className="group overflow-hidden rounded-xl border border-border/35 bg-background/70 cursor-pointer" onClick={() => openItem(item)}>
                     <div className="relative aspect-[3/4] overflow-hidden bg-muted">
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.title || "Showroom item"} className="h-full w-full object-cover" loading="lazy" />
@@ -530,14 +587,14 @@ const ShowroomDetailPage = () => {
                       {isOwner && (
                         <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <button
-                            onClick={() => setBest(isBest ? null : item.id)}
+                            onClick={(e) => { e.stopPropagation(); setBest(isBest ? null : item.id); }}
                             className="rounded-full border border-border/35 bg-background/95 p-1 text-foreground/70 hover:text-foreground"
                             title={isBest ? "Unset Best" : "Set as Best"}
                           >
                             <Star className={`h-3 w-3 ${isBest ? "fill-[hsl(var(--star))] text-[hsl(var(--star))]" : ""}`} />
                           </button>
                           <button
-                            onClick={() => removeItem(item)}
+                            onClick={(e) => { e.stopPropagation(); removeItem(item); }}
                             className="rounded-full border border-border/35 bg-background/95 p-1 text-foreground/70 hover:text-destructive"
                             title="Remove"
                           >
@@ -558,6 +615,14 @@ const ShowroomDetailPage = () => {
           )}
         </div>
       </div>
+
+      <ProductDetailSheet
+        product={detailProduct}
+        open={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        isSaved={detailProduct ? savedIds.has(detailProduct.id) : false}
+        onSave={handleSaveProduct}
+      />
     </div>
   );
 };
