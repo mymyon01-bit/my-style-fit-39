@@ -569,7 +569,7 @@ const ShowroomDetailPage = () => {
               {items.map((item) => {
                 const isBest = room.best_item_id === item.id;
                 return (
-                  <div key={item.id} className="group overflow-hidden rounded-xl border border-border/35 bg-background/70">
+                  <div key={item.id} className="group overflow-hidden rounded-xl border border-border/35 bg-background/70 cursor-pointer" onClick={() => openItem(item)}>
                     <div className="relative aspect-[3/4] overflow-hidden bg-muted">
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.title || "Showroom item"} className="h-full w-full object-cover" loading="lazy" />
