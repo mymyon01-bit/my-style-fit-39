@@ -573,6 +573,13 @@ export default function FitResults({
       };
     })(),
     reloadToken,
+    genderDirective: buildGenderDirective(genderedContext, { gender: (bodyGender as any) ?? null }),
+    genderedSizing: {
+      targetGender: genderedContext.garmentTargetGender,
+      isCrossGender: genderedContext.isCrossGender,
+      sizeSystem: genderedContext.sizeSystem,
+      confidence: genderedContext.confidence,
+    },
   });
 
   // (sizingActiveOutcome memo is declared earlier so useFitTryOn can read it.)
