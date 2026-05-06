@@ -10,6 +10,10 @@ interface Props {
   correlation: CorrelationResult;
   activeSize: string;
   onPickSize?: (size: string) => void;
+  /** V3.9 — gendered sizing helper copy. */
+  genderNote?: string;
+  /** V3.9 — cross-gender approximate equivalence. */
+  crossGenderApprox?: string;
 }
 
 const WARNING_TONE: Record<WarningLevel, string> = {
@@ -24,7 +28,7 @@ function shortLabel(s: SizeAnalysis): string {
   return s.fitLabel.replace(" Fit", "").replace("Not Recommended", "Risky");
 }
 
-export default function FitAnalysisPanel({ correlation, activeSize, onPickSize }: Props) {
+export default function FitAnalysisPanel({ correlation, activeSize, onPickSize, genderNote, crossGenderApprox }: Props) {
   const selected = correlation.selectedAnalysis;
   return (
     <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
@@ -34,6 +38,13 @@ export default function FitAnalysisPanel({ correlation, activeSize, onPickSize }
           {correlation.confidenceLabel}
         </span>
       </div>
+
+      {genderNote && (
+        <div className="rounded-xl border border-foreground/[0.06] bg-foreground/[0.025] px-3 py-2 text-[11px] leading-relaxed text-foreground/65">
+          {genderNote}
+          {crossGenderApprox && <span className="text-foreground/50"> {crossGenderApprox}.</span>}
+        </div>
+      )}
 
       {/* per-size chips */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

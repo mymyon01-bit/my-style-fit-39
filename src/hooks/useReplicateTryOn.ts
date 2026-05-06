@@ -99,6 +99,14 @@ export interface CreateTryOnBody {
    * to bypass cache and force a fresh, safer render.
    */
   safeMode?: boolean;
+  /** V3.9 — gendered sizing directive forwarded to fit-tryon-router. */
+  genderDirective?: string;
+  genderedSizing?: {
+    targetGender?: string;
+    isCrossGender?: boolean;
+    sizeSystem?: string;
+    confidence?: string;
+  };
 }
 
 export interface TryOnInvokeResult {

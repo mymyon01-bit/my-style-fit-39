@@ -99,6 +99,15 @@ interface CreateBody {
    * + cache bypass so the user gets a clean image on the second try.
    */
   safeMode?: boolean;
+  /** V3.9 — gendered sizing directive (single line) appended to the prompt. */
+  genderDirective?: string;
+  /** V3.9 — gendered sizing context (used by analytics/debug logging). */
+  genderedSizing?: {
+    targetGender?: string;
+    isCrossGender?: boolean;
+    sizeSystem?: string;
+    confidence?: string;
+  };
 }
 
 interface SuccessResponse {
@@ -680,10 +689,15 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
     ? "SECOND REFERENCE IMAGE = the user's actual body photo. Use it to LOCK the mannequin's body proportions (height, weight, shoulder width, torso, waist, hips, arms, legs) so the mannequin matches the real user. Convert the person to a faceless smooth mannequin (NO face, NO skin texture, NO identity), but PRESERVE the exact body silhouette, mass and proportions. The body MUST stay identical across every size — only the garment changes."
     : "";
 
+  const genderDirectiveLine = body.genderDirective
+    ? `GENDERED SIZING CONTEXT — ${body.genderDirective} The body silhouette MUST stay locked to the user's body DNA; only garment behavior changes.`
+    : "";
+
   const prompt = [
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
     buildCleanStudioPrompt(body),
     bodyRefLine,
+    genderDirectiveLine,
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
   ].filter(Boolean).join(" ");
 
@@ -704,6 +718,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   console.log("[FIT_IMAGE_BODY_MASS_CLASS]", dbgBmi != null ? classifyBodyMass(dbgBmi) : null);
   console.log("[FIT_IMAGE_SELECTED_SIZE]", body.selectedSize);
   console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
+  console.log("[FIT_IMAGE_GENDERED_SIZING]", body.genderedSizing ?? null, body.genderDirective ?? null);
   console.log("[FIT_IMAGE_USER_BODY_REF]", userBodyRef ? userBodyRef.slice(0, 80) : null);
   console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
 

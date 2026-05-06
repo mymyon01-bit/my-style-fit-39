@@ -66,6 +66,14 @@ export interface UseFitTryOnArgs {
     fallbackMode?: boolean;
   };
   reloadToken?: number;
+  /** V3.9 — gendered sizing directive (cross-gender warnings, target gender). */
+  genderDirective?: string;
+  genderedSizing?: {
+    targetGender?: string;
+    isCrossGender?: boolean;
+    sizeSystem?: string;
+    confidence?: string;
+  };
 }
 
 // Faster perceived speed: poll every 1s instead of 2.5s, and fire the first
@@ -362,6 +370,9 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           // router to bypass cache and use the stronger body-lock prompt.
           forceRegenerate: isQcRetry || undefined,
           safeMode: isQcRetry || undefined,
+          // V3.9 — gendered sizing context.
+          genderDirective: args.genderDirective,
+          genderedSizing: args.genderedSizing,
         });
         if (isStale()) return;
         if (error) throw error;
