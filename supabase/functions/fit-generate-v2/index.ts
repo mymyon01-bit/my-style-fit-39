@@ -165,6 +165,16 @@ function buildPrompt(args: {
     ? `PER-REGION FIT PHYSICS:\n${args.visualInstructionLines.join("\n")}`
     : "";
 
+  // ── Numeric size correlation directives (V3.8) — fabric must respond to
+  //    the actual per-region delta computed against the user's body.
+  const correlationBlock = (args.generationDirectives && args.generationDirectives.length)
+    ? `SIZE CORRELATION DIRECTIVES (numeric body↔garment relation):\n${args.generationDirectives.map((l) => `• ${l}`).join("\n")}`
+    : "";
+  const correlationCopy = args.sizeCorrelationCopy
+    ? `SIZE-NUMBERS CONTEXT: ${args.sizeCorrelationCopy} The render must reflect this exact relationship — never reshape the body to compensate.`
+    : "";
+
+
   return [
     `Studio fit visualization on a FACELESS MANNEQUIN. NOT a real person, NO visible face, NO facial features, NO skin texture, NO realism noise — smooth featureless head, neutral matte body. ${bodyGender} mannequin, neutral standing pose facing camera, arms slightly apart, full body visible.`,
     `Body proportions are LOCKED to: height ${args.body.height}cm, weight ${args.body.weight}kg, BMI ${build.bmi} → ${build.category} category. The mannequin must be a ${build.description}. Height drives vertical length; weight drives horizontal volume — DO NOT scale uniformly. Same body across all sizes; never resize the body to fit the clothing.`,
