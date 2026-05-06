@@ -349,9 +349,39 @@ export default function FitResults({
     [overallPhysicsLabel, garmentDNA, activeSize],
   );
 
-  // ── SIZE CORRELATION (V3.8) — per-size numeric fit + directives ────────
+  // ── GENDERED SIZE SYSTEM (V3.9) — target gender + cross-gender context ──
+  const genderedContext = useMemo(
+    () => buildGenderedSizeContext({
+      body: { gender: (bodyGender as any) ?? null },
+      detection: {
+        name: product.name,
+        brand: product.brand,
+        category: product.category,
+        breadcrumb: (product as any).breadcrumb ?? null,
+        description: (product as any).description ?? null,
+        url: product.url,
+        sizeLabels: sizing.chart?.sizeOrder ?? null,
+        metadataGender: (product as any).gender ?? null,
+      },
+      macro: garmentDNA.category,
+      type: garmentDNA.garmentType,
+      selectedSizeLabel: activeSize,
+      hasExactChart: !!sizing.chart && (sizing.chart.sizeOrder?.length ?? 0) > 0,
+    }),
+    [bodyGender, product, sizing.chart, garmentDNA.category, garmentDNA.garmentType, activeSize],
+  );
+
+  // ── SIZE CORRELATION (V3.8 + V3.9) — per-size numeric fit + directives ────
   const sizeCorrelation = useMemo(() => {
-    if (!sizing.chart || !sizing.chart.sizeOrder?.length) return null;
+    // Prefer exact chart; fall back to gender-aware default measurements.
+    let sizes = sizing.chart && sizing.chart.sizeOrder?.length
+      ? sizesFromGarmentChart(sizing.chart as any)
+      : defaultMeasurementsForAllSizes({
+          targetGender: genderedContext.garmentTargetGender,
+          macro: garmentDNA.category,
+          type: garmentDNA.garmentType,
+        });
+    if (!sizes.length) return null;
     const adjustedBody = applyBrandFitBias(
       {
         shoulderCm: bodyShoulderCm ?? null,
@@ -362,6 +392,8 @@ export default function FitResults({
       },
       product.brand,
       product.category,
+      1,
+      genderedContext.garmentTargetGender,
     );
     return computeSizeCorrelation({
       body: {
@@ -371,11 +403,12 @@ export default function FitResults({
         ...adjustedBody,
       },
       garmentDNA,
-      sizes: sizesFromGarmentChart(sizing.chart as any),
+      sizes,
       selectedSize: activeSize,
       preference: sizing.preference as any,
     });
-  }, [sizing.chart, sizing.preference, garmentDNA, activeSize, bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, product.brand, product.category]);
+  }, [sizing.chart, sizing.preference, garmentDNA, activeSize, bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, product.brand, product.category, genderedContext]);
+
 
 
   // ── Global size fallback card (only when truly missing brand data) ───────
