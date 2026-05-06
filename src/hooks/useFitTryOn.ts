@@ -146,6 +146,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     // any older render so size flips (S→M→L) don't pile up duplicate work.
     abortAllStaleForRender();
     const renderCtrl = registerAbort("render");
+
+    if (!requestKey || !args.productImageUrl) {
       setState((prev) => ({
         ...prev,
         stage: "idle",
