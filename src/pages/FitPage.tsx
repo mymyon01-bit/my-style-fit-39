@@ -573,6 +573,17 @@ const FitPage = () => {
                       );
                       try { await Promise.all(updates); } catch { /* non-blocking */ }
                     }
+                    // V3.5 — auto-resume a pending product (gated by body setup)
+                    let pending: SelectedProduct | null = null;
+                    try {
+                      const raw = sessionStorage.getItem("fit:pendingProduct");
+                      if (raw) pending = JSON.parse(raw) as SelectedProduct;
+                    } catch { /* ignore */ }
+                    if (pending) {
+                      sessionStorage.removeItem("fit:pendingProduct");
+                      setTimeout(() => handleSelectProduct(pending!, { silent: true }), 200);
+                      return;
+                    }
                     setActiveTab("check");
                   }}
                   label="Next: Check"
