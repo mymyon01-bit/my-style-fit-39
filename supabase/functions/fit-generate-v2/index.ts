@@ -277,7 +277,13 @@ Deno.serve(async (req) => {
     const visualInstructionLines = Array.isArray(input.visualInstructionLines)
       ? (input.visualInstructionLines as string[]).slice(0, 12)
       : undefined;
-    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize, garmentDNA, visualInstructionLines });
+    const generationDirectives = Array.isArray(input.generationDirectives)
+      ? (input.generationDirectives as string[]).slice(0, 12)
+      : undefined;
+    const sizeCorrelationCopy = typeof input.sizeCorrelationCopy === "string"
+      ? (input.sizeCorrelationCopy as string).slice(0, 280)
+      : undefined;
+    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize, garmentDNA, visualInstructionLines, generationDirectives, sizeCorrelationCopy });
 
     const { url, error } = await generateImage({
       prompt, productImageUrl, userImageUrl, productKey,
