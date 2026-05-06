@@ -89,11 +89,14 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     requestId: null,
     retryAfterMs: null,
     isUsingStableRenderMode: false,
+    qualityVerdict: null,
+    qualityUnstable: false,
   });
 
   const runIdRef = useRef(0);
   const pollTimerRef = useRef<number | null>(null);
   const hardTimerRef = useRef<number | null>(null);
+  const qcAttemptRef = useRef(0);
   const [manualReload, setManualReload] = useState(0);
 
   const stopTimers = useCallback(() => {
