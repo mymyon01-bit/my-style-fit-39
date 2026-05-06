@@ -591,6 +591,20 @@ export default function FitResults({
             {explanation || builtExplanation.headline || solver.summary}
           </p>
 
+          {/* Body Accuracy — quick trust meter */}
+          <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] px-3.5 py-2.5 flex items-center justify-between">
+            <span className="text-[10px] font-bold tracking-[0.22em] text-foreground/55">
+              BODY ACCURACY
+            </span>
+            <span className={`text-[12px] font-bold tracking-tight ${
+              bodyDNA.accuracy >= 80 ? "text-green-500"
+                : bodyDNA.accuracy >= 55 ? "text-accent"
+                : "text-orange-500"
+            }`}>
+              {bodyDNA.accuracy}%
+            </span>
+          </div>
+
           {/* Fit-score / data disclaimer — honesty notice */}
           <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
             <div className="flex items-center gap-1.5">
