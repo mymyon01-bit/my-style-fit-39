@@ -183,6 +183,8 @@ function buildPrompt(args: {
     dnaLine,
     `FIT CONDITION = ${fitType} for size ${args.selectedSize}. ${fitRules[fitType]} ${regionLine}`,
     physicsBlock,
+    correlationBlock,
+    correlationCopy,
     `BODY LOCK — ABSOLUTE: The subject's body is a FIXED, IMMUTABLE OBJECT. DO NOT slim the waist, DO NOT enlarge hips, DO NOT widen shoulders, DO NOT reshape torso, legs, arms or face, DO NOT beautify, DO NOT generate a different person. Identical body, identical pose, identical proportions, identical skin tone, identical camera angle, identical crop, identical scale, identical lighting, identical background across EVERY size (S, M, L, XL, XXL). The GARMENT is the only variable — it stretches, compresses, drapes or folds around this fixed body. The clothing adapts to the body; the body NEVER adapts to the clothing. If a size is too small the fabric stretches and tension lines appear — the body does not shrink. If a size is too large the fabric drapes and folds — the body does not grow. The base layer also stays identical across sizes.`,
     `Composition: plain bright studio background (white or light gray), soft even lighting, minimal shadows, full body centered. No lifestyle, no fashion editorial, no artistic effects. Goal: make the size-fit difference instantly readable.`,
   ].filter(Boolean).join(" ");
