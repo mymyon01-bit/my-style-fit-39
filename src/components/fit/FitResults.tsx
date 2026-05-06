@@ -592,51 +592,45 @@ export default function FitResults({
             </div>
           )}
 
-          {/* Primary action row */}
+          {/* Primary action row — V3: ANALYZE + CHANGE BODY only */}
           <div className="space-y-2.5">
-            {product.url && product.url !== "#" && (() => {
-              const recSize = sizing.recommendation?.primarySize ?? activeSize;
-              const recOutcome = sizing.recommendation?.sizes.find((s) => s.size === recSize);
-              const score = recOutcome?.score ?? null;
-              const isMatch = recSize === activeSize;
-              const reason = recOutcome
-                ? (isMatch
-                    ? `Size ${activeSize} matches your body best.`
-                    : `Selected ${activeSize} ${overallLabelText(sizing.recommendation!.sizes.find((s) => s.size === activeSize)?.overall ?? "regularFit").toLowerCase()}. We recommend ${recSize} for a cleaner fit.`)
-                : null;
-              return (
-                <div className="space-y-2">
-                  <a
-                    href={product.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-[11px] font-bold tracking-[0.22em] text-background transition-opacity hover:opacity-90"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    {recOutcome
-                      ? `BUY SIZE ${recSize}${score != null ? ` · ${score}% FIT` : ""}`
-                      : "SHOP NOW"}
-                  </a>
-                  {reason && (
-                    <p className="text-center text-[11px] leading-relaxed text-foreground/55">
-                      {reason}
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setAnalyzeOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-[11px] font-bold tracking-[0.22em] text-background transition-opacity hover:opacity-90"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                ANALYZE
+              </button>
+              {onRescan && (
+                <button
+                  onClick={onRescan}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-transparent py-3.5 text-[11px] font-bold tracking-[0.22em] text-foreground/85 transition-colors hover:bg-foreground/[0.04]"
+                  title="Switch body, upload new, or edit measurements"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  CHANGE BODY
+                </button>
+              )}
+            </div>
+            {product.url && product.url !== "#" && (
+              <a
+                href={product.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-foreground/15 bg-foreground/[0.02] py-3 text-[10px] font-medium tracking-[0.25em] text-foreground/70 transition-colors hover:bg-foreground/[0.06]"
+              >
+                <ExternalLink className="h-3 w-3" />
+                VIEW PRODUCT · SIZE {activeSize}
+              </a>
+            )}
           </div>
 
-          {/* Secondary actions — quiet */}
-          <div className="flex items-center justify-center gap-6 pt-1">
-            {onRescan && (
-              <button onClick={onRescan} className="flex items-center gap-1.5 text-[11px] text-foreground/55 hover:text-foreground/85 transition-colors">
-                <RotateCcw className="h-3 w-3" /> Rescan
-              </button>
-            )}
+          {/* Quiet edit body link */}
+          <div className="flex items-center justify-center pt-1">
             {onEditMeasurements && (
               <button onClick={onEditMeasurements} className="flex items-center gap-1.5 text-[11px] text-foreground/55 hover:text-foreground/85 transition-colors">
-                <Pencil className="h-3 w-3" /> Edit body
+                <Pencil className="h-3 w-3" /> Edit measurements
               </button>
             )}
           </div>
