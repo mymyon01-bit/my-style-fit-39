@@ -440,6 +440,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
   }, [requestKey]);
 
   const retry = useCallback(() => {
+    qcAttemptRef.current = 0;
     setManualReload((n) => n + 1);
   }, []);
 
