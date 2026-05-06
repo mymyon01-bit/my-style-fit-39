@@ -19,7 +19,7 @@ import fitImg from "@/assets/tour-fit.jpg";
 import ootdImg from "@/assets/tour-ootd.jpg";
 import ootdSticker from "@/assets/ootd-sticker.png";
 
-const STORAGE_KEY = "wardrobe:welcome-tour:v2";
+const STORAGE_KEY = "wardrobe:welcome-tour:v3";
 
 const WelcomeTour = () => {
   const { t } = useI18n();
