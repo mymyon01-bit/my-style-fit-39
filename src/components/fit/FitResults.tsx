@@ -35,6 +35,7 @@ import ChangeBodySheet, { type ChangeBodyAction } from "@/components/fit/ChangeB
 import { computeBodyDNA } from "@/lib/fit/bodyDNA";
 import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
 import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
+import FitTrustStrip from "@/components/fit/FitTrustStrip";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
