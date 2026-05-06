@@ -89,21 +89,26 @@ export async function prewarmFit(input: PrewarmInput): Promise<PrewarmResult> {
         async () => extractGarmentDNA(input.garmentInput),
       ).catch(() => null),
       withFitCache<GenderedSizeContext>(
-        { bodySignature: sig, productKey: pk, bucket: "genderedSize" },
+        { bodySignature: sig, productKey: pk, selectedSize: input.selectedSize, bucket: "genderedSize" },
         async () =>
           buildGenderedSizeContext({
+            body: { gender: input.bodyGender ?? null },
             detection: input.genderDetection,
-            bodyMeasurements: input.bodyMeasurements,
+            macro: input.macroCategory ?? "tops",
+            selectedSizeLabel: input.selectedSize ?? "M",
+            hasExactChart: false,
           }),
       ).catch(() => null),
       withFitCache<BrandFitBias | null>(
         { bodySignature: sig, productKey: pk, bucket: "brandBias" },
-        async () =>
-          getBrandFitBias(
+        async () => {
+          const target = detectTargetGender(input.genderDetection).gender;
+          return getBrandFitBias(
             input.brand || "",
             input.productCategory || "",
-            input.genderDetection?.targetGenderHint || undefined,
-          ),
+            target === "unknown" ? undefined : target,
+          );
+        },
       ).catch(() => null),
       input.productImageUrl
         ? preloadImage(input.productImageUrl, ctrl.signal)
