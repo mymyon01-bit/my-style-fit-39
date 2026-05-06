@@ -52,6 +52,20 @@ const WelcomeTour = () => {
         scrim: "from-background via-background/80 to-background/20",
       },
       {
+        image: fitImg,
+        kicker: "SIZE ANALYSIS",
+        title: "Tight, regular, or oversized — before you buy.",
+        body: "Real per-region fit math: chest, shoulder, waist, sleeve. See exactly how each size will sit on your body, never a generic guess.",
+        scrim: "from-background via-background/85 to-background/25",
+      },
+      {
+        image: fitImg,
+        kicker: "MULTI-SIZE PREVIEW",
+        title: "Compare S · M · L · XL on the same body.",
+        body: "Your body is locked. Only the garment changes — so you can finally trust which size is actually yours.",
+        scrim: "from-background via-background/85 to-background/25",
+      },
+      {
         image: ootdImg,
         kicker: t("tourKicker3"),
         title: t("tourTitle3"),
