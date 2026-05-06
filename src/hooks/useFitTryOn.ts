@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReplicateTryOn } from "./useReplicateTryOn";
 import { evaluateFitQuality, type QualityVerdict } from "@/lib/fit/fitQualityControl";
+import { abortAllStaleForRender, registerAbort } from "@/lib/fit/fitPriorityQueue";
 
 export type FitTryOnStage = "idle" | "generating" | "polling" | "validating" | "ready" | "failed";
 
