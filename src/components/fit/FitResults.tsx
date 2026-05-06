@@ -857,6 +857,8 @@ export default function FitResults({
                 correlation={sizeCorrelation}
                 activeSize={activeSize}
                 onPickSize={(s) => setActiveSize(s)}
+                genderNote={genderedContext.genderSizeWarning || undefined}
+                crossGenderApprox={genderedContext.equivalentApproximation || undefined}
               />
             )}
 
