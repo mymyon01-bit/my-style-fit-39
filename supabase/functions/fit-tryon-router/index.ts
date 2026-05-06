@@ -99,6 +99,15 @@ interface CreateBody {
    * + cache bypass so the user gets a clean image on the second try.
    */
   safeMode?: boolean;
+  /** V3.9 — gendered sizing directive (single line) appended to the prompt. */
+  genderDirective?: string;
+  /** V3.9 — gendered sizing context (used by analytics/debug logging). */
+  genderedSizing?: {
+    targetGender?: string;
+    isCrossGender?: boolean;
+    sizeSystem?: string;
+    confidence?: string;
+  };
 }
 
 interface SuccessResponse {
