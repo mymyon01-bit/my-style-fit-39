@@ -629,16 +629,14 @@ export default function FitResults({
                 <BarChart3 className="h-3.5 w-3.5" />
                 ANALYZE
               </button>
-              {onRescan && (
-                <button
-                  onClick={onRescan}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-transparent py-3.5 text-[11px] font-bold tracking-[0.22em] text-foreground/85 transition-colors hover:bg-foreground/[0.04]"
-                  title="Switch body, upload new, or edit measurements"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  CHANGE BODY
-                </button>
-              )}
+              <button
+                onClick={() => setChangeBodyOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-transparent py-3.5 text-[11px] font-bold tracking-[0.22em] text-foreground/85 transition-colors hover:bg-foreground/[0.04]"
+                title="Switch body, upload new, edit, or pick a preset"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                CHANGE BODY
+              </button>
             </div>
             {product.url && product.url !== "#" && (
               <a
