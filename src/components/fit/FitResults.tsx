@@ -36,6 +36,9 @@ import { computeBodyDNA } from "@/lib/fit/bodyDNA";
 import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
 import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
 import FitTrustStrip from "@/components/fit/FitTrustStrip";
+import { computeSizeCorrelation, sizesFromGarmentChart } from "@/lib/fit/sizeCorrelationEngine";
+import FitAnalysisPanel from "@/components/fit/FitAnalysisPanel";
+import { applyBrandFitBias } from "@/lib/fit/brandFitBias";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
