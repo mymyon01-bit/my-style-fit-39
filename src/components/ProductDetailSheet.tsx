@@ -48,6 +48,35 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
   const { user } = useAuth();
   const [postOpen, setPostOpen] = useState(false);
   const [shareInOOTDOpen, setShareInOOTDOpen] = useState(false);
+
+  // V4.0 — predictive preparation. Prewarm garment DNA + image preload under
+  // an anonymous body signature; the body-aware prewarm reruns inside FitResults.
+  const prewarmInput: PrewarmInput | null = useMemo(() => {
+    if (!product) return null;
+    const productKey = `${product.source_url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 240);
+    return {
+      bodySignature: "_anon_",
+      productKey,
+      productName: product.name,
+      productCategory: product.category ?? null,
+      brand: product.brand ?? null,
+      productImageUrl: product.image_url ?? null,
+      selectedSize: null,
+      garmentInput: {
+        name: product.name,
+        category: product.category,
+        brand: product.brand,
+      } as PrewarmInput["garmentInput"],
+      genderDetection: {
+        name: product.name,
+        brand: product.brand,
+        category: product.category,
+      },
+    };
+  }, [product]);
+
+  useFitPrewarm({ enabled: open && !!product, prewarmInput });
+
   if (!product) return null;
 
   const handleTryOn = () => {
