@@ -37,14 +37,22 @@ function writeAll(map: Record<string, BrandFitBias>) {
     localStorage.setItem(KEY, JSON.stringify(map));
   } catch { /* quota / SSR — ignore */ }
 }
-function biasKey(brand: string, category: string) {
-  return `${(brand || "").toLowerCase().trim()}::${(category || "").toLowerCase().trim()}`;
+function biasKey(brand: string, category: string, targetGender?: string, region?: string) {
+  const g = (targetGender ?? "any").toLowerCase().trim();
+  const r = (region ?? "global").toLowerCase().trim();
+  return `${(brand || "").toLowerCase().trim()}::${(category || "").toLowerCase().trim()}::${g}::${r}`;
 }
 
-export function getBrandFitBias(brand: string, category: string): BrandFitBias | null {
+export function getBrandFitBias(brand: string, category: string, targetGender?: string, region?: string): BrandFitBias | null {
   if (!brand || !category) return null;
   const map = readAll();
-  return map[biasKey(brand, category)] ?? null;
+  // Prefer most-specific match; fall back to less-specific.
+  return (
+    map[biasKey(brand, category, targetGender, region)] ??
+    map[biasKey(brand, category, targetGender, undefined)] ??
+    map[biasKey(brand, category)] ??
+    null
+  );
 }
 
 export function recordFitFeedback(args: {
