@@ -31,6 +31,8 @@ import { useSizeRecommendation } from "@/hooks/useSizeRecommendation";
 import SizeRecommendationPanel from "@/components/fit/SizeRecommendationPanel";
 import { overallLabelText, type FitPreference, type RegionStatus } from "@/lib/sizing";
 import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
+import ChangeBodySheet, { type ChangeBodyAction } from "@/components/fit/ChangeBodySheet";
+import { computeBodyDNA } from "@/lib/fit/bodyDNA";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
@@ -355,7 +357,23 @@ export default function FitResults({
   }, [userBodyImageUrl, dbUserImageUrl, resolvedUserImageUrl, resolvedProductImage, product]);
 
   const tryOnReady = !!resolvedUserImageUrl && !!resolvedProductImage;
-  const productKey = `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 200);
+  // ── BODY DNA — locks (body + garment + size) into a single cache cell ──
+  // Means switching sizes only flips the size segment of the key. Switching
+  // bodies (presets, new upload, edits) creates a fresh signature so the AI
+  // image regenerates instead of returning a stale cached result on top of
+  // the new body.
+  const bodyDNA = useMemo(() => computeBodyDNA({
+    heightCm: bodyHeightCm ?? null,
+    weightKg: bodyWeightKg ?? null,
+    gender: bodyGender ?? null,
+    shoulderCm: bodyShoulderCm ?? null,
+    chestCm: bodyChestCm ?? null,
+    waistCm: bodyWaistCm ?? null,
+    hipCm: bodyHipCm ?? null,
+    inseamCm: bodyInseamCm ?? null,
+    bodyImageUrl: resolvedUserImageUrl ?? null,
+  }), [bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, resolvedUserImageUrl]);
+  const productKey = `${product.url || product.name}::${product.brand || ""}::body_${bodyDNA.signature}`.toLowerCase().slice(0, 240);
   const tryOnContext: TryOnContext | null = tryOnReady
     ? {
         userImageUrl: resolvedUserImageUrl!,
