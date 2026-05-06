@@ -39,6 +39,13 @@ export default function FitAnalysisPanel({ correlation, activeSize, onPickSize, 
         </span>
       </div>
 
+      {genderNote && (
+        <div className="rounded-xl border border-foreground/[0.06] bg-foreground/[0.025] px-3 py-2 text-[11px] leading-relaxed text-foreground/65">
+          {genderNote}
+          {crossGenderApprox && <span className="text-foreground/50"> {crossGenderApprox}.</span>}
+        </div>
+      )}
+
       {/* per-size chips */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {correlation.allSizes.map((s) => {
