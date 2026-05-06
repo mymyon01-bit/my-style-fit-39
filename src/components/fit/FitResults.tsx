@@ -659,6 +659,21 @@ export default function FitResults({
             )}
           </div>
 
+          {/* V3.7 — Trust chips + quick feedback */}
+          <FitTrustStrip
+            accuracy={bodyDNA.accuracy}
+            bodyConsistencyScore={tryOn.qualityVerdict?.bodyConsistencyScore ?? null}
+            visualIntegrityScore={tryOn.qualityVerdict?.visualIntegrityScore ?? null}
+            unstable={tryOn.qualityUnstable}
+            productKey={productKey}
+            brand={product.brand}
+            category={product.category}
+            productGender={(product as any).gender ?? null}
+            userGender={bodyGender ?? null}
+            recommendedSize={result.recommendedSize}
+            chosenSize={activeSize}
+          />
+
           {/* Fit-score / data disclaimer — honesty notice */}
           <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
             <div className="flex items-center gap-1.5">
