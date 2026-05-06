@@ -243,6 +243,36 @@ export function useDiscoverSearch(opts: UseDiscoverSearchOptions = {}): UseDisco
         });
       }).catch((err) => console.warn("[useDiscoverSearch] ladder failed", err));
 
+      // ── KR → EN parallel search ──
+      // When the user types in Korean, translate the query into 3-5 natural
+      // English queries (LLM) and fan out searches against EN-only sources
+      // in parallel. Results are merged into the SAME session so the live
+      // grid grows without a second render loop.
+      if (isKoreanQuery(trimmed)) {
+        void translateQueryToEn(trimmed).then(async (enQueries) => {
+          if (runIdRef.current !== runId || enQueries.length === 0) return;
+          logDiscoverEvent("discover_kr_translated", {
+            query: trimmed,
+            metadata: { en_queries: enQueries },
+          });
+          // Run each EN variant against the same session — appendToSession
+          // dedupes, so duplicates are harmless.
+          await Promise.all(
+            enQueries.map((eq) =>
+              runSearch(session, { target: 30, maxCycles: 1, onProgress: (next) => {
+                if (runIdRef.current !== runId) return;
+                applySession(next, dbSeen, "partial");
+              } }).catch((err) =>
+                console.warn("[useDiscoverSearch] EN translated runSearch failed", eq, err),
+              ),
+            ),
+          );
+          if (runIdRef.current !== runId) return;
+          applySession(session, dbSeen, "complete");
+        }).catch((err) => console.warn("[useDiscoverSearch] translate failed", err));
+      }
+
+
       let dbSeen: Set<string> = new Set();
       try {
         const ctx = await loadSeenContext();
