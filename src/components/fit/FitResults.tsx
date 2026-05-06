@@ -486,6 +486,15 @@ export default function FitResults({
 
   // ── Analyze sheet (holds the deep numbers + region tables + comparisons) ──
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [changeBodyOpen, setChangeBodyOpen] = useState(false);
+
+  const handleChangeBody = (a: ChangeBodyAction) => {
+    if (a.type === "rescan") onRescan?.();
+    else if (a.type === "edit") onEditMeasurements?.();
+    // Presets: signal a rescan-style flow today; future hook can swap profile.
+    else if (a.type === "preset") onEditMeasurements?.();
+    setReloadToken((n) => n + 1);
+  };
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 overflow-x-hidden">
