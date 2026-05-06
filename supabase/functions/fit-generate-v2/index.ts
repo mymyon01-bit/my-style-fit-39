@@ -257,7 +257,11 @@ Deno.serve(async (req) => {
 
     const fitResult = calculateFit(body, garment);
     const fitAnalysis = interpretFit(fitResult);
-    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize });
+    const garmentDNA = (input.garmentDNA as any) ?? undefined;
+    const visualInstructionLines = Array.isArray(input.visualInstructionLines)
+      ? (input.visualInstructionLines as string[]).slice(0, 12)
+      : undefined;
+    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize, garmentDNA, visualInstructionLines });
 
     const { url, error } = await generateImage({
       prompt, productImageUrl, userImageUrl, productKey,
