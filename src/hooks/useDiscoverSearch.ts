@@ -43,6 +43,8 @@ import { assessQueryCoverage } from "@/lib/discover/queryHealth";
 import { interpretQueryWithAI } from "@/lib/discover/aiQueryInterpreter";
 import { triggerAutoDiscovery, loadCachedInterpretation } from "@/lib/discover/triggerAutoDiscovery";
 import { parseGenderIntent, prioritizeGenderPool, type GenderFilter } from "@/lib/discover/genderFilter";
+import { translateQueryToEn } from "@/lib/discover/translateQueryToEn";
+import { isKoreanQuery } from "@/lib/discover/krAliasMap";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_WINDOW = 24;
