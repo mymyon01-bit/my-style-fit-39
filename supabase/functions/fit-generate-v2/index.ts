@@ -105,6 +105,10 @@ function buildPrompt(args: {
   };
   /** Optional per-region physics instructions (V3.6). */
   visualInstructionLines?: string[];
+  /** V3.8 — numeric size correlation directives (e.g. "chest tightens by 4cm"). */
+  generationDirectives?: string[];
+  /** V3.8 — selected-size summary copy ("Size M is 3cm smaller than your chest"). */
+  sizeCorrelationCopy?: string;
 }) {
   const bodyGender = args.genderPresentation === "feminine" ? "female"
     : args.genderPresentation === "masculine" ? "male"
