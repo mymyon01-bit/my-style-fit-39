@@ -39,6 +39,11 @@ import FitTrustStrip from "@/components/fit/FitTrustStrip";
 import { computeSizeCorrelation, sizesFromGarmentChart } from "@/lib/fit/sizeCorrelationEngine";
 import FitAnalysisPanel from "@/components/fit/FitAnalysisPanel";
 import { applyBrandFitBias } from "@/lib/fit/brandFitBias";
+import {
+  buildGenderedSizeContext,
+  buildGenderDirective,
+  defaultMeasurementsForAllSizes,
+} from "@/lib/fit/genderedSizeSystem";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
