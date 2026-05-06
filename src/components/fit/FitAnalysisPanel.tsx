@@ -10,6 +10,10 @@ interface Props {
   correlation: CorrelationResult;
   activeSize: string;
   onPickSize?: (size: string) => void;
+  /** V3.9 — gendered sizing helper copy. */
+  genderNote?: string;
+  /** V3.9 — cross-gender approximate equivalence. */
+  crossGenderApprox?: string;
 }
 
 const WARNING_TONE: Record<WarningLevel, string> = {
