@@ -300,6 +300,44 @@ export default function FitResults({
     [resolvedSize.resolved, newBodyProfile],
   );
 
+  // ── GARMENT DNA + FIT PHYSICS (V3.6) ─────────────────────────────────────
+  const garmentDNA = useMemo(
+    () => extractGarmentDNA({
+      name: product.name,
+      brand: product.brand,
+      category: product.category,
+      breadcrumb: (product as any).breadcrumb ?? null,
+      description: (product as any).description ?? null,
+      fitType: (product as any).fitType ?? null,
+      hasSizeChart: !!resolvedSize.resolved,
+    }),
+    [product, resolvedSize.resolved],
+  );
+  const regionPhysics = useMemo(() => {
+    if (!regionFit) return [];
+    return regionFit.regions.map((r) =>
+      computeRegionPhysics(
+        { region: r.region.toLowerCase(), bodyCm: r.bodyValueCm ?? null, garmentCm: r.garmentValueCm ?? null },
+        garmentDNA,
+      ),
+    );
+  }, [regionFit, garmentDNA]);
+  const visualInstructionLines = useMemo(
+    () => buildVisualInstructionLines(regionPhysics, garmentDNA),
+    [regionPhysics, garmentDNA],
+  );
+  // Overall fit label for the active size (used by analysis copy).
+  const overallPhysicsLabel: import("@/lib/fit/fitPhysics").FitLabel = useMemo(() => {
+    if (!regionPhysics.length) return "regular";
+    const counts: Record<string, number> = {};
+    regionPhysics.forEach((r) => { counts[r.fitLabel] = (counts[r.fitLabel] ?? 0) + 1; });
+    return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "regular") as any;
+  }, [regionPhysics]);
+  const overallFitSentence = useMemo(
+    () => describeOverallFit(overallPhysicsLabel, garmentDNA, activeSize),
+    [overallPhysicsLabel, garmentDNA, activeSize],
+  );
+
   // ── Global size fallback card (only when truly missing brand data) ───────
   const profile = bodyHeightCm
     ? normalizeBodyProfile({ heightCm: bodyHeightCm, weightKg: bodyWeightKg ?? null })
