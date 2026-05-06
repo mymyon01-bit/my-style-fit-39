@@ -33,6 +33,8 @@ import { overallLabelText, type FitPreference, type RegionStatus } from "@/lib/s
 import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
 import ChangeBodySheet, { type ChangeBodyAction } from "@/components/fit/ChangeBodySheet";
 import { computeBodyDNA } from "@/lib/fit/bodyDNA";
+import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
+import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
