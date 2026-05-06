@@ -1,12 +1,14 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Heart, ExternalLink, X, Tag, Sparkles, LayoutGrid, Send } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SafeImage from "@/components/SafeImage";
 import { AuthGate } from "@/components/AuthGate";
 import SendToShowroomSheet from "@/components/showroom/SendToShowroomSheet";
 import ShareProductToFriendDialog from "@/components/ShareProductToFriendDialog";
 import { useAuth } from "@/lib/auth";
+import { useFitPrewarm } from "@/hooks/useFitPrewarm";
+import type { PrewarmInput } from "@/lib/fit/fitPrewarm";
 
 interface ProductDetailItem {
   id: string;
