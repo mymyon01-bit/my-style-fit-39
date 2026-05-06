@@ -87,6 +87,24 @@ function buildPrompt(args: {
   garmentLabel: string;
   genderPresentation?: string;
   selectedSize: string;
+  /** Optional Garment DNA from the client (V3.6). When present, drives realism. */
+  garmentDNA?: {
+    garmentType?: string;
+    fabricType?: string;
+    fabricWeight?: string;
+    stiffness?: string;
+    elasticity?: string;
+    drapeLevel?: string;
+    stretchLevel?: string;
+    intendedFit?: string;
+    silhouette?: string;
+    shoulderStructure?: string;
+    waistbandBehavior?: string;
+    sleeveLength?: string;
+    oversizedRatio?: number;
+  };
+  /** Optional per-region physics instructions (V3.6). */
+  visualInstructionLines?: string[];
 }) {
   const bodyGender = args.genderPresentation === "feminine" ? "female"
     : args.genderPresentation === "masculine" ? "male"
@@ -116,13 +134,9 @@ function buildPrompt(args: {
   };
 
   // ── Base coverage layer (per modesty rule) ──
-  // Determine which garment region is being tried on so the OPPOSITE region
-  // is always covered by a neutral base layer. The mannequin must NEVER be
-  // shown nude or in underwear — even in studio fit previews.
   const label = (args.garmentLabel || "").toLowerCase();
   const isBottom = /(pant|trouser|jean|short|skirt|legging|chino|slack|denim|cargo|joggers?)/.test(label);
   const isFootwear = /(shoe|sneaker|boot|heel|loafer|sandal|trainer)/.test(label);
-  const isOuterOrTop = !isBottom && !isFootwear; // dress/jumpsuit also covers full body — handled below
   const isFullBody = /(dress|jumpsuit|romper|overall|gown|coverall)/.test(label);
 
   let baseLayerLine: string;
@@ -133,32 +147,31 @@ function buildPrompt(args: {
   } else if (isFootwear) {
     baseLayerLine = "Mannequin wears a plain neutral white crew T-shirt and plain neutral light gray slim trousers as base layers. Both are generic and unbranded. The provided garment is the FOOTWEAR and must be the visual focus.";
   } else {
-    // top, outerwear, knit, shirt, etc.
     baseLayerLine = "Mannequin wears plain neutral light gray slim trousers as a base layer covering hips, legs and ankles. The trousers are generic, unbranded, matte fabric — clearly a base layer, never the focus. The provided garment is the TOP/OUTERWEAR and must be the visual focus.";
   }
 
+  // ── Garment DNA line (V3.6) — fabric, stiffness, drape, stretch ──
+  const dna = args.garmentDNA;
+  const dnaLine = dna
+    ? `GARMENT DNA: type=${dna.garmentType ?? "unknown"}, fabric=${dna.fabricType ?? "unknown"} (${dna.fabricWeight ?? "medium"} weight), stiffness=${dna.stiffness ?? "low"}, elasticity=${dna.elasticity ?? "medium"}, drape=${dna.drapeLevel ?? "medium"}, stretch=${dna.stretchLevel ?? "medium"}, intended fit=${dna.intendedFit ?? "regular"}, silhouette=${dna.silhouette ?? "regular"}, shoulder=${dna.shoulderStructure ?? "natural"}, sleeve=${dna.sleeveLength ?? "n/a"}. Cloth must behave according to these properties: stiff fabrics form sharp folds; elastic fabrics stretch smoothly; high-drape fabrics flow with gravity; low-drape fabrics hold their structure.`
+    : "";
+
+  // ── Region physics lines (V3.6) — per-region tension/drape instructions ──
+  const physicsBlock = (args.visualInstructionLines && args.visualInstructionLines.length)
+    ? `PER-REGION FIT PHYSICS:\n${args.visualInstructionLines.join("\n")}`
+    : "";
+
   return [
-    // ── Subject (locked faceless mannequin per spec [7]) ──
     `Studio fit visualization on a FACELESS MANNEQUIN. NOT a real person, NO visible face, NO facial features, NO skin texture, NO realism noise — smooth featureless head, neutral matte body. ${bodyGender} mannequin, neutral standing pose facing camera, arms slightly apart, full body visible.`,
-
-    // ── Body proportions (per spec [13]–[16] — height + weight independent axes) ──
     `Body proportions are LOCKED to: height ${args.body.height}cm, weight ${args.body.weight}kg, BMI ${build.bmi} → ${build.category} category. The mannequin must be a ${build.description}. Height drives vertical length; weight drives horizontal volume — DO NOT scale uniformly. Same body across all sizes; never resize the body to fit the clothing.`,
-
-    // ── Modesty / base coverage (NEVER nude, NEVER underwear) ──
     `MODESTY RULE — STRICT: The mannequin must NEVER appear nude, in underwear, in lingerie or with bare torso/legs. ${baseLayerLine} The base layer must be visually subdued (plain, matte, neutral) so it never competes with the focus garment.`,
-
-    // ── Garment ──
     `Focus garment: wear the provided ${args.garmentLabel} OVER the base layer. Preserve the garment's ORIGINAL color, structure, pattern and material EXACTLY as shown in the reference image. Do NOT redesign or restyle. Strong visual contrast between the focus garment and the muted base layer/mannequin body.`,
-
-    // ── Fit translation (per spec [6] + [11]) ──
+    dnaLine,
     `FIT CONDITION = ${fitType} for size ${args.selectedSize}. ${fitRules[fitType]} ${regionLine}`,
-
-    // ── BODY LOCK (V3) — the single most important rule ──
-    `BODY LOCK — ABSOLUTE: The subject's body is a FIXED, IMMUTABLE OBJECT. DO NOT slim the waist, DO NOT enlarge hips, DO NOT widen shoulders, DO NOT reshape torso, legs, arms or face, DO NOT beautify, DO NOT generate a different person. Identical body, identical pose, identical proportions, identical skin tone across EVERY size (S, M, L, XL, XXL). The GARMENT is the only variable — it stretches, compresses, drapes or folds around this fixed body. The clothing adapts to the body; the body NEVER adapts to the clothing. If a size is too small the fabric stretches and tension lines appear — the body does not shrink. If a size is too large the fabric drapes and folds — the body does not grow. The base layer also stays identical across sizes. If the rendered body deviates from the locked measurements above, regenerate. If the mannequin appears nude or in underwear, regenerate with the base layer.`,
-
-    // ── Composition ──
+    physicsBlock,
+    `BODY LOCK — ABSOLUTE: The subject's body is a FIXED, IMMUTABLE OBJECT. DO NOT slim the waist, DO NOT enlarge hips, DO NOT widen shoulders, DO NOT reshape torso, legs, arms or face, DO NOT beautify, DO NOT generate a different person. Identical body, identical pose, identical proportions, identical skin tone, identical camera angle, identical crop, identical scale, identical lighting, identical background across EVERY size (S, M, L, XL, XXL). The GARMENT is the only variable — it stretches, compresses, drapes or folds around this fixed body. The clothing adapts to the body; the body NEVER adapts to the clothing. If a size is too small the fabric stretches and tension lines appear — the body does not shrink. If a size is too large the fabric drapes and folds — the body does not grow. The base layer also stays identical across sizes.`,
     `Composition: plain bright studio background (white or light gray), soft even lighting, minimal shadows, full body centered. No lifestyle, no fashion editorial, no artistic effects. Goal: make the size-fit difference instantly readable.`,
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 }
 
 // Final image generation is delegated to the fit-tryon-router edge function,
@@ -244,7 +257,11 @@ Deno.serve(async (req) => {
 
     const fitResult = calculateFit(body, garment);
     const fitAnalysis = interpretFit(fitResult);
-    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize });
+    const garmentDNA = (input.garmentDNA as any) ?? undefined;
+    const visualInstructionLines = Array.isArray(input.visualInstructionLines)
+      ? (input.visualInstructionLines as string[]).slice(0, 12)
+      : undefined;
+    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize, garmentDNA, visualInstructionLines });
 
     const { url, error } = await generateImage({
       prompt, productImageUrl, userImageUrl, productKey,
