@@ -628,7 +628,7 @@ export default function FitResults({
 
           {/* One-line headline summary — neutral, no verdict */}
           <p className="text-[13px] leading-relaxed text-foreground/75">
-            {explanation || builtExplanation.headline || solver.summary}
+            {overallFitSentence}
           </p>
 
           {/* Body Accuracy — quick trust meter */}
