@@ -370,6 +370,9 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           // router to bypass cache and use the stronger body-lock prompt.
           forceRegenerate: isQcRetry || undefined,
           safeMode: isQcRetry || undefined,
+          // V3.9 — gendered sizing context.
+          genderDirective: args.genderDirective,
+          genderedSizing: args.genderedSizing,
         });
         if (isStale()) return;
         if (error) throw error;
