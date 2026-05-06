@@ -18,7 +18,8 @@ export type DiscoverEventName =
   | "discover_search_failed"
   | "discover_orchestrator_live"
   | "discover_orchestrator_cron"
-  | "discover_ladder_complete";
+  | "discover_ladder_complete"
+  | "discover_kr_translated";
 
 export interface DiscoverEventPayload {
   query: string;
