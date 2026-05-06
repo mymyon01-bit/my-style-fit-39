@@ -33,6 +33,7 @@ import { overallLabelText, type FitPreference, type RegionStatus } from "@/lib/s
 import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
 import ChangeBodySheet, { type ChangeBodyAction } from "@/components/fit/ChangeBodySheet";
 import { computeBodyDNA } from "@/lib/fit/bodyDNA";
+import { useBodySignatureGuard } from "@/hooks/useBodySignatureGuard";
 import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
 import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
 import FitTrustStrip from "@/components/fit/FitTrustStrip";
