@@ -142,8 +142,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
 
   useEffect(() => {
     stopTimers();
-
-    if (!requestKey || !args.productImageUrl) {
+    // V4.0 — latest visible request wins. Cancels any in-flight prewarm AND
+    // any older render so size flips (S→M→L) don't pile up duplicate work.
+    abortAllStaleForRender();
+    const renderCtrl = registerAbort("render");
       setState((prev) => ({
         ...prev,
         stage: "idle",
