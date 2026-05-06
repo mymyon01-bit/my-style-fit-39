@@ -718,6 +718,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   console.log("[FIT_IMAGE_BODY_MASS_CLASS]", dbgBmi != null ? classifyBodyMass(dbgBmi) : null);
   console.log("[FIT_IMAGE_SELECTED_SIZE]", body.selectedSize);
   console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
+  console.log("[FIT_IMAGE_GENDERED_SIZING]", body.genderedSizing ?? null, body.genderDirective ?? null);
   console.log("[FIT_IMAGE_USER_BODY_REF]", userBodyRef ? userBodyRef.slice(0, 80) : null);
   console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
 
