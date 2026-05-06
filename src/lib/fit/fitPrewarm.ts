@@ -37,7 +37,9 @@ export interface PrewarmInput {
   selectedSize?: string | null;
   garmentInput: GarmentInferenceInput;
   genderDetection: GenderDetectionInput;
-  bodyMeasurements?: { heightCm?: number | null; weightKg?: number | null };
+  bodyGender?: BodyGender;
+  /** Macro category for the gendered size context (defaults to "tops"). */
+  macroCategory?: GarmentMacroCategory;
 }
 
 export interface PrewarmResult {
