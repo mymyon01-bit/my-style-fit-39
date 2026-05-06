@@ -15,8 +15,14 @@
 //
 // The entire prewarm is idempotent and abortable through the priority queue.
 
-import { extractGarmentDNA, type GarmentDNA, type GarmentInferenceInput } from "./garmentDNA";
-import { buildGenderedSizeContext, type GenderedSizeContext, type GenderDetectionInput } from "./genderedSizeSystem";
+import { extractGarmentDNA, type GarmentDNA, type GarmentInferenceInput, type GarmentMacroCategory } from "./garmentDNA";
+import {
+  buildGenderedSizeContext,
+  detectTargetGender,
+  type GenderedSizeContext,
+  type GenderDetectionInput,
+  type BodyGender,
+} from "./genderedSizeSystem";
 import { getBrandFitBias, type BrandFitBias } from "./brandFitBias";
 import { withFitCache } from "./fitCache";
 import { registerAbort } from "./fitPriorityQueue";
