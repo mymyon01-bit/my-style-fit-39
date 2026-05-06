@@ -344,6 +344,35 @@ export default function FitResults({
     [overallPhysicsLabel, garmentDNA, activeSize],
   );
 
+  // ── SIZE CORRELATION (V3.8) — per-size numeric fit + directives ────────
+  const sizeCorrelation = useMemo(() => {
+    if (!sizing.chart || !sizing.chart.sizeOrder?.length) return null;
+    const adjustedBody = applyBrandFitBias(
+      {
+        shoulderCm: bodyShoulderCm ?? null,
+        chestCm: bodyChestCm ?? null,
+        waistCm: bodyWaistCm ?? null,
+        hipCm: bodyHipCm ?? null,
+        inseamCm: bodyInseamCm ?? null,
+      },
+      product.brand,
+      product.category,
+    );
+    return computeSizeCorrelation({
+      body: {
+        gender: (bodyGender as any) ?? null,
+        heightCm: bodyHeightCm ?? null,
+        weightKg: bodyWeightKg ?? null,
+        ...adjustedBody,
+      },
+      garmentDNA,
+      sizes: sizesFromGarmentChart(sizing.chart as any),
+      selectedSize: activeSize,
+      preference: sizing.preference as any,
+    });
+  }, [sizing.chart, sizing.preference, garmentDNA, activeSize, bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, product.brand, product.category]);
+
+
   // ── Global size fallback card (only when truly missing brand data) ───────
   const profile = bodyHeightCm
     ? normalizeBodyProfile({ heightCm: bodyHeightCm, weightKg: bodyWeightKg ?? null })
