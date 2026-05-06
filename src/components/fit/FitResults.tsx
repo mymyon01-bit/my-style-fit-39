@@ -35,6 +35,7 @@ import ChangeBodySheet, { type ChangeBodyAction } from "@/components/fit/ChangeB
 import { computeBodyDNA } from "@/lib/fit/bodyDNA";
 import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
 import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
+import FitTrustStrip from "@/components/fit/FitTrustStrip";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
@@ -657,6 +658,21 @@ export default function FitResults({
               </p>
             )}
           </div>
+
+          {/* V3.7 — Trust chips + quick feedback */}
+          <FitTrustStrip
+            accuracy={bodyDNA.accuracy}
+            bodyConsistencyScore={tryOn.qualityVerdict?.bodyConsistencyScore ?? null}
+            visualIntegrityScore={tryOn.qualityVerdict?.visualIntegrityScore ?? null}
+            unstable={tryOn.qualityUnstable}
+            productKey={productKey}
+            brand={product.brand}
+            category={product.category}
+            productGender={(product as any).gender ?? null}
+            userGender={bodyGender ?? null}
+            recommendedSize={result.recommendedSize}
+            chosenSize={activeSize}
+          />
 
           {/* Fit-score / data disclaimer — honesty notice */}
           <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">

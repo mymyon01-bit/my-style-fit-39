@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReplicateTryOn } from "./useReplicateTryOn";
+import { evaluateFitQuality, type QualityVerdict } from "@/lib/fit/fitQualityControl";
 
 export type FitTryOnStage = "idle" | "generating" | "polling" | "validating" | "ready" | "failed";
 
@@ -26,6 +27,10 @@ export interface FitTryOnState {
   requestId: string | null;
   retryAfterMs: number | null;
   isUsingStableRenderMode: boolean;
+  /** V3.7 — quality control verdict for the current image. */
+  qualityVerdict: QualityVerdict | null;
+  /** V3.7 — true when QC failed twice and we are showing an unstable preview. */
+  qualityUnstable: boolean;
 }
 
 export interface UseFitTryOnArgs {
@@ -84,11 +89,14 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     requestId: null,
     retryAfterMs: null,
     isUsingStableRenderMode: false,
+    qualityVerdict: null,
+    qualityUnstable: false,
   });
 
   const runIdRef = useRef(0);
   const pollTimerRef = useRef<number | null>(null);
   const hardTimerRef = useRef<number | null>(null);
+  const qcAttemptRef = useRef(0);
   const [manualReload, setManualReload] = useState(0);
 
   const stopTimers = useCallback(() => {
@@ -113,6 +121,15 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     args.selectedSize
       ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`
       : null;
+
+  // Reset QC retry counter when the underlying product/size/body changes
+  // (a true new request — not an internal auto-rerender via manualReload).
+  const baseKey = `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}`;
+  const lastBaseKeyRef = useRef<string | null>(null);
+  if (lastBaseKeyRef.current !== baseKey) {
+    lastBaseKeyRef.current = baseKey;
+    qcAttemptRef.current = 0;
+  }
 
   useEffect(() => {
     stopTimers();
@@ -151,8 +168,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       error: null,
       provider: null,
       requestId: null,
-        retryAfterMs: null,
-        isUsingStableRenderMode: false,
+      retryAfterMs: null,
+      isUsingStableRenderMode: false,
+      qualityVerdict: null,
+      qualityUnstable: false,
     }));
 
     const acceptOrRetry = async (
@@ -161,6 +180,37 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       requestId: string | null,
     ) => {
       if (isStale()) return;
+      // V3.7 — quality control gate: validate body consistency + visual integrity.
+      setState((prev) => ({
+        ...prev,
+        stage: "validating",
+        imageUrl: persistentUrl,
+        provider,
+        requestId,
+      }));
+      let verdict: QualityVerdict | null = null;
+      try {
+        verdict = await evaluateFitQuality(args.userImageUrl ?? null, persistentUrl);
+      } catch {
+        verdict = null;
+      }
+      if (isStale()) return;
+      log("qc_done", {
+        body: verdict?.bodyConsistencyScore,
+        visual: verdict?.visualIntegrityScore,
+        reason: verdict?.reason,
+      });
+      const failed = !!verdict?.shouldRerender;
+      if (failed && qcAttemptRef.current === 0) {
+        qcAttemptRef.current = 1;
+        log("qc_auto_rerender", { reason: verdict?.reason });
+        // Force a fresh generation with the stronger body-lock prompt by
+        // bumping manualReload — router bypasses cache when forceRegenerate
+        // is on (handled in the create body below).
+        setManualReload((n) => n + 1);
+        return;
+      }
+      const unstable = failed && qcAttemptRef.current >= 1;
       setState({
         stage: "ready",
         imageUrl: persistentUrl,
@@ -170,6 +220,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         requestId,
         retryAfterMs: null,
         isUsingStableRenderMode: false,
+        qualityVerdict: verdict,
+        qualityUnstable: unstable,
       });
     };
 
@@ -293,6 +345,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           hasUserImage: !!args.userImageUrl,
           hasProductImage: !!args.productImageUrl,
         });
+        const isQcRetry = qcAttemptRef.current >= 1;
         const { data, error } = await createTryOn({
           userImageUrl: args.userImageUrl ?? undefined,
           productImageUrl: args.productImageUrl ?? undefined,
@@ -305,6 +358,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           bodyProfileSummary: args.bodyProfileSummary,
           baselineVerdict: args.baselineVerdict,
           mode: "studio",
+          // V3.7 — when the previous render failed quality control we ask the
+          // router to bypass cache and use the stronger body-lock prompt.
+          forceRegenerate: isQcRetry || undefined,
+          safeMode: isQcRetry || undefined,
         });
         if (isStale()) return;
         if (error) throw error;
@@ -392,6 +449,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
   }, [requestKey]);
 
   const retry = useCallback(() => {
+    qcAttemptRef.current = 0;
     setManualReload((n) => n + 1);
   }, []);
 
