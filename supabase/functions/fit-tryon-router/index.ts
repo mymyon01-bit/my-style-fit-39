@@ -11,7 +11,7 @@
 //   3. result is persisted to the `fit-composites` storage bucket
 //   4. persistent URL is stored in `fit_tryons` and returned to the UI
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
