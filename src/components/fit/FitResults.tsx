@@ -33,6 +33,7 @@ import { overallLabelText, type FitPreference, type RegionStatus } from "@/lib/s
 import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
 import ChangeBodySheet, { type ChangeBodyAction } from "@/components/fit/ChangeBodySheet";
 import { computeBodyDNA } from "@/lib/fit/bodyDNA";
+import { useBodySignatureGuard } from "@/hooks/useBodySignatureGuard";
 import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
 import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
 import FitTrustStrip from "@/components/fit/FitTrustStrip";
@@ -484,6 +485,8 @@ export default function FitResults({
     inseamCm: bodyInseamCm ?? null,
     bodyImageUrl: resolvedUserImageUrl ?? null,
   }), [bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, resolvedUserImageUrl]);
+  // V4.0 — drop every cached fit artifact when the body changes, abort stale renders.
+  useBodySignatureGuard(bodyDNA.signature);
   const productKey = `${product.url || product.name}::${product.brand || ""}::body_${bodyDNA.signature}`.toLowerCase().slice(0, 240);
   const tryOnContext: TryOnContext | null = tryOnReady
     ? {
