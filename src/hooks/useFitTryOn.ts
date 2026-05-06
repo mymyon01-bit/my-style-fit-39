@@ -336,6 +336,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           hasUserImage: !!args.userImageUrl,
           hasProductImage: !!args.productImageUrl,
         });
+        const isQcRetry = qcAttemptRef.current >= 1;
         const { data, error } = await createTryOn({
           userImageUrl: args.userImageUrl ?? undefined,
           productImageUrl: args.productImageUrl ?? undefined,
@@ -348,6 +349,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           bodyProfileSummary: args.bodyProfileSummary,
           baselineVerdict: args.baselineVerdict,
           mode: "studio",
+          // V3.7 — when the previous render failed quality control we ask the
+          // router to bypass cache and use the stronger body-lock prompt.
+          forceRegenerate: isQcRetry || undefined,
+          safeMode: isQcRetry || undefined,
         });
         if (isStale()) return;
         if (error) throw error;
