@@ -19,7 +19,7 @@ import fitImg from "@/assets/tour-fit.jpg";
 import ootdImg from "@/assets/tour-ootd.jpg";
 import ootdSticker from "@/assets/ootd-sticker.png";
 
-const STORAGE_KEY = "wardrobe:welcome-tour:v2";
+const STORAGE_KEY = "wardrobe:welcome-tour:v3";
 
 const WelcomeTour = () => {
   const { t } = useI18n();
@@ -50,6 +50,20 @@ const WelcomeTour = () => {
         title: t("tourTitle2"),
         body: t("tourBody2"),
         scrim: "from-background via-background/80 to-background/20",
+      },
+      {
+        image: fitImg,
+        kicker: "SIZE ANALYSIS",
+        title: "Tight, regular, or oversized — before you buy.",
+        body: "Real per-region fit math: chest, shoulder, waist, sleeve. See exactly how each size will sit on your body, never a generic guess.",
+        scrim: "from-background via-background/85 to-background/25",
+      },
+      {
+        image: fitImg,
+        kicker: "MULTI-SIZE PREVIEW",
+        title: "Compare S · M · L · XL on the same body.",
+        body: "Your body is locked. Only the garment changes — so you can finally trust which size is actually yours.",
+        scrim: "from-background via-background/85 to-background/25",
       },
       {
         image: ootdImg,

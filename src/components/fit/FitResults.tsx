@@ -31,6 +31,8 @@ import { useSizeRecommendation } from "@/hooks/useSizeRecommendation";
 import SizeRecommendationPanel from "@/components/fit/SizeRecommendationPanel";
 import { overallLabelText, type FitPreference, type RegionStatus } from "@/lib/sizing";
 import { baselineFitVerdict, describeBaselineConsequence } from "@/lib/fit/sizeBaseline";
+import ChangeBodySheet, { type ChangeBodyAction } from "@/components/fit/ChangeBodySheet";
+import { computeBodyDNA } from "@/lib/fit/bodyDNA";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
@@ -355,7 +357,23 @@ export default function FitResults({
   }, [userBodyImageUrl, dbUserImageUrl, resolvedUserImageUrl, resolvedProductImage, product]);
 
   const tryOnReady = !!resolvedUserImageUrl && !!resolvedProductImage;
-  const productKey = `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 200);
+  // ── BODY DNA — locks (body + garment + size) into a single cache cell ──
+  // Means switching sizes only flips the size segment of the key. Switching
+  // bodies (presets, new upload, edits) creates a fresh signature so the AI
+  // image regenerates instead of returning a stale cached result on top of
+  // the new body.
+  const bodyDNA = useMemo(() => computeBodyDNA({
+    heightCm: bodyHeightCm ?? null,
+    weightKg: bodyWeightKg ?? null,
+    gender: bodyGender ?? null,
+    shoulderCm: bodyShoulderCm ?? null,
+    chestCm: bodyChestCm ?? null,
+    waistCm: bodyWaistCm ?? null,
+    hipCm: bodyHipCm ?? null,
+    inseamCm: bodyInseamCm ?? null,
+    bodyImageUrl: resolvedUserImageUrl ?? null,
+  }), [bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, resolvedUserImageUrl]);
+  const productKey = `${product.url || product.name}::${product.brand || ""}::body_${bodyDNA.signature}`.toLowerCase().slice(0, 240);
   const tryOnContext: TryOnContext | null = tryOnReady
     ? {
         userImageUrl: resolvedUserImageUrl!,
@@ -468,6 +486,15 @@ export default function FitResults({
 
   // ── Analyze sheet (holds the deep numbers + region tables + comparisons) ──
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [changeBodyOpen, setChangeBodyOpen] = useState(false);
+
+  const handleChangeBody = (a: ChangeBodyAction) => {
+    if (a.type === "rescan") onRescan?.();
+    else if (a.type === "edit") onEditMeasurements?.();
+    // Presets: signal a rescan-style flow today; future hook can swap profile.
+    else if (a.type === "preset") onEditMeasurements?.();
+    setReloadToken((n) => n + 1);
+  };
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 overflow-x-hidden">
@@ -564,6 +591,20 @@ export default function FitResults({
             {explanation || builtExplanation.headline || solver.summary}
           </p>
 
+          {/* Body Accuracy — quick trust meter */}
+          <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] px-3.5 py-2.5 flex items-center justify-between">
+            <span className="text-[10px] font-bold tracking-[0.22em] text-foreground/55">
+              BODY ACCURACY
+            </span>
+            <span className={`text-[12px] font-bold tracking-tight ${
+              bodyDNA.accuracy >= 80 ? "text-green-500"
+                : bodyDNA.accuracy >= 55 ? "text-accent"
+                : "text-orange-500"
+            }`}>
+              {bodyDNA.accuracy}%
+            </span>
+          </div>
+
           {/* Fit-score / data disclaimer — honesty notice */}
           <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
             <div className="flex items-center gap-1.5">
@@ -602,16 +643,14 @@ export default function FitResults({
                 <BarChart3 className="h-3.5 w-3.5" />
                 ANALYZE
               </button>
-              {onRescan && (
-                <button
-                  onClick={onRescan}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-transparent py-3.5 text-[11px] font-bold tracking-[0.22em] text-foreground/85 transition-colors hover:bg-foreground/[0.04]"
-                  title="Switch body, upload new, or edit measurements"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  CHANGE BODY
-                </button>
-              )}
+              <button
+                onClick={() => setChangeBodyOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-transparent py-3.5 text-[11px] font-bold tracking-[0.22em] text-foreground/85 transition-colors hover:bg-foreground/[0.04]"
+                title="Switch body, upload new, edit, or pick a preset"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                CHANGE BODY
+              </button>
             </div>
             {product.url && product.url !== "#" && (
               <a
@@ -636,6 +675,13 @@ export default function FitResults({
           </div>
         </div>
       </div>
+
+      {/* ══ CHANGE BODY SHEET — V3.5 ══ */}
+      <ChangeBodySheet
+        open={changeBodyOpen}
+        onOpenChange={setChangeBodyOpen}
+        onAction={handleChangeBody}
+      />
 
       {/* ══ ANALYZE SHEET — all the deep numbers live here ══ */}
       <Sheet open={analyzeOpen} onOpenChange={setAnalyzeOpen}>
