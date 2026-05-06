@@ -122,6 +122,15 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`
       : null;
 
+  // Reset QC retry counter when the underlying product/size/body changes
+  // (a true new request — not an internal auto-rerender via manualReload).
+  const baseKey = `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}`;
+  const lastBaseKeyRef = useRef<string | null>(null);
+  if (lastBaseKeyRef.current !== baseKey) {
+    lastBaseKeyRef.current = baseKey;
+    qcAttemptRef.current = 0;
+  }
+
   useEffect(() => {
     stopTimers();
 
