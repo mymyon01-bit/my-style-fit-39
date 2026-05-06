@@ -806,12 +806,22 @@ export default function FitResults({
           </div>
 
           <div className="px-6 py-6 space-y-6">
+            {/* SIZE CORRELATION — V3.8 numeric body↔garment relation */}
+            {sizeCorrelation && (
+              <FitAnalysisPanel
+                correlation={sizeCorrelation}
+                activeSize={activeSize}
+                onPickSize={(s) => setActiveSize(s)}
+              />
+            )}
+
             {/* SELECTED-SIZE-FIRST EXPLANATION */}
             <SelectedSizeFitCard
               recommendation={sizing.recommendation}
               activeSize={activeSize}
               onPickRecommended={(size) => setActiveSize(size)}
             />
+
 
             {/* PARALLEL FIT EXPLANATION LAYER */}
             {bodyHeightCm ? (
