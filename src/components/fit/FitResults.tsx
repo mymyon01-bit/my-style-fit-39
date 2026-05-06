@@ -651,7 +651,7 @@ export default function FitResults({
                 : bodyDNA.accuracy >= 50 ? "Medium confidence — add a side image or measurements for better accuracy."
                 : "Low confidence — result may be approximate."}
             </p>
-            {(tryOn.stage === "processing" || tryOn.stage === "queued") && tryOn.lastGoodImageUrl && (
+            {(tryOn.stage === "generating" || tryOn.stage === "polling" || tryOn.stage === "validating") && tryOn.lastGoodImageUrl && (
               <p className="text-[10px] tracking-[0.18em] text-accent/80 pt-1 border-t border-foreground/[0.05]">
                 RE-FITTING ON SELECTED BODY…
               </p>
