@@ -757,6 +757,7 @@ export type Database = {
       fit_feedback: {
         Row: {
           body_cluster: string | null
+          body_signature: string | null
           brand: string | null
           category: string | null
           chosen_size: string | null
@@ -769,11 +770,14 @@ export type Database = {
           product_key: string
           recommended_size: string | null
           satisfaction: number | null
+          selected_size: string | null
+          target_gender: string | null
           user_gender: string | null
           user_id: string
         }
         Insert: {
           body_cluster?: string | null
+          body_signature?: string | null
           brand?: string | null
           category?: string | null
           chosen_size?: string | null
@@ -786,11 +790,14 @@ export type Database = {
           product_key: string
           recommended_size?: string | null
           satisfaction?: number | null
+          selected_size?: string | null
+          target_gender?: string | null
           user_gender?: string | null
           user_id: string
         }
         Update: {
           body_cluster?: string | null
+          body_signature?: string | null
           brand?: string | null
           category?: string | null
           chosen_size?: string | null
@@ -803,6 +810,8 @@ export type Database = {
           product_key?: string
           recommended_size?: string | null
           satisfaction?: number | null
+          selected_size?: string | null
+          target_gender?: string | null
           user_gender?: string | null
           user_id?: string
         }
