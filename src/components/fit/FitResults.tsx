@@ -676,6 +676,13 @@ export default function FitResults({
         </div>
       </div>
 
+      {/* ══ CHANGE BODY SHEET — V3.5 ══ */}
+      <ChangeBodySheet
+        open={changeBodyOpen}
+        onOpenChange={setChangeBodyOpen}
+        onAction={handleChangeBody}
+      />
+
       {/* ══ ANALYZE SHEET — all the deep numbers live here ══ */}
       <Sheet open={analyzeOpen} onOpenChange={setAnalyzeOpen}>
         <SheetContent
