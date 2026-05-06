@@ -460,6 +460,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     return () => {
       cancelled = true;
       stopTimers();
+      try { renderCtrl.abort(); } catch { /* ignore */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey]);
