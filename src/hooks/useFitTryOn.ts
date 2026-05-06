@@ -159,8 +159,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       error: null,
       provider: null,
       requestId: null,
-        retryAfterMs: null,
-        isUsingStableRenderMode: false,
+      retryAfterMs: null,
+      isUsingStableRenderMode: false,
+      qualityVerdict: null,
+      qualityUnstable: false,
     }));
 
     const acceptOrRetry = async (
@@ -169,6 +171,37 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       requestId: string | null,
     ) => {
       if (isStale()) return;
+      // V3.7 — quality control gate: validate body consistency + visual integrity.
+      setState((prev) => ({
+        ...prev,
+        stage: "validating",
+        imageUrl: persistentUrl,
+        provider,
+        requestId,
+      }));
+      let verdict: QualityVerdict | null = null;
+      try {
+        verdict = await evaluateFitQuality(args.userImageUrl ?? null, persistentUrl);
+      } catch {
+        verdict = null;
+      }
+      if (isStale()) return;
+      log("qc_done", {
+        body: verdict?.bodyConsistencyScore,
+        visual: verdict?.visualIntegrityScore,
+        reason: verdict?.reason,
+      });
+      const failed = !!verdict?.shouldRerender;
+      if (failed && qcAttemptRef.current === 0) {
+        qcAttemptRef.current = 1;
+        log("qc_auto_rerender", { reason: verdict?.reason });
+        // Force a fresh generation with the stronger body-lock prompt by
+        // bumping manualReload — router bypasses cache when forceRegenerate
+        // is on (handled in the create body below).
+        setManualReload((n) => n + 1);
+        return;
+      }
+      const unstable = failed && qcAttemptRef.current >= 1;
       setState({
         stage: "ready",
         imageUrl: persistentUrl,
@@ -178,6 +211,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
         requestId,
         retryAfterMs: null,
         isUsingStableRenderMode: false,
+        qualityVerdict: verdict,
+        qualityUnstable: unstable,
       });
     };
 
