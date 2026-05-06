@@ -28,7 +28,7 @@ function shortLabel(s: SizeAnalysis): string {
   return s.fitLabel.replace(" Fit", "").replace("Not Recommended", "Risky");
 }
 
-export default function FitAnalysisPanel({ correlation, activeSize, onPickSize }: Props) {
+export default function FitAnalysisPanel({ correlation, activeSize, onPickSize, genderNote, crossGenderApprox }: Props) {
   const selected = correlation.selectedAnalysis;
   return (
     <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
