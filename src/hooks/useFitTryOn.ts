@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReplicateTryOn } from "./useReplicateTryOn";
 import { evaluateFitQuality, type QualityVerdict } from "@/lib/fit/fitQualityControl";
+import { abortAllStaleForRender, registerAbort } from "@/lib/fit/fitPriorityQueue";
 
 export type FitTryOnStage = "idle" | "generating" | "polling" | "validating" | "ready" | "failed";
 
@@ -141,6 +142,10 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
 
   useEffect(() => {
     stopTimers();
+    // V4.0 — latest visible request wins. Cancels any in-flight prewarm AND
+    // any older render so size flips (S→M→L) don't pile up duplicate work.
+    abortAllStaleForRender();
+    const renderCtrl = registerAbort("render");
 
     if (!requestKey || !args.productImageUrl) {
       setState((prev) => ({
@@ -455,6 +460,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
     return () => {
       cancelled = true;
       stopTimers();
+      try { renderCtrl.abort(); } catch { /* ignore */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey]);
