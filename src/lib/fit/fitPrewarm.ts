@@ -38,7 +38,7 @@ export interface PrewarmInput {
   garmentInput: GarmentInferenceInput;
   genderDetection: GenderDetectionInput;
   bodyGender?: BodyGender;
-  /** Macro category for the gendered size context (defaults to "tops"). */
+  /** Macro category for the gendered size context (defaults to "top"). */
   macroCategory?: GarmentMacroCategory;
 }
 
@@ -94,7 +94,7 @@ export async function prewarmFit(input: PrewarmInput): Promise<PrewarmResult> {
           buildGenderedSizeContext({
             body: { gender: input.bodyGender ?? null },
             detection: input.genderDetection,
-            macro: input.macroCategory ?? "tops",
+            macro: input.macroCategory ?? "top",
             selectedSizeLabel: input.selectedSize ?? "M",
             hasExactChart: false,
           }),
