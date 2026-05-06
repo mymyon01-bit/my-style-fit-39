@@ -105,6 +105,10 @@ function buildPrompt(args: {
   };
   /** Optional per-region physics instructions (V3.6). */
   visualInstructionLines?: string[];
+  /** V3.8 — numeric size correlation directives (e.g. "chest tightens by 4cm"). */
+  generationDirectives?: string[];
+  /** V3.8 — selected-size summary copy ("Size M is 3cm smaller than your chest"). */
+  sizeCorrelationCopy?: string;
 }) {
   const bodyGender = args.genderPresentation === "feminine" ? "female"
     : args.genderPresentation === "masculine" ? "male"
@@ -161,6 +165,16 @@ function buildPrompt(args: {
     ? `PER-REGION FIT PHYSICS:\n${args.visualInstructionLines.join("\n")}`
     : "";
 
+  // ── Numeric size correlation directives (V3.8) — fabric must respond to
+  //    the actual per-region delta computed against the user's body.
+  const correlationBlock = (args.generationDirectives && args.generationDirectives.length)
+    ? `SIZE CORRELATION DIRECTIVES (numeric body↔garment relation):\n${args.generationDirectives.map((l) => `• ${l}`).join("\n")}`
+    : "";
+  const correlationCopy = args.sizeCorrelationCopy
+    ? `SIZE-NUMBERS CONTEXT: ${args.sizeCorrelationCopy} The render must reflect this exact relationship — never reshape the body to compensate.`
+    : "";
+
+
   return [
     `Studio fit visualization on a FACELESS MANNEQUIN. NOT a real person, NO visible face, NO facial features, NO skin texture, NO realism noise — smooth featureless head, neutral matte body. ${bodyGender} mannequin, neutral standing pose facing camera, arms slightly apart, full body visible.`,
     `Body proportions are LOCKED to: height ${args.body.height}cm, weight ${args.body.weight}kg, BMI ${build.bmi} → ${build.category} category. The mannequin must be a ${build.description}. Height drives vertical length; weight drives horizontal volume — DO NOT scale uniformly. Same body across all sizes; never resize the body to fit the clothing.`,
@@ -169,6 +183,8 @@ function buildPrompt(args: {
     dnaLine,
     `FIT CONDITION = ${fitType} for size ${args.selectedSize}. ${fitRules[fitType]} ${regionLine}`,
     physicsBlock,
+    correlationBlock,
+    correlationCopy,
     `BODY LOCK — ABSOLUTE: The subject's body is a FIXED, IMMUTABLE OBJECT. DO NOT slim the waist, DO NOT enlarge hips, DO NOT widen shoulders, DO NOT reshape torso, legs, arms or face, DO NOT beautify, DO NOT generate a different person. Identical body, identical pose, identical proportions, identical skin tone, identical camera angle, identical crop, identical scale, identical lighting, identical background across EVERY size (S, M, L, XL, XXL). The GARMENT is the only variable — it stretches, compresses, drapes or folds around this fixed body. The clothing adapts to the body; the body NEVER adapts to the clothing. If a size is too small the fabric stretches and tension lines appear — the body does not shrink. If a size is too large the fabric drapes and folds — the body does not grow. The base layer also stays identical across sizes.`,
     `Composition: plain bright studio background (white or light gray), soft even lighting, minimal shadows, full body centered. No lifestyle, no fashion editorial, no artistic effects. Goal: make the size-fit difference instantly readable.`,
   ].filter(Boolean).join(" ");
@@ -261,7 +277,13 @@ Deno.serve(async (req) => {
     const visualInstructionLines = Array.isArray(input.visualInstructionLines)
       ? (input.visualInstructionLines as string[]).slice(0, 12)
       : undefined;
-    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize, garmentDNA, visualInstructionLines });
+    const generationDirectives = Array.isArray(input.generationDirectives)
+      ? (input.generationDirectives as string[]).slice(0, 12)
+      : undefined;
+    const sizeCorrelationCopy = typeof input.sizeCorrelationCopy === "string"
+      ? (input.sizeCorrelationCopy as string).slice(0, 280)
+      : undefined;
+    const prompt = buildPrompt({ body, analysis: fitAnalysis, garmentLabel, genderPresentation, selectedSize, garmentDNA, visualInstructionLines, generationDirectives, sizeCorrelationCopy });
 
     const { url, error } = await generateImage({
       prompt, productImageUrl, userImageUrl, productKey,

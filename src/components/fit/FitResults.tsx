@@ -36,6 +36,9 @@ import { computeBodyDNA } from "@/lib/fit/bodyDNA";
 import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
 import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
 import FitTrustStrip from "@/components/fit/FitTrustStrip";
+import { computeSizeCorrelation, sizesFromGarmentChart } from "@/lib/fit/sizeCorrelationEngine";
+import FitAnalysisPanel from "@/components/fit/FitAnalysisPanel";
+import { applyBrandFitBias } from "@/lib/fit/brandFitBias";
 
 /** Map measurement-engine status → visual try-on fit descriptor. */
 const STATUS_TO_FIT_DESCRIPTOR: Record<RegionStatus, string> = {
@@ -340,6 +343,35 @@ export default function FitResults({
     () => describeOverallFit(overallPhysicsLabel, garmentDNA, activeSize),
     [overallPhysicsLabel, garmentDNA, activeSize],
   );
+
+  // ── SIZE CORRELATION (V3.8) — per-size numeric fit + directives ────────
+  const sizeCorrelation = useMemo(() => {
+    if (!sizing.chart || !sizing.chart.sizeOrder?.length) return null;
+    const adjustedBody = applyBrandFitBias(
+      {
+        shoulderCm: bodyShoulderCm ?? null,
+        chestCm: bodyChestCm ?? null,
+        waistCm: bodyWaistCm ?? null,
+        hipCm: bodyHipCm ?? null,
+        inseamCm: bodyInseamCm ?? null,
+      },
+      product.brand,
+      product.category,
+    );
+    return computeSizeCorrelation({
+      body: {
+        gender: (bodyGender as any) ?? null,
+        heightCm: bodyHeightCm ?? null,
+        weightKg: bodyWeightKg ?? null,
+        ...adjustedBody,
+      },
+      garmentDNA,
+      sizes: sizesFromGarmentChart(sizing.chart as any),
+      selectedSize: activeSize,
+      preference: sizing.preference as any,
+    });
+  }, [sizing.chart, sizing.preference, garmentDNA, activeSize, bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, product.brand, product.category]);
+
 
   // ── Global size fallback card (only when truly missing brand data) ───────
   const profile = bodyHeightCm
@@ -774,12 +806,22 @@ export default function FitResults({
           </div>
 
           <div className="px-6 py-6 space-y-6">
+            {/* SIZE CORRELATION — V3.8 numeric body↔garment relation */}
+            {sizeCorrelation && (
+              <FitAnalysisPanel
+                correlation={sizeCorrelation}
+                activeSize={activeSize}
+                onPickSize={(s) => setActiveSize(s)}
+              />
+            )}
+
             {/* SELECTED-SIZE-FIRST EXPLANATION */}
             <SelectedSizeFitCard
               recommendation={sizing.recommendation}
               activeSize={activeSize}
               onPickRecommended={(size) => setActiveSize(size)}
             />
+
 
             {/* PARALLEL FIT EXPLANATION LAYER */}
             {bodyHeightCm ? (
