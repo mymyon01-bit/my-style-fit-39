@@ -317,14 +317,23 @@ const FitPage = () => {
       noImageReason: !product.image ? "all_resolution_paths_failed" : null,
     });
 
-    // ── INSTANT-DEMO MODE ────────────────────────────────────────────────
-    // FIT must run the moment a product is selected. Inject safe defaults
-    // for any missing body data so we never block on onboarding.
+    // ── BODY SETUP GATE (V3.5) ───────────────────────────────────────────
+    // The user must complete BODY before any try-on can render. If we don't
+    // have at least height + weight, route them to the BODY tab and stash
+    // the product so it auto-resumes after they confirm measurements.
+    const hasMinimumBody = !!weightKg && weightKg >= 30 && measurements.heightCm.value > 0;
+    if (!hasMinimumBody) {
+      setSelectedProduct(rawProduct);
+      try { sessionStorage.setItem("fit:pendingProduct", JSON.stringify(rawProduct)); } catch { /* ignore */ }
+      setActiveTab("measurements");
+      if (!opts?.silent) toast("Set your body first — height & weight required for accurate fit.");
+      return;
+    }
+
     const SAFE_DEFAULTS = {
       heightCm: 175, weightKg: 70, shoulderWidthCm: 45,
       chestCm: 96, waistCm: 80, hipCm: 96, inseamCm: 80,
     };
-    // BODY tab is the source of truth — no upper clamp on weight.
     const effectiveWeight = (weightKg && weightKg >= 30) ? weightKg : SAFE_DEFAULTS.weightKg;
     if (!weightKg) setWeightKg(SAFE_DEFAULTS.weightKg);
 
