@@ -61,11 +61,13 @@ export function recordFitFeedback(args: {
   feedback: Feedback;
   /** Region the user complained about — defaults to "chest". */
   region?: "shoulder" | "chest" | "waist" | "hip";
+  targetGender?: string;
+  market?: string;
 }) {
   const { brand, category, feedback } = args;
   if (!brand || !category) return;
   const map = readAll();
-  const key = biasKey(brand, category);
+  const key = biasKey(brand, category, args.targetGender, args.market);
   const now = Date.now();
   const existing: BrandFitBias = map[key] ?? {
     brand, category,
@@ -103,8 +105,10 @@ export function applyBrandFitBias<T extends Record<string, number | null | undef
   category: string,
   /** How aggressive the adjustment is. 1 = full strength. */
   strength = 1,
+  targetGender?: string,
+  market?: string,
 ): T {
-  const bias = getBrandFitBias(brand, category);
+  const bias = getBrandFitBias(brand, category, targetGender, market);
   if (!bias || bias.samples < MIN_SAMPLES) return body;
   const adjust = (value: number | null | undefined, b: number) =>
     typeof value === "number" ? Math.round((value - b * strength * 2) * 10) / 10 : value;
