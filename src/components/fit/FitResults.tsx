@@ -632,17 +632,30 @@ export default function FitResults({
           </p>
 
           {/* Body Accuracy — quick trust meter */}
-          <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] px-3.5 py-2.5 flex items-center justify-between">
-            <span className="text-[10px] font-bold tracking-[0.22em] text-foreground/55">
-              BODY ACCURACY
-            </span>
-            <span className={`text-[12px] font-bold tracking-tight ${
-              bodyDNA.accuracy >= 80 ? "text-green-500"
-                : bodyDNA.accuracy >= 55 ? "text-accent"
-                : "text-orange-500"
-            }`}>
-              {bodyDNA.accuracy}%
-            </span>
+          <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] px-3.5 py-2.5 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold tracking-[0.22em] text-foreground/55">
+                BODY ACCURACY
+              </span>
+              <span className={`text-[12px] font-bold tracking-tight ${
+                bodyDNA.accuracy >= 80 ? "text-green-500"
+                  : bodyDNA.accuracy >= 55 ? "text-accent"
+                  : "text-orange-500"
+              }`}>
+                {bodyDNA.accuracy}%
+              </span>
+            </div>
+            <p className="text-[10px] leading-relaxed text-foreground/50">
+              {bodyDNA.accuracy >= 90 ? "High confidence — based on complete body data."
+                : bodyDNA.accuracy >= 70 ? "Good confidence — minor estimation used."
+                : bodyDNA.accuracy >= 50 ? "Medium confidence — add a side image or measurements for better accuracy."
+                : "Low confidence — result may be approximate."}
+            </p>
+            {(tryOn.stage === "processing" || tryOn.stage === "queued") && tryOn.lastGoodImageUrl && (
+              <p className="text-[10px] tracking-[0.18em] text-accent/80 pt-1 border-t border-foreground/[0.05]">
+                RE-FITTING ON SELECTED BODY…
+              </p>
+            )}
           </div>
 
           {/* Fit-score / data disclaimer — honesty notice */}
