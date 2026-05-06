@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReplicateTryOn } from "./useReplicateTryOn";
+import { evaluateFitQuality, type QualityVerdict } from "@/lib/fit/fitQualityControl";
 
 export type FitTryOnStage = "idle" | "generating" | "polling" | "validating" | "ready" | "failed";
 
@@ -26,6 +27,10 @@ export interface FitTryOnState {
   requestId: string | null;
   retryAfterMs: number | null;
   isUsingStableRenderMode: boolean;
+  /** V3.7 — quality control verdict for the current image. */
+  qualityVerdict: QualityVerdict | null;
+  /** V3.7 — true when QC failed twice and we are showing an unstable preview. */
+  qualityUnstable: boolean;
 }
 
 export interface UseFitTryOnArgs {
