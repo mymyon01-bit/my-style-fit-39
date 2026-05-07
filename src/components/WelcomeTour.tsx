@@ -226,7 +226,7 @@ const WelcomeTour = () => {
           </motion.div>
 
           {/* Top bar */}
-          <div className="relative z-20 flex items-center justify-between px-5 pt-[max(env(safe-area-inset-top),18px)] pb-3">
+          <div className="relative z-20 flex items-center justify-between px-4 pt-3 pb-2">
             <span className="font-display text-[15px] italic font-semibold lowercase tracking-tight text-[#0a0a0a]">
               my'myon
             </span>
@@ -246,7 +246,7 @@ const WelcomeTour = () => {
                 key={`bg-${index}`}
                 src={slide.image}
                 alt=""
-                className="block h-44 sm:h-56 w-full object-cover"
+                className="block h-36 sm:h-56 w-full object-cover"
                 draggable={false}
                 initial={{ opacity: 0, x: direction * 60, scale: 1.05 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
