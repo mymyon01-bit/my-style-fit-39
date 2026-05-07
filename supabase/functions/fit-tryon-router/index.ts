@@ -917,6 +917,14 @@ async function generateStudioFitImage(replicateKey: string, body: CreateBody): P
     if (vton.kind === "success") return vton;
   }
 
+  // No body photo + Lovable AI exhausted → fall back to Replicate text-to-image (flux-schnell).
+  if ((last?.kind === "credits_exhausted" || last?.kind === "throttled") && replicateKey) {
+    logRouter("REPLICATE_STUDIO_TTI_FALLBACK", { reason: last.kind });
+    const tti = await runReplicateStudioFallback(replicateKey, body);
+    if (tti.kind === "success") return tti;
+    last = tti;
+  }
+
   return last ?? { kind: "error", code: "provider_error", error: "no_studio_model_available" };
 }
 
