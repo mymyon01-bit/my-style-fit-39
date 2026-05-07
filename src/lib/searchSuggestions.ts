@@ -198,3 +198,55 @@ export const TRENDING_SEARCHES = [
   "oversized jackets",
   "airport look",
 ];
+
+/**
+ * V4.3 Visual Autocomplete categories — give the search dropdown
+ * structure beyond raw text. Each category renders with its own row.
+ */
+export interface VisualSuggestionGroup {
+  type: "brand" | "aesthetic" | "category" | "showroom";
+  label: string;
+  items: { label: string; query: string; emoji?: string }[];
+}
+
+const BRAND_HINTS = ["nike", "adidas", "uniqlo", "cos", "lemaire", "arket", "muji", "stussy", "carhartt"];
+const AESTHETIC_HINTS = Object.keys(AESTHETIC_EXPANSIONS);
+
+export function buildVisualGroups(input: string): VisualSuggestionGroup[] {
+  const lower = input.toLowerCase().trim();
+  if (!lower) return [];
+
+  const groups: VisualSuggestionGroup[] = [];
+
+  const brandMatches = BRAND_HINTS.filter(b => b.includes(lower) || lower.includes(b));
+  if (brandMatches.length) {
+    groups.push({
+      type: "brand",
+      label: "Brands",
+      items: brandMatches.slice(0, 4).map(b => ({ label: b.toUpperCase(), query: b })),
+    });
+  }
+
+  const aestheticMatches = AESTHETIC_HINTS.filter(a => a.includes(lower) || lower.includes(a.split(" ")[0]));
+  if (aestheticMatches.length) {
+    groups.push({
+      type: "aesthetic",
+      label: "Aesthetics",
+      items: aestheticMatches.slice(0, 4).map(a => ({
+        label: AESTHETIC_EXPANSIONS[a].label,
+        query: a,
+      })),
+    });
+  }
+
+  const categoryMatches = Object.entries(CATEGORY_KEYWORDS).filter(([, kws]) => kws.some(k => k.includes(lower) || lower.includes(k)));
+  if (categoryMatches.length) {
+    groups.push({
+      type: "category",
+      label: "Categories",
+      items: categoryMatches.slice(0, 4).map(([k]) => ({ label: k, query: k })),
+    });
+  }
+
+  return groups;
+}

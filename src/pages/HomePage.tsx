@@ -24,6 +24,7 @@ import Brandmark from "@/components/Brandmark";
 import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
+import TodayInspoStrip from "@/components/today/TodayInspoStrip";
 import StyleMeButton from "@/components/StyleMeButton";
 import ContactUsDialog from "@/components/ContactUsDialog";
 import { useAuth } from "@/lib/auth";
@@ -248,6 +249,12 @@ const HomePage = () => {
             </div>
           </motion.div>
 
+        </div>
+
+        {/* V4.3 — Today's Inspo strip (personalized dashboard entry) */}
+        <TodayInspoStrip />
+
+        <div className="relative z-10 mx-auto w-full max-w-[600px] px-6">
           {/* Weather meta */}
           {!weather.loading && (
             <motion.div
