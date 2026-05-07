@@ -339,7 +339,7 @@ const ProfilePage = () => {
 
             {/* Username — special handling */}
             <div>
-              <label className="text-[10px] font-medium text-foreground/75">Username (아이디)</label>
+              <label className="text-[10px] font-medium text-foreground/75">{t("profileUsernameLabel")}</label>
               <div className="mt-1 flex items-center gap-1 border-b border-border/20 focus-within:border-accent/30 transition-colors">
                 <span className="text-[13px] text-foreground/50">@</span>
                 <input
@@ -557,7 +557,7 @@ const ProfilePage = () => {
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                     {styleProfile?.preferred_styles?.length
                       ? `${styleProfile.preferred_styles.length} preferences`
-                      : "Not set"}
+                      : t("profileNotSet")}
                   </p>
                 </div>
               </div>
@@ -565,7 +565,7 @@ const ProfilePage = () => {
             <AccordionContent className="pb-4 space-y-3">
               <div className="flex justify-end">
                 <button onClick={() => setEditingStyle(!editingStyle)} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">
-                  {editingStyle ? "CLOSE" : styleProfile ? "EDIT" : "SET UP"}
+                  {editingStyle ? t("profileEditClose") : styleProfile ? t("profileEditEdit") : t("profileEditSetUp")}
                 </button>
               </div>
               {editingStyle ? (
@@ -609,7 +609,7 @@ const ProfilePage = () => {
                 <div className="text-left">
                   <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileBodyTitle")}</p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                    {bodyProfile?.silhouette_type || (bodyProfile ? "Scanned" : "Not scanned")}
+                    {bodyProfile?.silhouette_type || (bodyProfile ? t("profileBodyScanned") : t("profileBodyNotScanned"))}
                   </p>
                 </div>
               </div>
