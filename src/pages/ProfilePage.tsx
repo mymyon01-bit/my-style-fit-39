@@ -7,6 +7,7 @@ import {
   Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield,
   Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock
 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import StylePreferenceEditor from "@/components/StylePreferenceEditor";
 import CirclesSheet from "@/components/CirclesSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -497,177 +498,204 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
-        {/* Today's 5 Looks — quiz-driven */}
+        {/* Today's 5 Looks — quiz-driven (always visible, top of MY) */}
         <TodayPicks />
 
         <div className="h-px bg-accent/[0.12]" />
 
-        {/* V4.2 — Archive: personal fashion memory, not a plain wishlist. */}
-        <div className="space-y-5">
-          <header className="border-b border-foreground/10 pb-3">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
-              Your Archive
-            </p>
-            <div className="mt-1.5 flex items-end justify-between gap-3">
-              <h2 className="font-display text-[24px] leading-none tracking-tight text-foreground md:text-[30px]">
-                Saved & Curated
-              </h2>
-              <button
-                onClick={() => navigate("/discover")}
-                className="pb-1 text-[10px] font-semibold tracking-[0.18em] text-foreground/55 hover:text-foreground"
-              >
-                BROWSE PRODUCTS →
-              </button>
-            </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-foreground/55">
-              Your saved looks, fits and silhouettes — a wardrobe memory that grows with your taste.
-            </p>
-          </header>
-          <SavedProductsTab />
-          {folders.length > 0 && (
-            <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-foreground/55">
-                Collections
-              </p>
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                {folders.map(folder => (
-                  <button key={folder.id} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 p-3 text-left transition-colors hover:bg-card/50">
-                    <Folder className="h-4 w-4 text-foreground/55 shrink-0" />
-                    <span className="text-[11px] text-foreground/75 truncate">{folder.name}</span>
-                  </button>
-                ))}
+        {/* MY — collapsible sections, infographic-style headers */}
+        <Accordion type="multiple" defaultValue={["saved"]} className="space-y-2">
+          {/* Saved & Curated */}
+          <AccordionItem value="saved" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+            <AccordionTrigger className="py-3 hover:no-underline">
+              <div className="flex items-center gap-3">
+                <Bookmark className="h-4 w-4 text-foreground/60" />
+                <div className="text-left">
+                  <p className="font-display text-[15px] tracking-tight text-foreground">Saved</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{savedCount} items</p>
+                </div>
               </div>
-            </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-4">
+              <SavedProductsTab />
+              {folders.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  {folders.map(folder => (
+                    <button key={folder.id} className="flex items-center gap-2 rounded-lg border border-foreground/10 bg-card/40 p-2.5 text-left hover:bg-card/60">
+                      <Folder className="h-3.5 w-3.5 text-foreground/55 shrink-0" />
+                      <span className="text-[11px] text-foreground/75 truncate">{folder.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Style Boards */}
+          <AccordionItem value="boards" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+            <AccordionTrigger className="py-3 hover:no-underline">
+              <div className="flex items-center gap-3">
+                <Palette className="h-4 w-4 text-foreground/60" />
+                <div className="text-left">
+                  <p className="font-display text-[15px] tracking-tight text-foreground">Style Boards</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">Mood · Outfits · Trips</p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <StyleBoardsPanel />
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Style Profile */}
+          <AccordionItem value="style" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+            <AccordionTrigger className="py-3 hover:no-underline">
+              <div className="flex items-center gap-3">
+                <Shirt className="h-4 w-4 text-foreground/60" />
+                <div className="text-left">
+                  <p className="font-display text-[15px] tracking-tight text-foreground">Style</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                    {styleProfile?.preferred_styles?.length
+                      ? `${styleProfile.preferred_styles.length} preferences`
+                      : "Not set"}
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-3">
+              <div className="flex justify-end">
+                <button onClick={() => setEditingStyle(!editingStyle)} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">
+                  {editingStyle ? "CLOSE" : styleProfile ? "EDIT" : "SET UP"}
+                </button>
+              </div>
+              {editingStyle ? (
+                <StylePreferenceEditor
+                  initial={styleProfile}
+                  onSave={() => { setEditingStyle(false); loadProfileData(); }}
+                  onClose={() => setEditingStyle(false)}
+                />
+              ) : styleProfile ? (
+                <div className="space-y-2">
+                  {styleProfile.preferred_styles?.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap">
+                      {styleProfile.preferred_styles.map((s: string) => (
+                        <span key={s} className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] text-accent/80">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                  {styleProfile.disliked_styles?.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap">
+                      {styleProfile.disliked_styles.map((s: string) => (
+                        <span key={s} className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-[10px] text-destructive/60 line-through">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-foreground/65">
+                    {styleProfile.preferred_fit && <p>Fit · <span className="text-foreground/85">{styleProfile.preferred_fit}</span></p>}
+                    {styleProfile.budget && <p>Budget · <span className="text-foreground/85">{styleProfile.budget}</span></p>}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-foreground/55">{t("notSet")}</p>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Body Profile — infographic */}
+          <AccordionItem value="body" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+            <AccordionTrigger className="py-3 hover:no-underline">
+              <div className="flex items-center gap-3">
+                <Ruler className="h-4 w-4 text-foreground/60" />
+                <div className="text-left">
+                  <p className="font-display text-[15px] tracking-tight text-foreground">Body</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                    {bodyProfile?.silhouette_type || (bodyProfile ? "Scanned" : "Not scanned")}
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-3">
+              {bodyProfile ? (
+                <>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    {[
+                      { label: "HT", value: bodyProfile.height_cm ? `${bodyProfile.height_cm}` : "—", unit: "cm" },
+                      { label: "WT", value: bodyProfile.weight_kg ? `${bodyProfile.weight_kg}` : "—", unit: "kg" },
+                      { label: "SHL", value: bodyProfile.shoulder_width_cm ? `${bodyProfile.shoulder_width_cm}` : "—", unit: "cm" },
+                      { label: "WST", value: bodyProfile.waist_cm ? `${bodyProfile.waist_cm}` : "—", unit: "cm" },
+                    ].map(s => (
+                      <div key={s.label} className="rounded-lg bg-foreground/[0.04] py-2">
+                        <p className="font-display text-[15px] text-foreground tabular-nums">{s.value}</p>
+                        <p className="text-[8.5px] uppercase tracking-wider text-foreground/45">{s.label} · {s.unit}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {bodyProfile.scan_confidence > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="h-1 flex-1 rounded-full bg-foreground/[0.06] overflow-hidden">
+                        <div className="h-full rounded-full bg-accent/50" style={{ width: `${bodyProfile.scan_confidence}%` }} />
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-foreground/55">{bodyProfile.scan_confidence}% conf.</span>
+                    </div>
+                  )}
+                  <button onClick={() => navigate("/fit")} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">RESCAN →</button>
+                </>
+              ) : (
+                <button onClick={() => navigate("/fit")} className="text-[11px] font-semibold tracking-wide text-accent/80 hover:text-accent">START SCAN →</button>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* My OOTDs */}
+          {myOotds.length > 0 && (
+            <AccordionItem value="ootds" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+              <AccordionTrigger className="py-3 hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <Camera className="h-4 w-4 text-foreground/60" />
+                  <div className="text-left">
+                    <p className="font-display text-[15px] tracking-tight text-foreground">OOTDs</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{myOotds.length} posts · {totalStars} ★</p>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {myOotds.map(ootd => (
+                    <div key={ootd.id} className="relative aspect-square rounded-lg overflow-hidden bg-foreground/[0.04]">
+                      <img src={ootd.image_url} alt={ootd.caption || ""} className="h-full w-full object-cover" loading="lazy" />
+                      {(ootd.star_count || 0) > 0 && (
+                        <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
+                          <Star className="h-2.5 w-2.5 text-accent/70" />
+                          <span className="text-[10px] text-foreground/70">{ootd.star_count}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => navigate("/ootd")} className="mt-3 text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">VIEW ALL →</button>
+              </AccordionContent>
+            </AccordionItem>
           )}
-        </div>
 
-        <div className="h-px bg-accent/[0.12]" />
+          {/* Showroom */}
+          <AccordionItem value="showroom" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+            <AccordionTrigger className="py-3 hover:no-underline">
+              <div className="flex items-center gap-3">
+                <Crown className="h-4 w-4 text-foreground/60" />
+                <div className="text-left">
+                  <p className="font-display text-[15px] tracking-tight text-foreground">Showroom</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">Curated rooms</p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <ShowroomMyBlock userId={user?.id} />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
-        {/* V4.3 — Smart Archive: Pinterest-style Style Boards */}
-        <StyleBoardsPanel />
         <StyleBoardDetailSheet boardId={activeBoardId} onClose={closeBoardSheet} />
 
-        <div className="h-px bg-accent/[0.12]" />
-
-        {/* Style Profile */}
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("style").toUpperCase()}</p>
-            <button onClick={() => setEditingStyle(!editingStyle)} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">
-              {editingStyle ? "CLOSE" : styleProfile ? "EDIT" : "SET UP"}
-            </button>
-          </div>
-          {editingStyle ? (
-            <StylePreferenceEditor
-              initial={styleProfile}
-              onSave={() => { setEditingStyle(false); loadProfileData(); }}
-              onClose={() => setEditingStyle(false)}
-            />
-          ) : styleProfile ? (
-            <div className="space-y-3">
-              {styleProfile.preferred_styles?.length > 0 && (
-                <div>
-                  <p className="text-[11px] text-foreground/70 mb-1.5">PREFERRED</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {styleProfile.preferred_styles.map((s: string) => (
-                      <span key={s} className="rounded-full bg-accent/10 px-3 py-1 text-[10px] text-accent/70">{s}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {styleProfile.disliked_styles?.length > 0 && (
-                <div>
-                  <p className="text-[11px] text-foreground/70 mb-1.5">AVOID</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {styleProfile.disliked_styles.map((s: string) => (
-                      <span key={s} className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] text-destructive/50 line-through">{s}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {styleProfile.preferred_fit && <p className="text-[11px] text-foreground/70">{t("preferredFit")}: <span className="text-foreground/70">{styleProfile.preferred_fit}</span></p>}
-              {styleProfile.budget && <p className="text-[11px] text-foreground/70">{t("budget")}: <span className="text-foreground/70">{styleProfile.budget}</span></p>}
-              {styleProfile.favorite_brands?.length > 0 && (
-                <p className="text-[11px] text-foreground/70">Brands: <span className="text-foreground/70">{styleProfile.favorite_brands.join(", ")}</span></p>
-              )}
-              {styleProfile.occasions?.length > 0 && (
-                <p className="text-[11px] text-foreground/70">Occasions: <span className="text-foreground/70">{styleProfile.occasions.join(", ")}</span></p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-[12px] text-foreground/75">{t("notSet")}</p>
-              <button onClick={() => setEditingStyle(true)} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("completeProfile")}</button>
-            </div>
-          )}
-        </div>
-
-        {/* Body Profile */}
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("bodyProfile").toUpperCase()}</p>
-            <button onClick={() => navigate("/fit")} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">
-              {bodyProfile ? "RESCAN" : "START SCAN"}
-            </button>
-          </div>
-          {bodyProfile ? (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-x-8 gap-y-2">
-                {bodyProfile.height_cm && <p className="text-[12px] text-foreground/70">{bodyProfile.height_cm}cm</p>}
-                {bodyProfile.weight_kg && <p className="text-[12px] text-foreground/70">{bodyProfile.weight_kg}kg</p>}
-                {bodyProfile.shoulder_width_cm && <p className="text-[12px] text-foreground/70">{t("shoulderWidth")} {bodyProfile.shoulder_width_cm}cm</p>}
-                {bodyProfile.waist_cm && <p className="text-[12px] text-foreground/70">{t("waist")} {bodyProfile.waist_cm}cm</p>}
-              </div>
-              {bodyProfile.silhouette_type && (
-                <p className="text-[11px] text-foreground/75">Body type: <span className="text-foreground/75">{bodyProfile.silhouette_type}</span></p>
-              )}
-              {bodyProfile.scan_confidence > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="h-1.5 flex-1 rounded-full bg-foreground/[0.06] overflow-hidden">
-                    <div className="h-full rounded-full bg-accent/40" style={{ width: `${bodyProfile.scan_confidence}%` }} />
-                  </div>
-                  <span className="text-[10px] text-foreground/75">{bodyProfile.scan_confidence}%</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-[12px] text-foreground/75">{t("noScanYet")}</p>
-              <button onClick={() => navigate("/fit")} className="text-[10px] font-medium text-accent/60 hover:text-accent">{t("startScan")}</button>
-            </div>
-          )}
-        </div>
-
-        <div className="h-px bg-accent/[0.12]" />
-
-        {/* My OOTDs */}
-        {myOotds.length > 0 && (
-          <>
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">MY OOTDS</p>
-                <button onClick={() => navigate("/ootd")} className="text-[11px] font-medium text-accent/70 hover:text-accent/70">VIEW ALL</button>
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {myOotds.map(ootd => (
-                  <div key={ootd.id} className="relative aspect-square rounded-lg overflow-hidden bg-foreground/[0.04]">
-                    <img src={ootd.image_url} alt={ootd.caption || ""} className="h-full w-full object-cover" loading="lazy" />
-                    {(ootd.star_count || 0) > 0 && (
-                      <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
-                        <Star className="h-2.5 w-2.5 text-accent/70" />
-                        <span className="text-[10px] text-foreground/70">{ootd.star_count}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="h-px bg-accent/[0.12]" />
-          </>
-        )}
-
-        {/* Showroom block */}
-        <ShowroomMyBlock userId={user?.id} />
         <div className="h-px bg-accent/[0.12]" />
 
         {/* Links */}
