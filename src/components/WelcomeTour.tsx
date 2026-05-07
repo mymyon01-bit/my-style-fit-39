@@ -76,6 +76,15 @@ const WelcomeTour = () => {
   const slides: Slide[] = useMemo(
     () => [
       {
+        image: ootdImg,
+        kicker: t("tourKicker3"),
+        title: t("tourTitle3"),
+        body: t("tourBody3"),
+        href: "/ootd",
+        tape: "#FF3D9A",
+        rotate: -0.6,
+      },
+      {
         image: discoverImg,
         kicker: t("tourKicker1"),
         title: t("tourTitle1"),
@@ -92,15 +101,6 @@ const WelcomeTour = () => {
         href: "/fit",
         tape: "#FFD400",
         rotate: 0.8,
-      },
-      {
-        image: ootdImg,
-        kicker: t("tourKicker3"),
-        title: t("tourTitle3"),
-        body: t("tourBody3"),
-        href: "/ootd",
-        tape: "#FF3D9A",
-        rotate: -0.6,
       },
     ],
     [t],
