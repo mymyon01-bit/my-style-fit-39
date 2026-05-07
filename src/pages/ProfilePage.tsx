@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import StylePreferenceEditor from "@/components/StylePreferenceEditor";
 import CirclesSheet from "@/components/CirclesSheet";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import StyleBoardDetailSheet from "@/components/profile/StyleBoardDetailSheet";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useSavedFolders } from "@/hooks/useSavedFolders";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -29,6 +30,13 @@ const ProfilePage = () => {
   const { t } = useI18n();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeBoardId = searchParams.get("board");
+  const closeBoardSheet = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("board");
+    setSearchParams(next, { replace: true });
+  };
   const { subscription } = useSubscription();
   const { folders, loading: foldersLoading } = useSavedFolders();
   const { isAdmin } = useAdmin();
@@ -537,6 +545,7 @@ const ProfilePage = () => {
 
         {/* V4.3 — Smart Archive: Pinterest-style Style Boards */}
         <StyleBoardsPanel />
+        <StyleBoardDetailSheet boardId={activeBoardId} onClose={closeBoardSheet} />
 
         <div className="h-px bg-accent/[0.12]" />
 
