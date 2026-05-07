@@ -1066,12 +1066,12 @@ const OOTDPage = () => {
                 )}
               </div>
 
-              {/* Trending Topics */}
+              {/* Style Tags */}
               {trendingTopics.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3 text-accent/60" />
-                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">TRENDING TOPICS</span>
+                    <Sparkles className="h-3 w-3 text-accent/60" />
+                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">STYLE TAGS</span>
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     {trendingTopics.map(topic => (
@@ -1084,10 +1084,10 @@ const OOTDPage = () => {
                 </div>
               )}
 
-              {/* Latest from the community — chronological grid of all new posts */}
+              {/* Latest curations from the showroom community */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">LATEST POSTS</span>
+                  <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">LATEST CURATIONS</span>
                   <span className="text-[9px] tracking-[0.18em] text-foreground/35">NEWEST FIRST</span>
                 </div>
                 {isLoading ? (
