@@ -136,15 +136,15 @@ const WelcomeTour = () => {
     else if (info.offset.x > SWIPE_THRESHOLD || info.velocity.x > 500) prev();
   };
 
-  if (!open) return null;
-  const slide = slides[index];
-  const isLast = index === slides.length - 1;
-
-  // X→rotate/opacity feedback while dragging (Tinder feel)
+  // X→rotate/opacity feedback while dragging (Tinder feel) — must run every render
   const dragX = useMotionValue(0);
   const cardRotate = useTransform(dragX, [-200, 0, 200], [-8, 0, 8]);
   const leftHint = useTransform(dragX, [-160, -20, 0], [1, 0, 0]);
   const rightHint = useTransform(dragX, [0, 20, 160], [0, 0, 1]);
+
+  if (!open) return null;
+  const slide = slides[index];
+  const isLast = index === slides.length - 1;
 
   return (
     <AnimatePresence>
