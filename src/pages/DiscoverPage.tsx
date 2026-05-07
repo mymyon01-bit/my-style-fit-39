@@ -175,8 +175,13 @@ export default function DiscoverPage() {
   }, [allLiveResults.length, appendedCount, diagnostics, isRefreshing, searchStatus]);
 
   const visibleLiveResults = useMemo(
-    () => allLiveResults.slice(0, displayCount),
-    [allLiveResults, displayCount],
+    () => {
+      const slice = allLiveResults.slice(0, displayCount);
+      if (!brandsExclude.length) return slice;
+      const lower = brandsExclude.map((b) => b.toLowerCase());
+      return slice.filter((p) => !lower.includes((p.brand || "").toLowerCase()));
+    },
+    [allLiveResults, displayCount, brandsExclude],
   );
 
   // ── Layer 1 — instant DB grid (independent fetch) ─────────────────────
