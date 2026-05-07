@@ -14,9 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Fraunces", "DM Sans", "Inter", "Helvetica Neue", "Arial", "serif"],
-        body: ["DM Sans", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
-        sans: ["DM Sans", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
+        display: ["Bricolage Grotesque", "Archivo Black", "Helvetica Neue", "Arial", "sans-serif"],
+        body: ["Inter", "DM Sans", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: ["Inter", "DM Sans", "Helvetica Neue", "Arial", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       colors: {

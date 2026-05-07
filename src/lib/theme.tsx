@@ -15,7 +15,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Users can still flip to dark/system in settings; the saved value wins.
   const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem("wardrobe-theme");
-    return (saved as Theme) || "light";
+    return (saved as Theme) || "dark";
   });
 
   const getSystemTheme = (): "light" | "dark" =>

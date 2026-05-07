@@ -107,16 +107,20 @@ const HomePage = () => {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background pb-20 md:pb-0">
-      {/* Hero — vibrant edge */}
-      <section className="relative flex flex-1 flex-col items-center overflow-hidden pt-32 pb-20 md:pt-64 md:pb-28 md:flex-none">
+      {/* Hero — HYPE edition */}
+      <section className="hype-halo relative flex flex-1 flex-col items-center overflow-hidden pt-28 pb-20 md:pt-56 md:pb-28 md:flex-none">
         <WeatherAmbience condition={weather.condition} isNight={weather.isNight} />
 
-        {/* Animated color blobs — vibrancy without overwhelming */}
+        {/* Pink halo blobs */}
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="blob bg-primary -top-32 -left-20 h-[420px] w-[420px]" style={{ animationDelay: "0s" }} />
-          <div className="blob bg-accent -bottom-40 -right-24 h-[480px] w-[480px]" style={{ animationDelay: "-6s" }} />
-          <div className="blob bg-edge-cyan top-1/3 right-1/4 h-[300px] w-[300px]" style={{ animationDelay: "-12s", opacity: 0.3 }} />
+          <div className="blob bg-primary -top-32 -left-20 h-[460px] w-[460px]" style={{ animationDelay: "0s" }} />
+          <div className="blob bg-primary -bottom-40 -right-24 h-[520px] w-[520px]" style={{ animationDelay: "-6s", opacity: 0.4 }} />
+          <div className="blob bg-foreground top-1/3 right-1/4 h-[260px] w-[260px]" style={{ animationDelay: "-12s", opacity: 0.18 }} />
         </div>
+
+        {/* Grain + scanlines */}
+        <div aria-hidden className="hype-grain" />
+        <div aria-hidden className="hype-scan" />
 
         {/* Top bar — mobile only */}
         <motion.div
@@ -131,47 +135,63 @@ const HomePage = () => {
               onClick={() => navigate("/install")}
               aria-label="Download app"
               title="Download app"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-foreground/20 bg-background/70 text-foreground/80 backdrop-blur-md transition-all hover:border-foreground hover:text-foreground"
+              className="flex h-7 w-7 items-center justify-center border-2 border-foreground bg-background text-foreground transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
             >
               <Download className="h-3 w-3" />
             </button>
             <button
               onClick={() => navigate(user ? "/profile" : "/auth")}
               aria-label={user ? "Profile" : "Sign in"}
-              className="flex h-7 items-center gap-1 rounded-full bg-foreground px-2.5 text-[9px] font-semibold uppercase tracking-wider text-background transition-all hover:bg-primary hover:text-primary-foreground"
+              className="flex h-7 items-center gap-1 border-2 border-foreground bg-primary px-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-primary-foreground transition-all hover:bg-foreground hover:text-background"
             >
               {user ? <UserIcon className="h-2.5 w-2.5" /> : <LogIn className="h-2.5 w-2.5" />}
-              <span>{user ? "Me" : "Sign in"}</span>
+              <span>{user ? "ME" : "SIGN IN"}</span>
             </button>
             <LanguageSelector />
           </div>
         </motion.div>
 
         {/* Main column */}
-        <div className="relative z-10 mx-auto w-full max-w-[600px] px-6">
-          {/* Headline */}
+        <div className="relative z-10 mx-auto w-full max-w-[680px] px-6">
+          {/* Slap tag */}
+          <motion.div
+            initial={{ opacity: 0, y: -8, rotate: -8 }}
+            animate={{ opacity: 1, y: 0, rotate: -2 }}
+            transition={{ duration: 0.6 }}
+            className="mb-6 flex justify-center"
+          >
+            <span className="hype-tag">★ DROP / VOL.04</span>
+          </motion.div>
+
+          {/* HYPE Headline */}
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="font-blink-target flex flex-col items-center text-center font-display text-[38px] font-medium italic leading-[1.15] tracking-[-0.05em] text-foreground sm:text-[50px] md:text-[58px]"
+            className="hype-slab text-center text-[56px] sm:text-[78px] md:text-[104px]"
           >
-            <span className="block">wear your</span>
-            <MoodTicker
-              onPick={(word) =>
-                navigate(`/discover?mood=${encodeURIComponent(word)}&source=homepage`)
-              }
-            />
+            <span className="block">WEAR</span>
+            <span className="block outline">YOUR</span>
+            <span className="block">
+              <MoodTicker
+                onPick={(word) =>
+                  navigate(`/discover?mood=${encodeURIComponent(word)}&source=homepage`)
+                }
+              />
+            </span>
           </motion.h1>
 
-          {/* Rounded command bar */}
+          {/* Underline strip */}
+          <div className="mx-auto mt-6 h-[3px] w-24 bg-primary shadow-[0_0_20px_hsl(var(--primary)/0.8)]" />
+
+          {/* Command bar — slab style */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6"
+            className="mt-8"
           >
-            <div className="flex items-center gap-2 rounded-full border border-foreground/15 bg-background/80 px-5 py-2 shadow-sm backdrop-blur-md focus-within:border-foreground/50 transition-colors">
+            <div className="flex items-center gap-2 border-2 border-foreground bg-background px-5 py-2 shadow-[6px_6px_0_hsl(var(--primary))] focus-within:border-primary focus-within:shadow-[6px_6px_0_hsl(var(--foreground))] transition-all">
               <Sparkles
                 className={`h-4 w-4 shrink-0 transition-colors ${
                   isFocused ? "text-primary" : "text-foreground/50"
@@ -186,13 +206,13 @@ const HomePage = () => {
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
                 placeholder={t("howAreYouFeeling")}
-                className="flex-1 bg-transparent py-2 font-display text-[16px] font-medium tracking-tight text-foreground outline-none placeholder:text-foreground/35 placeholder:italic placeholder:font-light md:text-[18px]"
+                className="flex-1 bg-transparent py-2 font-display text-[16px] font-bold uppercase tracking-tight text-foreground outline-none placeholder:text-foreground/35 placeholder:font-medium placeholder:normal-case md:text-[18px]"
               />
               <button
                 onClick={handleSubmit}
                 disabled={!query.trim() || isLoading}
                 aria-label={t("enter")}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:bg-foreground/15 disabled:text-foreground/40"
+                className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary text-primary-foreground transition-all duration-200 hover:bg-foreground hover:text-primary disabled:cursor-not-allowed disabled:bg-foreground/15 disabled:text-foreground/40"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -203,8 +223,7 @@ const HomePage = () => {
             </div>
           </motion.div>
 
-          {/* OOTD Diary — mobile-only hero. On desktop, the diary button now
-              lives in the top-center of DesktopNav, so we hide it here. */}
+          {/* OOTD Diary — mobile-only */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -214,26 +233,50 @@ const HomePage = () => {
             <OOTDDiaryButton compact />
           </motion.div>
 
-          {/* Primary CTA — V4.x: Curated tagline + Style Me only.
-              Browse moved to nav; Share moved next to Affiliate. */}
+          {/* Primary CTA */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
             className="mt-8 flex flex-col items-center gap-3 md:mt-12"
           >
-            <p className="font-display text-[13px] italic font-light tracking-tight text-foreground/65 md:text-[15px]">
-              Curated for you<span className="text-primary">.</span>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-foreground/60">
+              CURATED <span className="text-primary">/</span> FOR YOU
             </p>
             <StyleMeButton variant="pill" />
           </motion.div>
-
         </div>
 
-        {/* V4.3 — Today's Inspo strip (personalized dashboard entry) */}
+        {/* Marquee strip */}
+        <div className="relative z-10 mt-10 w-full overflow-hidden hype-marquee py-2 md:mt-14">
+          <div className="marquee">
+            <div className="marquee-track text-[22px] md:text-[28px]">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <span key={`a${i}`} className="flex items-center gap-6">
+                  WEAR THE HYPE <span className="opacity-60">★</span> NEW DROP
+                  <span className="opacity-60">★</span> AI FIT
+                  <span className="opacity-60">★</span> SHOWROOM
+                  <span className="opacity-60">★</span>
+                </span>
+              ))}
+            </div>
+            <div className="marquee-track text-[22px] md:text-[28px]" aria-hidden>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <span key={`b${i}`} className="flex items-center gap-6">
+                  WEAR THE HYPE <span className="opacity-60">★</span> NEW DROP
+                  <span className="opacity-60">★</span> AI FIT
+                  <span className="opacity-60">★</span> SHOWROOM
+                  <span className="opacity-60">★</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* V4.3 — Today's Inspo strip */}
         <TodayInspoStrip />
 
-        <div className="relative z-10 mx-auto w-full max-w-[600px] px-6">
+        <div className="relative z-10 mx-auto w-full max-w-[680px] px-6">
           {/* Weather meta */}
           {!weather.loading && (
             <motion.div
@@ -242,18 +285,18 @@ const HomePage = () => {
               transition={{ delay: 0.8, duration: 0.8 }}
               className="mt-10 flex flex-col items-center gap-2 md:mt-14"
             >
-              <p className="font-display text-[15px] italic font-light tracking-tight text-foreground/70 md:text-[17px]">
-                today your weather is<span className="text-primary">…</span>
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-foreground/55">
+                TODAY <span className="text-primary">//</span> WEATHER
               </p>
-              <p className="label-mono text-foreground/60">
-                <span className="inline-block h-1.5 w-1.5 translate-y-[-1px] rounded-full bg-primary mr-2 animate-pulse" />
+              <p className="font-display text-[14px] font-black uppercase tracking-tight text-foreground">
+                <span className="inline-block h-2 w-2 translate-y-[-2px] bg-primary mr-2 shadow-[0_0_12px_hsl(var(--primary))]" />
                 {weather.temp}° · {weatherLabel.toUpperCase()}
                 {weather.location && !weather.error ? ` · ${weather.location.toUpperCase()}` : ""}
               </p>
             </motion.div>
           )}
 
-          {/* AFFILIATE / AD + SHARE MYMYON — paired pills under date */}
+          {/* AFFILIATE / SHARE */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -262,22 +305,13 @@ const HomePage = () => {
           >
             <button
               onClick={() => setAffOpen(true)}
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-foreground/20 bg-background/60 px-3 py-1.5 text-[9px] font-bold tracking-[0.22em] text-foreground/70 backdrop-blur-md transition-all duration-300 hover:border-foreground/60 hover:text-foreground hover:scale-[1.04] active:scale-[0.97]"
+              className="group relative inline-flex items-center gap-2 overflow-hidden border-2 border-foreground bg-background px-3 py-1.5 text-[10px] font-black tracking-[0.22em] text-foreground transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-[0_0_24px_hsl(var(--primary)/0.6)]"
             >
-              {/* Sweeping gradient sheen */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 -left-full w-1/2 bg-gradient-to-r from-transparent via-primary/40 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[400%]"
-              />
-              {/* Pulsing dot */}
-              <span
-                aria-hidden
-                className="relative flex h-1.5 w-1.5"
-              >
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+              <span aria-hidden className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
-              <Handshake className="relative h-3 w-3 transition-transform duration-300 group-hover:rotate-[-8deg]" />
+              <Handshake className="relative h-3 w-3" />
               <span className="relative">AFFILIATE / AD</span>
             </button>
             <ShareButton
