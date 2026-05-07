@@ -1,170 +1,62 @@
-## MYMYON FIT V4.0 — Realtime Body-Lock + Speed Optimization
+# V4.4 — OOTD → Showroom Ecosystem Rebuild
 
-A focused, shippable plan that **keeps everything from V3.9** and layers on predictive prefetch, body-change invalidation, fast-preview rendering, request-priority cancellation, and prompt/cache cleanup. No rebuild.
+Reposition OOTD from social feed to **curated personal showroom + fit reference library**. No rebuild — layered on top of existing OOTD/Showroom infrastructure.
 
----
+## Scope (web + mobile web + iOS + Android, all share the same React code)
 
-### 1. New core modules (frontend)
+### 1. Language repositioning (global string sweep)
+- `Post` → `Add to Showroom`
+- `Upload` → `Curate Look`
+- `Trending creators` / `Top influencer` → `Featured Showrooms`
+- `Most liked` → `Most curated`
+- `Followers` → `Showroom followers`
+- Files: `OOTDPage.tsx`, `OOTDUploadSheet.tsx`, `OOTDCard.tsx`, `OOTDPostDetail.tsx`, `ShareToOOTDDialog.tsx`, `OOTDDiaryButton.tsx`, nav labels.
 
-```text
-src/lib/fit/
-  bodyDNA.ts              ← signature stable hash (measurements + gender + posture + image-hash + preset + editTs)
-  bodyComposite.ts        ← LOCKED BODY BASE generator + cache (per body signature)
-  fitCache.ts             ← unified cache key builder + reuse layer (garmentDNA, sizeCorrelation, prompts, processed images)
-  fitPriorityQueue.ts     ← AbortController registry; "latest visible request wins"
-  fitPrewarm.ts           ← background prepare orchestrator (Promise.all of all DNA/correlation/cutout work)
-```
+### 2. OOTD feed → Curated Style Stream
+- Replace the current flat feed in `OOTDPage.tsx` with **category rails** grouped by silhouette / aesthetic:
+  - Relaxed Minimal · Oversized Street · Smart Casual · Korean Casual · Tailored Monochrome · Vintage Archive · Technical Outerwear
+- Pull from existing `ootd_posts.style_tags` / `topics` / `occasion_tags` — no schema change.
+- Add a top "People Like Me" rail (uses `body_profiles` similarity + `fit_memory` overlap).
+- Keep the existing chronological feed available behind a "Latest" tab so existing posts still surface.
 
-Existing `garmentDNA.ts`, `fitPhysics.ts`, `sizeCorrelationEngine.ts`, `fitQualityControl.ts`, `genderedSizeSystem.ts`, `brandFitBias.ts`, `accessoryFit.ts` stay; we only add cache wrappers + parallel callers.
+### 3. Reduce vanity metrics
+- Hide explicit follower counts on cards/profile in favor of a single small "Showroom" chip.
+- Soften like/star counters: only show when ≥ threshold; no "trending" badges.
+- Remove "Top Creators" sort.
 
----
+### 4. Editorial detail page (`OOTDPostDetail.tsx`)
+- Larger hero image, generous padding, magazine typography.
+- New sections: **Silhouette breakdown**, **Fit notes**, **Tagged products**, **Similar fits from people like you**, **Save options** (Board / Silhouette / Styling reference).
+- Strip noisy reaction widgets; keep one primary star + one save action.
 
-### 2. Predictive preparation
+### 5. Style Collections (lightweight)
+- New tab inside profile/showroom: organize saved OOTDs into named collections (Summer Fits, Airport Looks, etc.).
+- Reuse existing `style_boards` table — no new schema. Boards already support saved items; allow saving an `ootd_post` id as a board item with `kind='ootd'`.
 
-`useFitPrewarm(productKey)` hook triggered from `ProductDetailSheet`:
+### 6. Showroom following framing
+- In `UserProfilePage` / showroom card, label the follow CTA as **Follow Showroom** with a one-line aesthetic descriptor (e.g. "Oversized minimal references").
 
-Triggers (debounced 500ms):
-- sheet open
-- dwell > 1.5s
-- image zoom
-- size selector touch
-- save tap
-- repeat-view counter ≥ 2
+### 7. "People Like Me" recommendation hook
+- New `src/hooks/usePeopleLikeMe.ts`: queries `ootd_posts` joined with `body_profiles` filtered by ±5cm height / ±3cm shoulder of current user; falls back to `fit_memory.preferred_fit` overlap for guests/no-body users.
 
-Runs in parallel (`Promise.all`):
-1. body DNA load + signature
-2. body composite preload
-3. garment DNA extract + cutout/mask
-4. gendered size normalization
-5. size correlation (per region)
-6. brand fit bias lookup
-7. URL/image resolution
+### 8. Visual polish
+- Editorial spacing tokens; switch OOTD surfaces to monochrome cards with thin hairlines.
+- Replace heart-bursts and bright reaction chips with subtle outline icons.
 
-Results stored in `fitCache` keyed by `body_signature + product_key`.
+## Out of scope
+- No DB migrations.
+- No removal of existing posts, comments, stars, reactions tables.
+- No notification/messaging changes.
+- No new auth/permissions.
 
----
+## Files touched (estimate)
+- Edited: `src/pages/OOTDPage.tsx`, `src/pages/ShowroomBrowsePage.tsx`, `src/pages/UserProfilePage.tsx`, `src/components/OOTDCard.tsx`, `src/components/OOTDPostDetail.tsx`, `src/components/OOTDUploadSheet.tsx`, `src/components/ShareToOOTDDialog.tsx`, `src/components/showroom/ShowroomCard.tsx`, `src/components/showroom/HotShowroomSection.tsx`, `src/components/OOTDDiaryButton.tsx`.
+- New: `src/hooks/usePeopleLikeMe.ts`, `src/components/ootd/CuratedStyleStream.tsx`, `src/components/ootd/SilhouetteBreakdown.tsx`, `src/components/ootd/StyleCollectionsTab.tsx`.
 
-### 3. Body change invalidation
-
-`ChangeBodySheet` and any body editor calls `invalidateBodyDNA()`:
-- recomputes signature
-- clears `fitCache` entries whose key starts with old signature
-- triggers re-prewarm for current product
-
-UI states added to `useFitTryOn`:
-`body_current | body_changed | preparing_fit | generating_preview | generating_final | validating_result | result_ready | result_unstable`
-
----
-
-### 4. Fast preview + final studio render
-
-Two-phase render in `useFitTryOn`:
-
-```text
-TRY ON tap
- ├─ instant analysis (cached, ~0ms)
- ├─ fastPreview render  → low-step IDM-VTON pass via fit-tryon-router (mode: "preview")
- │     displays immediately; lastGoodImageUrl shown until ready
- └─ finalStudio render  → full pass via fit-generate-v2
-       replaces preview when ready
-       runs QC; on fail → 1 silent safeMode rerender; on 2nd fail → "FIT PREVIEW UNSTABLE"
-```
-
-Edge functions:
-- `fit-tryon-router/index.ts` — accept `renderMode: "preview" | "final"`; in preview mode pass lower step count + skip heavy refinement.
-- `fit-generate-v2/index.ts` — accept `bodyComposite` + `lockedBodySignature` so prompt skips repeating body description; trim verbose luxury prose; cap to ~7 prompt sections.
-
----
-
-### 5. Request priority + cancellation
-
-`fitPriorityQueue` registers an `AbortController` per request keyed by current visible size. New request → abort all stale; prewarm runs at lowest priority and is also abortable.
-
-Applied in `useFitTryOn` and `useReplicateTryOn`.
-
----
-
-### 6. Prompt cleanup (edge functions)
-
-Strict prompt skeleton:
-1. `BODY LOCK: signature=<hash>` (one line, replaces 3 prior lock lines)
-2. body summary (1 line)
-3. garment DNA (1 line)
-4. gendered size context (1 line)
-5. fit physics (1 line per active region, max 4)
-6. generation directives (1 line)
-7. negative prompt (1 line)
-
-Removes: repeated lock lines, long luxury descriptions, duplicated warnings.
-
----
-
-### 7. FitResults cleanup
-
-Remove from `FitResults.tsx`:
-- "you may also like" / related products
-- duplicate Analyze buttons
-- dead try-on branches
-- stale state vars
-- unused imports
-
-Keep: body composite, FitAnalysisPanel, size chips, FitTrustStrip, Body Accuracy, Change Body, Analyze, Rerender.
-
----
-
-### 8. Image standardization
-
-`src/lib/fit/imagePrep.ts` (new):
-- garment + body images normalized to ≤1024×1024 webp/jpeg
-- content-hash cached in browser cache + Supabase storage
-- garment cutouts/masks cached by content hash, not product id (so identical garments across products share cache)
-
----
-
-### 9. Feedback persistence
-
-Migration: add `target_gender`, `body_signature`, `selected_size`, `feedback_type` columns to `fit_feedback` (if missing). Used to evolve `brandFitBias` weighting.
-
----
-
-### Files touched
-
-**New (5)**: `bodyDNA.ts`, `bodyComposite.ts`, `fitCache.ts`, `fitPriorityQueue.ts`, `fitPrewarm.ts`, `imagePrep.ts`, `useFitPrewarm.ts`
-
-**Edited (≈10)**: `useFitTryOn.ts`, `useReplicateTryOn.ts`, `ProductDetailSheet.tsx`, `FitResults.tsx`, `FitAnalysisPanel.tsx`, `ChangeBodySheet.tsx`, `garmentDNA.ts`, `fitQualityControl.ts`, `fit-generate-v2/index.ts`, `fit-tryon-router/index.ts`
-
-**Migration (1)**: `fit_feedback` columns.
-
----
-
-### Out of scope (deferred)
-
-- Multi-size delta rendering (Section 11) — requires IDM-VTON pipeline changes; ship after V4.0 lands.
-- Storage-side body composite reuse — start with in-memory + IndexedDB; migrate to bucket later.
-
----
-
-### Performance targets after ship
-
-| Phase | Target |
-|---|---|
-| Fit analysis visible | <200ms (cache hit) |
-| Fast preview | 2–4s |
-| Cold final render | <10s |
-| Cache hit (same body+product+size) | instant |
-
----
-
-### Confirm before I start
-
-This is a 7-new + 10-edited-files change touching the live FIT pipeline. I will ship in this order so each phase is independently testable:
-
-1. `bodyDNA` + `fitCache` + `fitPriorityQueue` (foundation)
-2. `useFitPrewarm` + `ProductDetailSheet` triggers
-3. Body-change invalidation in `ChangeBodySheet`
-4. Two-phase render (preview → final) in `useFitTryOn` + edge router
-5. Prompt cleanup in `fit-generate-v2`
-6. `FitResults` cleanup + new UI states
-7. `imagePrep` + feedback migration
-
-Reply **OK** to proceed, or tell me which sections to drop/reorder.
+## Approach order
+1. Language sweep across OOTD/Showroom strings.
+2. Build `CuratedStyleStream` + integrate into `OOTDPage` (keep Latest fallback).
+3. `usePeopleLikeMe` hook + rail.
+4. Editorial detail page refactor.
+5. Style Collections tab using `style_boards`.
+6. Visual polish pass.
