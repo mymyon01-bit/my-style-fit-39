@@ -335,7 +335,7 @@ const ProfilePage = () => {
         {/* Edit Profile Form */}
         {isEditing && (
           <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-4">
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">EDIT PROFILE</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">{t("profileEditProfile")}</p>
 
             {/* Username — special handling */}
             <div>
@@ -407,7 +407,7 @@ const ProfilePage = () => {
                 {savingProfile ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                 Save
               </button>
-              <button onClick={() => setIsEditing(false)} className="text-[11px] text-foreground/70 hover:text-foreground/70">Cancel</button>
+              <button onClick={() => setIsEditing(false)} className="text-[11px] text-foreground/70 hover:text-foreground/70">{t("profileCancel")}</button>
             </div>
           </div>
         )}
@@ -442,14 +442,14 @@ const ProfilePage = () => {
         <div className="flex items-center justify-between rounded-xl border border-border/20 bg-card/30 px-4 py-3">
           <div className="flex items-center gap-2">
             <Lock className="h-3.5 w-3.5 text-foreground/50" />
-            <span className="text-[11px] text-foreground/60">Private Account</span>
+            <span className="text-[11px] text-foreground/60">{t("profilePrivate")}</span>
           </div>
           <button
             onClick={async () => {
               const newVal = !isPrivate;
               setIsPrivate(newVal);
               await supabase.from("profiles").update({ is_private: newVal } as any).eq("user_id", user!.id);
-              toast.success(newVal ? "Account set to private" : "Account set to public");
+              toast.success(newVal ? t("profilePrivateOn") : t("profilePrivateOff"));
             }}
             className={`relative h-5 w-9 rounded-full transition-colors ${isPrivate ? "bg-accent/60" : "bg-foreground/10"}`}
           >
@@ -463,9 +463,9 @@ const ProfilePage = () => {
             { key: "posts", icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
             { key: "stars", icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
             { key: "saved", icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
-            { key: "circle", icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
-            { key: "ripple", icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
-            { key: "scrap", icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
+            { key: "circle", icon: Crown, label: t("profileLabelCircle"), value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
+            { key: "ripple", icon: Crown, label: t("profileLabelRipple"), value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
+            { key: "scrap", icon: Bookmark, label: t("profileLabelScrap"), value: scrapCount, onClick: undefined },
           ].map(stat => {
             if (stat.key === "stars") {
               return (
@@ -511,7 +511,7 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Bookmark className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Saved</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileSavedTitle")}</p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{savedCount} items</p>
                 </div>
               </div>
@@ -537,8 +537,8 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Palette className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Style Boards</p>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">Mood · Outfits · Trips</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileBoardsTitle")}</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{t("profileBoardsSub")}</p>
                 </div>
               </div>
             </AccordionTrigger>
@@ -553,7 +553,7 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Shirt className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Style</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileStyleTitle")}</p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                     {styleProfile?.preferred_styles?.length
                       ? `${styleProfile.preferred_styles.length} preferences`
@@ -607,7 +607,7 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Ruler className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Body</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileBodyTitle")}</p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                     {bodyProfile?.silhouette_type || (bodyProfile ? "Scanned" : "Not scanned")}
                   </p>
@@ -638,10 +638,10 @@ const ProfilePage = () => {
                       <span className="text-[9px] uppercase tracking-wider text-foreground/55">{bodyProfile.scan_confidence}% conf.</span>
                     </div>
                   )}
-                  <button onClick={() => navigate("/fit")} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">RESCAN →</button>
+                  <button onClick={() => navigate("/fit")} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">{t("profileRescan")}</button>
                 </>
               ) : (
-                <button onClick={() => navigate("/fit")} className="text-[11px] font-semibold tracking-wide text-accent/80 hover:text-accent">START SCAN →</button>
+                <button onClick={() => navigate("/fit")} className="text-[11px] font-semibold tracking-wide text-accent/80 hover:text-accent">{t("profileStartScan")}</button>
               )}
             </AccordionContent>
           </AccordionItem>
@@ -672,7 +672,7 @@ const ProfilePage = () => {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => navigate("/ootd")} className="mt-3 text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">VIEW ALL →</button>
+                <button onClick={() => navigate("/ootd")} className="mt-3 text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">{t("profileViewAll")}</button>
               </AccordionContent>
             </AccordionItem>
           )}
@@ -683,8 +683,8 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Crown className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Showroom</p>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">Curated rooms</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileShowroom")}</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{t("profileShowroomSub")}</p>
                 </div>
               </div>
             </AccordionTrigger>
@@ -701,10 +701,10 @@ const ProfilePage = () => {
         {/* Links */}
         <div className="space-y-1">
           {[
-            { icon: Crown, label: "Subscription", action: () => navigate("/subscription") },
+            { icon: Crown, label: t("profileLinkSubscription"), action: () => navigate("/subscription") },
             { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
             { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
-            { icon: Camera, label: "Post OOTD", action: () => navigate("/ootd") },
+            { icon: Camera, label: t("profileLinkPostOotd"), action: () => navigate("/ootd") },
           ].map(section => (
             <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
               <section.icon className="h-[18px] w-[18px] text-foreground/75" strokeWidth={1.5} />
