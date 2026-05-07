@@ -44,20 +44,23 @@ const LiveResultsSectionImpl = ({
 }: LiveResultsSectionProps) => {
   return (
     <section aria-label="Live discovery" className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/75">
-            {query.trim() ? `LIVE RESULTS · "${query.trim().toUpperCase()}"` : "LIVE DISCOVERY"}
-          </p>
-          <p className="mt-1 text-[10px] text-foreground/55">
-            Adding fresh items as they arrive. Existing products stay in place.
-          </p>
+      <header className="border-b border-foreground/10 pb-3">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
+          {query.trim() ? "Search Results" : "Live Discovery"}
+        </p>
+        <div className="mt-1.5 flex items-end justify-between gap-3">
+          <h2 className="font-display text-[26px] leading-none tracking-tight text-foreground md:text-[32px]">
+            {query.trim() ? `“${query.trim()}”` : "Trending now"}
+          </h2>
+          <div className="flex items-center gap-2 pb-1 text-[10px] tracking-[0.18em] text-foreground/55 uppercase">
+            <span>{visible.length} / {totalAvailable}</span>
+            {isSearching && <Loader2 className="h-3 w-3 animate-spin text-foreground/45" />}
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-foreground/60">
-          <span>{visible.length} / {totalAvailable}</span>
-          {isSearching && <Loader2 className="h-3 w-3 animate-spin text-accent/60" />}
-        </div>
-      </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-foreground/55">
+          Curated from the open web — fresh items added as they arrive.
+        </p>
+      </header>
 
       <FreshnessPill active={isSearching} />
 
