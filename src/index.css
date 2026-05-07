@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,800;1,9..144,400;1,9..144,500;1,9..144,800&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,800;1,9..144,400;1,9..144,500;1,9..144,800;1,9..144,900&family=DM+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&family=Archivo+Black&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,137 +6,133 @@
 
 @layer base {
   :root {
-    /* ── LIGHT — vibrant edgy fashion-tech ──
-       Deep ink base, acid-lime primary, electric magenta accent.
-       Inspired by Bottega × Loewe × cyber-editorial. */
-    --background: 48 30% 95%;          /* warm bone */
-    --foreground: 240 12% 6%;          /* deep ink */
+    /* ── LIGHT (rare) — inverted hype: bone white with hot pink slap ── */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 12% 6%;
+    --card-foreground: 0 0% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 12% 6%;
+    --popover-foreground: 0 0% 4%;
 
-    --primary: 78 95% 52%;             /* acid lime — primary */
-    --primary-foreground: 240 12% 6%;
+    --primary: 330 100% 55%;            /* hot pink */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 48 18% 90%;           /* warm bone secondary */
-    --secondary-foreground: 240 12% 10%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 4%;
 
-    --muted: 48 14% 92%;
-    --muted-foreground: 240 6% 38%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 38%;
 
-    /* Accent — electric magenta, used for highlights & motion */
-    --accent: 322 95% 56%;             /* hot magenta */
+    --accent: 330 100% 60%;
     --accent-foreground: 0 0% 100%;
-    --accent-muted: 322 60% 88%;
-    --accent-highlight: 322 95% 96%;
+    --accent-muted: 330 60% 92%;
+    --accent-highlight: 330 100% 96%;
 
-    /* Editorial accent system — vibrant trio */
     --edge-lime: 78 95% 52%;
-    --edge-pink: 322 95% 56%;
-    --edge-beige: 28 90% 60%;          /* tangerine */
-    --edge-cyan: 188 92% 50%;          /* electric cyan */
-    --edge-violet: 268 88% 62%;        /* ultraviolet */
+    --edge-pink: 330 100% 60%;
+    --edge-beige: 28 90% 60%;
+    --edge-cyan: 188 92% 50%;
+    --edge-violet: 282 88% 62%;
 
     --destructive: 4 86% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 8% 12%;              /* hard ink borders */
-    --input: 48 14% 94%;
-    --ring: 78 95% 52%;
+    --border: 0 0% 8%;
+    --input: 0 0% 96%;
+    --ring: 330 100% 55%;
 
-    --radius: 0.25rem;                 /* sharp 4px brutalist */
+    --radius: 0.125rem;                 /* razor-sharp 2px */
 
-    --neutral: 240 6% 38%;
+    --neutral: 0 0% 38%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 48 14% 92%;
-    --star: 38 95% 58%;
+    --surface-sunken: 0 0% 94%;
+    --star: 330 100% 60%;
 
-    --gold: 38 92% 56%;
-    --gold-light: 38 95% 76%;
-    --gold-dark: 30 60% 40%;
+    --gold: 330 100% 60%;
+    --gold-light: 330 100% 78%;
+    --gold-dark: 330 90% 40%;
 
-    /* Typography — Fraunces italic display + DM Sans body + JetBrains Mono labels */
-    --font-display: 'Fraunces', 'Times New Roman', serif;
-    --font-body: 'DM Sans', 'Inter', 'Helvetica Neue', sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Archivo Black', 'Helvetica Neue', sans-serif;
+    --font-body: 'Inter', 'DM Sans', 'Helvetica Neue', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    /* Depth — sharper, hard contact shadows for brutalist feel */
-    --shadow-1: 0 1px 0 hsl(240 12% 6% / 0.08);
-    --shadow-2: 4px 4px 0 hsl(240 12% 6% / 0.10);
-    --shadow-3: 8px 8px 0 hsl(240 12% 6% / 0.14);
+    --shadow-1: 0 1px 0 hsl(0 0% 4% / 0.10);
+    --shadow-2: 6px 6px 0 hsl(330 100% 55% / 0.85);
+    --shadow-3: 10px 10px 0 hsl(0 0% 4%);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(48 32% 96%) 0%, hsl(48 24% 92%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(78 95% 52%) 0%, hsl(322 95% 56%) 50%, hsl(268 88% 62%) 100%);
-    --gradient-acid: linear-gradient(120deg, hsl(78 95% 52%), hsl(188 92% 50%));
-    --gradient-fire: linear-gradient(120deg, hsl(322 95% 56%), hsl(28 90% 60%));
-    --glow-accent: 0 0 0 2px hsl(78 95% 52%), 0 0 24px hsl(78 95% 52% / 0.4);
-    --glow-magenta: 0 0 0 2px hsl(322 95% 56%), 0 0 32px hsl(322 95% 56% / 0.5);
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 96%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(330 100% 55%) 0%, hsl(320 100% 60%) 50%, hsl(282 88% 62%) 100%);
+    --gradient-acid: linear-gradient(120deg, hsl(330 100% 55%), hsl(0 0% 4%));
+    --gradient-fire: linear-gradient(120deg, hsl(330 100% 55%), hsl(15 100% 55%));
+    --glow-accent: 0 0 0 2px hsl(330 100% 55%), 0 0 32px hsl(330 100% 55% / 0.55);
+    --glow-magenta: 0 0 0 2px hsl(330 100% 60%), 0 0 40px hsl(330 100% 60% / 0.6);
   }
 
   .dark {
-    /* ── DARK — pure ink, acid lime + magenta on black ── */
-    --background: 240 12% 4%;
-    --foreground: 48 30% 95%;
+    /* ── DARK (default) — JET BLACK + NEON HOT PINK HYPE ──
+       Streetwear drop / underground rave / fashion-week aftershow. */
+    --background: 0 0% 0%;              /* pure black */
+    --foreground: 0 0% 98%;              /* off-white */
 
-    --card: 240 10% 8%;
-    --card-foreground: 48 30% 95%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 8%;
-    --popover-foreground: 48 30% 95%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 78 95% 58%;
-    --primary-foreground: 240 12% 4%;
+    --primary: 330 100% 60%;             /* NEON HOT PINK — hero */
+    --primary-foreground: 0 0% 4%;
 
-    --secondary: 240 8% 12%;
-    --secondary-foreground: 48 30% 95%;
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 8% 11%;
-    --muted-foreground: 48 8% 65%;
+    --muted: 0 0% 9%;
+    --muted-foreground: 0 0% 62%;
 
-    --accent: 322 95% 62%;
-    --accent-foreground: 0 0% 100%;
-    --accent-muted: 322 50% 25%;
-    --accent-highlight: 322 80% 70%;
+    --accent: 330 100% 65%;              /* brighter pink for highlights */
+    --accent-foreground: 0 0% 4%;
+    --accent-muted: 330 60% 18%;
+    --accent-highlight: 330 100% 75%;
 
     --edge-lime: 78 95% 58%;
-    --edge-pink: 322 95% 62%;
+    --edge-pink: 330 100% 65%;
     --edge-beige: 28 92% 64%;
     --edge-cyan: 188 92% 56%;
-    --edge-violet: 268 88% 68%;
+    --edge-violet: 282 88% 68%;
 
     --destructive: 4 86% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 8% 22%;
-    --input: 240 8% 11%;
-    --ring: 78 95% 58%;
+    --border: 0 0% 14%;
+    --input: 0 0% 8%;
+    --ring: 330 100% 65%;
 
-    --neutral: 48 8% 65%;
-    --surface-elevated: 240 10% 10%;
-    --surface-sunken: 240 12% 3%;
-    --star: 38 95% 64%;
+    --neutral: 0 0% 62%;
+    --surface-elevated: 0 0% 7%;
+    --surface-sunken: 0 0% 2%;
+    --star: 330 100% 65%;
 
-    --gold: 38 92% 64%;
-    --gold-light: 38 95% 76%;
-    --gold-dark: 30 60% 44%;
+    --gold: 330 100% 65%;
+    --gold-light: 330 100% 80%;
+    --gold-dark: 330 90% 45%;
 
-    --shadow-1: 0 1px 0 hsl(0 0% 0% / 0.6);
-    --shadow-2: 4px 4px 0 hsl(78 95% 58% / 0.20);
-    --shadow-3: 8px 8px 0 hsl(322 95% 62% / 0.25);
+    /* HYPE shadow system — neon pink halo on black */
+    --shadow-1: 0 1px 0 hsl(0 0% 0% / 0.8);
+    --shadow-2: 0 0 24px hsl(330 100% 60% / 0.45), 6px 6px 0 hsl(330 100% 60% / 0.9);
+    --shadow-3: 0 0 60px hsl(330 100% 60% / 0.6), 10px 10px 0 hsl(0 0% 100% / 0.95);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(240 12% 5%) 0%, hsl(240 14% 3%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(78 95% 58%) 0%, hsl(322 95% 62%) 50%, hsl(268 88% 68%) 100%);
-    --gradient-acid: linear-gradient(120deg, hsl(78 95% 58%), hsl(188 92% 56%));
-    --gradient-fire: linear-gradient(120deg, hsl(322 95% 62%), hsl(28 92% 64%));
-    --glow-accent: 0 0 0 2px hsl(78 95% 58%), 0 0 24px hsl(78 95% 58% / 0.5);
-    --glow-magenta: 0 0 0 2px hsl(322 95% 62%), 0 0 32px hsl(322 95% 62% / 0.55);
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 0%) 0%, hsl(0 0% 3%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(330 100% 60%) 0%, hsl(320 100% 55%) 50%, hsl(282 88% 62%) 100%);
+    --gradient-acid: linear-gradient(120deg, hsl(330 100% 60%), hsl(0 0% 100%));
+    --gradient-fire: linear-gradient(120deg, hsl(330 100% 60%), hsl(15 100% 60%));
+    --glow-accent: 0 0 0 2px hsl(330 100% 60%), 0 0 32px hsl(330 100% 60% / 0.7);
+    --glow-magenta: 0 0 0 2px hsl(330 100% 65%), 0 0 48px hsl(330 100% 65% / 0.75);
   }
 }
 
