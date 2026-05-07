@@ -248,10 +248,9 @@ const WelcomeTour = () => {
                 alt=""
                 className="block h-44 sm:h-56 w-full object-cover"
                 draggable={false}
-                custom={direction}
-                initial={(d: number) => ({ opacity: 0, x: d * 60, scale: 1.05 })}
+                initial={{ opacity: 0, x: direction * 60, scale: 1.05 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={(d: number) => ({ opacity: 0, x: d * -60 })}
+                exit={{ opacity: 0, x: direction * -60 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               />
             </AnimatePresence>
@@ -280,10 +279,9 @@ const WelcomeTour = () => {
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={`txt-${index}`}
-                custom={direction}
-                initial={(d: number) => ({ opacity: 0, x: d * 30 })}
+                initial={{ opacity: 0, x: direction * 30 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={(d: number) => ({ opacity: 0, x: d * -30 })}
+                exit={{ opacity: 0, x: direction * -30 }}
                 transition={{ duration: 0.28 }}
               >
                 <h2
