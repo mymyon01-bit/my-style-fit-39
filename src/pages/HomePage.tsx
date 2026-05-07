@@ -229,22 +229,11 @@ const HomePage = () => {
               BROWSE PRODUCTS
             </button>
             <div className="flex items-center justify-center gap-1.5 flex-nowrap md:gap-2">
-              <button
-                onClick={() => navigate("/fit")}
-                className="rounded-full border border-foreground/20 px-2.5 py-1.5 text-[9px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap md:px-3 md:text-[10px]"
-              >
-                {t("fit")}
-              </button>
               <StyleMeButton variant="pill" />
-              <button
-                onClick={() => navigate("/about")}
-                className="rounded-full border border-foreground/20 px-2.5 py-1.5 text-[9px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap md:px-3 md:text-[10px]"
-              >
-                {t("about")}
-              </button>
               <ShareButton
                 title="Share, Explore, and Edge your style. Join My'myon."
                 url="https://www.mymyon.com"
+                label="SHARE MYMYON"
               />
             </div>
           </motion.div>

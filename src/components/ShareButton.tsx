@@ -9,6 +9,7 @@ interface ShareButtonProps {
   title: string;
   url?: string;
   className?: string;
+  label?: string;
 }
 
 /**
@@ -18,7 +19,7 @@ interface ShareButtonProps {
  * The dropdown is rendered into document.body via a portal so it is never
  * clipped by parent `overflow-hidden` containers (cards, lists, sheets).
  */
-const ShareButton = ({ title, url, className = "" }: ShareButtonProps) => {
+const ShareButton = ({ title, url, className = "", label }: ShareButtonProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [msgOpen, setMsgOpen] = useState(false);
@@ -145,15 +146,27 @@ const ShareButton = ({ title, url, className = "" }: ShareButtonProps) => {
   return (
     <>
       <div className={`relative ${className}`}>
-        <button
-          ref={btnRef}
-          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-          onDoubleClick={nativeShare}
-          aria-label="Share"
-          className="hover-burgundy flex h-6 w-6 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
-        >
-          <Share2 className="h-3 w-3 text-foreground/75" />
-        </button>
+        {label ? (
+          <button
+            ref={btnRef}
+            onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+            onDoubleClick={nativeShare}
+            aria-label="Share"
+            className="rounded-full border border-foreground/20 px-2.5 py-1.5 text-[9px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap md:px-3 md:text-[10px]"
+          >
+            {label}
+          </button>
+        ) : (
+          <button
+            ref={btnRef}
+            onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+            onDoubleClick={nativeShare}
+            aria-label="Share"
+            className="hover-burgundy flex h-6 w-6 items-center justify-center rounded-full bg-background/70 backdrop-blur-md transition-all hover:bg-background/90"
+          >
+            <Share2 className="h-3 w-3 text-foreground/75" />
+          </button>
+        )}
       </div>
 
       {open && pos && typeof document !== "undefined" && createPortal(
