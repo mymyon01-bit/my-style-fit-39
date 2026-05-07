@@ -1,4 +1,4 @@
-import { Home, Compass, Camera, Scan, User } from "lucide-react";
+import { Compass, Camera, Scan, Bookmark } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
