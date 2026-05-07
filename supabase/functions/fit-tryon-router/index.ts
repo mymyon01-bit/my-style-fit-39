@@ -810,21 +810,50 @@ const STUDIO_FALLBACK_MODELS = [
   "google/gemini-3-flash-preview",
 ];
 
-// Replicate flux-schnell text-to-image — used as the final studio fallback
-// when there is NO user body photo AND Lovable AI credits are exhausted.
+// Replicate image-conditioned studio render — used when Lovable AI credits
+// are exhausted. Uses the SAME full prompt + product image + optional body
+// reference as the Lovable AI Gemini path so the mannequin actually wears
+// the correct garment (instead of being naked or wrong-clothed).
 async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Promise<GenResult> {
   logRouter("REPLICATE_STUDIO_FALLBACK_START", { model: STUDIO_MODEL_ID });
+
+  const userBodyRef = body.bodyProfileSummary?.userBodyImageUrl || body.userImageUrl || null;
+  const bodyRefLine = userBodyRef
+    ? "SECOND REFERENCE IMAGE = the user's actual body photo. Use it to LOCK the mannequin's body proportions (height, weight, shoulder width, torso, waist, hips, arms, legs) so the mannequin matches the real user. Convert the person to a faceless smooth mannequin (NO face, NO skin texture, NO identity), but PRESERVE the exact body silhouette, mass and proportions. The body MUST stay identical across every size — only the garment changes."
+    : "";
+  const genderDirectiveLine = body.genderDirective
+    ? `GENDERED SIZING CONTEXT — ${body.genderDirective} The body silhouette MUST stay locked to the user's body DNA; only garment behavior changes.`
+    : "";
+
   const prompt = [
+    `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
     buildCleanStudioPrompt(body),
-    "Faceless smooth display mannequin wearing the described garment, plain neutral studio background, full body, professional product photography, sharp focus.",
-  ].join(" ");
+    bodyRefLine,
+    genderDirectiveLine,
+    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
+    "MANDATORY: the mannequin MUST be wearing the garment fully and correctly — NEVER render a naked, partially-clothed, or unclothed mannequin.",
+  ].filter(Boolean).join(" ");
+
+  const imageInput: string[] = [];
+  if (body.productImageUrl) imageInput.push(body.productImageUrl);
+  if (userBodyRef) imageInput.push(userBodyRef);
+
+  console.log("[REPLICATE_STUDIO_FINAL_PROMPT]", prompt);
+  console.log("[REPLICATE_STUDIO_IMAGE_INPUTS]", imageInput.length);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
   try {
-    const payload: Record<string, unknown> = {
-      input: { prompt, num_outputs: 1, aspect_ratio: "3:4", output_format: "webp", output_quality: 90 },
+    const input: Record<string, unknown> = {
+      prompt,
+      output_format: "webp",
     };
+    if (imageInput.length > 0) {
+      // google/nano-banana expects `image_input` as an array of image URLs.
+      input.image_input = imageInput;
+    }
+
+    const payload: Record<string, unknown> = { input };
     if (STUDIO_MODEL_VERSION) (payload as any).version = STUDIO_MODEL_VERSION;
     const url = STUDIO_MODEL_VERSION
       ? "https://api.replicate.com/v1/predictions"
