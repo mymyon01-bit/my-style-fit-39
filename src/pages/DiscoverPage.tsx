@@ -72,12 +72,13 @@ function toDetailFromProduct(item: Product | DiscoverRenderableProduct | null): 
   };
 }
 
-function buildQuery(base: string, opts: { subcategory?: string | null; styles?: string[]; fit?: string | null; quiz?: StyleQuizAnswers | null }) {
+function buildQuery(base: string, opts: { subcategory?: string | null; styles?: string[]; fit?: string | null; quiz?: StyleQuizAnswers | null; brandsInclude?: string[] }) {
   const parts = [base.trim()];
   if (opts.subcategory) parts.push(opts.subcategory);
   if (opts.styles?.length) parts.push(opts.styles.slice(0, 2).join(" "));
   if (opts.fit) parts.push(opts.fit);
   if (opts.quiz?.preferredStyles?.length) parts.push(opts.quiz.preferredStyles.slice(0, 2).join(" "));
+  if (opts.brandsInclude?.length) parts.push(opts.brandsInclude.slice(0, 3).join(" "));
   return parts.filter(Boolean).join(" ").trim();
 }
 
@@ -119,6 +120,15 @@ export default function DiscoverPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [selectedFit, setSelectedFit] = useState<string | null>(null);
+  // V4.2 — brand multi-select (include / exclude). Persisted to localStorage so
+  // user's saved preferred brands survive across sessions.
+  const [brandsInclude, setBrandsInclude] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("mymyon:brands:include") || "[]"); } catch { return []; }
+  });
+  const [brandsExclude, setBrandsExclude] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("mymyon:brands:exclude") || "[]"); } catch { return []; }
+  });
+  const [brandInput, setBrandInput] = useState("");
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<StyleQuizAnswers | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -165,8 +175,13 @@ export default function DiscoverPage() {
   }, [allLiveResults.length, appendedCount, diagnostics, isRefreshing, searchStatus]);
 
   const visibleLiveResults = useMemo(
-    () => allLiveResults.slice(0, displayCount),
-    [allLiveResults, displayCount],
+    () => {
+      const slice = allLiveResults.slice(0, displayCount);
+      if (!brandsExclude.length) return slice;
+      const lower = brandsExclude.map((b) => b.toLowerCase());
+      return slice.filter((p) => !lower.includes((p.brand || "").toLowerCase()));
+    },
+    [allLiveResults, displayCount, brandsExclude],
   );
 
   // ── Layer 1 — instant DB grid (independent fetch) ─────────────────────
@@ -199,7 +214,7 @@ export default function DiscoverPage() {
   }, [textInput]);
 
   const needsPreferences = !quizAnswers;
-  const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null;
+  const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null || brandsInclude.length > 0 || brandsExclude.length > 0;
 
   // ── Saved items ───────────────────────────────────────────────────────
   const loadSavedIds = useCallback(async () => {
@@ -277,6 +292,7 @@ export default function DiscoverPage() {
         styles: selectedStyles,
         fit: selectedFit,
         quiz: quizAnswers,
+        brandsInclude,
       });
       if (!query) return;
       setCommittedQuery(query);
@@ -284,7 +300,7 @@ export default function DiscoverPage() {
       setFreshFlash(null);
       void runDiscoverSearch(query);
     },
-    [activeSubcategory, quizAnswers, runDiscoverSearch, selectedFit, selectedStyles],
+    [activeSubcategory, quizAnswers, runDiscoverSearch, selectedFit, selectedStyles, brandsInclude],
   );
 
   // initial load + mood param change (re-runs when ?mood= updates from HomePage)
@@ -402,7 +418,27 @@ export default function DiscoverPage() {
   const clearFilters = useCallback(() => {
     setSelectedStyles([]);
     setSelectedFit(null);
+    setBrandsInclude([]);
+    setBrandsExclude([]);
+    localStorage.removeItem("mymyon:brands:include");
+    localStorage.removeItem("mymyon:brands:exclude");
   }, []);
+
+  // Persist brand prefs whenever they change.
+  useEffect(() => {
+    localStorage.setItem("mymyon:brands:include", JSON.stringify(brandsInclude));
+  }, [brandsInclude]);
+  useEffect(() => {
+    localStorage.setItem("mymyon:brands:exclude", JSON.stringify(brandsExclude));
+  }, [brandsExclude]);
+
+  const addBrand = useCallback((mode: "include" | "exclude") => {
+    const value = brandInput.trim();
+    if (!value) return;
+    const setter = mode === "include" ? setBrandsInclude : setBrandsExclude;
+    setter((prev) => prev.some((b) => b.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]);
+    setBrandInput("");
+  }, [brandInput]);
 
   const handleQuizComplete = useCallback((answers: StyleQuizAnswers) => {
     setQuizAnswers(answers);
@@ -647,6 +683,53 @@ export default function DiscoverPage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                  {/* V4.2 — Brand multi-select (include / exclude). Saved to localStorage. */}
+                  <div>
+                    <p className="mb-2 text-[11px] font-semibold tracking-[0.2em] text-foreground/75">BRANDS</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={brandInput}
+                        onChange={(e) => setBrandInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBrand("include"); } }}
+                        placeholder="e.g. Nike, Acne Studios"
+                        className="flex-1 rounded-full border border-border/30 bg-transparent px-3 py-1.5 text-[11px] text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addBrand("include")}
+                        className="rounded-full border border-foreground/20 px-3 py-1.5 text-[10px] font-semibold tracking-[0.12em] text-foreground/75 hover:border-foreground/50"
+                      >
+                        + INCLUDE
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addBrand("exclude")}
+                        className="rounded-full border border-foreground/20 px-3 py-1.5 text-[10px] font-semibold tracking-[0.12em] text-foreground/75 hover:border-foreground/50"
+                      >
+                        − EXCLUDE
+                      </button>
+                    </div>
+                    {(brandsInclude.length > 0 || brandsExclude.length > 0) && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {brandsInclude.map((b) => (
+                          <span key={`inc-${b}`} className="inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-1 text-[10px] text-foreground">
+                            {b}
+                            <button onClick={() => setBrandsInclude((prev) => prev.filter((x) => x !== b))} aria-label={`Remove ${b}`}>
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </span>
+                        ))}
+                        {brandsExclude.map((b) => (
+                          <span key={`exc-${b}`} className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-foreground/80 line-through">
+                            {b}
+                            <button onClick={() => setBrandsExclude((prev) => prev.filter((x) => x !== b))} aria-label={`Remove ${b}`}>
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end border-t border-border/20 pt-3">
                     <button onClick={() => handleSubmit()} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70">

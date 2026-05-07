@@ -223,7 +223,14 @@ function LiveCard({ item, index, isSaved, feedback, onFeedback, onSave, onSelect
         {item.brand && <p className="text-[11px] font-medium tracking-[0.1em] text-foreground">{item.brand}</p>}
         <p className="line-clamp-2 text-[12px] font-medium leading-tight text-foreground/90">{item.title}</p>
         {item.price && <p className="text-[11px] font-semibold text-foreground">{item.price}</p>}
-        <p className="text-[10px] text-foreground/60">{item.storeName || item.sourceDomain}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] text-foreground/60">{item.storeName || item.sourceDomain}</p>
+          {item.fit && (
+            <span className="rounded-full border border-foreground/15 px-1.5 py-px text-[8.5px] font-medium uppercase tracking-[0.12em] text-foreground/55">
+              {item.fit}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
