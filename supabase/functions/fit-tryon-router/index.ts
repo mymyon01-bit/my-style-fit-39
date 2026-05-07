@@ -278,7 +278,7 @@ const MANNEQUIN_STYLE_LOCK =
   "VISUAL MODEL TYPE LOCK (HARD RULE — HIGHEST PRIORITY): The subject MUST be a faceless display MANNEQUIN — a smooth matte fiberglass / plastic store-display dummy, NOT a real human. NO real person, NO human face, NO human identity, NO realistic facial features (no eyes, nose, mouth, eyebrows, ears), NO hair, NO skin pores or skin micro-detail, NO makeup, NO expression, NO lifestyle photography, NO streetwear photo, NO influencer pose, NO editorial fashion shot, NO posed model. The mannequin has a smooth featureless head OR the frame is cropped from the neck down. Body surface is uniform matte mannequin material — clearly artificial, clearly a display dummy. Studio fit-visualization aesthetic only.";
 
 const MANNEQUIN_NEGATIVES =
-  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams, NUDE mannequin, BARE torso, BARE legs, lingerie, bikini, swimsuit, lacy underwear, exposed skin areas, mannequin in only the focus garment with nothing covering the rest of the body, MALE mannequin wearing a SKIRT or DRESS as base, FEMALE mannequin in a bra of any color other than the specified solid black sports bra base layer, base layer in any color other than solid matte black.";
+  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams, NUDE mannequin, BARE torso, BARE legs, visible underwear, exposed bra, exposed panties, exposed briefs, lingerie, bikini, swimsuit, lacy underwear, exposed skin areas, underwear worn outside the outfit, underwear covering the product garment, MALE mannequin wearing a SKIRT or DRESS as base, base layer in any color other than solid matte black.";
 
 // ── UNIVERSAL BASE LAYER LOCK ───────────────────────────────────────────────
 // HARD RULE: every mannequin wears solid MATTE BLACK athletic underlayer
@@ -294,17 +294,23 @@ const MANNEQUIN_NEGATIVES =
 // is the ONLY thing that changes between renders.
 function buildUniversalBaseLayerLine(
   focusCategoryRaw?: string | null,
+  productNameRaw?: string | null,
   subject?: string,
 ): string {
-  const c = (focusCategoryRaw || "").toLowerCase();
+  const c = `${focusCategoryRaw || ""} ${productNameRaw || ""}`.toLowerCase();
   const isTop = /(shirt|tee|t-?shirt|top|blouse|sweater|knit|hoodie|jacket|coat|outer|blazer|cardigan|vest)/.test(c);
   const isBottom = /(pant|trouser|jean|short|skirt|legging|chino|slack|denim|cargo|joggers?)/.test(c);
   const isFullBody = /(dress|gown|jumpsuit|romper|overall|coverall)/.test(c);
+  const isSet = /(set|co-ord|coord|two[-\s]?piece|twinset|suit|ensemble)/.test(c) && (isTop || isBottom);
   const isFootwear = /(shoe|sneaker|boot|heel|loafer|sandal|trainer)/.test(c);
+
+  if (isSet) {
+    return "OUTFIT SET / LAYERING LOCK (HARD): the focus product is a multi-piece outfit/set, so render ALL visible pieces from the product reference as the OUTERMOST clothing on the mannequin. Any sports bra, briefs, panties, boxer briefs, or other underlayer must stay UNDER the outfit and must NOT be visible. Do NOT add a black skirt, black apron, black bra, or black underwear over the product. The product garment must be the visible outfit.";
+  }
 
   // Full-body garments cover the whole body — no base layer fights with them.
   if (isFullBody) {
-    return "BASE LAYER (universal): the focus garment is full-body and covers torso + legs by itself. If any limb is exposed by the garment cut, it stays as smooth matte mannequin material, NOT skin. NEVER bare skin, NEVER lingerie.";
+    return "LAYERING LOCK (HARD): the focus garment is full-body and is the OUTERMOST visible clothing. Underwear/base layers stay underneath and must NOT be visible. If any limb is exposed by the garment cut, it stays smooth matte mannequin material, NOT skin. NEVER bare skin, NEVER lingerie.";
   }
 
   const isFemale = subject === "female mannequin";
@@ -312,24 +318,29 @@ function buildUniversalBaseLayerLine(
 
   // Per-gender SOLID BLACK athletic base layer description.
   const baseSpec = isFemale
-    ? "BASE LAYER (universal, female mannequin): the mannequin ALWAYS wears a SOLID MATTE BLACK athletic SPORTS BRA (racerback or scoop-neck cut, opaque, unbranded, full chest coverage) AND SOLID MATTE BLACK athletic SPORTS BRIEFS / boyshorts (mid-rise, full hip and seat coverage, opaque, unbranded). Both pieces are plain solid pure black (#000000), matte performance fabric, generic, no logos, no patterns, no stripes."
+    ? "BASE LAYER (hidden modesty layer, female mannequin): the mannequin may have a SOLID MATTE BLACK athletic underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. Plain solid pure black, matte, generic, no logos, no patterns."
     : isMale
-    ? "BASE LAYER (universal, male mannequin): the mannequin ALWAYS wears SOLID MATTE BLACK fitted SQUARE-CUT BOXER BRIEFS (athletic compression cut, mid-thigh length, opaque, unbranded, sits on the natural waist with full hip and seat coverage). The torso remains smooth matte mannequin material (NOT real human skin). Plain solid pure black (#000000), matte performance fabric, generic, no logos, no patterns, no stripes."
-    : "BASE LAYER (universal, neutral mannequin): the mannequin ALWAYS wears a SOLID MATTE BLACK fitted athletic TANK TOP (full torso coverage, opaque, unbranded) AND SOLID MATTE BLACK athletic BRIEFS (mid-rise, full hip and seat coverage, opaque, unbranded). Both pieces are plain solid pure black (#000000), matte performance fabric, generic, no logos, no patterns, no stripes.";
+    ? "BASE LAYER (hidden modesty layer, male mannequin): the mannequin may have SOLID MATTE BLACK fitted boxer-brief underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. The torso remains smooth matte mannequin material where not covered by a product top. Plain solid pure black, matte, generic, no logos, no patterns."
+    : "BASE LAYER (hidden modesty layer, neutral mannequin): the mannequin may have a SOLID MATTE BLACK fitted underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. Plain solid pure black, matte, generic, no logos, no patterns.";
 
   const colorLock = "STRICT COLOR LOCK on base layer: solid pure black only — NEVER white, NEVER gray, NEVER skin tone, NEVER any other color. Base layer is visually subdued so it NEVER competes with the focus garment.";
 
   if (isBottom) {
-    return `${baseSpec} ${colorLock} The focus garment is the BOTTOM and is worn OVER the black base briefs (briefs may be partially visible at the waistband or hem if the focus bottom is shorter or sheer). The mannequin is NEVER bare-legged below the briefs hem — exposed limbs stay smooth matte mannequin material.`;
+    return `${baseSpec} ${colorLock} The focus garment is the BOTTOM and is worn OVER every underlayer. Underwear/briefs/panties must be completely hidden inside the bottom — NEVER visible at waistband or hem. Use a simple solid black fitted tank/top only if the product is bottom-only; do not add visible underwear.`;
   }
   if (isFootwear) {
     return `${baseSpec} ${colorLock} The focus garment is FOOTWEAR. The black athletic base layer remains fully visible on torso and hips.`;
   }
   if (isTop) {
-    return `${baseSpec} ${colorLock} The focus garment is the TOP/OUTERWEAR and is worn OVER the black base layer (black base may peek out at neckline / sleeves / hem if the focus top is shorter, sheer, or open — that is fine and intended).`;
+    return `${baseSpec} ${colorLock} The focus garment is the TOP/OUTERWEAR and is the OUTERMOST visible clothing on the torso. Any bra/tank/briefs/underwear must stay UNDER the product and must NOT peek out at neckline, sleeves, hem, waist, or front opening unless the reference product itself is intentionally open. Pair with a simple solid black fitted trouser/legging as neutral styling only when a lower garment is needed — not underwear, not a skirt/apron, and never covering the product.`;
   }
   // Accessories / unknown
   return `${baseSpec} ${colorLock} The focus item is an accessory; the black athletic base layer remains fully visible on the mannequin.`;
+}
+
+function buildOutermostGarmentLine(body: CreateBody): string {
+  const garmentLabel = body.productName?.trim() || body.productCategory || "the product garment";
+  return `OUTERMOST GARMENT LOCK (HARD — prevents underwear-over-clothes errors): ${garmentLabel} from the FIRST reference image must be the visible OUTERMOST outfit on the mannequin. Render all visible clothing pieces from the product reference as clothing worn on the body. Any bra, sports bra, panties, briefs, boxer briefs, shapewear, tank, or modesty base layer must stay INSIDE/UNDER the product garment and must NOT cover the product, replace a product piece, appear as a black apron/skirt panel, or sit on top of the outfit.`;
 }
 
 // ── BODY TAB PROFILE BLOCK ──────────────────────────────────────────────────
@@ -474,7 +485,8 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const silhouette = silhouetteFromRegions(body.regions);
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
-  const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
+  const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, body.productName, subject);
+  const outermostGarmentLine = buildOutermostGarmentLine(body);
   const bodyTabBlock = buildBodyTabBlock(body.bodyProfileSummary);
   const bodyProportionPrompt = buildBodyProportionPrompt(body.bodyProfileSummary);
   const bodyTypePrompt = buildBodyTypeModifier(body.bodyProfileSummary);
@@ -514,6 +526,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
+      outermostGarmentLine,
       baseLayerLine,
       `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation — only the BAG/ACCESSORY changes between sizes.`,
       bagScale,
@@ -550,6 +563,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     MANNEQUIN_STYLE_LOCK,
     genderLockLine,
     physicalSpec,
+    outermostGarmentLine,
     baseLayerLine,
     `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same mannequin — only the GARMENT changes between sizes, the mannequin NEVER changes. Do NOT slim, enlarge, restyle, or adjust the mannequin in any way based on the garment size.`,
     `LOCKED CAMERA + POSE (CONSISTENCY SYSTEM): same front-facing camera angle at chest height, same focal length, same framing, same standing posture across all size variations — straight standing, feet shoulder-width apart, arms slightly away from the body in a neutral display pose (NOT against the hips, NOT crossed, NOT a fashion pose). Only the garment fit and fabric behavior change between S/M/L/XL — the mannequin, camera, lighting, and pose stay identical.`,
