@@ -287,6 +287,7 @@ export default function DiscoverPage() {
         styles: selectedStyles,
         fit: selectedFit,
         quiz: quizAnswers,
+        brandsInclude,
       });
       if (!query) return;
       setCommittedQuery(query);
@@ -294,7 +295,7 @@ export default function DiscoverPage() {
       setFreshFlash(null);
       void runDiscoverSearch(query);
     },
-    [activeSubcategory, quizAnswers, runDiscoverSearch, selectedFit, selectedStyles],
+    [activeSubcategory, quizAnswers, runDiscoverSearch, selectedFit, selectedStyles, brandsInclude],
   );
 
   // initial load + mood param change (re-runs when ?mood= updates from HomePage)
