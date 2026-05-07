@@ -29,7 +29,12 @@ const SERVER_TIMEOUT_MS = 55_000; // image gen needs more headroom than vton
 //
 // Opt-in mode = "vton": uses Replicate IDM-VTON to composite the garment onto
 // the user photo (legacy behavior). Triggered via `mode: "vton"` in the body.
-const STUDIO_MODEL_ID = Deno.env.get("REPLICATE_FIT_STUDIO_MODEL") || "black-forest-labs/flux-schnell";
+// Image-conditioned model (Gemini 2.5 Flash Image on Replicate). Accepts the
+// product photo + body photo as visual references — same capability we use on
+// the Lovable AI Gateway, just routed through Replicate when AI credits are
+// exhausted. flux-schnell is text-to-image only and can NOT see the garment,
+// which is why earlier renders showed naked mannequins or wrong clothes.
+const STUDIO_MODEL_ID = Deno.env.get("REPLICATE_FIT_STUDIO_MODEL") || "google/nano-banana";
 const STUDIO_MODEL_VERSION = Deno.env.get("REPLICATE_FIT_STUDIO_MODEL_VERSION") || "";
 const VTON_MODEL_ID = Deno.env.get("REPLICATE_FIT_MODEL") || "cuuupid/idm-vton";
 const VTON_MODEL_VERSION = Deno.env.get("REPLICATE_FIT_MODEL_VERSION") || "c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4";
