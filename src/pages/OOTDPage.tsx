@@ -1200,6 +1200,18 @@ const OOTDPage = () => {
                 <>
                   <MyLocationCard />
                   <FeedTopRow styleHints={userPrefs?.styles} />
+                  <PeopleLikeMeRail onOpen={async (id) => {
+                    const inMem = posts.find((p) => p.id === id) || myPosts.find((p) => p.id === id);
+                    if (inMem) { setSelectedPost(inMem as OOTDPost); return; }
+                    const { data } = await supabase.from("ootd_posts").select("*").eq("id", id).maybeSingle();
+                    if (data) setSelectedPost(data as OOTDPost);
+                  }} />
+                  <CuratedStyleStream onOpen={async (id) => {
+                    const inMem = posts.find((p) => p.id === id) || myPosts.find((p) => p.id === id);
+                    if (inMem) { setSelectedPost(inMem as OOTDPost); return; }
+                    const { data } = await supabase.from("ootd_posts").select("*").eq("id", id).maybeSingle();
+                    if (data) setSelectedPost(data as OOTDPost);
+                  }} />
                 </>
               )}
 
