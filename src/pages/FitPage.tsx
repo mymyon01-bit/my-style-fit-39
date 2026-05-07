@@ -183,7 +183,7 @@ const FitPage = () => {
             .eq("id", routeProductId)
             .maybeSingle();
           if (!data) {
-            toast.error("Product not found");
+            toast.error(t("fitProductNotFound"));
             return;
           }
           const parsed = data.price ? parseFloat(String(data.price).replace(/[^0-9.]/g, "")) : NaN;
@@ -321,7 +321,7 @@ const FitPage = () => {
       setSelectedProduct(rawProduct);
       try { sessionStorage.setItem("fit:pendingProduct", JSON.stringify(rawProduct)); } catch { /* ignore */ }
       setActiveTab("measurements");
-      if (!opts?.silent) toast("Set your body first — height & weight required for accurate fit.");
+      if (!opts?.silent) toast(t("fitSetBodyFirst"));
       return;
     }
 
@@ -378,7 +378,7 @@ const FitPage = () => {
         metadata: { error: (err as Error)?.message?.slice(0, 200) || "unknown", source: product.source },
       });
       // Never throw — surface a friendly toast and keep the user in flow.
-      if (!opts?.silent) toast.error("Couldn't compute fit — try a different product");
+      if (!opts?.silent) toast.error(t("fitComputeFailed"));
     }
   }, [measurements, scanQuality, fitMode, weightKg]);
 
@@ -410,12 +410,12 @@ const FitPage = () => {
 
   const handleRefineFit = useCallback(async () => {
     if (!canUsePremium) {
-      toast("Premium subscription required for high-precision scan");
+      toast(t("fitPremiumRequired"));
       return;
     }
     if (!selectedProduct || !fitResult) return;
     if (scanQuality < 65) {
-      toast.error("Scan quality too low for precision analysis. Please retake your scan with clearer images.");
+      toast.error(t("fitScanQualityLow"));
       return;
     }
 
@@ -451,10 +451,10 @@ const FitPage = () => {
       });
       if (!error && data?.response) {
         setExplanation(data.response);
-        toast.success("Refined fit analysis complete");
+        toast.success(t("fitRefineComplete"));
       }
     } catch {
-      toast.error("Refinement failed");
+      toast.error(t("fitRefineFailed"));
     } finally {
       setRefining(false);
     }
@@ -520,7 +520,7 @@ const FitPage = () => {
                   onSelectSavedImage={handleSelectBodyImage}
                   selectedSavedImageId={selectedBodyImage?.id ?? null}
                 />
-                <NextButton onClick={() => setActiveTab("measurements")} label="Next: Body" />
+                <NextButton onClick={() => setActiveTab("measurements")} label={t("fitNextBody")} />
               </>
             )}
             {activeTab === "measurements" && (
@@ -586,7 +586,7 @@ const FitPage = () => {
                     }
                     setActiveTab("check");
                   }}
-                  label="Next: Check"
+                  label={t("fitNextCheck")}
                 />
               </>
             )}
@@ -597,7 +597,7 @@ const FitPage = () => {
                   selectedProduct={selectedProduct}
                   onClearSelected={() => setSelectedProduct(null)}
                 />
-                <NextButton onClick={() => setActiveTab("results")} label="Next: Results" />
+                <NextButton onClick={() => setActiveTab("results")} label={t("fitNextResults")} />
               </>
             )}
             {activeTab === "results" && fitResult && fitResultProduct ? (
@@ -624,13 +624,13 @@ const FitPage = () => {
                   onRescan={() => setActiveTab("scan")}
                   onEditMeasurements={() => setActiveTab("measurements")}
                 />
-                <NextButton onClick={() => setActiveTab("scan")} label="Try Another · Restart" />
+                <NextButton onClick={() => setActiveTab("scan")} label={t("fitTryAnother")} />
               </>
             ) : activeTab === "results" && (
               <div className="py-24 text-center space-y-4 md:py-28 lg:py-32">
-                <p className="text-[14px] text-foreground/80">Select a product first</p>
-                <p className="text-[11px] text-foreground/80">Go to CHECK to pick an item</p>
-                <NextButton onClick={() => setActiveTab("check")} label="Go to Check" />
+                <p className="text-[14px] text-foreground/80">{t("fitSelectProduct")}</p>
+                <p className="text-[11px] text-foreground/80">{t("fitGoCheckHint")}</p>
+                <NextButton onClick={() => setActiveTab("check")} label={t("fitGoToCheck")} />
               </div>
             )}
           </motion.div>
