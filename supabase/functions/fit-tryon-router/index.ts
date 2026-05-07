@@ -338,6 +338,11 @@ function buildUniversalBaseLayerLine(
   return `${baseSpec} ${colorLock} The focus item is an accessory; the black athletic base layer remains fully visible on the mannequin.`;
 }
 
+function buildOutermostGarmentLine(body: CreateBody): string {
+  const garmentLabel = body.productName?.trim() || body.productCategory || "the product garment";
+  return `OUTERMOST GARMENT LOCK (HARD — prevents underwear-over-clothes errors): ${garmentLabel} from the FIRST reference image must be the visible OUTERMOST outfit on the mannequin. Render all visible clothing pieces from the product reference as clothing worn on the body. Any bra, sports bra, panties, briefs, boxer briefs, shapewear, tank, or modesty base layer must stay INSIDE/UNDER the product garment and must NOT cover the product, replace a product piece, appear as a black apron/skirt panel, or sit on top of the outfit.`;
+}
+
 // ── BODY TAB PROFILE BLOCK ──────────────────────────────────────────────────
 // Dedicated block that surfaces the user's saved Body tab values verbatim
 // to the image model. The mannequin must match these proportions instead of
@@ -481,6 +486,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
   const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, body.productName, subject);
+  const outermostGarmentLine = buildOutermostGarmentLine(body);
   const bodyTabBlock = buildBodyTabBlock(body.bodyProfileSummary);
   const bodyProportionPrompt = buildBodyProportionPrompt(body.bodyProfileSummary);
   const bodyTypePrompt = buildBodyTypeModifier(body.bodyProfileSummary);
@@ -520,6 +526,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       MANNEQUIN_STYLE_LOCK,
       genderLockLine,
       physicalSpec,
+      outermostGarmentLine,
       baseLayerLine,
       `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation — only the BAG/ACCESSORY changes between sizes.`,
       bagScale,
@@ -556,6 +563,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     MANNEQUIN_STYLE_LOCK,
     genderLockLine,
     physicalSpec,
+    outermostGarmentLine,
     baseLayerLine,
     `LOCKED MANNEQUIN BODY: torso width, waist, hips, arm and leg thickness, posture, and overall silhouette MUST stay IDENTICAL across every size variation of this same mannequin — only the GARMENT changes between sizes, the mannequin NEVER changes. Do NOT slim, enlarge, restyle, or adjust the mannequin in any way based on the garment size.`,
     `LOCKED CAMERA + POSE (CONSISTENCY SYSTEM): same front-facing camera angle at chest height, same focal length, same framing, same standing posture across all size variations — straight standing, feet shoulder-width apart, arms slightly away from the body in a neutral display pose (NOT against the hips, NOT crossed, NOT a fashion pose). Only the garment fit and fabric behavior change between S/M/L/XL — the mannequin, camera, lighting, and pose stay identical.`,
