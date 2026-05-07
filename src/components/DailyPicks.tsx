@@ -68,8 +68,8 @@ const DailyPicks = () => {
         <p className="text-[12px] leading-[1.8] text-foreground/65 max-w-[300px] md:text-[13px] md:max-w-sm">
           Weather-aware, mood-driven styling that adapts to you — available with your daily plan.
         </p>
-        <button onClick={() => navigate(user ? "/profile" : "/auth")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/32 transition-colors hover:text-foreground/80 md:text-[11px]">
-          {user ? "CONTINUE WITH PREMIUM" : "GET STARTED"}
+        <button onClick={() => navigate(user ? "/subscription" : "/auth")} className="text-[10px] font-medium tracking-[0.2em] text-foreground/32 transition-colors hover:text-foreground/80 md:text-[11px]">
+          {user ? "UPGRADE TO PREMIUM" : "GET STARTED"}
         </button>
       </div>
     );
