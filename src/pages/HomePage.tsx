@@ -214,28 +214,18 @@ const HomePage = () => {
             <OOTDDiaryButton compact />
           </motion.div>
 
-          {/* Primary CTA row — V4.2: Discovery-first. Browse Products is the
-              dominant action; styling, fit and OOTD become secondary surfaces. */}
+          {/* Primary CTA — V4.x: Curated tagline + Style Me only.
+              Browse moved to nav; Share moved next to Affiliate. */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-10 flex flex-col items-center gap-2.5 md:mt-14"
+            className="mt-8 flex flex-col items-center gap-3 md:mt-12"
           >
-            <button
-              onClick={() => navigate("/discover")}
-              className="rounded-full bg-foreground px-6 py-2.5 text-[11px] font-semibold tracking-[0.18em] text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
-            >
-              BROWSE PRODUCTS
-            </button>
-            <div className="flex items-center justify-center gap-1.5 flex-nowrap md:gap-2">
-              <StyleMeButton variant="pill" />
-              <ShareButton
-                title="Share, Explore, and Edge your style. Join My'myon."
-                url="https://www.mymyon.com"
-                label="SHARE MYMYON"
-              />
-            </div>
+            <p className="font-display text-[13px] italic font-light tracking-tight text-foreground/65 md:text-[15px]">
+              Curated for you<span className="text-primary">.</span>
+            </p>
+            <StyleMeButton variant="pill" />
           </motion.div>
 
         </div>
@@ -263,12 +253,12 @@ const HomePage = () => {
             </motion.div>
           )}
 
-          {/* AFFILIATE / AD — fancy animated button under date */}
+          {/* AFFILIATE / AD + SHARE MYMYON — paired pills under date */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.0, duration: 0.6 }}
-            className="mt-10 flex justify-center md:mt-14"
+            className="mt-10 flex flex-wrap items-center justify-center gap-2 md:mt-14"
           >
             <button
               onClick={() => setAffOpen(true)}
@@ -290,6 +280,11 @@ const HomePage = () => {
               <Handshake className="relative h-3 w-3 transition-transform duration-300 group-hover:rotate-[-8deg]" />
               <span className="relative">AFFILIATE / AD</span>
             </button>
+            <ShareButton
+              title="Share, Explore, and Edge your style. Join My'myon."
+              url="https://www.mymyon.com"
+              label="SHARE MYMYON"
+            />
           </motion.div>
         </div>
       </section>
