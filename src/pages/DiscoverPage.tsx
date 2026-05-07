@@ -412,7 +412,27 @@ export default function DiscoverPage() {
   const clearFilters = useCallback(() => {
     setSelectedStyles([]);
     setSelectedFit(null);
+    setBrandsInclude([]);
+    setBrandsExclude([]);
+    localStorage.removeItem("mymyon:brands:include");
+    localStorage.removeItem("mymyon:brands:exclude");
   }, []);
+
+  // Persist brand prefs whenever they change.
+  useEffect(() => {
+    localStorage.setItem("mymyon:brands:include", JSON.stringify(brandsInclude));
+  }, [brandsInclude]);
+  useEffect(() => {
+    localStorage.setItem("mymyon:brands:exclude", JSON.stringify(brandsExclude));
+  }, [brandsExclude]);
+
+  const addBrand = useCallback((mode: "include" | "exclude") => {
+    const value = brandInput.trim();
+    if (!value) return;
+    const setter = mode === "include" ? setBrandsInclude : setBrandsExclude;
+    setter((prev) => prev.some((b) => b.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]);
+    setBrandInput("");
+  }, [brandInput]);
 
   const handleQuizComplete = useCallback((answers: StyleQuizAnswers) => {
     setQuizAnswers(answers);
