@@ -248,14 +248,15 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                     <AuthGate action="save items">
                       <button
                         onClick={() => onSave(product.id)}
-                        className={`flex h-12 w-12 items-center justify-center rounded-xl border transition-all ${
+                        className={`flex h-12 items-center justify-center gap-2 rounded-xl border px-4 text-[11px] font-bold tracking-[0.18em] transition-all ${
                           isSaved
                             ? "border-accent/30 bg-accent/10 text-accent"
-                            : "border-border/30 text-foreground/60 hover:border-accent/20 hover:text-foreground/80"
+                            : "border-border/30 text-foreground/70 hover:border-accent/30 hover:text-foreground"
                         }`}
                         aria-label="Save"
                       >
-                        <Heart className="h-5 w-5" fill={isSaved ? "currentColor" : "none"} />
+                        <Heart className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
+                        {isSaved ? "SAVED" : "SAVE"}
                       </button>
                     </AuthGate>
                   </div>
