@@ -189,14 +189,14 @@ const WelcomeTour = () => {
       {/* Card stage */}
       <motion.div
         key="tour-stage"
-        className="fixed inset-0 z-[71] flex items-stretch sm:items-center justify-center p-0 sm:p-6 pointer-events-none"
+        className="fixed inset-0 z-[71] flex items-center justify-center p-4 sm:p-6 pointer-events-none"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
       >
         <motion.div
-          className="pointer-events-auto relative flex h-full w-full sm:h-auto sm:w-[420px] sm:max-w-[92vw] flex-col overflow-hidden bg-[#f4ece0] text-[#0a0a0a] sm:rounded-[28px]"
+          className="pointer-events-auto relative flex h-auto w-full max-w-[340px] sm:w-[420px] sm:max-w-[92vw] flex-col overflow-hidden rounded-[24px] bg-[#f4ece0] text-[#0a0a0a] sm:rounded-[28px]"
           style={{
             x: dragX,
             rotate: cardRotate,
