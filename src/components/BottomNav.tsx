@@ -23,7 +23,7 @@ const BottomNav = () => {
   const tabs = [
     { path: "/discover", icon: Compass, label: "PRODUCTS", isOotd: false },
     { path: "/fit", icon: Scan, label: "FIT", isOotd: false },
-    { path: "/profile", icon: Bookmark, label: "SAVED", isOotd: false },
+    { path: "/profile", icon: Bookmark, label: "MY", isOotd: false },
     { path: "/ootd", icon: Camera, label: "OOTD", isOotd: true },
   ];
 

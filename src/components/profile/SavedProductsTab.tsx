@@ -46,12 +46,28 @@ export default function SavedProductsTab() {
     }
 
     const productIds = savedRows.map((s) => s.product_id);
-    const { data: products } = await supabase
-      .from("product_cache")
-      .select("id, name, brand, image_url, source_url")
-      .in("id", productIds);
+    // saved_items.product_id is text — may hold either a product_cache.id (UUID)
+    // or an external_id like "gshop:…". Look up both.
+    const uuidIds = productIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+    const externalIds = productIds.filter((id) => !/^[0-9a-f-]{36}$/i.test(id));
 
-    const productById = new Map((products ?? []).map((p) => [p.id, p]));
+    const productById = new Map<string, any>();
+    if (uuidIds.length) {
+      const { data: byId } = await supabase
+        .from("product_cache")
+        .select("id, external_id, name, brand, image_url, source_url")
+        .in("id", uuidIds);
+      (byId ?? []).forEach((p) => productById.set(p.id, p));
+    }
+    if (externalIds.length) {
+      const { data: byExt } = await supabase
+        .from("product_cache")
+        .select("id, external_id, name, brand, image_url, source_url")
+        .in("external_id", externalIds);
+      (byExt ?? []).forEach((p) => {
+        if (p.external_id) productById.set(p.external_id, p);
+      });
+    }
 
     const merged: SavedProduct[] = savedRows.map((s) => {
       const p = productById.get(s.product_id);

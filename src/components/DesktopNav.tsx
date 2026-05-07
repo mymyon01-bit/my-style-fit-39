@@ -29,7 +29,7 @@ const DesktopNav = () => {
     { path: "/fit", label: t("fit").toUpperCase() },
   ];
   const rightLinks = [
-    { path: "/profile", label: "SAVED" },
+    { path: "/profile", label: "MY" },
     { path: "/about", label: t("about").toUpperCase() },
   ];
 
