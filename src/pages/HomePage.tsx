@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Loader2, Download, LogIn, User as UserIcon, Handshake } from "lucide-react";
 import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
+import wearYourImg from "@/assets/wear-your.png";
 import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
 import Footer from "@/components/Footer";
