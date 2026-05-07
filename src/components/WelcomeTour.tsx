@@ -1,17 +1,22 @@
 /**
- * WelcomeTour — full-screen 3-slide intro for first-time visitors.
+ * WelcomeTour — 3-slide first-launch intro.
  *
- * Layered editorial layout: full-bleed hero illustration with a dark
- * gradient scrim, MYMYON brandmark in the top corner, OOTD graffiti
- * sticker on the OOTD slide, kicker + display title + body, and a
- * "Don't show again" option in the footer alongside Skip / Next.
+ * Slides:
+ *  1. PRODUCTS — pick what to wear today  → /discover
+ *  2. FIT      — don't wear what no longer fits  → /fit
+ *  3. #OOTD    — your personal styling diary  → /ootd
  *
- * Gated by localStorage so it appears once per device. Layered above
- * everything except splash + permissions sheet.
+ * Auto-shows once (gated by localStorage). Can be re-opened any time by
+ * dispatching `window.dispatchEvent(new Event("mymyon:open-tour"))` —
+ * used by the (i) info button next to STYLE ME on the home page.
+ *
+ * "Don't show again" persists dismissal until the user re-opens via the
+ * info button. The info button always opens the tour regardless.
  */
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import Brandmark from "@/components/Brandmark";
 import discoverImg from "@/assets/tour-discover.jpg";
@@ -19,20 +24,34 @@ import fitImg from "@/assets/tour-fit.jpg";
 import ootdImg from "@/assets/tour-ootd.jpg";
 import ootdSticker from "@/assets/ootd-sticker.png";
 
-const STORAGE_KEY = "wardrobe:welcome-tour:v3";
+const STORAGE_KEY = "wardrobe:welcome-tour:v4";
 
 const WelcomeTour = () => {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [neverShow, setNeverShow] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem(STORAGE_KEY)) return;
-    // Show after splash so we don't fight for the first frame.
-    const t = setTimeout(() => setOpen(true), 1700);
-    return () => clearTimeout(t);
+
+    // Auto-show on first launch
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      const tm = setTimeout(() => setOpen(true), 1700);
+      return () => clearTimeout(tm);
+    }
+  }, []);
+
+  // Listen for manual re-opens from the (i) Info button
+  useEffect(() => {
+    const handler = () => {
+      setIndex(0);
+      setNeverShow(false);
+      setOpen(true);
+    };
+    window.addEventListener("mymyon:open-tour", handler);
+    return () => window.removeEventListener("mymyon:open-tour", handler);
   }, []);
 
   const slides = useMemo(
@@ -42,48 +61,45 @@ const WelcomeTour = () => {
         kicker: t("tourKicker1"),
         title: t("tourTitle1"),
         body: t("tourBody1"),
-        scrim: "from-background via-background/85 to-background/30",
+        href: "/discover",
       },
       {
         image: fitImg,
         kicker: t("tourKicker2"),
         title: t("tourTitle2"),
         body: t("tourBody2"),
-        scrim: "from-background via-background/80 to-background/20",
-      },
-      {
-        image: fitImg,
-        kicker: "SIZE ANALYSIS",
-        title: "Tight, regular, or oversized — before you buy.",
-        body: "Real per-region fit math: chest, shoulder, waist, sleeve. See exactly how each size will sit on your body, never a generic guess.",
-        scrim: "from-background via-background/85 to-background/25",
-      },
-      {
-        image: fitImg,
-        kicker: "MULTI-SIZE PREVIEW",
-        title: "Compare S · M · L · XL on the same body.",
-        body: "Your body is locked. Only the garment changes — so you can finally trust which size is actually yours.",
-        scrim: "from-background via-background/85 to-background/25",
+        href: "/fit",
       },
       {
         image: ootdImg,
         kicker: t("tourKicker3"),
         title: t("tourTitle3"),
         body: t("tourBody3"),
-        scrim: "from-background via-background/80 to-background/20",
+        href: "/ootd",
         showOotdSticker: true,
       },
     ],
     [t],
   );
 
-  const close = () => {
+  const persistDismiss = () => {
     if (neverShow) localStorage.setItem(STORAGE_KEY, "completed");
+  };
+
+  const dismiss = () => {
+    persistDismiss();
     setOpen(false);
   };
 
+  const goShortcut = () => {
+    const href = slides[index].href;
+    persistDismiss();
+    setOpen(false);
+    if (href) navigate(href);
+  };
+
   const next = () => {
-    if (index >= slides.length - 1) close();
+    if (index >= slides.length - 1) dismiss();
     else setIndex((i) => i + 1);
   };
 
@@ -91,14 +107,8 @@ const WelcomeTour = () => {
   const slide = slides[index];
   const isLast = index === slides.length - 1;
 
-  const dismiss = () => {
-    localStorage.setItem(STORAGE_KEY, "completed");
-    setOpen(false);
-  };
-
   return (
     <AnimatePresence>
-      {/* Backdrop */}
       <motion.div
         key="tour-backdrop"
         className="fixed inset-0 z-[70] bg-background/80 backdrop-blur-md"
@@ -108,8 +118,6 @@ const WelcomeTour = () => {
         transition={{ duration: 0.25 }}
         onClick={dismiss}
       />
-
-      {/* Centered popup card */}
       <motion.div
         key="tour-card"
         className="fixed inset-0 z-[71] flex items-center justify-center p-4 pointer-events-none"
@@ -125,7 +133,6 @@ const WelcomeTour = () => {
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
         >
-          {/* Hero image */}
           <div className="relative h-40 sm:h-56 w-full overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.img
@@ -143,7 +150,6 @@ const WelcomeTour = () => {
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
             <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent" />
 
-            {/* Top bar */}
             <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between p-4">
               <Brandmark variant="inline" size={18} />
               <button
@@ -153,12 +159,6 @@ const WelcomeTour = () => {
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-            </div>
-
-            {/* New signup bonus badge — shown on every slide */}
-            <div className="absolute left-3 bottom-3 z-10 flex items-center gap-1.5 rounded-full bg-accent/95 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-accent-foreground shadow-[0_4px_14px_-2px_hsl(var(--accent)/0.6)] backdrop-blur-sm">
-              <span aria-hidden>✨</span>
-              <span>신규 가입자 +10 ⭐</span>
             </div>
 
             {slide.showOotdSticker && (
@@ -173,7 +173,6 @@ const WelcomeTour = () => {
             )}
           </div>
 
-          {/* Body */}
           <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
             <AnimatePresence mode="wait">
               <motion.div
@@ -186,16 +185,23 @@ const WelcomeTour = () => {
                 <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-accent">
                   {slide.kicker}
                 </p>
-                <h2 className="mt-2 font-display text-[24px] font-medium italic leading-[1.1] tracking-tight text-foreground">
+                <h2 className="mt-2 font-display text-[22px] font-medium italic leading-[1.15] tracking-tight text-foreground">
                   {slide.title}
                 </h2>
                 <p className="mt-2.5 text-[12.5px] leading-relaxed text-foreground/70">
                   {slide.body}
                 </p>
+
+                <button
+                  onClick={goShortcut}
+                  className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-accent transition-opacity hover:opacity-80"
+                >
+                  {t("tourGo")}
+                  <ArrowRight className="h-3 w-3" />
+                </button>
               </motion.div>
             </AnimatePresence>
 
-            {/* Dots */}
             <div className="mt-5 flex items-center justify-center gap-1.5">
               {slides.map((_, i) => (
                 <span
@@ -207,7 +213,6 @@ const WelcomeTour = () => {
               ))}
             </div>
 
-            {/* Actions */}
             <div className="mt-4 flex items-center gap-2">
               <button
                 onClick={dismiss}
@@ -224,7 +229,6 @@ const WelcomeTour = () => {
               </button>
             </div>
 
-            {/* Don't show again */}
             <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 text-[10.5px] tracking-[0.1em] text-foreground/55 hover:text-foreground/85">
               <span
                 className={`flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border transition-colors ${
