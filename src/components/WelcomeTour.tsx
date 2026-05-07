@@ -275,7 +275,7 @@ const WelcomeTour = () => {
           </div>
 
           {/* Body */}
-          <div className="relative flex-1 px-6 pb-4 pt-5">
+          <div className="relative flex-1 px-5 pb-2 pt-3">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={`txt-${index}`}
