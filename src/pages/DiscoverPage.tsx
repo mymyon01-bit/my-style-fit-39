@@ -684,6 +684,53 @@ export default function DiscoverPage() {
                       ))}
                     </div>
                   </div>
+                  {/* V4.2 — Brand multi-select (include / exclude). Saved to localStorage. */}
+                  <div>
+                    <p className="mb-2 text-[11px] font-semibold tracking-[0.2em] text-foreground/75">BRANDS</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={brandInput}
+                        onChange={(e) => setBrandInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBrand("include"); } }}
+                        placeholder="e.g. Nike, Acne Studios"
+                        className="flex-1 rounded-full border border-border/30 bg-transparent px-3 py-1.5 text-[11px] text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addBrand("include")}
+                        className="rounded-full border border-foreground/20 px-3 py-1.5 text-[10px] font-semibold tracking-[0.12em] text-foreground/75 hover:border-foreground/50"
+                      >
+                        + INCLUDE
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addBrand("exclude")}
+                        className="rounded-full border border-foreground/20 px-3 py-1.5 text-[10px] font-semibold tracking-[0.12em] text-foreground/75 hover:border-foreground/50"
+                      >
+                        − EXCLUDE
+                      </button>
+                    </div>
+                    {(brandsInclude.length > 0 || brandsExclude.length > 0) && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {brandsInclude.map((b) => (
+                          <span key={`inc-${b}`} className="inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-1 text-[10px] text-foreground">
+                            {b}
+                            <button onClick={() => setBrandsInclude((prev) => prev.filter((x) => x !== b))} aria-label={`Remove ${b}`}>
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </span>
+                        ))}
+                        {brandsExclude.map((b) => (
+                          <span key={`exc-${b}`} className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-foreground/80 line-through">
+                            {b}
+                            <button onClick={() => setBrandsExclude((prev) => prev.filter((x) => x !== b))} aria-label={`Remove ${b}`}>
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-end border-t border-border/20 pt-3">
                     <button onClick={() => handleSubmit()} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70">
                       {t("applyFilters").toUpperCase()}
