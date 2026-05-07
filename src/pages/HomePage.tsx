@@ -225,9 +225,17 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-10 flex justify-center md:mt-12"
+            className="mt-10 flex items-center justify-center gap-2 md:mt-12"
           >
             <StyleMeButton variant="pill" />
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("mymyon:open-tour"))}
+              aria-label="Show intro"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-foreground/15 text-foreground/60 transition-colors hover:border-accent hover:text-accent"
+            >
+              <span className="font-mono text-[12px] font-bold italic">i</span>
+            </button>
           </motion.div>
 
           {/* Weather meta */}

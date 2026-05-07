@@ -348,7 +348,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
-          placeholder="예: 어깨가 넓고 허리는 얇음 / Arms are short, prefer loose fit..."
+          placeholder={t("fitDescribePlaceholder")}
           className="w-full rounded-xl border border-foreground/[0.06] bg-foreground/[0.03] p-3 text-sm text-foreground placeholder:text-foreground/30 outline-none resize-none h-20"
           maxLength={200}
         />
