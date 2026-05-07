@@ -805,6 +805,69 @@ const STUDIO_FALLBACK_MODELS = [
   "google/gemini-3-flash-preview",
 ];
 
+// Replicate flux-schnell text-to-image — used as the final studio fallback
+// when there is NO user body photo AND Lovable AI credits are exhausted.
+async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Promise<GenResult> {
+  logRouter("REPLICATE_STUDIO_FALLBACK_START", { model: STUDIO_MODEL_ID });
+  const prompt = [
+    buildCleanStudioPrompt(body),
+    "Faceless smooth display mannequin wearing the described garment, plain neutral studio background, full body, professional product photography, sharp focus.",
+  ].join(" ");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
+  try {
+    const payload: Record<string, unknown> = {
+      input: { prompt, num_outputs: 1, aspect_ratio: "3:4", output_format: "webp", output_quality: 90 },
+    };
+    if (STUDIO_MODEL_VERSION) (payload as any).version = STUDIO_MODEL_VERSION;
+    const url = STUDIO_MODEL_VERSION
+      ? "https://api.replicate.com/v1/predictions"
+      : `https://api.replicate.com/v1/models/${STUDIO_MODEL_ID}/predictions`;
+    const res = await fetch(url, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { Authorization: `Token ${apiKey}`, "Content-Type": "application/json", Prefer: "wait=10" },
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 402) return { kind: "credits_exhausted", error: "Replicate credits exhausted" };
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      return { kind: "error", code: "provider_error", error: `replicate-studio ${res.status}: ${txt.slice(0, 200)}` };
+    }
+    let prediction = await res.json().catch(() => ({} as any));
+    const predId: string | undefined = prediction?.id;
+    const deadline = Date.now() + SERVER_TIMEOUT_MS - 2000;
+    while (prediction && prediction.status !== "succeeded" && prediction.status !== "failed" && prediction.status !== "canceled" && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, REPLICATE_POLL_INTERVAL_MS));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${predId}`, {
+        headers: { Authorization: `Token ${apiKey}` },
+        signal: controller.signal,
+      });
+      if (!pollRes.ok) {
+        const txt = await pollRes.text().catch(() => "");
+        return { kind: "error", code: "provider_error", error: `replicate-studio poll ${pollRes.status}: ${txt.slice(0, 160)}` };
+      }
+      prediction = await pollRes.json().catch(() => ({}));
+    }
+    if (prediction?.status === "succeeded") {
+      const out = prediction.output;
+      const imageUrl = Array.isArray(out) ? out[0] : typeof out === "string" ? out : null;
+      if (!imageUrl) return { kind: "error", code: "missing_output", error: "no_image_in_response" };
+      return { kind: "success", imageUrl };
+    }
+    if (prediction?.status === "failed" || prediction?.status === "canceled") {
+      return { kind: "error", code: "generation_failed", error: prediction?.error || "replicate_studio_failed" };
+    }
+    return { kind: "error", code: "timeout", error: "replicate_studio_timeout" };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return { kind: "error", code: "timeout", error: "replicate_studio_timeout" };
+    return { kind: "error", code: "provider_error", error: e instanceof Error ? e.message : "replicate_studio_failed" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function generateStudioFitImage(replicateKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
