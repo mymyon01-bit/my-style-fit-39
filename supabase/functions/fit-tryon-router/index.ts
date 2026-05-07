@@ -480,7 +480,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const silhouette = silhouetteFromRegions(body.regions);
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
-  const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
+  const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, body.productName, subject);
   const bodyTabBlock = buildBodyTabBlock(body.bodyProfileSummary);
   const bodyProportionPrompt = buildBodyProportionPrompt(body.bodyProfileSummary);
   const bodyTypePrompt = buildBodyTypeModifier(body.bodyProfileSummary);
