@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Loader2, Download, LogIn, User as UserIcon, Handshake } from "lucide-react";
 import { toast } from "sonner";
 import WeatherAmbience from "@/components/WeatherAmbience";
+import wearYourImg from "@/assets/wear-your.png";
 import { useWeather } from "@/hooks/useWeather";
 import LanguageSelector from "@/components/LanguageSelector";
 import Footer from "@/components/Footer";
@@ -160,7 +161,14 @@ const HomePage = () => {
             className="text-center font-display text-[44px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
             style={{ letterSpacing: "-0.045em" }}
           >
-            <span className="block">Wear your</span>
+            <span className="mb-2 block">
+              <img
+                src={wearYourImg}
+                alt="Wear your"
+                className="mx-auto h-[0.95em] w-auto select-none"
+                draggable={false}
+              />
+            </span>
             <span className="block text-primary">
               <MoodTicker
                 onPick={(word) =>
