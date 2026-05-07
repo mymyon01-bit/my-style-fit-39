@@ -121,8 +121,8 @@ const ProfilePage = () => {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("Photo must be under 5MB"); return; }
-    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(t("profilePhotoMaxSize")); return; }
+    if (!file.type.startsWith("image/")) { toast.error(t("profileSelectImage")); return; }
 
     setUploadingPhoto(true);
     try {
@@ -140,10 +140,10 @@ const ProfilePage = () => {
       const avatarUrl = `${publicUrl}?t=${Date.now()}`;
       await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("user_id", user.id);
       setProfile((p: any) => ({ ...p, avatar_url: avatarUrl }));
-      toast.success("Profile photo updated");
+      toast.success(t("profilePhotoUpdated"));
     } catch (err: any) {
       console.error("Photo upload error:", err);
-      toast.error("Failed to upload photo");
+      toast.error(t("profilePhotoFailed"));
     } finally {
       setUploadingPhoto(false);
     }
@@ -160,22 +160,22 @@ const ProfilePage = () => {
     // Client-side username validation (mirror DB rules)
     if (usernameChanged) {
       if (newUsername.length < 1 || newUsername.length > 30) {
-        setUsernameError("아이디는 1-30자여야 해요");
+        setUsernameError(t("profileUsernameLen"));
         setSavingProfile(false);
         return;
       }
       if (!/^[a-z0-9._]+$/.test(newUsername)) {
-        setUsernameError("영문 소문자, 숫자, 점(.)과 밑줄(_)만 사용할 수 있어요");
+        setUsernameError(t("profileUsernameChars"));
         setSavingProfile(false);
         return;
       }
       if (/\s/.test(newUsername)) {
-        setUsernameError("공백은 사용할 수 없어요");
+        setUsernameError(t("profileUsernameSpace"));
         setSavingProfile(false);
         return;
       }
       if (/\.{2,}/.test(newUsername) || /^[._]/.test(newUsername) || /[._]$/.test(newUsername)) {
-        setUsernameError("점(.) 또는 밑줄(_)은 처음/끝 또는 연속으로 사용할 수 없어요");
+        setUsernameError(t("profileUsernameEdges"));
         setSavingProfile(false);
         return;
       }
@@ -195,15 +195,15 @@ const ProfilePage = () => {
       if (error) {
         const msg = String(error.message || "");
         if (msg.includes("username_yearly_limit")) {
-          setUsernameError("아이디는 1년에 3번까지만 변경할 수 있어요");
+          setUsernameError(t("profileUsernameYearly"));
         } else if (msg.includes("username_monthly_lock")) {
-          setUsernameError("아이디 변경 후 30일이 지나야 다시 바꿀 수 있어요");
+          setUsernameError(t("profileUsernameLock"));
         } else if (msg.includes("username_") || msg.toLowerCase().includes("username")) {
-          setUsernameError("이 아이디는 사용할 수 없어요");
+          setUsernameError(t("profileUsernameUnavailable"));
         } else if (msg.includes("duplicate") || msg.includes("unique")) {
-          setUsernameError("이미 사용 중인 아이디예요");
+          setUsernameError(t("profileUsernameTaken"));
         } else {
-          toast.error("저장에 실패했어요");
+          toast.error(t("profileSaveFailed"));
         }
         setSavingProfile(false);
         return;
@@ -219,9 +219,9 @@ const ProfilePage = () => {
         username_changes: usernameChanged ? [...(p?.username_changes || []), new Date().toISOString()] : p?.username_changes,
       }));
       setIsEditing(false);
-      toast.success("프로필이 저장되었어요");
+      toast.success(t("profileSaved"));
     } catch {
-      toast.error("저장에 실패했어요");
+      toast.error(t("profileSaveFailed"));
     } finally {
       setSavingProfile(false);
     }
