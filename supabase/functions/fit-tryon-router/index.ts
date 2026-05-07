@@ -998,11 +998,19 @@ async function processTryOnInBackground(
       status: "failed",
       error_message: failureMessage,
     });
+    const failedStage = result.kind === "credits_exhausted"
+      ? "all_providers_credits_exhausted"
+      : result.code === "timeout" ? "provider_timeout"
+      : result.code === "missing_output" ? "provider_returned_no_image"
+      : "provider_error";
     logRouter("ASYNC_FAILED", {
       requestId: record.id,
       code: result.kind === "credits_exhausted" ? "credits_exhausted" : result.code,
+      failed_stage: failedStage,
       error: failureMessage,
       mode,
+      selectedSize: body.selectedSize,
+      regions: body.regions,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown background error";
