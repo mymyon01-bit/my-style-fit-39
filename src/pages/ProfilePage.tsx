@@ -121,8 +121,8 @@ const ProfilePage = () => {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("Photo must be under 5MB"); return; }
-    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(t("profilePhotoMaxSize")); return; }
+    if (!file.type.startsWith("image/")) { toast.error(t("profileSelectImage")); return; }
 
     setUploadingPhoto(true);
     try {
@@ -140,10 +140,10 @@ const ProfilePage = () => {
       const avatarUrl = `${publicUrl}?t=${Date.now()}`;
       await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("user_id", user.id);
       setProfile((p: any) => ({ ...p, avatar_url: avatarUrl }));
-      toast.success("Profile photo updated");
+      toast.success(t("profilePhotoUpdated"));
     } catch (err: any) {
       console.error("Photo upload error:", err);
-      toast.error("Failed to upload photo");
+      toast.error(t("profilePhotoFailed"));
     } finally {
       setUploadingPhoto(false);
     }
@@ -160,22 +160,22 @@ const ProfilePage = () => {
     // Client-side username validation (mirror DB rules)
     if (usernameChanged) {
       if (newUsername.length < 1 || newUsername.length > 30) {
-        setUsernameError("아이디는 1-30자여야 해요");
+        setUsernameError(t("profileUsernameLen"));
         setSavingProfile(false);
         return;
       }
       if (!/^[a-z0-9._]+$/.test(newUsername)) {
-        setUsernameError("영문 소문자, 숫자, 점(.)과 밑줄(_)만 사용할 수 있어요");
+        setUsernameError(t("profileUsernameChars"));
         setSavingProfile(false);
         return;
       }
       if (/\s/.test(newUsername)) {
-        setUsernameError("공백은 사용할 수 없어요");
+        setUsernameError(t("profileUsernameSpace"));
         setSavingProfile(false);
         return;
       }
       if (/\.{2,}/.test(newUsername) || /^[._]/.test(newUsername) || /[._]$/.test(newUsername)) {
-        setUsernameError("점(.) 또는 밑줄(_)은 처음/끝 또는 연속으로 사용할 수 없어요");
+        setUsernameError(t("profileUsernameEdges"));
         setSavingProfile(false);
         return;
       }
@@ -195,15 +195,15 @@ const ProfilePage = () => {
       if (error) {
         const msg = String(error.message || "");
         if (msg.includes("username_yearly_limit")) {
-          setUsernameError("아이디는 1년에 3번까지만 변경할 수 있어요");
+          setUsernameError(t("profileUsernameYearly"));
         } else if (msg.includes("username_monthly_lock")) {
-          setUsernameError("아이디 변경 후 30일이 지나야 다시 바꿀 수 있어요");
+          setUsernameError(t("profileUsernameLock"));
         } else if (msg.includes("username_") || msg.toLowerCase().includes("username")) {
-          setUsernameError("이 아이디는 사용할 수 없어요");
+          setUsernameError(t("profileUsernameUnavailable"));
         } else if (msg.includes("duplicate") || msg.includes("unique")) {
-          setUsernameError("이미 사용 중인 아이디예요");
+          setUsernameError(t("profileUsernameTaken"));
         } else {
-          toast.error("저장에 실패했어요");
+          toast.error(t("profileSaveFailed"));
         }
         setSavingProfile(false);
         return;
@@ -219,9 +219,9 @@ const ProfilePage = () => {
         username_changes: usernameChanged ? [...(p?.username_changes || []), new Date().toISOString()] : p?.username_changes,
       }));
       setIsEditing(false);
-      toast.success("프로필이 저장되었어요");
+      toast.success(t("profileSaved"));
     } catch {
-      toast.error("저장에 실패했어요");
+      toast.error(t("profileSaveFailed"));
     } finally {
       setSavingProfile(false);
     }
@@ -335,11 +335,11 @@ const ProfilePage = () => {
         {/* Edit Profile Form */}
         {isEditing && (
           <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-4">
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">EDIT PROFILE</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70">{t("profileEditProfile")}</p>
 
             {/* Username — special handling */}
             <div>
-              <label className="text-[10px] font-medium text-foreground/75">Username (아이디)</label>
+              <label className="text-[10px] font-medium text-foreground/75">{t("profileUsernameLabel")}</label>
               <div className="mt-1 flex items-center gap-1 border-b border-border/20 focus-within:border-accent/30 transition-colors">
                 <span className="text-[13px] text-foreground/50">@</span>
                 <input
@@ -380,11 +380,11 @@ const ProfilePage = () => {
             </div>
 
             {[
-              { label: "Display Name", value: editName, set: setEditName, placeholder: "Your name" },
-              { label: "Bio / Style Line", value: editBio, set: setEditBio, placeholder: "A short style description" },
-              { label: "Location", value: editLocation, set: setEditLocation, placeholder: "City, Country" },
-              { label: "Gender Preference", value: editGender, set: setEditGender, placeholder: "e.g. masculine, feminine, neutral" },
-              { label: "Hashtags", value: editHashtags, set: setEditHashtags, placeholder: "#minimal, #street, #modern" },
+              { label: t("profileFieldDisplayName"), value: editName, set: setEditName, placeholder: t("profileFieldDisplayNamePh") },
+              { label: t("profileFieldBio"), value: editBio, set: setEditBio, placeholder: t("profileFieldBioPh") },
+              { label: t("profileFieldLocation"), value: editLocation, set: setEditLocation, placeholder: t("profileFieldLocationPh") },
+              { label: t("profileFieldGender"), value: editGender, set: setEditGender, placeholder: t("profileFieldGenderPh") },
+              { label: t("profileFieldHashtags"), value: editHashtags, set: setEditHashtags, placeholder: t("profileFieldHashtagsPh") },
             ].map(field => (
               <div key={field.label}>
                 <label className="text-[10px] font-medium text-foreground/75">{field.label}</label>
@@ -407,7 +407,7 @@ const ProfilePage = () => {
                 {savingProfile ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                 Save
               </button>
-              <button onClick={() => setIsEditing(false)} className="text-[11px] text-foreground/70 hover:text-foreground/70">Cancel</button>
+              <button onClick={() => setIsEditing(false)} className="text-[11px] text-foreground/70 hover:text-foreground/70">{t("profileCancel")}</button>
             </div>
           </div>
         )}
@@ -442,14 +442,14 @@ const ProfilePage = () => {
         <div className="flex items-center justify-between rounded-xl border border-border/20 bg-card/30 px-4 py-3">
           <div className="flex items-center gap-2">
             <Lock className="h-3.5 w-3.5 text-foreground/50" />
-            <span className="text-[11px] text-foreground/60">Private Account</span>
+            <span className="text-[11px] text-foreground/60">{t("profilePrivate")}</span>
           </div>
           <button
             onClick={async () => {
               const newVal = !isPrivate;
               setIsPrivate(newVal);
               await supabase.from("profiles").update({ is_private: newVal } as any).eq("user_id", user!.id);
-              toast.success(newVal ? "Account set to private" : "Account set to public");
+              toast.success(newVal ? t("profilePrivateOn") : t("profilePrivateOff"));
             }}
             className={`relative h-5 w-9 rounded-full transition-colors ${isPrivate ? "bg-accent/60" : "bg-foreground/10"}`}
           >
@@ -463,9 +463,9 @@ const ProfilePage = () => {
             { key: "posts", icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
             { key: "stars", icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
             { key: "saved", icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
-            { key: "circle", icon: Crown, label: "Circle", value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
-            { key: "ripple", icon: Crown, label: "Ripple", value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
-            { key: "scrap", icon: Bookmark, label: "Scrap", value: scrapCount, onClick: undefined },
+            { key: "circle", icon: Crown, label: t("profileLabelCircle"), value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
+            { key: "ripple", icon: Crown, label: t("profileLabelRipple"), value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
+            { key: "scrap", icon: Bookmark, label: t("profileLabelScrap"), value: scrapCount, onClick: undefined },
           ].map(stat => {
             if (stat.key === "stars") {
               return (
@@ -511,7 +511,7 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Bookmark className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Saved</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileSavedTitle")}</p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{savedCount} items</p>
                 </div>
               </div>
@@ -537,8 +537,8 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Palette className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Style Boards</p>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">Mood · Outfits · Trips</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileBoardsTitle")}</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{t("profileBoardsSub")}</p>
                 </div>
               </div>
             </AccordionTrigger>
@@ -553,11 +553,11 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Shirt className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Style</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileStyleTitle")}</p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                     {styleProfile?.preferred_styles?.length
                       ? `${styleProfile.preferred_styles.length} preferences`
-                      : "Not set"}
+                      : t("profileNotSet")}
                   </p>
                 </div>
               </div>
@@ -565,7 +565,7 @@ const ProfilePage = () => {
             <AccordionContent className="pb-4 space-y-3">
               <div className="flex justify-end">
                 <button onClick={() => setEditingStyle(!editingStyle)} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">
-                  {editingStyle ? "CLOSE" : styleProfile ? "EDIT" : "SET UP"}
+                  {editingStyle ? t("profileEditClose") : styleProfile ? t("profileEditEdit") : t("profileEditSetUp")}
                 </button>
               </div>
               {editingStyle ? (
@@ -607,9 +607,9 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Ruler className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Body</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileBodyTitle")}</p>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                    {bodyProfile?.silhouette_type || (bodyProfile ? "Scanned" : "Not scanned")}
+                    {bodyProfile?.silhouette_type || (bodyProfile ? t("profileBodyScanned") : t("profileBodyNotScanned"))}
                   </p>
                 </div>
               </div>
@@ -638,10 +638,10 @@ const ProfilePage = () => {
                       <span className="text-[9px] uppercase tracking-wider text-foreground/55">{bodyProfile.scan_confidence}% conf.</span>
                     </div>
                   )}
-                  <button onClick={() => navigate("/fit")} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">RESCAN →</button>
+                  <button onClick={() => navigate("/fit")} className="text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">{t("profileRescan")}</button>
                 </>
               ) : (
-                <button onClick={() => navigate("/fit")} className="text-[11px] font-semibold tracking-wide text-accent/80 hover:text-accent">START SCAN →</button>
+                <button onClick={() => navigate("/fit")} className="text-[11px] font-semibold tracking-wide text-accent/80 hover:text-accent">{t("profileStartScan")}</button>
               )}
             </AccordionContent>
           </AccordionItem>
@@ -672,7 +672,7 @@ const ProfilePage = () => {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => navigate("/ootd")} className="mt-3 text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">VIEW ALL →</button>
+                <button onClick={() => navigate("/ootd")} className="mt-3 text-[10px] font-semibold tracking-[0.15em] text-accent/70 hover:text-accent">{t("profileViewAll")}</button>
               </AccordionContent>
             </AccordionItem>
           )}
@@ -683,8 +683,8 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <Crown className="h-4 w-4 text-foreground/60" />
                 <div className="text-left">
-                  <p className="font-display text-[15px] tracking-tight text-foreground">Showroom</p>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">Curated rooms</p>
+                  <p className="font-display text-[15px] tracking-tight text-foreground">{t("profileShowroom")}</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{t("profileShowroomSub")}</p>
                 </div>
               </div>
             </AccordionTrigger>
@@ -701,10 +701,10 @@ const ProfilePage = () => {
         {/* Links */}
         <div className="space-y-1">
           {[
-            { icon: Crown, label: "Subscription", action: () => navigate("/subscription") },
+            { icon: Crown, label: t("profileLinkSubscription"), action: () => navigate("/subscription") },
             { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
             { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
-            { icon: Camera, label: "Post OOTD", action: () => navigate("/ootd") },
+            { icon: Camera, label: t("profileLinkPostOotd"), action: () => navigate("/ootd") },
           ].map(section => (
             <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
               <section.icon className="h-[18px] w-[18px] text-foreground/75" strokeWidth={1.5} />
