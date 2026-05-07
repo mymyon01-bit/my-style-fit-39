@@ -196,16 +196,20 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.04em;
-    line-height: 0.95;
+    letter-spacing: -0.045em;
+    line-height: 0.88;
     color: hsl(var(--foreground));
-    font-weight: 500;
+    font-weight: 800;
+    text-transform: uppercase;
     font-feature-settings: "ss01", "cv11", "liga";
   }
-  h1 { font-weight: 500; letter-spacing: -0.05em; font-style: italic; }
-  h2 { font-weight: 500; letter-spacing: -0.04em; }
-  h3, h4 { font-weight: 500; letter-spacing: -0.028em; }
+  h1 { font-weight: 900; letter-spacing: -0.06em; font-style: normal; }
+  h2 { font-weight: 800; letter-spacing: -0.05em; }
+  h3, h4 { font-weight: 700; letter-spacing: -0.03em; }
   p { color: hsl(var(--muted-foreground)); font-weight: 400; }
+
+  /* Selection — hot pink slab */
+  ::selection { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
   /* Korean: keep crisp legibility with Noto */
   html[lang="ko"] body,
