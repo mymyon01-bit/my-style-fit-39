@@ -282,17 +282,17 @@ export default function FitVisual({
               </div>
               <div className="space-y-2">
                 <p className="text-[12px] font-semibold text-foreground/85">
-                  Couldn't generate your fitting
+                  Fit preview failed
                 </p>
                 <p className="mx-auto max-w-[260px] text-[10px] leading-relaxed text-foreground/55">
-                  {friendlyFitError(state.error)}
+                  {friendlyFitError(state.error)} Tap to regenerate.
                 </p>
                 {onRetry && (
                   <button
                     onClick={onRetry}
                     className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-background/60 px-3 py-1.5 text-[10px] font-bold tracking-[0.18em] text-foreground/85 transition-colors hover:bg-foreground/10"
                   >
-                    <RefreshCw className="h-3 w-3" /> RETRY
+                    <RefreshCw className="h-3 w-3" /> TAP TO REGENERATE
                   </button>
                 )}
                 <p className="text-[10px] tracking-[0.18em] text-foreground/40">

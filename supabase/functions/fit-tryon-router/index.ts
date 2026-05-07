@@ -222,15 +222,34 @@ function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
   return "male mannequin";
 }
 
-function sizeSilhouette(size: string) {
-  const s = (size || "M").toUpperCase();
-  if (s === "XS" || s === "S")
-    return "TIGHT / TOO-SMALL silhouette: fabric clearly stretched across chest and shoulders with visible horizontal tension lines, pulled seams at shoulder and underarm, sleeves visibly shorter than the arm, hem riding up high above the hip, garment looks compressed and about to burst — exaggerate the tightness, do NOT make it look comfortable";
-  if (s === "L")
-    return "RELAXED silhouette: visibly more space at chest and waist, soft natural folds, sleeves slightly longer, hem slightly past the hip, clearly roomier than a fitted size";
-  if (s === "XL" || s === "XXL")
-    return "OVERSIZED silhouette: exaggerated dropped shoulders well past the natural shoulder line, very generous chest and waist volume, sleeves extending past the mannequin's hands, hem near mid-thigh, deep heavy folds, blanket-like drape — exaggerate the looseness, garment must look intentionally much larger than the body";
-  return "FITTED silhouette: clean follow of the form with minimal natural ease, shoulder seam exactly on the joint, hem at the hip, no tension lines, no excess volume";
+// V4.5 — BODY-RELATIVE silhouette. The size label means NOTHING by itself.
+// The visual fit is derived from the per-region fit verdicts the client
+// already computed from (garment_cm − body_cm) deltas. We collapse those
+// region verdicts into a single descriptive silhouette phrase.
+function silhouetteFromRegions(regions?: RegionFitLite[]): string {
+  if (!regions?.length) {
+    return "BALANCED silhouette: render the garment with the natural ease implied by the per-region measurement deltas — do not add tightness or looseness that the measurements do not justify";
+  }
+  const norm = (f: string) => (f || "").toLowerCase().replace(/_/g, "-");
+  let tight = 0, loose = 0, oversized = 0, regular = 0;
+  for (const r of regions) {
+    const f = norm(r.fit);
+    if (/(too-tight|tight|short|small)/.test(f)) tight++;
+    else if (/(too-large|oversized|blanket|too-long|too-loose)/.test(f)) oversized++;
+    else if (/(loose|relaxed|long|dropped)/.test(f)) loose++;
+    else regular++;
+  }
+  if (oversized >= 2 || (oversized >= 1 && loose >= 1))
+    return "OVERSIZED silhouette: dropped shoulders past the natural shoulder line, generous chest and waist volume, sleeves extending past the hands, longer hem, deep folds, blanket-like drape — only because the garment measurements are clearly larger than the body measurements in multiple regions";
+  if (tight >= 2)
+    return "TIGHT silhouette: fabric stretched across the body with visible horizontal tension lines, pulled seams, shorter visible coverage — only because the garment measurements are smaller than the body measurements in multiple regions";
+  if (loose >= 2)
+    return "RELAXED silhouette: extra room across torso and arms, soft natural folds, slightly longer hem — only because the garment measurements exceed the body measurements with comfortable ease";
+  if (tight >= 1)
+    return "SLIGHTLY TIGHT silhouette: mild tension where the garment is smaller than the body, otherwise clean drape";
+  if (loose >= 1)
+    return "SLIGHTLY RELAXED silhouette: mild extra ease where the garment exceeds the body, otherwise clean drape";
+  return "FITTED silhouette: clean follow of the form with natural ease, shoulder seam on the joint, hem at the hip, no tension lines, no excess volume";
 }
 
 function regionPhrase(regions?: RegionFitLite[]) {
@@ -447,7 +466,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const weightLine = w ? ` and approximately ${w} kg equivalent body mass` : "";
   const bmi = h && w ? Math.round((w / Math.pow(h / 100, 2)) * 10) / 10 : null;
   const garmentLabel = body.productName?.trim() || body.productCategory || "the garment";
-  const silhouette = sizeSilhouette(body.selectedSize);
+  const silhouette = silhouetteFromRegions(body.regions);
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
   const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
@@ -535,7 +554,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     fitVisualPrompt,
     consequenceLine,
     fallbackLine,
-    `SIZE EXAGGERATION ENGINE (MANDATORY): each size MUST look obviously different at a glance — do NOT keep differences subtle for aesthetic reasons. TIGHT/too-small = stretched fabric, chest pulling, shoulder tension, sleeves visibly short, visible compression. FITTED = clean close-to-body silhouette, no wrinkles. REGULAR = balanced ease, natural drape. RELAXED = clear extra space at torso and arms. OVERSIZED = exaggerated volume, dropped shoulders, sleeves past hands, extended length, intentionally much larger than the body. Extreme cases: small mannequin + XL must look blanket-like; large mannequin + S must look about to burst. Differences MUST be visible at chest, shoulders, waist, sleeve width, sleeve length, and hem length.`,
+    `BODY-RELATIVE FIT RULE (V4.5 — MANDATORY): the size label "${body.selectedSize}" by itself means NOTHING. Whether this garment looks tight, regular, relaxed, or oversized depends ONLY on the relationship between the garment measurements and this user's body measurements (the per-region directives above). A small body in a "small" size may render REGULAR. A large body in a "large" size may still render TIGHT. A slim body in an "XL" oversized cut renders OVERSIZED. Visualize the silhouette implied by the per-region measurement deltas, NOT by the size letter.`,
     `Garment behavior: garment must wrap correctly around the mannequin, respect gravity and drape, no floating clothing, no broken sleeves, no missing parts, no torn seams. Hoodies/jackets show outer-layer volume, pants show waist/thigh/length changes, tops emphasize chest and shoulders.`,
     regions,
     `Pose: neutral front-facing standing mannequin pose, arms slightly away from the sides in a static display position. NOT a fashion-model pose, NOT lifestyle, NOT candid. Focus is silhouette and garment fit only.`,
@@ -786,7 +805,7 @@ const STUDIO_FALLBACK_MODELS = [
   "google/gemini-3-flash-preview",
 ];
 
-async function generateStudioFitImage(_replicateKey: string, body: CreateBody): Promise<GenResult> {
+async function generateStudioFitImage(replicateKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing" };
@@ -811,6 +830,17 @@ async function generateStudioFitImage(_replicateKey: string, body: CreateBody): 
     }
     return result;
   }
+
+  // V4.5 — final fallback to Replicate IDM-VTON when ALL Lovable AI models
+  // are exhausted/throttled AND we have a usable user body photo. Better a
+  // VTON composite than no fit at all.
+  if ((last?.kind === "credits_exhausted" || last?.kind === "throttled") && body.userImageUrl && replicateKey) {
+    logRouter("REPLICATE_FALLBACK_AFTER_STUDIO", { reason: last.kind });
+    const vton = await generateCleanFitImage(replicateKey, body);
+    if (vton.kind === "success") return vton;
+    logRouter("REPLICATE_FALLBACK_FAILED", { kind: vton.kind, error: (vton as any).error });
+  }
+
   return last ?? { kind: "error", code: "provider_error", error: "no_studio_model_available" };
 }
 
@@ -968,11 +998,19 @@ async function processTryOnInBackground(
       status: "failed",
       error_message: failureMessage,
     });
+    const failedStage = result.kind === "credits_exhausted"
+      ? "all_providers_credits_exhausted"
+      : result.code === "timeout" ? "provider_timeout"
+      : result.code === "missing_output" ? "provider_returned_no_image"
+      : "provider_error";
     logRouter("ASYNC_FAILED", {
       requestId: record.id,
       code: result.kind === "credits_exhausted" ? "credits_exhausted" : result.code,
+      failed_stage: failedStage,
       error: failureMessage,
       mode,
+      selectedSize: body.selectedSize,
+      regions: body.regions,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown background error";
