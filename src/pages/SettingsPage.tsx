@@ -338,7 +338,7 @@ const SettingsPage = () => {
             <Crown className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
             <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">{t("subscription").toUpperCase()}</p>
           </div>
-          <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-2">
+          <div className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-3">
             <p className="text-[13px] font-medium text-foreground/65">
               {subscription.isPremium
                 ? subscription.plan === "premium_trial"
@@ -349,6 +349,13 @@ const SettingsPage = () => {
             <p className="text-[11px] text-foreground/75">
               {subscription.isPremium ? t("premiumDesc") : t("upgradeDesc")}
             </p>
+            <button
+              onClick={() => navigate("/subscription")}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-[10px] font-semibold tracking-[0.2em] text-accent/80 transition-colors hover:bg-accent/20 hover:text-accent"
+            >
+              <Crown className="h-3 w-3" />
+              {subscription.isPremium ? "MANAGE SUBSCRIPTION" : t("explorePremium").toUpperCase()}
+            </button>
           </div>
         </div>
 
