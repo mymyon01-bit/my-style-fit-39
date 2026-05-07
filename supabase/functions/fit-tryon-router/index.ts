@@ -846,7 +846,7 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
   try {
     const input: Record<string, unknown> = {
       prompt,
-      output_format: "webp",
+      output_format: "jpg",
     };
     if (imageInput.length > 0) {
       // google/nano-banana expects `image_input` as an array of image URLs.
