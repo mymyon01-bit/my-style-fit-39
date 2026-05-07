@@ -37,12 +37,7 @@ interface SelectedProduct {
   source: "mock" | "db";
 }
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "scan", label: "SCAN" },
-  { id: "measurements", label: "BODY" },
-  { id: "check", label: "CHECK" },
-  { id: "results", label: "RESULTS" },
-];
+type TabKey = "scan" | "measurements" | "check" | "results";
 
 function generateApproximateFitData(product: SelectedProduct): ProductFitData {
   const cat = product.category === "bottoms" ? "bottoms" : "tops";
