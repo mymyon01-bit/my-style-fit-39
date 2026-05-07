@@ -865,6 +865,57 @@ export type Database = {
         }
         Relationships: []
       }
+      fit_memory: {
+        Row: {
+          computed_at: string
+          created_at: string
+          disliked_silhouettes: string[]
+          id: string
+          large_running_brands: string[]
+          liked_silhouettes: string[]
+          oversized_tolerance: number
+          preferred_fit: string | null
+          preferred_inseam_cm: number | null
+          preferred_rise: string | null
+          reference_garments: Json
+          small_running_brands: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          created_at?: string
+          disliked_silhouettes?: string[]
+          id?: string
+          large_running_brands?: string[]
+          liked_silhouettes?: string[]
+          oversized_tolerance?: number
+          preferred_fit?: string | null
+          preferred_inseam_cm?: number | null
+          preferred_rise?: string | null
+          reference_garments?: Json
+          small_running_brands?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          disliked_silhouettes?: string[]
+          id?: string
+          large_running_brands?: string[]
+          liked_silhouettes?: string[]
+          oversized_tolerance?: number
+          preferred_fit?: string | null
+          preferred_inseam_cm?: number | null
+          preferred_rise?: string | null
+          reference_garments?: Json
+          small_running_brands?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fit_size_rules: {
         Row: {
           category: string
@@ -2615,6 +2666,104 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      style_board_items: {
+        Row: {
+          board_id: string
+          brand: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          layout: Json
+          notes: string | null
+          position: number
+          product_id: string | null
+          product_key: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          brand?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          layout?: Json
+          notes?: string | null
+          position?: number
+          product_id?: string | null
+          product_key?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          brand?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          layout?: Json
+          notes?: string | null
+          position?: number
+          product_id?: string | null
+          product_key?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_board_items_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "style_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_boards: {
+        Row: {
+          board_type: string
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean
+          item_count: number
+          sort_order: number
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          board_type?: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          item_count?: number
+          sort_order?: number
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          board_type?: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          item_count?: number
+          sort_order?: number
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       style_profiles: {
         Row: {
