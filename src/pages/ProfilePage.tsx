@@ -20,6 +20,7 @@ import StyleMeButton from "@/components/StyleMeButton";
 // MessagesInbox moved to OOTD My Page (full-screen sheet)
 import { toast } from "sonner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
+import StyleBoardsPanel from "@/components/profile/StyleBoardsPanel";
 import CountUp from "@/components/CountUp";
 import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
@@ -531,6 +532,11 @@ const ProfilePage = () => {
             </div>
           )}
         </div>
+
+        <div className="h-px bg-accent/[0.12]" />
+
+        {/* V4.3 — Smart Archive: Pinterest-style Style Boards */}
+        <StyleBoardsPanel />
 
         <div className="h-px bg-accent/[0.12]" />
 
