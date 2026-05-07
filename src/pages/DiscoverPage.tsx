@@ -72,12 +72,13 @@ function toDetailFromProduct(item: Product | DiscoverRenderableProduct | null): 
   };
 }
 
-function buildQuery(base: string, opts: { subcategory?: string | null; styles?: string[]; fit?: string | null; quiz?: StyleQuizAnswers | null }) {
+function buildQuery(base: string, opts: { subcategory?: string | null; styles?: string[]; fit?: string | null; quiz?: StyleQuizAnswers | null; brandsInclude?: string[] }) {
   const parts = [base.trim()];
   if (opts.subcategory) parts.push(opts.subcategory);
   if (opts.styles?.length) parts.push(opts.styles.slice(0, 2).join(" "));
   if (opts.fit) parts.push(opts.fit);
   if (opts.quiz?.preferredStyles?.length) parts.push(opts.quiz.preferredStyles.slice(0, 2).join(" "));
+  if (opts.brandsInclude?.length) parts.push(opts.brandsInclude.slice(0, 3).join(" "));
   return parts.filter(Boolean).join(" ").trim();
 }
 
