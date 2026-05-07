@@ -285,17 +285,17 @@ const WelcomeTour = () => {
                 transition={{ duration: 0.28 }}
               >
                 <h2
-                  className="font-display text-[26px] sm:text-[28px] font-bold italic leading-[1.05] tracking-tight text-[#0a0a0a]"
+                  className="font-display text-[20px] sm:text-[26px] font-bold italic leading-[1.05] tracking-tight text-[#0a0a0a]"
                   style={{ textShadow: "2px 2px 0 rgba(255,61,154,0.35)" }}
                 >
                   {slide.title}
                 </h2>
                 {/* hand-tag underline */}
-                <svg className="-mt-1 h-2 w-28" viewBox="0 0 120 8" preserveAspectRatio="none">
+                <svg className="-mt-1 h-2 w-24 sm:w-28" viewBox="0 0 120 8" preserveAspectRatio="none">
                   <path d="M2 5 C 22 1, 50 7, 78 3 S 116 6, 118 4" stroke="#FF3D9A" strokeWidth="3" fill="none" strokeLinecap="round" />
                 </svg>
 
-                <p className="mt-3 text-[13px] leading-relaxed text-[#0a0a0a]/75">
+                <p className="mt-2 sm:mt-3 text-[11.5px] sm:text-[13px] leading-relaxed text-[#0a0a0a]/75">
                   {slide.body}
                 </p>
 
