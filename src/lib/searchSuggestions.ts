@@ -132,9 +132,10 @@ export function generateSuggestions(input: string): SuggestionResult {
   const categories = findMatches(input, CATEGORY_KEYWORDS);
   const fits = findMatches(input, FIT_KEYWORDS);
   const colors = findMatches(input, COLOR_KEYWORDS);
+  const aesthetic = findAesthetic(input);
 
   const matchedTags = {
-    style: styles[0],
+    style: aesthetic?.key || styles[0],
     category: categories[0],
     fit: fits[0],
     color: colors[0],
@@ -142,6 +143,12 @@ export function generateSuggestions(input: string): SuggestionResult {
 
   const suggestions: string[] = [];
   const lower = input.toLowerCase().trim();
+
+  // Aesthetic-driven expansions take top priority — these are the
+  // contextual "Musinsa-style" recommendations the V4.2 spec calls for.
+  if (aesthetic) {
+    suggestions.push(...aesthetic.expand);
+  }
 
   // Generate contextual suggestions based on matched tags
   if (fits.length && categories.length) {
@@ -175,17 +182,19 @@ export function generateSuggestions(input: string): SuggestionResult {
   }
 
   // Deduplicate and limit
-  const unique = [...new Set(suggestions)].slice(0, 5);
+  const unique = [...new Set(suggestions)].slice(0, 8);
 
   return { suggestions: unique, matchedTags };
 }
 
-// Pre-defined trending suggestions for empty state
+// Pre-defined trending suggestions for empty state — V4.2 fashion vocabulary.
 export const TRENDING_SEARCHES = [
+  "quiet luxury",
+  "gorpcore",
+  "old money",
+  "clean fit",
+  "smart casual",
   "minimal outerwear",
   "oversized jackets",
-  "casual sneakers",
-  "dark accessories",
-  "street bags",
-  "chic formal",
+  "airport look",
 ];
