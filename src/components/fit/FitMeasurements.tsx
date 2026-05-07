@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import BodyShapeInputs from "@/components/fit/BodyShapeInputs";
 import type { BodyShapeInput } from "@/lib/fit/bodyShape";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   measurements: Record<keyof BodyMeasurements, { value: number; confidence: ConfidenceLevel }>;
@@ -40,6 +41,7 @@ const BODY_HINTS: { key: BodyHint; label: string }[] = [
 
 export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange, bodyShape, onBodyShapeChange, onGenderChange }: Props) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [height, setHeight] = useState(measurements.heightCm?.value || 175);
   const [weight, setWeight] = useState<number>(weightKg ?? 70);
   const [weightTouched, setWeightTouched] = useState<boolean>(weightKg != null);
@@ -348,7 +350,7 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
-          placeholder="예: 어깨가 넓고 허리는 얇음 / Arms are short, prefer loose fit..."
+          placeholder={t("fitDescribePlaceholder")}
           className="w-full rounded-xl border border-foreground/[0.06] bg-foreground/[0.03] p-3 text-sm text-foreground placeholder:text-foreground/30 outline-none resize-none h-20"
           maxLength={200}
         />
