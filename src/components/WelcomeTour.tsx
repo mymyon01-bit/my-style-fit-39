@@ -189,14 +189,14 @@ const WelcomeTour = () => {
       {/* Card stage */}
       <motion.div
         key="tour-stage"
-        className="fixed inset-0 z-[71] flex items-stretch sm:items-center justify-center p-0 sm:p-6 pointer-events-none"
+        className="fixed inset-0 z-[71] flex items-center justify-center p-4 sm:p-6 pointer-events-none"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
       >
         <motion.div
-          className="pointer-events-auto relative flex h-full w-full sm:h-auto sm:w-[420px] sm:max-w-[92vw] flex-col overflow-hidden bg-[#f4ece0] text-[#0a0a0a] sm:rounded-[28px]"
+          className="pointer-events-auto relative flex h-auto w-full max-w-[340px] sm:w-[420px] sm:max-w-[92vw] flex-col overflow-hidden rounded-[24px] bg-[#f4ece0] text-[#0a0a0a] sm:rounded-[28px]"
           style={{
             x: dragX,
             rotate: cardRotate,
@@ -226,7 +226,7 @@ const WelcomeTour = () => {
           </motion.div>
 
           {/* Top bar */}
-          <div className="relative z-20 flex items-center justify-between px-5 pt-[max(env(safe-area-inset-top),18px)] pb-3">
+          <div className="relative z-20 flex items-center justify-between px-4 pt-3 pb-2">
             <span className="font-display text-[15px] italic font-semibold lowercase tracking-tight text-[#0a0a0a]">
               my'myon
             </span>
@@ -240,13 +240,13 @@ const WelcomeTour = () => {
           </div>
 
           {/* Hero image — graffiti tag overlay */}
-          <div className="relative mx-5 overflow-hidden rounded-2xl border-[3px] border-[#0a0a0a]">
+          <div className="relative mx-4 overflow-hidden rounded-2xl border-[3px] border-[#0a0a0a]">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.img
                 key={`bg-${index}`}
                 src={slide.image}
                 alt=""
-                className="block h-44 sm:h-56 w-full object-cover"
+                className="block h-36 sm:h-56 w-full object-cover"
                 draggable={false}
                 initial={{ opacity: 0, x: direction * 60, scale: 1.05 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -275,7 +275,7 @@ const WelcomeTour = () => {
           </div>
 
           {/* Body */}
-          <div className="relative flex-1 px-6 pb-4 pt-5">
+          <div className="relative flex-1 px-5 pb-2 pt-3">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={`txt-${index}`}
@@ -311,7 +311,7 @@ const WelcomeTour = () => {
           </div>
 
           {/* Footer / dots / actions */}
-          <div className="relative z-10 px-6 pb-[max(env(safe-area-inset-bottom),20px)] pt-2">
+          <div className="relative z-10 px-5 pb-4 pt-2">
             <div className="mb-4 flex items-center justify-center gap-2">
               {slides.map((_, i) => (
                 <button
