@@ -807,8 +807,25 @@ const STUDIO_FALLBACK_MODELS = [
 
 async function generateStudioFitImage(replicateKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+  // V4.6 — REPLICATE-FIRST mode. Lovable AI credits are unavailable, so we
+  // route studio renders to Replicate IDM-VTON whenever a user body photo
+  // exists. Lovable AI is only used as a last-resort fallback.
+  const userBodyRef = body.bodyProfileSummary?.userBodyImageUrl || body.userImageUrl;
+  const preferReplicate = (Deno.env.get("FIT_PREFER_REPLICATE") ?? "1") !== "0";
+
+  if (preferReplicate && replicateKey && userBodyRef) {
+    logRouter("REPLICATE_FIRST_STUDIO", { hasBody: true });
+    // Ensure VTON sees the body image.
+    const vtonBody: CreateBody = { ...body, userImageUrl: userBodyRef };
+    const vton = await generateCleanFitImage(replicateKey, vtonBody);
+    if (vton.kind === "success") return vton;
+    logRouter("REPLICATE_FIRST_FAILED", { kind: vton.kind, error: (vton as any).error });
+    // Hard failure → fall through to Lovable AI as backup.
+  }
+
   if (!LOVABLE_API_KEY) {
-    return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing" };
+    return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing and replicate path unavailable" };
   }
 
   // Build ordered list, dedup, primary first.
@@ -823,7 +840,6 @@ async function generateStudioFitImage(replicateKey: string, body: CreateBody): P
   for (const model of chain) {
     const result = await runStudioRenderAttempt(LOVABLE_API_KEY, body, model);
     last = result;
-    // Only fall through on transient/quota issues — success or hard errors stop here.
     if (result.kind === "throttled" || result.kind === "credits_exhausted") {
       logRouter("LOVABLE_STUDIO_FALLBACK", { failedModel: model, reason: result.kind });
       continue;
@@ -831,14 +847,11 @@ async function generateStudioFitImage(replicateKey: string, body: CreateBody): P
     return result;
   }
 
-  // V4.5 — final fallback to Replicate IDM-VTON when ALL Lovable AI models
-  // are exhausted/throttled AND we have a usable user body photo. Better a
-  // VTON composite than no fit at all.
-  if ((last?.kind === "credits_exhausted" || last?.kind === "throttled") && body.userImageUrl && replicateKey) {
+  // Final fallback: Replicate VTON if we somehow skipped it above.
+  if ((last?.kind === "credits_exhausted" || last?.kind === "throttled") && userBodyRef && replicateKey) {
     logRouter("REPLICATE_FALLBACK_AFTER_STUDIO", { reason: last.kind });
-    const vton = await generateCleanFitImage(replicateKey, body);
+    const vton = await generateCleanFitImage(replicateKey, { ...body, userImageUrl: userBodyRef });
     if (vton.kind === "success") return vton;
-    logRouter("REPLICATE_FALLBACK_FAILED", { kind: vton.kind, error: (vton as any).error });
   }
 
   return last ?? { kind: "error", code: "provider_error", error: "no_studio_model_available" };
