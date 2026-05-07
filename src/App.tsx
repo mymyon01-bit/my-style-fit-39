@@ -212,10 +212,10 @@ const AppRoutes = () => {
 
   return (
     <>
-      <UrlMasker />
-      <WelcomeTour />
-      <PermissionsPrompt />
-      <AppUpdatePrompt />
+      {!isAdmin && <UrlMasker />}
+      {!isAdmin && <WelcomeTour />}
+      {!isAdmin && <PermissionsPrompt />}
+      {!isAdmin && <AppUpdatePrompt />}
       {!isAdmin && <DesktopNav />}
       {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
