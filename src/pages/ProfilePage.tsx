@@ -380,11 +380,11 @@ const ProfilePage = () => {
             </div>
 
             {[
-              { label: "Display Name", value: editName, set: setEditName, placeholder: "Your name" },
-              { label: "Bio / Style Line", value: editBio, set: setEditBio, placeholder: "A short style description" },
-              { label: "Location", value: editLocation, set: setEditLocation, placeholder: "City, Country" },
-              { label: "Gender Preference", value: editGender, set: setEditGender, placeholder: "e.g. masculine, feminine, neutral" },
-              { label: "Hashtags", value: editHashtags, set: setEditHashtags, placeholder: "#minimal, #street, #modern" },
+              { label: t("profileFieldDisplayName"), value: editName, set: setEditName, placeholder: t("profileFieldDisplayNamePh") },
+              { label: t("profileFieldBio"), value: editBio, set: setEditBio, placeholder: t("profileFieldBioPh") },
+              { label: t("profileFieldLocation"), value: editLocation, set: setEditLocation, placeholder: t("profileFieldLocationPh") },
+              { label: t("profileFieldGender"), value: editGender, set: setEditGender, placeholder: t("profileFieldGenderPh") },
+              { label: t("profileFieldHashtags"), value: editHashtags, set: setEditHashtags, placeholder: t("profileFieldHashtagsPh") },
             ].map(field => (
               <div key={field.label}>
                 <label className="text-[10px] font-medium text-foreground/75">{field.label}</label>
