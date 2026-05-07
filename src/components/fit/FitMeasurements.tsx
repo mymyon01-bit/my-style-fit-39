@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import BodyShapeInputs from "@/components/fit/BodyShapeInputs";
 import type { BodyShapeInput } from "@/lib/fit/bodyShape";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   measurements: Record<keyof BodyMeasurements, { value: number; confidence: ConfidenceLevel }>;
