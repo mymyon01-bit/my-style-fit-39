@@ -21,14 +21,16 @@ const DesktopNav = () => {
     prefetchAllTabs();
   }, []);
 
-  // Two link groups symmetric around the centered OOTD diary button.
+  // V4.2 service hierarchy: shopping/fit-first. OOTD stays as the centered
+  // diary anchor; profile/settings are reachable via the top-right utilities
+  // and inside the OOTD modal, so they're removed from the main nav.
   const leftLinks = [
-    { path: "/about", label: t("about").toUpperCase() },
     { path: "/discover", label: "PRODUCTS" },
+    { path: "/fit", label: t("fit").toUpperCase() },
   ];
   const rightLinks = [
-    { path: "/fit", label: t("fit").toUpperCase() },
-    { path: "/profile", label: "PROFILE" },
+    { path: "/profile", label: "SAVED" },
+    { path: "/about", label: t("about").toUpperCase() },
   ];
 
   const isActive = (path: string) => {
