@@ -209,7 +209,7 @@ export default function DiscoverPage() {
   }, [textInput]);
 
   const needsPreferences = !quizAnswers;
-  const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null;
+  const hasActiveFilters = selectedStyles.length > 0 || selectedFit !== null || brandsInclude.length > 0 || brandsExclude.length > 0;
 
   // ── Saved items ───────────────────────────────────────────────────────
   const loadSavedIds = useCallback(async () => {
