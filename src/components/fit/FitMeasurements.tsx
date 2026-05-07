@@ -41,6 +41,7 @@ const BODY_HINTS: { key: BodyHint; label: string }[] = [
 
 export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, weightKg, onWeightChange, bodyShape, onBodyShapeChange, onGenderChange }: Props) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [height, setHeight] = useState(measurements.heightCm?.value || 175);
   const [weight, setWeight] = useState<number>(weightKg ?? 70);
   const [weightTouched, setWeightTouched] = useState<boolean>(weightKg != null);
