@@ -33,6 +33,8 @@ import CustomizeMenu from "@/components/ootd/CustomizeMenu";
 import { loadCardShape, applyCardShapeToRoot, type CardShape } from "@/components/ootd/cardShape";
 import OOTDWelcomeModal, { openOOTDWelcome } from "@/components/ootd/OOTDWelcomeModal";
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
+import CuratedStyleStream from "@/components/ootd/CuratedStyleStream";
+import PeopleLikeMeRail from "@/components/ootd/PeopleLikeMeRail";
 import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
@@ -833,11 +835,11 @@ const OOTDPage = () => {
           <div className="flex items-center gap-3">
             <div className="flex flex-1 min-w-0 items-stretch justify-around">
               {([
-                { key: "ranking" as const, label: "RANKING", Icon: Trophy },
-                { key: "feed" as const, label: "FEED", Icon: TrendingUp },
-                { key: "community" as const, label: "COMMUNITY", Icon: Users },
-                { key: "showroom" as const, label: "SHOWROOM", Icon: LayoutGrid },
-                { key: "mypage" as const, label: "MY PAGE", Icon: UserIcon },
+                { key: "ranking" as const, label: "FEATURED", Icon: Trophy },
+                { key: "feed" as const, label: "STREAM", Icon: Sparkles },
+                { key: "community" as const, label: "EXPLORE", Icon: Users },
+                { key: "showroom" as const, label: "SHOWROOMS", Icon: LayoutGrid },
+                { key: "mypage" as const, label: "MY SHOWROOM", Icon: UserIcon },
               ]).map(({ key, label, Icon }) => (
                 <button
                   key={key}
@@ -1064,12 +1066,12 @@ const OOTDPage = () => {
                 )}
               </div>
 
-              {/* Trending Topics */}
+              {/* Style Tags */}
               {trendingTopics.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3 text-accent/60" />
-                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">TRENDING TOPICS</span>
+                    <Sparkles className="h-3 w-3 text-accent/60" />
+                    <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">STYLE TAGS</span>
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     {trendingTopics.map(topic => (
@@ -1082,10 +1084,10 @@ const OOTDPage = () => {
                 </div>
               )}
 
-              {/* Latest from the community — chronological grid of all new posts */}
+              {/* Latest curations from the showroom community */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">LATEST POSTS</span>
+                  <span className="text-[10px] font-medium tracking-[0.2em] text-foreground/50">LATEST CURATIONS</span>
                   <span className="text-[9px] tracking-[0.18em] text-foreground/35">NEWEST FIRST</span>
                 </div>
                 {isLoading ? (
@@ -1099,7 +1101,7 @@ const OOTDPage = () => {
                 ) : posts.length === 0 ? (
                   <div className="py-12 text-center space-y-2">
                     <p className="text-[12px] text-foreground/50">No posts yet</p>
-                    <p className="text-[10px] text-foreground/35">Be the first to share an outfit</p>
+                    <p className="text-[10px] text-foreground/35">Be the first to curate a look</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
@@ -1155,28 +1157,28 @@ const OOTDPage = () => {
                     </AnimatePresence>
                   </div>
 
-                  {/* POST YOUR OOTD — sits between My Showroom and My Posts */}
+                  {/* ADD TO SHOWROOM — sits between My Showroom and Curated Looks */}
                   <button
                     onClick={() => setUploadOpen(true)}
                     className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
                   >
                     <Camera className="h-4 w-4" />
-                    <span className="text-[10px] font-medium tracking-[0.22em]">POST YOUR OOTD</span>
+                    <span className="text-[10px] font-medium tracking-[0.22em]">ADD TO SHOWROOM</span>
                   </button>
 
-                  {/* MY POSTS */}
+                  {/* CURATED LOOKS */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/70">MY POSTS</span>
+                      <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/70">CURATED LOOKS</span>
                       {myPosts.length > 0 && (
                         <span className="text-[9px] tracking-[0.2em] text-foreground/40">{myPosts.length}</span>
                       )}
                     </div>
                     {myPosts.length === 0 ? (
                       <div className="py-12 text-center space-y-2">
-                        <p className="text-[13px] text-foreground/80">No outfits posted yet</p>
+                        <p className="text-[13px] text-foreground/80">Your showroom is empty</p>
                         <p className="text-[11px] text-foreground/50 max-w-[220px] mx-auto leading-relaxed">
-                          Upload daily looks to build your style identity.
+                          Curate looks, save fits, and build a personal archive.
                         </p>
                       </div>
                     ) : (
@@ -1198,6 +1200,18 @@ const OOTDPage = () => {
                 <>
                   <MyLocationCard />
                   <FeedTopRow styleHints={userPrefs?.styles} />
+                  <PeopleLikeMeRail onOpen={async (id) => {
+                    const inMem = posts.find((p) => p.id === id) || myPosts.find((p) => p.id === id);
+                    if (inMem) { setSelectedPost(inMem as OOTDPost); return; }
+                    const { data } = await supabase.from("ootd_posts").select("*").eq("id", id).maybeSingle();
+                    if (data) setSelectedPost(data as OOTDPost);
+                  }} />
+                  <CuratedStyleStream onOpen={async (id) => {
+                    const inMem = posts.find((p) => p.id === id) || myPosts.find((p) => p.id === id);
+                    if (inMem) { setSelectedPost(inMem as OOTDPost); return; }
+                    const { data } = await supabase.from("ootd_posts").select("*").eq("id", id).maybeSingle();
+                    if (data) setSelectedPost(data as OOTDPost);
+                  }} />
                 </>
               )}
 
@@ -1259,11 +1273,11 @@ const OOTDPage = () => {
                 <div className="py-20 text-center space-y-4">
                   <Camera className="h-6 w-6 text-foreground/30 mx-auto" />
                   <p className="text-[13px] text-foreground/50">
-                    {activeTopic ? `No posts in #${activeTopic} yet` : "Feed is growing"}
+                    {activeTopic ? `No looks in #${activeTopic} yet` : "Showroom stream is growing"}
                   </p>
                   {user && (
                     <button onClick={() => { setActiveTab("mypage"); setUploadOpen(true); }} className="text-[10px] font-medium tracking-[0.2em] text-accent/60 hover:text-accent">
-                      POST FIRST
+                      ADD FIRST LOOK
                     </button>
                   )}
                 </div>

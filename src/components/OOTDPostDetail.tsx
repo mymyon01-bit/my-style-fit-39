@@ -498,6 +498,14 @@ export default function OOTDPostDetail({
             </div>
           )}
 
+          {/* Showroom reference — fit / silhouette context */}
+          <div className="rounded-xl border border-border/30 bg-foreground/[0.02] p-3 space-y-1.5">
+            <p className="text-[9px] font-semibold tracking-[0.22em] text-foreground/50 uppercase">Showroom Reference</p>
+            <p className="text-[11px] text-foreground/65 leading-relaxed">
+              Save this look to a board, archive the silhouette, or use it as a fit reference for similar proportions.
+            </p>
+          </div>
+
           {/* Interactions moved to the very top of this column (right under the photo). */}
           {/* Threaded Comments */}
           <div className="space-y-3">
