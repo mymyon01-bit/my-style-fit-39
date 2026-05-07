@@ -240,7 +240,7 @@ const WelcomeTour = () => {
           </div>
 
           {/* Hero image — graffiti tag overlay */}
-          <div className="relative mx-5 overflow-hidden rounded-2xl border-[3px] border-[#0a0a0a]">
+          <div className="relative mx-4 overflow-hidden rounded-2xl border-[3px] border-[#0a0a0a]">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.img
                 key={`bg-${index}`}
@@ -311,7 +311,7 @@ const WelcomeTour = () => {
           </div>
 
           {/* Footer / dots / actions */}
-          <div className="relative z-10 px-6 pb-[max(env(safe-area-inset-bottom),20px)] pt-2">
+          <div className="relative z-10 px-5 pb-4 pt-2">
             <div className="mb-4 flex items-center justify-center gap-2">
               {slides.map((_, i) => (
                 <button
