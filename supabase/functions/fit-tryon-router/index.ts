@@ -466,7 +466,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   const weightLine = w ? ` and approximately ${w} kg equivalent body mass` : "";
   const bmi = h && w ? Math.round((w / Math.pow(h / 100, 2)) * 10) / 10 : null;
   const garmentLabel = body.productName?.trim() || body.productCategory || "the garment";
-  const silhouette = sizeSilhouette(body.selectedSize);
+  const silhouette = silhouetteFromRegions(body.regions);
   const regions = regionPhrase(body.regions);
   const isBag = isBagCategory(body.productCategory);
   const baseLayerLine = buildUniversalBaseLayerLine(body.productCategory, subject);
