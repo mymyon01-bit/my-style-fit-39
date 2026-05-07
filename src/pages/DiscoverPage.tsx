@@ -120,6 +120,15 @@ export default function DiscoverPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [selectedFit, setSelectedFit] = useState<string | null>(null);
+  // V4.2 — brand multi-select (include / exclude). Persisted to localStorage so
+  // user's saved preferred brands survive across sessions.
+  const [brandsInclude, setBrandsInclude] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("mymyon:brands:include") || "[]"); } catch { return []; }
+  });
+  const [brandsExclude, setBrandsExclude] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("mymyon:brands:exclude") || "[]"); } catch { return []; }
+  });
+  const [brandInput, setBrandInput] = useState("");
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<StyleQuizAnswers | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
