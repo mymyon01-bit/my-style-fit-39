@@ -52,6 +52,70 @@ const COLOR_KEYWORDS: Record<string, string[]> = {
   mixed: ["mixed", "pattern", "print", "plaid", "stripe", "check", "floral"],
 };
 
+/**
+ * V4.2 — Fashion-aesthetic vocabulary. When a user types a mood/aesthetic
+ * concept (quiet luxury, gorpcore, old money…), we expand it into the
+ * concrete categories shoppers actually want to see.
+ */
+const AESTHETIC_EXPANSIONS: Record<string, { label: string; expand: string[] }> = {
+  "quiet luxury": {
+    label: "Quiet Luxury",
+    expand: ["cashmere knitwear", "tailored trousers", "minimal leather bag", "neutral overcoat", "fine merino sweater"],
+  },
+  "old money": {
+    label: "Old Money",
+    expand: ["polo shirts", "pleated trousers", "loafers", "navy blazer", "cable knit sweater"],
+  },
+  gorpcore: {
+    label: "Gorpcore",
+    expand: ["technical shell jacket", "cargo pants", "trail runners", "fleece pullover", "utility vest"],
+  },
+  "clean fit": {
+    label: "Clean Fit",
+    expand: ["white sneakers", "straight jeans", "crew neck tee", "minimal bomber", "neutral cap"],
+  },
+  "archive fashion": {
+    label: "Archive Fashion",
+    expand: ["asymmetric tops", "draped trousers", "deconstructed jacket", "avant-garde knit"],
+  },
+  "smart casual": {
+    label: "Smart Casual",
+    expand: ["unstructured blazer", "chinos", "loafers", "oxford shirt", "merino polo"],
+  },
+  "airport look": {
+    label: "Airport Look",
+    expand: ["oversized hoodie", "wide leg sweatpants", "chunky sneakers", "long puffer", "crossbody bag"],
+  },
+  workout: {
+    label: "Workout",
+    expand: ["compression shirts", "running shorts", "training shoes", "sweat-resistant jacket", "gym bag"],
+  },
+  athleisure: {
+    label: "Athleisure",
+    expand: ["track pants", "performance tee", "trainers", "zip-up hoodie", "sports bra"],
+  },
+  minimal: {
+    label: "Minimal",
+    expand: ["monochrome outerwear", "clean sneakers", "neutral knitwear", "relaxed trousers"],
+  },
+  y2k: {
+    label: "Y2K",
+    expand: ["low-rise jeans", "baby tee", "cargo skirt", "shoulder bag", "tinted sunglasses"],
+  },
+  techwear: {
+    label: "Techwear",
+    expand: ["shell jacket", "tactical pants", "modular vest", "ninja sneakers"],
+  },
+};
+
+function findAesthetic(input: string): { key: string; label: string; expand: string[] } | null {
+  const lower = input.toLowerCase().trim();
+  for (const [key, value] of Object.entries(AESTHETIC_EXPANSIONS)) {
+    if (lower.includes(key)) return { key, ...value };
+  }
+  return null;
+}
+
 function findMatches(input: string, map: Record<string, string[]>): string[] {
   const lower = input.toLowerCase();
   return Object.entries(map)
