@@ -20,11 +20,20 @@ const DbTopGridImpl = ({ products, loading, onSelect }: DbTopGridProps) => {
   const slots: (Product | null)[] = Array.from({ length: SLOT_COUNT }, (_, i) => products[i] ?? null);
 
   return (
-    <section aria-label="Top picks from inventory" className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/75">TOP PICKS</p>
-        <p className="text-[10px] text-foreground/55">Instant from inventory</p>
-      </div>
+    <section aria-label="Top picks from inventory" className="space-y-4">
+      <header className="border-b border-foreground/10 pb-3">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
+          Editorial
+        </p>
+        <div className="mt-1.5 flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-[26px] leading-none tracking-tight text-foreground md:text-[32px]">
+            Top Picks
+          </h2>
+          <p className="text-[10px] tracking-[0.2em] text-foreground/55 uppercase">
+            Curated for you
+          </p>
+        </div>
+      </header>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
         {slots.map((product, index) => (
           <DbTopGridSlot key={product?.id ?? `db-slot-${index}`} product={product} loading={loading && !product} onSelect={onSelect} />

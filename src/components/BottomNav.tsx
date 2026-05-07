@@ -1,4 +1,4 @@
-import { Home, Compass, Camera, Scan, User } from "lucide-react";
+import { Compass, Camera, Scan, Bookmark } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
@@ -18,12 +18,13 @@ const BottomNav = () => {
     prefetchAllTabs();
   }, []);
 
+  // V4.2 service hierarchy: Discovery → Fit → Saved → OOTD.
+  // Profile/settings access moved into the OOTD profile flow & top-right user avatar surfaces.
   const tabs = [
-    { path: "/", icon: Home, label: "HOME", isOotd: false },
     { path: "/discover", icon: Compass, label: "PRODUCTS", isOotd: false },
-    { path: "/ootd", icon: Camera, label: "OOTD", isOotd: true },
     { path: "/fit", icon: Scan, label: "FIT", isOotd: false },
-    { path: "/profile", icon: User, label: "YOU", isOotd: false },
+    { path: "/profile", icon: Bookmark, label: "SAVED", isOotd: false },
+    { path: "/ootd", icon: Camera, label: "OOTD", isOotd: true },
   ];
 
   return (

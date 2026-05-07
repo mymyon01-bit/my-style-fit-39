@@ -213,30 +213,39 @@ const HomePage = () => {
             <OOTDDiaryButton compact />
           </motion.div>
 
-          {/* Button row — single row, centered, equal pill sizing on all viewports */}
+          {/* Primary CTA row — V4.2: Discovery-first. Browse Products is the
+              dominant action; styling, fit and OOTD become secondary surfaces. */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-10 flex items-center justify-center gap-1.5 flex-nowrap md:gap-2 md:mt-14"
+            className="mt-10 flex flex-col items-center gap-2.5 md:mt-14"
           >
             <button
               onClick={() => navigate("/discover")}
-              className="rounded-full bg-foreground px-2.5 py-1.5 text-[9px] font-semibold tracking-wide text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap md:px-3 md:text-[10px]"
+              className="rounded-full bg-foreground px-6 py-2.5 text-[11px] font-semibold tracking-[0.18em] text-background transition-all duration-200 hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
             >
-              {t("exploreStyles")}
+              BROWSE PRODUCTS
             </button>
-            <StyleMeButton variant="pill" />
-            <button
-              onClick={() => navigate("/about")}
-              className="rounded-full border border-foreground/20 px-2.5 py-1.5 text-[9px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap md:px-3 md:text-[10px]"
-            >
-              {t("about")}
-            </button>
-            <ShareButton
-              title="Share, Explore, and Edge your style. Join My'myon."
-              url="https://www.mymyon.com"
-            />
+            <div className="flex items-center justify-center gap-1.5 flex-nowrap md:gap-2">
+              <button
+                onClick={() => navigate("/fit")}
+                className="rounded-full border border-foreground/20 px-2.5 py-1.5 text-[9px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap md:px-3 md:text-[10px]"
+              >
+                {t("fit")}
+              </button>
+              <StyleMeButton variant="pill" />
+              <button
+                onClick={() => navigate("/about")}
+                className="rounded-full border border-foreground/20 px-2.5 py-1.5 text-[9px] font-semibold tracking-wide text-foreground/75 transition-all duration-200 hover:border-foreground hover:text-foreground whitespace-nowrap md:px-3 md:text-[10px]"
+              >
+                {t("about")}
+              </button>
+              <ShareButton
+                title="Share, Explore, and Edge your style. Join My'myon."
+                url="https://www.mymyon.com"
+              />
+            </div>
           </motion.div>
 
           {/* Weather meta */}

@@ -74,15 +74,15 @@ export default function DiscoverAdRow({ pool, styleHints }: Props) {
   }, [excludeKey]);
 
   return (
-    <div className="space-y-1.5">
+    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.025] p-3 space-y-2">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
-          <Sparkles className="h-3 w-3 text-accent/70" />
+          <Sparkles className="h-3 w-3 text-foreground/45" />
           <span className="text-[9px] font-semibold tracking-[0.22em] text-foreground/55">
             SPONSORED
           </span>
-          <span className="rounded-full bg-accent/15 px-1.5 py-px text-[8px] font-bold tracking-[0.15em] text-accent">
-            AI AD
+          <span className="rounded-full bg-foreground/10 px-1.5 py-px text-[8px] font-medium tracking-[0.15em] text-foreground/55">
+            PAID PLACEMENT
           </span>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function DiscoverAdRow({ pool, styleHints }: Props) {
             onClick={() => setActiveAd(p)}
             className="flex flex-col gap-1 text-left"
           >
-            <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
+            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-foreground/[0.04]">
               {p.image_url ? (
                 <img
                   src={p.image_url}
@@ -106,6 +106,9 @@ export default function DiscoverAdRow({ pool, styleHints }: Props) {
                   }
                 />
               ) : null}
+              <span className="absolute left-1 top-1 rounded-sm bg-background/85 px-1 py-px text-[7px] font-semibold tracking-[0.14em] text-foreground/70 backdrop-blur-sm">
+                AD
+              </span>
             </div>
             <p className="line-clamp-1 text-[9px] text-foreground/60">
               {p.brand || p.name}
@@ -120,10 +123,10 @@ export default function DiscoverAdRow({ pool, styleHints }: Props) {
           className="group flex flex-col gap-1 text-left"
           aria-label="Add your ad — contact us"
         >
-          <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-dashed border-accent/40 bg-accent/[0.04] transition-all group-hover:bg-accent/[0.1] group-hover:border-accent/60">
-            <Plus className="h-4 w-4 text-accent/70 transition-transform group-hover:scale-110" />
+          <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-dashed border-foreground/25 bg-foreground/[0.02] transition-all group-hover:bg-foreground/[0.06] group-hover:border-foreground/45">
+            <Plus className="h-4 w-4 text-foreground/55 transition-transform group-hover:scale-110" />
           </div>
-          <p className="line-clamp-1 text-[9px] font-semibold tracking-[0.14em] text-accent/75">
+          <p className="line-clamp-1 text-[9px] font-semibold tracking-[0.14em] text-foreground/55">
             ADD YOUR AD
           </p>
         </button>
