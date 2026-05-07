@@ -1101,7 +1101,7 @@ const OOTDPage = () => {
                 ) : posts.length === 0 ? (
                   <div className="py-12 text-center space-y-2">
                     <p className="text-[12px] text-foreground/50">No posts yet</p>
-                    <p className="text-[10px] text-foreground/35">Be the first to share an outfit</p>
+                    <p className="text-[10px] text-foreground/35">Be the first to curate a look</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
@@ -1273,11 +1273,11 @@ const OOTDPage = () => {
                 <div className="py-20 text-center space-y-4">
                   <Camera className="h-6 w-6 text-foreground/30 mx-auto" />
                   <p className="text-[13px] text-foreground/50">
-                    {activeTopic ? `No posts in #${activeTopic} yet` : "Feed is growing"}
+                    {activeTopic ? `No looks in #${activeTopic} yet` : "Showroom stream is growing"}
                   </p>
                   {user && (
                     <button onClick={() => { setActiveTab("mypage"); setUploadOpen(true); }} className="text-[10px] font-medium tracking-[0.2em] text-accent/60 hover:text-accent">
-                      POST FIRST
+                      ADD FIRST LOOK
                     </button>
                   )}
                 </div>
