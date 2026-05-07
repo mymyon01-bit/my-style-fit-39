@@ -37,7 +37,7 @@ interface SelectedProduct {
   source: "mock" | "db";
 }
 
-type TabKey = "scan" | "measurements" | "check" | "results";
+
 
 function generateApproximateFitData(product: SelectedProduct): ProductFitData {
   const cat = product.category === "bottoms" ? "bottoms" : "tops";
