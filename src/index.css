@@ -665,40 +665,47 @@
     animation: gradient-shift 12s ease infinite;
   }
 
-  /* ── Brutalist button — sharp, hard-shadowed primary CTA ── */
+  /* ── HYPE button — neon pink slab on black, glow + slam ── */
   .btn-brutalist {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.875rem 1.5rem;
+    padding: 0.95rem 1.75rem;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    border: 1.5px solid hsl(var(--foreground));
+    border: 2px solid hsl(var(--primary));
     border-radius: var(--radius);
     font-family: var(--font-mono);
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
+    font-weight: 800;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    box-shadow: 4px 4px 0 hsl(var(--foreground));
-    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-                box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
-                background-color 180ms;
+    box-shadow:
+      0 0 0 2px hsl(0 0% 0%),
+      0 0 24px hsl(var(--primary) / 0.55),
+      6px 6px 0 hsl(0 0% 0%);
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 160ms cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 160ms;
     cursor: pointer;
+    position: relative;
   }
   .btn-brutalist:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0 hsl(var(--foreground));
-    background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    transform: translate(-3px, -3px);
+    box-shadow:
+      0 0 0 2px hsl(0 0% 100%),
+      0 0 48px hsl(var(--primary) / 0.85),
+      9px 9px 0 hsl(var(--primary));
+    background: hsl(0 0% 0%);
+    color: hsl(var(--primary));
   }
   .btn-brutalist:active {
     transform: translate(2px, 2px);
-    box-shadow: 0 0 0 hsl(var(--foreground));
+    box-shadow: 0 0 0 2px hsl(0 0% 0%), 0 0 12px hsl(var(--primary) / 0.4);
   }
   @media (prefers-reduced-motion: reduce) {
     .btn-brutalist { transition: background-color 180ms; }
-    .btn-brutalist:hover { transform: none; box-shadow: 4px 4px 0 hsl(var(--foreground)); }
+    .btn-brutalist:hover { transform: none; }
   }
 
   /* ── Page transitions ── */
