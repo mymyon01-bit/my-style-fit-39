@@ -805,7 +805,7 @@ const STUDIO_FALLBACK_MODELS = [
   "google/gemini-3-flash-preview",
 ];
 
-async function generateStudioFitImage(_replicateKey: string, body: CreateBody): Promise<GenResult> {
+async function generateStudioFitImage(replicateKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing" };
@@ -830,6 +830,17 @@ async function generateStudioFitImage(_replicateKey: string, body: CreateBody): 
     }
     return result;
   }
+
+  // V4.5 — final fallback to Replicate IDM-VTON when ALL Lovable AI models
+  // are exhausted/throttled AND we have a usable user body photo. Better a
+  // VTON composite than no fit at all.
+  if ((last?.kind === "credits_exhausted" || last?.kind === "throttled") && body.userImageUrl && replicateKey) {
+    logRouter("REPLICATE_FALLBACK_AFTER_STUDIO", { reason: last.kind });
+    const vton = await generateCleanFitImage(replicateKey, body);
+    if (vton.kind === "success") return vton;
+    logRouter("REPLICATE_FALLBACK_FAILED", { kind: vton.kind, error: (vton as any).error });
+  }
+
   return last ?? { kind: "error", code: "provider_error", error: "no_studio_model_available" };
 }
 
