@@ -88,10 +88,9 @@ const DailyPicksNotice = () => {
     if (!user) {
       navigate("/auth");
     } else if (subscription.isPremium) {
-      // Scroll to daily picks on profile or navigate
       navigate("/profile");
     } else {
-      navigate("/profile");
+      navigate("/subscription");
     }
   };
 
