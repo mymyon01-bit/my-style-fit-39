@@ -493,23 +493,41 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
-        {/* Saved Products — items saved from Discover, postable as OOTD */}
+        {/* V4.2 — Archive: personal fashion memory, not a plain wishlist. */}
         <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">{t("saved").toUpperCase()}</p>
-            <button onClick={() => navigate("/discover")} className="text-[11px] font-medium text-accent/70 hover:text-accent">
-              DISCOVER
-            </button>
-          </div>
+          <header className="border-b border-foreground/10 pb-3">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
+              Your Archive
+            </p>
+            <div className="mt-1.5 flex items-end justify-between gap-3">
+              <h2 className="font-display text-[24px] leading-none tracking-tight text-foreground md:text-[30px]">
+                Saved & Curated
+              </h2>
+              <button
+                onClick={() => navigate("/discover")}
+                className="pb-1 text-[10px] font-semibold tracking-[0.18em] text-foreground/55 hover:text-foreground"
+              >
+                BROWSE PRODUCTS →
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-foreground/55">
+              Your saved looks, fits and silhouettes — a wardrobe memory that grows with your taste.
+            </p>
+          </header>
           <SavedProductsTab />
           {folders.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-              {folders.map(folder => (
-                <button key={folder.id} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 p-3 text-left transition-colors hover:bg-card/50">
-                  <Folder className="h-4 w-4 text-accent/70 shrink-0" />
-                  <span className="text-[11px] text-foreground/75 truncate">{folder.name}</span>
-                </button>
-              ))}
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-foreground/55">
+                Collections
+              </p>
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                {folders.map(folder => (
+                  <button key={folder.id} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 p-3 text-left transition-colors hover:bg-card/50">
+                    <Folder className="h-4 w-4 text-foreground/55 shrink-0" />
+                    <span className="text-[11px] text-foreground/75 truncate">{folder.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
