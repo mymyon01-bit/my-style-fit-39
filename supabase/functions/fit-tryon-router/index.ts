@@ -825,13 +825,41 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
     ? `GENDERED SIZING CONTEXT — ${body.genderDirective} The body silhouette MUST stay locked to the user's body DNA; only garment behavior changes.`
     : "";
 
+  // ── FRONT-LOADED FIT DIRECTIVE ─────────────────────────────────────────
+  // Replicate nano-banana weighs the FIRST sentences far more than the rest.
+  // We compute the silhouette + consequence FIRST, in a blunt one-liner, so
+  // the model actually renders the loose / tight / oversized behavior
+  // instead of defaulting to a regular catalog fit.
+  const silhouette = silhouetteFromRegions(body.regions);
+  const verdict = body.baselineVerdict;
+  const consequence = verdict?.consequence || "";
+  const silhouetteShort = /OVERSIZED/i.test(silhouette)
+    ? "OVERSIZED FIT — dropped shoulders well past the natural shoulder line, very generous chest and waist volume, sleeves extending past the hands, long blanket-like drape, deep folds, garment visibly larger than the body."
+    : /^TIGHT/i.test(silhouette)
+    ? "TIGHT FIT — fabric stretched across the body, visible horizontal tension lines, pulled seams, garment visibly smaller than the body."
+    : /RELAXED/i.test(silhouette)
+    ? "RELAXED FIT — extra room across torso and arms, soft natural folds, slightly longer hem, garment clearly larger than the body but not blanket-like."
+    : /SLIGHTLY TIGHT/i.test(silhouette)
+    ? "SLIGHTLY TIGHT FIT — mild fabric tension, garment a bit smaller than the body."
+    : /SLIGHTLY RELAXED/i.test(silhouette)
+    ? "SLIGHTLY RELAXED FIT — mild extra ease, garment a bit larger than the body."
+    : "FITTED — clean follow of the form with natural ease.";
+
+  const leadFitDirective = [
+    `RENDER THIS EXACT FIT (highest priority, overrides any default catalog look): ${silhouetteShort}`,
+    consequence ? `PHYSICAL CONSEQUENCE: ${consequence}` : "",
+    `Size label "${body.selectedSize}" alone means nothing — the silhouette above is what MUST be visible on the mannequin.`,
+  ].filter(Boolean).join(" ");
+
   const prompt = [
+    leadFitDirective,
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
     buildCleanStudioPrompt(body),
     bodyRefLine,
     genderDirectiveLine,
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
     "MANDATORY: the mannequin MUST be wearing the garment fully and correctly — NEVER render a naked, partially-clothed, or unclothed mannequin.",
+    `FINAL REMINDER (do not ignore): the fit MUST be ${silhouetteShort}`,
   ].filter(Boolean).join(" ");
 
   const imageInput: string[] = [];
