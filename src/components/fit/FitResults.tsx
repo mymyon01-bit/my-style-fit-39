@@ -532,13 +532,30 @@ export default function FitResults({
     fitDescriptor:
       sizingActiveOutcome?.overall ??
       (activeSizeResult?.regions.find((r) => r.region === "Chest")?.fit?.toString() || "regular"),
-    regions:
-      sizingActiveOutcome
-        ? sizingActiveOutcome.regions.map((r) => ({
+    regions: (() => {
+      const bodyByRegion: Record<string, number | null> = {
+        shoulder: bodyShoulderCm ?? null,
+        chest: bodyChestCm ?? null,
+        waist: bodyWaistCm ?? null,
+        hip: bodyHipCm ?? null,
+        inseam: bodyInseamCm ?? null,
+      };
+      const lookup = (region: string) => bodyByRegion[region.toLowerCase()] ?? null;
+      if (sizingActiveOutcome) {
+        return sizingActiveOutcome.regions.map((r) => {
+          const bodyCm = lookup(r.region);
+          const garmentCm = bodyCm != null && r.deltaCm != null ? Math.round((bodyCm + r.deltaCm) * 10) / 10 : null;
+          return {
             region: r.region,
             fit: STATUS_TO_FIT_DESCRIPTOR[r.status],
-          }))
-        : activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [],
+            deltaCm: r.deltaCm ?? null,
+            bodyCm,
+            garmentCm,
+          };
+        });
+      }
+      return activeSizeResult?.regions?.map((r) => ({ region: r.region, fit: String(r.fit) })) ?? [];
+    })(),
     bodyProfileSummary: {
       heightCm: bodyHeightCm ?? null,
       weightKg: bodyWeightKg ?? null,
