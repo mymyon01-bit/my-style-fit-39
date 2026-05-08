@@ -49,7 +49,7 @@ type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
 type PendingCode = "pending" | "rate_limited";
 
-interface RegionFitLite { region: string; fit: string; }
+interface RegionFitLite { region: string; fit: string; deltaCm?: number | null; bodyCm?: number | null; garmentCm?: number | null; }
 
 interface CreateBody {
   action?: "create" | "status";
