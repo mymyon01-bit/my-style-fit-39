@@ -43,7 +43,7 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "mannequin-bodylock-v10-measurement";
+const STUDIO_RENDER_VERSION = "mannequin-bodylock-v11-studio-measurement";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
@@ -1002,19 +1002,17 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
 async function generateStudioFitImage(replicateKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-  // V4.6 — REPLICATE-FIRST mode. Lovable AI credits are unavailable, so we
-  // route studio renders to Replicate IDM-VTON whenever a user body photo
-  // exists. Lovable AI is only used as a last-resort fallback.
+  // V4.7 — STUDIO-FIRST mode. IDM-VTON ignores our per-region fit deltas and
+  // makes S/M/L/XL look identical, so studio renders MUST use the prompted
+  // image-conditioned model. Legacy IDM-VTON is only used when mode="vton".
   const userBodyRef = body.bodyProfileSummary?.userBodyImageUrl || body.userImageUrl;
   const preferReplicate = (Deno.env.get("FIT_PREFER_REPLICATE") ?? "1") !== "0";
 
   if (preferReplicate && replicateKey && userBodyRef) {
-    logRouter("REPLICATE_FIRST_STUDIO", { hasBody: true });
-    // Ensure VTON sees the body image.
-    const vtonBody: CreateBody = { ...body, userImageUrl: userBodyRef };
-    const vton = await generateCleanFitImage(replicateKey, vtonBody);
-    if (vton.kind === "success") return vton;
-    logRouter("REPLICATE_FIRST_FAILED", { kind: vton.kind, error: (vton as any).error });
+    logRouter("REPLICATE_PROMPTED_STUDIO_FIRST", { hasBody: true });
+    const studio = await runReplicateStudioFallback(replicateKey, { ...body, userImageUrl: userBodyRef });
+    if (studio.kind === "success") return studio;
+    logRouter("REPLICATE_PROMPTED_STUDIO_FAILED", { kind: studio.kind, error: (studio as any).error });
     // Hard failure → fall through to Lovable AI as backup.
   }
 
@@ -1041,11 +1039,11 @@ async function generateStudioFitImage(replicateKey: string, body: CreateBody): P
     return result;
   }
 
-  // Final fallback: Replicate VTON if we somehow skipped it above.
+  // Final fallback: prompted Replicate studio if we somehow skipped it above.
   if ((last?.kind === "credits_exhausted" || last?.kind === "throttled") && userBodyRef && replicateKey) {
-    logRouter("REPLICATE_FALLBACK_AFTER_STUDIO", { reason: last.kind });
-    const vton = await generateCleanFitImage(replicateKey, { ...body, userImageUrl: userBodyRef });
-    if (vton.kind === "success") return vton;
+    logRouter("REPLICATE_PROMPTED_FALLBACK_AFTER_STUDIO", { reason: last.kind });
+    const studio = await runReplicateStudioFallback(replicateKey, { ...body, userImageUrl: userBodyRef });
+    if (studio.kind === "success") return studio;
   }
 
   // No body photo + Lovable AI exhausted → fall back to Replicate text-to-image (flux-schnell).
