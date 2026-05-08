@@ -43,7 +43,7 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "mannequin-bodylock-v8";
+const STUDIO_RENDER_VERSION = "mannequin-bodylock-v9-persize";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
@@ -554,7 +554,29 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     : "";
   const leadSentence = `A ${build} ${subject}${heightLine}${weightLine} wearing ${garmentLabel} in size ${body.selectedSize}${leadFitSummary ? `, with ${leadFitSummary}` : ""}. The mannequin's sex is ${subject} regardless of which gender the garment was originally designed for.`;
 
+  // ── FRONT-LOADED PER-SIZE FIT DIRECTIVE ─────────────────────────────────
+  // Image models weight the FIRST sentences far more than the rest. Without
+  // this, S / M / L / XL all render as the same generic catalog fit because
+  // the silhouette directive is buried in the middle of the prompt.
+  const silhouetteShort = /OVERSIZED/i.test(silhouette)
+    ? "OVERSIZED FIT — dropped shoulders well past the natural shoulder line, very generous chest and waist volume, sleeves extending past the hands, long blanket-like drape, deep folds, garment visibly larger than the body."
+    : /^TIGHT/i.test(silhouette)
+    ? "TIGHT FIT — fabric stretched across the body, visible horizontal tension lines, pulled seams, garment visibly smaller than the body, shorter visible coverage."
+    : /RELAXED/i.test(silhouette)
+    ? "RELAXED FIT — extra room across torso and arms, soft natural folds, slightly longer hem, garment clearly larger than the body but not blanket-like."
+    : /SLIGHTLY TIGHT/i.test(silhouette)
+    ? "SLIGHTLY TIGHT FIT — mild fabric tension, garment a bit smaller than the body, hint of pulling at chest/shoulders."
+    : /SLIGHTLY RELAXED/i.test(silhouette)
+    ? "SLIGHTLY RELAXED FIT — mild extra ease, garment a bit larger than the body, soft drape."
+    : "FITTED — clean follow of the form with natural ease, no tension, no excess volume.";
+  const leadFitDirective = [
+    `RENDER THIS EXACT FIT FOR SIZE ${body.selectedSize} (HIGHEST PRIORITY — overrides any default catalog look): ${silhouetteShort}`,
+    verdict?.consequence ? `PHYSICAL CONSEQUENCE: ${verdict.consequence}` : "",
+    `Different sizes of this same product MUST produce visibly different silhouettes on the same locked mannequin. Size ${body.selectedSize} = ${silhouetteShort.split(" — ")[0]}.`,
+  ].filter(Boolean).join(" ");
+
   return [
+    leadFitDirective,
     leadSentence,
     bodyTabBlock,
     bodyProportionPrompt,
@@ -583,6 +605,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     SPEC_NEGATIVE_BODY_RULES,
     `Strictly NO cropped head, NO chopped head, NO half-head, NO decapitated mannequin, NO head touching the top edge, NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity, NO real person.`,
     `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base, same camera, same pose, same lighting across all sizes; only the garment fit and fabric behavior change. Visual clarity of the size difference is more important than photographic realism. Model-type consistency (faceless mannequin) is mandatory.`,
+    `FINAL REMINDER (do NOT ignore): the fit on size ${body.selectedSize} MUST be visibly ${silhouetteShort} — different from other sizes of the same product.`,
     safeModeSuffixEarly,
   ].filter(Boolean).join(" ");
 }
