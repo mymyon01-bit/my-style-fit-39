@@ -915,8 +915,9 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
 
   const leadFitDirective = [
     `RENDER THIS EXACT FIT (highest priority, overrides any default catalog look): ${silhouetteShort}`,
+    measurementDirective(body.regions),
     consequence ? `PHYSICAL CONSEQUENCE: ${consequence}` : "",
-    `Size label "${body.selectedSize}" alone means nothing — the silhouette above is what MUST be visible on the mannequin.`,
+    `Size label "${body.selectedSize}" alone means nothing — the silhouette and per-region measurement deltas above are what MUST be visible on the mannequin.`,
   ].filter(Boolean).join(" ");
 
   const prompt = [
