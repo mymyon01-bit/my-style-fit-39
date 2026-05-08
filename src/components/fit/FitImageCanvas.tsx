@@ -103,6 +103,23 @@ const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCan
           ctx.stroke();
         }
       }
+      const outlineAlpha = Math.min(0.34, 0.08 + Math.abs(profile.scaleX - 1) * 0.7 + Math.abs(profile.hemDropPx) / 280);
+      if (outlineAlpha > 0.1) {
+        const garmentHalfTop = bandW * 0.31 * profile.scaleX;
+        const garmentHalfMid = bandW * 0.25 * profile.scaleX;
+        const garmentHalfHem = bandW * (profile.scaleX >= 1 ? 0.34 : 0.22) * profile.scaleX;
+        const shoulderY = bandTop + bandH * 0.08 + profile.shoulderDropPx * dpr * 0.22;
+        const waistY = bandTop + bandH * 0.43;
+        const hemY = Math.min(h - 12 * dpr, bandTop + bandH * 0.94 + profile.hemDropPx * dpr * 0.3);
+        ctx.strokeStyle = profile.scaleX < 0.98 ? `rgba(255,128,72,${outlineAlpha})` : `rgba(70,150,255,${outlineAlpha})`;
+        ctx.lineWidth = Math.max(1.5, 1.8 * dpr);
+        ctx.beginPath();
+        ctx.moveTo(centerX - garmentHalfTop, shoulderY);
+        ctx.bezierCurveTo(centerX - garmentHalfTop * 1.08, bandTop + bandH * 0.22, centerX - garmentHalfMid, waistY, centerX - garmentHalfHem, hemY);
+        ctx.lineTo(centerX + garmentHalfHem, hemY);
+        ctx.bezierCurveTo(centerX + garmentHalfMid, waistY, centerX + garmentHalfTop * 1.08, bandTop + bandH * 0.22, centerX + garmentHalfTop, shoulderY);
+        ctx.stroke();
+      }
       if (profile.drapeOpacity > 0) {
         ctx.strokeStyle = `rgba(20,20,20,${profile.drapeOpacity})`;
         for (let i = 0; i < 7; i++) {
