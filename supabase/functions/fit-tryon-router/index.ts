@@ -598,8 +598,10 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     : /SLIGHTLY RELAXED/i.test(silhouette)
     ? "SLIGHTLY RELAXED FIT — mild extra ease, garment a bit larger than the body, soft drape."
     : "FITTED — clean follow of the form with natural ease, no tension, no excess volume.";
+  const measurementBlock = measurementDirective(body.regions);
   const leadFitDirective = [
     `RENDER THIS EXACT FIT FOR SIZE ${body.selectedSize} (HIGHEST PRIORITY — overrides any default catalog look): ${silhouetteShort}`,
+    measurementBlock,
     verdict?.consequence ? `PHYSICAL CONSEQUENCE: ${verdict.consequence}` : "",
     `Different sizes of this same product MUST produce visibly different silhouettes on the same locked mannequin. Size ${body.selectedSize} = ${silhouetteShort.split(" — ")[0]}.`,
   ].filter(Boolean).join(" ");
