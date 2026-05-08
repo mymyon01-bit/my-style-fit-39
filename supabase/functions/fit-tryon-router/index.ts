@@ -554,7 +554,29 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     : "";
   const leadSentence = `A ${build} ${subject}${heightLine}${weightLine} wearing ${garmentLabel} in size ${body.selectedSize}${leadFitSummary ? `, with ${leadFitSummary}` : ""}. The mannequin's sex is ${subject} regardless of which gender the garment was originally designed for.`;
 
+  // ── FRONT-LOADED PER-SIZE FIT DIRECTIVE ─────────────────────────────────
+  // Image models weight the FIRST sentences far more than the rest. Without
+  // this, S / M / L / XL all render as the same generic catalog fit because
+  // the silhouette directive is buried in the middle of the prompt.
+  const silhouetteShort = /OVERSIZED/i.test(silhouette)
+    ? "OVERSIZED FIT — dropped shoulders well past the natural shoulder line, very generous chest and waist volume, sleeves extending past the hands, long blanket-like drape, deep folds, garment visibly larger than the body."
+    : /^TIGHT/i.test(silhouette)
+    ? "TIGHT FIT — fabric stretched across the body, visible horizontal tension lines, pulled seams, garment visibly smaller than the body, shorter visible coverage."
+    : /RELAXED/i.test(silhouette)
+    ? "RELAXED FIT — extra room across torso and arms, soft natural folds, slightly longer hem, garment clearly larger than the body but not blanket-like."
+    : /SLIGHTLY TIGHT/i.test(silhouette)
+    ? "SLIGHTLY TIGHT FIT — mild fabric tension, garment a bit smaller than the body, hint of pulling at chest/shoulders."
+    : /SLIGHTLY RELAXED/i.test(silhouette)
+    ? "SLIGHTLY RELAXED FIT — mild extra ease, garment a bit larger than the body, soft drape."
+    : "FITTED — clean follow of the form with natural ease, no tension, no excess volume.";
+  const leadFitDirective = [
+    `RENDER THIS EXACT FIT FOR SIZE ${body.selectedSize} (HIGHEST PRIORITY — overrides any default catalog look): ${silhouetteShort}`,
+    verdict?.consequence ? `PHYSICAL CONSEQUENCE: ${verdict.consequence}` : "",
+    `Different sizes of this same product MUST produce visibly different silhouettes on the same locked mannequin. Size ${body.selectedSize} = ${silhouetteShort.split(" — ")[0]}.`,
+  ].filter(Boolean).join(" ");
+
   return [
+    leadFitDirective,
     leadSentence,
     bodyTabBlock,
     bodyProportionPrompt,
