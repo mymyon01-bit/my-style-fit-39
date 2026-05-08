@@ -62,7 +62,7 @@ export interface CreateTryOnBody {
   productCategory?: string;
   selectedSize?: string;
   fitDescriptor?: string;
-  regions?: Array<{ region: string; fit: string }>;
+  regions?: Array<{ region: string; fit: string; deltaCm?: number | null; bodyCm?: number | null; garmentCm?: number | null }>;
   bodyProfileSummary?: {
     heightCm?: number | null;
     weightKg?: number | null;
