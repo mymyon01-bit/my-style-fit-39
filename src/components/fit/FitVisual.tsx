@@ -5,9 +5,9 @@ import { toast } from "sonner";
 import type { FitTryOnState } from "@/hooks/useFitTryOn";
 import FitImageCanvas from "@/components/fit/FitImageCanvas";
 import {
-  profileFromOverall,
-  profileFromSizeLetter,
+  profileFromSizeAndRegions,
   type SizeWarpProfile,
+  type SizeWarpRegionMetric,
 } from "@/lib/fit/sizeWarpProfile";
 import type { OverallFitLabel } from "@/lib/sizing";
 
@@ -51,6 +51,8 @@ interface Props {
    * looks identical to S even when the AI ignores fit hints.
    */
   overallFit?: OverallFitLabel | null;
+  /** Actual per-region garment-body cm deltas for the selected size. */
+  fitRegions?: SizeWarpRegionMetric[];
   /**
    * User's body gender — drives which silhouette is shown in the loading
    * placeholder. Male → broader shoulders, narrow hips. Female → narrow
@@ -111,6 +113,7 @@ export default function FitVisual({
   fitChips = [],
   poseDegraded = false,
   overallFit = null,
+  fitRegions = [],
   bodyGender = null,
 }: Props) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
@@ -124,9 +127,11 @@ export default function FitVisual({
 
   // Deterministic per-size silhouette warp profile. Falls back to the size
   // letter when the measurement engine hasn't produced an overall label yet.
-  const warpProfile: SizeWarpProfile = overallFit
-    ? profileFromOverall(overallFit)
-    : profileFromSizeLetter(activeSize);
+  const warpProfile: SizeWarpProfile = profileFromSizeAndRegions({
+    size: activeSize,
+    overall: overallFit,
+    regions: fitRegions,
+  });
 
   const previewSrc = state.imageUrl ?? null;
   const isReady = state.stage === "ready" && !!previewSrc && !imageError;
@@ -240,7 +245,7 @@ export default function FitVisual({
                 />
               )}
               <FitImageCanvas
-                key={`${previewSrc}::${warpProfile.silhouetteLabel}`}
+                key={`${previewSrc}::${activeSize}::${warpProfile.scaleX.toFixed(2)}::${warpProfile.scaleY.toFixed(2)}`}
                 src={previewSrc}
                 alt={`${productName} try-on, size ${activeSize}`}
                 profile={warpProfile}

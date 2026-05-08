@@ -56,7 +56,7 @@ const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCan
       const bandBottom = Math.round(h * 0.76 + profile.hemDropPx * dpr);
       const bandH = Math.max(80, Math.min(h - bandTop, bandBottom - bandTop));
       const centerX = w / 2;
-      const bandW = w * 0.62;
+      const bandW = w * 0.70;
       const scaleX = profile.scaleX;
       if (Math.abs(scaleX - 1) > 0.01 || Math.abs(profile.scaleY - 1) > 0.01) {
         const temp = document.createElement("canvas");
@@ -69,7 +69,7 @@ const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCan
           ctx.beginPath();
           ctx.rect(centerX - bandW / 2, bandTop, bandW, bandH);
           ctx.clip();
-          ctx.clearRect(centerX - bandW / 2 - 8 * dpr, bandTop, bandW + 16 * dpr, bandH);
+          ctx.clearRect(centerX - bandW / 2 - 18 * dpr, bandTop, bandW + 36 * dpr, bandH);
           ctx.translate(centerX, bandTop + bandH / 2);
           ctx.scale(scaleX, profile.scaleY);
           ctx.drawImage(temp, centerX - bandW / 2, bandTop, bandW, bandH, -bandW / 2, -bandH / 2, bandW, bandH);
@@ -80,6 +80,18 @@ const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCan
       ctx.save();
       ctx.lineCap = "round";
       ctx.lineWidth = Math.max(1, 1.2 * dpr);
+      if (Math.abs(profile.scaleX - 1) > 0.04) {
+        const left = centerX - (bandW * profile.scaleX) / 2;
+        const right = centerX + (bandW * profile.scaleX) / 2;
+        const alpha = Math.min(0.18, Math.abs(profile.scaleX - 1) * 0.32);
+        const edgeGradient = ctx.createLinearGradient(left, 0, right, 0);
+        edgeGradient.addColorStop(0, `rgba(0,0,0,${alpha})`);
+        edgeGradient.addColorStop(0.18, "rgba(0,0,0,0)");
+        edgeGradient.addColorStop(0.82, "rgba(0,0,0,0)");
+        edgeGradient.addColorStop(1, `rgba(0,0,0,${alpha})`);
+        ctx.fillStyle = edgeGradient;
+        ctx.fillRect(left, bandTop, right - left, bandH);
+      }
       if (profile.tensionOpacity > 0) {
         ctx.strokeStyle = `rgba(255,255,255,${profile.tensionOpacity})`;
         for (let i = 0; i < 9; i++) {
@@ -90,6 +102,23 @@ const FitImageCanvas = forwardRef<HTMLCanvasElement, Props>(function FitImageCan
           ctx.quadraticCurveTo(centerX, y - 4 * dpr, centerX + half, y);
           ctx.stroke();
         }
+      }
+      const outlineAlpha = Math.min(0.34, 0.08 + Math.abs(profile.scaleX - 1) * 0.7 + Math.abs(profile.hemDropPx) / 280);
+      if (outlineAlpha > 0.1) {
+        const garmentHalfTop = bandW * 0.31 * profile.scaleX;
+        const garmentHalfMid = bandW * 0.25 * profile.scaleX;
+        const garmentHalfHem = bandW * (profile.scaleX >= 1 ? 0.34 : 0.22) * profile.scaleX;
+        const shoulderY = bandTop + bandH * 0.08 + profile.shoulderDropPx * dpr * 0.22;
+        const waistY = bandTop + bandH * 0.43;
+        const hemY = Math.min(h - 12 * dpr, bandTop + bandH * 0.94 + profile.hemDropPx * dpr * 0.3);
+        ctx.strokeStyle = profile.scaleX < 0.98 ? `rgba(255,128,72,${outlineAlpha})` : `rgba(70,150,255,${outlineAlpha})`;
+        ctx.lineWidth = Math.max(1.5, 1.8 * dpr);
+        ctx.beginPath();
+        ctx.moveTo(centerX - garmentHalfTop, shoulderY);
+        ctx.bezierCurveTo(centerX - garmentHalfTop * 1.08, bandTop + bandH * 0.22, centerX - garmentHalfMid, waistY, centerX - garmentHalfHem, hemY);
+        ctx.lineTo(centerX + garmentHalfHem, hemY);
+        ctx.bezierCurveTo(centerX + garmentHalfMid, waistY, centerX + garmentHalfTop * 1.08, bandTop + bandH * 0.22, centerX + garmentHalfTop, shoulderY);
+        ctx.stroke();
       }
       if (profile.drapeOpacity > 0) {
         ctx.strokeStyle = `rgba(20,20,20,${profile.drapeOpacity})`;
