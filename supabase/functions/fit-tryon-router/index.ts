@@ -605,6 +605,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     SPEC_NEGATIVE_BODY_RULES,
     `Strictly NO cropped head, NO chopped head, NO half-head, NO decapitated mannequin, NO head touching the top edge, NO bathroom, NO mirror, NO room interior, NO sink, NO household objects, NO handheld props, NO bag (unless the garment IS a bag), NO phone, NO selfie framing, NO original photo background, NO copy-paste overlay artifacts, NO floating clothes, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the garment, NO visible face, NO facial features, NO identity, NO real person.`,
     `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base, same camera, same pose, same lighting across all sizes; only the garment fit and fabric behavior change. Visual clarity of the size difference is more important than photographic realism. Model-type consistency (faceless mannequin) is mandatory.`,
+    `FINAL REMINDER (do NOT ignore): the fit on size ${body.selectedSize} MUST be visibly ${silhouetteShort} — different from other sizes of the same product.`,
     safeModeSuffixEarly,
   ].filter(Boolean).join(" ");
 }
