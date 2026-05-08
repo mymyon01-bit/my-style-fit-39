@@ -43,7 +43,7 @@ export interface UseFitTryOnArgs {
   selectedSize: string;
   userImageUrl: string | null | undefined;
   fitDescriptor?: string;
-  regions?: Array<{ region: string; fit: string }>;
+  regions?: Array<{ region: string; fit: string; deltaCm?: number | null; bodyCm?: number | null; garmentCm?: number | null }>;
   bodyProfileSummary?: {
     heightCm?: number | null;
     weightKg?: number | null;
