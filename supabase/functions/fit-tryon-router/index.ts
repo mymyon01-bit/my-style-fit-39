@@ -266,6 +266,35 @@ function regionPhrase(regions?: RegionFitLite[]) {
   return parts.length ? `Region-by-region fit: ${parts.join("; ")}.` : "";
 }
 
+// Measurement-driven, per-size directive: shows actual cm deltas (body vs
+// garment) and translates each into a visible fabric behavior. This is what
+// makes S vs L vs XL look DIFFERENT on the same locked mannequin.
+function measurementDirective(regions?: RegionFitLite[]): string {
+  if (!regions?.length) return "";
+  const lines: string[] = [];
+  for (const r of regions) {
+    if (!r?.region) continue;
+    const reg = r.region.toLowerCase();
+    if (r.deltaCm == null || r.bodyCm == null || r.garmentCm == null) continue;
+    const d = Math.round(r.deltaCm * 10) / 10;
+    let behavior = "";
+    if (d <= -8) behavior = `garment ${Math.abs(d)}cm SMALLER than body → BURSTING: fabric stretched to its limit, sharp horizontal tension lines, seams visibly straining, garment looks 1–2 sizes too small`;
+    else if (d <= -3) behavior = `garment ${Math.abs(d)}cm smaller than body → TIGHT: visible pulling and tension across the ${reg}, fabric clings hard`;
+    else if (d <= 1) behavior = `garment matches body within ${Math.abs(d)}cm → CLEAN FITTED drape on the ${reg}`;
+    else if (d <= 6) behavior = `garment ${d}cm larger than body → relaxed natural ease at the ${reg}`;
+    else if (d <= 14) behavior = `garment ${d}cm larger than body → LOOSE: extra fabric volume, soft drape, hangs away from the ${reg}`;
+    else behavior = `garment ${d}cm LARGER than body → OVERSIZED / falling off: heavy blanket-like drape, dropped seams, garment looks 1–2 sizes too big at the ${reg}`;
+    lines.push(`• ${reg}: body ${r.bodyCm}cm vs garment ${r.garmentCm}cm — ${behavior}`);
+  }
+  if (!lines.length) return "";
+  return [
+    "PER-REGION MEASUREMENT TRUTH (NON-NEGOTIABLE — render exactly these fabric behaviors on the locked mannequin):",
+    ...lines,
+    "Different sizes of the same product MUST produce visibly different fabric behavior on the SAME locked mannequin body — the body never resizes, only how the garment fits changes.",
+  ].join(" ");
+}
+
+
 function isBagCategory(cat?: string | null) {
   return /bag|backpack|tote|purse|clutch|handbag|messenger|crossbody/i.test(cat || "");
 }
