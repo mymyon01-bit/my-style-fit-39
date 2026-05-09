@@ -28,6 +28,7 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
   const [addOpen, setAddOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [myRole, setMyRole] = useState<"owner" | "admin" | "member" | null>(null);
+  const { following, count: followerCount, refresh: refreshFollow, setFollowing } = useWaveFollow(open && wave ? wave.id : null);
 
   // Resolve role
   useEffect(() => {
