@@ -47,7 +47,7 @@ export default function MessagesInbox() {
         </p>
         <button
           onClick={() => setNewOpen(true)}
-          className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/80 transition-colors hover:bg-foreground hover:text-background"
+          className="flex items-center gap-1.5 rounded-full bg-[hsl(330_85%_60%)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition-opacity hover:opacity-90"
         >
           <PenSquare className="h-3 w-3" />
           New
