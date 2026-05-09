@@ -79,33 +79,40 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
           onClick={e => e.stopPropagation()}
           className="relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col">
 
-          {/* Header */}
-          <div className="relative shrink-0">
+          {/* Cover banner — fixed slim height, never overlaps title */}
+          <div className="relative h-16 sm:h-20 shrink-0 overflow-hidden">
             {wave.cover_image_url ? (
-              <div className="relative h-24 w-full sm:h-32">
-                <img src={wave.cover_image_url} alt="" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-              </div>
+              <img src={wave.cover_image_url} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="h-16 w-full bg-gradient-to-r from-[hsl(330_85%_60%/0.2)] to-[hsl(280_70%_55%/0.2)]" />
+              <div className="h-full w-full" style={{ background: (wave as any).theme_color
+                ? `linear-gradient(135deg, ${(wave as any).theme_color}, ${(wave as any).theme_color})`
+                : "linear-gradient(135deg, hsl(330 85% 60% / 0.35), hsl(280 70% 55% / 0.35))" }} />
             )}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
             <button onClick={onClose}
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-foreground/80 backdrop-blur hover:bg-background"><X className="h-4 w-4" /></button>
+              aria-label="Close"
+              className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-foreground/85 backdrop-blur hover:bg-background"><X className="h-4 w-4" /></button>
           </div>
 
-          <div className="px-5 -mt-2 pb-3 pr-14 shrink-0">
+          {/* Title block — its OWN row, fully clear of cover/X. Never gets hidden. */}
+          <div className="px-5 pt-2 pb-3 shrink-0 bg-background">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(330_85%_60%)] to-[hsl(280_70%_55%)]">
                 <Waves className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <h2 className="min-w-0 break-words text-[17px] sm:text-[18px] font-bold leading-tight text-foreground">{wave.name}</h2>
+                  <h2 className="min-w-0 break-words text-[16px] sm:text-[18px] font-bold leading-tight text-foreground">{wave.name}</h2>
                   <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground/55">
                     {(wave.visibility ?? (wave.is_private ? "private" : "public"))}
                   </span>
                 </div>
-                <p className="text-[11px] text-foreground/55">{wave.member_count} members</p>
+                <p className="text-[11px] text-foreground/55">
+                  {wave.member_count} members
+                  {(wave as any).follower_count != null && (wave as any).visibility === "public"
+                    ? <> · <span className="text-foreground/70">Following the wave</span> {(wave as any).follower_count}</>
+                    : null}
+                </p>
               </div>
             </div>
 
@@ -116,10 +123,33 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
                   <UserPlus className="h-3.5 w-3.5" /> Invite
                 </button>
               )}
-              {!isOwner && (
+              {(wave.visibility === "public" || (!wave.is_private)) && !isAdmin && user && (
+                <button onClick={async () => {
+                  try {
+                    if (following) { await unfollowWave(wave.id); setFollowing(false); toast.success("Unfollowed"); }
+                    else { await followWave(wave.id); setFollowing(true); toast.success("Following the wave"); }
+                    refreshFollow();
+                  } catch (e: any) { toast.error(e.message); }
+                }}
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11.5px] font-bold shadow-[0_4px_14px_-4px_hsl(330_85%_60%/0.5)] ${
+                    following
+                      ? "bg-foreground/10 text-foreground/75 hover:bg-foreground/15"
+                      : "bg-[hsl(330_85%_60%)] text-white"
+                  }`}>
+                  <Heart className={`h-3.5 w-3.5 ${following ? "fill-current" : ""}`} />
+                  {following ? "Following" : "Follow"}
+                </button>
+              )}
+              {!isOwner && myRole && (
                 <button onClick={handleLeave}
                   className="flex items-center gap-1.5 rounded-full bg-foreground/[0.08] px-3.5 py-1.5 text-[11.5px] font-semibold text-foreground/70 hover:bg-destructive/15 hover:text-destructive">
                   <LogOut className="h-3.5 w-3.5" /> Leave
+                </button>
+              )}
+              {isAdmin && (
+                <button onClick={() => setAdminOpen(true)}
+                  className="flex items-center gap-1.5 rounded-full bg-foreground/[0.08] px-3.5 py-1.5 text-[11.5px] font-semibold text-foreground/70 hover:bg-foreground/15">
+                  <Settings2 className="h-3.5 w-3.5" /> Customize
                 </button>
               )}
               <WaveMusicPicker waveId={wave.id} canEdit={isAdmin} />
