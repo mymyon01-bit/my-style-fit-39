@@ -868,7 +868,7 @@ const OOTDPage = () => {
                 { key: "feed" as const, label: "STREAM", Icon: Sparkles },
                 { key: "community" as const, label: "EXPLORE", Icon: Users },
                 { key: "showroom" as const, label: "SHOWROOMS", Icon: LayoutGrid },
-                { key: "mypage" as const, label: "MY SHOWROOM", Icon: UserIcon },
+                { key: "mypage" as const, label: "MY", Icon: UserIcon },
               ]).map(({ key, label, Icon }) => (
                 <button
                   key={key}
