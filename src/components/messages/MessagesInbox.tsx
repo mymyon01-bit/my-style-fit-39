@@ -59,7 +59,7 @@ export default function MessagesInbox() {
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
       ) : conversations.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/30 bg-card/30 py-10 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/[0.03] py-10 text-center">
           <MessageCircle className="h-6 w-6 text-muted-foreground/50" />
           <p className="text-[12px] text-muted-foreground">No messages yet</p>
           <button
