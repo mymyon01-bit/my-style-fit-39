@@ -200,6 +200,16 @@ export default function OOTDBackground({ theme, realistic = true, contained = fa
 
   if (theme === "none") return null;
 
+  // ── Animated graphic backgrounds — pure CSS, no video ────────────────────
+  if (theme === "aurora" || theme === "blobs" || theme === "shimmer" || theme === "rays" || theme === "grid") {
+    return (
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
+        <WaveBackground type={theme} c1="hsl(252 60% 55%)" c2="hsl(330 70% 60%)" />
+        <div className="absolute inset-0 bg-background/30" />
+      </div>
+    );
+  }
+
   // ── Cosmic stars: deep-space sky with twinkling stars + shooting stars ──
   if (theme === "stars") {
     const shooting = [0, 1, 2];
