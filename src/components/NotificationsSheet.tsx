@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Loader2, X, Star, MessageCircle, UserPlus, CheckCheck, Heart, AtSign, Smile, Trash2 } from "lucide-react";
+import { Bell, Loader2, X, Star, MessageCircle, UserPlus, CheckCheck, Heart, AtSign, Smile, Trash2, Waves } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotificationsList, type NotificationRow } from "@/hooks/useNotifications";
@@ -24,6 +24,7 @@ const ICON_BY_TYPE: Record<string, any> = {
   ootd_mention: AtSign,
   ootd_reaction: Smile,
   reaction: Smile,
+  wave_invite: Waves,
 };
 
 const SUFFIX_KEY_BY_TYPE: Record<string, string> = {
@@ -43,6 +44,7 @@ const SUFFIX_KEY_BY_TYPE: Record<string, string> = {
   showroom_like: "notifSuffixShowroomLike",
   showroom_save: "notifSuffixShowroomSave",
   showroom_follow: "notifSuffixShowroomFollow",
+  wave_invite: "notifSuffixWaveInvite",
 };
 
 /**
@@ -87,6 +89,9 @@ export default function NotificationsSheet({ open, onClose }: Props) {
             } else if ((n.type === "star" || n.type === "comment") && n.target_id) {
               onClose();
               navigate(`/ootd?post=${n.target_id}`);
+            } else if (n.type === "wave_invite") {
+              onClose();
+              navigate(`/ootd?tab=mypage&invites=1`);
             }
           }}
           className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-accent/5 ${

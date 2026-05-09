@@ -93,15 +93,15 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
               className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-foreground/80 backdrop-blur hover:bg-background"><X className="h-4 w-4" /></button>
           </div>
 
-          <div className="px-5 -mt-2 pb-3 shrink-0">
+          <div className="px-5 -mt-2 pb-3 pr-14 shrink-0">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(330_85%_60%)] to-[hsl(280_70%_55%)]">
                 <Waves className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="truncate text-[18px] font-bold text-foreground">{wave.name}</h2>
-                  <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground/55">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h2 className="min-w-0 break-words text-[17px] sm:text-[18px] font-bold leading-tight text-foreground">{wave.name}</h2>
+                  <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground/55">
                     {(wave.visibility ?? (wave.is_private ? "private" : "public"))}
                   </span>
                 </div>
