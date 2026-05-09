@@ -224,7 +224,7 @@ export default function CardColorPicker({ value, onChange }: Props) {
             type="button"
             onClick={() => handleSelect({ hex: null, label: "Default" })}
             className={`w-full mb-3 flex items-center gap-3 rounded-xl border p-2.5 transition-colors ${
-              !value.hex
+              !value.hex && !value.imageUrl
                 ? "border-accent/70 bg-accent/10 ring-1 ring-accent/30"
                 : "border-border/30 hover:border-border/60"
             }`}
@@ -237,12 +237,70 @@ export default function CardColorPicker({ value, onChange }: Props) {
               <p className="text-[12px] font-medium text-foreground/90">Default</p>
               <p className="text-[10px] text-foreground/50">Original frosted card surface</p>
             </div>
-            {!value.hex && <Check className="h-4 w-4 text-accent" />}
+            {!value.hex && !value.imageUrl && <Check className="h-4 w-4 text-accent" />}
           </button>
 
+          {/* Background image upload */}
           <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-foreground/55 font-semibold">
-            Pastel palette
+            Background image
           </p>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleUploadImage(f);
+              e.target.value = "";
+            }}
+          />
+          <div
+            className={`mb-4 flex items-center gap-3 rounded-xl border p-2.5 transition-colors ${
+              value.imageUrl
+                ? "border-accent/70 bg-accent/10 ring-1 ring-accent/30"
+                : "border-border/30"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploading}
+              className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-border/50 bg-gradient-to-br from-muted/60 to-background flex items-center justify-center disabled:opacity-50"
+              aria-label="Upload background image"
+              style={
+                value.imageUrl
+                  ? { backgroundImage: `url("${value.imageUrl}")`, backgroundSize: "cover", backgroundPosition: "center" }
+                  : undefined
+              }
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/70" />
+              ) : !value.imageUrl ? (
+                <ImagePlus className="h-4 w-4 text-foreground/70" />
+              ) : null}
+            </button>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[12px] font-medium text-foreground/90">
+                {value.imageUrl ? "Custom image" : "Upload your own"}
+              </p>
+              <p className="text-[10px] text-foreground/50">
+                {value.imageUrl ? "Tap swatch to replace" : "JPG / PNG up to 8 MB"}
+              </p>
+            </div>
+            {value.imageUrl && (
+              <button
+                type="button"
+                onClick={() => handleSelect({ hex: null, label: "Default" })}
+                className="shrink-0 rounded-full p-1.5 text-foreground/60 hover:bg-foreground/10 hover:text-foreground transition-colors"
+                aria-label="Remove image"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+
           <div className="grid grid-cols-4 gap-2 mb-4">
             {PASTEL_PRESETS.map((p) => {
               const active = value.hex?.toLowerCase() === p.hex.toLowerCase();
