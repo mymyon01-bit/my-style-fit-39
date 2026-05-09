@@ -1010,6 +1010,16 @@ const OOTDPage = () => {
             showPublic={activeTab === "community"}
           />
         )}
+        {selectedWave && (activeTab === "feed" || activeTab === "community") && (
+          <WaveModal
+            inline
+            open={true}
+            wave={selectedWave}
+            onClose={() => setSelectedWaveId(null)}
+            onLeft={() => { refreshWaves(); setSelectedWaveId(null); }}
+            onWaveUpdated={() => refreshWaves()}
+          />
+        )}
         <div
           className={bgTheme !== "none" ? `rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl shadow-xl shadow-black/10 ${mobileOOTD ? "p-3" : "p-4 md:p-6"}` : ""}
           style={bgTheme !== "none" ? cardStyle : undefined}
