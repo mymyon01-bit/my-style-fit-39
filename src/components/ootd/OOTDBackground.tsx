@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import WaveBackground from "./WaveBackground";
 import sakuraVideo from "../../../public/bg-videos/sakura.mp4.asset.json";
 import leavesVideo from "../../../public/bg-videos/leaves.mp4.asset.json";
 import rainVideo from "../../../public/bg-videos/rain.mp4.asset.json";
@@ -94,10 +95,22 @@ export type OOTDBgTheme =
   | "subway"
   | "forest"
   | "coast"
-  | "studio";
+  | "studio"
+  // Animated graphic backgrounds — pure CSS, no video needed.
+  | "aurora"
+  | "blobs"
+  | "shimmer"
+  | "rays"
+  | "grid";
 
 export const OOTD_BG_THEMES: { id: OOTDBgTheme; label: string; emoji: string; description: string }[] = [
   { id: "none",       label: "None",                 emoji: "○",  description: "Clean — no background effect" },
+  // Animated graphic backgrounds — lightweight, always available
+  { id: "aurora",     label: "Aurora",               emoji: "🌈", description: "Soft aurora gradient gently shifting" },
+  { id: "blobs",      label: "Floating blobs",       emoji: "🫧", description: "Big colorful blobs drifting around" },
+  { id: "shimmer",    label: "Shimmer",              emoji: "✨", description: "Slow shimmering color wash" },
+  { id: "rays",       label: "Spinning rays",        emoji: "🎡", description: "Conic rays slowly rotating" },
+  { id: "grid",       label: "Floating grid",        emoji: "🔳", description: "Subtle floating mesh grid" },
   { id: "sakura",     label: "Cherry blossoms",      emoji: "🌸", description: "Petals drifting between trees" },
   { id: "leaves",     label: "Autumn leaves",        emoji: "🍂", description: "Golden leaves swirling in the wind" },
   { id: "sunny",      label: "Sunny day",            emoji: "☀️", description: "Warm sun rays and sparkles" },
@@ -186,6 +199,16 @@ export default function OOTDBackground({ theme, realistic = true, contained = fa
 
 
   if (theme === "none") return null;
+
+  // ── Animated graphic backgrounds — pure CSS, no video ────────────────────
+  if (theme === "aurora" || theme === "blobs" || theme === "shimmer" || theme === "rays" || theme === "grid") {
+    return (
+      <div className={`pointer-events-none ${posClass} overflow-hidden`}>
+        <WaveBackground type={theme} c1="hsl(252 60% 55%)" c2="hsl(330 70% 60%)" />
+        <div className="absolute inset-0 bg-background/30" />
+      </div>
+    );
+  }
 
   // ── Cosmic stars: deep-space sky with twinkling stars + shooting stars ──
   if (theme === "stars") {
