@@ -7,6 +7,7 @@ import {
   searchUsersForInvite,
   inviteToWave,
   sendWaveInviteDM,
+  fetchWaveInviteState,
 } from "@/hooks/useWaves";
 import { toast } from "sonner";
 
@@ -32,6 +33,7 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
   const [loadingCircle, setLoadingCircle] = useState(false);
   const [searching, setSearching] = useState(false);
   const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+  const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +42,11 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
       setCircle(rows as UserRow[]);
       setLoadingCircle(false);
     });
-  }, [open]);
+    fetchWaveInviteState(waveId).then(({ memberIds, pendingIds }) => {
+      setMemberIds(memberIds);
+      setInvitedIds(pendingIds);
+    }).catch(() => { /* ignore */ });
+  }, [open, waveId]);
 
   useEffect(() => {
     if (!open) return;
@@ -58,22 +64,32 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
   const circleIdSet = useMemo(() => new Set(circle.map((c) => c.user_id)), [circle]);
 
   const handleInvite = async (u: UserRow) => {
+    if (memberIds.has(u.user_id)) { toast.info("Already a member"); return; }
+    if (invitedIds.has(u.user_id)) { toast.info("Already invited"); return; }
     try {
       await inviteToWave(waveId, u.user_id);
       setInvitedIds((s) => new Set(s).add(u.user_id));
       toast.success(t("waveInviteSent"));
     } catch (err: any) {
-      toast.error(err.message ?? "Failed");
+      const msg = err.message === "already_invited" ? "Already invited"
+        : err.message === "already_member" ? "Already a member"
+        : err.message ?? "Failed";
+      toast.error(msg);
     }
   };
 
   const handleInviteDM = async (u: UserRow) => {
+    if (memberIds.has(u.user_id)) { toast.info("Already a member"); return; }
+    if (invitedIds.has(u.user_id)) { toast.info("Already invited"); return; }
     try {
       await sendWaveInviteDM(waveId, u.user_id, waveName);
       setInvitedIds((s) => new Set(s).add(u.user_id));
       toast.success(t("waveInviteSent"));
     } catch (err: any) {
-      toast.error(err.message ?? "Failed");
+      const msg = err.message === "already_invited" ? "Already invited"
+        : err.message === "already_member" ? "Already a member"
+        : err.message ?? "Failed";
+      toast.error(msg);
     }
   };
 
@@ -133,6 +149,7 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
                       key={u.user_id}
                       user={u}
                       invited={invitedIds.has(u.user_id)}
+                      member={memberIds.has(u.user_id)}
                       isCircle={circleIdSet.has(u.user_id)}
                       onInvite={() => handleInvite(u)}
                       onInviteDM={() => handleInviteDM(u)}
@@ -157,6 +174,7 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
                         key={u.user_id}
                         user={u}
                         invited={invitedIds.has(u.user_id)}
+                        member={memberIds.has(u.user_id)}
                         isCircle={true}
                         onInvite={() => handleInvite(u)}
                         onInviteDM={() => handleInviteDM(u)}
@@ -175,10 +193,11 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
 }
 
 function UserListRow({
-  user, invited, isCircle, onInvite, onInviteDM, tDM,
+  user, invited, member, isCircle, onInvite, onInviteDM, tDM,
 }: {
   user: UserRow;
   invited: boolean;
+  member?: boolean;
   isCircle: boolean;
   onInvite: () => void;
   onInviteDM: () => void;
@@ -201,7 +220,11 @@ function UserListRow({
           <p className="truncate text-[11px] text-foreground/45">@{user.username}</p>
         )}
       </div>
-      {invited ? (
+      {member ? (
+        <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1.5 text-[10.5px] font-semibold text-emerald-400">
+          <Check className="h-3 w-3" /> Member
+        </span>
+      ) : invited ? (
         <span className="flex items-center gap-1 rounded-full bg-foreground/[0.08] px-3 py-1.5 text-[10.5px] font-semibold text-foreground/60">
           <Check className="h-3 w-3" /> Sent
         </span>

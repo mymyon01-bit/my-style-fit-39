@@ -162,10 +162,33 @@ export async function shareOOTDToWaveModule(waveId: string, postImageUrl: string
   if (error) throw error;
 }
 
+/** Fetch IDs of users who are already members or have a pending invite for a wave. */
+export async function fetchWaveInviteState(waveId: string): Promise<{ memberIds: Set<string>; pendingIds: Set<string> }> {
+  const [m, i] = await Promise.all([
+    (supabase as any).from("wave_members").select("user_id").eq("wave_id", waveId),
+    (supabase as any).from("wave_invites").select("invitee_id").eq("wave_id", waveId).eq("status", "pending"),
+  ]);
+  return {
+    memberIds: new Set<string>((m.data ?? []).map((r: any) => r.user_id)),
+    pendingIds: new Set<string>((i.data ?? []).map((r: any) => r.invitee_id)),
+  };
+}
+
 /** Invite a registered user to a wave. Triggers an in-app notification. */
 export async function inviteToWave(waveId: string, inviteeId: string, message?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("not_authenticated");
+  // Reject if already a member
+  const { data: existingMember } = await (supabase as any)
+    .from("wave_members").select("user_id")
+    .eq("wave_id", waveId).eq("user_id", inviteeId).maybeSingle();
+  if (existingMember) throw new Error("already_member");
+  // Reject if a pending invite exists
+  const { data: existingInvite } = await (supabase as any)
+    .from("wave_invites").select("id,status")
+    .eq("wave_id", waveId).eq("invitee_id", inviteeId)
+    .eq("status", "pending").maybeSingle();
+  if (existingInvite) throw new Error("already_invited");
   const { error } = await supabase
     .from("wave_invites")
     .upsert({
