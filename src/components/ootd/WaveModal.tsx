@@ -101,7 +101,7 @@ export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated, 
       }}
       className={
         inline
-          ? "relative w-full overflow-hidden rounded-3xl bg-background shadow-[0_20px_60px_-20px_rgba(0,0,0,0.45)] ring-1 ring-border/40 flex flex-col h-[78vh] min-h-[520px] max-h-[820px]"
+          ? "relative w-full overflow-hidden rounded-3xl bg-background shadow-[0_20px_60px_-20px_rgba(0,0,0,0.65)] ring-1 ring-border/60 flex flex-col h-[78vh] min-h-[520px] max-h-[820px] isolate"
           : "relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col"
       }>
 
@@ -223,19 +223,21 @@ export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated, 
                 onChanged={refreshModules}
               />
             </aside>
-            <main className="scrollbar-hide relative z-10 flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6">
+            <main className="scrollbar-hide relative z-10 flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6 bg-background/75 backdrop-blur-md">
               {(wave as any).announcement_pinned && (wave as any).announcement && (
-                <div className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-400/35 bg-amber-400/[0.08] p-3">
+                <div className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-400/35 bg-amber-400/[0.12] backdrop-blur-md p-3">
                   <span className="mt-0.5 text-amber-400">📌</span>
-                  <p className="flex-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/85">{(wave as any).announcement}</p>
+                  <p className="flex-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">{(wave as any).announcement}</p>
                 </div>
               )}
               {modulesLoading ? (
                 <div className="py-12 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-foreground/40" /></div>
               ) : selected ? (
-                <WaveModuleView module={selected} waveId={wave.id} isAdmin={isAdmin} />
+                <div className="rounded-2xl bg-background/85 backdrop-blur-md p-3 ring-1 ring-border/40">
+                  <WaveModuleView module={selected} waveId={wave.id} isAdmin={isAdmin} />
+                </div>
               ) : (
-                <p className="py-12 text-center text-[12px] text-foreground/45">
+                <p className="py-12 text-center text-[12px] text-foreground/60">
                   {isAdmin ? "Add a menu to get started." : "No menus yet."}
                 </p>
               )}
