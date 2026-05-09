@@ -11,6 +11,7 @@ import WaveModuleView from "./WaveModuleView";
 import AddModuleSheet from "./AddModuleSheet";
 import WaveAdminPanel from "./WaveAdminPanel";
 import WaveMusicPicker from "./WaveMusicPicker";
+import WaveBackground from "./WaveBackground";
 import { toast } from "sonner";
 
 interface WaveModalProps {
