@@ -13,19 +13,18 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const { ootdUnread } = useNotifications();
   const { open: openOotdModal } = useOOTDModal();
+  const { t } = useI18n();
   const [ootdTapped, setOotdTapped] = useState(false);
 
   useEffect(() => {
     prefetchAllTabs();
   }, []);
 
-  // V4.2 service hierarchy: Discovery → Fit → Saved → OOTD.
-  // Profile/settings access moved into the OOTD profile flow & top-right user avatar surfaces.
   const tabs = [
-    { path: "/discover", icon: Compass, label: "PRODUCTS", isOotd: false },
-    { path: "/fit", icon: Scan, label: "FIT", isOotd: false },
-    { path: "/profile", icon: Bookmark, label: "MY", isOotd: false },
-    { path: "/ootd", icon: Camera, label: "OOTD", isOotd: true },
+    { path: "/discover", icon: Compass, label: t("tabProducts"), isOotd: false },
+    { path: "/fit", icon: Scan, label: t("tabFit"), isOotd: false },
+    { path: "/profile", icon: Bookmark, label: t("tabMy"), isOotd: false },
+    { path: "/ootd", icon: Camera, label: t("tabOotd"), isOotd: true },
   ];
 
   return (
