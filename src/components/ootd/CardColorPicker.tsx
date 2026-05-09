@@ -22,8 +22,10 @@ import { toast } from "sonner";
 export interface CardColor {
   /** Hex color, e.g. "#FFE5EC". null = use default theme card surface. */
   hex: string | null;
-  /** Optional human label (preset name or "Custom"). */
+  /** Optional human label (preset name, "Custom", or "Image"). */
   label?: string;
+  /** Optional uploaded background image URL (overrides hex when set). */
+  imageUrl?: string | null;
 }
 
 const STORAGE_KEY = "ootd-card-color";
