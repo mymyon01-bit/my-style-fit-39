@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, UserPlus, LogOut, Waves, Loader2 } from "lucide-react";
+import { X, UserPlus, LogOut, Waves, Loader2, Heart, Settings2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { leaveWave, type Wave } from "@/hooks/useWaves";
+import { leaveWave, followWave, unfollowWave, useWaveFollow, type Wave } from "@/hooks/useWaves";
 import { useWaveModules } from "@/hooks/useWaveModules";
 import { supabase } from "@/integrations/supabase/client";
 import InviteToWaveSheet from "./InviteToWaveSheet";
