@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { useWavePosts, type WaveModule } from "@/hooks/useWaveModules";
 import WavePostCard from "./WavePostCard";
 import WaveComposeDialog from "./WaveComposeDialog";
+import ImageLightbox from "./ImageLightbox";
 
 interface Props {
   module: WaveModule;
@@ -13,6 +14,12 @@ interface Props {
 export default function WaveModuleView({ module, waveId, isAdmin }: Props) {
   const { posts, loading, refresh } = useWavePosts(module.id);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  const photoUrls = useMemo(
+    () => posts.map(p => p.image_urls?.[0]).filter(Boolean) as string[],
+    [posts]
+  );
 
   return (
     <div className="space-y-3">
@@ -30,10 +37,11 @@ export default function WaveModuleView({ module, waveId, isAdmin }: Props) {
         <p className="py-12 text-center text-[12px] text-foreground/45">Be the first to post here.</p>
       ) : module.kind === "photos" ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {posts.map(p => p.image_urls?.[0] && (
-            <div key={p.id} className="aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.04]">
-              <img src={p.image_urls[0]} alt="" className="h-full w-full object-cover" loading="lazy" />
-            </div>
+          {photoUrls.map((u, i) => (
+            <button key={i} type="button" onClick={() => setLightboxIdx(i)}
+              className="aspect-[3/4] overflow-hidden rounded-xl bg-foreground/[0.04] focus:outline-none focus:ring-2 focus:ring-accent/40">
+              <img src={u} alt="" className="h-full w-full object-cover transition hover:opacity-95 cursor-zoom-in" loading="lazy" />
+            </button>
           ))}
         </div>
       ) : (
@@ -46,6 +54,13 @@ export default function WaveModuleView({ module, waveId, isAdmin }: Props) {
 
       <WaveComposeDialog open={composeOpen} onClose={() => setComposeOpen(false)}
         module={module} waveId={waveId} onCreated={refresh} />
+
+      <ImageLightbox
+        images={photoUrls}
+        startIndex={lightboxIdx ?? 0}
+        open={lightboxIdx !== null}
+        onClose={() => setLightboxIdx(null)}
+      />
     </div>
   );
 }
