@@ -9,6 +9,7 @@ export interface Wave {
   cover_image_url: string | null;
   created_by: string;
   is_private: boolean;
+  visibility?: "private" | "public";
   member_count: number;
   created_at: string;
   role?: "owner" | "admin" | "member";
@@ -107,22 +108,52 @@ export async function createWave(input: {
   description?: string | null;
   cover_image_url?: string | null;
   is_private?: boolean;
+  visibility?: "private" | "public";
 }): Promise<Wave> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("not_authenticated");
+  const visibility = input.visibility ?? (input.is_private === false ? "public" : "private");
   const { data, error } = await supabase
     .from("waves")
     .insert({
       name: input.name.trim(),
       description: input.description?.trim() || null,
       cover_image_url: input.cover_image_url ?? null,
-      is_private: input.is_private ?? true,
+      is_private: visibility === "private",
+      visibility,
       created_by: user.id,
-    })
+    } as any)
     .select("*")
     .single();
   if (error) throw error;
   return data as Wave;
+}
+
+/** Insert an OOTD post into a wave's first photos module (or create one). */
+export async function shareOOTDToWaveModule(waveId: string, postImageUrl: string, caption?: string | null) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("not_authenticated");
+  // Find an existing photos module
+  let { data: mod } = await supabase
+    .from("wave_modules" as any)
+    .select("id")
+    .eq("wave_id", waveId)
+    .eq("kind", "photos")
+    .order("position", { ascending: true })
+    .limit(1).maybeSingle();
+  if (!mod) {
+    const { data: newMod, error: e1 } = await supabase
+      .from("wave_modules" as any)
+      .insert({ wave_id: waveId, kind: "photos", label: "Photos", position: 0 })
+      .select("id").single();
+    if (e1) throw e1;
+    mod = newMod;
+  }
+  const { error } = await supabase.from("wave_module_posts" as any).insert({
+    wave_id: waveId, module_id: (mod as any).id, author_id: user.id,
+    kind: "photo", body: caption ?? null, image_urls: [postImageUrl],
+  });
+  if (error) throw error;
 }
 
 /** Invite a registered user to a wave. Triggers an in-app notification. */

@@ -42,7 +42,8 @@ import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
 import WaveBar from "@/components/ootd/WaveBar";
 import WaveModal from "@/components/ootd/WaveModal";
 import CreateWaveDialog from "@/components/ootd/CreateWaveDialog";
-import OOTDInfoCard from "@/components/ootd/OOTDInfoCard";
+import OOTDTipToast from "@/components/ootd/OOTDTipToast";
+import WaveInviteCards from "@/components/ootd/WaveInviteCards";
 import { useMyWaves, type Wave } from "@/hooks/useWaves";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatCount } from "@/lib/formatCount";
@@ -1004,8 +1005,8 @@ const OOTDPage = () => {
 
 
       <div className={`relative mx-auto max-w-lg md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "px-4 pt-2" : "px-6 pt-3 md:pt-3"} space-y-3`}>
-        <OOTDInfoCard id="feed-overview" size="md" />
-        <OOTDInfoCard id="waves-intro" size="sm" />
+        <WaveInviteCards />
+        <OOTDTipToast ids={["feed-overview", "waves-intro", "give-stars", "share-ootd"]} />
         <WaveBar
           selectedWaveId={selectedWaveId}
           onSelectWave={setSelectedWaveId}

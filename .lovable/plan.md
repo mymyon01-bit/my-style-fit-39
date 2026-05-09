@@ -1,62 +1,88 @@
-# V4.4 — OOTD → Showroom Ecosystem Rebuild
+# Wave 확장 플랜 (v2)
 
-Reposition OOTD from social feed to **curated personal showroom + fit reference library**. No rebuild — layered on top of existing OOTD/Showroom infrastructure.
+## 1. 데이터베이스 마이그레이션
 
-## Scope (web + mobile web + iOS + Android, all share the same React code)
+### `waves` 추가/제약
+- 컬럼: `visibility text default 'private'` ('private'|'public')
+- **1인 1웨이브 제한**: 트리거로 `created_by` 기준 INSERT 시
+  - `is_official=true` (블루뱃지) → 무제한
+  - 그 외 → 이미 owner인 웨이브 있으면 reject
 
-### 1. Language repositioning (global string sweep)
-- `Post` → `Add to Showroom`
-- `Upload` → `Curate Look`
-- `Trending creators` / `Top influencer` → `Featured Showrooms`
-- `Most liked` → `Most curated`
-- `Followers` → `Showroom followers`
-- Files: `OOTDPage.tsx`, `OOTDUploadSheet.tsx`, `OOTDCard.tsx`, `OOTDPostDetail.tsx`, `ShareToOOTDDialog.tsx`, `OOTDDiaryButton.tsx`, nav labels.
+### 새 테이블
+- **`wave_modules`** (wave당 최대 7개): id, wave_id, kind(`photos|board|wardrobe|poll|anon_board`), label, position
+- **`wave_module_posts`**: id, wave_id, module_id, author_id, kind, title, body, image_urls[], metadata jsonb, is_anonymous, like/dislike/meh/comment_count
+- **`wave_post_reactions`**: post_id, user_id, reaction(`like|dislike|meh`), UNIQUE(post_id,user_id)
+- **`wave_post_comments`**: id, post_id, user_id, parent_id, body, like_count
+- **`wave_comment_likes`**: comment_id, user_id
+- **`wave_polls`** + **`wave_poll_votes`**
 
-### 2. OOTD feed → Curated Style Stream
-- Replace the current flat feed in `OOTDPage.tsx` with **category rails** grouped by silhouette / aesthetic:
-  - Relaxed Minimal · Oversized Street · Smart Casual · Korean Casual · Tailored Monochrome · Vintage Archive · Technical Outerwear
-- Pull from existing `ootd_posts.style_tags` / `topics` / `occasion_tags` — no schema change.
-- Add a top "People Like Me" rail (uses `body_profiles` similarity + `fit_memory` overlap).
-- Keep the existing chronological feed available behind a "Latest" tab so existing posts still surface.
+### RLS
+- 멤버만 read/write
+- 게시물 삭제: 본인 OR `is_wave_admin`
+- 모듈/웨이브 삭제: `is_wave_owner`만
+- 익명 게시판: author_id 저장하되 비-어드민은 마스킹 (클라 처리)
 
-### 3. Reduce vanity metrics
-- Hide explicit follower counts on cards/profile in favor of a single small "Showroom" chip.
-- Soften like/star counters: only show when ≥ threshold; no "trending" badges.
-- Remove "Top Creators" sort.
+---
 
-### 4. Editorial detail page (`OOTDPostDetail.tsx`)
-- Larger hero image, generous padding, magazine typography.
-- New sections: **Silhouette breakdown**, **Fit notes**, **Tagged products**, **Similar fits from people like you**, **Save options** (Board / Silhouette / Styling reference).
-- Strip noisy reaction widgets; keep one primary star + one save action.
+## 2. UI 컴포넌트
 
-### 5. Style Collections (lightweight)
-- New tab inside profile/showroom: organize saved OOTDs into named collections (Summer Fits, Airport Looks, etc.).
-- Reuse existing `style_boards` table — no new schema. Boards already support saved items; allow saving an `ootd_post` id as a board item with `kind='ootd'`.
+### 웨이브 모달 개편 (`WaveModal.tsx`)
+좌측 세로 메뉴 + 우측 콘텐츠. 모바일은 상단 가로 탭.
+- `WaveSidebar` — 모듈 목록 + 추가/이름변경(어드민)
+- `WavePhotoModule` / `WaveBoardModule` / `WaveWardrobeModule` / `WavePollModule` / `WaveAnonBoardModule`
+- `WavePostCard` — 좋아요/별로에요/싫어요 + 댓글
+- `WaveCommentThread` — 댓글 + 대댓글 + 좋아요
+- `AddModuleSheet` — 어드민이 종류 선택 + 라벨 변경
+- `WaveAdminPanel` — 멤버 관리, 모듈 삭제, 웨이브 삭제
 
-### 6. Showroom following framing
-- In `UserProfilePage` / showroom card, label the follow CTA as **Follow Showroom** with a one-line aesthetic descriptor (e.g. "Oversized minimal references").
+### 기존 수정
+- `CreateWaveDialog` — visibility(Private/Public) 라디오, 기존 owner 웨이브 있으면 차단 (블루뱃지 예외)
+- `useWaves` — `useWaveModules`, `useWavePosts`, `useWaveReactions` 훅 추가
 
-### 7. "People Like Me" recommendation hook
-- New `src/hooks/usePeopleLikeMe.ts`: queries `ootd_posts` joined with `body_profiles` filtered by ±5cm height / ±3cm shoulder of current user; falls back to `fit_memory.preferred_fit` overlap for guests/no-body users.
+### Discover → Wave
+- 상품 카드 메뉴에 **"Share to Wave"** → 사용자의 wardrobe 모듈 가진 웨이브 선택 → `wave_module_posts` 삽입
 
-### 8. Visual polish
-- Editorial spacing tokens; switch OOTD surfaces to monochrome cards with thin hairlines.
-- Replace heart-bursts and bright reaction chips with subtle outline icons.
+### 초대 ("Let's Ride the Wave")
+- `InviteToWaveSheet` 확장: 카피 카드 + 공유 버튼 (Message·Copy·Instagram·TikTok·Facebook·WhatsApp·KakaoTalk)
+- 공개 라우트 `/wave/:id?invite=...` → 비-멤버는 초대장 랜딩 → 로그인 후 자동 join
 
-## Out of scope
-- No DB migrations.
-- No removal of existing posts, comments, stars, reactions tables.
-- No notification/messaging changes.
-- No new auth/permissions.
+---
 
-## Files touched (estimate)
-- Edited: `src/pages/OOTDPage.tsx`, `src/pages/ShowroomBrowsePage.tsx`, `src/pages/UserProfilePage.tsx`, `src/components/OOTDCard.tsx`, `src/components/OOTDPostDetail.tsx`, `src/components/OOTDUploadSheet.tsx`, `src/components/ShareToOOTDDialog.tsx`, `src/components/showroom/ShowroomCard.tsx`, `src/components/showroom/HotShowroomSection.tsx`, `src/components/OOTDDiaryButton.tsx`.
-- New: `src/hooks/usePeopleLikeMe.ts`, `src/components/ootd/CuratedStyleStream.tsx`, `src/components/ootd/SilhouetteBreakdown.tsx`, `src/components/ootd/StyleCollectionsTab.tsx`.
+## 3. ★ 추가 항목 (이번 메시지)
 
-## Approach order
-1. Language sweep across OOTD/Showroom strings.
-2. Build `CuratedStyleStream` + integrate into `OOTDPage` (keep Latest fallback).
-3. `usePeopleLikeMe` hook + rail.
-4. Editorial detail page refactor.
-5. Style Collections tab using `style_boards`.
-6. Visual polish pass.
+### A. ShareToWaveMenu
+- `src/components/ootd/ShareToWaveMenu.tsx`
+- OOTD 카드 더보기 메뉴에 "Share to Wave" 항목
+- 사용자가 멤버인 웨이브 목록 → 선택 → 해당 웨이브의 photos 모듈에 자동 포스트
+
+### B. 초대 수락/거절 UI
+- `src/components/ootd/WaveInviteCard.tsx`
+- `MessagesInbox` 또는 알림 드롭다운에서 `wave_invite` 타입 알림을 카드로 렌더
+- Accept → `accept_wave_invite` RPC, Decline → `decline_wave_invite` RPC
+
+### C. OOTD 팁을 플로팅 공지 카드로
+- 기존 `OOTDInfoCard` 인라인 사용 제거
+- **`OOTDTipToast.tsx`** 새 컴포넌트 — 화면 우측 하단/중앙에 토스트 형태 카드 (1개씩 큐로)
+- 페이지 진입 시 미확인 팁 중 1개를 토스트로 띄움, "Got it" → `useInfoCardSeen` 마킹
+- 페이지 레이아웃 안 차지 → 더 깔끔
+
+### D. My Showroom 웨이브 통합
+- `MyShowroomPage` (또는 `ShowroomPage`)에:
+  - 통계 영역에 **"Waves: N"** 카운터 추가
+  - **"My Wave"** 버튼 (icon: 🌊) → 클릭 시 본인 owner 웨이브 모달 오픈
+  - 웨이브 없으면 "Create Wave" CTA
+
+### E. 1인 1웨이브 (블루뱃지 제외)
+- 위 마이그레이션 트리거로 강제
+- `CreateWaveDialog`에서 사전 체크하여 UI 비활성화 + 안내 문구
+
+---
+
+## 4. i18n
+~35개 신규 키 × 8개 언어
+
+## 5. 범위 외
+- 웨이브 내 실시간 채팅
+- 웨이브 검색/탐색 페이지
+
+진행하겠습니다.

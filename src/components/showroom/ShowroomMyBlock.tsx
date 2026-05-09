@@ -1,18 +1,30 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LayoutGrid, Plus, Star, Users } from "lucide-react";
+import { LayoutGrid, Plus, Star, Users, Waves } from "lucide-react";
 import { useUserShowrooms } from "@/hooks/useShowrooms";
+import { useMyWaves } from "@/hooks/useWaves";
 import type { Showroom } from "@/lib/showroom/types";
+import CreateWaveDialog from "@/components/ootd/CreateWaveDialog";
+import WaveModal from "@/components/ootd/WaveModal";
 
 const ShowroomMyBlock = ({ userId }: { userId?: string | null }) => {
   const navigate = useNavigate();
   const { rooms, loading } = useUserShowrooms(userId);
+  const { waves, refresh: refreshWaves } = useMyWaves();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [activeWave, setActiveWave] = useState<typeof waves[number] | null>(null);
+
+  const myOwned = waves.find(w => w.role === "owner") ?? null;
 
   const handleCreate = () => {
-    if (!userId) {
-      navigate("/auth?redirect=/showroom/new");
-      return;
-    }
+    if (!userId) { navigate("/auth?redirect=/showroom/new"); return; }
     navigate("/showroom/new");
+  };
+
+  const handleWaveClick = () => {
+    if (!userId) { navigate("/auth"); return; }
+    if (myOwned) setActiveWave(myOwned);
+    else setCreateOpen(true);
   };
 
   return (
@@ -22,13 +34,23 @@ const ShowroomMyBlock = ({ userId }: { userId?: string | null }) => {
           <LayoutGrid className="h-3.5 w-3.5 text-foreground/70" />
           <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">MY SHOWROOM</p>
         </div>
-        <button
-          type="button"
-          onClick={handleCreate}
-          className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[9px] font-semibold tracking-[0.2em] text-accent transition-colors hover:bg-accent/20"
-        >
-          <Plus className="h-3 w-3" /> NEW
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleWaveClick}
+            className="inline-flex items-center gap-1 rounded-full border border-[hsl(330_85%_60%/0.4)] bg-[hsl(330_85%_60%/0.1)] px-2.5 py-1 text-[9px] font-semibold tracking-[0.2em] text-[hsl(330_85%_60%)] transition-colors hover:bg-[hsl(330_85%_60%/0.2)]"
+            title={myOwned ? "Open my wave" : "Create wave"}
+          >
+            <Waves className="h-3 w-3" /> WAVE · {waves.length}
+          </button>
+          <button
+            type="button"
+            onClick={handleCreate}
+            className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[9px] font-semibold tracking-[0.2em] text-accent transition-colors hover:bg-accent/20"
+          >
+            <Plus className="h-3 w-3" /> NEW
+          </button>
+        </div>
       </div>
 
       {/* Primary CTA — always visible, large, obvious */}
@@ -52,6 +74,9 @@ const ShowroomMyBlock = ({ userId }: { userId?: string | null }) => {
           Sign in to curate your own style room.
         </p>
       )}
+
+      <CreateWaveDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => refreshWaves()} />
+      <WaveModal open={!!activeWave} wave={activeWave} onClose={() => setActiveWave(null)} onLeft={() => refreshWaves()} />
     </div>
   );
 };

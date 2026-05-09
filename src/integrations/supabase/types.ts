@@ -3008,6 +3008,35 @@ export type Database = {
         }
         Relationships: []
       }
+      wave_comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "wave_post_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wave_invites: {
         Row: {
           created_at: string
@@ -3081,6 +3110,225 @@ export type Database = {
           },
         ]
       }
+      wave_module_posts: {
+        Row: {
+          author_id: string
+          body: string | null
+          comment_count: number
+          created_at: string
+          dislike_count: number
+          id: string
+          image_urls: string[] | null
+          is_anonymous: boolean
+          kind: string
+          like_count: number
+          meh_count: number
+          metadata: Json | null
+          module_id: string
+          title: string | null
+          updated_at: string
+          wave_id: string
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          comment_count?: number
+          created_at?: string
+          dislike_count?: number
+          id?: string
+          image_urls?: string[] | null
+          is_anonymous?: boolean
+          kind: string
+          like_count?: number
+          meh_count?: number
+          metadata?: Json | null
+          module_id: string
+          title?: string | null
+          updated_at?: string
+          wave_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          comment_count?: number
+          created_at?: string
+          dislike_count?: number
+          id?: string
+          image_urls?: string[] | null
+          is_anonymous?: boolean
+          kind?: string
+          like_count?: number
+          meh_count?: number
+          metadata?: Json | null
+          module_id?: string
+          title?: string | null
+          updated_at?: string
+          wave_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_module_posts_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "wave_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wave_module_posts_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wave_modules: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          position: number
+          updated_at: string
+          wave_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          position?: number
+          updated_at?: string
+          wave_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          position?: number
+          updated_at?: string
+          wave_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_modules_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wave_poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_index: number
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_index: number
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_index?: number
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_poll_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wave_module_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wave_post_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          like_count: number
+          parent_id: string | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          like_count?: number
+          parent_id?: string | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          like_count?: number
+          parent_id?: string | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_post_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "wave_post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wave_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wave_module_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wave_post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wave_module_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wave_posts: {
         Row: {
           id: string
@@ -3131,6 +3379,7 @@ export type Database = {
           member_count: number
           name: string
           updated_at: string
+          visibility: string
         }
         Insert: {
           cover_image_url?: string | null
@@ -3142,6 +3391,7 @@ export type Database = {
           member_count?: number
           name: string
           updated_at?: string
+          visibility?: string
         }
         Update: {
           cover_image_url?: string | null
@@ -3153,6 +3403,7 @@ export type Database = {
           member_count?: number
           name?: string
           updated_at?: string
+          visibility?: string
         }
         Relationships: []
       }
