@@ -19,9 +19,10 @@ interface WaveModalProps {
   wave: Wave | null;
   onClose: () => void;
   onLeft?: () => void;
+  onWaveUpdated?: () => void;
 }
 
-export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProps) {
+export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated }: WaveModalProps) {
   const { user } = useAuth();
   const { modules, loading: modulesLoading, refresh: refreshModules } = useWaveModules(open && wave ? wave.id : null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
