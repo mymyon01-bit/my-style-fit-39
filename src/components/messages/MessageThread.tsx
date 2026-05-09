@@ -134,7 +134,19 @@ export default function MessageThread({
 
   const handleSend = async (content: string, taggedUserIds: string[], attachments: any[]) => {
     // For group rooms recipient is null; for 1:1 it's the other user
-    await sendMessage(otherUserId, content, taggedUserIds, attachments);
+    const sent = await sendMessage(otherUserId, content, taggedUserIds, attachments);
+    if (sent?.id) {
+      const id = sent.id;
+      toast("Sent", {
+        duration: 5000,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            deleteMessage(id);
+          },
+        },
+      });
+    }
   };
 
   const addMember = async (u: ProfileLite) => {
