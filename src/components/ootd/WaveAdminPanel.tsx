@@ -85,18 +85,21 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     finally { setBusy(false); }
   };
 
-  const saveTheme = async (next?: { c1?: string; c2?: string; animated?: boolean }) => {
+  const saveTheme = async (next?: Partial<{ c1: string; c2: string; animated: boolean; bgAnim: string; borderColor: string | null; cardBg: string | null }>) => {
     if (!isAdmin) return;
     const payload: any = {
       theme_color: next?.c1 ?? c1,
       theme_color_2: next?.c2 ?? c2,
       theme_animated: next?.animated ?? animated,
+      bg_animation: next?.bgAnim ?? bgAnim,
+      card_border_color: next?.borderColor !== undefined ? next.borderColor : borderColor,
+      card_bg_color: next?.cardBg !== undefined ? next.cardBg : cardBg,
     };
     setSavingTheme(true);
     try {
       const { error } = await supabase.from("waves").update(payload).eq("id", wave.id);
       if (error) throw error;
-      toast.success("Background saved");
+      toast.success("Saved");
       onWaveUpdated?.();
     } catch (e: any) { toast.error(e.message); }
     finally { setSavingTheme(false); }
@@ -112,6 +115,10 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     setAnimated(next);
     saveTheme({ animated: next });
   };
+
+  const setBg = (id: string) => { setBgAnim(id); saveTheme({ bgAnim: id }); };
+  const setBorder = (color: string | null) => { setBorderColor(color); saveTheme({ borderColor: color }); };
+  const setCard = (color: string | null) => { setCardBg(color); saveTheme({ cardBg: color }); };
 
   return (
     <AnimatePresence>
