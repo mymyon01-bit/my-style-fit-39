@@ -5,6 +5,10 @@ export type Language = "de" | "en" | "es" | "fr" | "it" | "ja" | "ko" | "zh";
 const translations = {
   en: {
     appName: "WARDROBE",
+    tabProducts: "PRODUCTS",
+    tabFit: "FIT",
+    tabMy: "MY",
+    tabOotd: "OOTD",
     home: "Home",
     discover: "Discover",
     fit: "Fit",
