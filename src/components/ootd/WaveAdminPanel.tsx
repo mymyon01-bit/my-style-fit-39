@@ -380,12 +380,33 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
             </section>
           )}
 
-          {/* MEMBERS */}
+          {/* PEOPLE: members / followers / blocked */}
           <section className="mt-5">
-            <p className="text-[10px] font-semibold tracking-wide text-foreground/55 mb-2">MEMBERS</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-semibold tracking-wide text-foreground/55">PEOPLE</p>
+              <div className="flex gap-1 rounded-full bg-foreground/[0.05] p-0.5">
+                {([
+                  { id: "members", label: `Members · ${members.length}`, icon: Users },
+                  { id: "followers", label: `Followers · ${followers.length}`, icon: Heart },
+                  ...(isAdmin ? [{ id: "blocked", label: `Blocked · ${blocks.length}`, icon: Ban }] : []),
+                ] as const).map((t) => {
+                  const Icon = t.icon;
+                  const active = peopleTab === t.id;
+                  return (
+                    <button key={t.id} onClick={() => setPeopleTab(t.id as any)}
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                        active ? "bg-background text-foreground shadow" : "text-foreground/55 hover:text-foreground/80"
+                      }`}>
+                      <Icon className="h-3 w-3" /> {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin text-foreground/40" /> : (
               <ul className="space-y-1.5">
-                {members.map(m => (
+                {peopleTab === "members" && members.map(m => (
                   <li key={m.user_id} className="flex items-center gap-2 rounded-xl bg-foreground/[0.04] p-2">
                     {m.avatar_url ? (
                       <img src={m.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
@@ -402,13 +423,71 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
                       </p>
                     </div>
                     {isAdmin && m.role !== "owner" && (
-                      <button onClick={() => removeMember(m.user_id)}
-                        className="rounded-full p-1.5 text-foreground/50 hover:bg-destructive/10 hover:text-destructive">
-                        <UserMinus className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex gap-0.5">
+                        <button onClick={() => removeMember(m.user_id)} title="Remove"
+                          className="rounded-full p-1.5 text-foreground/50 hover:bg-destructive/10 hover:text-destructive">
+                          <UserMinus className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => blockUser(m.user_id)} title="Block"
+                          className="rounded-full p-1.5 text-foreground/50 hover:bg-destructive/10 hover:text-destructive">
+                          <Ban className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     )}
                   </li>
                 ))}
+
+                {peopleTab === "followers" && (followers.length === 0 ? (
+                  <li className="text-[11px] text-foreground/50 py-3 text-center">No followers yet.</li>
+                ) : followers.map((f: any) => (
+                  <li key={f.user_id} className="flex items-center gap-2 rounded-xl bg-foreground/[0.04] p-2">
+                    {f.avatar_url ? (
+                      <img src={f.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+                    ) : (
+                      <div className="h-7 w-7 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-bold text-foreground/60">
+                        {(f.display_name?.[0] || f.username?.[0] || "?").toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-foreground truncate">{f.display_name || f.username || "User"}</p>
+                      <p className="text-[9.5px] text-foreground/55">Follower</p>
+                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-0.5">
+                        <button onClick={() => removeFollower(f.user_id)} title="Remove follower"
+                          className="rounded-full p-1.5 text-foreground/50 hover:bg-destructive/10 hover:text-destructive">
+                          <UserMinus className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => blockUser(f.user_id)} title="Block"
+                          className="rounded-full p-1.5 text-foreground/50 hover:bg-destructive/10 hover:text-destructive">
+                          <Ban className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                )))}
+
+                {peopleTab === "blocked" && (blocks.length === 0 ? (
+                  <li className="text-[11px] text-foreground/50 py-3 text-center">Nobody blocked.</li>
+                ) : blocks.map((b: any) => (
+                  <li key={b.user_id} className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/[0.04] p-2">
+                    {b.avatar_url ? (
+                      <img src={b.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover opacity-70" />
+                    ) : (
+                      <div className="h-7 w-7 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-bold text-foreground/60">
+                        {(b.display_name?.[0] || b.username?.[0] || "?").toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-foreground truncate">{b.display_name || b.username || "User"}</p>
+                      <p className="text-[9.5px] text-destructive/80">Blocked</p>
+                    </div>
+                    <button onClick={() => unblockUser(b.user_id)} title="Unblock"
+                      className="rounded-full p-1.5 text-foreground/55 hover:bg-foreground/10 hover:text-foreground">
+                      <ShieldOff className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                )))}
               </ul>
             )}
           </section>
