@@ -94,10 +94,22 @@ export type OOTDBgTheme =
   | "subway"
   | "forest"
   | "coast"
-  | "studio";
+  | "studio"
+  // Animated graphic backgrounds — pure CSS, no video needed.
+  | "aurora"
+  | "blobs"
+  | "shimmer"
+  | "rays"
+  | "grid";
 
 export const OOTD_BG_THEMES: { id: OOTDBgTheme; label: string; emoji: string; description: string }[] = [
   { id: "none",       label: "None",                 emoji: "○",  description: "Clean — no background effect" },
+  // Animated graphic backgrounds — lightweight, always available
+  { id: "aurora",     label: "Aurora",               emoji: "🌈", description: "Soft aurora gradient gently shifting" },
+  { id: "blobs",      label: "Floating blobs",       emoji: "🫧", description: "Big colorful blobs drifting around" },
+  { id: "shimmer",    label: "Shimmer",              emoji: "✨", description: "Slow shimmering color wash" },
+  { id: "rays",       label: "Spinning rays",        emoji: "🎡", description: "Conic rays slowly rotating" },
+  { id: "grid",       label: "Floating grid",        emoji: "🔳", description: "Subtle floating mesh grid" },
   { id: "sakura",     label: "Cherry blossoms",      emoji: "🌸", description: "Petals drifting between trees" },
   { id: "leaves",     label: "Autumn leaves",        emoji: "🍂", description: "Golden leaves swirling in the wind" },
   { id: "sunny",      label: "Sunny day",            emoji: "☀️", description: "Warm sun rays and sparkles" },
