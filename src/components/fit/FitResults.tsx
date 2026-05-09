@@ -634,26 +634,45 @@ export default function FitResults({
     setReloadToken((n) => n + 1);
   };
 
+  // ── Editorial fit phrases — short fashion language for the hero caption.
+  // Driven by the deterministic solver so wording always matches the visual.
+  const editorialPhrases = useMemo(() => {
+    const phrase = (raw: string, region: "torso" | "waist" | "shoulder" | "length") => {
+      const l = (raw || "").toLowerCase();
+      const tone = /(tight|snug|trim|pulled|short)/.test(l)
+        ? "Trim"
+        : /(loose|oversized|relaxed|roomy|dropped|long)/.test(l)
+        ? "Relaxed"
+        : "Clean";
+      const noun =
+        region === "torso" ? "torso"
+        : region === "waist" ? "waist silhouette"
+        : region === "shoulder" ? "shoulder structure"
+        : "length line";
+      return `${tone} ${noun}`;
+    };
+    const isBottom = garmentFit.category === "bottom";
+    const arr: string[] = [];
+    if (!isBottom) arr.push(phrase(solver.regions.shoulder.fit, "shoulder"));
+    arr.push(phrase(solver.regions.chest.fit, "torso"));
+    arr.push(phrase(solver.regions.waist.fit, "waist"));
+    return arr;
+  }, [solver, garmentFit.category]);
+
   return (
-    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 overflow-x-hidden">
-      {/* Mode + Confidence row — slim, single line */}
-      <div className="flex items-center justify-between">
-        {isRefined ? (
-          <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.18em] text-accent">
-            <Sparkles className="h-3 w-3" /> REFINED FIT
-          </span>
-        ) : (
-          <span className="text-[10px] font-bold tracking-[0.18em] text-foreground/45">FIT RESULT</span>
-        )}
-        <span className={`text-[10px] font-bold tracking-[0.12em] px-2.5 py-1 rounded-full ${confBg} ${confColor}`}>
-          {confLabel}
+    <div className="mx-auto w-full min-w-0 max-w-2xl space-y-12 overflow-x-hidden md:space-y-16">
+      {/* Eyebrow — refined chapter heading, no boxes */}
+      <div className="flex items-center justify-center gap-2">
+        {isRefined && <Sparkles className="h-3 w-3 text-accent" />}
+        <span className="text-[9px] font-medium tracking-[0.45em] text-foreground/45 uppercase">
+          {isRefined ? "Refined Fitting" : "The Fitting"}
         </span>
       </div>
 
-      {/* ══ HERO — clean editorial layout. Big visual + size + verdict only ══ */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:items-start">
-        {/* LEFT — AI fitting visual */}
-        <div className="min-w-0 lg:sticky lg:top-24">
+      {/* ══ HERO — visual is the emotional center ══ */}
+      <div className="space-y-10 md:space-y-14">
+        {/* Editorial visual — extends edge-to-edge on mobile */}
+        <div className="-mx-4 sm:mx-0">
           <FitVisual
             productName={product.name}
             activeSize={activeSize}
@@ -670,177 +689,110 @@ export default function FitResults({
           />
         </div>
 
-        {/* RIGHT — minimalist verdict block */}
-        <div className="min-w-0 space-y-7">
-          {/* Product header */}
-          <SelectedProductCard
-            brand={product.brand}
-            name={product.name}
-            price={product.price}
-            image={product.image}
-            url={product.url}
-            category={product.category}
-            dataQuality={result.productDataQuality}
-            compact
-          />
+        {/* Magazine caption — brand · garment · size */}
+        <div className="space-y-3 px-2 text-center">
+          <p className="text-[10px] font-medium tracking-[0.4em] text-foreground/45 uppercase">
+            {product.brand}
+          </p>
+          <h1 className="font-display text-2xl font-light leading-tight tracking-[-0.01em] text-foreground md:text-3xl">
+            {product.name}
+          </h1>
+          <motion.p
+            key={activeSize}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="pt-1 text-[11px] tracking-[0.3em] text-foreground/45 uppercase"
+          >
+            Size <span className="ml-1 text-foreground/80">{activeSize}</span>
+          </motion.p>
+        </div>
 
-          {/* Size picker — user decides their own fit. No "recommended" badge here. */}
-          <div className="border-t border-foreground/15 pt-7">
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-semibold tracking-[0.32em] text-foreground/40">
-                CHOOSE YOUR SIZE
-              </p>
-              <motion.p
-                key={activeSize}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="font-display text-[64px] sm:text-[76px] lg:text-[88px] font-medium leading-[0.85] tracking-[-0.06em] text-foreground break-words"
-              >
-                {activeSize}
-              </motion.p>
-              <p className="text-[12px] tracking-tight text-foreground/55">
-                Tap a size below to preview how it would sit on your body.
-              </p>
-            </div>
-
-            {/* Size switcher pills — no recommended/alternate dot */}
-            <div className="mt-6 flex flex-wrap gap-1.5">
-              {result.sizeResults.map((sr) => {
-                const isActive = sr.size === activeSize;
-                return (
-                  <button
-                    key={sr.size}
-                    onClick={() => setActiveSize(sr.size)}
-                    className={`relative flex min-w-[52px] items-center justify-center border px-4 py-2.5 transition-all duration-200 ${
-                      isActive
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-foreground/15 bg-transparent text-foreground/55 hover:border-foreground/50 hover:text-foreground"
-                    }`}
-                  >
-                    <span className="font-display text-[13px] font-medium leading-none tracking-tight">{sr.size}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* One-line headline summary — neutral, no verdict */}
-          <p className="text-[13px] leading-relaxed text-foreground/75">
+        {/* Editorial fit narrative */}
+        <div className="mx-auto max-w-md space-y-5 text-center">
+          <p className="text-[15px] font-light leading-[1.7] text-foreground/80">
             {overallFitSentence}
           </p>
-
-          {/* Body Accuracy — quick trust meter */}
-          <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] px-3.5 py-2.5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold tracking-[0.22em] text-foreground/55">
-                BODY ACCURACY
-              </span>
-              <span className={`text-[12px] font-bold tracking-tight ${
-                bodyDNA.accuracy >= 80 ? "text-green-500"
-                  : bodyDNA.accuracy >= 55 ? "text-accent"
-                  : "text-orange-500"
-              }`}>
-                {bodyDNA.accuracy}%
-              </span>
-            </div>
-            <p className="text-[10px] leading-relaxed text-foreground/50">
-              {bodyDNA.accuracy >= 90 ? "High confidence — based on complete body data."
-                : bodyDNA.accuracy >= 70 ? "Good confidence — minor estimation used."
-                : bodyDNA.accuracy >= 50 ? "Medium confidence — add a side image or measurements for better accuracy."
-                : "Low confidence — result may be approximate."}
-            </p>
-            {(tryOn.stage === "generating" || tryOn.stage === "polling" || tryOn.stage === "validating") && tryOn.lastGoodImageUrl && (
-              <p className="text-[10px] tracking-[0.18em] text-accent/80 pt-1 border-t border-foreground/[0.05]">
-                RE-FITTING ON SELECTED BODY…
-              </p>
-            )}
-          </div>
-
-          {/* V3.7 — Trust chips + quick feedback */}
-          <FitTrustStrip
-            accuracy={bodyDNA.accuracy}
-            bodyConsistencyScore={tryOn.qualityVerdict?.bodyConsistencyScore ?? null}
-            visualIntegrityScore={tryOn.qualityVerdict?.visualIntegrityScore ?? null}
-            unstable={tryOn.qualityUnstable}
-            productKey={productKey}
-            brand={product.brand}
-            category={product.category}
-            productGender={(product as any).gender ?? null}
-            userGender={bodyGender ?? null}
-            recommendedSize={result.recommendedSize}
-            chosenSize={activeSize}
-          />
-
-          {/* Fit-score / data disclaimer — honesty notice */}
-          <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-3.5 space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <Info className="h-3 w-3 text-foreground/45" />
-              <p className="text-[9px] font-bold tracking-[0.22em] text-foreground/55">FIT NOTICE</p>
-            </div>
-            <p className="text-[11px] leading-relaxed text-foreground/60">
-              Actual wear may differ from this preview. If you know the product's exact size chart or material,
-              go back to <span className="text-foreground/80 font-medium">CHECK</span> and tap{" "}
-              <span className="text-foreground/80 font-medium">"Add precise info"</span> on the selected
-              product for a more accurate result.
-            </p>
-            <p className="text-[10px] leading-relaxed text-foreground/45 pt-1 border-t border-foreground/[0.05]">
-              This is a data-driven visualization, not a guarantee. Final purchase decision and
-              responsibility rest with you.
-            </p>
-          </div>
-
-          {/* Limited confidence callout — small, only when needed */}
-          {confTier === "limited" && (
-            <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
-              <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
-              <span className="text-[11px] text-orange-400/80">
-                Limited confidence — brand size chart is partial. Treat as approximate.
-              </span>
-            </div>
-          )}
-
-          {/* Primary action row — V3: ANALYZE + CHANGE BODY only */}
-          <div className="space-y-2.5">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setAnalyzeOpen(true)}
-                className="flex items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-[11px] font-bold tracking-[0.22em] text-background transition-opacity hover:opacity-90"
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 pt-1">
+            {editorialPhrases.map((p) => (
+              <span
+                key={p}
+                className="text-[10px] tracking-[0.2em] text-foreground/55 uppercase"
               >
-                <BarChart3 className="h-3.5 w-3.5" />
-                ANALYZE
-              </button>
-              <button
-                onClick={() => setChangeBodyOpen(true)}
-                className="flex items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-transparent py-3.5 text-[11px] font-bold tracking-[0.22em] text-foreground/85 transition-colors hover:bg-foreground/[0.04]"
-                title="Switch body, upload new, edit, or pick a preset"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                CHANGE BODY
-              </button>
-            </div>
-            {product.url && product.url !== "#" && (
-              <a
-                href={product.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-foreground/15 bg-foreground/[0.02] py-3 text-[10px] font-medium tracking-[0.25em] text-foreground/70 transition-colors hover:bg-foreground/[0.06]"
-              >
-                <ExternalLink className="h-3 w-3" />
-                VIEW PRODUCT · SIZE {activeSize}
-              </a>
-            )}
-          </div>
-
-          {/* Quiet edit body link */}
-          <div className="flex items-center justify-center pt-1">
-            {onEditMeasurements && (
-              <button onClick={onEditMeasurements} className="flex items-center gap-1.5 text-[11px] text-foreground/55 hover:text-foreground/85 transition-colors">
-                <Pencil className="h-3 w-3" /> Edit measurements
-              </button>
-            )}
+                {p}
+              </span>
+            ))}
           </div>
         </div>
+
+        {/* Size selector — quiet underline switcher, no heavy boxes */}
+        <div className="space-y-4">
+          <p className="text-center text-[9px] font-medium tracking-[0.4em] text-foreground/40 uppercase">
+            Try another size
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-1">
+            {result.sizeResults.map((sr) => {
+              const isActive = sr.size === activeSize;
+              return (
+                <button
+                  key={sr.size}
+                  onClick={() => setActiveSize(sr.size)}
+                  className={`relative px-5 py-2 text-[12px] font-medium tracking-[0.18em] uppercase transition-colors ${
+                    isActive
+                      ? "text-foreground"
+                      : "text-foreground/35 hover:text-foreground/70"
+                  }`}
+                >
+                  {sr.size}
+                  {isActive && (
+                    <motion.span
+                      layoutId="fit-size-underline"
+                      className="absolute -bottom-0.5 left-1/2 h-px w-6 -translate-x-1/2 bg-accent"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Quiet actions — text-led, no heavy primary buttons */}
+      <div className="flex flex-col items-center gap-6 pt-2">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => setAnalyzeOpen(true)}
+            className="text-[10px] font-medium tracking-[0.32em] text-foreground/80 uppercase transition-colors hover:text-foreground"
+          >
+            View full analysis
+          </button>
+          <span className="h-3 w-px bg-foreground/15" />
+          <button
+            onClick={() => setChangeBodyOpen(true)}
+            className="text-[10px] font-medium tracking-[0.32em] text-foreground/80 uppercase transition-colors hover:text-foreground"
+          >
+            Change body
+          </button>
+        </div>
+        {product.url && product.url !== "#" && (
+          <a
+            href={product.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 border-b border-accent/40 pb-1 text-[10px] font-medium tracking-[0.32em] text-accent uppercase transition-colors hover:border-accent"
+          >
+            Shop this look
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+        {onEditMeasurements && (
+          <button
+            onClick={onEditMeasurements}
+            className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] text-foreground/35 uppercase transition-colors hover:text-foreground/70"
+          >
+            <Pencil className="h-3 w-3" /> Edit measurements
+          </button>
+        )}
       </div>
 
       {/* ══ CHANGE BODY SHEET — V3.5 ══ */}
@@ -872,7 +824,47 @@ export default function FitResults({
           </div>
 
           <div className="px-6 py-6 space-y-6">
-            {/* SIZE CORRELATION — V3.8 numeric body↔garment relation */}
+            {/* Confidence + Body Accuracy — pulled in from the hero for a cleaner main view */}
+            <div className="flex items-center justify-between gap-3 pb-4 border-b border-foreground/[0.06]">
+              <div className="space-y-1">
+                <p className="text-[9px] font-semibold tracking-[0.25em] text-foreground/45 uppercase">Confidence</p>
+                <p className={`text-[12px] font-bold tracking-[0.18em] ${confColor}`}>{confLabel}</p>
+              </div>
+              <div className="space-y-1 text-right">
+                <p className="text-[9px] font-semibold tracking-[0.25em] text-foreground/45 uppercase">Body Accuracy</p>
+                <p className={`text-[12px] font-bold tracking-tight ${
+                  bodyDNA.accuracy >= 80 ? "text-green-500"
+                    : bodyDNA.accuracy >= 55 ? "text-accent"
+                    : "text-orange-500"
+                }`}>{bodyDNA.accuracy}%</p>
+              </div>
+            </div>
+
+            {/* Trust + feedback — moved out of hero */}
+            <FitTrustStrip
+              accuracy={bodyDNA.accuracy}
+              bodyConsistencyScore={tryOn.qualityVerdict?.bodyConsistencyScore ?? null}
+              visualIntegrityScore={tryOn.qualityVerdict?.visualIntegrityScore ?? null}
+              unstable={tryOn.qualityUnstable}
+              productKey={productKey}
+              brand={product.brand}
+              category={product.category}
+              productGender={(product as any).gender ?? null}
+              userGender={bodyGender ?? null}
+              recommendedSize={result.recommendedSize}
+              chosenSize={activeSize}
+            />
+
+            {confTier === "limited" && (
+              <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
+                <span className="text-[11px] text-orange-400/80">
+                  Limited confidence — brand size chart is partial. Treat as approximate.
+                </span>
+              </div>
+            )}
+
+
             {sizeCorrelation && (
               <FitAnalysisPanel
                 correlation={sizeCorrelation}
