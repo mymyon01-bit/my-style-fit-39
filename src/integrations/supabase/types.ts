@@ -3399,6 +3399,9 @@ export type Database = {
       }
       waves: {
         Row: {
+          bg_animation: string
+          card_bg_color: string | null
+          card_border_color: string | null
           cover_image_url: string | null
           created_at: string
           created_by: string
@@ -3415,6 +3418,9 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          bg_animation?: string
+          card_bg_color?: string | null
+          card_border_color?: string | null
           cover_image_url?: string | null
           created_at?: string
           created_by: string
@@ -3431,6 +3437,9 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          bg_animation?: string
+          card_bg_color?: string | null
+          card_border_color?: string | null
           cover_image_url?: string | null
           created_at?: string
           created_by?: string
@@ -3472,6 +3481,9 @@ export type Database = {
           _visibility?: string
         }
         Returns: {
+          bg_animation: string
+          card_bg_color: string | null
+          card_border_color: string | null
           cover_image_url: string | null
           created_at: string
           created_by: string
