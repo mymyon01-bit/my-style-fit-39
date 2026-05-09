@@ -74,20 +74,36 @@ export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated, 
     catch (e: any) { toast.error(e.message); }
   };
 
-  return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-[115] flex items-stretch justify-center bg-black/80 backdrop-blur-md sm:p-3 md:p-6">
-        <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
-          transition={{ type: "spring", damping: 24, stiffness: 240 }}
-          onClick={e => e.stopPropagation()}
-          style={{
-            borderColor: (wave as any).card_border_color || undefined,
-            borderWidth: (wave as any).card_border_color ? 2 : 0,
-            borderStyle: (wave as any).card_border_color ? "solid" : undefined,
-          }}
-          className="relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col">
+  const sheets = (
+    <>
+      <InviteToWaveSheet open={inviteOpen} onClose={() => setInviteOpen(false)}
+        waveId={wave.id} waveName={wave.name} />
+      <AddModuleSheet open={addOpen} onClose={() => setAddOpen(false)}
+        waveId={wave.id} nextPosition={modules.length} onCreated={refreshModules} />
+      <WaveAdminPanel open={adminOpen} onClose={() => setAdminOpen(false)}
+        wave={wave} isOwner={isOwner} isAdmin={isAdmin}
+        onWaveDeleted={() => { onLeft?.(); onClose(); }}
+        onWaveUpdated={onWaveUpdated} />
+    </>
+  );
+
+  const card = (
+    <motion.div
+      initial={inline ? { opacity: 0, y: 8 } : { y: 30, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={inline ? { opacity: 0, y: 8 } : { y: 30, opacity: 0 }}
+      transition={{ type: "spring", damping: 24, stiffness: 240 }}
+      onClick={e => e.stopPropagation()}
+      style={{
+        borderColor: (wave as any).card_border_color || undefined,
+        borderWidth: (wave as any).card_border_color ? 2 : 0,
+        borderStyle: (wave as any).card_border_color ? "solid" : undefined,
+      }}
+      className={
+        inline
+          ? "relative w-full overflow-hidden rounded-3xl bg-background shadow-[0_20px_60px_-20px_rgba(0,0,0,0.45)] ring-1 ring-border/40 flex flex-col h-[78vh] min-h-[520px] max-h-[820px]"
+          : "relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col"
+      }>
 
           {/* Cover banner — fixed slim height, never overlaps title */}
           <div className="relative h-16 sm:h-20 shrink-0 overflow-hidden">
