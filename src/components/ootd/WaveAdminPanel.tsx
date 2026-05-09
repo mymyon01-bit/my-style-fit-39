@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Crown, Loader2, UserMinus, Palette, LayoutGrid, Check, Sparkles, Square, Layers } from "lucide-react";
+import { X, Trash2, Crown, Loader2, UserMinus, Palette, LayoutGrid, Check, Sparkles, Square, Layers, Megaphone, Pin } from "lucide-react";
 import WaveBackground, { WAVE_BG_OPTIONS } from "./WaveBackground";
 import { fetchWaveMembers, type Wave, type WaveMember } from "@/hooks/useWaves";
 import { supabase } from "@/integrations/supabase/client";
