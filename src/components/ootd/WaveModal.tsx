@@ -84,16 +84,33 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
           <div className="relative h-16 sm:h-20 shrink-0 overflow-hidden">
             {wave.cover_image_url ? (
               <img src={wave.cover_image_url} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full" style={{ background: (wave as any).theme_color
-                ? `linear-gradient(135deg, ${(wave as any).theme_color}, ${(wave as any).theme_color})`
-                : "linear-gradient(135deg, hsl(330 85% 60% / 0.35), hsl(280 70% 55% / 0.35))" }} />
-            )}
+            ) : (() => {
+              const c1 = (wave as any).theme_color || "hsl(330 85% 60% / 0.55)";
+              const c2 = (wave as any).theme_color_2 || (wave as any).theme_color || "hsl(280 70% 55% / 0.55)";
+              const animated = !!(wave as any).theme_animated;
+              return (
+                <div
+                  className={`h-full w-full ${animated ? "wave-modal-anim-bg" : ""}`}
+                  style={{
+                    background: `linear-gradient(135deg, ${c1}, ${c2})`,
+                    backgroundSize: animated ? "200% 200%" : undefined,
+                  }}
+                />
+              );
+            })()}
             <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
             <button onClick={onClose}
               aria-label="Close"
               className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-foreground/85 backdrop-blur hover:bg-background"><X className="h-4 w-4" /></button>
           </div>
+          <style>{`
+            @keyframes waveModalBgShift {
+              0%   { background-position: 0% 50%; }
+              50%  { background-position: 100% 50%; }
+              100% { background-position: 0% 50%; }
+            }
+            .wave-modal-anim-bg { animation: waveModalBgShift 8s ease-in-out infinite; }
+          `}</style>
 
           {/* Title block — its OWN row, fully clear of cover/X. Never gets hidden. */}
           <div className="px-5 pt-2 pb-3 shrink-0 bg-background">

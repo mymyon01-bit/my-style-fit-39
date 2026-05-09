@@ -3408,7 +3408,9 @@ export type Database = {
           is_private: boolean
           member_count: number
           name: string
+          theme_animated: boolean
           theme_color: string | null
+          theme_color_2: string | null
           updated_at: string
           visibility: string
         }
@@ -3422,7 +3424,9 @@ export type Database = {
           is_private?: boolean
           member_count?: number
           name: string
+          theme_animated?: boolean
           theme_color?: string | null
+          theme_color_2?: string | null
           updated_at?: string
           visibility?: string
         }
@@ -3436,7 +3440,9 @@ export type Database = {
           is_private?: boolean
           member_count?: number
           name?: string
+          theme_animated?: boolean
           theme_color?: string | null
+          theme_color_2?: string | null
           updated_at?: string
           visibility?: string
         }
@@ -3475,7 +3481,9 @@ export type Database = {
           is_private: boolean
           member_count: number
           name: string
+          theme_animated: boolean
           theme_color: string | null
+          theme_color_2: string | null
           updated_at: string
           visibility: string
         }

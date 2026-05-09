@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Crown, Loader2, UserMinus } from "lucide-react";
+import { X, Trash2, Crown, Loader2, UserMinus, Palette, LayoutGrid, Check, Sparkles } from "lucide-react";
 import { fetchWaveMembers, type Wave, type WaveMember } from "@/hooks/useWaves";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,17 +12,36 @@ interface Props {
   isOwner: boolean;
   isAdmin: boolean;
   onWaveDeleted: () => void;
+  onWaveUpdated?: () => void;
 }
 
-export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, onWaveDeleted }: Props) {
+const PRESETS: { name: string; c1: string; c2: string }[] = [
+  { name: "Sunset",   c1: "hsl(330 85% 60%)", c2: "hsl(280 70% 55%)" },
+  { name: "Ocean",    c1: "hsl(200 90% 55%)", c2: "hsl(260 70% 55%)" },
+  { name: "Mint",     c1: "hsl(160 70% 55%)", c2: "hsl(200 80% 55%)" },
+  { name: "Citrus",   c1: "hsl(40 95% 60%)",  c2: "hsl(15 90% 60%)"  },
+  { name: "Forest",   c1: "hsl(150 60% 45%)", c2: "hsl(90 50% 45%)"  },
+  { name: "Mono",     c1: "hsl(0 0% 25%)",    c2: "hsl(0 0% 55%)"    },
+  { name: "Berry",    c1: "hsl(340 80% 55%)", c2: "hsl(20 85% 60%)"  },
+  { name: "Aurora",   c1: "hsl(170 80% 55%)", c2: "hsl(290 75% 60%)" },
+];
+
+export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, onWaveDeleted, onWaveUpdated }: Props) {
   const [members, setMembers] = useState<WaveMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [c1, setC1] = useState<string>((wave as any).theme_color || PRESETS[0].c1);
+  const [c2, setC2] = useState<string>((wave as any).theme_color_2 || PRESETS[0].c2);
+  const [animated, setAnimated] = useState<boolean>(!!(wave as any).theme_animated);
+  const [savingTheme, setSavingTheme] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setLoading(true);
     fetchWaveMembers(wave.id).then(m => { setMembers(m); setLoading(false); });
+    setC1((wave as any).theme_color || PRESETS[0].c1);
+    setC2((wave as any).theme_color_2 || PRESETS[0].c2);
+    setAnimated(!!(wave as any).theme_animated);
   }, [open, wave.id]);
 
   if (!open) return null;
@@ -48,17 +67,123 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     finally { setBusy(false); }
   };
 
+  const saveTheme = async (next?: { c1?: string; c2?: string; animated?: boolean }) => {
+    if (!isAdmin) return;
+    const payload: any = {
+      theme_color: next?.c1 ?? c1,
+      theme_color_2: next?.c2 ?? c2,
+      theme_animated: next?.animated ?? animated,
+    };
+    setSavingTheme(true);
+    try {
+      const { error } = await supabase.from("waves").update(payload).eq("id", wave.id);
+      if (error) throw error;
+      toast.success("Background saved");
+      onWaveUpdated?.();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSavingTheme(false); }
+  };
+
+  const applyPreset = (p: typeof PRESETS[number]) => {
+    setC1(p.c1); setC2(p.c2);
+    saveTheme({ c1: p.c1, c2: p.c2 });
+  };
+
+  const toggleAnimated = () => {
+    const next = !animated;
+    setAnimated(next);
+    saveTheme({ animated: next });
+  };
+
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose} className="fixed inset-0 z-[135] flex items-center justify-center bg-black/70 backdrop-blur p-4">
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }}
           onClick={e => e.stopPropagation()}
-          className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-3xl bg-background p-5 shadow-2xl">
+          className="relative w-full max-w-md max-h-[88vh] overflow-y-auto rounded-3xl bg-background p-5 shadow-2xl">
           <button onClick={onClose} className="absolute right-3 top-3 rounded-full bg-foreground/10 p-1.5"><X className="h-3.5 w-3.5" /></button>
-          <h3 className="text-[16px] font-bold text-foreground">Admin · {wave.name}</h3>
+          <h3 className="text-[16px] font-bold text-foreground">Customize · {wave.name}</h3>
 
-          <div className="mt-4">
+          {/* BACKGROUND */}
+          {isAdmin && (
+            <section className="mt-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Palette className="h-3.5 w-3.5 text-foreground/60" />
+                <p className="text-[10px] font-semibold tracking-wide text-foreground/55">BACKGROUND</p>
+                {savingTheme && <Loader2 className="h-3 w-3 animate-spin text-foreground/40" />}
+              </div>
+
+              {/* Live preview */}
+              <div className="relative h-20 w-full overflow-hidden rounded-2xl border border-border/30">
+                <div
+                  className={`absolute inset-0 ${animated ? "wave-anim-bg" : ""}`}
+                  style={{
+                    background: `linear-gradient(135deg, ${c1}, ${c2})`,
+                    backgroundSize: animated ? "200% 200%" : undefined,
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-white/90 text-[11px] font-semibold tracking-wide">
+                  PREVIEW
+                </div>
+              </div>
+
+              {/* Presets */}
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {PRESETS.map((p) => {
+                  const active = p.c1 === c1 && p.c2 === c2;
+                  return (
+                    <button key={p.name} onClick={() => applyPreset(p)}
+                      className={`relative h-10 rounded-xl overflow-hidden border ${active ? "border-foreground" : "border-border/30"}`}
+                      title={p.name}>
+                      <div className="h-full w-full" style={{ background: `linear-gradient(135deg, ${p.c1}, ${p.c2})` }} />
+                      {active && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <Check className="h-3.5 w-3.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Animate toggle */}
+              <button onClick={toggleAnimated}
+                className={`mt-3 flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+                  animated ? "border-accent/50 bg-accent/[0.06]" : "border-border/40 bg-foreground/[0.02] hover:bg-foreground/[0.05]"
+                }`}>
+                <span className="flex items-center gap-2 text-[12px] font-semibold text-foreground/85">
+                  <Sparkles className={`h-3.5 w-3.5 ${animated ? "text-accent" : "text-foreground/55"}`} />
+                  Animated background
+                </span>
+                <span className={`text-[10px] font-bold tracking-wide ${animated ? "text-accent" : "text-foreground/45"}`}>
+                  {animated ? "ON" : "OFF"}
+                </span>
+              </button>
+              <p className="mt-1.5 text-[10px] leading-relaxed text-foreground/50">
+                Pick two colors — turn on Animated to make the wave's banner gently shift between them.
+              </p>
+            </section>
+          )}
+
+          {/* MENUS HELP */}
+          {isAdmin && (
+            <section className="mt-5 rounded-2xl border border-border/30 bg-foreground/[0.03] p-3">
+              <div className="flex items-center gap-2 mb-1.5">
+                <LayoutGrid className="h-3.5 w-3.5 text-foreground/60" />
+                <p className="text-[10px] font-semibold tracking-wide text-foreground/55">HOW MENUS WORK</p>
+              </div>
+              <ul className="space-y-1 text-[11px] leading-relaxed text-foreground/70">
+                <li>• Use the <span className="font-semibold">+ Add menu</span> button in the sidebar to create a new section (Photos, Posts, Polls, Music, Notes…).</li>
+                <li>• Each menu shows up as a tab in this wave. Drag or use the up/down arrows in the sidebar to reorder.</li>
+                <li>• Long-press a menu in the sidebar to rename or delete it.</li>
+                <li>• Members see exactly the menus you create — keep them focused.</li>
+              </ul>
+            </section>
+          )}
+
+          {/* MEMBERS */}
+          <section className="mt-5">
             <p className="text-[10px] font-semibold tracking-wide text-foreground/55 mb-2">MEMBERS</p>
             {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin text-foreground/40" /> : (
               <ul className="space-y-1.5">
@@ -88,7 +213,7 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
                 ))}
               </ul>
             )}
-          </div>
+          </section>
 
           {isOwner && (
             <div className="mt-5 border-t border-border/30 pt-4">
@@ -102,6 +227,16 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
           )}
         </motion.div>
       </motion.div>
+
+      {/* Animation keyframes */}
+      <style>{`
+        @keyframes waveBgShift {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .wave-anim-bg { animation: waveBgShift 8s ease-in-out infinite; }
+      `}</style>
     </AnimatePresence>
   );
 }
