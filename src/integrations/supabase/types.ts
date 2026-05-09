@@ -3423,6 +3423,32 @@ export type Database = {
         Args: { _member_ids: string[]; _title: string }
         Returns: string
       }
+      create_wave: {
+        Args: {
+          _cover_image_url?: string
+          _description?: string
+          _name: string
+          _visibility?: string
+        }
+        Returns: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_private: boolean
+          member_count: number
+          name: string
+          updated_at: string
+          visibility: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "waves"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       decline_wave_invite: { Args: { _invite_id: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: undefined }
       get_or_create_conversation: {
