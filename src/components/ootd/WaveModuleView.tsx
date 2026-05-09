@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { useWavePosts, type WaveModule } from "@/hooks/useWaveModules";
 import WavePostCard from "./WavePostCard";
 import WaveComposeDialog from "./WaveComposeDialog";
+import ImageLightbox from "./ImageLightbox";
 
 interface Props {
   module: WaveModule;
