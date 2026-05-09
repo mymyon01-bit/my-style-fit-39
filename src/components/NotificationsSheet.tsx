@@ -89,6 +89,9 @@ export default function NotificationsSheet({ open, onClose }: Props) {
             } else if ((n.type === "star" || n.type === "comment") && n.target_id) {
               onClose();
               navigate(`/ootd?post=${n.target_id}`);
+            } else if (n.type === "wave_invite") {
+              onClose();
+              navigate(`/ootd?tab=mypage&invites=1`);
             }
           }}
           className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-accent/5 ${
