@@ -79,7 +79,7 @@ export default function OOTDTipToast({ ids }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={dismiss}
+        onClick={closeOnce}
         className="fixed inset-0 z-[300] flex items-center justify-center bg-black/65 backdrop-blur-sm p-4"
         style={{
           paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
@@ -95,8 +95,8 @@ export default function OOTDTipToast({ ids }: Props) {
           className="relative w-full max-w-[360px] overflow-hidden rounded-3xl border border-border/40 bg-card shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]"
         >
           <button
-            onClick={dismiss}
-            aria-label="Dismiss"
+            onClick={closeOnce}
+            aria-label="Close"
             className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 text-foreground/65 hover:bg-foreground/20 hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
