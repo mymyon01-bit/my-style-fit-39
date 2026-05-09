@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { INFO_CARDS, type InfoCardId } from "@/lib/ootd/infoCards";
-import { isInfoCardSeen, markInfoCardSeen } from "@/hooks/useInfoCardSeen";
+import { isInfoCardSeen, markInfoCardSeen, markInfoCardSeenForever, syncDismissedInfoCardsFromProfile } from "@/hooks/useInfoCardSeen";
 
 const ACCENT_FG: Record<string, string> = {
   primary: "text-primary", accent: "text-accent",
