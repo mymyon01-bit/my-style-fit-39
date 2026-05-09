@@ -69,9 +69,13 @@ export function useConversations() {
     // Find every conversation the user participates in (group or 1:1)
     const { data: parts } = await supabase
       .from("conversation_participants")
-      .select("conversation_id")
+      .select("conversation_id, archived_at")
       .eq("user_id", user.id);
 
+    const archivedAtByConv = new Map<string, string>();
+    (parts || []).forEach((p: any) => {
+      if (p.archived_at) archivedAtByConv.set(p.conversation_id, p.archived_at);
+    });
     const convIds = Array.from(new Set((parts || []).map((p: any) => p.conversation_id)));
 
     // Also include legacy 1:1 rows where user_a/user_b match (in case backfill missed any)
