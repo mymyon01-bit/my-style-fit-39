@@ -44,6 +44,9 @@ const TINTS: { name: string; color: string }[] = [
 
 export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, onWaveDeleted, onWaveUpdated }: Props) {
   const [members, setMembers] = useState<WaveMember[]>([]);
+  const [followers, setFollowers] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [peopleTab, setPeopleTab] = useState<"members" | "followers" | "blocked">("members");
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [c1, setC1] = useState<string>((wave as any).theme_color || PRESETS[0].c1);
@@ -57,10 +60,20 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
   const [pinned, setPinned] = useState<boolean>(!!(wave as any).announcement_pinned);
   const [savingAnn, setSavingAnn] = useState(false);
 
+  const refreshPeople = async () => {
+    setLoading(true);
+    const [m, f, b] = await Promise.all([
+      fetchWaveMembers(wave.id),
+      fetchWaveFollowers(wave.id),
+      isAdmin ? fetchWaveBlocks(wave.id) : Promise.resolve([]),
+    ]);
+    setMembers(m); setFollowers(f); setBlocks(b);
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    fetchWaveMembers(wave.id).then(m => { setMembers(m); setLoading(false); });
+    refreshPeople();
     setC1((wave as any).theme_color || PRESETS[0].c1);
     setC2((wave as any).theme_color_2 || PRESETS[0].c2);
     setAnimated(!!(wave as any).theme_animated);
@@ -78,6 +91,33 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     try {
       await supabase.from("wave_members").delete().eq("wave_id", wave.id).eq("user_id", userId);
       setMembers(prev => prev.filter(m => m.user_id !== userId));
+      toast.success("Removed");
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const removeFollower = async (userId: string) => {
+    if (!confirm("Remove this follower?")) return;
+    try {
+      await removeWaveFollower(wave.id, userId);
+      setFollowers(prev => prev.filter(f => f.user_id !== userId));
+      toast.success("Removed");
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const blockUser = async (userId: string) => {
+    if (!confirm("Block this user from the wave? They will be removed and can't rejoin.")) return;
+    try {
+      await blockFromWave(wave.id, userId);
+      toast.success("Blocked");
+      await refreshPeople();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const unblockUser = async (userId: string) => {
+    try {
+      await unblockFromWave(wave.id, userId);
+      toast.success("Unblocked");
+      setBlocks(prev => prev.filter(b => b.user_id !== userId));
     } catch (e: any) { toast.error(e.message); }
   };
 
