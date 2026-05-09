@@ -178,8 +178,10 @@ export default function CardColorPicker({ value, onChange }: Props) {
   }, [open]);
 
   const handleSelect = (color: CardColor) => {
-    saveCardColor(color);
-    onChange(color);
+    // Selecting a hex/default automatically clears any uploaded background image.
+    const next: CardColor = { imageUrl: null, ...color };
+    saveCardColor(next);
+    onChange(next);
   };
 
   const currentLabel =
