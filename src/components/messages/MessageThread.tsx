@@ -178,7 +178,7 @@ export default function MessageThread({
         </div>
       )}
       {/* Header */}
-      <div className="relative z-10 flex items-center gap-3 border-b border-border/20 bg-card/50 backdrop-blur-sm px-4 py-3">
+      <div className="relative z-10 flex items-center gap-3 bg-transparent px-4 py-3">
         <button
           onClick={onBack}
           className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
