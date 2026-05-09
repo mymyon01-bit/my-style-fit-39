@@ -151,6 +151,13 @@ export default function WavePostCard({ post, isAdmin, onChanged }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ImageLightbox
+        images={post.image_urls ?? []}
+        startIndex={lightboxIdx ?? 0}
+        open={lightboxIdx !== null}
+        onClose={() => setLightboxIdx(null)}
+      />
     </article>
   );
 }
