@@ -41,15 +41,12 @@ export default function WaveCommentThread({ postId, isAdmin, onChanged }: Props)
         <p className="py-2 text-center text-[11px] text-foreground/40">No comments yet</p>
       ) : (
         <ul className="space-y-2.5">
-          {top.map(c => (
-            <CommentItem key={c.id} c={c} isAdmin={isAdmin} onReply={() => setReplyTo(c.id)}
-              onChanged={() => { refresh(); onChanged(); }} />
-          )).map((node, i) => {
-            const c = top[i];
+          {top.map(c => {
             const reps = repliesOf(c.id);
             return (
               <li key={c.id}>
-                {node}
+                <CommentItem c={c} isAdmin={isAdmin} onReply={() => setReplyTo(c.id)}
+                  onChanged={() => { refresh(); onChanged(); }} />
                 {reps.length > 0 && (
                   <ul className="mt-2 ml-7 space-y-2 border-l border-border/30 pl-3">
                     {reps.map(r => (
