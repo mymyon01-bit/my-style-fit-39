@@ -92,6 +92,15 @@ function readableTextFor(hex: string): string {
 export function applyCardColorToRoot(color: CardColor) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
+  if (color.imageUrl) {
+    // When an image is set, the card var holds a CSS image; consumers can also
+    // use --ootd-card-image directly. Foreground stays light for legibility.
+    root.style.setProperty(ROOT_BG_VAR, `url("${color.imageUrl}") center / cover no-repeat`);
+    root.style.setProperty("--ootd-card-image", `url("${color.imageUrl}")`);
+    root.style.setProperty(ROOT_FG_VAR, "#ffffff");
+    return;
+  }
+  root.style.removeProperty("--ootd-card-image");
   if (!color.hex) {
     root.style.removeProperty(ROOT_BG_VAR);
     root.style.removeProperty(ROOT_FG_VAR);
