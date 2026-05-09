@@ -634,6 +634,31 @@ export default function FitResults({
     setReloadToken((n) => n + 1);
   };
 
+  // ── Editorial fit phrases — short fashion language for the hero caption.
+  // Driven by the deterministic solver so wording always matches the visual.
+  const editorialPhrases = useMemo(() => {
+    const phrase = (raw: string, region: "torso" | "waist" | "shoulder" | "length") => {
+      const l = (raw || "").toLowerCase();
+      const tone = /(tight|snug|trim|pulled|short)/.test(l)
+        ? "Trim"
+        : /(loose|oversized|relaxed|roomy|dropped|long)/.test(l)
+        ? "Relaxed"
+        : "Clean";
+      const noun =
+        region === "torso" ? "torso"
+        : region === "waist" ? "waist silhouette"
+        : region === "shoulder" ? "shoulder structure"
+        : "length line";
+      return `${tone} ${noun}`;
+    };
+    const isBottom = garmentFit.category === "bottom";
+    const arr: string[] = [];
+    if (!isBottom) arr.push(phrase(solver.regions.shoulder.fit, "shoulder"));
+    arr.push(phrase(solver.regions.chest.fit, "torso"));
+    arr.push(phrase(solver.regions.waist.fit, "waist"));
+    return arr;
+  }, [solver, garmentFit.category]);
+
   return (
     <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 overflow-x-hidden">
       {/* Mode + Confidence row — slim, single line */}
