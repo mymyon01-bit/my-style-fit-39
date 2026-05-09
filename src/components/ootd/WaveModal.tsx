@@ -101,7 +101,7 @@ export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated, 
       }}
       className={
         inline
-          ? "relative w-full overflow-hidden rounded-3xl bg-background shadow-[0_20px_60px_-20px_rgba(0,0,0,0.45)] ring-1 ring-border/40 flex flex-col h-[78vh] min-h-[520px] max-h-[820px]"
+          ? "relative w-full overflow-hidden rounded-3xl bg-background shadow-[0_20px_60px_-20px_rgba(0,0,0,0.65)] ring-1 ring-border/60 flex flex-col h-[78vh] min-h-[520px] max-h-[820px] isolate"
           : "relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col"
       }>
 
