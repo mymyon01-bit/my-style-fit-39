@@ -241,16 +241,25 @@ export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated, 
               )}
             </main>
           </div>
-        </motion.div>
+    </motion.div>
+  );
 
-        <InviteToWaveSheet open={inviteOpen} onClose={() => setInviteOpen(false)}
-          waveId={wave.id} waveName={wave.name} />
-        <AddModuleSheet open={addOpen} onClose={() => setAddOpen(false)}
-          waveId={wave.id} nextPosition={modules.length} onCreated={refreshModules} />
-        <WaveAdminPanel open={adminOpen} onClose={() => setAdminOpen(false)}
-          wave={wave} isOwner={isOwner} isAdmin={isAdmin}
-          onWaveDeleted={() => { onLeft?.(); onClose(); }}
-          onWaveUpdated={onWaveUpdated} />
+  if (inline) {
+    return (
+      <AnimatePresence>
+        {card}
+        {sheets}
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-[115] flex items-stretch justify-center bg-black/80 backdrop-blur-md sm:p-3 md:p-6">
+        {card}
+        {sheets}
       </motion.div>
     </AnimatePresence>
   );
