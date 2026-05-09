@@ -520,6 +520,10 @@ const translations = {
   },
   ko: {
     appName: "WARDROBE",
+    tabProducts: "쇼핑",
+    tabFit: "피팅",
+    tabMy: "마이",
+    tabOotd: "OOTD",
     home: "홈",
     discover: "탐색",
     fit: "피팅",
