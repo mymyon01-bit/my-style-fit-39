@@ -70,7 +70,7 @@ export default function MessagesInbox() {
           </button>
         </div>
       ) : (
-        <ul className="divide-y divide-border/30 overflow-hidden rounded-2xl border border-border/30 bg-card/40">
+        <ul className="scrollbar-hide max-h-[60vh] space-y-0.5 overflow-y-auto rounded-2xl">
           {conversations.map((c) => {
             const title = c.is_group
               ? c.title ||
