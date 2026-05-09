@@ -39,6 +39,11 @@ import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
 import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
+import WaveBar from "@/components/ootd/WaveBar";
+import WaveModal from "@/components/ootd/WaveModal";
+import CreateWaveDialog from "@/components/ootd/CreateWaveDialog";
+import OOTDInfoCard from "@/components/ootd/OOTDInfoCard";
+import { useMyWaves, type Wave } from "@/hooks/useWaves";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatCount } from "@/lib/formatCount";
 
