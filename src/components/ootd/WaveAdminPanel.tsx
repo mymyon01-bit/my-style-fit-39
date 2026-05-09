@@ -125,6 +125,26 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
   const setBorder = (color: string | null) => { setBorderColor(color); saveTheme({ borderColor: color }); };
   const setCard = (color: string | null) => { setCardBg(color); saveTheme({ cardBg: color }); };
 
+  const saveAnnouncement = async (nextPinned?: boolean) => {
+    if (!isAdmin) return;
+    setSavingAnn(true);
+    try {
+      const { error } = await supabase.from("waves").update({
+        announcement: announcement.trim() || null,
+        announcement_pinned: nextPinned ?? pinned,
+      }).eq("id", wave.id);
+      if (error) throw error;
+      toast.success("Announcement saved");
+      onWaveUpdated?.();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSavingAnn(false); }
+  };
+
+  const togglePinned = () => {
+    const next = !pinned;
+    setPinned(next);
+    saveAnnouncement(next);
+  };
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
