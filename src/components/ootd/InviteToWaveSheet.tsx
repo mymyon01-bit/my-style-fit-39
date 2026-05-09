@@ -174,6 +174,7 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
                         key={u.user_id}
                         user={u}
                         invited={invitedIds.has(u.user_id)}
+                        member={memberIds.has(u.user_id)}
                         isCircle={true}
                         onInvite={() => handleInvite(u)}
                         onInviteDM={() => handleInviteDM(u)}
