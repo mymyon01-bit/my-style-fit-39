@@ -1196,6 +1196,51 @@ const OOTDPage = () => {
                     </AnimatePresence>
                   </div>
 
+                  {/* MY WAVES — counter + quick access */}
+                  <div className="rounded-2xl border border-border/35 bg-background/55 backdrop-blur-md overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent">
+                          <Sparkles className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-semibold tracking-[0.22em] text-foreground/75">MY WAVES</div>
+                          <div className="text-[11px] text-foreground/55">
+                            {myWaves.length === 0 ? "No waves yet" : `${myWaves.length} ${myWaves.length === 1 ? "wave" : "waves"}`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[14px] font-semibold tabular-nums text-foreground/80">{myWaves.length}</span>
+                        <button
+                          onClick={() => setActiveTab("feed")}
+                          className="rounded-full border border-accent/30 px-3 py-1 text-[9px] font-medium tracking-[0.2em] text-accent/85 hover:bg-accent/10"
+                        >
+                          OPEN
+                        </button>
+                        <button
+                          onClick={() => setCreateWaveOpen(true)}
+                          className="rounded-full bg-accent/90 px-3 py-1 text-[9px] font-medium tracking-[0.2em] text-accent-foreground hover:bg-accent"
+                        >
+                          NEW
+                        </button>
+                      </div>
+                    </div>
+                    {myWaves.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto px-3 pb-3 scrollbar-none">
+                        {myWaves.slice(0, 8).map((w) => (
+                          <button
+                            key={w.id}
+                            onClick={() => setSelectedWaveId(w.id)}
+                            className="shrink-0 rounded-full border border-border/40 bg-background/60 px-3 py-1 text-[10px] text-foreground/75 hover:border-accent/40 hover:text-accent transition-colors max-w-[140px] truncate"
+                          >
+                            {w.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* ADD TO SHOWROOM — sits between My Showroom and Curated Looks */}
                   <button
                     onClick={() => setUploadOpen(true)}
