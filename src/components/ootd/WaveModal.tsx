@@ -11,6 +11,7 @@ import WaveModuleView from "./WaveModuleView";
 import AddModuleSheet from "./AddModuleSheet";
 import WaveAdminPanel from "./WaveAdminPanel";
 import WaveMusicPicker from "./WaveMusicPicker";
+import WaveBackground from "./WaveBackground";
 import { toast } from "sonner";
 
 interface WaveModalProps {
@@ -18,9 +19,10 @@ interface WaveModalProps {
   wave: Wave | null;
   onClose: () => void;
   onLeft?: () => void;
+  onWaveUpdated?: () => void;
 }
 
-export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProps) {
+export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated }: WaveModalProps) {
   const { user } = useAuth();
   const { modules, loading: modulesLoading, refresh: refreshModules } = useWaveModules(open && wave ? wave.id : null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -78,6 +80,11 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
         <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
           transition={{ type: "spring", damping: 24, stiffness: 240 }}
           onClick={e => e.stopPropagation()}
+          style={{
+            borderColor: (wave as any).card_border_color || undefined,
+            borderWidth: (wave as any).card_border_color ? 2 : 0,
+            borderStyle: (wave as any).card_border_color ? "solid" : undefined,
+          }}
           className="relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col">
 
           {/* Cover banner — fixed slim height, never overlaps title */}
@@ -175,8 +182,22 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
           </div>
 
           {/* Body — sidebar + content */}
-          <div className="flex flex-1 min-h-0 flex-col sm:flex-row">
-            <aside className="shrink-0 border-b border-border/30 px-3 py-2 sm:w-44 sm:border-b-0 sm:border-r sm:py-3 sm:flex sm:flex-col">
+          <div className="relative flex flex-1 min-h-0 flex-col sm:flex-row">
+            {/* Animated graphic background — behind everything in body */}
+            <WaveBackground
+              type={(wave as any).bg_animation}
+              c1={(wave as any).theme_color}
+              c2={(wave as any).theme_color_2}
+            />
+            {/* Card inner tint — low opacity so content is always visible */}
+            {(wave as any).card_bg_color && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{ background: (wave as any).card_bg_color, opacity: 0.14 }}
+              />
+            )}
+            <aside className="relative z-10 shrink-0 border-b border-border/30 px-3 py-2 sm:w-44 sm:border-b-0 sm:border-r sm:py-3 sm:flex sm:flex-col bg-background/70 backdrop-blur-sm">
               <WaveSidebar
                 modules={modules} selectedId={selectedId} onSelect={setSelectedId}
                 isAdmin={isAdmin} isOwner={isOwner}
@@ -184,7 +205,7 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
                 onChanged={refreshModules}
               />
             </aside>
-            <main className="scrollbar-hide flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6">
+            <main className="scrollbar-hide relative z-10 flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6">
               {modulesLoading ? (
                 <div className="py-12 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-foreground/40" /></div>
               ) : selected ? (
@@ -204,7 +225,8 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
           waveId={wave.id} nextPosition={modules.length} onCreated={refreshModules} />
         <WaveAdminPanel open={adminOpen} onClose={() => setAdminOpen(false)}
           wave={wave} isOwner={isOwner} isAdmin={isAdmin}
-          onWaveDeleted={() => { onLeft?.(); onClose(); }} />
+          onWaveDeleted={() => { onLeft?.(); onClose(); }}
+          onWaveUpdated={onWaveUpdated} />
       </motion.div>
     </AnimatePresence>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Crown, Loader2, UserMinus, Palette, LayoutGrid, Check, Sparkles } from "lucide-react";
+import { X, Trash2, Crown, Loader2, UserMinus, Palette, LayoutGrid, Check, Sparkles, Square, Layers } from "lucide-react";
+import WaveBackground, { WAVE_BG_OPTIONS } from "./WaveBackground";
 import { fetchWaveMembers, type Wave, type WaveMember } from "@/hooks/useWaves";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -26,6 +27,17 @@ const PRESETS: { name: string; c1: string; c2: string }[] = [
   { name: "Aurora",   c1: "hsl(170 80% 55%)", c2: "hsl(290 75% 60%)" },
 ];
 
+const TINTS: { name: string; color: string }[] = [
+  { name: "Slate",  color: "hsl(220 15% 35%)" },
+  { name: "Rose",   color: "hsl(330 70% 55%)" },
+  { name: "Violet", color: "hsl(265 65% 60%)" },
+  { name: "Sky",    color: "hsl(200 80% 55%)" },
+  { name: "Mint",   color: "hsl(160 60% 50%)" },
+  { name: "Amber",  color: "hsl(40 85% 55%)"  },
+  { name: "White",  color: "hsl(0 0% 95%)"    },
+  { name: "Ink",    color: "hsl(0 0% 8%)"     },
+];
+
 export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, onWaveDeleted, onWaveUpdated }: Props) {
   const [members, setMembers] = useState<WaveMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,6 +45,9 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
   const [c1, setC1] = useState<string>((wave as any).theme_color || PRESETS[0].c1);
   const [c2, setC2] = useState<string>((wave as any).theme_color_2 || PRESETS[0].c2);
   const [animated, setAnimated] = useState<boolean>(!!(wave as any).theme_animated);
+  const [bgAnim, setBgAnim] = useState<string>((wave as any).bg_animation || "none");
+  const [borderColor, setBorderColor] = useState<string | null>((wave as any).card_border_color ?? null);
+  const [cardBg, setCardBg] = useState<string | null>((wave as any).card_bg_color ?? null);
   const [savingTheme, setSavingTheme] = useState(false);
 
   useEffect(() => {
@@ -42,6 +57,9 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     setC1((wave as any).theme_color || PRESETS[0].c1);
     setC2((wave as any).theme_color_2 || PRESETS[0].c2);
     setAnimated(!!(wave as any).theme_animated);
+    setBgAnim((wave as any).bg_animation || "none");
+    setBorderColor((wave as any).card_border_color ?? null);
+    setCardBg((wave as any).card_bg_color ?? null);
   }, [open, wave.id]);
 
   if (!open) return null;
@@ -67,18 +85,21 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     finally { setBusy(false); }
   };
 
-  const saveTheme = async (next?: { c1?: string; c2?: string; animated?: boolean }) => {
+  const saveTheme = async (next?: Partial<{ c1: string; c2: string; animated: boolean; bgAnim: string; borderColor: string | null; cardBg: string | null }>) => {
     if (!isAdmin) return;
     const payload: any = {
       theme_color: next?.c1 ?? c1,
       theme_color_2: next?.c2 ?? c2,
       theme_animated: next?.animated ?? animated,
+      bg_animation: next?.bgAnim ?? bgAnim,
+      card_border_color: next?.borderColor !== undefined ? next.borderColor : borderColor,
+      card_bg_color: next?.cardBg !== undefined ? next.cardBg : cardBg,
     };
     setSavingTheme(true);
     try {
       const { error } = await supabase.from("waves").update(payload).eq("id", wave.id);
       if (error) throw error;
-      toast.success("Background saved");
+      toast.success("Saved");
       onWaveUpdated?.();
     } catch (e: any) { toast.error(e.message); }
     finally { setSavingTheme(false); }
@@ -94,6 +115,10 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     setAnimated(next);
     saveTheme({ animated: next });
   };
+
+  const setBg = (id: string) => { setBgAnim(id); saveTheme({ bgAnim: id }); };
+  const setBorder = (color: string | null) => { setBorderColor(color); saveTheme({ borderColor: color }); };
+  const setCard = (color: string | null) => { setCardBg(color); saveTheme({ cardBg: color }); };
 
   return (
     <AnimatePresence>
@@ -162,6 +187,78 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
               </button>
               <p className="mt-1.5 text-[10px] leading-relaxed text-foreground/50">
                 Pick two colors — turn on Animated to make the wave's banner gently shift between them.
+              </p>
+            </section>
+          )}
+
+          {/* GRAPHIC ANIMATED BACKGROUND */}
+          {isAdmin && (
+            <section className="mt-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Layers className="h-3.5 w-3.5 text-foreground/60" />
+                <p className="text-[10px] font-semibold tracking-wide text-foreground/55">ANIMATED GRAPHIC BACKGROUND</p>
+              </div>
+              {/* Live preview */}
+              <div className="relative h-24 w-full overflow-hidden rounded-2xl border border-border/30 bg-background">
+                <WaveBackground type={bgAnim} c1={c1} c2={c2} />
+                <div className="absolute inset-0 flex items-center justify-center text-foreground/80 text-[11px] font-semibold tracking-wide">
+                  PREVIEW
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {WAVE_BG_OPTIONS.map((opt) => {
+                  const active = opt.id === bgAnim;
+                  return (
+                    <button key={opt.id} onClick={() => setBg(opt.id)}
+                      className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-colors ${
+                        active ? "border-accent bg-accent/10 text-accent" : "border-border/40 text-foreground/70 hover:bg-foreground/[0.04]"
+                      }`}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* CARD BORDER + CARD INNER COLOR */}
+          {isAdmin && (
+            <section className="mt-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Square className="h-3.5 w-3.5 text-foreground/60" />
+                <p className="text-[10px] font-semibold tracking-wide text-foreground/55">CARD STYLE</p>
+              </div>
+              <p className="text-[11px] text-foreground/75 mb-1.5">Card border</p>
+              <div className="grid grid-cols-9 gap-1.5">
+                <button onClick={() => setBorder(null)}
+                  title="Default"
+                  className={`h-7 rounded-md border-2 ${borderColor === null ? "border-foreground" : "border-border/40"} bg-foreground/[0.04] text-[9px] text-foreground/60`}>
+                  —
+                </button>
+                {TINTS.map((t) => (
+                  <button key={t.name} onClick={() => setBorder(t.color)}
+                    title={t.name}
+                    className={`h-7 rounded-md border-2 ${borderColor === t.color ? "border-foreground" : "border-border/30"}`}
+                    style={{ background: t.color }} />
+                ))}
+              </div>
+
+              <p className="text-[11px] text-foreground/75 mt-3 mb-1.5">Card inner tint</p>
+              <div className="grid grid-cols-9 gap-1.5">
+                <button onClick={() => setCard(null)}
+                  title="Default"
+                  className={`h-7 rounded-md border-2 ${cardBg === null ? "border-foreground" : "border-border/40"} bg-foreground/[0.04] text-[9px] text-foreground/60`}>
+                  —
+                </button>
+                {TINTS.map((t) => (
+                  <button key={t.name} onClick={() => setCard(t.color)}
+                    title={t.name}
+                    className={`h-7 rounded-md border-2 ${cardBg === t.color ? "border-foreground" : "border-border/30"}`}
+                    style={{ background: t.color }} />
+                ))}
+              </div>
+              <p className="mt-1.5 text-[10px] leading-relaxed text-foreground/50">
+                Card tint is applied at low opacity automatically so content (photos, text) is always clearly visible.
               </p>
             </section>
           )}
