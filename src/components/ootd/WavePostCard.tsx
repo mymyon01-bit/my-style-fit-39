@@ -25,6 +25,7 @@ export default function WavePostCard({ post, isAdmin, onChanged }: Props) {
   const [openComments, setOpenComments] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const isOwner = user?.id === post.author_id;
   const canDelete = isOwner || isAdmin;
