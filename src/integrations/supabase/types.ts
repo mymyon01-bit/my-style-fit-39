@@ -3399,6 +3399,8 @@ export type Database = {
       }
       waves: {
         Row: {
+          announcement: string | null
+          announcement_pinned: boolean
           bg_animation: string
           card_bg_color: string | null
           card_border_color: string | null
@@ -3418,6 +3420,8 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          announcement?: string | null
+          announcement_pinned?: boolean
           bg_animation?: string
           card_bg_color?: string | null
           card_border_color?: string | null
@@ -3437,6 +3441,8 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          announcement?: string | null
+          announcement_pinned?: boolean
           bg_animation?: string
           card_bg_color?: string | null
           card_border_color?: string | null
@@ -3481,6 +3487,8 @@ export type Database = {
           _visibility?: string
         }
         Returns: {
+          announcement: string | null
+          announcement_pinned: boolean
           bg_animation: string
           card_bg_color: string | null
           card_border_color: string | null
