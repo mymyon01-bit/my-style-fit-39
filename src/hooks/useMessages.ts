@@ -155,43 +155,50 @@ export function useConversations() {
       unreadByConvo.set(m.conversation_id, (unreadByConvo.get(m.conversation_id) || 0) + 1);
     });
 
-    const summaries: ConversationSummary[] = convos.map((c: any) => {
-      const memberIds = partsByConv.get(c.id) || [c.user_a, c.user_b].filter(Boolean);
-      const others = memberIds.filter((id: string) => id !== user.id);
-      const isGroup = !!c.is_group || others.length > 1;
+    const summaries: ConversationSummary[] = convos
+      .map((c: any) => {
+        const memberIds = partsByConv.get(c.id) || [c.user_a, c.user_b].filter(Boolean);
+        const others = memberIds.filter((id: string) => id !== user.id);
+        const isGroup = !!c.is_group || others.length > 1;
 
-      let other_user_id: string | null = null;
-      let other_display_name: string | null = null;
-      let other_username: string | null = null;
-      let other_avatar_url: string | null = null;
+        let other_user_id: string | null = null;
+        let other_display_name: string | null = null;
+        let other_username: string | null = null;
+        let other_avatar_url: string | null = null;
 
-      if (!isGroup && others[0]) {
-        const profile = profileMap.get(others[0]) || {};
-        other_user_id = others[0];
-        other_display_name = profile.display_name ?? null;
-        other_username = profile.username ?? null;
-        other_avatar_url = profile.avatar_url ?? null;
-      }
+        if (!isGroup && others[0]) {
+          const profile = profileMap.get(others[0]) || {};
+          other_user_id = others[0];
+          other_display_name = profile.display_name ?? null;
+          other_username = profile.username ?? null;
+          other_avatar_url = profile.avatar_url ?? null;
+        }
 
-      const member_avatars = others
-        .map((id: string) => profileMap.get(id)?.avatar_url)
-        .filter(Boolean) as string[];
+        const member_avatars = others
+          .map((id: string) => profileMap.get(id)?.avatar_url)
+          .filter(Boolean) as string[];
 
-      return {
-        id: c.id,
-        is_group: isGroup,
-        title: c.title ?? null,
-        other_user_id,
-        other_display_name,
-        other_username,
-        other_avatar_url,
-        member_count: memberIds.length,
-        member_avatars,
-        last_message_preview: c.last_message_preview ?? null,
-        last_message_at: c.last_message_at,
-        unread_count: unreadByConvo.get(c.id) || 0,
-      };
-    });
+        return {
+          id: c.id,
+          is_group: isGroup,
+          title: c.title ?? null,
+          other_user_id,
+          other_display_name,
+          other_username,
+          other_avatar_url,
+          member_count: memberIds.length,
+          member_avatars,
+          last_message_preview: c.last_message_preview ?? null,
+          last_message_at: c.last_message_at,
+          unread_count: unreadByConvo.get(c.id) || 0,
+        };
+      })
+      .filter((c) => {
+        const archivedAt = archivedAtByConv.get(c.id);
+        // Hide archived conversations until a new message arrives after the archive timestamp
+        if (archivedAt && new Date(c.last_message_at) <= new Date(archivedAt)) return false;
+        return true;
+      });
 
     setConversations(summaries);
     setTotalUnread(Array.from(unreadByConvo.values()).reduce((a, b) => a + b, 0));
