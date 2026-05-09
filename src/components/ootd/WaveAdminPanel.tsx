@@ -27,6 +27,17 @@ const PRESETS: { name: string; c1: string; c2: string }[] = [
   { name: "Aurora",   c1: "hsl(170 80% 55%)", c2: "hsl(290 75% 60%)" },
 ];
 
+const TINTS: { name: string; color: string }[] = [
+  { name: "Slate",  color: "hsl(220 15% 35%)" },
+  { name: "Rose",   color: "hsl(330 70% 55%)" },
+  { name: "Violet", color: "hsl(265 65% 60%)" },
+  { name: "Sky",    color: "hsl(200 80% 55%)" },
+  { name: "Mint",   color: "hsl(160 60% 50%)" },
+  { name: "Amber",  color: "hsl(40 85% 55%)"  },
+  { name: "White",  color: "hsl(0 0% 95%)"    },
+  { name: "Ink",    color: "hsl(0 0% 8%)"     },
+];
+
 export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, onWaveDeleted, onWaveUpdated }: Props) {
   const [members, setMembers] = useState<WaveMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,6 +45,9 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
   const [c1, setC1] = useState<string>((wave as any).theme_color || PRESETS[0].c1);
   const [c2, setC2] = useState<string>((wave as any).theme_color_2 || PRESETS[0].c2);
   const [animated, setAnimated] = useState<boolean>(!!(wave as any).theme_animated);
+  const [bgAnim, setBgAnim] = useState<string>((wave as any).bg_animation || "none");
+  const [borderColor, setBorderColor] = useState<string | null>((wave as any).card_border_color ?? null);
+  const [cardBg, setCardBg] = useState<string | null>((wave as any).card_bg_color ?? null);
   const [savingTheme, setSavingTheme] = useState(false);
 
   useEffect(() => {
@@ -43,6 +57,9 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     setC1((wave as any).theme_color || PRESETS[0].c1);
     setC2((wave as any).theme_color_2 || PRESETS[0].c2);
     setAnimated(!!(wave as any).theme_animated);
+    setBgAnim((wave as any).bg_animation || "none");
+    setBorderColor((wave as any).card_border_color ?? null);
+    setCardBg((wave as any).card_bg_color ?? null);
   }, [open, wave.id]);
 
   if (!open) return null;
