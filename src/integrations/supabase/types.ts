@@ -1805,6 +1805,7 @@ export type Database = {
           bonus_stars: number
           created_at: string
           date_of_birth: string | null
+          dismissed_info_cards: string[]
           display_name: string | null
           email_verified: boolean | null
           gender_preference: string | null
@@ -1838,6 +1839,7 @@ export type Database = {
           bonus_stars?: number
           created_at?: string
           date_of_birth?: string | null
+          dismissed_info_cards?: string[]
           display_name?: string | null
           email_verified?: boolean | null
           gender_preference?: string | null
@@ -1871,6 +1873,7 @@ export type Database = {
           bonus_stars?: number
           created_at?: string
           date_of_birth?: string | null
+          dismissed_info_cards?: string[]
           display_name?: string | null
           email_verified?: boolean | null
           gender_preference?: string | null

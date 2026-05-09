@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { INFO_CARDS, type InfoCardId } from "@/lib/ootd/infoCards";
-import { isInfoCardSeen, markInfoCardSeen } from "@/hooks/useInfoCardSeen";
+import { isInfoCardSeen, markInfoCardSeen, markInfoCardSeenForever, syncDismissedInfoCardsFromProfile } from "@/hooks/useInfoCardSeen";
 
 const ACCENT_FG: Record<string, string> = {
   primary: "text-primary", accent: "text-accent",
@@ -24,6 +24,10 @@ export default function OOTDTipToast({ ids }: Props) {
   const { t } = useI18n();
   const [activeId, setActiveId] = useState<InfoCardId | null>(null);
 
+  // First mount: pull dismissed list from the user's profile so cards never
+  // re-appear on a different device or after reinstall.
+  useEffect(() => { syncDismissedInfoCardsFromProfile(); }, []);
+
   useEffect(() => {
     const next = ids.find(id => !isInfoCardSeen(id));
     if (next) {
@@ -40,13 +44,27 @@ export default function OOTDTipToast({ ids }: Props) {
     return () => { document.body.style.overflow = prev; };
   }, [activeId]);
 
-  const dismiss = () => {
-    if (activeId) markInfoCardSeen(activeId);
+  const advance = () => {
     setActiveId(null);
     setTimeout(() => {
       const next = ids.find(id => !isInfoCardSeen(id));
       if (next) setActiveId(next);
     }, 350);
+  };
+
+  /** Close for now — show again on the next OOTD visit. */
+  const closeOnce = () => { setActiveId(null); };
+
+  /** Got it — don't show this notice again on this device. */
+  const dismiss = () => {
+    if (activeId) markInfoCardSeen(activeId);
+    advance();
+  };
+
+  /** Don't show again on any device (syncs to profile). */
+  const dismissForever = () => {
+    if (activeId) void markInfoCardSeenForever(activeId);
+    advance();
   };
 
   if (!activeId) return null;
@@ -61,7 +79,7 @@ export default function OOTDTipToast({ ids }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={dismiss}
+        onClick={closeOnce}
         className="fixed inset-0 z-[300] flex items-center justify-center bg-black/65 backdrop-blur-sm p-4"
         style={{
           paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
@@ -77,8 +95,8 @@ export default function OOTDTipToast({ ids }: Props) {
           className="relative w-full max-w-[360px] overflow-hidden rounded-3xl border border-border/40 bg-card shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]"
         >
           <button
-            onClick={dismiss}
-            aria-label="Dismiss"
+            onClick={closeOnce}
+            aria-label="Close"
             className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 text-foreground/65 hover:bg-foreground/20 hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
@@ -107,6 +125,12 @@ export default function OOTDTipToast({ ids }: Props) {
               className="mt-5 w-full rounded-full bg-gradient-to-r from-[hsl(330_85%_60%)] to-[hsl(280_70%_55%)] px-4 py-2.5 text-[12.5px] font-semibold text-white shadow-[0_8px_22px_-8px_hsl(330_85%_60%/0.5)] hover:opacity-95"
             >
               Got it
+            </button>
+            <button
+              onClick={dismissForever}
+              className="mt-2 w-full rounded-full bg-foreground/[0.05] px-4 py-2 text-[11px] font-semibold text-foreground/55 hover:bg-foreground/10 hover:text-foreground/80 transition-colors"
+            >
+              Don't show again
             </button>
           </div>
         </motion.div>
