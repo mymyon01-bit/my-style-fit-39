@@ -39,6 +39,11 @@ import CreateShowroomBanner from "@/components/showroom/CreateShowroomBanner";
 import ShowroomMyBlock from "@/components/showroom/ShowroomMyBlock";
 import { useOOTDModal } from "@/lib/ootdModal";
 import ShareOOTDWithFriendCTA from "@/components/ootd/ShareOOTDWithFriendCTA";
+import WaveBar from "@/components/ootd/WaveBar";
+import WaveModal from "@/components/ootd/WaveModal";
+import CreateWaveDialog from "@/components/ootd/CreateWaveDialog";
+import OOTDInfoCard from "@/components/ootd/OOTDInfoCard";
+import { useMyWaves, type Wave } from "@/hooks/useWaves";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatCount } from "@/lib/formatCount";
 
@@ -96,6 +101,10 @@ const OOTDPage = () => {
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
+  const [selectedWaveId, setSelectedWaveId] = useState<string | null>(null);
+  const [createWaveOpen, setCreateWaveOpen] = useState(false);
+  const { waves: myWaves, refresh: refreshWaves } = useMyWaves();
+  const selectedWave: Wave | null = myWaves.find((w) => w.id === selectedWaveId) ?? null;
   const [trendingTopics, setTrendingTopics] = useState<Topic[]>([]);
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
@@ -693,6 +702,17 @@ const OOTDPage = () => {
   return (
     <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${mobileOOTD ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
+      <WaveModal
+        open={!!selectedWave}
+        wave={selectedWave}
+        onClose={() => setSelectedWaveId(null)}
+        onLeft={() => { refreshWaves(); setSelectedWaveId(null); }}
+      />
+      <CreateWaveDialog
+        open={createWaveOpen}
+        onClose={() => setCreateWaveOpen(false)}
+        onCreated={(id) => { refreshWaves(); setSelectedWaveId(id); }}
+      />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={mobileOOTD} />
       {/* Tab bar — bottom on mobile OOTD, top on desktop standalone page. */}
       {!mobileOOTD && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
@@ -983,7 +1003,14 @@ const OOTDPage = () => {
       </div>
 
 
-      <div className={`relative mx-auto max-w-lg md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "px-4 pt-2" : "px-6 pt-3 md:pt-3"}`}>
+      <div className={`relative mx-auto max-w-lg md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "px-4 pt-2" : "px-6 pt-3 md:pt-3"} space-y-3`}>
+        <OOTDInfoCard id="feed-overview" size="md" />
+        <OOTDInfoCard id="waves-intro" size="sm" />
+        <WaveBar
+          selectedWaveId={selectedWaveId}
+          onSelectWave={setSelectedWaveId}
+          onCreateWave={() => setCreateWaveOpen(true)}
+        />
         <div
           className={bgTheme !== "none" ? `rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl shadow-xl shadow-black/10 ${mobileOOTD ? "p-3" : "p-4 md:p-6"}` : ""}
           style={bgTheme !== "none" ? cardStyle : undefined}

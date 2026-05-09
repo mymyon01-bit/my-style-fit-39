@@ -3008,11 +3008,160 @@ export type Database = {
         }
         Relationships: []
       }
+      wave_invites: {
+        Row: {
+          created_at: string
+          id: string
+          invitee_id: string
+          inviter_id: string
+          message: string | null
+          responded_at: string | null
+          status: string
+          wave_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          wave_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          wave_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_invites_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wave_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+          wave_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+          wave_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+          wave_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_members_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wave_posts: {
+        Row: {
+          id: string
+          post_id: string
+          shared_at: string
+          shared_by: string
+          wave_id: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          shared_at?: string
+          shared_by: string
+          wave_id: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          shared_at?: string
+          shared_by?: string
+          wave_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wave_posts_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waves: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_private: boolean
+          member_count: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          member_count?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          member_count?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      accept_wave_invite: { Args: { _invite_id: string }; Returns: string }
       add_conversation_member: {
         Args: { _conv_id: string; _user_id: string }
         Returns: undefined
@@ -3023,6 +3172,7 @@ export type Database = {
         Args: { _member_ids: string[]; _title: string }
         Returns: string
       }
+      decline_wave_invite: { Args: { _invite_id: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: undefined }
       get_or_create_conversation: {
         Args: { _other_user: string }
@@ -3042,6 +3192,18 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_wave_admin: {
+        Args: { _user_id: string; _wave_id: string }
+        Returns: boolean
+      }
+      is_wave_member: {
+        Args: { _user_id: string; _wave_id: string }
+        Returns: boolean
+      }
+      is_wave_owner: {
+        Args: { _user_id: string; _wave_id: string }
+        Returns: boolean
+      }
       log_admin_action: {
         Args: {
           _action: string
