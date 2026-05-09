@@ -123,12 +123,12 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
       <div
         ref={bubbleRef}
         onContextMenu={handleContext}
-        className={`relative max-w-[78%] rounded-2xl px-3.5 py-2 text-[12px] leading-snug shadow-soft ${
+        className={`relative max-w-[78%] rounded-[20px] px-3.5 py-2 text-[12px] leading-snug ${
           shaking ? "animate-nudge" : ""
         } ${
           isMine
-            ? "bg-primary text-primary-foreground"
-            : "bg-card/85 backdrop-blur-sm text-card-foreground border border-border/25"
+            ? "bg-[hsl(330_85%_60%)] text-white"
+            : "bg-foreground/[0.06] text-foreground"
         }`}
       >
         {attachments.length > 0 && (
