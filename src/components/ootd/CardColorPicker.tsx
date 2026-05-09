@@ -61,7 +61,7 @@ export function loadCardColor(): CardColor {
 
 export function saveCardColor(color: CardColor) {
   try {
-    if (color.hex) localStorage.setItem(STORAGE_KEY, JSON.stringify(color));
+    if (color.hex || color.imageUrl) localStorage.setItem(STORAGE_KEY, JSON.stringify(color));
     else localStorage.removeItem(STORAGE_KEY);
   } catch {}
   applyCardColorToRoot(color);
