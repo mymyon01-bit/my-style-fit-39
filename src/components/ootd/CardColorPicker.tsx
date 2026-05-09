@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Palette, X, Check, Pipette } from "lucide-react";
+import { Palette, X, Check, Pipette, ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 /**
  * "Card color" picker — controls the tint of the translucent panels
