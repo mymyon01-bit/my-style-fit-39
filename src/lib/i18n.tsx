@@ -405,6 +405,7 @@ const translations = {
     notifSuffixShowroomLike: "liked your showroom",
     notifSuffixShowroomSave: "saved your showroom",
     notifSuffixShowroomFollow: "followed your showroom",
+    notifSuffixWaveInvite: "invited you to a wave",
     closeNotifications: "Close notifications",
     // About page extras
     aboutBack: "Back",
@@ -963,6 +964,7 @@ const translations = {
     notifSuffixShowroomLike: "님이 쇼룸을 좋아해요",
     notifSuffixShowroomSave: "님이 쇼룸을 저장했어요",
     notifSuffixShowroomFollow: "님이 쇼룸을 팔로우했어요",
+    notifSuffixWaveInvite: "님이 웨이브에 초대했어요",
     closeNotifications: "알림 닫기",
     aboutBack: "뒤로",
     aboutClose: "닫기",
@@ -1520,6 +1522,7 @@ const translations = {
     notifSuffixShowroomLike: "ha messo mi piace al tuo showroom",
     notifSuffixShowroomSave: "ha salvato il tuo showroom",
     notifSuffixShowroomFollow: "ha seguito il tuo showroom",
+    notifSuffixWaveInvite: "ti ha invitato in una wave",
     closeNotifications: "Chiudi notifiche",
     // Tour di benvenuto (web + nativo)
     tourSkip: "SALTA",
@@ -2076,6 +2079,7 @@ const translations = {
     notifSuffixShowroomLike: "gefällt dein Showroom",
     notifSuffixShowroomSave: "hat deinen Showroom gespeichert",
     notifSuffixShowroomFollow: "folgt deinem Showroom",
+    notifSuffixWaveInvite: "hat dich zu einer Wave eingeladen",
     closeNotifications: "Benachrichtigungen schließen",
     // ── auto-added translations ──
     aboutAffiliate1: "— Marken-Affiliate-Partnerschaften",
@@ -2628,6 +2632,7 @@ const translations = {
     notifSuffixShowroomLike: "le gustó tu showroom",
     notifSuffixShowroomSave: "guardó tu showroom",
     notifSuffixShowroomFollow: "siguió tu showroom",
+    notifSuffixWaveInvite: "te invitó a una wave",
     closeNotifications: "Cerrar notificaciones",
     // ── auto-added translations ──
     aboutAffiliate1: "— Asociaciones de afiliación con marcas",
@@ -3180,6 +3185,7 @@ const translations = {
     notifSuffixShowroomLike: "a aimé ton showroom",
     notifSuffixShowroomSave: "a enregistré ton showroom",
     notifSuffixShowroomFollow: "suit ton showroom",
+    notifSuffixWaveInvite: "t'a invité à une wave",
     closeNotifications: "Fermer les notifications",
     // ── auto-added translations ──
     aboutAffiliate1: "— Partenariats d'affiliation avec les marques",
@@ -3732,6 +3738,7 @@ const translations = {
     notifSuffixShowroomLike: "さんがショールームにいいねしました",
     notifSuffixShowroomSave: "さんがショールームを保存しました",
     notifSuffixShowroomFollow: "さんがショールームをフォローしました",
+    notifSuffixWaveInvite: "さんがウェーブに招待しました",
     closeNotifications: "通知を閉じる",
     // ── auto-added translations ──
     aboutAffiliate1: "— ブランドアフィリエイト提携",
@@ -4284,6 +4291,7 @@ const translations = {
     notifSuffixShowroomLike: "赞了你的展间",
     notifSuffixShowroomSave: "收藏了你的展间",
     notifSuffixShowroomFollow: "关注了你的展间",
+    notifSuffixWaveInvite: "邀请你加入一个浪潮",
     closeNotifications: "关闭通知",
     // ── auto-added translations ──
     aboutAffiliate1: "— 品牌联盟合作",
