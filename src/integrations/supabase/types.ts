@@ -3008,6 +3008,41 @@ export type Database = {
         }
         Relationships: []
       }
+      wave_blocks: {
+        Row: {
+          blocked_by: string
+          created_at: string
+          id: string
+          reason: string | null
+          user_id: string
+          wave_id: string
+        }
+        Insert: {
+          blocked_by: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          user_id: string
+          wave_id: string
+        }
+        Update: {
+          blocked_by?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
+          wave_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_blocks_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wave_comment_likes: {
         Row: {
           comment_id: string
