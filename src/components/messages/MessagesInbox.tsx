@@ -40,7 +40,7 @@ export default function MessagesInbox() {
         <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">
           MESSAGES
           {totalUnread > 0 && (
-            <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground">
+            <span className="ml-2 rounded-full bg-[hsl(330_85%_60%)] px-2 py-0.5 text-[9px] font-bold text-white">
               {totalUnread}
             </span>
           )}
