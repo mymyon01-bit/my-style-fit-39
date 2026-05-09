@@ -101,6 +101,10 @@ const OOTDPage = () => {
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
+  const [selectedWaveId, setSelectedWaveId] = useState<string | null>(null);
+  const [createWaveOpen, setCreateWaveOpen] = useState(false);
+  const { waves: myWaves, refresh: refreshWaves } = useMyWaves();
+  const selectedWave: Wave | null = myWaves.find((w) => w.id === selectedWaveId) ?? null;
   const [trendingTopics, setTrendingTopics] = useState<Topic[]>([]);
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
