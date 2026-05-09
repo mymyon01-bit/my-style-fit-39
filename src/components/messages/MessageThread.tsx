@@ -168,7 +168,7 @@ export default function MessageThread({
     : null;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-border/30 bg-background/40 shadow-soft">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-background/30">
       {/* OOTD background — mirrors the user's My-Page personalization */}
       {bgTheme !== "none" && (
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-3xl">
@@ -178,7 +178,7 @@ export default function MessageThread({
         </div>
       )}
       {/* Header */}
-      <div className="relative z-10 flex items-center gap-3 border-b border-border/20 bg-card/50 backdrop-blur-sm px-4 py-3">
+      <div className="relative z-10 flex items-center gap-3 bg-transparent px-4 py-3">
         <button
           onClick={onBack}
           className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -233,12 +233,12 @@ export default function MessageThread({
 
       {/* Add-member tray (group only) */}
       {isGroup && showAdd && (
-        <div className="relative z-10 border-b border-border/20 bg-card/40 backdrop-blur-sm p-3">
+        <div className="relative z-10 bg-transparent px-3 pb-2">
           <input
             value={addQuery}
             onChange={(e) => setAddQuery(e.target.value)}
             placeholder="Add by username or name…"
-            className="h-9 w-full rounded-lg border border-border bg-background px-3 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-9 w-full rounded-full border-0 bg-foreground/[0.06] px-4 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[hsl(330_85%_60%)]/40"
             autoFocus
           />
           {addResults.length > 0 && (
@@ -276,7 +276,7 @@ export default function MessageThread({
       )}
 
       {/* Messages */}
-      <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="scrollbar-hide relative z-10 flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

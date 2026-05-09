@@ -40,14 +40,14 @@ export default function MessagesInbox() {
         <p className="text-[10px] font-medium tracking-[0.25em] text-foreground/70">
           MESSAGES
           {totalUnread > 0 && (
-            <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground">
+            <span className="ml-2 rounded-full bg-[hsl(330_85%_60%)] px-2 py-0.5 text-[9px] font-bold text-white">
               {totalUnread}
             </span>
           )}
         </p>
         <button
           onClick={() => setNewOpen(true)}
-          className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/80 transition-colors hover:bg-foreground hover:text-background"
+          className="flex items-center gap-1.5 rounded-full bg-[hsl(330_85%_60%)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition-opacity hover:opacity-90"
         >
           <PenSquare className="h-3 w-3" />
           New
@@ -59,7 +59,7 @@ export default function MessagesInbox() {
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
       ) : conversations.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/30 bg-card/30 py-10 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/[0.03] py-10 text-center">
           <MessageCircle className="h-6 w-6 text-muted-foreground/50" />
           <p className="text-[12px] text-muted-foreground">No messages yet</p>
           <button
@@ -70,7 +70,7 @@ export default function MessagesInbox() {
           </button>
         </div>
       ) : (
-        <ul className="divide-y divide-border/30 overflow-hidden rounded-2xl border border-border/30 bg-card/40">
+        <ul className="scrollbar-hide max-h-[60vh] space-y-0.5 overflow-y-auto rounded-2xl">
           {conversations.map((c) => {
             const title = c.is_group
               ? c.title ||
@@ -88,7 +88,7 @@ export default function MessagesInbox() {
                       groupTitle: c.title,
                     })
                   }
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.04]"
                 >
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
                     {c.is_group ? (
@@ -103,7 +103,7 @@ export default function MessagesInbox() {
                       </div>
                     )}
                     {c.unread_count > 0 && (
-                      <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-accent-foreground">
+                      <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(330_85%_60%)] px-1 text-[9px] font-bold text-white">
                         {c.unread_count}
                       </span>
                     )}

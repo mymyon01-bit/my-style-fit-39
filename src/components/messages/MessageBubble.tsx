@@ -123,12 +123,12 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
       <div
         ref={bubbleRef}
         onContextMenu={handleContext}
-        className={`relative max-w-[78%] rounded-2xl px-3.5 py-2 text-[12px] leading-snug shadow-soft ${
+        className={`relative max-w-[78%] rounded-[20px] px-3.5 py-2 text-[12px] leading-snug ${
           shaking ? "animate-nudge" : ""
         } ${
           isMine
-            ? "bg-primary text-primary-foreground"
-            : "bg-card/85 backdrop-blur-sm text-card-foreground border border-border/25"
+            ? "bg-[hsl(330_85%_60%)] text-white"
+            : "bg-foreground/[0.06] text-foreground"
         }`}
       >
         {attachments.length > 0 && (
@@ -345,7 +345,7 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
         )}
 
         <p className={`mt-1 flex items-center justify-end gap-1.5 text-[9px] tracking-wide ${
-          isMine ? "text-primary-foreground/70" : "text-muted-foreground"
+          isMine ? "text-white/75" : "text-muted-foreground"
         }`}>
           <span>{time}</span>
           {isMine && (
@@ -361,10 +361,10 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
           onClick={() => toggle("like")}
           aria-label="Like message"
           aria-pressed={reaction === "like"}
-          className={`flex h-7 min-w-[34px] items-center justify-center gap-1 rounded-full border px-2 text-[11px] transition-all active:scale-95 ${
+          className={`flex h-6 min-w-[28px] items-center justify-center gap-1 rounded-full px-2 text-[11px] transition-all active:scale-95 ${
             reaction === "like"
-              ? "border-accent bg-accent/15 text-accent"
-              : "border-border/40 bg-background/60 text-foreground/55 hover:bg-foreground/[0.04]"
+              ? "bg-[hsl(330_85%_60%)]/15 text-[hsl(330_85%_55%)]"
+              : "text-foreground/45 hover:bg-foreground/[0.05]"
           }`}
         >
           <ThumbsUp className="h-3 w-3" strokeWidth={reaction === "like" ? 2.6 : 2} />
@@ -375,10 +375,10 @@ export default function MessageBubble({ id, content, isMine, createdAt, readAt, 
           onClick={() => toggle("dislike")}
           aria-label="Dislike message"
           aria-pressed={reaction === "dislike"}
-          className={`flex h-7 min-w-[34px] items-center justify-center gap-1 rounded-full border px-2 text-[11px] transition-all active:scale-95 ${
+          className={`flex h-6 min-w-[28px] items-center justify-center gap-1 rounded-full px-2 text-[11px] transition-all active:scale-95 ${
             reaction === "dislike"
-              ? "border-destructive/60 bg-destructive/10 text-destructive"
-              : "border-border/40 bg-background/60 text-foreground/55 hover:bg-foreground/[0.04]"
+              ? "bg-destructive/10 text-destructive"
+              : "text-foreground/45 hover:bg-foreground/[0.05]"
           }`}
         >
           <ThumbsDown className="h-3 w-3" strokeWidth={reaction === "dislike" ? 2.6 : 2} />
