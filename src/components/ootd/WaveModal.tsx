@@ -10,6 +10,7 @@ import WaveSidebar from "./WaveSidebar";
 import WaveModuleView from "./WaveModuleView";
 import AddModuleSheet from "./AddModuleSheet";
 import WaveAdminPanel from "./WaveAdminPanel";
+import WaveMusicPicker from "./WaveMusicPicker";
 import { toast } from "sonner";
 
 interface WaveModalProps {
@@ -107,7 +108,7 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               {isAdmin && (
                 <button onClick={() => setInviteOpen(true)}
                   className="flex items-center gap-1.5 rounded-full bg-[hsl(330_85%_60%)] px-3.5 py-1.5 text-[11.5px] font-bold text-white shadow-[0_4px_14px_-4px_hsl(330_85%_60%/0.5)]">
@@ -120,6 +121,7 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
                   <LogOut className="h-3.5 w-3.5" /> Leave
                 </button>
               )}
+              <WaveMusicPicker waveId={wave.id} canEdit={isAdmin} />
             </div>
           </div>
 
@@ -133,7 +135,7 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
                 onChanged={refreshModules}
               />
             </aside>
-            <main className="scrollbar-hide flex-1 overflow-y-auto p-4">
+            <main className="scrollbar-hide flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6">
               {modulesLoading ? (
                 <div className="py-12 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-foreground/40" /></div>
               ) : selected ? (
