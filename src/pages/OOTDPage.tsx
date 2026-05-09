@@ -703,13 +703,7 @@ const OOTDPage = () => {
   return (
     <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${mobileOOTD ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
-      <WaveModal
-        open={!!selectedWave}
-        wave={selectedWave}
-        onClose={() => setSelectedWaveId(null)}
-        onLeft={() => { refreshWaves(); setSelectedWaveId(null); }}
-        onWaveUpdated={() => refreshWaves()}
-      />
+      {/* WaveModal is now rendered INLINE below WaveBar — see further down. */}
       <CreateWaveDialog
         open={createWaveOpen}
         onClose={() => setCreateWaveOpen(false)}
@@ -1014,6 +1008,16 @@ const OOTDPage = () => {
             onSelectWave={setSelectedWaveId}
             onCreateWave={() => setCreateWaveOpen(true)}
             showPublic={activeTab === "community"}
+          />
+        )}
+        {selectedWave && (activeTab === "feed" || activeTab === "community") && (
+          <WaveModal
+            inline
+            open={true}
+            wave={selectedWave}
+            onClose={() => setSelectedWaveId(null)}
+            onLeft={() => { refreshWaves(); setSelectedWaveId(null); }}
+            onWaveUpdated={() => refreshWaves()}
           />
         )}
         <div
