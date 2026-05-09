@@ -1537,6 +1537,10 @@ const translations = {
     },
   de: {
     appName: "WARDROBE",
+    tabProducts: "PRODUKTE",
+    tabFit: "FIT",
+    tabMy: "ICH",
+    tabOotd: "OOTD",
     home: "Home",
     discover: "Entdecken",
     fit: "Passform",
