@@ -193,10 +193,11 @@ export default function InviteToWaveSheet({ open, onClose, waveId, waveName }: I
 }
 
 function UserListRow({
-  user, invited, isCircle, onInvite, onInviteDM, tDM,
+  user, invited, member, isCircle, onInvite, onInviteDM, tDM,
 }: {
   user: UserRow;
   invited: boolean;
+  member?: boolean;
   isCircle: boolean;
   onInvite: () => void;
   onInviteDM: () => void;
@@ -219,7 +220,11 @@ function UserListRow({
           <p className="truncate text-[11px] text-foreground/45">@{user.username}</p>
         )}
       </div>
-      {invited ? (
+      {member ? (
+        <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1.5 text-[10.5px] font-semibold text-emerald-400">
+          <Check className="h-3 w-3" /> Member
+        </span>
+      ) : invited ? (
         <span className="flex items-center gap-1 rounded-full bg-foreground/[0.08] px-3 py-1.5 text-[10.5px] font-semibold text-foreground/60">
           <Check className="h-3 w-3" /> Sent
         </span>
