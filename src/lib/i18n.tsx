@@ -3549,6 +3549,10 @@ const translations = {
     },
   zh: {
     appName: "WARDROBE",
+    tabProducts: "商品",
+    tabFit: "试穿",
+    tabMy: "我的",
+    tabOotd: "OOTD",
     home: "首页",
     discover: "发现",
     fit: "合身",
