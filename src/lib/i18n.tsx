@@ -5,6 +5,10 @@ export type Language = "de" | "en" | "es" | "fr" | "it" | "ja" | "ko" | "zh";
 const translations = {
   en: {
     appName: "WARDROBE",
+    tabProducts: "PRODUCTS",
+    tabFit: "FIT",
+    tabMy: "MY",
+    tabOotd: "OOTD",
     home: "Home",
     discover: "Discover",
     fit: "Fit",
@@ -516,6 +520,10 @@ const translations = {
   },
   ko: {
     appName: "WARDROBE",
+    tabProducts: "쇼핑",
+    tabFit: "피팅",
+    tabMy: "마이",
+    tabOotd: "OOTD",
     home: "홈",
     discover: "탐색",
     fit: "피팅",
@@ -1021,6 +1029,10 @@ const translations = {
     },
   it: {
     appName: "WARDROBE",
+    tabProducts: "PRODOTTI",
+    tabFit: "FIT",
+    tabMy: "IO",
+    tabOotd: "OOTD",
     home: "Home",
     discover: "Scopri",
     fit: "Prova",
@@ -1525,6 +1537,10 @@ const translations = {
     },
   de: {
     appName: "WARDROBE",
+    tabProducts: "PRODUKTE",
+    tabFit: "FIT",
+    tabMy: "ICH",
+    tabOotd: "OOTD",
     home: "Home",
     discover: "Entdecken",
     fit: "Passform",
@@ -2024,6 +2040,10 @@ const translations = {
     },
   es: {
     appName: "WARDROBE",
+    tabProducts: "PRODUCTOS",
+    tabFit: "FIT",
+    tabMy: "YO",
+    tabOotd: "OOTD",
     home: "Inicio",
     discover: "Descubrir",
     fit: "FIT",
@@ -2523,6 +2543,10 @@ const translations = {
     },
   fr: {
     appName: "WARDROBE",
+    tabProducts: "PRODUITS",
+    tabFit: "FIT",
+    tabMy: "MOI",
+    tabOotd: "OOTD",
     home: "Accueil",
     discover: "Découvrir",
     fit: "Ajustement",
@@ -3022,6 +3046,10 @@ const translations = {
     },
   ja: {
     appName: "WARDROBE",
+    tabProducts: "ショップ",
+    tabFit: "フィット",
+    tabMy: "マイ",
+    tabOotd: "OOTD",
     home: "ホーム",
     discover: "発見",
     fit: "フィット",
@@ -3521,6 +3549,10 @@ const translations = {
     },
   zh: {
     appName: "WARDROBE",
+    tabProducts: "商品",
+    tabFit: "试穿",
+    tabMy: "我的",
+    tabOotd: "OOTD",
     home: "首页",
     discover: "发现",
     fit: "合身",
