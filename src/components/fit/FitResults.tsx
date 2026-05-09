@@ -824,7 +824,47 @@ export default function FitResults({
           </div>
 
           <div className="px-6 py-6 space-y-6">
-            {/* SIZE CORRELATION — V3.8 numeric body↔garment relation */}
+            {/* Confidence + Body Accuracy — pulled in from the hero for a cleaner main view */}
+            <div className="flex items-center justify-between gap-3 pb-4 border-b border-foreground/[0.06]">
+              <div className="space-y-1">
+                <p className="text-[9px] font-semibold tracking-[0.25em] text-foreground/45 uppercase">Confidence</p>
+                <p className={`text-[12px] font-bold tracking-[0.18em] ${confColor}`}>{confLabel}</p>
+              </div>
+              <div className="space-y-1 text-right">
+                <p className="text-[9px] font-semibold tracking-[0.25em] text-foreground/45 uppercase">Body Accuracy</p>
+                <p className={`text-[12px] font-bold tracking-tight ${
+                  bodyDNA.accuracy >= 80 ? "text-green-500"
+                    : bodyDNA.accuracy >= 55 ? "text-accent"
+                    : "text-orange-500"
+                }`}>{bodyDNA.accuracy}%</p>
+              </div>
+            </div>
+
+            {/* Trust + feedback — moved out of hero */}
+            <FitTrustStrip
+              accuracy={bodyDNA.accuracy}
+              bodyConsistencyScore={tryOn.qualityVerdict?.bodyConsistencyScore ?? null}
+              visualIntegrityScore={tryOn.qualityVerdict?.visualIntegrityScore ?? null}
+              unstable={tryOn.qualityUnstable}
+              productKey={productKey}
+              brand={product.brand}
+              category={product.category}
+              productGender={(product as any).gender ?? null}
+              userGender={bodyGender ?? null}
+              recommendedSize={result.recommendedSize}
+              chosenSize={activeSize}
+            />
+
+            {confTier === "limited" && (
+              <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
+                <span className="text-[11px] text-orange-400/80">
+                  Limited confidence — brand size chart is partial. Treat as approximate.
+                </span>
+              </div>
+            )}
+
+
             {sizeCorrelation && (
               <FitAnalysisPanel
                 correlation={sizeCorrelation}
