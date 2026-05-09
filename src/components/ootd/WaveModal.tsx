@@ -56,9 +56,10 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
     }
   }, [open, wave, modulesLoading, modules.length, myRole]);
 
+  const selected = useMemo(() => modules.find(m => m.id === selectedId) ?? null, [modules, selectedId]);
+
   if (!open || !wave) return null;
 
-  const selected = useMemo(() => modules.find(m => m.id === selectedId) ?? null, [modules, selectedId]);
   const isOwner = myRole === "owner";
   const isAdmin = myRole === "owner" || myRole === "admin";
 
