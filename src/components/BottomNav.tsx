@@ -6,6 +6,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import OOTDNavLabel from "@/components/OOTDNavLabel";
 import OOTDDiaryIcon from "@/components/OOTDDiaryIcon";
 import { useOOTDModal } from "@/lib/ootdModal";
+import { useI18n } from "@/lib/i18n";
 
 const BottomNav = () => {
   const location = useLocation();
