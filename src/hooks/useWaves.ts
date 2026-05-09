@@ -9,6 +9,7 @@ export interface Wave {
   cover_image_url: string | null;
   created_by: string;
   is_private: boolean;
+  visibility?: "private" | "public";
   member_count: number;
   created_at: string;
   role?: "owner" | "admin" | "member";
