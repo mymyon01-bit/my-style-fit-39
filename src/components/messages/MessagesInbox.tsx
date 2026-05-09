@@ -103,7 +103,7 @@ export default function MessagesInbox() {
                       </div>
                     )}
                     {c.unread_count > 0 && (
-                      <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-accent-foreground">
+                      <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(330_85%_60%)] px-1 text-[9px] font-bold text-white">
                         {c.unread_count}
                       </span>
                     )}
