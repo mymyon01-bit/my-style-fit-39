@@ -78,6 +78,11 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
         <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
           transition={{ type: "spring", damping: 24, stiffness: 240 }}
           onClick={e => e.stopPropagation()}
+          style={{
+            borderColor: (wave as any).card_border_color || undefined,
+            borderWidth: (wave as any).card_border_color ? 2 : 0,
+            borderStyle: (wave as any).card_border_color ? "solid" : undefined,
+          }}
           className="relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col">
 
           {/* Cover banner — fixed slim height, never overlaps title */}
