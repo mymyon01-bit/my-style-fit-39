@@ -272,3 +272,68 @@ export async function searchUsersForInvite(query: string) {
     .limit(15);
   return data ?? [];
 }
+
+/** Follow a public wave. */
+export async function followWave(waveId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("not_authenticated");
+  const { error } = await supabase
+    .from("wave_followers" as any)
+    .insert({ wave_id: waveId, user_id: user.id });
+  if (error && !`${error.code}`.includes("23505")) throw error;
+}
+
+/** Unfollow a public wave. */
+export async function unfollowWave(waveId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("not_authenticated");
+  const { error } = await supabase
+    .from("wave_followers" as any)
+    .delete()
+    .eq("wave_id", waveId)
+    .eq("user_id", user.id);
+  if (error) throw error;
+}
+
+/** Hook: am I following this wave? + follower count. */
+export function useWaveFollow(waveId: string | null) {
+  const { user } = useAuth();
+  const [following, setFollowing] = useState(false);
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = useCallback(async () => {
+    if (!waveId) return;
+    setLoading(true);
+    const [{ count: c }, mine] = await Promise.all([
+      (supabase as any).from("wave_followers").select("*", { count: "exact", head: true }).eq("wave_id", waveId),
+      user
+        ? (supabase as any).from("wave_followers").select("user_id").eq("wave_id", waveId).eq("user_id", user.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    setCount(c ?? 0);
+    setFollowing(!!(mine as any)?.data);
+    setLoading(false);
+  }, [waveId, user?.id]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  return { following, count, loading, refresh, setFollowing };
+}
+
+/** List public waves browsable to everyone (Stream / Explore tabs). */
+export async function fetchPublicWaves(limit = 30) {
+  const { data } = await supabase
+    .from("waves")
+    .select("id, name, description, cover_image_url, created_by, is_private, visibility, member_count, follower_count, theme_color, created_at")
+    .eq("visibility", "public")
+    .order("follower_count", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as any[];
+}
+
+/** Owner customize: cover/theme color. */
+export async function updateWaveCustomization(waveId: string, patch: { cover_image_url?: string | null; theme_color?: string | null; description?: string | null }) {
+  const { error } = await supabase.from("waves").update(patch).eq("id", waveId);
+  if (error) throw error;
+}
