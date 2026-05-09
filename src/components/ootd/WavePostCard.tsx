@@ -95,7 +95,10 @@ export default function WavePostCard({ post, isAdmin, onChanged }: Props) {
       {post.image_urls && post.image_urls.length > 0 && (
         <div className={`mt-2 grid gap-1.5 ${post.image_urls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
           {post.image_urls.slice(0, 4).map((u, i) => (
-            <img key={i} src={u} alt="" className="w-full max-h-80 rounded-xl object-cover" loading="lazy" />
+            <button key={i} type="button" onClick={() => setLightboxIdx(i)}
+              className="overflow-hidden rounded-xl bg-foreground/[0.04] focus:outline-none focus:ring-2 focus:ring-accent/40">
+              <img src={u} alt="" className="w-full max-h-80 object-cover transition hover:opacity-95 cursor-zoom-in" loading="lazy" />
+            </button>
           ))}
         </div>
       )}
