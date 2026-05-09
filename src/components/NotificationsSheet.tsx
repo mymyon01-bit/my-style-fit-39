@@ -24,6 +24,7 @@ const ICON_BY_TYPE: Record<string, any> = {
   ootd_mention: AtSign,
   ootd_reaction: Smile,
   reaction: Smile,
+  wave_invite: Waves,
 };
 
 const SUFFIX_KEY_BY_TYPE: Record<string, string> = {
