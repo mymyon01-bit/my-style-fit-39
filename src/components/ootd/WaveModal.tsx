@@ -20,9 +20,11 @@ interface WaveModalProps {
   onClose: () => void;
   onLeft?: () => void;
   onWaveUpdated?: () => void;
+  /** Render inline (in the page flow) instead of as a fullscreen overlay. */
+  inline?: boolean;
 }
 
-export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated }: WaveModalProps) {
+export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated, inline }: WaveModalProps) {
   const { user } = useAuth();
   const { modules, loading: modulesLoading, refresh: refreshModules } = useWaveModules(open && wave ? wave.id : null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
