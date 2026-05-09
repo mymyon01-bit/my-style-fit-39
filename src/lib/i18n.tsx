@@ -3046,6 +3046,10 @@ const translations = {
     },
   ja: {
     appName: "WARDROBE",
+    tabProducts: "ショップ",
+    tabFit: "フィット",
+    tabMy: "マイ",
+    tabOotd: "OOTD",
     home: "ホーム",
     discover: "発見",
     fit: "フィット",
