@@ -69,9 +69,13 @@ export function useConversations() {
     // Find every conversation the user participates in (group or 1:1)
     const { data: parts } = await supabase
       .from("conversation_participants")
-      .select("conversation_id")
+      .select("conversation_id, archived_at")
       .eq("user_id", user.id);
 
+    const archivedAtByConv = new Map<string, string>();
+    (parts || []).forEach((p: any) => {
+      if (p.archived_at) archivedAtByConv.set(p.conversation_id, p.archived_at);
+    });
     const convIds = Array.from(new Set((parts || []).map((p: any) => p.conversation_id)));
 
     // Also include legacy 1:1 rows where user_a/user_b match (in case backfill missed any)
@@ -151,43 +155,50 @@ export function useConversations() {
       unreadByConvo.set(m.conversation_id, (unreadByConvo.get(m.conversation_id) || 0) + 1);
     });
 
-    const summaries: ConversationSummary[] = convos.map((c: any) => {
-      const memberIds = partsByConv.get(c.id) || [c.user_a, c.user_b].filter(Boolean);
-      const others = memberIds.filter((id: string) => id !== user.id);
-      const isGroup = !!c.is_group || others.length > 1;
+    const summaries: ConversationSummary[] = convos
+      .map((c: any) => {
+        const memberIds = partsByConv.get(c.id) || [c.user_a, c.user_b].filter(Boolean);
+        const others = memberIds.filter((id: string) => id !== user.id);
+        const isGroup = !!c.is_group || others.length > 1;
 
-      let other_user_id: string | null = null;
-      let other_display_name: string | null = null;
-      let other_username: string | null = null;
-      let other_avatar_url: string | null = null;
+        let other_user_id: string | null = null;
+        let other_display_name: string | null = null;
+        let other_username: string | null = null;
+        let other_avatar_url: string | null = null;
 
-      if (!isGroup && others[0]) {
-        const profile = profileMap.get(others[0]) || {};
-        other_user_id = others[0];
-        other_display_name = profile.display_name ?? null;
-        other_username = profile.username ?? null;
-        other_avatar_url = profile.avatar_url ?? null;
-      }
+        if (!isGroup && others[0]) {
+          const profile = profileMap.get(others[0]) || {};
+          other_user_id = others[0];
+          other_display_name = profile.display_name ?? null;
+          other_username = profile.username ?? null;
+          other_avatar_url = profile.avatar_url ?? null;
+        }
 
-      const member_avatars = others
-        .map((id: string) => profileMap.get(id)?.avatar_url)
-        .filter(Boolean) as string[];
+        const member_avatars = others
+          .map((id: string) => profileMap.get(id)?.avatar_url)
+          .filter(Boolean) as string[];
 
-      return {
-        id: c.id,
-        is_group: isGroup,
-        title: c.title ?? null,
-        other_user_id,
-        other_display_name,
-        other_username,
-        other_avatar_url,
-        member_count: memberIds.length,
-        member_avatars,
-        last_message_preview: c.last_message_preview ?? null,
-        last_message_at: c.last_message_at,
-        unread_count: unreadByConvo.get(c.id) || 0,
-      };
-    });
+        return {
+          id: c.id,
+          is_group: isGroup,
+          title: c.title ?? null,
+          other_user_id,
+          other_display_name,
+          other_username,
+          other_avatar_url,
+          member_count: memberIds.length,
+          member_avatars,
+          last_message_preview: c.last_message_preview ?? null,
+          last_message_at: c.last_message_at,
+          unread_count: unreadByConvo.get(c.id) || 0,
+        };
+      })
+      .filter((c) => {
+        const archivedAt = archivedAtByConv.get(c.id);
+        // Hide archived conversations until a new message arrives after the archive timestamp
+        if (archivedAt && new Date(c.last_message_at) <= new Date(archivedAt)) return false;
+        return true;
+      });
 
     setConversations(summaries);
     setTotalUnread(Array.from(unreadByConvo.values()).reduce((a, b) => a + b, 0));
@@ -212,6 +223,40 @@ export function useConversations() {
   }, [user, load]);
 
   return { conversations, loading, totalUnread, reload: load };
+}
+
+/** Archive a conversation just for the current user (hidden until a new message arrives). */
+export async function archiveConversation(conversationId: string): Promise<boolean> {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return false;
+  const { error } = await supabase
+    .from("conversation_participants")
+    .update({ archived_at: new Date().toISOString() } as any)
+    .eq("conversation_id", conversationId)
+    .eq("user_id", uid);
+  if (error) {
+    console.error("archive conversation failed", error);
+    return false;
+  }
+  return true;
+}
+
+/** Leave / delete a conversation for the current user (removes their participation row). */
+export async function leaveConversation(conversationId: string): Promise<boolean> {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return false;
+  const { error } = await supabase
+    .from("conversation_participants")
+    .delete()
+    .eq("conversation_id", conversationId)
+    .eq("user_id", uid);
+  if (error) {
+    console.error("leave conversation failed", error);
+    return false;
+  }
+  return true;
 }
 
 /**

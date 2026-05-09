@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Loader2, MessageCircle, PenSquare, Users } from "lucide-react";
-import { useConversations } from "@/hooks/useMessages";
+import { Loader2, MessageCircle, PenSquare, Users, MoreHorizontal, Archive, Trash2 } from "lucide-react";
+import { useConversations, archiveConversation, leaveConversation } from "@/hooks/useMessages";
 import MessageThread from "./MessageThread";
 import NewGroupChatDialog from "./NewGroupChatDialog";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface ActiveThread {
   id: string;
@@ -15,12 +16,14 @@ interface ActiveThread {
 /**
  * Inbox section with conversation list (1:1 + group). Tapping a row opens
  * the thread view in place. The pencil button starts a new chat (1 person
- * → direct, multiple → group).
+ * → direct, multiple → group). Each row exposes a "more" menu with Archive
+ * and Delete actions.
  */
 export default function MessagesInbox() {
-  const { conversations, loading, totalUnread } = useConversations();
+  const { conversations, loading, totalUnread, reload } = useConversations();
   const [active, setActive] = useState<ActiveThread | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
 
   if (active) {
     return (
@@ -33,6 +36,29 @@ export default function MessagesInbox() {
       />
     );
   }
+
+  const handleArchive = async (id: string) => {
+    setMenuFor(null);
+    const ok = await archiveConversation(id);
+    if (ok) {
+      toast.success("Archived");
+      reload();
+    } else {
+      toast.error("Could not archive");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setMenuFor(null);
+    if (!confirm("Delete this conversation from your inbox?")) return;
+    const ok = await leaveConversation(id);
+    if (ok) {
+      toast.success("Deleted");
+      reload();
+    } else {
+      toast.error("Could not delete");
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -76,54 +102,95 @@ export default function MessagesInbox() {
               ? c.title ||
                 (c.member_count > 1 ? `Group · ${c.member_count}` : "Group chat")
               : c.other_display_name || c.other_username || "User";
+            const isMenuOpen = menuFor === c.id;
 
             return (
-              <li key={c.id}>
-                <button
-                  onClick={() =>
-                    setActive({
-                      id: c.id,
-                      otherUserId: c.other_user_id,
-                      isGroup: c.is_group,
-                      groupTitle: c.title,
-                    })
-                  }
-                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.04]"
-                >
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
-                    {c.is_group ? (
-                      <div className="flex h-full w-full items-center justify-center bg-foreground/10">
-                        <Users className="h-4 w-4 text-foreground/70" />
-                      </div>
-                    ) : c.other_avatar_url ? (
-                      <img src={c.other_avatar_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[12px] font-bold text-muted-foreground">
-                        {(c.other_display_name || c.other_username || "?")[0]?.toUpperCase()}
-                      </div>
-                    )}
-                    {c.unread_count > 0 && (
-                      <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(330_85%_60%)] px-1 text-[9px] font-bold text-white">
-                        {c.unread_count}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-[13px] font-semibold text-foreground">{title}</p>
-                      <span className="shrink-0 text-[9px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: false })}
-                      </span>
+              <li key={c.id} className="relative">
+                <div className="group flex items-center gap-1 rounded-2xl transition-colors hover:bg-foreground/[0.04]">
+                  <button
+                    onClick={() =>
+                      setActive({
+                        id: c.id,
+                        otherUserId: c.other_user_id,
+                        isGroup: c.is_group,
+                        groupTitle: c.title,
+                      })
+                    }
+                    className="flex flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 text-left"
+                  >
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
+                      {c.is_group ? (
+                        <div className="flex h-full w-full items-center justify-center bg-foreground/10">
+                          <Users className="h-4 w-4 text-foreground/70" />
+                        </div>
+                      ) : c.other_avatar_url ? (
+                        <img src={c.other_avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[12px] font-bold text-muted-foreground">
+                          {(c.other_display_name || c.other_username || "?")[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      {c.unread_count > 0 && (
+                        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(330_85%_60%)] px-1 text-[9px] font-bold text-white">
+                          {c.unread_count}
+                        </span>
+                      )}
                     </div>
-                    <p
-                      className={`truncate text-[11px] ${
-                        c.unread_count > 0 ? "font-semibold text-foreground/85" : "text-muted-foreground"
-                      }`}
-                    >
-                      {c.last_message_preview || "—"}
-                    </p>
-                  </div>
-                </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-[13px] font-semibold text-foreground">{title}</p>
+                        <span className="shrink-0 text-[9px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: false })}
+                        </span>
+                      </div>
+                      <p
+                        className={`truncate text-[11px] ${
+                          c.unread_count > 0 ? "font-semibold text-foreground/85" : "text-muted-foreground"
+                        }`}
+                      >
+                        {c.last_message_preview || "—"}
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuFor(isMenuOpen ? null : c.id);
+                    }}
+                    className={`mr-2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground ${
+                      isMenuOpen ? "bg-foreground/10 text-foreground" : "opacity-0 group-hover:opacity-100"
+                    }`}
+                    aria-label="More"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {isMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setMenuFor(null)}
+                    />
+                    <div className="absolute right-2 top-12 z-50 min-w-[160px] overflow-hidden rounded-2xl bg-background shadow-xl ring-1 ring-foreground/10">
+                      <button
+                        onClick={() => handleArchive(c.id)}
+                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[12px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06]"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                        Archive
+                      </button>
+                      <button
+                        onClick={() => handleDelete(c.id)}
+                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[12px] font-medium text-[hsl(0_85%_60%)] transition-colors hover:bg-[hsl(0_85%_60%)]/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             );
           })}
