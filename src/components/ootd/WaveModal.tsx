@@ -181,8 +181,22 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
           </div>
 
           {/* Body — sidebar + content */}
-          <div className="flex flex-1 min-h-0 flex-col sm:flex-row">
-            <aside className="shrink-0 border-b border-border/30 px-3 py-2 sm:w-44 sm:border-b-0 sm:border-r sm:py-3 sm:flex sm:flex-col">
+          <div className="relative flex flex-1 min-h-0 flex-col sm:flex-row">
+            {/* Animated graphic background — behind everything in body */}
+            <WaveBackground
+              type={(wave as any).bg_animation}
+              c1={(wave as any).theme_color}
+              c2={(wave as any).theme_color_2}
+            />
+            {/* Card inner tint — low opacity so content is always visible */}
+            {(wave as any).card_bg_color && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{ background: (wave as any).card_bg_color, opacity: 0.14 }}
+              />
+            )}
+            <aside className="relative z-10 shrink-0 border-b border-border/30 px-3 py-2 sm:w-44 sm:border-b-0 sm:border-r sm:py-3 sm:flex sm:flex-col bg-background/70 backdrop-blur-sm">
               <WaveSidebar
                 modules={modules} selectedId={selectedId} onSelect={setSelectedId}
                 isAdmin={isAdmin} isOwner={isOwner}
@@ -190,7 +204,7 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
                 onChanged={refreshModules}
               />
             </aside>
-            <main className="scrollbar-hide flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6">
+            <main className="scrollbar-hide relative z-10 flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6">
               {modulesLoading ? (
                 <div className="py-12 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-foreground/40" /></div>
               ) : selected ? (
