@@ -93,9 +93,9 @@ const HomePage = () => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background pb-20 md:pb-0">
+    <div className="flex min-h-[100dvh] flex-col bg-background">
       {/* Hero — minimal hype */}
-      <section className="relative flex flex-1 flex-col items-center overflow-hidden pt-24 pb-16 md:pt-40 md:pb-24 md:flex-none">
+      <section className="relative flex flex-1 flex-col items-center overflow-hidden pt-14 pb-6 md:pt-40 md:pb-24 md:flex-none">
         <WeatherAmbience condition={weather.condition} isNight={weather.isNight} />
 
         {/* Single soft pink halo — far left, low opacity */}
@@ -143,7 +143,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-10 flex items-center justify-center gap-2"
+            className="mb-5 md:mb-10 flex items-center justify-center gap-2"
           >
             <span className="h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
@@ -157,7 +157,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center font-display text-[44px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
+            className="text-center font-display text-[36px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
             style={{ letterSpacing: "-0.045em" }}
           >
             <span className="block">Wear your</span>
@@ -175,7 +175,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.25 }}
-            className="mt-12"
+            className="mt-6 md:mt-12"
           >
             <div
               className={`flex items-center gap-3 rounded-full border bg-card/60 px-5 py-2.5 backdrop-blur-md transition-all ${
@@ -215,7 +215,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="mt-8 flex justify-center md:hidden"
+            className="mt-4 flex justify-center md:hidden"
           >
             <OOTDDiaryButton compact />
           </motion.div>
@@ -225,7 +225,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-10 flex items-center justify-center gap-2 md:mt-12"
+            className="mt-5 flex items-center justify-center gap-2 md:mt-12"
           >
             <StyleMeButton variant="pill" />
             <button
@@ -244,7 +244,7 @@ const HomePage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7, duration: 0.6 }}
-              className="mt-12 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-foreground/45"
+              className="mt-5 md:mt-12 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-foreground/45"
             >
               <span className="h-1 w-1 rounded-full bg-primary/70" />
               <span>
@@ -263,7 +263,7 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 0.6 }}
-          className="relative z-10 mt-12 flex flex-wrap items-center justify-center gap-3"
+          className="relative z-10 mt-5 md:mt-12 flex flex-wrap items-center justify-center gap-3"
         >
           <button
             onClick={() => setAffOpen(true)}
