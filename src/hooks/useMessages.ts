@@ -225,6 +225,40 @@ export function useConversations() {
   return { conversations, loading, totalUnread, reload: load };
 }
 
+/** Archive a conversation just for the current user (hidden until a new message arrives). */
+export async function archiveConversation(conversationId: string): Promise<boolean> {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return false;
+  const { error } = await supabase
+    .from("conversation_participants")
+    .update({ archived_at: new Date().toISOString() } as any)
+    .eq("conversation_id", conversationId)
+    .eq("user_id", uid);
+  if (error) {
+    console.error("archive conversation failed", error);
+    return false;
+  }
+  return true;
+}
+
+/** Leave / delete a conversation for the current user (removes their participation row). */
+export async function leaveConversation(conversationId: string): Promise<boolean> {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return false;
+  const { error } = await supabase
+    .from("conversation_participants")
+    .delete()
+    .eq("conversation_id", conversationId)
+    .eq("user_id", uid);
+  if (error) {
+    console.error("leave conversation failed", error);
+    return false;
+  }
+  return true;
+}
+
 /**
  * Hook: load + subscribe to messages for a single conversation (1:1 or group),
  * mark incoming messages as read while open.
