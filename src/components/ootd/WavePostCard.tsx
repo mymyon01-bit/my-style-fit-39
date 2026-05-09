@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import WaveCommentThread from "./WaveCommentThread";
 import WavePollView from "./WavePollView";
+import ImageLightbox from "./ImageLightbox";
 
 interface Props {
   post: WavePost;
