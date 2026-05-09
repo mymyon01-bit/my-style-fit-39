@@ -206,6 +206,12 @@ export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated }
               />
             </aside>
             <main className="scrollbar-hide relative z-10 flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:pb-6">
+              {(wave as any).announcement_pinned && (wave as any).announcement && (
+                <div className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-400/35 bg-amber-400/[0.08] p-3">
+                  <span className="mt-0.5 text-amber-400">📌</span>
+                  <p className="flex-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/85">{(wave as any).announcement}</p>
+                </div>
+              )}
               {modulesLoading ? (
                 <div className="py-12 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-foreground/40" /></div>
               ) : selected ? (
