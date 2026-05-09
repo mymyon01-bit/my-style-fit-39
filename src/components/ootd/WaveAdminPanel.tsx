@@ -49,6 +49,9 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
   const [borderColor, setBorderColor] = useState<string | null>((wave as any).card_border_color ?? null);
   const [cardBg, setCardBg] = useState<string | null>((wave as any).card_bg_color ?? null);
   const [savingTheme, setSavingTheme] = useState(false);
+  const [announcement, setAnnouncement] = useState<string>((wave as any).announcement || "");
+  const [pinned, setPinned] = useState<boolean>(!!(wave as any).announcement_pinned);
+  const [savingAnn, setSavingAnn] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -60,6 +63,8 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
     setBgAnim((wave as any).bg_animation || "none");
     setBorderColor((wave as any).card_border_color ?? null);
     setCardBg((wave as any).card_bg_color ?? null);
+    setAnnouncement((wave as any).announcement || "");
+    setPinned(!!(wave as any).announcement_pinned);
   }, [open, wave.id]);
 
   if (!open) return null;
