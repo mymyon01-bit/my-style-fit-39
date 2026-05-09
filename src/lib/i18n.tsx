@@ -2040,6 +2040,10 @@ const translations = {
     },
   es: {
     appName: "WARDROBE",
+    tabProducts: "PRODUCTOS",
+    tabFit: "FIT",
+    tabMy: "YO",
+    tabOotd: "OOTD",
     home: "Inicio",
     discover: "Descubrir",
     fit: "FIT",
