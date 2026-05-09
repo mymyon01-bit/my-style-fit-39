@@ -3037,6 +3037,35 @@ export type Database = {
           },
         ]
       }
+      wave_followers: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          wave_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          wave_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          wave_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wave_followers_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wave_invites: {
         Row: {
           created_at: string
@@ -3374,10 +3403,12 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          follower_count: number
           id: string
           is_private: boolean
           member_count: number
           name: string
+          theme_color: string | null
           updated_at: string
           visibility: string
         }
@@ -3386,10 +3417,12 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          follower_count?: number
           id?: string
           is_private?: boolean
           member_count?: number
           name: string
+          theme_color?: string | null
           updated_at?: string
           visibility?: string
         }
@@ -3398,10 +3431,12 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          follower_count?: number
           id?: string
           is_private?: boolean
           member_count?: number
           name?: string
+          theme_color?: string | null
           updated_at?: string
           visibility?: string
         }
@@ -3435,10 +3470,12 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          follower_count: number
           id: string
           is_private: boolean
           member_count: number
           name: string
+          theme_color: string | null
           updated_at: string
           visibility: string
         }
@@ -3470,6 +3507,10 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_wave_admin: {
+        Args: { _user_id: string; _wave_id: string }
+        Returns: boolean
+      }
+      is_wave_follower: {
         Args: { _user_id: string; _wave_id: string }
         Returns: boolean
       }
