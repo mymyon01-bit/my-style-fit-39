@@ -300,7 +300,9 @@ export default function CardColorPicker({ value, onChange }: Props) {
             )}
           </div>
 
-
+          <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-foreground/55 font-semibold">
+            Pastel palette
+          </p>
           <div className="grid grid-cols-4 gap-2 mb-4">
             {PASTEL_PRESETS.map((p) => {
               const active = value.hex?.toLowerCase() === p.hex.toLowerCase();
