@@ -126,6 +126,12 @@ export default function OOTDTipToast({ ids }: Props) {
             >
               Got it
             </button>
+            <button
+              onClick={dismissForever}
+              className="mt-2 w-full rounded-full bg-foreground/[0.05] px-4 py-2 text-[11px] font-semibold text-foreground/55 hover:bg-foreground/10 hover:text-foreground/80 transition-colors"
+            >
+              Don't show again
+            </button>
           </div>
         </motion.div>
       </motion.div>
