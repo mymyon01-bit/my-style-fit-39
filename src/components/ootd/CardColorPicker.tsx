@@ -122,9 +122,45 @@ interface Props {
 }
 
 export default function CardColorPicker({ value, onChange }: Props) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [customHex, setCustomHex] = useState(value.hex ?? "#FFE5EC");
+  const [uploading, setUploading] = useState(false);
   const colorInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleUploadImage = async (file: File) => {
+    if (!user) {
+      toast.error("Sign in to upload a background");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please pick an image file");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Max 8 MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${user.id}/card-bg/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from("profile-photos").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type || undefined,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("profile-photos").getPublicUrl(path);
+      handleSelect({ hex: null, imageUrl: data.publicUrl, label: "Image" });
+      toast.success("Background applied");
+    } catch (e: any) {
+      toast.error(e?.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Apply on mount in case parent only loaded from storage.
   useEffect(() => {
