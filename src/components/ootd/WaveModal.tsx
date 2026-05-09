@@ -225,7 +225,8 @@ export default function WaveModal({ open, wave, onClose, onLeft, onWaveUpdated }
           waveId={wave.id} nextPosition={modules.length} onCreated={refreshModules} />
         <WaveAdminPanel open={adminOpen} onClose={() => setAdminOpen(false)}
           wave={wave} isOwner={isOwner} isAdmin={isAdmin}
-          onWaveDeleted={() => { onLeft?.(); onClose(); }} />
+          onWaveDeleted={() => { onLeft?.(); onClose(); }}
+          onWaveUpdated={onWaveUpdated} />
       </motion.div>
     </AnimatePresence>
   );
