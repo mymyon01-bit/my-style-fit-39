@@ -24,6 +24,10 @@ export default function OOTDTipToast({ ids }: Props) {
   const { t } = useI18n();
   const [activeId, setActiveId] = useState<InfoCardId | null>(null);
 
+  // First mount: pull dismissed list from the user's profile so cards never
+  // re-appear on a different device or after reinstall.
+  useEffect(() => { syncDismissedInfoCardsFromProfile(); }, []);
+
   useEffect(() => {
     const next = ids.find(id => !isInfoCardSeen(id));
     if (next) {
@@ -40,13 +44,27 @@ export default function OOTDTipToast({ ids }: Props) {
     return () => { document.body.style.overflow = prev; };
   }, [activeId]);
 
-  const dismiss = () => {
-    if (activeId) markInfoCardSeen(activeId);
+  const advance = () => {
     setActiveId(null);
     setTimeout(() => {
       const next = ids.find(id => !isInfoCardSeen(id));
       if (next) setActiveId(next);
     }, 350);
+  };
+
+  /** Close for now — show again on the next OOTD visit. */
+  const closeOnce = () => { setActiveId(null); };
+
+  /** Got it — don't show this notice again on this device. */
+  const dismiss = () => {
+    if (activeId) markInfoCardSeen(activeId);
+    advance();
+  };
+
+  /** Don't show again on any device (syncs to profile). */
+  const dismissForever = () => {
+    if (activeId) void markInfoCardSeenForever(activeId);
+    advance();
   };
 
   if (!activeId) return null;
