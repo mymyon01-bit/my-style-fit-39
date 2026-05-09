@@ -168,7 +168,7 @@ export default function MessageThread({
     : null;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-border/30 bg-background/40 shadow-soft">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-background/30">
       {/* OOTD background — mirrors the user's My-Page personalization */}
       {bgTheme !== "none" && (
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-3xl">
