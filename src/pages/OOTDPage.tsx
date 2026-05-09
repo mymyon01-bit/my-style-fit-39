@@ -708,6 +708,7 @@ const OOTDPage = () => {
         wave={selectedWave}
         onClose={() => setSelectedWaveId(null)}
         onLeft={() => { refreshWaves(); setSelectedWaveId(null); }}
+        onWaveUpdated={() => refreshWaves()}
       />
       <CreateWaveDialog
         open={createWaveOpen}
