@@ -73,11 +73,11 @@ export default function WaveModal({ open, wave, onClose, onLeft }: WaveModalProp
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-[115] flex items-stretch sm:items-center justify-center bg-black/75 backdrop-blur-md sm:p-4">
+        className="fixed inset-0 z-[115] flex items-stretch justify-center bg-black/80 backdrop-blur-md sm:p-3 md:p-6">
         <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
           transition={{ type: "spring", damping: 24, stiffness: 240 }}
           onClick={e => e.stopPropagation()}
-          className="relative w-full sm:max-w-3xl max-h-[100dvh] sm:max-h-[90vh] overflow-hidden rounded-none sm:rounded-3xl bg-background shadow-2xl flex flex-col">
+          className="relative w-full h-[100dvh] sm:h-[calc(100dvh-1.5rem)] md:h-[calc(100dvh-3rem)] sm:max-w-[min(1280px,96vw)] overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl bg-background shadow-2xl flex flex-col">
 
           {/* Header */}
           <div className="relative shrink-0">
