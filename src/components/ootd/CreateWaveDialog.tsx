@@ -56,6 +56,7 @@ export default function CreateWaveDialog({ open, onClose, onCreated }: CreateWav
 
   const handleSubmit = async () => {
     if (!name.trim() || blocked) return;
+    if (!user) { toast.error("Sign in to create a wave"); return; }
     setSubmitting(true);
     try {
       const wave = await createWave({
@@ -69,9 +70,14 @@ export default function CreateWaveDialog({ open, onClose, onCreated }: CreateWav
       onClose();
       setName(""); setDesc(""); setCoverUrl(null); setVisibility("private");
     } catch (err: any) {
-      const msg = err?.message?.includes("wave_limit_reached")
+      const raw = err?.message ?? "";
+      const msg = raw.includes("wave_limit_reached")
         ? "You can only create one wave. Delete your existing wave first."
-        : (err.message ?? "Failed to create wave");
+        : raw.includes("not_authenticated")
+        ? "Please sign in to create a wave."
+        : raw.includes("row-level security")
+        ? "Session expired. Please sign in again and retry."
+        : (raw || "Failed to create wave");
       toast.error(msg);
     } finally { setSubmitting(false); }
   };

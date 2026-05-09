@@ -110,21 +110,15 @@ export async function createWave(input: {
   is_private?: boolean;
   visibility?: "private" | "public";
 }): Promise<Wave> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("not_authenticated");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) throw new Error("not_authenticated");
   const visibility = input.visibility ?? (input.is_private === false ? "public" : "private");
-  const { data, error } = await supabase
-    .from("waves")
-    .insert({
-      name: input.name.trim(),
-      description: input.description?.trim() || null,
-      cover_image_url: input.cover_image_url ?? null,
-      is_private: visibility === "private",
-      visibility,
-      created_by: user.id,
-    } as any)
-    .select("*")
-    .single();
+  const { data, error } = await (supabase as any).rpc("create_wave", {
+    _name: input.name.trim(),
+    _description: input.description?.trim() || null,
+    _cover_image_url: input.cover_image_url ?? null,
+    _visibility: visibility,
+  });
   if (error) throw error;
   return data as Wave;
 }
