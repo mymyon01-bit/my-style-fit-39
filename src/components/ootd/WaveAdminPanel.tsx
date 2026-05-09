@@ -155,6 +155,38 @@ export default function WaveAdminPanel({ open, onClose, wave, isOwner, isAdmin, 
           <button onClick={onClose} className="absolute right-3 top-3 rounded-full bg-foreground/10 p-1.5"><X className="h-3.5 w-3.5" /></button>
           <h3 className="text-[16px] font-bold text-foreground">Customize · {wave.name}</h3>
 
+          {/* ANNOUNCEMENT */}
+          {isAdmin && (
+            <section className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-400/[0.04] p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Megaphone className="h-3.5 w-3.5 text-amber-400" />
+                <p className="text-[10px] font-semibold tracking-wide text-foreground/65">ANNOUNCEMENT · PIN TO TOP</p>
+                {savingAnn && <Loader2 className="h-3 w-3 animate-spin text-foreground/40" />}
+              </div>
+              <textarea
+                value={announcement}
+                onChange={(e) => setAnnouncement(e.target.value)}
+                onBlur={() => saveAnnouncement()}
+                placeholder="Write a notice for your wave members (e.g. event, rules, this week's theme)…"
+                rows={3}
+                maxLength={500}
+                className="w-full resize-none rounded-xl border border-border/40 bg-background px-3 py-2 text-[12px] leading-relaxed text-foreground placeholder:text-foreground/35 focus:border-amber-400/60 focus:outline-none"
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <button onClick={togglePinned}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                    pinned ? "bg-amber-400/15 text-amber-500" : "bg-foreground/[0.06] text-foreground/60 hover:bg-foreground/10"
+                  }`}>
+                  <Pin className={`h-3 w-3 ${pinned ? "fill-current" : ""}`} />
+                  {pinned ? "Pinned to top" : "Pin to top"}
+                </button>
+                <span className="text-[10px] text-foreground/40">{announcement.length}/500</span>
+              </div>
+              <p className="mt-1.5 text-[10px] leading-relaxed text-foreground/50">
+                Pinned announcements appear as a sticky banner at the top of the wave for everyone.
+              </p>
+            </section>
+          )}
           {/* BACKGROUND */}
           {isAdmin && (
             <section className="mt-5">
