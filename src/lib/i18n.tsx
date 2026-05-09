@@ -1029,6 +1029,10 @@ const translations = {
     },
   it: {
     appName: "WARDROBE",
+    tabProducts: "PRODOTTI",
+    tabFit: "FIT",
+    tabMy: "IO",
+    tabOotd: "OOTD",
     home: "Home",
     discover: "Scopri",
     fit: "Prova",
