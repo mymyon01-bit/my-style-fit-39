@@ -44,6 +44,7 @@ const SUFFIX_KEY_BY_TYPE: Record<string, string> = {
   showroom_like: "notifSuffixShowroomLike",
   showroom_save: "notifSuffixShowroomSave",
   showroom_follow: "notifSuffixShowroomFollow",
+  wave_invite: "notifSuffixWaveInvite",
 };
 
 /**
