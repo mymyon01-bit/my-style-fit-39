@@ -66,10 +66,12 @@ export function useMyWaves() {
   // Realtime: when this user is added/removed from any wave, refresh
   useEffect(() => {
     if (!user) return;
-    const ch = supabase
-      .channel(`my-wave-members-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "wave_members", filter: `user_id=eq.${user.id}` }, () => refresh())
-      .subscribe();
+    const ch = supabase.channel(`my-wave-members-${user.id}-${Math.random().toString(36).slice(2)}`);
+    ch.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "wave_members", filter: `user_id=eq.${user.id}` },
+      () => refresh(),
+    ).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, refresh]);
 
