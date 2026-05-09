@@ -158,7 +158,15 @@ const OOTDPage = () => {
   // the default `bg-background/80`. When no color is chosen we fall back
   // to the original surface (undefined background lets the Tailwind class
   // take effect).
-  const cardStyle = cardColor.hex
+  const cardStyle = cardColor.imageUrl
+    ? {
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url("${cardColor.imageUrl}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        color: "#ffffff" as string | undefined,
+      }
+    : cardColor.hex
     ? {
         background: `${cardColor.hex}D6`, // ~84% alpha — keeps the scene faintly visible
         color: undefined as string | undefined,
