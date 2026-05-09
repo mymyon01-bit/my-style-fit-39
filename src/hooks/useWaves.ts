@@ -347,3 +347,62 @@ export async function updateWaveCustomization(waveId: string, patch: { cover_ima
   const { error } = await supabase.from("waves").update(patch).eq("id", waveId);
   if (error) throw error;
 }
+
+/** Fetch followers of a wave (admin view). */
+export async function fetchWaveFollowers(waveId: string) {
+  const { data: rows } = await (supabase as any)
+    .from("wave_followers")
+    .select("user_id, created_at")
+    .eq("wave_id", waveId)
+    .order("created_at", { ascending: true });
+  const ids = (rows ?? []).map((r: any) => r.user_id);
+  if (!ids.length) return [];
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("user_id, display_name, username, avatar_url")
+    .in("user_id", ids);
+  const map = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
+  return (rows ?? []).map((r: any) => ({ ...r, ...(map.get(r.user_id) ?? {}) }));
+}
+
+/** Fetch block list for a wave (admin view). */
+export async function fetchWaveBlocks(waveId: string) {
+  const { data: rows } = await (supabase as any)
+    .from("wave_blocks")
+    .select("user_id, created_at, reason")
+    .eq("wave_id", waveId)
+    .order("created_at", { ascending: false });
+  const ids = (rows ?? []).map((r: any) => r.user_id);
+  if (!ids.length) return [];
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("user_id, display_name, username, avatar_url")
+    .in("user_id", ids);
+  const map = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
+  return (rows ?? []).map((r: any) => ({ ...r, ...(map.get(r.user_id) ?? {}) }));
+}
+
+/** Admin: remove a follower from the wave. */
+export async function removeWaveFollower(waveId: string, userId: string) {
+  const { error } = await (supabase as any)
+    .from("wave_followers").delete().eq("wave_id", waveId).eq("user_id", userId);
+  if (error) throw error;
+}
+
+/** Admin: block a user from this wave (also removes them from members + followers). */
+export async function blockFromWave(waveId: string, userId: string, reason?: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("not_authenticated");
+  await (supabase as any).from("wave_members").delete().eq("wave_id", waveId).eq("user_id", userId);
+  await (supabase as any).from("wave_followers").delete().eq("wave_id", waveId).eq("user_id", userId);
+  const { error } = await (supabase as any).from("wave_blocks")
+    .insert({ wave_id: waveId, user_id: userId, blocked_by: user.id, reason: reason ?? null });
+  if (error && !`${error.code}`.includes("23505")) throw error;
+}
+
+/** Admin: unblock a user. */
+export async function unblockFromWave(waveId: string, userId: string) {
+  const { error } = await (supabase as any)
+    .from("wave_blocks").delete().eq("wave_id", waveId).eq("user_id", userId);
+  if (error) throw error;
+}
