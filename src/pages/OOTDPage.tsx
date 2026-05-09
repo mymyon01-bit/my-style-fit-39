@@ -702,6 +702,17 @@ const OOTDPage = () => {
   return (
     <div className={`relative ${bgTheme === "none" ? "bg-background" : ""} ${mobileOOTD ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-[64px]"}`}>
       <OOTDWelcomeModal />
+      <WaveModal
+        open={!!selectedWave}
+        wave={selectedWave}
+        onClose={() => setSelectedWaveId(null)}
+        onLeft={() => { refreshWaves(); setSelectedWaveId(null); }}
+      />
+      <CreateWaveDialog
+        open={createWaveOpen}
+        onClose={() => setCreateWaveOpen(false)}
+        onCreated={(id) => { refreshWaves(); setSelectedWaveId(id); }}
+      />
       <OOTDBackground theme={bgTheme} realistic={bgRealistic} contained={mobileOOTD} />
       {/* Tab bar — bottom on mobile OOTD, top on desktop standalone page. */}
       {!mobileOOTD && <div className="sticky-header h-[64px] lg:h-[40px]" aria-hidden="true" />}
