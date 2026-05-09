@@ -3,7 +3,7 @@ import { useState } from "react";
 import { usePendingWaveInvites, acceptWaveInvite, declineWaveInvite } from "@/hooks/useWaves";
 import { toast } from "sonner";
 
-export default function WaveInviteCards() {
+export default function WaveInviteCards({ onJoined }: { onJoined?: () => void } = {}) {
   const { invites, loading, refresh } = usePendingWaveInvites();
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -12,7 +12,7 @@ export default function WaveInviteCards() {
   const handle = async (id: string, accept: boolean) => {
     setBusy(id);
     try {
-      if (accept) { await acceptWaveInvite(id); toast.success("Joined the wave"); }
+      if (accept) { await acceptWaveInvite(id); toast.success("Joined the wave"); onJoined?.(); }
       else { await declineWaveInvite(id); toast.success("Declined"); }
       refresh();
     } catch (e: any) { toast.error(e.message); }
