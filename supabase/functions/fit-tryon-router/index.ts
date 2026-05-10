@@ -1076,12 +1076,14 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
 
   const prompt = [
     leadFitDirective,
+    GARMENT_ALIGNMENT_BLOCK,
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
     buildCleanStudioPrompt(body),
     bodyRefLine,
     genderDirectiveLine,
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
     "MANDATORY: the mannequin MUST be wearing the garment fully and correctly — NEVER render a naked, partially-clothed, or unclothed mannequin.",
+    GARMENT_ALIGNMENT_BLOCK,
     `FINAL REMINDER (do not ignore): the fit MUST be ${silhouetteShort}`,
   ].filter(Boolean).join(" ");
 
