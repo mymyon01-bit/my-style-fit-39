@@ -200,18 +200,32 @@ function computeConfidence(
 export function buildRecommendation(input: RecommendInput): SizeRecommendation {
   const range = detectRangeStatus(input.outcomes);
 
+  // V3 best-balance picker — closest weighted distance to target ease.
+  // Body is locked, size labels do not bias the pick, "biggest safe size"
+  // is never preferred just because it avoids tightness.
+  const v3 = pickBestBalance(input.body, input.outcomes, input.chart.category, input.preference);
+  const analysesByLabel: Record<string, V3SizeAnalysis> = {};
+  for (const a of v3.analyses) analysesByLabel[a.size] = a;
+
   let primary: SizeOutcome | null;
   let alternate: SizeOutcome | null;
+  let primaryReason: string;
+
   if (range.status === "tooSmall") {
+    // Pin to the boundary and tell the truth — every size is too small.
     primary = input.outcomes[input.outcomes.length - 1] ?? null;
     alternate = input.outcomes[input.outcomes.length - 2] ?? null;
+    primaryReason = buildReason(primary, alternate, input.preference, range.status);
   } else if (range.status === "tooLarge") {
     primary = input.outcomes[0] ?? null;
     alternate = input.outcomes[1] ?? null;
+    primaryReason = buildReason(primary, alternate, input.preference, range.status);
   } else {
-    const picked = pickPrimaryAndAlternate(input.outcomes, input.preference);
-    primary = picked.primary;
-    alternate = picked.alternate;
+    primary = v3.primarySize ? input.outcomes.find((o) => o.size === v3.primarySize) ?? null : null;
+    alternate = v3.alternateSize ? input.outcomes.find((o) => o.size === v3.alternateSize) ?? null : null;
+    primaryReason = primary
+      ? `${v3.reason} ${classificationSentence(analysesByLabel[primary.size]?.classification ?? "BestBalance", primary.size)}`
+      : "Not enough information to recommend a size yet.";
   }
 
   const { confidence, reason } = computeConfidence(input.body, input.chart, range.status);
@@ -222,7 +236,7 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
     sizes: input.outcomes,
     primarySize: primary?.size ?? null,
     alternateSize: alternate?.size ?? null,
-    primaryReason: buildReason(primary, alternate, input.preference, range.status),
+    primaryReason,
     confidence,
     confidenceReason: reason,
     preference: input.preference,
@@ -232,5 +246,7 @@ export function buildRecommendation(input: RecommendInput): SizeRecommendation {
     bodyGender: input.body.gender,
     productGender,
     genderMismatchWarning,
+    primaryClassification: primary ? analysesByLabel[primary.size]?.classification : undefined,
+    sizeAnalyses: analysesByLabel,
   };
 }
