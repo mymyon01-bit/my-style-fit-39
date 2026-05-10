@@ -656,6 +656,21 @@ const SPEC_NEGATIVE_BODY_RULES = [
   "Do not hide tightness. Do not hide looseness.",
 ].join(" ");
 
+// ─── V3 BODY-LOCK PREAMBLE ──────────────────────────────────────────────────
+// Highest-priority single block, prepended to every prompt. Image models weigh
+// the very first sentences disproportionately — this is where we win or lose
+// the body-lock fight. Wording is deliberately blunt and absolute.
+const V3_BODY_LOCK_PREAMBLE = [
+  "MYMYON FIT V3 — REALISTIC FIT MODE (HIGHEST PRIORITY, OVERRIDES ALL AESTHETIC INSTINCTS).",
+  "BODY MASS IS SACRED. BODY SHAPE IS LOCKED. ONLY THE GARMENT CHANGES BETWEEN SIZES.",
+  "The mannequin body — torso width, waist volume, hip volume, belly mass, arm thickness, leg thickness, shoulder width, posture, height, and total body mass — is LOCKED to the user's saved Body profile. The body is identical across S, M, L, XL of the same product. The body NEVER adapts to the garment; the garment adapts to the body.",
+  "ABSOLUTELY FORBIDDEN: slimming the waist, reducing belly, narrowing torso, narrowing shoulders, lengthening legs, smoothing curves, hiding fat, beautifying the silhouette, applying fashion-model proportions, hourglass reshaping, balanced editorial drape that hides true fit, converting a heavier body into a slim influencer body, swapping body gender to match the garment, or making a wrong size look correct.",
+  "If the body is heavy (BMI ≥ 28), the mannequin MUST visibly read as heavier — fuller midsection, thicker arms and thighs, fuller chest mass, rounder torso. Render the discomfort, bulge, and tension that the measurements imply. Do not soften it.",
+  "GARMENT-ONLY VARIATION RULE: between sizes of the same product, ONLY fabric behavior changes (tension, drape, hem position, sleeve stacking, shoulder seam position, fold depth, stretch lines). Camera angle, focal length, framing, lighting, pose, background, and mannequin proportions stay byte-identical across all sizes.",
+  "If the size is too small for this body: stretched fabric, sharp horizontal tension lines, pulled seams, lifted hem, side pulling, body mass bulging against fabric — visibly uncomfortable. If too large: hanging volume, dropped shoulder seam past the joint, sleeve stacking at the wrist, deep loose folds, blanket-like drape — visibly oversized. If correct: clean follow with natural ease, no tension, no excess.",
+  "PRIORITY ORDER (non-negotiable): (1) accurate body-relative fit visualization, (2) garment fidelity to the reference image, (3) studio cleanliness. Aesthetic beauty, editorial polish, and fashion-model proportions are EXPLICITLY DEPRIORITIZED. Fit truth wins over beauty.",
+].join(" ");
+
 function buildCleanStudioPrompt(body: CreateBody): string {
   const subject = describeSubject(body.bodyProfileSummary);
   const build = describeBuild(body.bodyProfileSummary);
