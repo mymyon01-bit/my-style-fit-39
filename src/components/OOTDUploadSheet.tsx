@@ -21,6 +21,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onPosted: () => void;
+  /** Optional: switch user to the video upload sheet from step 1. */
+  onSwitchToVideo?: () => void;
 }
 
 const STYLE_TAGS = ["minimal", "streetwear", "classic", "chic", "clean fit", "old money", "sporty", "casual"];
