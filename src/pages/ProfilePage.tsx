@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, ChevronRight, Bookmark, Ruler, Palette, Shirt,
   Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield,
-  Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock
+  Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock, Film
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import StylePreferenceEditor from "@/components/StylePreferenceEditor";
