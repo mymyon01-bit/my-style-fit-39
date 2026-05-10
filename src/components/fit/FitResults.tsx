@@ -794,17 +794,17 @@ export default function FitResults({
                 : /oversized|relaxed/i.test(sChest) ? "Extra room in torso"
                 : /long/i.test(sLen) ? "Hem hangs longer"
                 : "Slightly fitted";
-              const profile = profileFromSizeAndRegions(
-                sr.size,
-                isActive ? sizingActiveOutcome?.overall ?? null : null,
-                sizeRegions.map((r) => ({
+              const profile = profileFromSizeAndRegions({
+                size: sr.size,
+                overall: isActive ? sizingActiveOutcome?.overall ?? null : null,
+                regions: sizeRegions.map((r) => ({
                   region: r.region,
                   bodyCm: null,
                   garmentCm: null,
                   deltaCm: null,
                   status: r.fit as any,
                 })),
-              );
+              });
 
               return (
                 <button
@@ -837,7 +837,7 @@ export default function FitResults({
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
-                        {tryOn.loading ? (
+                        {tryOn.status === "loading" ? (
                           <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
                         ) : (
                           <span className="text-[10px] text-foreground/30">—</span>
@@ -898,7 +898,7 @@ export default function FitResults({
                 AI Fitting
               </span>
               <span className="rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-[9px] font-medium tracking-wider text-foreground/60 uppercase">
-                {garmentDNA.fabric || "Light fabric"}
+                {garmentDNA.fabricType || "Light fabric"}
               </span>
             </div>
           </div>
