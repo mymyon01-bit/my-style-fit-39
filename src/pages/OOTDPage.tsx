@@ -1403,7 +1403,17 @@ const OOTDPage = () => {
         )}
       </AnimatePresence>
 
-      <OOTDUploadSheet open={uploadOpen} onClose={() => setUploadOpen(false)} onPosted={handlePosted} />
+      <OOTDUploadSheet
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onPosted={handlePosted}
+        onSwitchToVideo={() => { setUploadOpen(false); setVideoUploadOpen(true); }}
+      />
+      <OOTDShortUploadSheet
+        open={videoUploadOpen}
+        onClose={() => setVideoUploadOpen(false)}
+        onPosted={handlePosted}
+      />
 
       <StoryUploadSheet
         open={storyUploadOpen}
