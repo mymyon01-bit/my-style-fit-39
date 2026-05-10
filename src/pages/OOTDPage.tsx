@@ -8,6 +8,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import OOTDCard from "@/components/OOTDCard";
 import CrownedBoard from "@/components/CrownedBoard";
@@ -102,6 +103,7 @@ const OOTDPage = () => {
   const [bonusStars, setBonusStars] = useState(0);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [videoUploadOpen, setVideoUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
   const [selectedWaveId, setSelectedWaveId] = useState<string | null>(null);
   const [createWaveOpen, setCreateWaveOpen] = useState(false);
@@ -1401,7 +1403,17 @@ const OOTDPage = () => {
         )}
       </AnimatePresence>
 
-      <OOTDUploadSheet open={uploadOpen} onClose={() => setUploadOpen(false)} onPosted={handlePosted} />
+      <OOTDUploadSheet
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onPosted={handlePosted}
+        onSwitchToVideo={() => { setUploadOpen(false); setVideoUploadOpen(true); }}
+      />
+      <OOTDShortUploadSheet
+        open={videoUploadOpen}
+        onClose={() => setVideoUploadOpen(false)}
+        onPosted={handlePosted}
+      />
 
       <StoryUploadSheet
         open={storyUploadOpen}

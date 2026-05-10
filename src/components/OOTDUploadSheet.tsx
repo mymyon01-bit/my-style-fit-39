@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2 } from "lucide-react";
+import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
@@ -21,6 +21,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onPosted: () => void;
+  /** Optional: switch user to the video upload sheet from step 1. */
+  onSwitchToVideo?: () => void;
 }
 
 const STYLE_TAGS = ["minimal", "streetwear", "classic", "chic", "clean fit", "old money", "sporty", "casual"];
@@ -34,7 +36,7 @@ interface Topic {
   post_count: number;
 }
 
-const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted }, ref) => {
+const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted, onSwitchToVideo }, ref) => {
   const { user } = useAuth();
   const weather = useWeather();
   const { verified: emailVerified } = useEmailVerified();
@@ -303,11 +305,19 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                     </button>
                   )}
                   <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-                  {file && (
+                  {file ? (
                     <button onClick={() => setStep(2)} className="w-full rounded-xl bg-foreground py-3 text-sm font-semibold text-background hover:opacity-90 transition-opacity">
                       Next
                     </button>
-                  )}
+                  ) : onSwitchToVideo ? (
+                    <button
+                      onClick={onSwitchToVideo}
+                      className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-border/50 bg-foreground/[0.04] py-3 text-[12px] font-semibold text-foreground/75 hover:bg-foreground/[0.08] transition-colors"
+                    >
+                      <Film className="h-3.5 w-3.5" />
+                      Post a video instead
+                    </button>
+                  ) : null}
                 </>
               )}
 

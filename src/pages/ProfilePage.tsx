@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, ChevronRight, Bookmark, Ruler, Palette, Shirt,
   Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield,
-  Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock
+  Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock, Film
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import StylePreferenceEditor from "@/components/StylePreferenceEditor";
@@ -81,13 +81,14 @@ const ProfilePage = () => {
   const loadProfileData = async () => {
     if (!user) return;
     setIsLoading(true);
-    const [profileRes, styleRes, bodyRes, savedRes, postsRes, ootdsRes] = await Promise.all([
+    const [profileRes, styleRes, bodyRes, savedRes, postsRes, ootdsRes, videosRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("saved_items").select("id", { count: "exact" }).eq("user_id", user.id),
       supabase.from("ootd_posts").select("id, star_count", { count: "exact" }).eq("user_id", user.id),
       supabase.from("ootd_posts").select("id, image_url, caption, star_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
+      supabase.from("ootd_videos").select("id, video_url, thumb_url, caption, like_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
     ]);
 
     // Load scrap count. Circle/Ripple counters come from useCircleCounts.
@@ -105,7 +106,21 @@ const ProfilePage = () => {
     setPostCount(postsRes.count ?? posts.length);
     const postStars = posts.reduce((sum: number, pt: any) => sum + (pt.star_count || 0), 0);
     setTotalStars(postStars);
-    setMyOotds(ootdsRes.data || []);
+    // Merge photos + videos into one OOTD grid, newest first.
+    const photos = (ootdsRes.data || []).map((o: any) => ({ ...o, kind: "photo" as const }));
+    const videos = (videosRes.data || []).map((v: any) => ({
+      id: v.id,
+      image_url: v.thumb_url,
+      video_url: v.video_url,
+      caption: v.caption,
+      star_count: v.like_count,
+      created_at: v.created_at,
+      kind: "video" as const,
+    }));
+    const merged = [...photos, ...videos].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ).slice(0, 6);
+    setMyOotds(merged);
     if (p) {
       setEditName(p.display_name || "");
       setEditUsername(p.username || "");
@@ -662,7 +677,18 @@ const ProfilePage = () => {
                 <div className="grid grid-cols-3 gap-1.5">
                   {myOotds.map(ootd => (
                     <div key={ootd.id} className="relative aspect-square rounded-lg overflow-hidden bg-foreground/[0.04]">
-                      <img src={ootd.image_url} alt={ootd.caption || ""} className="h-full w-full object-cover" loading="lazy" />
+                      {ootd.image_url ? (
+                        <img src={ootd.image_url} alt={ootd.caption || ""} className="h-full w-full object-cover" loading="lazy" />
+                      ) : ootd.kind === "video" && ootd.video_url ? (
+                        <video src={ootd.video_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                      ) : (
+                        <div className="h-full w-full bg-foreground/[0.06]" />
+                      )}
+                      {ootd.kind === "video" && (
+                        <div className="absolute top-1 left-1 rounded-full bg-black/55 p-1 backdrop-blur-sm">
+                          <Film className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
                       {(ootd.star_count || 0) > 0 && (
                         <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
                           <Star className="h-2.5 w-2.5 text-accent/70" />
