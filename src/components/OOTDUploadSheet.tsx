@@ -305,11 +305,19 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                     </button>
                   )}
                   <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-                  {file && (
+                  {file ? (
                     <button onClick={() => setStep(2)} className="w-full rounded-xl bg-foreground py-3 text-sm font-semibold text-background hover:opacity-90 transition-opacity">
                       Next
                     </button>
-                  )}
+                  ) : onSwitchToVideo ? (
+                    <button
+                      onClick={onSwitchToVideo}
+                      className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-border/50 bg-foreground/[0.04] py-3 text-[12px] font-semibold text-foreground/75 hover:bg-foreground/[0.08] transition-colors"
+                    >
+                      <Film className="h-3.5 w-3.5" />
+                      Post a video instead
+                    </button>
+                  ) : null}
                 </>
               )}
 
