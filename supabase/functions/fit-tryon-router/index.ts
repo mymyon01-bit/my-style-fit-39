@@ -42,8 +42,11 @@ const VTON_MODEL_VERSION = Deno.env.get("REPLICATE_FIT_MODEL_VERSION") || "c871b
 const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
-const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "lovable-ai-v13-aligned";
+// V1 pipeline restoration: gemini-2.5-flash-image (Nano Banana) was the
+// model that produced believable, body-aligned renders. The 3.1 preview
+// model regressed to flat PNG-paste outputs, so we lock back to 2.5.
+const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-2.5-flash-image";
+const STUDIO_RENDER_VERSION = "lovable-ai-v14-gemini25-restore";
 
 // ─── GARMENT–BODY ALIGNMENT BLOCK (V13) ─────────────────────────────────────
 // Stops the "PNG-pasted-on-mannequin" look. Forces the renderer to wrap the
