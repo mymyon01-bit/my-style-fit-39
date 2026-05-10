@@ -166,7 +166,7 @@ export default function OOTDShortsFeed() {
     setLoading(true);
     const { data, error } = await supabase
       .from("ootd_videos")
-      .select("id, user_id, video_url, thumb_url, caption, duration_s, like_count, view_count, created_at")
+      .select("id, user_id, video_url, thumb_url, caption, duration_s, like_count, view_count, created_at, tags, filter")
       .order("created_at", { ascending: false })
       .limit(PAGE_SIZE);
     if (error) {
