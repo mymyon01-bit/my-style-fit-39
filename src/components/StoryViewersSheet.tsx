@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Eye } from "lucide-react";
+import { X, Eye, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -16,6 +16,7 @@ interface ViewerRow {
   display_name: string | null;
   avatar_url: string | null;
   username: string | null;
+  liked: boolean;
 }
 
 /**
@@ -41,11 +42,19 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
       const list = (views || []) as { viewer_id: string; viewed_at: string }[];
       const ids = [...new Set(list.map((v) => v.viewer_id))];
       let profileMap: Record<string, { display_name: string | null; avatar_url: string | null; username: string | null }> = {};
+      let likedSet = new Set<string>();
       if (ids.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, display_name, avatar_url, username")
-          .in("user_id", ids);
+        const [{ data: profiles }, { data: likes }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("user_id, display_name, avatar_url, username")
+            .in("user_id", ids),
+          supabase
+            .from("story_likes")
+            .select("user_id")
+            .eq("story_id", storyId)
+            .in("user_id", ids),
+        ]);
         for (const p of profiles || []) {
           profileMap[(p as any).user_id] = {
             display_name: (p as any).display_name,
@@ -53,6 +62,7 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
             username: (p as any).username,
           };
         }
+        likedSet = new Set((likes || []).map((l: any) => l.user_id));
       }
       const merged: ViewerRow[] = list.map((v) => ({
         viewer_id: v.viewer_id,
@@ -60,6 +70,7 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
         display_name: profileMap[v.viewer_id]?.display_name ?? null,
         avatar_url: profileMap[v.viewer_id]?.avatar_url ?? null,
         username: profileMap[v.viewer_id]?.username ?? null,
+        liked: likedSet.has(v.viewer_id),
       }));
       if (!cancelled) {
         setRows(merged);
@@ -90,11 +101,20 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
             className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-card border border-border max-h-[85vh] sm:max-h-[80vh] flex flex-col"
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-foreground/60" />
-                <h3 className="text-[13px] font-semibold tracking-[0.05em] text-foreground">
-                  Seen by {rows.length}
-                </h3>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <Eye className="h-4 w-4 text-foreground/60" />
+                  <h3 className="text-[13px] font-semibold tracking-[0.05em] text-foreground">
+                    Seen by {rows.length}
+                  </h3>
+                </div>
+                <span className="h-3 w-px bg-border/60" />
+                <div className="flex items-center gap-1">
+                  <Heart className={`h-3.5 w-3.5 ${rows.filter((r) => r.liked).length > 0 ? "fill-rose-500 text-rose-500" : "text-foreground/55"}`} />
+                  <span className="text-[12px] font-semibold text-foreground tabular-nums">
+                    {rows.filter((r) => r.liked).length}
+                  </span>
+                </div>
               </div>
               <button onClick={onClose} className="text-foreground/60 hover:text-foreground">
                 <X className="h-5 w-5" />
@@ -137,7 +157,10 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
                             <p className="text-[10px] text-foreground/45 truncate">@{r.username}</p>
                           )}
                         </div>
-                        <span className="text-[10px] text-foreground/40 shrink-0">{relTime(r.viewed_at)}</span>
+                        {r.liked && (
+                          <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500 shrink-0" aria-label="Liked this story" />
+                        )}
+                        <span className="text-[10px] text-foreground/40 shrink-0 tabular-nums">{relTime(r.viewed_at)}</span>
                       </button>
                     </li>
                   ))}

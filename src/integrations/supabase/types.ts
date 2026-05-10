@@ -1554,6 +1554,74 @@ export type Database = {
         }
         Relationships: []
       }
+      ootd_video_likes: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ootd_video_likes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ootd_videos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          duration_s: number
+          id: string
+          like_count: number
+          thumb_url: string | null
+          updated_at: string
+          user_id: string
+          video_url: string
+          view_count: number
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          duration_s?: number
+          id?: string
+          like_count?: number
+          thumb_url?: string | null
+          updated_at?: string
+          user_id: string
+          video_url: string
+          view_count?: number
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          duration_s?: number
+          id?: string
+          like_count?: number
+          thumb_url?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       phone_verifications: {
         Row: {
           attempts: number

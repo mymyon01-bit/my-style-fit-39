@@ -267,7 +267,7 @@ export default function OOTDPostDetail({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 pb-[calc(1rem+72px+env(safe-area-inset-bottom))] md:pb-4"
       onClick={onClose}
     >
       <motion.div
@@ -275,7 +275,7 @@ export default function OOTDPostDetail({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-md md:max-w-5xl max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col md:flex-row"
+        className="relative w-full max-w-md md:max-w-5xl max-h-[calc(100dvh-88px-env(safe-area-inset-bottom))] md:max-h-[90vh] rounded-2xl bg-card border border-border overflow-hidden flex flex-col md:flex-row"
       >
         {/* Decorative background theme — sits above bg, below content */}
         <PostThemeBackground theme={postTheme} />

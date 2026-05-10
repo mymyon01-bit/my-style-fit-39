@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Heart, Send, Eye, Bookmark, BookmarkCheck } from "lucide-react";
+import { X, Trash2, Heart, Send, Eye, Bookmark, BookmarkCheck, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useOOTDModal } from "@/lib/ootdModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -328,10 +328,12 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
               navigate(`/user/${currentUser.user_id}`);
             }}
             disabled={isOwnCurrent}
-            className="flex items-center gap-2.5 min-w-0 max-w-[60%] text-left disabled:cursor-default"
+            className={`group flex items-center gap-2.5 min-w-0 max-w-[60%] text-left disabled:cursor-default rounded-full pr-2 pl-0.5 py-0.5 transition-colors ${
+              isOwnCurrent ? "" : "hover:bg-white/10 active:bg-white/15"
+            }`}
             aria-label={isOwnCurrent ? "Your story" : `Open ${currentUser?.profile?.display_name || "user"}'s profile`}
           >
-            <div className="h-8 w-8 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
+            <div className="h-8 w-8 rounded-full overflow-hidden bg-white/10 flex-shrink-0 ring-1 ring-white/30">
               {currentUser.profile?.avatar_url ? (
                 <img src={currentUser.profile.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -344,8 +346,13 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
               <p className="text-[12px] font-semibold text-white truncate">
                 {currentUser.profile?.display_name || "User"}
               </p>
-              <p className="text-[9px] text-white/60">{relativeTime(currentStory.created_at)}</p>
+              <p className="text-[9px] text-white/60">
+                {isOwnCurrent ? relativeTime(currentStory.created_at) : `${relativeTime(currentStory.created_at)} · Tap to view profile`}
+              </p>
             </div>
+            {!isOwnCurrent && (
+              <ChevronRight className="h-3.5 w-3.5 text-white/55 flex-shrink-0 group-hover:text-white transition-colors" />
+            )}
           </button>
           <div className="flex items-center gap-3">
             {isOwn && (
@@ -370,15 +377,18 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
           </div>
         </div>
 
-        {/* Owner-only "Seen by" pill */}
+        {/* Owner-only "Seen by" pill — also shows total hearts */}
         {isOwn && (
           <button
             onClick={() => setViewersOpen(true)}
-            className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/10 px-3 py-1.5 text-white"
+            className="absolute bottom-4 left-4 z-30 flex items-center gap-2 rounded-full bg-black/45 backdrop-blur-md border border-white/10 px-3 py-1.5 text-white"
           >
             <Eye className="h-3.5 w-3.5" />
             <span className="text-[11px] font-semibold">{viewerCount}</span>
             <span className="text-[10px] text-white/70">Seen</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <Heart className={`h-3.5 w-3.5 ${likeCount > 0 ? "fill-rose-500 text-rose-500" : ""}`} />
+            <span className="text-[11px] font-semibold tabular-nums">{likeCount}</span>
           </button>
         )}
 
