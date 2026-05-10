@@ -953,7 +953,7 @@ export default function FitResults({
                 return (
                   <button
                     key={sr.size}
-                    onClick={() => setActiveSize(sr.size)}
+                    onClick={() => { userPickedRef.current = true; setActiveSize(sr.size); }}
                     className={`flex-1 rounded-lg border py-1.5 text-[12px] font-bold tracking-wider transition-colors ${
                       active
                         ? "border-accent bg-accent text-accent-foreground"
