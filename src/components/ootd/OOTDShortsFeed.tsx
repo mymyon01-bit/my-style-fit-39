@@ -88,7 +88,7 @@ const VideoCard = ({
           }
         }}
         style={{ filter: filterCssById(v.filter) }}
-        className="h-full w-full object-contain"
+        className="h-full w-full object-cover"
       />
       {showPlay && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
