@@ -108,6 +108,13 @@ interface ChartInput {
    * FIT spec). When unknown, the unisex default is used.
    */
   productGender?: Gender | null;
+  /**
+   * Body gender of the *user*. Used ONLY as a fallback for chart selection
+   * when productGender is null/neutral (e.g. unisex hoodie). Without this
+   * a slim 75cm-bust female on a unisex hoodie sees the male-leaning
+   * default chart and the engine reports every size as "loose".
+   */
+  bodyGenderFallback?: Gender | null;
 }
 
 export async function loadGarmentChart(input: ChartInput): Promise<GarmentChart> {
@@ -137,7 +144,15 @@ export async function loadGarmentChart(input: ChartInput): Promise<GarmentChart>
     rows = await fetchRows(productKey);
   }
 
-  return buildChart(category, rows, input.productGender ?? null, calibration);
+  // When the product audience is unknown (or neutral) but we know the user's
+  // body gender, use the body gender to pick a proportionate fallback chart.
+  const effectiveProductGender = input.productGender ?? null;
+  const chartSelectionGender =
+    effectiveProductGender && effectiveProductGender !== "neutral"
+      ? effectiveProductGender
+      : input.bodyGenderFallback ?? null;
+
+  return buildChart(category, rows, chartSelectionGender, calibration);
 }
 
 async function fetchRows(productKey: string): Promise<DbRow[]> {

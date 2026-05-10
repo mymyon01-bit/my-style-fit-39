@@ -195,7 +195,11 @@ export default function FitResults({
 
   // Active size = user-selected; defaults to recommended.
   const [activeSize, setActiveSize] = useState<string>(result.recommendedSize);
-  useEffect(() => { setActiveSize(result.recommendedSize); }, [result.recommendedSize]);
+  // Align the initial active size with the sizing-engine recommendation
+  // once it resolves — avoids generating a render for a size the user is
+  // about to change away from. Only run while the user hasn't picked yet.
+  const userPickedRef = useRef(false);
+  useEffect(() => { setActiveSize(result.recommendedSize); userPickedRef.current = false; }, [result.recommendedSize]);
   const activeSizeResult = result.sizeResults.find(s => s.size === activeSize)
     ?? result.sizeResults.find(s => s.recommended);
   const heroScore = activeSizeResult?.fitScore ?? 0;
@@ -711,6 +715,16 @@ export default function FitResults({
   const recommendedSize = sizing.recommendation?.primarySize ?? result.recommendedSize;
   const recommendedReason = sizing.recommendation?.primaryReason ?? "Best balance for your measurements.";
 
+  // Once the sizing engine resolves, snap activeSize to its primary pick
+  // (unless the user has already clicked a different size). This keeps the
+  // "Best" badge and the rendered fit image aligned, and avoids burning a
+  // generation on a size the engine wouldn't recommend.
+  useEffect(() => {
+    if (userPickedRef.current) return;
+    const primary = sizing.recommendation?.primarySize;
+    if (primary && primary !== activeSize) setActiveSize(primary);
+  }, [sizing.recommendation?.primarySize, activeSize]);
+
   // Mannequin gender for the body silhouette in the left panel.
   const silhouetteGender: "male" | "female" =
     (bodyGender || "").toLowerCase() === "female" ? "female" : "male";
@@ -859,7 +873,7 @@ export default function FitResults({
               return (
                 <button
                   key={sr.size}
-                  onClick={() => setActiveSize(sr.size)}
+                  onClick={() => { userPickedRef.current = true; setActiveSize(sr.size); }}
                   className={`group relative flex flex-col items-center overflow-hidden rounded-xl border py-2.5 text-left transition-all ${
                     isActive
                       ? "border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/10"
@@ -939,7 +953,7 @@ export default function FitResults({
                 return (
                   <button
                     key={sr.size}
-                    onClick={() => setActiveSize(sr.size)}
+                    onClick={() => { userPickedRef.current = true; setActiveSize(sr.size); }}
                     className={`flex-1 rounded-lg border py-1.5 text-[12px] font-bold tracking-wider transition-colors ${
                       active
                         ? "border-accent bg-accent text-accent-foreground"

@@ -186,6 +186,7 @@ export function useSizeRecommendation(args: Args): State {
           category: args.category,
           triggerScrape: true,
           productGender,
+          bodyGenderFallback: (effectiveBodyGender as any) ?? null,
         });
         if (!cancelled) setChart(c);
       } catch (e) {
@@ -195,7 +196,7 @@ export function useSizeRecommendation(args: Args): State {
       }
     })();
     return () => { cancelled = true; };
-  }, [args.enabled, args.productUrl, args.productName, args.brand, args.category, productGender]);
+  }, [args.enabled, args.productUrl, args.productName, args.brand, args.category, productGender, effectiveBodyGender]);
 
   // 5. Calculate + recommend (synchronous; recomputes on preference change).
   const recommendation = useMemo<SizeRecommendation | null>(() => {

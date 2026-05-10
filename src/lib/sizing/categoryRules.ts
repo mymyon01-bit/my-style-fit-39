@@ -191,12 +191,33 @@ export const CATEGORY_RULES: Record<SizingCategory, CategoryRule> = {
     },
     weights: { ...TOP_WEIGHTS, shoulder: 0.30, chest: 0.35 },
     lengthMode: "lenient",
+    // Default (unisex/male-leaning) chart kept for backwards compat.
     defaultChart: {
       XS: { shoulder: 48, chest: 108, waist: 100, sleeve: 60, length: 66 },
       S:  { shoulder: 50, chest: 114, waist: 106, sleeve: 61, length: 68 },
       M:  { shoulder: 52, chest: 120, waist: 112, sleeve: 62, length: 70 },
       L:  { shoulder: 54, chest: 126, waist: 118, sleeve: 63, length: 72 },
       XL: { shoulder: 56, chest: 132, waist: 124, sleeve: 64, length: 74 },
+    },
+    // Gender-aware fallback — without this a 75cm-bust female user on a
+    // unisex hoodie chart sees XS at 108cm chest = +33cm ease and the
+    // engine reports "every size sits loose". Now female users get a
+    // proportionate baseline (XS ≈ 88cm chest, +13cm ease).
+    defaultChartByGender: {
+      male: {
+        XS: { shoulder: 48, chest: 108, waist: 100, sleeve: 60, length: 66 },
+        S:  { shoulder: 50, chest: 114, waist: 106, sleeve: 61, length: 68 },
+        M:  { shoulder: 52, chest: 120, waist: 112, sleeve: 62, length: 70 },
+        L:  { shoulder: 54, chest: 126, waist: 118, sleeve: 63, length: 72 },
+        XL: { shoulder: 56, chest: 132, waist: 124, sleeve: 64, length: 74 },
+      },
+      female: {
+        XS: { shoulder: 40, chest:  92, waist:  78, sleeve: 56, length: 60 },
+        S:  { shoulder: 41, chest:  96, waist:  82, sleeve: 57, length: 62 },
+        M:  { shoulder: 42, chest: 102, waist:  86, sleeve: 58, length: 64 },
+        L:  { shoulder: 43, chest: 108, waist:  92, sleeve: 59, length: 66 },
+        XL: { shoulder: 44, chest: 116, waist: 100, sleeve: 60, length: 68 },
+      },
     },
   },
   knit: {
