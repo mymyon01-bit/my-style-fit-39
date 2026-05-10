@@ -42,11 +42,19 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
       const list = (views || []) as { viewer_id: string; viewed_at: string }[];
       const ids = [...new Set(list.map((v) => v.viewer_id))];
       let profileMap: Record<string, { display_name: string | null; avatar_url: string | null; username: string | null }> = {};
+      let likedSet = new Set<string>();
       if (ids.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, display_name, avatar_url, username")
-          .in("user_id", ids);
+        const [{ data: profiles }, { data: likes }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("user_id, display_name, avatar_url, username")
+            .in("user_id", ids),
+          supabase
+            .from("story_likes")
+            .select("user_id")
+            .eq("story_id", storyId)
+            .in("user_id", ids),
+        ]);
         for (const p of profiles || []) {
           profileMap[(p as any).user_id] = {
             display_name: (p as any).display_name,
@@ -54,6 +62,7 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
             username: (p as any).username,
           };
         }
+        likedSet = new Set((likes || []).map((l: any) => l.user_id));
       }
       const merged: ViewerRow[] = list.map((v) => ({
         viewer_id: v.viewer_id,
@@ -61,6 +70,7 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
         display_name: profileMap[v.viewer_id]?.display_name ?? null,
         avatar_url: profileMap[v.viewer_id]?.avatar_url ?? null,
         username: profileMap[v.viewer_id]?.username ?? null,
+        liked: likedSet.has(v.viewer_id),
       }));
       if (!cancelled) {
         setRows(merged);
