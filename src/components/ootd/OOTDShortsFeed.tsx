@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { formatCount } from "@/lib/formatCount";
+import { filterCssById } from "@/lib/videoFilters";
 import OOTDShortUploadSheet from "./OOTDShortUploadSheet";
 
 interface VideoRow {
@@ -17,6 +18,8 @@ interface VideoRow {
   like_count: number;
   view_count: number;
   created_at: string;
+  tags?: string[] | null;
+  filter?: string | null;
   profile?: { display_name: string | null; username: string | null; avatar_url: string | null } | null;
   liked?: boolean;
 }
