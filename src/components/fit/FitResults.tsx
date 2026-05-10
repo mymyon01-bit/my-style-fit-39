@@ -837,7 +837,7 @@ export default function FitResults({
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
-                        {tryOn.status === "loading" ? (
+                        {tryOn.stage === "generating" || tryOn.stage === "polling" || tryOn.stage === "validating" ? (
                           <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
                         ) : (
                           <span className="text-[10px] text-foreground/30">—</span>
