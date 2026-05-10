@@ -292,6 +292,47 @@ export default function OOTDShortsFeed() {
     }
   };
 
+  const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
+  const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
+
+  const handleSave = (idx: number) => {
+    const v = videos[idx];
+    setSavedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(v.id)) {
+        next.delete(v.id);
+        toast("Removed from saved");
+      } else {
+        next.add(v.id);
+        toast.success("Saved");
+      }
+      return next;
+    });
+  };
+
+  const handleDislike = (idx: number) => {
+    const v = videos[idx];
+    setHiddenSet((prev) => new Set(prev).add(v.id));
+    toast("We'll show you fewer like this");
+  };
+
+  const handleShare = async (idx: number) => {
+    const v = videos[idx];
+    const url = `${window.location.origin}/ootd?v=${v.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "OOTD", text: v.caption || "Check out this OOTD", url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+    } catch {
+      // user cancelled
+    }
+  };
+
+  const visibleVideos = videos.filter((v) => !hiddenSet.has(v.id));
+
   return (
     <div className="relative -mx-4 md:-mx-10 lg:-mx-12">
       <div
