@@ -1588,8 +1588,10 @@ export type Database = {
           caption: string | null
           created_at: string
           duration_s: number
+          filter: string | null
           id: string
           like_count: number
+          tags: string[]
           thumb_url: string | null
           updated_at: string
           user_id: string
@@ -1600,8 +1602,10 @@ export type Database = {
           caption?: string | null
           created_at?: string
           duration_s?: number
+          filter?: string | null
           id?: string
           like_count?: number
+          tags?: string[]
           thumb_url?: string | null
           updated_at?: string
           user_id: string
@@ -1612,8 +1616,10 @@ export type Database = {
           caption?: string | null
           created_at?: string
           duration_s?: number
+          filter?: string | null
           id?: string
           like_count?: number
+          tags?: string[]
           thumb_url?: string | null
           updated_at?: string
           user_id?: string
