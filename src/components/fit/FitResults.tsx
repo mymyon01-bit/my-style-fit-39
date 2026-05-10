@@ -715,6 +715,16 @@ export default function FitResults({
   const recommendedSize = sizing.recommendation?.primarySize ?? result.recommendedSize;
   const recommendedReason = sizing.recommendation?.primaryReason ?? "Best balance for your measurements.";
 
+  // Once the sizing engine resolves, snap activeSize to its primary pick
+  // (unless the user has already clicked a different size). This keeps the
+  // "Best" badge and the rendered fit image aligned, and avoids burning a
+  // generation on a size the engine wouldn't recommend.
+  useEffect(() => {
+    if (userPickedRef.current) return;
+    const primary = sizing.recommendation?.primarySize;
+    if (primary && primary !== activeSize) setActiveSize(primary);
+  }, [sizing.recommendation?.primarySize, activeSize]);
+
   // Mannequin gender for the body silhouette in the left panel.
   const silhouetteGender: "male" | "female" =
     (bodyGender || "").toLowerCase() === "female" ? "female" : "male";
