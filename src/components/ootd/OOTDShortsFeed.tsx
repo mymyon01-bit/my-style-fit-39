@@ -79,6 +79,7 @@ const VideoCard = ({
             setShowPlay(true);
           }
         }}
+        style={{ filter: filterCssById(v.filter) }}
         className="h-full w-full object-contain"
       />
       {showPlay && (
