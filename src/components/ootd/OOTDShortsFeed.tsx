@@ -369,11 +369,6 @@ export default function OOTDShortsFeed() {
         )}
       </div>
 
-      <OOTDShortUploadSheet
-        open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onPosted={load}
-      />
     </div>
   );
 }
