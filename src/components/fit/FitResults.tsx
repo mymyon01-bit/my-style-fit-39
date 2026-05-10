@@ -902,10 +902,20 @@ export default function FitResults({
             })}
           </div>
 
-          {/* Fit Tip */}
+          {/* Single Fit Label + Sentence (V3 simplified) */}
           <div className="mt-4 rounded-2xl border border-foreground/[0.06] bg-background/40 px-4 py-3">
-            <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/45 uppercase">Fit Tip</p>
-            <p className="mt-1 text-[12px] leading-snug text-foreground/75">
+            <div className="flex items-center justify-between">
+              <p className={`font-display text-sm font-bold tracking-wide uppercase ${heroColor}`}>
+                {heroFitType}
+              </p>
+              <button
+                onClick={() => setAnalyzeOpen(true)}
+                className="flex items-center gap-1 text-[10px] font-medium tracking-wider text-accent hover:text-accent/80 uppercase"
+              >
+                <BarChart3 className="h-3 w-3" /> Analyze
+              </button>
+            </div>
+            <p className="mt-1.5 text-[12px] leading-snug text-foreground/75">
               {overallFitSentence ||
                 "If you prefer a more relaxed look, try one size up for a looser silhouette."}
             </p>
@@ -944,29 +954,6 @@ export default function FitResults({
             </div>
           </div>
 
-          {/* Size chips */}
-          <div className="border-t border-foreground/[0.06] pt-3">
-            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Size</p>
-            <div className="mt-2 flex gap-1.5">
-              {result.sizeResults.map((sr) => {
-                const active = sr.size === activeSize;
-                return (
-                  <button
-                    key={sr.size}
-                    onClick={() => { userPickedRef.current = true; setActiveSize(sr.size); }}
-                    className={`flex-1 rounded-lg border py-1.5 text-[12px] font-bold tracking-wider transition-colors ${
-                      active
-                        ? "border-accent bg-accent text-accent-foreground"
-                        : "border-foreground/10 bg-background/40 text-foreground/70 hover:border-foreground/30"
-                    }`}
-                  >
-                    {sr.size}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Best size for you */}
           <div className="rounded-2xl border border-accent/20 bg-accent/[0.05] p-3">
             <p className="text-[9px] font-bold tracking-[0.25em] text-accent uppercase">Best Size For You</p>
@@ -978,30 +965,6 @@ export default function FitResults({
             >
               Why this size? <ChevronDown className="h-3 w-3" />
             </button>
-          </div>
-
-          {/* Fit summary */}
-          <div className="border-t border-foreground/[0.06] pt-3">
-            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Fit Summary</p>
-            <div className="mt-2 space-y-1">
-              {regionRailRows.map((r) => {
-                const dot = r.status === "good" ? "bg-green-500" : r.status === "warn" ? "bg-orange-400" : "bg-red-500";
-                return (
-                  <div key={r.key} className="flex items-center justify-between rounded-lg px-1 py-1 text-[11px]">
-                    <span className="flex items-center gap-2 text-foreground/70">
-                      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} /> {r.label}
-                    </span>
-                    <span className={`font-medium ${
-                      r.status === "good" ? "text-green-500"
-                        : r.status === "warn" ? "text-orange-400"
-                        : "text-red-500"
-                    }`}>
-                      {r.note}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           {/* CTA */}
