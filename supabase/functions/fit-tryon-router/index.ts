@@ -1098,6 +1098,7 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
   ].filter(Boolean).join(" ");
 
   const prompt = [
+    V3_BODY_LOCK_PREAMBLE,
     leadFitDirective,
     GARMENT_ALIGNMENT_BLOCK,
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
