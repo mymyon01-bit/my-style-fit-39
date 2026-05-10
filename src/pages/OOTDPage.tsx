@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send, ChevronDown } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send, ChevronDown, Film } from "lucide-react";
+import OOTDShortsFeed from "@/components/ootd/OOTDShortsFeed";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
@@ -861,7 +862,7 @@ const OOTDPage = () => {
               {([
                 { key: "ranking" as const, label: "FEATURED", Icon: Trophy },
                 { key: "feed" as const, label: "STREAM", Icon: Sparkles },
-                { key: "community" as const, label: "EXPLORE", Icon: Users },
+                { key: "community" as const, label: "#OOTD", Icon: Film },
                 { key: "showroom" as const, label: "SHOWROOMS", Icon: LayoutGrid },
                 { key: "mypage" as const, label: "MY", Icon: UserIcon },
               ]).map(({ key, label, Icon }) => (
