@@ -1,69 +1,69 @@
-# MYMYON FIT — Lovable AI render + clean dashboard UI
 
-Two coordinated changes. Body-lock + realism directives stay; rendering pipeline and result screen are rebuilt.
+# MYMYON FIT V3 — Realistic Fit System Rebuild
 
-## 1. Render: Replicate → Lovable AI Gateway
+The spec is large enough that shipping it in one go would break the live FIT flow for several days. I'll cut it into 3 reviewable phases. Each phase is independently usable — you can stop after any phase.
 
-**Goal:** stop the "PNG-pasted-on-mannequin" look. Use Lovable AI image-conditioned model so the garment is actually *seen* and wrapped onto the locked mannequin body, with proper depth, strap placement, and fabric drape.
+A lot of V3 already exists in the codebase (gendered charts, per-region cm deltas, fit classifier, recommendation reasoning, Analyze-style detail panel). The real gaps are: (1) the renderer still subtly reshapes the body between sizes, (2) the Final FIT page is too dense, (3) no quality gate before display, (4) no result cache keyed on body+product+size.
 
-### `supabase/functions/fit-tryon-router/index.ts`
-- Default `mode = "studio"` now routes to **Lovable AI Gateway** (`google/gemini-3.1-flash-image-preview`) via `https://ai.gateway.lovable.dev/v1/images/generations`, sending:
-  - garment image URL as visual reference (so model sees the actual print/cut/straps)
-  - body reference URL (mannequin lock, no face/skin)
-  - existing `realismDirective` block (V12) — body-locked, measurement-first
-  - **new `garmentAlignmentBlock`**: hard rules — straps anchor to acromion, neckline contours collarbone, bust seam wraps chest curve, waist follows torso compression, hem drapes over hips, fabric must show depth/shading on side curve. Forbid: floating overlay, flat texture projection, body clipping, sticker effect.
-- Replicate path kept only as **fallback** when Lovable AI returns 402/429 or empty output. Bump `STUDIO_RENDER_VERSION` to `lovable-ai-v13-aligned` to bust cache.
-- Auth headers: `Lovable-API-Key: ${LOVABLE_API_KEY}` (already auto-provisioned).
-- On 402 → surface `code: "credits_exhausted"`; on 429 → `rate_limited`.
+---
 
-### `src/lib/fit/validateFitImage.ts` (light tweak)
-- Add an "overlay artifact" heuristic: detect uniform-edge garment regions (typical of PNG paste). If detected on first render, request `safeMode=true` retry which prepends an even stricter alignment block.
+## Phase 1 — Body Lock + Render Directive (ship first)
 
-## 2. UI Redesign — `FitResults.tsx` (reference image)
+Goal: stop the renderer from beautifying or reshaping the body. Same body across S/M/L/XL, only garment changes.
 
-Replace the current scrollable stack with a **3-column dashboard** (desktop) / collapsible stack (mobile):
+1. **Build a single `FitRenderDirective`** in `supabase/functions/fit-tryon-router/index.ts` that bundles every locked field (body profile, garment cm, deltas, actual vs intended fit, per-region behavior). Used by both the Lovable-AI Gemini path and the Replicate fallback so they speak the same language.
+2. **Replace ad-hoc prompt fragments** with one front-loaded BODY-LOCK block at the very top of the prompt:
+   - body silhouette, mass, posture, waist/hip/shoulder/arm volume are LOCKED across all sizes
+   - explicit anti-beautification negatives (no slimming, no hourglass reshape, no fashion-model proportions, no waist narrowing, no leg lengthening)
+   - plus-size realism clause for BMI ≥ 28 (visibly heavier, fuller midsection, thicker limbs — never converted to influencer body)
+   - "garment adapts to body, body NEVER adapts to garment"
+3. **Per-size variation rule**: only fabric behavior differs between sizes — pose, camera, lighting, mannequin proportions stay byte-identical. Add to the front of the prompt, not the tail.
+4. **Compression / oversized visualization rules**: tight → stretched fabric, tension lines, lifted hem, side pulling. Loose → hanging volume, dropped shoulder, sleeve stacking. Already partially present — consolidate and front-load.
+5. **Strict realism mode**: shift renderer priority from "aesthetic fashion image" to "accurate body-relative fit visualization" via an explicit single-line directive that overrides all other style cues.
 
-```text
-┌─────────────┬──────────────────────────────────┬──────────────┐
-│ MY BODY     │  SIZE PREVIEW   [Front] [Side]   │ PRODUCT      │
-│ Female / 29 │                                  │ name + brand │
-│ 168 / 96    │  ┌───┐ ┌───┐ ┌───┐ ┌───┐         │ [AI FITTING] │
-│ Bust 106    │  │ S │ │ M │ │ L*│ │XL │         │              │
-│ Waist 92    │  │img│ │img│ │img│ │img│         │ SIZE         │
-│ Hip 112     │  └───┘ └───┘ └───┘ └───┘         │ S M [L] XL   │
-│ Shoulder 43 │  TooTight Close BEST  Loose      │              │
-│             │                                  │ BEST FOR YOU │
-│ [silhouette]│  Per-card 2-line caption         │ Size L  ▼    │
-│             │                                  │              │
-│ Body locked │                                  │ FIT SUMMARY  │
-│             │                                  │ Chest  ✓     │
-│             │                                  │ Waist  ✓     │
-│             │                                  │ Hip    ✓     │
-│             │                                  │ Length ◐     │
-│             │                                  │ Strap  ✓     │
-│             │                                  │              │
-│             │                                  │ [ADD TO BAG] │
-└─────────────┴──────────────────────────────────┴──────────────┘
-        Fit Tip: "Prefer relaxed? Try XL."
-```
+Files: `supabase/functions/fit-tryon-router/index.ts` only.
 
-### Components
-- **New `MyBodyPanel.tsx`** (left): gender/age, H/W, key cm, mannequin silhouette thumbnail, "Body is locked" note + small "Edit" link.
-- **New `SizePreviewGrid.tsx`** (center): 4 size cards from `result.sizeResults`, each rendering its own `FitImageCanvas` with `SizeWarpProfile`. Active card has accent border + "BEST" pill if recommended. 2-line caption from `solver` labels (e.g. "Chest & waist tight / Fabric pulls at bust"). Front/Side toggle at top.
-- **New `FitSummaryRail.tsx`** (right): product name + brand, AI FITTING badge, fabric chip, size chips (S M L XL), "BEST SIZE FOR YOU" callout with "Why this size?" disclosure, region table (chest/waist/hip/length/strap with ✓ ◐ ✗ indicators), ADD TO BAG + save buttons.
-- **Bottom strip `FitTip.tsx`**: one-line guidance ("If you prefer a more relaxed look, try XL").
-- Mobile: stack as Body → Grid → Summary; sticky bottom CTA; existing mobile menu offset already handled.
+---
 
-### What gets removed/hidden
-- Long verbose explanation cards, FitTrustStrip, FitAnalysisPanel, FitBreakdown, RegionFitTable — moved into "Why this size?" disclosure (collapsed by default).
-- Keep `useFitTryOn`, `useSizeRecommendation`, `solver`, `regionFit`, `baselineFitVerdict`, body-DNA guard exactly as today — only the presentation layer changes.
+## Phase 2 — Final FIT Page Simplification + Analyze Panel
 
-### Files
-- **edit:** `supabase/functions/fit-tryon-router/index.ts`, `src/components/fit/FitResults.tsx`, `src/lib/fit/validateFitImage.ts`
-- **new:** `src/components/fit/MyBodyPanel.tsx`, `src/components/fit/SizePreviewGrid.tsx`, `src/components/fit/FitSummaryRail.tsx`, `src/components/fit/FitTip.tsx`
+Goal: clean premium fit page; technical detail moves into Analyze.
 
-## Out of scope
-Body scan, sizing math, OOTD/Shorts, auth — untouched. No new dependencies.
+1. **Final fit page** (`src/components/fit/FitResults.tsx`):
+   - Large fit render
+   - Product name
+   - Selected size + size selector
+   - One fit label (Too tight / Close fit / Best balance / Relaxed / Oversized)
+   - One short guidance sentence
+   - "Analyze" button
+   - Remove visible debug pills, region chips, raw cm tables from the main view
+2. **Analyze panel** (existing `TryOnPreviewModal` or new `FitAnalyzePanel`): body cm, garment cm, every delta, fabric/cut, confidence, why this size was classified this way, recommended size reasoning. All existing data — just relocated.
+3. **Copy** matches the spec examples ("Too tight on your body. Try L for a more natural fit." etc.) — wire to existing classification.
+4. Keep existing i18n keys; add new keys for the simplified labels (en/ko/it/de/es/fr/ja/zh).
 
-## Risk
-Lovable AI image preview model may still under-respect alignment rules. Mitigation: stricter imperative phrasing, garment image passed as primary reference, validateFitImage retry, Replicate fallback on failure.
+Files: `src/components/fit/FitResults.tsx`, new `src/components/fit/FitAnalyzePanel.tsx`, `src/locales/*/translation.json`.
+
+---
+
+## Phase 3 — Quality Gate, Cache, Progressive Loading
+
+1. **Result cache**: store generated render in `fit_tryons` keyed by `(user_id, body_profile_hash, product_key, selected_size)`. Cache hit → instant show, no Replicate/Gemini call. Already partially present — tighten the lookup and add a `body_profile_hash` column.
+2. **Adjacent size preload**: when user lands on size M, kick off background generation for S and L so switching feels instant.
+3. **Quality gate** (server-side, before persisting to storage): reject render if Gemini fails to return an image, output is < 50KB, or aspect ratio is wrong. On reject → retry once with stricter directive, then fall back to the visual mannequin SVG with a "preview unavailable" note instead of a broken image.
+4. **Progressive UI**: skeleton → low-res blurred preview (the cached previous size) → high-res swap when render resolves. Already partially present from earlier loading-animation work — extend it.
+
+Files: `supabase/functions/fit-tryon-router/index.ts`, new migration adding `body_profile_hash` to `fit_tryons`, `src/hooks/useFitTryOn.ts`, `src/components/fit/FitResults.tsx`.
+
+---
+
+## What I will NOT change
+
+- Existing sizing engine (`src/lib/sizing/*`) — already implements deltas, gender-aware charts, classification, recommendation. Spec Steps 2–7 are already there. I'll add small gaps (cut-type defaults for cropped/boxy/longline) only if Phase 2 surfaces a missing case.
+- IDM-VTON path — kept as opt-in mode; default stays studio render.
+- Auth, DB schema (except the cache-key column in Phase 3), other features.
+
+## Recommendation
+
+Start with **Phase 1** today. It's the only phase that fixes the "body keeps morphing" complaint, and it's a single-file change that ships in one round. Once you confirm the renders behave, I'll roll Phase 2 (UI), then Phase 3 (perf).
+
+Approve this and I'll ship Phase 1 immediately.
