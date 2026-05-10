@@ -347,13 +347,7 @@ export default function OOTDShortsFeed() {
           <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
             <Film className="h-8 w-8 text-white/50" />
             <p className="text-[13px] text-white/85">No #OOTD videos yet</p>
-            <p className="text-[11px] text-white/50">Be the first to drop a 60-second look</p>
-            <button
-              onClick={() => (user ? setUploadOpen(true) : navigate("/auth"))}
-              className="mt-2 rounded-full bg-white text-black px-4 py-2 text-[12px] font-semibold"
-            >
-              Upload video
-            </button>
+            <p className="text-[11px] text-white/50">Post a video from your OOTD upload</p>
           </div>
         ) : (
           visibleVideos.map((v, i) => (
@@ -373,16 +367,6 @@ export default function OOTDShortsFeed() {
             </div>
           ))
         )}
-
-        {/* Floating upload button */}
-        <button
-          onClick={() => (user ? setUploadOpen(true) : navigate("/auth"))}
-          aria-label="Upload OOTD video"
-          className="absolute bottom-[calc(1.25rem+72px+env(safe-area-inset-bottom))] md:bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-gradient-to-r from-[hsl(330_85%_60%)] to-[hsl(280_70%_55%)] px-4 py-2.5 text-[12px] font-semibold text-white shadow-xl shadow-black/40"
-        >
-          <Plus className="h-4 w-4" />
-          Post #OOTD
-        </button>
       </div>
 
       <OOTDShortUploadSheet
