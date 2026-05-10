@@ -370,15 +370,18 @@ const StoryViewer = ({ open, startUserIndex, userStories, onClose, onDeleted }: 
           </div>
         </div>
 
-        {/* Owner-only "Seen by" pill */}
+        {/* Owner-only "Seen by" pill — also shows total hearts */}
         {isOwn && (
           <button
             onClick={() => setViewersOpen(true)}
-            className="absolute bottom-4 left-4 z-30 flex items-center gap-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/10 px-3 py-1.5 text-white"
+            className="absolute bottom-4 left-4 z-30 flex items-center gap-2 rounded-full bg-black/45 backdrop-blur-md border border-white/10 px-3 py-1.5 text-white"
           >
             <Eye className="h-3.5 w-3.5" />
             <span className="text-[11px] font-semibold">{viewerCount}</span>
             <span className="text-[10px] text-white/70">Seen</span>
+            <span className="mx-1 h-3 w-px bg-white/20" />
+            <Heart className={`h-3.5 w-3.5 ${likeCount > 0 ? "fill-rose-500 text-rose-500" : ""}`} />
+            <span className="text-[11px] font-semibold tabular-nums">{likeCount}</span>
           </button>
         )}
 
