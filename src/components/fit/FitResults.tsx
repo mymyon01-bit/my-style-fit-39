@@ -697,17 +697,6 @@ export default function FitResults({
   const silhouetteGender: "male" | "female" =
     (bodyGender || "").toLowerCase() === "female" ? "female" : "male";
 
-  // ── Analyze sheet (kept; opens from "Why this size?") ──
-  const [analyzeOpen, setAnalyzeOpen] = useState(false);
-  const [changeBodyOpen, setChangeBodyOpen] = useState(false);
-
-  const handleChangeBody = (a: ChangeBodyAction) => {
-    if (a.type === "rescan") onRescan?.();
-    else if (a.type === "edit") onEditMeasurements?.();
-    else if (a.type === "preset") onEditMeasurements?.();
-    setReloadToken((n) => n + 1);
-  };
-
   return (
     <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 overflow-x-hidden">
       {/* ─── DASHBOARD GRID ─────────────────────────────────────────────── */}
