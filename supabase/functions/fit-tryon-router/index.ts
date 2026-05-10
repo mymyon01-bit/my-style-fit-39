@@ -717,6 +717,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       ? `Scale the bag relative to the mannequin so the consequence above is visible: ${verdict?.consequence ?? ""}.`
       : `Scale the bag naturally to the mannequin — small mannequin makes a large bag look oversized; large mannequin makes a small bag look dwarfed.`;
     return [
+      V3_BODY_LOCK_PREAMBLE,
       `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
       bodyTabBlock,
       bodyProportionPrompt,
