@@ -263,9 +263,35 @@ export default function FitResults({
                 : confTier === "medium" ? "bg-accent/10"
                 : "bg-orange-500/10";
 
-  const heroFitType = heroScore >= 80 ? "Best fit" : heroScore >= 65 ? "Good fit" : heroScore >= 50 ? "Wearable" : "Poor fit";
-  const heroColor = heroScore >= 80 ? "text-green-500" : heroScore >= 65 ? "text-accent" : heroScore >= 50 ? "text-orange-400" : "text-orange-500";
-  const heroRing = heroScore >= 80 ? "ring-green-500/30" : heroScore >= 65 ? "ring-accent/30" : heroScore >= 50 ? "ring-orange-400/30" : "ring-orange-500/30";
+  // ── V3 honest hero label (from measurement-driven classifier) ────────────
+  // When the new sizing engine has analyzed the active size, it OVERRIDES
+  // the legacy heroScore label so a tight outfit is never shown as "loose"
+  // and a too-large outfit is never shown as "Best fit".
+  const v3ActiveAnalysis = sizing.recommendation?.sizeAnalyses?.[activeSize] ?? null;
+  let heroFitType = heroScore >= 80 ? "Best fit" : heroScore >= 65 ? "Good fit" : heroScore >= 50 ? "Wearable" : "Poor fit";
+  let heroColor = heroScore >= 80 ? "text-green-500" : heroScore >= 65 ? "text-accent" : heroScore >= 50 ? "text-orange-400" : "text-orange-500";
+  let heroRing = heroScore >= 80 ? "ring-green-500/30" : heroScore >= 65 ? "ring-accent/30" : heroScore >= 50 ? "ring-orange-400/30" : "ring-orange-500/30";
+  if (v3ActiveAnalysis) {
+    const c = v3ActiveAnalysis.classification;
+    heroFitType = c === "TooSmall" ? "Too Small"
+                : c === "Tight" ? "Tight"
+                : c === "CloseFit" ? "Close Fit"
+                : c === "BestBalance" ? "Best Balance"
+                : c === "Relaxed" ? "Relaxed"
+                : c === "Oversized" ? "Oversized"
+                : "Too Large";
+    const isBad = c === "TooSmall" || c === "TooLarge";
+    const isWarn = c === "Tight" || c === "Oversized";
+    const isBest = c === "BestBalance";
+    heroColor = isBad ? "text-orange-500"
+              : isWarn ? "text-orange-400"
+              : isBest ? "text-green-500"
+              : "text-accent";
+    heroRing = isBad ? "ring-orange-500/30"
+             : isWarn ? "ring-orange-400/30"
+             : isBest ? "ring-green-500/30"
+             : "ring-accent/30";
+  }
 
   // ── Deterministic explanation (always available; AI text overrides if present) ──
   const builtExplanation = buildLegacyExplanation(result, confTier, usedGlobalFallback);
@@ -352,8 +378,22 @@ export default function FitResults({
     return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "regular") as any;
   }, [regionPhysics]);
   const overallFitSentence = useMemo(
-    () => describeOverallFit(overallPhysicsLabel, garmentDNA, activeSize),
-    [overallPhysicsLabel, garmentDNA, activeSize],
+    () => {
+      if (v3ActiveAnalysis) {
+        const c = v3ActiveAnalysis.classification;
+        switch (c) {
+          case "TooSmall":    return `Size ${activeSize} is smaller than your body measurements.`;
+          case "Tight":       return `Size ${activeSize} will feel tight on you.`;
+          case "CloseFit":    return `Size ${activeSize} sits close to the body — sharper silhouette.`;
+          case "BestBalance": return `Size ${activeSize} gives the most natural room without looking oversized.`;
+          case "Relaxed":     return `Size ${activeSize} sits relaxed with extra room.`;
+          case "Oversized":   return `Size ${activeSize} reads oversized for your body.`;
+          case "TooLarge":    return `Size ${activeSize} has too much room for your body.`;
+        }
+      }
+      return describeOverallFit(overallPhysicsLabel, garmentDNA, activeSize);
+    },
+    [v3ActiveAnalysis, overallPhysicsLabel, garmentDNA, activeSize],
   );
 
   // ── GENDERED SIZE SYSTEM (V3.9) — target gender + cross-gender context ──
