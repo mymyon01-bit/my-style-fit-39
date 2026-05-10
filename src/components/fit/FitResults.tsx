@@ -195,7 +195,11 @@ export default function FitResults({
 
   // Active size = user-selected; defaults to recommended.
   const [activeSize, setActiveSize] = useState<string>(result.recommendedSize);
-  useEffect(() => { setActiveSize(result.recommendedSize); }, [result.recommendedSize]);
+  // Align the initial active size with the sizing-engine recommendation
+  // once it resolves — avoids generating a render for a size the user is
+  // about to change away from. Only run while the user hasn't picked yet.
+  const userPickedRef = useRef(false);
+  useEffect(() => { setActiveSize(result.recommendedSize); userPickedRef.current = false; }, [result.recommendedSize]);
   const activeSizeResult = result.sizeResults.find(s => s.size === activeSize)
     ?? result.sizeResults.find(s => s.recommended);
   const heroScore = activeSizeResult?.fitScore ?? 0;
