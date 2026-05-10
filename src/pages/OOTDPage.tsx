@@ -103,6 +103,7 @@ const OOTDPage = () => {
   const [bonusStars, setBonusStars] = useState(0);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [videoUploadOpen, setVideoUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
   const [selectedWaveId, setSelectedWaveId] = useState<string | null>(null);
   const [createWaveOpen, setCreateWaveOpen] = useState(false);
