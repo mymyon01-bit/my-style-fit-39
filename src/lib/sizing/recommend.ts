@@ -15,6 +15,11 @@ import type {
   SizeOutcome,
   SizeRecommendation,
 } from "./types";
+import {
+  pickBestBalance,
+  classificationSentence,
+  type V3SizeAnalysis,
+} from "./v3Classify";
 
 interface RecommendInput {
   body: ResolvedBody;
