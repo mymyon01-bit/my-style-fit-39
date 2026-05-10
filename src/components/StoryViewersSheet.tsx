@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Eye } from "lucide-react";
+import { X, Eye, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -16,6 +16,7 @@ interface ViewerRow {
   display_name: string | null;
   avatar_url: string | null;
   username: string | null;
+  liked: boolean;
 }
 
 /**
