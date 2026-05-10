@@ -32,14 +32,22 @@ const VideoCard = ({
   muted,
   onToggleMute,
   onLike,
+  onDislike,
+  onSave,
+  onShare,
   onAuthorClick,
+  saved,
 }: {
   v: VideoRow;
   active: boolean;
   muted: boolean;
   onToggleMute: () => void;
   onLike: () => void;
+  onDislike: () => void;
+  onSave: () => void;
+  onShare: () => void;
   onAuthorClick: (uid: string) => void;
+  saved: boolean;
 }) => {
   const ref = useRef<HTMLVideoElement>(null);
   const [showPlay, setShowPlay] = useState(false);
