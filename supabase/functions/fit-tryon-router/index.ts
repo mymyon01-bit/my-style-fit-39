@@ -46,8 +46,10 @@ const REPLICATE_POLL_INTERVAL_MS = 1500;
 // slim mannequins regardless of the locked height/weight. Switching to the
 // premium next-gen Gemini image model which honors body proportions, with
 // 2.5 + 3.1 kept as fallbacks if the premium model is throttled.
-const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3-pro-image-preview";
-const STUDIO_RENDER_VERSION = "lovable-ai-v15-gemini3pro-body";
+// V16 speed: switched primary to gemini-3.1-flash-image-preview (~3-5x faster
+// than 3-pro) while keeping 3-pro as a fallback for body-fidelity recovery.
+const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
+const STUDIO_RENDER_VERSION = "lovable-ai-v16-flash-fast";
 
 // ─── GARMENT–BODY ALIGNMENT BLOCK (V13) ─────────────────────────────────────
 // Stops the "PNG-pasted-on-mannequin" look. Forces the renderer to wrap the
@@ -1031,8 +1033,8 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
 // Fallback chain — primary model first, then more stable alternates if the
 // preview model is rate-limited or out of credits. Order matters.
 const STUDIO_FALLBACK_MODELS = [
+  "google/gemini-3-pro-image-preview",
   "google/gemini-2.5-flash-image",
-  "google/gemini-3.1-flash-image-preview",
 ];
 
 // Replicate image-conditioned studio render — used when Lovable AI credits
