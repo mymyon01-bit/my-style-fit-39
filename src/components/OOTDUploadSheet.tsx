@@ -36,7 +36,7 @@ interface Topic {
   post_count: number;
 }
 
-const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted }, ref) => {
+const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPosted, onSwitchToVideo }, ref) => {
   const { user } = useAuth();
   const weather = useWeather();
   const { verified: emailVerified } = useEmailVerified();
