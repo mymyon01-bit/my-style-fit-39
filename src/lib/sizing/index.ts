@@ -17,3 +17,9 @@ export { loadBrandCalibration, applyCalibration } from "./brandCalibration";
 export type { CalibrationOffset } from "./brandCalibration";
 export { submitFitFeedback } from "./feedback";
 export type { FitFeedbackInput, FitFeedbackType } from "./feedback";
+export {
+  pickBestBalance,
+  analyzeSize,
+  classificationSentence,
+} from "./v3Classify";
+export type { V3Classification, V3SizeAnalysis, V3Pick } from "./v3Classify";
