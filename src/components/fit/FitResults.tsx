@@ -782,7 +782,7 @@ export default function FitResults({
           </div>
         </aside>
 
-        {/* ─── CENTER: SIZE PREVIEW GRID ─────────────────────────────── */}
+        {/* ─── CENTER: SIZE PREVIEW ─────────────────────────────── */}
         <section className="rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[10px] font-bold tracking-[0.3em] text-foreground/55 uppercase">Size Preview</p>
@@ -791,87 +791,68 @@ export default function FitResults({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {/* AI Fitting Image — only the active size */}
+          <div className="mb-4">
+            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-background/40">
+              {tryOn.imageUrl ? (
+                <FitImageCanvas
+                  src={tryOn.imageUrl}
+                  alt={`${product.name} in size ${activeSize}`}
+                  profile={activeProfile}
+                  className="h-full w-full object-cover"
+                />
+              ) : tryOn.stage === "generating" || tryOn.stage === "polling" || tryOn.stage === "validating" ? (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-foreground/30" />
+                  <p className="text-[12px] text-foreground/50">Generating size {activeSize}…</p>
+                </div>
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-foreground/40">
+                  <span className="text-[13px]">Select a size to see the AI fitting</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Size selector */}
+          <div className="grid grid-cols-4 gap-2">
             {result.sizeResults.slice(0, 4).map((sr) => {
               const isActive = sr.size === activeSize;
               const isRecommended = sr.size === recommendedSize;
-              // Mini caption from solver / region fits for THAT size.
               const sizeRegions = sr.regions || [];
               const sChest = sizeRegions.find((r) => /chest|bust/i.test(r.region))?.fit || "regular";
-              const sLen = sizeRegions.find((r) => /length|hem|inseam/i.test(r.region))?.fit || "regular";
               const captionTop =
                 isRecommended ? "Best fit"
                 : /tight|small|short/i.test(sChest) ? "Too tight"
                 : /loose|oversized|relaxed|long/i.test(sChest) ? "Loose fit"
                 : "Close fit";
-              const captionBottom =
-                isRecommended ? "Balanced silhouette"
-                : /tight|small/i.test(sChest) ? "Chest & waist tight"
-                : /oversized|relaxed/i.test(sChest) ? "Extra room in torso"
-                : /long/i.test(sLen) ? "Hem hangs longer"
-                : "Slightly fitted";
-              const profile = profileFromSizeAndRegions({
-                size: sr.size,
-                overall: isActive ? sizingActiveOutcome?.overall ?? null : null,
-                regions: sizeRegions.map((r) => ({
-                  region: r.region,
-                  bodyCm: null,
-                  garmentCm: null,
-                  deltaCm: null,
-                  status: r.fit as any,
-                })),
-              });
-
               return (
                 <button
                   key={sr.size}
                   onClick={() => setActiveSize(sr.size)}
-                  className={`group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-all ${
+                  className={`group relative flex flex-col items-center overflow-hidden rounded-xl border py-2.5 text-left transition-all ${
                     isActive
-                      ? "border-accent bg-background shadow-lg shadow-accent/10"
-                      : "border-foreground/[0.06] bg-background/60 hover:border-foreground/20"
+                      ? "border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/10"
+                      : "border-foreground/[0.08] bg-background/60 hover:border-foreground/20"
                   }`}
                 >
                   {isRecommended && (
-                    <span className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full bg-accent px-2.5 py-0.5 text-[9px] font-bold tracking-[0.18em] text-accent-foreground uppercase">
+                    <span className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-accent px-2 py-0.5 text-[8px] font-bold tracking-[0.15em] text-accent-foreground uppercase">
                       Best
                     </span>
                   )}
-                  <div className="flex items-center justify-between px-3 pb-1 pt-3">
-                    <span className={`font-display text-base font-bold ${isActive ? "text-foreground" : "text-foreground/60"}`}>
-                      {sr.size}
-                    </span>
-                    {isActive && <Sparkles className="h-3 w-3 text-accent" />}
-                  </div>
-                  <div className="relative aspect-[3/4] w-full bg-background/40">
-                    {heroImageUrl ? (
-                      <FitImageCanvas
-                        src={heroImageUrl}
-                        alt={`${product.name} in size ${sr.size}`}
-                        profile={profile}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        {tryOn.stage === "generating" || tryOn.stage === "polling" || tryOn.stage === "validating" ? (
-                          <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
-                        ) : (
-                          <span className="text-[10px] text-foreground/30">—</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-0.5 px-3 pb-3 pt-2">
-                    <p className={`text-[11px] font-bold tracking-wider uppercase ${
-                      isRecommended ? "text-accent"
-                        : /tight|small/i.test(sChest) ? "text-orange-500"
-                        : /loose|oversized/i.test(sChest) ? "text-blue-400"
-                        : "text-foreground/70"
-                    }`}>
-                      {captionTop}
-                    </p>
-                    <p className="text-[10px] leading-tight text-foreground/55">{captionBottom}</p>
-                  </div>
+                  <span className={`font-display text-sm font-bold ${isActive ? "text-accent-foreground" : "text-foreground/70"}`}>
+                    {sr.size}
+                  </span>
+                  <span className={`mt-0.5 text-[9px] font-semibold tracking-wider uppercase ${
+                    isActive ? "text-accent-foreground/80"
+                    : isRecommended ? "text-accent"
+                    : /tight|small/i.test(sChest) ? "text-orange-500"
+                    : /loose|oversized/i.test(sChest) ? "text-blue-400"
+                    : "text-foreground/50"
+                  }`}>
+                    {captionTop}
+                  </span>
                 </button>
               );
             })}
