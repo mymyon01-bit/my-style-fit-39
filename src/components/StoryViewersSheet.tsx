@@ -101,11 +101,20 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
             className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-card border border-border max-h-[85vh] sm:max-h-[80vh] flex flex-col"
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-foreground/60" />
-                <h3 className="text-[13px] font-semibold tracking-[0.05em] text-foreground">
-                  Seen by {rows.length}
-                </h3>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <Eye className="h-4 w-4 text-foreground/60" />
+                  <h3 className="text-[13px] font-semibold tracking-[0.05em] text-foreground">
+                    Seen by {rows.length}
+                  </h3>
+                </div>
+                <span className="h-3 w-px bg-border/60" />
+                <div className="flex items-center gap-1">
+                  <Heart className={`h-3.5 w-3.5 ${rows.filter((r) => r.liked).length > 0 ? "fill-rose-500 text-rose-500" : "text-foreground/55"}`} />
+                  <span className="text-[12px] font-semibold text-foreground tabular-nums">
+                    {rows.filter((r) => r.liked).length}
+                  </span>
+                </div>
               </div>
               <button onClick={onClose} className="text-foreground/60 hover:text-foreground">
                 <X className="h-5 w-5" />
@@ -148,7 +157,10 @@ const StoryViewersSheet = ({ open, storyId, onClose }: Props) => {
                             <p className="text-[10px] text-foreground/45 truncate">@{r.username}</p>
                           )}
                         </div>
-                        <span className="text-[10px] text-foreground/40 shrink-0">{relTime(r.viewed_at)}</span>
+                        {r.liked && (
+                          <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500 shrink-0" aria-label="Liked this story" />
+                        )}
+                        <span className="text-[10px] text-foreground/40 shrink-0 tabular-nums">{relTime(r.viewed_at)}</span>
                       </button>
                     </li>
                   ))}
