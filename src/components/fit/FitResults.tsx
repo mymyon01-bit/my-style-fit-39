@@ -683,8 +683,7 @@ export default function FitResults({
     });
   }, [activeSize, result.sizeResults, sizingActiveOutcome]);
 
-  // Region summary chips for the rail.
-  const regionRailRows = useMemo(() => {
+  // Region summary chips for the rail (✓ / ◐ / ✗).
   const regionRailRows = useMemo(() => {
     const rows: Array<{ key: string; label: string; status: "good" | "warn" | "bad"; note: string }> = [];
     const isBottom = garmentFit.category === "bottom";
