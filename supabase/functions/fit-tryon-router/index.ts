@@ -1048,6 +1048,7 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
     : "FITTED — clean follow of the form with natural ease.";
 
   const leadFitDirective = [
+    realismDirectiveBlock(body),
     `RENDER THIS EXACT FIT (highest priority, overrides any default catalog look): ${silhouetteShort}`,
     measurementDirective(body.regions),
     consequence ? `PHYSICAL CONSEQUENCE: ${consequence}` : "",
