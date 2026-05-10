@@ -43,7 +43,23 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "mannequin-bodylock-v12-realism-strict";
+const STUDIO_RENDER_VERSION = "lovable-ai-v13-aligned";
+
+// ─── GARMENT–BODY ALIGNMENT BLOCK (V13) ─────────────────────────────────────
+// Stops the "PNG-pasted-on-mannequin" look. Forces the renderer to wrap the
+// garment around real body geometry instead of projecting a flat texture.
+const GARMENT_ALIGNMENT_BLOCK =
+  "GARMENT–BODY ALIGNMENT (HARD CONSTRAINT — overrides every aesthetic shortcut): The garment from the FIRST reference image MUST be rendered as a real worn garment, not a flat overlay. " +
+  "STRAPS / SHOULDER SEAMS: anchor exactly on the acromion (top of the shoulder joint); straps follow the trapezius curve down to the bust point; never floating, never detached, never sliding off. " +
+  "NECKLINE / COLLAR: contours the collarbone and front of the neck with correct depth and shadow; never flat, never pasted across the chest. " +
+  "BUST / CHEST: the fabric wraps the bust curve in 3D — visible side shading where the chest projects forward, fabric pulled around the contour, NOT a flat front projection. " +
+  "WAIST: the garment compresses or eases against the actual torso width; visible side curvature; seams follow the natural waist line. " +
+  "HIPS: hem drapes OVER the hip curve with realistic side fall; never clipping through the body, never floating away from it. " +
+  "SLEEVES: tube around the arm cylinder with proper armhole rotation and elbow break — never a flat panel pasted on the bicep. " +
+  "DEPTH + PERSPECTIVE: the garment must show torso depth — left side, front, and right side of the body should each show different shading because the body is volumetric. " +
+  "FOLDS + DRAPE: gravity-correct folds; fabric distance from skin reflects fit class; sharp folds at compression points; soft folds at relaxed points. " +
+  "ABSOLUTELY FORBIDDEN: PNG paste, flat 2D overlay, sticker effect, paper-texture-on-body, body clipping through fabric, garment floating off the body, misaligned shoulder seam, broken strap, garment painted on a flat plane, naked mannequin, partially-clothed mannequin, fabric ignoring perspective, fabric ignoring body curves. " +
+  "FALLBACK: if the renderer cannot achieve realistic garment-to-body wrap, prefer a cleaner simplified mannequin pose with correct shoulders/bust/waist/hip alignment over a broken complex render.";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
@@ -921,10 +937,12 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
 
   const prompt = [
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
+    GARMENT_ALIGNMENT_BLOCK,
     buildCleanStudioPrompt(body),
     bodyRefLine,
     genderDirectiveLine,
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
+    GARMENT_ALIGNMENT_BLOCK,
   ].filter(Boolean).join(" ");
 
   // ── DEBUG: confirm Body tab values reach AI generation ──────────────────
@@ -1058,12 +1076,14 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
 
   const prompt = [
     leadFitDirective,
+    GARMENT_ALIGNMENT_BLOCK,
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
     buildCleanStudioPrompt(body),
     bodyRefLine,
     genderDirectiveLine,
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
     "MANDATORY: the mannequin MUST be wearing the garment fully and correctly — NEVER render a naked, partially-clothed, or unclothed mannequin.",
+    GARMENT_ALIGNMENT_BLOCK,
     `FINAL REMINDER (do not ignore): the fit MUST be ${silhouetteShort}`,
   ].filter(Boolean).join(" ");
 
