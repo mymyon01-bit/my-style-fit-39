@@ -257,7 +257,7 @@ export default function OOTDShortsFeed() {
     <div className="relative -mx-4 md:-mx-10 lg:-mx-12">
       <div
         ref={containerRef}
-        className="relative h-[calc(100dvh-200px)] md:h-[calc(100dvh-180px)] overflow-y-scroll snap-y snap-mandatory scrollbar-hide rounded-2xl bg-black"
+        className="relative h-[calc(100dvh-200px-env(safe-area-inset-bottom))] md:h-[calc(100dvh-180px)] overflow-y-scroll snap-y snap-mandatory scrollbar-hide rounded-2xl bg-black"
       >
         {loading ? (
           <div className="h-full flex items-center justify-center">
