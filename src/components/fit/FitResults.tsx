@@ -661,13 +661,30 @@ export default function FitResults({
     return arr;
   }, [solver, garmentFit.category]);
 
-  // ── Per-size mini visuals (S/M/L/XL grid) ──────────────────────────────
-  // Each card shows the AI fitting image for the active size. Inactive cards
-  // get the same hero image with a deterministic warp so users see size
-  // differences instantly without firing 4 generations at once.
-  const heroImageUrl = tryOn.imageUrl;
+  // ── Active-size warp profile (deterministic visual tweak) ──────────────
+  const activeProfile = useMemo(() => {
+    const sr = result.sizeResults.find((s) => s.size === activeSize);
+    if (!sr)
+      return profileFromSizeAndRegions({
+        size: activeSize,
+        overall: sizingActiveOutcome?.overall ?? null,
+        regions: [],
+      });
+    return profileFromSizeAndRegions({
+      size: sr.size,
+      overall: sizingActiveOutcome?.overall ?? null,
+      regions: sr.regions.map((r) => ({
+        region: r.region,
+        bodyCm: null,
+        garmentCm: null,
+        deltaCm: null,
+        status: r.fit as any,
+      })),
+    });
+  }, [activeSize, result.sizeResults, sizingActiveOutcome]);
 
-  // Region summary chips for the rail (✓ / ◐ / ✗).
+  // Region summary chips for the rail.
+  const regionRailRows = useMemo(() => {
   const regionRailRows = useMemo(() => {
     const rows: Array<{ key: string; label: string; status: "good" | "warn" | "bad"; note: string }> = [];
     const isBottom = garmentFit.category === "bottom";
