@@ -1,67 +1,69 @@
-# FIT Realism Patch — Body-Locked, Measurement-First
+# MYMYON FIT — Lovable AI render + clean dashboard UI
 
-## Problem
-The renderer ignores body↔garment measurement deltas and produces flattering "editorial" outputs even when a size is physically wrong (e.g. 95kg female + women's S hoodie still looks balanced). Sizes also look too similar across S/M/L/XL.
+Two coordinated changes. Body-lock + realism directives stay; rendering pipeline and result screen are rebuilt.
 
-The math layer (`src/lib/sizing/*`, `src/lib/fit/regionFitEngine.ts`, `buildGarmentFitMap.ts`) already computes deltas reasonably. The break is at the **renderer prompt**: `fit-tryon-router` sends a soft styling brief instead of a strict fit directive, and the body proportions are not locked across size switches.
+## 1. Render: Replicate → Lovable AI Gateway
 
-## Approach
-Keep the existing sizing math. Add one new layer — a **FitRenderDirective** — that converts deltas into hard visual rules, then rewrite the renderer prompts (Lovable AI + Replicate fallback) to obey it. Lock the body silhouette so only the garment changes between sizes.
+**Goal:** stop the "PNG-pasted-on-mannequin" look. Use Lovable AI image-conditioned model so the garment is actually *seen* and wrapped onto the locked mannequin body, with proper depth, strap placement, and fabric drape.
 
-## Changes
+### `supabase/functions/fit-tryon-router/index.ts`
+- Default `mode = "studio"` now routes to **Lovable AI Gateway** (`google/gemini-3.1-flash-image-preview`) via `https://ai.gateway.lovable.dev/v1/images/generations`, sending:
+  - garment image URL as visual reference (so model sees the actual print/cut/straps)
+  - body reference URL (mannequin lock, no face/skin)
+  - existing `realismDirective` block (V12) — body-locked, measurement-first
+  - **new `garmentAlignmentBlock`**: hard rules — straps anchor to acromion, neckline contours collarbone, bust seam wraps chest curve, waist follows torso compression, hem drapes over hips, fabric must show depth/shading on side curve. Forbid: floating overlay, flat texture projection, body clipping, sticker effect.
+- Replicate path kept only as **fallback** when Lovable AI returns 402/429 or empty output. Bump `STUDIO_RENDER_VERSION` to `lovable-ai-v13-aligned` to bust cache.
+- Auth headers: `Lovable-API-Key: ${LOVABLE_API_KEY}` (already auto-provisioned).
+- On 402 → surface `code: "credits_exhausted"`; on 429 → `rate_limited`.
 
-### 1. New: `src/lib/fit/fitRenderDirective.ts`
-Pure function. Input: `ResolvedBody` + `GarmentSizeProfile` + `cutType` + `gender`. Output:
+### `src/lib/fit/validateFitImage.ts` (light tweak)
+- Add an "overlay artifact" heuristic: detect uniform-edge garment regions (typical of PNG paste). If detected on first render, request `safeMode=true` retry which prepends an even stricter alignment block.
+
+## 2. UI Redesign — `FitResults.tsx` (reference image)
+
+Replace the current scrollable stack with a **3-column dashboard** (desktop) / collapsible stack (mobile):
+
+```text
+┌─────────────┬──────────────────────────────────┬──────────────┐
+│ MY BODY     │  SIZE PREVIEW   [Front] [Side]   │ PRODUCT      │
+│ Female / 29 │                                  │ name + brand │
+│ 168 / 96    │  ┌───┐ ┌───┐ ┌───┐ ┌───┐         │ [AI FITTING] │
+│ Bust 106    │  │ S │ │ M │ │ L*│ │XL │         │              │
+│ Waist 92    │  │img│ │img│ │img│ │img│         │ SIZE         │
+│ Hip 112     │  └───┘ └───┘ └───┘ └───┘         │ S M [L] XL   │
+│ Shoulder 43 │  TooTight Close BEST  Loose      │              │
+│             │                                  │ BEST FOR YOU │
+│ [silhouette]│  Per-card 2-line caption         │ Size L  ▼    │
+│             │                                  │              │
+│ Body locked │                                  │ FIT SUMMARY  │
+│             │                                  │ Chest  ✓     │
+│             │                                  │ Waist  ✓     │
+│             │                                  │ Hip    ✓     │
+│             │                                  │ Length ◐     │
+│             │                                  │ Strap  ✓     │
+│             │                                  │              │
+│             │                                  │ [ADD TO BAG] │
+└─────────────┴──────────────────────────────────┴──────────────┘
+        Fit Tip: "Prefer relaxed? Try XL."
 ```
-{
-  fitClassification: "impossible" | "veryTight" | "tight" | "regular" | "relaxed" | "oversized" | "extremelyOversized",
-  chestDeltaCm, shoulderDeltaCm, sleeveDeltaCm, lengthDeltaCm, waistDeltaCm,
-  tensionLevel: 0..1,        // pulling, stretched fabric
-  drapeLevel: 0..1,          // hanging fabric volume
-  oversizedLevel: 0..1,
-  visualRules: string[]      // hard imperatives for the renderer
-}
-```
-Thresholds match the spec (chest -8/-3/+4/+10/+18/+28, shoulder -4/-1/+2/+6, length -8/-2/+5/+12). Cut-type adjusts intent baseline (oversized expects +18, slim expects +4).
 
-### 2. Default size tables: `src/lib/sizing/genderedDefaults.ts`
-Separate men/women/unisex × tops/bottoms × cut (slim/regular/relaxed/oversized/boxy/cropped). Used only when product chart is missing. Replace any unisex S/M/L fallback paths.
+### Components
+- **New `MyBodyPanel.tsx`** (left): gender/age, H/W, key cm, mannequin silhouette thumbnail, "Body is locked" note + small "Edit" link.
+- **New `SizePreviewGrid.tsx`** (center): 4 size cards from `result.sizeResults`, each rendering its own `FitImageCanvas` with `SizeWarpProfile`. Active card has accent border + "BEST" pill if recommended. 2-line caption from `solver` labels (e.g. "Chest & waist tight / Fabric pulls at bust"). Front/Side toggle at top.
+- **New `FitSummaryRail.tsx`** (right): product name + brand, AI FITTING badge, fabric chip, size chips (S M L XL), "BEST SIZE FOR YOU" callout with "Why this size?" disclosure, region table (chest/waist/hip/length/strap with ✓ ◐ ✗ indicators), ADD TO BAG + save buttons.
+- **Bottom strip `FitTip.tsx`**: one-line guidance ("If you prefer a more relaxed look, try XL").
+- Mobile: stack as Body → Grid → Summary; sticky bottom CTA; existing mobile menu offset already handled.
 
-### 3. Renderer prompt rewrite: `supabase/functions/fit-tryon-router/index.ts`
-- Inject the `FitRenderDirective` into both Lovable AI and Replicate prompt builders.
-- New prompt structure (fixed sections):
-  1. **BODY (LOCKED)** — exact cm values, mass cue, "do not slim, do not idealize, do not reshape across sizes".
-  2. **GARMENT (size X)** — measurements + cut type.
-  3. **FIT TRUTH** — classification + every visualRule as an imperative ("hem rides up 4cm", "shoulder seam pulled inward", "sleeves stack at wrist", "fabric tension across bust").
-  4. **HARD CONSTRAINTS** — "If size is veryTight or impossible, the garment MUST visibly fail. Do not produce a flattering silhouette. Do not crop tension out of frame."
-- Remove "editorial / premium / fashion-forward" language from the base prompt.
-- Pass a `bodySignatureSeed` derived from body cm values so the same body renders consistently across S/M/L/XL switches.
+### What gets removed/hidden
+- Long verbose explanation cards, FitTrustStrip, FitAnalysisPanel, FitBreakdown, RegionFitTable — moved into "Why this size?" disclosure (collapsed by default).
+- Keep `useFitTryOn`, `useSizeRecommendation`, `solver`, `regionFit`, `baselineFitVerdict`, body-DNA guard exactly as today — only the presentation layer changes.
 
-### 4. Body lock in client: `src/hooks/useFitTryOn.ts` / FitResults
-- Compute directive client-side from `ResolvedBody` + chosen size; pass full directive in the edge call (router no longer guesses).
-- When user toggles size, only the garment payload changes; body payload + seed stay identical.
-
-### 5. UI: `src/components/fit/FitResults.tsx`
-Keep current minimal premium look. Replace the fit caption with directive-driven copy:
-- Label: one of `Too tight` / `Tight` / `Close fit` / `Best balance` / `Relaxed` / `Oversized` / `Too large`
-- One-line guidance: derived from classification + recommended alt size.
-- Move all deltas/measurements into the existing "Analyze" disclosure (no new UI surface).
-
-### 6. Trust rule enforcement
-In `recommend.ts`: if directive says `impossible`/`veryTight`, mark size as `unwearable: true`. UI shows a small "wrong size" tag and never calls it a recommended pick.
+### Files
+- **edit:** `supabase/functions/fit-tryon-router/index.ts`, `src/components/fit/FitResults.tsx`, `src/lib/fit/validateFitImage.ts`
+- **new:** `src/components/fit/MyBodyPanel.tsx`, `src/components/fit/SizePreviewGrid.tsx`, `src/components/fit/FitSummaryRail.tsx`, `src/components/fit/FitTip.tsx`
 
 ## Out of scope
-- No changes to body scan, body_profiles schema, or the working IDM-VTON Replicate path itself (only its prompt).
-- No changes to OOTD / Shorts / Stories.
-- No new dependencies.
+Body scan, sizing math, OOTD/Shorts, auth — untouched. No new dependencies.
 
 ## Risk
-Renderer behavior depends on the model honoring constraints. Mitigation: hard imperative phrasing + negative constraints + lower temperature (0.4) + retry once with stricter prompt if validator (existing `validateFitImage`) flags the output as too flattering for a `veryTight` directive.
-
-## Files touched
-- new: `src/lib/fit/fitRenderDirective.ts`, `src/lib/sizing/genderedDefaults.ts`
-- edit: `supabase/functions/fit-tryon-router/index.ts` (prompt builders only)
-- edit: `src/hooks/useFitTryOn.ts` (pass directive + seed)
-- edit: `src/components/fit/FitResults.tsx` (caption + unwearable tag)
-- edit: `src/lib/sizing/recommend.ts` (unwearable flag)
-- edit: `src/lib/fit/regionFitEngine.ts` (use new thresholds if currently softer)
+Lovable AI image preview model may still under-respect alignment rules. Mitigation: stricter imperative phrasing, garment image passed as primary reference, validateFitImage retry, Replicate fallback on failure.
