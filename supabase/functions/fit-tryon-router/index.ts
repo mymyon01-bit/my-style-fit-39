@@ -937,10 +937,12 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
 
   const prompt = [
     `FIT RENDER SYSTEM VERSION: ${STUDIO_RENDER_VERSION}.`,
+    GARMENT_ALIGNMENT_BLOCK,
     buildCleanStudioPrompt(body),
     bodyRefLine,
     genderDirectiveLine,
     "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
+    GARMENT_ALIGNMENT_BLOCK,
   ].filter(Boolean).join(" ");
 
   // ── DEBUG: confirm Body tab values reach AI generation ──────────────────
