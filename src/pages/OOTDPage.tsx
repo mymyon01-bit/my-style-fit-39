@@ -8,6 +8,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import { motion, AnimatePresence } from "framer-motion";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 import OOTDPostDetail from "@/components/OOTDPostDetail";
 import OOTDCard from "@/components/OOTDCard";
 import CrownedBoard from "@/components/CrownedBoard";
