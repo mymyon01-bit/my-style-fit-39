@@ -677,7 +677,18 @@ const ProfilePage = () => {
                 <div className="grid grid-cols-3 gap-1.5">
                   {myOotds.map(ootd => (
                     <div key={ootd.id} className="relative aspect-square rounded-lg overflow-hidden bg-foreground/[0.04]">
-                      <img src={ootd.image_url} alt={ootd.caption || ""} className="h-full w-full object-cover" loading="lazy" />
+                      {ootd.image_url ? (
+                        <img src={ootd.image_url} alt={ootd.caption || ""} className="h-full w-full object-cover" loading="lazy" />
+                      ) : ootd.kind === "video" && ootd.video_url ? (
+                        <video src={ootd.video_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                      ) : (
+                        <div className="h-full w-full bg-foreground/[0.06]" />
+                      )}
+                      {ootd.kind === "video" && (
+                        <div className="absolute top-1 left-1 rounded-full bg-black/55 p-1 backdrop-blur-sm">
+                          <Film className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
                       {(ootd.star_count || 0) > 0 && (
                         <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
                           <Star className="h-2.5 w-2.5 text-accent/70" />
