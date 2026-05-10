@@ -794,22 +794,53 @@ export default function FitResults({
           {/* AI Fitting Image — only the active size */}
           <div className="mb-4">
             <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-background/40">
-              {tryOn.imageUrl ? (
-                <img
-                  src={tryOn.imageUrl}
-                  alt={`${product.name} in size ${activeSize}`}
-                  className="h-full w-full object-contain"
-                />
-              ) : tryOn.stage === "generating" || tryOn.stage === "polling" || tryOn.stage === "validating" ? (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                  <Loader2 className="h-8 w-8 animate-spin text-foreground/30" />
-                  <p className="text-[12px] text-foreground/50">Generating size {activeSize}…</p>
-                </div>
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-foreground/40">
-                  <span className="text-[13px]">Select a size to see the AI fitting</span>
-                </div>
-              )}
+              {(() => {
+                const isLoading =
+                  tryOn.stage === "generating" ||
+                  tryOn.stage === "polling" ||
+                  tryOn.stage === "validating";
+                return (
+                  <>
+                    {tryOn.imageUrl ? (
+                      <img
+                        src={tryOn.imageUrl}
+                        alt={`${product.name} in size ${activeSize}`}
+                        className={`h-full w-full object-contain transition-all duration-500 ${
+                          isLoading ? "scale-[1.02] opacity-30 blur-sm" : "scale-100 opacity-100 blur-0"
+                        }`}
+                      />
+                    ) : !isLoading ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-foreground/40">
+                        <span className="text-[13px]">Select a size to see the AI fitting</span>
+                      </div>
+                    ) : null}
+
+                    {isLoading && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/30 backdrop-blur-[2px] animate-fade-in">
+                        {/* Shimmer sweep */}
+                        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                          <div
+                            className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+                            style={{ animation: "shimmer 1.8s ease-in-out infinite" }}
+                          />
+                        </div>
+                        {/* Pulsing ring */}
+                        <div className="relative flex h-14 w-14 items-center justify-center">
+                          <span className="absolute inset-0 rounded-full border border-accent/40 animate-ping" />
+                          <span className="absolute inset-2 rounded-full border border-accent/30 animate-pulse" />
+                          <Loader2 className="relative h-6 w-6 animate-spin text-accent" />
+                        </div>
+                        <div className="z-10 flex flex-col items-center gap-1">
+                          <p className="text-[11px] font-bold tracking-[0.25em] text-foreground/80 uppercase">
+                            Fitting size {activeSize}
+                          </p>
+                          <p className="text-[10px] text-foreground/50">Tailoring to your body…</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
 
