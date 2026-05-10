@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { formatCount } from "@/lib/formatCount";
+import { filterCssById } from "@/lib/videoFilters";
 import OOTDShortUploadSheet from "./OOTDShortUploadSheet";
 
 interface VideoRow {
@@ -17,6 +18,8 @@ interface VideoRow {
   like_count: number;
   view_count: number;
   created_at: string;
+  tags?: string[] | null;
+  filter?: string | null;
   profile?: { display_name: string | null; username: string | null; avatar_url: string | null } | null;
   liked?: boolean;
 }
@@ -76,6 +79,7 @@ const VideoCard = ({
             setShowPlay(true);
           }
         }}
+        style={{ filter: filterCssById(v.filter) }}
         className="h-full w-full object-contain"
       />
       {showPlay && (
@@ -94,8 +98,8 @@ const VideoCard = ({
         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       </button>
 
-      {/* Right rail: like */}
-      <div className="absolute bottom-24 right-3 flex flex-col items-center gap-4">
+      {/* Right rail: like — pushed above bottom nav on mobile */}
+      <div className="absolute right-3 bottom-[calc(6rem+72px+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-4">
         <button
           onClick={onLike}
           className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
@@ -112,8 +116,8 @@ const VideoCard = ({
         </button>
       </div>
 
-      {/* Bottom: author + caption */}
-      <div className="absolute bottom-0 inset-x-0 px-3 pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent">
+      {/* Bottom: author + caption + tags */}
+      <div className="absolute bottom-0 inset-x-0 px-3 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] md:pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent">
         <button
           onClick={() => onAuthorClick(v.user_id)}
           className="flex items-center gap-2 mb-2"
@@ -134,6 +138,15 @@ const VideoCard = ({
         {v.caption && (
           <p className="text-[12px] text-white/95 drop-shadow line-clamp-3">{v.caption}</p>
         )}
+        {v.tags && v.tags.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {v.tags.slice(0, 6).map((t) => (
+              <span key={t} className="text-[11px] font-semibold text-white/95 drop-shadow">
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -153,7 +166,7 @@ export default function OOTDShortsFeed() {
     setLoading(true);
     const { data, error } = await supabase
       .from("ootd_videos")
-      .select("id, user_id, video_url, thumb_url, caption, duration_s, like_count, view_count, created_at")
+      .select("id, user_id, video_url, thumb_url, caption, duration_s, like_count, view_count, created_at, tags, filter")
       .order("created_at", { ascending: false })
       .limit(PAGE_SIZE);
     if (error) {
@@ -244,7 +257,7 @@ export default function OOTDShortsFeed() {
     <div className="relative -mx-4 md:-mx-10 lg:-mx-12">
       <div
         ref={containerRef}
-        className="relative h-[calc(100dvh-200px)] md:h-[calc(100dvh-180px)] overflow-y-scroll snap-y snap-mandatory scrollbar-hide rounded-2xl bg-black"
+        className="relative h-[calc(100dvh-200px-env(safe-area-inset-bottom))] md:h-[calc(100dvh-180px)] overflow-y-scroll snap-y snap-mandatory scrollbar-hide rounded-2xl bg-black"
       >
         {loading ? (
           <div className="h-full flex items-center justify-center">
@@ -281,7 +294,7 @@ export default function OOTDShortsFeed() {
         <button
           onClick={() => (user ? setUploadOpen(true) : navigate("/auth"))}
           aria-label="Upload OOTD video"
-          className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-gradient-to-r from-[hsl(330_85%_60%)] to-[hsl(280_70%_55%)] px-4 py-2.5 text-[12px] font-semibold text-white shadow-xl shadow-black/40"
+          className="absolute bottom-[calc(1.25rem+72px+env(safe-area-inset-bottom))] md:bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-gradient-to-r from-[hsl(330_85%_60%)] to-[hsl(280_70%_55%)] px-4 py-2.5 text-[12px] font-semibold text-white shadow-xl shadow-black/40"
         >
           <Plus className="h-4 w-4" />
           Post #OOTD
