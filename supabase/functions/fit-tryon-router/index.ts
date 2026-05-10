@@ -1002,14 +1002,16 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
 async function generateStudioFitImage(replicateKey: string, body: CreateBody): Promise<GenResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-  // V4.7 — STUDIO-FIRST mode. IDM-VTON ignores our per-region fit deltas and
-  // makes S/M/L/XL look identical, so studio renders MUST use the prompted
-  // image-conditioned model. Legacy IDM-VTON is only used when mode="vton".
+  // V4.8 — LOVABLE-AI-FIRST mode. Credits restored, so Lovable AI Gateway
+  // (Gemini 2.5/3.1 Flash Image) is the primary studio renderer. Replicate
+  // (google/nano-banana) is kept ONLY as a fallback when Lovable AI is
+  // throttled or out of credits. Set FIT_PREFER_REPLICATE=1 to force the
+  // legacy Replicate-first path (debug only).
   const userBodyRef = body.bodyProfileSummary?.userBodyImageUrl || body.userImageUrl;
-  const preferReplicate = (Deno.env.get("FIT_PREFER_REPLICATE") ?? "1") !== "0";
+  const preferReplicate = (Deno.env.get("FIT_PREFER_REPLICATE") ?? "0") === "1";
 
   if (preferReplicate && replicateKey && userBodyRef) {
-    logRouter("REPLICATE_PROMPTED_STUDIO_FIRST", { hasBody: true });
+    logRouter("REPLICATE_PROMPTED_STUDIO_FIRST_FORCED", { hasBody: true });
     const studio = await runReplicateStudioFallback(replicateKey, { ...body, userImageUrl: userBodyRef });
     if (studio.kind === "success") return studio;
     logRouter("REPLICATE_PROMPTED_STUDIO_FAILED", { kind: studio.kind, error: (studio as any).error });
@@ -1017,6 +1019,12 @@ async function generateStudioFitImage(replicateKey: string, body: CreateBody): P
   }
 
   if (!LOVABLE_API_KEY) {
+    // Lovable AI key missing → try Replicate as last resort if available.
+    if (replicateKey && userBodyRef) {
+      logRouter("REPLICATE_PROMPTED_STUDIO_NO_LOVABLE_KEY", {});
+      const studio = await runReplicateStudioFallback(replicateKey, { ...body, userImageUrl: userBodyRef });
+      if (studio.kind === "success") return studio;
+    }
     return { kind: "error", code: "provider_error", error: "LOVABLE_API_KEY missing and replicate path unavailable" };
   }
 
