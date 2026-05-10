@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Heart, Plus, Loader2, Volume2, VolumeX, Film, Play } from "lucide-react";
+import { Heart, Plus, Loader2, Volume2, VolumeX, Film, Play, ThumbsDown, Bookmark, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -32,14 +32,22 @@ const VideoCard = ({
   muted,
   onToggleMute,
   onLike,
+  onDislike,
+  onSave,
+  onShare,
   onAuthorClick,
+  saved,
 }: {
   v: VideoRow;
   active: boolean;
   muted: boolean;
   onToggleMute: () => void;
   onLike: () => void;
+  onDislike: () => void;
+  onSave: () => void;
+  onShare: () => void;
   onAuthorClick: (uid: string) => void;
+  saved: boolean;
 }) => {
   const ref = useRef<HTMLVideoElement>(null);
   const [showPlay, setShowPlay] = useState(false);
@@ -98,11 +106,12 @@ const VideoCard = ({
         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       </button>
 
-      {/* Right rail: like — pushed above bottom nav on mobile */}
-      <div className="absolute right-3 bottom-[calc(6rem+72px+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-4">
+      {/* Right rail: like / dislike / save / share — pushed above bottom nav on mobile */}
+      <div className="absolute right-3 bottom-[calc(5rem+72px+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-3.5">
         <button
           onClick={onLike}
           className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Like"
         >
           <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
             <Heart
@@ -112,6 +121,36 @@ const VideoCard = ({
           </span>
           <span className="text-[11px] font-semibold text-white drop-shadow">
             {formatCount(v.like_count)}
+          </span>
+        </button>
+        <button
+          onClick={onDislike}
+          className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Not for me"
+        >
+          <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
+            <ThumbsDown className="h-5 w-5 text-white" strokeWidth={2} />
+          </span>
+        </button>
+        <button
+          onClick={onSave}
+          className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Save"
+        >
+          <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
+            <Bookmark
+              className={`h-5 w-5 ${saved ? "fill-white text-white" : "text-white"}`}
+              strokeWidth={2}
+            />
+          </span>
+        </button>
+        <button
+          onClick={onShare}
+          className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Share"
+        >
+          <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
+            <Share2 className="h-5 w-5 text-white" strokeWidth={2} />
           </span>
         </button>
       </div>
@@ -253,6 +292,47 @@ export default function OOTDShortsFeed() {
     }
   };
 
+  const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
+  const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
+
+  const handleSave = (idx: number) => {
+    const v = videos[idx];
+    setSavedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(v.id)) {
+        next.delete(v.id);
+        toast("Removed from saved");
+      } else {
+        next.add(v.id);
+        toast.success("Saved");
+      }
+      return next;
+    });
+  };
+
+  const handleDislike = (idx: number) => {
+    const v = videos[idx];
+    setHiddenSet((prev) => new Set(prev).add(v.id));
+    toast("We'll show you fewer like this");
+  };
+
+  const handleShare = async (idx: number) => {
+    const v = videos[idx];
+    const url = `${window.location.origin}/ootd?v=${v.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "OOTD", text: v.caption || "Check out this OOTD", url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+    } catch {
+      // user cancelled
+    }
+  };
+
+  const visibleVideos = videos.filter((v) => !hiddenSet.has(v.id));
+
   return (
     <div className="relative -mx-4 md:-mx-10 lg:-mx-12">
       <div
@@ -276,14 +356,18 @@ export default function OOTDShortsFeed() {
             </button>
           </div>
         ) : (
-          videos.map((v, i) => (
+          visibleVideos.map((v, i) => (
             <div key={v.id} data-idx={i} className="relative h-full w-full">
               <VideoCard
                 v={v}
                 active={i === activeIdx}
                 muted={muted}
                 onToggleMute={() => setMuted((m) => !m)}
-                onLike={() => handleLike(i)}
+                onLike={() => handleLike(videos.indexOf(v))}
+                onDislike={() => handleDislike(videos.indexOf(v))}
+                onSave={() => handleSave(videos.indexOf(v))}
+                onShare={() => handleShare(videos.indexOf(v))}
+                saved={savedSet.has(v.id)}
                 onAuthorClick={(uid) => navigate(`/user/${uid}`)}
               />
             </div>
