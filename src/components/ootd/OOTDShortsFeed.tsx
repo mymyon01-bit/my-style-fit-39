@@ -106,11 +106,12 @@ const VideoCard = ({
         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       </button>
 
-      {/* Right rail: like — pushed above bottom nav on mobile */}
-      <div className="absolute right-3 bottom-[calc(6rem+72px+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-4">
+      {/* Right rail: like / dislike / save / share — pushed above bottom nav on mobile */}
+      <div className="absolute right-3 bottom-[calc(5rem+72px+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-3.5">
         <button
           onClick={onLike}
           className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Like"
         >
           <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
             <Heart
@@ -120,6 +121,36 @@ const VideoCard = ({
           </span>
           <span className="text-[11px] font-semibold text-white drop-shadow">
             {formatCount(v.like_count)}
+          </span>
+        </button>
+        <button
+          onClick={onDislike}
+          className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Not for me"
+        >
+          <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
+            <ThumbsDown className="h-5 w-5 text-white" strokeWidth={2} />
+          </span>
+        </button>
+        <button
+          onClick={onSave}
+          className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Save"
+        >
+          <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
+            <Bookmark
+              className={`h-5 w-5 ${saved ? "fill-white text-white" : "text-white"}`}
+              strokeWidth={2}
+            />
+          </span>
+        </button>
+        <button
+          onClick={onShare}
+          className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+          aria-label="Share"
+        >
+          <span className="rounded-full bg-black/45 p-2.5 backdrop-blur-md">
+            <Share2 className="h-5 w-5 text-white" strokeWidth={2} />
           </span>
         </button>
       </div>
