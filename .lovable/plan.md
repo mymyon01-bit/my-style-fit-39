@@ -1,69 +1,94 @@
+# MYMYON FIT — Global Body-Locked Engine Rebuild
 
-# MYMYON FIT V3 — Realistic Fit System Rebuild
+## Goal
+Replace the current label-influenced / "safe-larger" sizing with a strict measurement-driven engine where: **locked body − garment dims → delta → ease target → score → classification → render directive**. Size labels (S/M/L/XL) are names only.
 
-The spec is large enough that shipping it in one go would break the live FIT flow for several days. I'll cut it into 3 reviewable phases. Each phase is independently usable — you can stop after any phase.
+## Architecture (new files under `src/lib/sizing/v3/`)
 
-A lot of V3 already exists in the codebase (gendered charts, per-region cm deltas, fit classifier, recommendation reasoning, Analyze-style detail panel). The real gaps are: (1) the renderer still subtly reshapes the body between sizes, (2) the Final FIT page is too dense, (3) no quality gate before display, (4) no result cache keyed on body+product+size.
+```text
+src/lib/sizing/v3/
+  bodyProfile.ts        # LockedBodyProfile builder (immutable)
+  garmentProfile.ts     # GarmentProfile per size, fallback tables
+  easeTargets.ts        # category × cut × stretch → target ease ranges
+  deltas.ts             # per-region delta calculators (top/dress/pant)
+  fitScore.ts           # penalty model + classification
+  recommend.ts          # picks best-balance size, never "biggest safe"
+  renderDirective.ts    # FitRenderDirective from score
+  index.ts              # public API: computeFit(body, product) → V3FitResult
+```
 
----
+Existing `src/lib/sizing/*` (bodyResolver, garmentChart, fitCalculator, recommend, brandCalibration, feedback) becomes the **data layer** — v3 consumes its outputs but applies new ease/score/classification logic. We do **not** touch the visual try-on pipeline contracts; we change what they receive.
 
-## Phase 1 — Body Lock + Render Directive (ship first)
+## Step-by-step
 
-Goal: stop the renderer from beautifying or reshaping the body. Same body across S/M/L/XL, only garment changes.
+### 1. LockedBodyProfile (`bodyProfile.ts`)
+- Input: existing `ResolvedBody` from `bodyResolver.ts`.
+- Adds: `armLengthCm`, `torsoLengthCm`, `bodyShape`, `genderProfile` (estimated from H/W/gender if missing — reuse `anthropometry.ts`).
+- Output frozen object (`Object.freeze`). Same instance reused across all sizes for a product.
+- No mutation, no per-size variant.
 
-1. **Build a single `FitRenderDirective`** in `supabase/functions/fit-tryon-router/index.ts` that bundles every locked field (body profile, garment cm, deltas, actual vs intended fit, per-region behavior). Used by both the Lovable-AI Gemini path and the Replicate fallback so they speak the same language.
-2. **Replace ad-hoc prompt fragments** with one front-loaded BODY-LOCK block at the very top of the prompt:
-   - body silhouette, mass, posture, waist/hip/shoulder/arm volume are LOCKED across all sizes
-   - explicit anti-beautification negatives (no slimming, no hourglass reshape, no fashion-model proportions, no waist narrowing, no leg lengthening)
-   - plus-size realism clause for BMI ≥ 28 (visibly heavier, fuller midsection, thicker limbs — never converted to influencer body)
-   - "garment adapts to body, body NEVER adapts to garment"
-3. **Per-size variation rule**: only fabric behavior differs between sizes — pose, camera, lighting, mannequin proportions stay byte-identical. Add to the front of the prompt, not the tail.
-4. **Compression / oversized visualization rules**: tight → stretched fabric, tension lines, lifted hem, side pulling. Loose → hanging volume, dropped shoulder, sleeve stacking. Already partially present — consolidate and front-load.
-5. **Strict realism mode**: shift renderer priority from "aesthetic fashion image" to "accurate body-relative fit visualization" via an explicit single-line directive that overrides all other style cues.
+### 2. GarmentProfile (`garmentProfile.ts`)
+- Pulls per-size measurements from `garmentChart.ts` (already loads from `garment_measurements` + brand calibration).
+- Adds normalized fields per category:
+  - tops: chest/shoulder/sleeve/length/hem
+  - dresses: bust/waist/hip/length/strap
+  - pants: waist/hip/thigh/rise/inseam/legOpening
+- Fallback: gender-aware MEN/WOMEN tables in `categoryRules.ts` keyed by `(gender, category, cut)` — never one universal table.
+- Carries `cutType`, `stretchLevel`, `fabricWeight` (default per category if not set).
 
-Files: `supabase/functions/fit-tryon-router/index.ts` only.
+### 3. Ease targets (`easeTargets.ts`)
+Pure data module. `getEaseTarget(category, cut, stretch, region) → {min, max}` with the spec's ranges (slim top +2/+6, regular +6/+12, relaxed +12/+20, oversized hoodie +18/+30, bodycon −2/+3, slip dress bust +3/+8 etc., pants waist 0/+4, hip +4/+10, thigh +3/+8). Stretch + fabric weight modifiers shift the window.
 
----
+### 4. Deltas (`deltas.ts`)
+`computeDeltas(body, garmentSize, category) → Record<Region, number>`. Pure subtraction, no clamping.
 
-## Phase 2 — Final FIT Page Simplification + Analyze Panel
+### 5. FitScore + classification (`fitScore.ts`)
+For each region: `regionPenalty = distanceOutsideTarget² × regionWeight`. Asymmetric — too-tight on chest weighted heavier than too-loose; too-loose on shoulder weighted heavily; length given moderate weight.
+`fitScore = Σ regionPenalty`. Lower = better.
+Classification from worst region delta vs target:
+- delta < target.min − 4 → **Too Small**
+- delta < target.min       → **Tight**
+- delta in [min, min+(max−min)/3] → **Close Fit**
+- delta in middle third → **Best Balance**
+- delta in upper third → **Relaxed**
+- delta > max          → **Oversized**
+- delta > max + 8      → **Too Large** / **Not Recommended**
 
-Goal: clean premium fit page; technical detail moves into Analyze.
+### 6. Recommend (`recommend.ts`)
+- Score every size.
+- `primary = argmin(fitScore)` — strictly closest to ease target. Never "largest safe size".
+- `alternate = next-best of opposite direction` for user choice.
+- If even best is `Too Small` / `Too Large` → set `rangeStatus` and surface honest "no good size" warning.
+- Apply user `fitPreference` only as a **tiebreaker** (shifts target window ±2cm), never overrides classification truth.
 
-1. **Final fit page** (`src/components/fit/FitResults.tsx`):
-   - Large fit render
-   - Product name
-   - Selected size + size selector
-   - One fit label (Too tight / Close fit / Best balance / Relaxed / Oversized)
-   - One short guidance sentence
-   - "Analyze" button
-   - Remove visible debug pills, region chips, raw cm tables from the main view
-2. **Analyze panel** (existing `TryOnPreviewModal` or new `FitAnalyzePanel`): body cm, garment cm, every delta, fabric/cut, confidence, why this size was classified this way, recommended size reasoning. All existing data — just relocated.
-3. **Copy** matches the spec examples ("Too tight on your body. Try L for a more natural fit." etc.) — wire to existing classification.
-4. Keep existing i18n keys; add new keys for the simplified labels (en/ko/it/de/es/fr/ja/zh).
+### 7. RenderDirective (`renderDirective.ts`)
+Builds `FitRenderDirective` from `{lockedBody, selectedSize, classification, regionDeltas}` with discrete levels: `tightnessLevel`, `loosenessLevel`, `shoulderDropLevel`, `fabricTensionLevel`, `drapeLevel`, `sleeveStackLevel`, `hemLiftLevel`, `lengthExcessLevel`, `compressionZones[]`, `looseZones[]`. This object is what `fit-tryon-router` already consumes (Phase 1 V3 preamble) — we now feed it from real numbers instead of hand-tuned strings.
 
-Files: `src/components/fit/FitResults.tsx`, new `src/components/fit/FitAnalyzePanel.tsx`, `src/locales/*/translation.json`.
+### 8. Wire-up
+- `src/hooks/useSizeRecommendation.ts` → call `computeFit` from `v3/index.ts` instead of legacy `recommend`.
+- `src/components/fit/FitResults.tsx` → already simplified (Phase 2). Map v3 classification → existing `heroFitType` label + 1-sentence guidance. Detail panel reads v3 region deltas.
+- `supabase/functions/fit-tryon-router/index.ts` → accept `renderDirective` payload from client; prompt builder uses directive levels (tightness/looseness/shoulder-drop) verbatim instead of recomputing from BMI strings.
 
----
+### 9. Quality gate (server)
+In `fit-tryon-router`, after Gemini returns: if classification=`Too Small` but image looks balanced (no fabric tension keywords echoed back) → retry once with stricter directive. Reject if size mismatch can't be reconciled, fall back to schematic fit visualization.
 
-## Phase 3 — Quality Gate, Cache, Progressive Loading
+### 10. Tests (`src/lib/sizing/v3/__tests__/scenarios.test.ts`)
+The 6 acceptance scenarios from the spec (A–F): female 167/47, female 167/95, male 178/72, male 170/100, slim-female-mens-oversized-hoodie, large-female-womens-S-dress. Each asserts the classification per size matches the spec.
 
-1. **Result cache**: store generated render in `fit_tryons` keyed by `(user_id, body_profile_hash, product_key, selected_size)`. Cache hit → instant show, no Replicate/Gemini call. Already partially present — tighten the lookup and add a `body_profile_hash` column.
-2. **Adjacent size preload**: when user lands on size M, kick off background generation for S and L so switching feels instant.
-3. **Quality gate** (server-side, before persisting to storage): reject render if Gemini fails to return an image, output is < 50KB, or aspect ratio is wrong. On reject → retry once with stricter directive, then fall back to the visual mannequin SVG with a "preview unavailable" note instead of a broken image.
-4. **Progressive UI**: skeleton → low-res blurred preview (the cached previous size) → high-res swap when render resolves. Already partially present from earlier loading-animation work — extend it.
+## What is NOT changed
+- DB schema (garment_measurements, fit_feedback, brand_fit_profiles untouched).
+- Auth, IDM-VTON path, image upload.
+- `FitResults.tsx` layout (Phase 2 already done) — only the data source changes.
+- V3 BODY-LOCK preamble in edge function (Phase 1) stays; directive now feeds real numbers into it.
 
-Files: `supabase/functions/fit-tryon-router/index.ts`, new migration adding `body_profile_hash` to `fit_tryons`, `src/hooks/useFitTryOn.ts`, `src/components/fit/FitResults.tsx`.
+## Order of execution
+1. Build v3 modules + scenario tests (TDD on the 6 cases).
+2. Swap `useSizeRecommendation` to v3 behind a feature check (instant rollout, legacy kept for one revision).
+3. Update `FitResults` mapping + detail panel to v3 fields.
+4. Update `fit-tryon-router` to consume `renderDirective` levels.
+5. Add server-side classification/image consistency gate.
 
----
-
-## What I will NOT change
-
-- Existing sizing engine (`src/lib/sizing/*`) — already implements deltas, gender-aware charts, classification, recommendation. Spec Steps 2–7 are already there. I'll add small gaps (cut-type defaults for cropped/boxy/longline) only if Phase 2 surfaces a missing case.
-- IDM-VTON path — kept as opt-in mode; default stays studio render.
-- Auth, DB schema (except the cache-key column in Phase 3), other features.
-
-## Recommendation
-
-Start with **Phase 1** today. It's the only phase that fixes the "body keeps morphing" complaint, and it's a single-file change that ships in one round. Once you confirm the renders behave, I'll roll Phase 2 (UI), then Phase 3 (perf).
-
-Approve this and I'll ship Phase 1 immediately.
+## Risks
+- Ease target tuning will need 1–2 iterations against real products; ranges in spec are starting values.
+- Brand calibration (`brandCalibration.ts`) currently shifts garment cm — keep it; v3 reads post-calibration numbers.
+- Falling back to category defaults when product has no measurements still happens — v3 marks confidence `low` exactly as today.
