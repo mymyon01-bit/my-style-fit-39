@@ -196,7 +196,7 @@ export default function OOTDShortsFeed() {
   const navigate = useNavigate();
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploadOpen, setUploadOpen] = useState(false);
+  
   const [muted, setMuted] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
