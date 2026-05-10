@@ -263,9 +263,35 @@ export default function FitResults({
                 : confTier === "medium" ? "bg-accent/10"
                 : "bg-orange-500/10";
 
-  const heroFitType = heroScore >= 80 ? "Best fit" : heroScore >= 65 ? "Good fit" : heroScore >= 50 ? "Wearable" : "Poor fit";
-  const heroColor = heroScore >= 80 ? "text-green-500" : heroScore >= 65 ? "text-accent" : heroScore >= 50 ? "text-orange-400" : "text-orange-500";
-  const heroRing = heroScore >= 80 ? "ring-green-500/30" : heroScore >= 65 ? "ring-accent/30" : heroScore >= 50 ? "ring-orange-400/30" : "ring-orange-500/30";
+  // ── V3 honest hero label (from measurement-driven classifier) ────────────
+  // When the new sizing engine has analyzed the active size, it OVERRIDES
+  // the legacy heroScore label so a tight outfit is never shown as "loose"
+  // and a too-large outfit is never shown as "Best fit".
+  const v3ActiveAnalysis = sizing.recommendation?.sizeAnalyses?.[activeSize] ?? null;
+  let heroFitType = heroScore >= 80 ? "Best fit" : heroScore >= 65 ? "Good fit" : heroScore >= 50 ? "Wearable" : "Poor fit";
+  let heroColor = heroScore >= 80 ? "text-green-500" : heroScore >= 65 ? "text-accent" : heroScore >= 50 ? "text-orange-400" : "text-orange-500";
+  let heroRing = heroScore >= 80 ? "ring-green-500/30" : heroScore >= 65 ? "ring-accent/30" : heroScore >= 50 ? "ring-orange-400/30" : "ring-orange-500/30";
+  if (v3ActiveAnalysis) {
+    const c = v3ActiveAnalysis.classification;
+    heroFitType = c === "TooSmall" ? "Too Small"
+                : c === "Tight" ? "Tight"
+                : c === "CloseFit" ? "Close Fit"
+                : c === "BestBalance" ? "Best Balance"
+                : c === "Relaxed" ? "Relaxed"
+                : c === "Oversized" ? "Oversized"
+                : "Too Large";
+    const isBad = c === "TooSmall" || c === "TooLarge";
+    const isWarn = c === "Tight" || c === "Oversized";
+    const isBest = c === "BestBalance";
+    heroColor = isBad ? "text-orange-500"
+              : isWarn ? "text-orange-400"
+              : isBest ? "text-green-500"
+              : "text-accent";
+    heroRing = isBad ? "ring-orange-500/30"
+             : isWarn ? "ring-orange-400/30"
+             : isBest ? "ring-green-500/30"
+             : "ring-accent/30";
+  }
 
   // ── Deterministic explanation (always available; AI text overrides if present) ──
   const builtExplanation = buildLegacyExplanation(result, confTier, usedGlobalFallback);
