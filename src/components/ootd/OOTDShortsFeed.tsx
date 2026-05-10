@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Heart, Plus, Loader2, Volume2, VolumeX, Film, Play, ThumbsDown, Bookmark, Share2 } from "lucide-react";
+import { Heart, Loader2, Volume2, VolumeX, Film, Play, ThumbsDown, Bookmark, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
