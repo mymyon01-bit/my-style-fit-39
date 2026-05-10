@@ -902,10 +902,20 @@ export default function FitResults({
             })}
           </div>
 
-          {/* Fit Tip */}
+          {/* Single Fit Label + Sentence (V3 simplified) */}
           <div className="mt-4 rounded-2xl border border-foreground/[0.06] bg-background/40 px-4 py-3">
-            <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/45 uppercase">Fit Tip</p>
-            <p className="mt-1 text-[12px] leading-snug text-foreground/75">
+            <div className="flex items-center justify-between">
+              <p className={`font-display text-sm font-bold tracking-wide uppercase ${heroColor}`}>
+                {heroFitType}
+              </p>
+              <button
+                onClick={() => setAnalyzeOpen(true)}
+                className="flex items-center gap-1 text-[10px] font-medium tracking-wider text-accent hover:text-accent/80 uppercase"
+              >
+                <BarChart3 className="h-3 w-3" /> Analyze
+              </button>
+            </div>
+            <p className="mt-1.5 text-[12px] leading-snug text-foreground/75">
               {overallFitSentence ||
                 "If you prefer a more relaxed look, try one size up for a looser silhouette."}
             </p>
