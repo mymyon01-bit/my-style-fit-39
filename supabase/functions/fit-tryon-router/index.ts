@@ -1033,8 +1033,8 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
 // Fallback chain — primary model first, then more stable alternates if the
 // preview model is rate-limited or out of credits. Order matters.
 const STUDIO_FALLBACK_MODELS = [
+  "google/gemini-3-pro-image-preview",
   "google/gemini-2.5-flash-image",
-  "google/gemini-3.1-flash-image-preview",
 ];
 
 // Replicate image-conditioned studio render — used when Lovable AI credits
