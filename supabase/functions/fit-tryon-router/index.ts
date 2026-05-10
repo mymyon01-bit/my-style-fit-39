@@ -42,11 +42,12 @@ const VTON_MODEL_VERSION = Deno.env.get("REPLICATE_FIT_MODEL_VERSION") || "c871b
 const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
-// V1 pipeline restoration: gemini-2.5-flash-image (Nano Banana) was the
-// model that produced believable, body-aligned renders. The 3.1 preview
-// model regressed to flat PNG-paste outputs, so we lock back to 2.5.
-const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-2.5-flash-image";
-const STUDIO_RENDER_VERSION = "lovable-ai-v14-gemini25-restore";
+// V15 body-fidelity restore: gemini-2.5-flash-image was rendering generic
+// slim mannequins regardless of the locked height/weight. Switching to the
+// premium next-gen Gemini image model which honors body proportions, with
+// 2.5 + 3.1 kept as fallbacks if the premium model is throttled.
+const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3-pro-image-preview";
+const STUDIO_RENDER_VERSION = "lovable-ai-v15-gemini3pro-body";
 
 // ─── GARMENT–BODY ALIGNMENT BLOCK (V13) ─────────────────────────────────────
 // Stops the "PNG-pasted-on-mannequin" look. Forces the renderer to wrap the
@@ -1030,8 +1031,8 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
 // Fallback chain — primary model first, then more stable alternates if the
 // preview model is rate-limited or out of credits. Order matters.
 const STUDIO_FALLBACK_MODELS = [
+  "google/gemini-2.5-flash-image",
   "google/gemini-3.1-flash-image-preview",
-  "google/gemini-3-flash-preview",
 ];
 
 // Replicate image-conditioned studio render — used when Lovable AI credits
