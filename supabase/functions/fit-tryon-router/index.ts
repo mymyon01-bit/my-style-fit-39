@@ -779,6 +779,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   ].filter(Boolean).join(" ");
 
   return [
+    V3_BODY_LOCK_PREAMBLE,
     leadFitDirective,
     leadSentence,
     bodyTabBlock,
