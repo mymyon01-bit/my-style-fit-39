@@ -98,8 +98,8 @@ const VideoCard = ({
         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       </button>
 
-      {/* Right rail: like */}
-      <div className="absolute bottom-24 right-3 flex flex-col items-center gap-4">
+      {/* Right rail: like — pushed above bottom nav on mobile */}
+      <div className="absolute right-3 bottom-[calc(6rem+72px+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-4">
         <button
           onClick={onLike}
           className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
