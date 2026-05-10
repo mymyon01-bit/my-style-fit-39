@@ -946,6 +946,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
   console.log("[FIT_IMAGE_GENDERED_SIZING]", body.genderedSizing ?? null, body.genderDirective ?? null);
   console.log("[FIT_IMAGE_USER_BODY_REF]", userBodyRef ? userBodyRef.slice(0, 80) : null);
+  console.log("[FIT_REALISM_DIRECTIVE]", buildRealismDirective(body));
   console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
 
   const controller = new AbortController();
