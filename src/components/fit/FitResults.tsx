@@ -873,7 +873,7 @@ export default function FitResults({
               return (
                 <button
                   key={sr.size}
-                  onClick={() => setActiveSize(sr.size)}
+                  onClick={() => { userPickedRef.current = true; setActiveSize(sr.size); }}
                   className={`group relative flex flex-col items-center overflow-hidden rounded-xl border py-2.5 text-left transition-all ${
                     isActive
                       ? "border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/10"
