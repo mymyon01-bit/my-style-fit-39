@@ -820,8 +820,8 @@ export default function FitResults({
                         {/* Shimmer sweep */}
                         <div className="pointer-events-none absolute inset-0 overflow-hidden">
                           <div
-                            className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
-                            style={{ animation: "shimmer-sweep 1.6s ease-in-out infinite" }}
+                            className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+                            style={{ animation: "shimmer 1.8s ease-in-out infinite" }}
                           />
                         </div>
                         {/* Pulsing ring */}
