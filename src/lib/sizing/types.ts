@@ -126,4 +126,8 @@ export interface SizeRecommendation {
   productGender: Gender | null;
   /** Set when product clearly targets a different gender than the user's body. */
   genderMismatchWarning: string | null;
+  /** V3 honest classification of the primary size (TooSmall / Tight / … / TooLarge). */
+  primaryClassification?: import("./v3Classify").V3Classification;
+  /** V3 per-size analyses keyed by size label — drives FIT page hero label honestly. */
+  sizeAnalyses?: Record<string, import("./v3Classify").V3SizeAnalysis>;
 }
