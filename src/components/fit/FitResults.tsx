@@ -659,150 +659,349 @@ export default function FitResults({
     return arr;
   }, [solver, garmentFit.category]);
 
+  // ── Per-size mini visuals (S/M/L/XL grid) ──────────────────────────────
+  // Each card shows the AI fitting image for the active size. Inactive cards
+  // get the same hero image with a deterministic warp so users see size
+  // differences instantly without firing 4 generations at once.
+  const heroImageUrl = tryOn.imageUrl;
+
+  // Region summary chips for the rail (✓ / ◐ / ✗).
+  const regionRailRows = useMemo(() => {
+    const rows: Array<{ key: string; label: string; status: "good" | "warn" | "bad"; note: string }> = [];
+    const isBottom = garmentFit.category === "bottom";
+    const toneFor = (fit: string): "good" | "warn" | "bad" => {
+      const l = (fit || "").toLowerCase();
+      if (/(too-tight|impossible|too-large|extremely-oversized|too-loose|too-short|too-long)/.test(l)) return "bad";
+      if (/(tight|loose|short|long|relaxed|oversized|snug|trim|dropped)/.test(l)) return "warn";
+      return "good";
+    };
+    const noteFor = (tone: "good" | "warn" | "bad") =>
+      tone === "good" ? "Comfortable" : tone === "warn" ? "Mid-range" : "Off";
+    const push = (key: string, label: string, fit: string) => {
+      const t = toneFor(fit);
+      rows.push({ key, label, status: t, note: noteFor(t) });
+    };
+    push("chest", "Chest", solver.regions.chest.fit);
+    push("waist", "Waist", solver.regions.waist.fit);
+    if (!isBottom) push("shoulder", "Shoulder", solver.regions.shoulder.fit);
+    push("length", "Length", solver.regions.length.fit);
+    if (!isBottom) push("sleeve", "Sleeve", solver.regions.sleeve.fit);
+    return rows;
+  }, [solver, garmentFit.category]);
+
+  // ── Recommended size for the BEST pill ─────────────────────────────────
+  const recommendedSize = sizing.recommendation?.primarySize ?? result.recommendedSize;
+  const recommendedReason = sizing.recommendation?.reason ?? "Best balance for your measurements.";
+
+  // Mannequin gender for the body silhouette in the left panel.
+  const silhouetteGender: "male" | "female" =
+    (bodyGender || "").toLowerCase() === "female" ? "female" : "male";
+
+  // ── Analyze sheet (kept; opens from "Why this size?") ──
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [changeBodyOpen, setChangeBodyOpen] = useState(false);
+
+  const handleChangeBody = (a: ChangeBodyAction) => {
+    if (a.type === "rescan") onRescan?.();
+    else if (a.type === "edit") onEditMeasurements?.();
+    else if (a.type === "preset") onEditMeasurements?.();
+    setReloadToken((n) => n + 1);
+  };
+
   return (
-    <div className="mx-auto w-full min-w-0 max-w-2xl space-y-12 overflow-x-hidden md:space-y-16">
-      {/* Eyebrow — refined chapter heading, no boxes */}
-      <div className="flex items-center justify-center gap-2">
-        {isRefined && <Sparkles className="h-3 w-3 text-accent" />}
-        <span className="text-[9px] font-medium tracking-[0.45em] text-foreground/45 uppercase">
-          {isRefined ? "Refined Fitting" : "The Fitting"}
-        </span>
-      </div>
-
-      {/* ══ HERO — visual is the emotional center ══ */}
-      <div className="space-y-10 md:space-y-14">
-        {/* Editorial visual — extends edge-to-edge on mobile */}
-        <div className="-mx-4 sm:mx-0">
-          <FitVisual
-            productName={product.name}
-            activeSize={activeSize}
-            state={tryOn}
-            onRescanBody={onRescan}
-            onRetry={() => {
-              tryOn.retry();
-              setReloadToken((n) => n + 1);
-            }}
-            fitChips={fitChipsForVisual}
-            overallFit={sizingActiveOutcome?.overall ?? null}
-            fitRegions={sizingActiveOutcome?.regions ?? []}
-            bodyGender={bodyGender ?? null}
-          />
-        </div>
-
-        {/* Magazine caption — brand · garment · size */}
-        <div className="space-y-3 px-2 text-center">
-          <p className="text-[10px] font-medium tracking-[0.4em] text-foreground/45 uppercase">
-            {product.brand}
-          </p>
-          <h1 className="font-display text-2xl font-light leading-tight tracking-[-0.01em] text-foreground md:text-3xl">
-            {product.name}
-          </h1>
-          <motion.p
-            key={activeSize}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="pt-1 text-[11px] tracking-[0.3em] text-foreground/45 uppercase"
-          >
-            Size <span className="ml-1 text-foreground/80">{activeSize}</span>
-          </motion.p>
-        </div>
-
-        {/* Editorial fit narrative */}
-        <div className="mx-auto max-w-md space-y-5 text-center">
-          <p className="text-[15px] font-light leading-[1.7] text-foreground/80">
-            {overallFitSentence}
-          </p>
-          <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 pt-1">
-            {editorialPhrases.map((p) => (
-              <span
-                key={p}
-                className="text-[10px] tracking-[0.2em] text-foreground/55 uppercase"
+    <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 overflow-x-hidden">
+      {/* ─── DASHBOARD GRID ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
+        {/* ─── LEFT: MY BODY ─────────────────────────────────────────── */}
+        <aside className="rounded-3xl border border-foreground/[0.06] bg-card/40 p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/50 uppercase">My Body</p>
+            {onEditMeasurements && (
+              <button
+                onClick={onEditMeasurements}
+                className="flex items-center gap-1 text-[10px] font-medium text-accent hover:text-accent/80"
               >
-                {p}
-              </span>
+                <Pencil className="h-3 w-3" /> Edit
+              </button>
+            )}
+          </div>
+          <div className="mt-3 space-y-1">
+            <p className="font-display text-lg font-medium capitalize text-foreground">
+              {bodyGender || "Body"}
+            </p>
+            <p className="text-[11px] tracking-wider text-foreground/55">
+              {bodyHeightCm ? `${bodyHeightCm}cm` : "—"} · {bodyWeightKg ? `${bodyWeightKg}kg` : "—"}
+            </p>
+          </div>
+          <div className="mt-4 space-y-1.5 border-t border-foreground/[0.06] pt-3">
+            {[
+              { l: "Bust", v: bodyChestCm },
+              { l: "Waist", v: bodyWaistCm },
+              { l: "Hip", v: bodyHipCm },
+              { l: "Shoulder", v: bodyShoulderCm },
+            ].map((r) => (
+              <div key={r.l} className="flex items-center justify-between text-[11px]">
+                <span className="text-foreground/50">{r.l}</span>
+                <span className="font-medium tabular-nums text-foreground/85">
+                  {r.v ? `${r.v}cm` : "—"}
+                </span>
+              </div>
             ))}
           </div>
-        </div>
+          {/* Mannequin silhouette */}
+          <div className="mt-4 flex items-center justify-center rounded-2xl bg-background/40 py-4 text-foreground/70">
+            {silhouetteGender === "female" ? (
+              <svg viewBox="0 0 200 280" className="h-32 w-auto opacity-50" fill="currentColor" aria-hidden>
+                <ellipse cx="100" cy="40" rx="20" ry="24" />
+                <path d="M68 108 Q100 86 132 108 L138 150 Q100 158 62 150 Z" />
+                <path d="M70 150 Q100 162 130 150 L150 230 Q100 248 50 230 Z" />
+                <rect x="68" y="226" width="28" height="54" rx="8" />
+                <rect x="104" y="226" width="28" height="54" rx="8" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 200 280" className="h-32 w-auto opacity-50" fill="currentColor" aria-hidden>
+                <ellipse cx="100" cy="40" rx="20" ry="24" />
+                <path d="M58 108 Q100 80 142 108 L146 200 Q100 210 54 200 Z" />
+                <rect x="68" y="200" width="28" height="78" rx="8" />
+                <rect x="104" y="200" width="28" height="78" rx="8" />
+              </svg>
+            )}
+          </div>
+          <div className="mt-3 flex items-start gap-1.5 rounded-xl bg-accent/[0.06] px-3 py-2">
+            <Lock className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
+            <p className="text-[10px] leading-snug text-foreground/65">
+              <span className="font-semibold text-foreground/80">Your body is locked.</span> We only change the garment to show the fit.
+            </p>
+          </div>
+        </aside>
 
-        {/* Size selector — quiet underline switcher, no heavy boxes */}
-        <div className="space-y-4">
-          <p className="text-center text-[9px] font-medium tracking-[0.4em] text-foreground/40 uppercase">
-            Try another size
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-1">
-            {result.sizeResults.map((sr) => {
+        {/* ─── CENTER: SIZE PREVIEW GRID ─────────────────────────────── */}
+        <section className="rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-[10px] font-bold tracking-[0.3em] text-foreground/55 uppercase">Size Preview</p>
+            <span className="rounded-full bg-foreground/[0.06] px-3 py-1 text-[10px] font-medium tracking-wider text-foreground/60">
+              AI Fitting
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {result.sizeResults.slice(0, 4).map((sr) => {
               const isActive = sr.size === activeSize;
+              const isRecommended = sr.size === recommendedSize;
+              // Mini caption from solver / region fits for THAT size.
+              const sizeRegions = sr.regions || [];
+              const sChest = sizeRegions.find((r) => /chest|bust/i.test(r.region))?.fit || "regular";
+              const sLen = sizeRegions.find((r) => /length|hem|inseam/i.test(r.region))?.fit || "regular";
+              const captionTop =
+                isRecommended ? "Best fit"
+                : /tight|small|short/i.test(sChest) ? "Too tight"
+                : /loose|oversized|relaxed|long/i.test(sChest) ? "Loose fit"
+                : "Close fit";
+              const captionBottom =
+                isRecommended ? "Balanced silhouette"
+                : /tight|small/i.test(sChest) ? "Chest & waist tight"
+                : /oversized|relaxed/i.test(sChest) ? "Extra room in torso"
+                : /long/i.test(sLen) ? "Hem hangs longer"
+                : "Slightly fitted";
+              const profile = profileFromSizeAndRegions(
+                sr.size,
+                isActive ? sizingActiveOutcome?.overall ?? null : null,
+                sizeRegions.map((r) => ({
+                  region: r.region,
+                  bodyCm: null,
+                  garmentCm: null,
+                  deltaCm: null,
+                  status: r.fit as any,
+                })),
+              );
+
               return (
                 <button
                   key={sr.size}
                   onClick={() => setActiveSize(sr.size)}
-                  className={`relative px-5 py-2 text-[12px] font-medium tracking-[0.18em] uppercase transition-colors ${
+                  className={`group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-all ${
                     isActive
-                      ? "text-foreground"
-                      : "text-foreground/35 hover:text-foreground/70"
+                      ? "border-accent bg-background shadow-lg shadow-accent/10"
+                      : "border-foreground/[0.06] bg-background/60 hover:border-foreground/20"
                   }`}
                 >
-                  {sr.size}
-                  {isActive && (
-                    <motion.span
-                      layoutId="fit-size-underline"
-                      className="absolute -bottom-0.5 left-1/2 h-px w-6 -translate-x-1/2 bg-accent"
-                    />
+                  {isRecommended && (
+                    <span className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full bg-accent px-2.5 py-0.5 text-[9px] font-bold tracking-[0.18em] text-accent-foreground uppercase">
+                      Best
+                    </span>
                   )}
+                  <div className="flex items-center justify-between px-3 pb-1 pt-3">
+                    <span className={`font-display text-base font-bold ${isActive ? "text-foreground" : "text-foreground/60"}`}>
+                      {sr.size}
+                    </span>
+                    {isActive && <Sparkles className="h-3 w-3 text-accent" />}
+                  </div>
+                  <div className="relative aspect-[3/4] w-full bg-background/40">
+                    {heroImageUrl ? (
+                      <FitImageCanvas
+                        src={heroImageUrl}
+                        alt={`${product.name} in size ${sr.size}`}
+                        profile={profile}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        {tryOn.loading ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
+                        ) : (
+                          <span className="text-[10px] text-foreground/30">—</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-0.5 px-3 pb-3 pt-2">
+                    <p className={`text-[11px] font-bold tracking-wider uppercase ${
+                      isRecommended ? "text-accent"
+                        : /tight|small/i.test(sChest) ? "text-orange-500"
+                        : /loose|oversized/i.test(sChest) ? "text-blue-400"
+                        : "text-foreground/70"
+                    }`}>
+                      {captionTop}
+                    </p>
+                    <p className="text-[10px] leading-tight text-foreground/55">{captionBottom}</p>
+                  </div>
                 </button>
               );
             })}
           </div>
-        </div>
+
+          {/* Fit Tip */}
+          <div className="mt-4 rounded-2xl border border-foreground/[0.06] bg-background/40 px-4 py-3">
+            <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/45 uppercase">Fit Tip</p>
+            <p className="mt-1 text-[12px] leading-snug text-foreground/75">
+              {overallFitSentence ||
+                "If you prefer a more relaxed look, try one size up for a looser silhouette."}
+            </p>
+          </div>
+
+          {tryOn.error && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-orange-500/20 bg-orange-500/5 px-3 py-2 text-[11px] text-orange-400/80">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <div className="flex-1">{friendlyTryOnError(tryOn.error)}</div>
+              <button
+                onClick={() => { tryOn.retry(); setReloadToken((n) => n + 1); }}
+                className="rounded-md border border-orange-500/30 px-2 py-0.5 text-[10px] hover:bg-orange-500/10"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* ─── RIGHT: PRODUCT + FIT SUMMARY RAIL ──────────────────────── */}
+        <aside className="space-y-3 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5">
+          {/* Product header */}
+          <div>
+            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Product</p>
+            <h1 className="mt-1.5 font-display text-base font-medium leading-tight text-foreground">
+              {product.name}
+            </h1>
+            <p className="mt-0.5 text-[10px] tracking-[0.25em] text-foreground/50 uppercase">{product.brand}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-accent uppercase">
+                AI Fitting
+              </span>
+              <span className="rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-[9px] font-medium tracking-wider text-foreground/60 uppercase">
+                {garmentDNA.fabric || "Light fabric"}
+              </span>
+            </div>
+          </div>
+
+          {/* Size chips */}
+          <div className="border-t border-foreground/[0.06] pt-3">
+            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Size</p>
+            <div className="mt-2 flex gap-1.5">
+              {result.sizeResults.map((sr) => {
+                const active = sr.size === activeSize;
+                return (
+                  <button
+                    key={sr.size}
+                    onClick={() => setActiveSize(sr.size)}
+                    className={`flex-1 rounded-lg border py-1.5 text-[12px] font-bold tracking-wider transition-colors ${
+                      active
+                        ? "border-accent bg-accent text-accent-foreground"
+                        : "border-foreground/10 bg-background/40 text-foreground/70 hover:border-foreground/30"
+                    }`}
+                  >
+                    {sr.size}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Best size for you */}
+          <div className="rounded-2xl border border-accent/20 bg-accent/[0.05] p-3">
+            <p className="text-[9px] font-bold tracking-[0.25em] text-accent uppercase">Best Size For You</p>
+            <p className="mt-1 font-display text-lg font-bold text-foreground">Size {recommendedSize}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-foreground/65">{recommendedReason}</p>
+            <button
+              onClick={() => setAnalyzeOpen(true)}
+              className="mt-2 flex items-center gap-1 text-[10px] font-medium text-accent hover:text-accent/80"
+            >
+              Why this size? <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
+
+          {/* Fit summary */}
+          <div className="border-t border-foreground/[0.06] pt-3">
+            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Fit Summary</p>
+            <div className="mt-2 space-y-1">
+              {regionRailRows.map((r) => {
+                const dot = r.status === "good" ? "bg-green-500" : r.status === "warn" ? "bg-orange-400" : "bg-red-500";
+                return (
+                  <div key={r.key} className="flex items-center justify-between rounded-lg px-1 py-1 text-[11px]">
+                    <span className="flex items-center gap-2 text-foreground/70">
+                      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} /> {r.label}
+                    </span>
+                    <span className={`font-medium ${
+                      r.status === "good" ? "text-green-500"
+                        : r.status === "warn" ? "text-orange-400"
+                        : "text-red-500"
+                    }`}>
+                      {r.note}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="space-y-2 border-t border-foreground/[0.06] pt-3">
+            {product.url && product.url !== "#" && (
+              <a
+                href={product.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-2.5 text-[12px] font-bold tracking-[0.2em] text-background uppercase transition-opacity hover:opacity-90"
+              >
+                Add to bag <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            <button
+              onClick={() => setChangeBodyOpen(true)}
+              className="flex w-full items-center justify-center gap-1.5 text-[10px] font-medium tracking-[0.25em] text-foreground/55 uppercase hover:text-foreground/80"
+            >
+              <RotateCcw className="h-3 w-3" /> Change body
+            </button>
+          </div>
+        </aside>
       </div>
 
-      {/* Quiet actions — text-led, no heavy primary buttons */}
-      <div className="flex flex-col items-center gap-6 pt-2">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => setAnalyzeOpen(true)}
-            className="text-[10px] font-medium tracking-[0.32em] text-foreground/80 uppercase transition-colors hover:text-foreground"
-          >
-            View full analysis
-          </button>
-          <span className="h-3 w-px bg-foreground/15" />
-          <button
-            onClick={() => setChangeBodyOpen(true)}
-            className="text-[10px] font-medium tracking-[0.32em] text-foreground/80 uppercase transition-colors hover:text-foreground"
-          >
-            Change body
-          </button>
-        </div>
-        {product.url && product.url !== "#" && (
-          <a
-            href={product.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 border-b border-accent/40 pb-1 text-[10px] font-medium tracking-[0.32em] text-accent uppercase transition-colors hover:border-accent"
-          >
-            Shop this look
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-        {onEditMeasurements && (
-          <button
-            onClick={onEditMeasurements}
-            className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] text-foreground/35 uppercase transition-colors hover:text-foreground/70"
-          >
-            <Pencil className="h-3 w-3" /> Edit measurements
-          </button>
-        )}
-      </div>
-
-      {/* ══ CHANGE BODY SHEET — V3.5 ══ */}
+      {/* ── CHANGE BODY SHEET ── */}
       <ChangeBodySheet
         open={changeBodyOpen}
         onOpenChange={setChangeBodyOpen}
         onAction={handleChangeBody}
       />
 
-      {/* ══ ANALYZE SHEET — all the deep numbers live here ══ */}
+      {/* ── ANALYZE SHEET (full deep-dive, opened by "Why this size?") ── */}
       <Sheet open={analyzeOpen} onOpenChange={setAnalyzeOpen}>
         <SheetContent
           side="right"
@@ -823,24 +1022,7 @@ export default function FitResults({
             </button>
           </div>
 
-          <div className="px-6 py-6 space-y-6">
-            {/* Confidence + Body Accuracy — pulled in from the hero for a cleaner main view */}
-            <div className="flex items-center justify-between gap-3 pb-4 border-b border-foreground/[0.06]">
-              <div className="space-y-1">
-                <p className="text-[9px] font-semibold tracking-[0.25em] text-foreground/45 uppercase">Confidence</p>
-                <p className={`text-[12px] font-bold tracking-[0.18em] ${confColor}`}>{confLabel}</p>
-              </div>
-              <div className="space-y-1 text-right">
-                <p className="text-[9px] font-semibold tracking-[0.25em] text-foreground/45 uppercase">Body Accuracy</p>
-                <p className={`text-[12px] font-bold tracking-tight ${
-                  bodyDNA.accuracy >= 80 ? "text-green-500"
-                    : bodyDNA.accuracy >= 55 ? "text-accent"
-                    : "text-orange-500"
-                }`}>{bodyDNA.accuracy}%</p>
-              </div>
-            </div>
-
-            {/* Trust + feedback — moved out of hero */}
+          <div className="space-y-6 px-6 py-6">
             <FitTrustStrip
               accuracy={bodyDNA.accuracy}
               bodyConsistencyScore={tryOn.qualityVerdict?.bodyConsistencyScore ?? null}
@@ -855,16 +1037,6 @@ export default function FitResults({
               chosenSize={activeSize}
             />
 
-            {confTier === "limited" && (
-              <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-start gap-2">
-                <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
-                <span className="text-[11px] text-orange-400/80">
-                  Limited confidence — brand size chart is partial. Treat as approximate.
-                </span>
-              </div>
-            )}
-
-
             {sizeCorrelation && (
               <FitAnalysisPanel
                 correlation={sizeCorrelation}
@@ -875,36 +1047,19 @@ export default function FitResults({
               />
             )}
 
-            {/* SELECTED-SIZE-FIRST EXPLANATION */}
             <SelectedSizeFitCard
               recommendation={sizing.recommendation}
               activeSize={activeSize}
               onPickRecommended={(size) => setActiveSize(size)}
             />
 
+            <RegionFitTable
+              fit={regionFit}
+              loading={resolvedSize.loading}
+              fetching={resolvedSize.fetching}
+              selectedSize={activeSize}
+            />
 
-            {/* PARALLEL FIT EXPLANATION LAYER */}
-            {bodyHeightCm ? (
-              <FitExplanationCard
-                heightCm={bodyHeightCm}
-                weightKg={bodyWeightKg ?? null}
-                category={product.category}
-                selectedSize={activeSize}
-                garment={resolvedSize.resolved ? {
-                  chest:    (resolvedSize.resolved as any).chestCm,
-                  shoulder: (resolvedSize.resolved as any).shoulderCm,
-                  length:   (resolvedSize.resolved as any).lengthCm ?? (resolvedSize.resolved as any).totalLengthCm,
-                  waist:    (resolvedSize.resolved as any).waistCm,
-                  hip:      (resolvedSize.resolved as any).hipCm,
-                  thigh:    (resolvedSize.resolved as any).thighCm,
-                  inseam:   (resolvedSize.resolved as any).inseamCm,
-                  sleeve:   (resolvedSize.resolved as any).sleeveCm,
-                } : null}
-                sizeLabel={`SIZE ${activeSize}`}
-              />
-            ) : null}
-
-            {/* FIT SUMMARY */}
             <FitSummaryPanel
               size={activeSize}
               score={heroScore}
@@ -914,104 +1069,10 @@ export default function FitResults({
               regions={activeSizeResult?.regions ?? []}
             />
 
-            {/* REGION-BY-REGION */}
-            <RegionFitTable
-              fit={regionFit}
-              loading={resolvedSize.loading}
-              fetching={resolvedSize.fetching}
-              selectedSize={activeSize}
-            />
+            <FitBreakdown solver={solver} isBottom={garmentFit.category === "bottom"} />
 
-            {/* SILHOUETTE + BREAKDOWN */}
-            <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/55">SILHOUETTE</p>
-                  <span className="text-[10px] text-foreground/40">· {FIT_TYPE_LABEL[solver.fitType]}</span>
-                </div>
-                <span className="rounded-full bg-accent/10 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-accent">
-                  {solver.silhouette.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-[13px] leading-relaxed text-foreground/80">{solver.summary}</p>
-              <FitBreakdown solver={solver} isBottom={garmentFit.category === "bottom"} />
-            </div>
-
-            {/* FULL EXPLANATION */}
-            <div className="rounded-2xl border border-foreground/[0.06] bg-card/40 p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50">EXPLANATION</p>
-                {isRefined && <Sparkles className="h-3 w-3 text-accent/60" />}
-              </div>
-              {loadingExplanation ? (
-                <div className="space-y-2">
-                  <div className="h-3 w-full rounded bg-foreground/[0.04] animate-pulse" />
-                  <div className="h-3 w-3/4 rounded bg-foreground/[0.04] animate-pulse" />
-                </div>
-              ) : explanation ? (
-                <p className="text-sm font-light leading-relaxed text-foreground/80">{explanation}</p>
-              ) : (
-                <div className="space-y-2.5">
-                  <p className="text-sm font-semibold text-foreground">{builtExplanation.headline}</p>
-                  <ul className="space-y-1.5">
-                    {builtExplanation.bullets.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2 text-[13px] text-foreground/75 leading-relaxed">
-                        <span className="text-accent mt-1">•</span>
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {builtExplanation.caveat && (
-                    <p className="text-[11px] text-foreground/50 pt-1 border-t border-foreground/[0.04]">{builtExplanation.caveat}</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* GLOBAL SIZE FALLBACK */}
-            {usedGlobalFallback && globalSize && (
-              <div className="rounded-2xl border border-foreground/[0.08] bg-card/30 p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Globe2 className="h-3.5 w-3.5 text-foreground/50" />
-                  <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50">GLOBAL SIZE GUIDE</p>
-                </div>
-                <p className="text-[11px] text-foreground/60">
-                  Estimated from your height ({profile?.heightCm}cm) — brand chart is incomplete.
-                </p>
-                <div className="grid grid-cols-5 gap-2 pt-1">
-                  {[
-                    { label: "INTL", value: globalSize.letter },
-                    { label: "US", value: globalSize.us },
-                    { label: "EU", value: globalSize.eu },
-                    { label: "KR", value: globalSize.kr },
-                    { label: "JP", value: globalSize.jp },
-                  ].map((m) => (
-                    <div key={m.label} className="rounded-lg bg-background/40 border border-foreground/[0.04] py-2 text-center">
-                      <p className="text-[8px] font-bold tracking-[0.15em] text-foreground/40">{m.label}</p>
-                      <p className="text-sm font-bold text-foreground mt-0.5">{m.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Size recommendation panel removed — user picks their own size, only the visualization is shown. */}
-
-            {/* SIZE COMPARISON */}
-            <div>
-              <p className="text-[10px] font-bold tracking-[0.25em] text-foreground/50 mb-3">SIZE COMPARISON</p>
-              <div className="space-y-2">
-                {result.sizeResults.map((sr) => (
-                  <SizeComparisonCard key={sr.size} result={sr} isRecommended={sr.recommended} isAlternate={sr.alternate} />
-                ))}
-              </div>
-            </div>
-
-            {/* REFINE FIT */}
             {!isRefined && onRefineFit && (
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+              <button
                 onClick={onRefineFit}
                 disabled={refining}
                 className={`flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition-all ${
@@ -1023,26 +1084,17 @@ export default function FitResults({
                 {refining ? (<><Loader2 className="h-4 w-4 animate-spin" /> Refining…</>)
                   : canUsePremium ? (<><Sparkles className="h-4 w-4" /> Refine Fit — High Precision</>)
                   : (<><Lock className="h-3.5 w-3.5" /> Refined Fit (Premium)</>)}
-              </motion.button>
+              </button>
             )}
 
-            {/* OPTIONAL PHOTO TRY-ON */}
-            <div className="space-y-2 pt-2">
-              <button
-                onClick={() => setTryOnOpen(true)}
-                disabled={!tryOnReady}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-foreground/10 bg-foreground/[0.03] py-3 text-sm font-medium text-foreground/70 hover:bg-foreground/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title={tryOnReady ? "Generate a virtual try-on" : "Upload a front body scan first"}
-              >
-                <Wand2 className="h-4 w-4" />
-                {tryOnReady ? "Try it on (photo)" : "Try-on unavailable"}
-              </button>
-              {!tryOnReady && (
-                <p className="text-[10px] text-center text-foreground/40">
-                  Add a front body scan in SCAN to enable photo try-on
-                </p>
-              )}
-            </div>
+            <button
+              onClick={() => setTryOnOpen(true)}
+              disabled={!tryOnReady}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-foreground/10 bg-foreground/[0.03] py-3 text-sm font-medium text-foreground/70 hover:bg-foreground/[0.06] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <Wand2 className="h-4 w-4" />
+              {tryOnReady ? "Try it on (photo)" : "Try-on unavailable"}
+            </button>
           </div>
         </SheetContent>
       </Sheet>
@@ -1050,4 +1102,14 @@ export default function FitResults({
       <TryOnPreviewModal open={tryOnOpen} onClose={() => setTryOnOpen(false)} context={tryOnContext} />
     </div>
   );
+}
+
+// Small helper to surface AI errors in the new UI.
+function friendlyTryOnError(raw?: string | null): string {
+  if (!raw) return "The fitting service is busy. Please retry.";
+  const s = String(raw).toLowerCase();
+  if (s.includes("rate") || s.includes("429") || s.includes("throttle")) return "AI fitting is busy — please retry.";
+  if (s.includes("credit") || s.includes("402")) return "AI credits unavailable. Try again shortly.";
+  if (s.includes("timeout")) return "Fitting took too long. Retry.";
+  return "Fitting unavailable right now. Retry.";
 }
