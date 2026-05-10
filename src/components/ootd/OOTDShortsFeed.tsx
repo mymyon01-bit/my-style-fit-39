@@ -116,8 +116,8 @@ const VideoCard = ({
         </button>
       </div>
 
-      {/* Bottom: author + caption */}
-      <div className="absolute bottom-0 inset-x-0 px-3 pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent">
+      {/* Bottom: author + caption + tags */}
+      <div className="absolute bottom-0 inset-x-0 px-3 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] md:pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent">
         <button
           onClick={() => onAuthorClick(v.user_id)}
           className="flex items-center gap-2 mb-2"
@@ -137,6 +137,15 @@ const VideoCard = ({
         </button>
         {v.caption && (
           <p className="text-[12px] text-white/95 drop-shadow line-clamp-3">{v.caption}</p>
+        )}
+        {v.tags && v.tags.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {v.tags.slice(0, 6).map((t) => (
+              <span key={t} className="text-[11px] font-semibold text-white/95 drop-shadow">
+                #{t}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </div>
