@@ -43,7 +43,7 @@ const MODEL_ID = VTON_MODEL_ID;
 const MODEL_VERSION = VTON_MODEL_VERSION;
 const REPLICATE_POLL_INTERVAL_MS = 1500;
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "mannequin-bodylock-v11-studio-measurement";
+const STUDIO_RENDER_VERSION = "mannequin-bodylock-v12-realism-strict";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
@@ -255,6 +255,138 @@ function silhouetteFromRegions(regions?: RegionFitLite[]): string {
   if (loose >= 1)
     return "SLIGHTLY RELAXED silhouette: mild extra ease where the garment exceeds the body, otherwise clean drape";
   return "FITTED silhouette: clean follow of the form with natural ease, shoulder seam on the joint, hem at the hip, no tension lines, no excess volume";
+}
+
+// ─── REALISM DIRECTIVE (V5 — body-locked, measurement-first) ────────────────
+// Translates the per-region cm deltas into a hard fit classification with
+// brutal visual imperatives. Output is consumed by BOTH prompt builders
+// (Lovable AI + Replicate) and front-loaded so the model can't smooth the
+// truth out of the render.
+type FitClass =
+  | "impossible"
+  | "veryTight"
+  | "tight"
+  | "regular"
+  | "relaxed"
+  | "oversized"
+  | "extremelyOversized";
+
+interface RealismDirective {
+  classification: FitClass;
+  chestDeltaCm: number | null;
+  shoulderDeltaCm: number | null;
+  lengthDeltaCm: number | null;
+  rules: string[];        // hard imperatives, exact fabric behavior
+  guidance: string;        // single-line user-facing summary
+  isWrongSize: boolean;    // true → renderer must NOT flatter
+}
+
+function pickDelta(regions: RegionFitLite[] | undefined, key: RegExp): number | null {
+  const r = regions?.find((x) => x?.region && key.test(x.region));
+  if (!r || r.deltaCm == null) return null;
+  return Math.round(r.deltaCm * 10) / 10;
+}
+
+function classifyChest(d: number | null): FitClass {
+  if (d == null) return "regular";
+  if (d <= -8) return "impossible";
+  if (d <= -3) return "veryTight";
+  if (d <  4) return "tight";
+  if (d < 10) return "regular";
+  if (d < 18) return "relaxed";
+  if (d < 28) return "oversized";
+  return "extremelyOversized";
+}
+
+function buildRealismDirective(body: CreateBody): RealismDirective {
+  const chestD = pickDelta(body.regions, /chest|bust/i);
+  const shoulderD = pickDelta(body.regions, /shoulder/i);
+  const lengthD = pickDelta(body.regions, /length|hem|inseam/i);
+  const cls = classifyChest(chestD);
+
+  const b = body.bodyProfileSummary;
+  const heightM = b?.heightCm ? b.heightCm / 100 : null;
+  const bmi = b?.weightKg && heightM ? b.weightKg / (heightM * heightM) : null;
+  const heavy = !!(bmi && bmi >= 28);
+
+  const rules: string[] = [];
+
+  // Chest / torso
+  if (cls === "impossible") {
+    rules.push("FIT FAILURE — the garment cannot close around the torso. Show fabric stretched to absolute mechanical limit, sharp horizontal stress lines across chest and torso, seams visibly straining at the shoulder and side, NO clean drape, NO flattering silhouette. The garment looks 1–2 sizes too small. The mannequin clearly should not be wearing this size.");
+  } else if (cls === "veryTight") {
+    rules.push("VERY TIGHT — fabric pulled hard across the bust/chest with visible compression lines, body volume bulging at hem and waistband, shoulder seam pulled inward off the natural shoulder, no soft folds anywhere on the torso.");
+  } else if (cls === "tight") {
+    rules.push("TIGHT — fabric closely follows the body with mild horizontal tension at the bust, no excess volume, hem rides slightly higher than intended.");
+  } else if (cls === "regular") {
+    rules.push("REGULAR — clean follow of the form with natural ease, soft drape, no tension, no excess fabric.");
+  } else if (cls === "relaxed") {
+    rules.push("RELAXED — visible extra room across torso and arms, soft natural folds, hem hangs cleanly, garment is clearly larger than the body but not blanket-like.");
+  } else if (cls === "oversized") {
+    rules.push("OVERSIZED — dropped shoulder seam clearly off the joint, generous chest and waist volume, sleeves longer than natural, deep folds, hem hangs low.");
+  } else {
+    rules.push("EXTREMELY OVERSIZED — blanket-like silhouette, shoulder seam dropped halfway down the upper arm, sleeves stack at the wrists, torso looks engulfed in fabric, hem reaches mid-thigh or lower than intended.");
+  }
+
+  // Shoulder
+  if (shoulderD != null) {
+    if (shoulderD <= -4) rules.push("SHOULDER too narrow — seam pulled inward onto the chest/upper arm, visible pulling at the armhole.");
+    else if (shoulderD <= -1) rules.push("SHOULDER tight — seam slightly inside the natural shoulder line.");
+    else if (shoulderD <= 2) rules.push("SHOULDER clean — seam sits exactly on the natural joint.");
+    else if (shoulderD <= 6) rules.push("SHOULDER relaxed — seam drops a few cm past the joint.");
+    else rules.push("SHOULDER heavily dropped — seam falls well past the joint onto the upper arm.");
+  }
+
+  // Length
+  if (lengthD != null) {
+    if (lengthD <= -8) rules.push("LENGTH too short — hem rides up well above intended position, exposing waistband or skin where it should not.");
+    else if (lengthD <= -2) rules.push("LENGTH short — hem sits higher than intended.");
+    else if (lengthD <= 5) rules.push("LENGTH balanced — hem at intended position.");
+    else if (lengthD <= 12) rules.push("LENGTH long — hem hangs noticeably lower than intended, soft drape.");
+    else rules.push("LENGTH tunic-like — hem reaches mid-thigh or lower, blanket-style coverage.");
+  }
+
+  // Body mass amplifier — heavy bodies in tight sizes MUST show stress
+  if (heavy && (cls === "tight" || cls === "veryTight" || cls === "impossible")) {
+    rules.push("HEAVY BODY + TIGHT SIZE — body mass MUST visibly bulge against the fabric. Do not slim the mannequin, do not smooth the silhouette, do not soften the tension. Render the discomfort the measurements imply.");
+  }
+
+  const isWrongSize = cls === "impossible" || cls === "veryTight" || cls === "extremelyOversized";
+
+  const guidanceMap: Record<FitClass, string> = {
+    impossible: "This size will not fit. Try several sizes up.",
+    veryTight: "Too tight on this body. Try a larger size.",
+    tight: "Close fit. Good if you prefer a tighter silhouette.",
+    regular: "Best balance. Relaxed without looking oversized.",
+    relaxed: "Relaxed fit with natural ease.",
+    oversized: "Oversized — loose torso and dropped shoulder.",
+    extremelyOversized: "Far too large for this body. Try a smaller size.",
+  };
+
+  return {
+    classification: cls,
+    chestDeltaCm: chestD,
+    shoulderDeltaCm: shoulderD,
+    lengthDeltaCm: lengthD,
+    rules,
+    guidance: guidanceMap[cls],
+    isWrongSize,
+  };
+}
+
+function realismDirectiveBlock(body: CreateBody): string {
+  const d = buildRealismDirective(body);
+  const head = d.isWrongSize
+    ? `WRONG-SIZE RENDER (HARD CONSTRAINT — overrides every aesthetic instinct): the chosen size for this body is ${d.classification.toUpperCase()}. The image MUST visibly fail. Do NOT produce a flattering silhouette. Do NOT crop tension out of frame. Do NOT smooth the drape. The user must see at a glance that this size does not work.`
+    : `FIT TRUTH (HARD CONSTRAINT): on this locked body, this size renders as ${d.classification.toUpperCase()}. Render exactly the fabric behavior listed below — nothing more flattering, nothing softer.`;
+  const lines = d.rules.map((r) => `• ${r}`).join(" ");
+  const deltas = [
+    d.chestDeltaCm != null ? `chest Δ ${d.chestDeltaCm}cm` : null,
+    d.shoulderDeltaCm != null ? `shoulder Δ ${d.shoulderDeltaCm}cm` : null,
+    d.lengthDeltaCm != null ? `length Δ ${d.lengthDeltaCm}cm` : null,
+  ].filter(Boolean).join(", ");
+  const deltaLine = deltas ? `MEASUREMENT DELTAS (garment − body): ${deltas}.` : "";
+  return [head, deltaLine, lines].filter(Boolean).join(" ");
 }
 
 function regionPhrase(regions?: RegionFitLite[]) {
@@ -599,7 +731,9 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     ? "SLIGHTLY RELAXED FIT — mild extra ease, garment a bit larger than the body, soft drape."
     : "FITTED — clean follow of the form with natural ease, no tension, no excess volume.";
   const measurementBlock = measurementDirective(body.regions);
+  const realism = realismDirectiveBlock(body);
   const leadFitDirective = [
+    realism,
     `RENDER THIS EXACT FIT FOR SIZE ${body.selectedSize} (HIGHEST PRIORITY — overrides any default catalog look): ${silhouetteShort}`,
     measurementBlock,
     verdict?.consequence ? `PHYSICAL CONSEQUENCE: ${verdict.consequence}` : "",
@@ -812,6 +946,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   console.log("[FIT_IMAGE_FIT_RESULT]", { regions: body.regions, baselineVerdict: body.baselineVerdict });
   console.log("[FIT_IMAGE_GENDERED_SIZING]", body.genderedSizing ?? null, body.genderDirective ?? null);
   console.log("[FIT_IMAGE_USER_BODY_REF]", userBodyRef ? userBodyRef.slice(0, 80) : null);
+  console.log("[FIT_REALISM_DIRECTIVE]", buildRealismDirective(body));
   console.log("[FIT_IMAGE_FINAL_PROMPT]", prompt);
 
   const controller = new AbortController();
@@ -914,6 +1049,7 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
     : "FITTED — clean follow of the form with natural ease.";
 
   const leadFitDirective = [
+    realismDirectiveBlock(body),
     `RENDER THIS EXACT FIT (highest priority, overrides any default catalog look): ${silhouetteShort}`,
     measurementDirective(body.regions),
     consequence ? `PHYSICAL CONSEQUENCE: ${consequence}` : "",

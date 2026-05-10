@@ -1,88 +1,67 @@
-# Wave 확장 플랜 (v2)
+# FIT Realism Patch — Body-Locked, Measurement-First
 
-## 1. 데이터베이스 마이그레이션
+## Problem
+The renderer ignores body↔garment measurement deltas and produces flattering "editorial" outputs even when a size is physically wrong (e.g. 95kg female + women's S hoodie still looks balanced). Sizes also look too similar across S/M/L/XL.
 
-### `waves` 추가/제약
-- 컬럼: `visibility text default 'private'` ('private'|'public')
-- **1인 1웨이브 제한**: 트리거로 `created_by` 기준 INSERT 시
-  - `is_official=true` (블루뱃지) → 무제한
-  - 그 외 → 이미 owner인 웨이브 있으면 reject
+The math layer (`src/lib/sizing/*`, `src/lib/fit/regionFitEngine.ts`, `buildGarmentFitMap.ts`) already computes deltas reasonably. The break is at the **renderer prompt**: `fit-tryon-router` sends a soft styling brief instead of a strict fit directive, and the body proportions are not locked across size switches.
 
-### 새 테이블
-- **`wave_modules`** (wave당 최대 7개): id, wave_id, kind(`photos|board|wardrobe|poll|anon_board`), label, position
-- **`wave_module_posts`**: id, wave_id, module_id, author_id, kind, title, body, image_urls[], metadata jsonb, is_anonymous, like/dislike/meh/comment_count
-- **`wave_post_reactions`**: post_id, user_id, reaction(`like|dislike|meh`), UNIQUE(post_id,user_id)
-- **`wave_post_comments`**: id, post_id, user_id, parent_id, body, like_count
-- **`wave_comment_likes`**: comment_id, user_id
-- **`wave_polls`** + **`wave_poll_votes`**
+## Approach
+Keep the existing sizing math. Add one new layer — a **FitRenderDirective** — that converts deltas into hard visual rules, then rewrite the renderer prompts (Lovable AI + Replicate fallback) to obey it. Lock the body silhouette so only the garment changes between sizes.
 
-### RLS
-- 멤버만 read/write
-- 게시물 삭제: 본인 OR `is_wave_admin`
-- 모듈/웨이브 삭제: `is_wave_owner`만
-- 익명 게시판: author_id 저장하되 비-어드민은 마스킹 (클라 처리)
+## Changes
 
----
+### 1. New: `src/lib/fit/fitRenderDirective.ts`
+Pure function. Input: `ResolvedBody` + `GarmentSizeProfile` + `cutType` + `gender`. Output:
+```
+{
+  fitClassification: "impossible" | "veryTight" | "tight" | "regular" | "relaxed" | "oversized" | "extremelyOversized",
+  chestDeltaCm, shoulderDeltaCm, sleeveDeltaCm, lengthDeltaCm, waistDeltaCm,
+  tensionLevel: 0..1,        // pulling, stretched fabric
+  drapeLevel: 0..1,          // hanging fabric volume
+  oversizedLevel: 0..1,
+  visualRules: string[]      // hard imperatives for the renderer
+}
+```
+Thresholds match the spec (chest -8/-3/+4/+10/+18/+28, shoulder -4/-1/+2/+6, length -8/-2/+5/+12). Cut-type adjusts intent baseline (oversized expects +18, slim expects +4).
 
-## 2. UI 컴포넌트
+### 2. Default size tables: `src/lib/sizing/genderedDefaults.ts`
+Separate men/women/unisex × tops/bottoms × cut (slim/regular/relaxed/oversized/boxy/cropped). Used only when product chart is missing. Replace any unisex S/M/L fallback paths.
 
-### 웨이브 모달 개편 (`WaveModal.tsx`)
-좌측 세로 메뉴 + 우측 콘텐츠. 모바일은 상단 가로 탭.
-- `WaveSidebar` — 모듈 목록 + 추가/이름변경(어드민)
-- `WavePhotoModule` / `WaveBoardModule` / `WaveWardrobeModule` / `WavePollModule` / `WaveAnonBoardModule`
-- `WavePostCard` — 좋아요/별로에요/싫어요 + 댓글
-- `WaveCommentThread` — 댓글 + 대댓글 + 좋아요
-- `AddModuleSheet` — 어드민이 종류 선택 + 라벨 변경
-- `WaveAdminPanel` — 멤버 관리, 모듈 삭제, 웨이브 삭제
+### 3. Renderer prompt rewrite: `supabase/functions/fit-tryon-router/index.ts`
+- Inject the `FitRenderDirective` into both Lovable AI and Replicate prompt builders.
+- New prompt structure (fixed sections):
+  1. **BODY (LOCKED)** — exact cm values, mass cue, "do not slim, do not idealize, do not reshape across sizes".
+  2. **GARMENT (size X)** — measurements + cut type.
+  3. **FIT TRUTH** — classification + every visualRule as an imperative ("hem rides up 4cm", "shoulder seam pulled inward", "sleeves stack at wrist", "fabric tension across bust").
+  4. **HARD CONSTRAINTS** — "If size is veryTight or impossible, the garment MUST visibly fail. Do not produce a flattering silhouette. Do not crop tension out of frame."
+- Remove "editorial / premium / fashion-forward" language from the base prompt.
+- Pass a `bodySignatureSeed` derived from body cm values so the same body renders consistently across S/M/L/XL switches.
 
-### 기존 수정
-- `CreateWaveDialog` — visibility(Private/Public) 라디오, 기존 owner 웨이브 있으면 차단 (블루뱃지 예외)
-- `useWaves` — `useWaveModules`, `useWavePosts`, `useWaveReactions` 훅 추가
+### 4. Body lock in client: `src/hooks/useFitTryOn.ts` / FitResults
+- Compute directive client-side from `ResolvedBody` + chosen size; pass full directive in the edge call (router no longer guesses).
+- When user toggles size, only the garment payload changes; body payload + seed stay identical.
 
-### Discover → Wave
-- 상품 카드 메뉴에 **"Share to Wave"** → 사용자의 wardrobe 모듈 가진 웨이브 선택 → `wave_module_posts` 삽입
+### 5. UI: `src/components/fit/FitResults.tsx`
+Keep current minimal premium look. Replace the fit caption with directive-driven copy:
+- Label: one of `Too tight` / `Tight` / `Close fit` / `Best balance` / `Relaxed` / `Oversized` / `Too large`
+- One-line guidance: derived from classification + recommended alt size.
+- Move all deltas/measurements into the existing "Analyze" disclosure (no new UI surface).
 
-### 초대 ("Let's Ride the Wave")
-- `InviteToWaveSheet` 확장: 카피 카드 + 공유 버튼 (Message·Copy·Instagram·TikTok·Facebook·WhatsApp·KakaoTalk)
-- 공개 라우트 `/wave/:id?invite=...` → 비-멤버는 초대장 랜딩 → 로그인 후 자동 join
+### 6. Trust rule enforcement
+In `recommend.ts`: if directive says `impossible`/`veryTight`, mark size as `unwearable: true`. UI shows a small "wrong size" tag and never calls it a recommended pick.
 
----
+## Out of scope
+- No changes to body scan, body_profiles schema, or the working IDM-VTON Replicate path itself (only its prompt).
+- No changes to OOTD / Shorts / Stories.
+- No new dependencies.
 
-## 3. ★ 추가 항목 (이번 메시지)
+## Risk
+Renderer behavior depends on the model honoring constraints. Mitigation: hard imperative phrasing + negative constraints + lower temperature (0.4) + retry once with stricter prompt if validator (existing `validateFitImage`) flags the output as too flattering for a `veryTight` directive.
 
-### A. ShareToWaveMenu
-- `src/components/ootd/ShareToWaveMenu.tsx`
-- OOTD 카드 더보기 메뉴에 "Share to Wave" 항목
-- 사용자가 멤버인 웨이브 목록 → 선택 → 해당 웨이브의 photos 모듈에 자동 포스트
-
-### B. 초대 수락/거절 UI
-- `src/components/ootd/WaveInviteCard.tsx`
-- `MessagesInbox` 또는 알림 드롭다운에서 `wave_invite` 타입 알림을 카드로 렌더
-- Accept → `accept_wave_invite` RPC, Decline → `decline_wave_invite` RPC
-
-### C. OOTD 팁을 플로팅 공지 카드로
-- 기존 `OOTDInfoCard` 인라인 사용 제거
-- **`OOTDTipToast.tsx`** 새 컴포넌트 — 화면 우측 하단/중앙에 토스트 형태 카드 (1개씩 큐로)
-- 페이지 진입 시 미확인 팁 중 1개를 토스트로 띄움, "Got it" → `useInfoCardSeen` 마킹
-- 페이지 레이아웃 안 차지 → 더 깔끔
-
-### D. My Showroom 웨이브 통합
-- `MyShowroomPage` (또는 `ShowroomPage`)에:
-  - 통계 영역에 **"Waves: N"** 카운터 추가
-  - **"My Wave"** 버튼 (icon: 🌊) → 클릭 시 본인 owner 웨이브 모달 오픈
-  - 웨이브 없으면 "Create Wave" CTA
-
-### E. 1인 1웨이브 (블루뱃지 제외)
-- 위 마이그레이션 트리거로 강제
-- `CreateWaveDialog`에서 사전 체크하여 UI 비활성화 + 안내 문구
-
----
-
-## 4. i18n
-~35개 신규 키 × 8개 언어
-
-## 5. 범위 외
-- 웨이브 내 실시간 채팅
-- 웨이브 검색/탐색 페이지
-
-진행하겠습니다.
+## Files touched
+- new: `src/lib/fit/fitRenderDirective.ts`, `src/lib/sizing/genderedDefaults.ts`
+- edit: `supabase/functions/fit-tryon-router/index.ts` (prompt builders only)
+- edit: `src/hooks/useFitTryOn.ts` (pass directive + seed)
+- edit: `src/components/fit/FitResults.tsx` (caption + unwearable tag)
+- edit: `src/lib/sizing/recommend.ts` (unwearable flag)
+- edit: `src/lib/fit/regionFitEngine.ts` (use new thresholds if currently softer)
