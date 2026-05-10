@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { formatCount } from "@/lib/formatCount";
 import { filterCssById } from "@/lib/videoFilters";
-import OOTDShortUploadSheet from "./OOTDShortUploadSheet";
+
 
 interface VideoRow {
   id: string;
