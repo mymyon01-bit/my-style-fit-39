@@ -13,6 +13,8 @@ import { buildFitExplanation as buildLegacyExplanation, confidenceTier } from "@
 import { normalizeBodyProfile } from "@/lib/fit/bodyProfile";
 import { estimateGlobalSize, shouldUseGlobalFallback } from "@/lib/fit/globalSize";
 import FitVisual from "@/components/fit/FitVisual";
+import FitImageCanvas from "@/components/fit/FitImageCanvas";
+import { profileFromSizeAndRegions } from "@/lib/fit/sizeWarpProfile";
 import { useFitTryOn } from "@/hooks/useFitTryOn";
 import { buildBodyProfile } from "@/lib/fit/buildBodyProfile";
 import { buildGarmentFitMap } from "@/lib/fit/buildGarmentFitMap";
@@ -691,7 +693,7 @@ export default function FitResults({
 
   // ── Recommended size for the BEST pill ─────────────────────────────────
   const recommendedSize = sizing.recommendation?.primarySize ?? result.recommendedSize;
-  const recommendedReason = sizing.recommendation?.reason ?? "Best balance for your measurements.";
+  const recommendedReason = sizing.recommendation?.primaryReason ?? "Best balance for your measurements.";
 
   // Mannequin gender for the body silhouette in the left panel.
   const silhouetteGender: "male" | "female" =
