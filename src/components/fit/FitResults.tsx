@@ -378,8 +378,22 @@ export default function FitResults({
     return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "regular") as any;
   }, [regionPhysics]);
   const overallFitSentence = useMemo(
-    () => describeOverallFit(overallPhysicsLabel, garmentDNA, activeSize),
-    [overallPhysicsLabel, garmentDNA, activeSize],
+    () => {
+      if (v3ActiveAnalysis) {
+        const c = v3ActiveAnalysis.classification;
+        switch (c) {
+          case "TooSmall":    return `Size ${activeSize} is smaller than your body measurements.`;
+          case "Tight":       return `Size ${activeSize} will feel tight on you.`;
+          case "CloseFit":    return `Size ${activeSize} sits close to the body — sharper silhouette.`;
+          case "BestBalance": return `Size ${activeSize} gives the most natural room without looking oversized.`;
+          case "Relaxed":     return `Size ${activeSize} sits relaxed with extra room.`;
+          case "Oversized":   return `Size ${activeSize} reads oversized for your body.`;
+          case "TooLarge":    return `Size ${activeSize} has too much room for your body.`;
+        }
+      }
+      return describeOverallFit(overallPhysicsLabel, garmentDNA, activeSize);
+    },
+    [v3ActiveAnalysis, overallPhysicsLabel, garmentDNA, activeSize],
   );
 
   // ── GENDERED SIZE SYSTEM (V3.9) — target gender + cross-gender context ──
