@@ -356,14 +356,18 @@ export default function OOTDShortsFeed() {
             </button>
           </div>
         ) : (
-          videos.map((v, i) => (
+          visibleVideos.map((v, i) => (
             <div key={v.id} data-idx={i} className="relative h-full w-full">
               <VideoCard
                 v={v}
                 active={i === activeIdx}
                 muted={muted}
                 onToggleMute={() => setMuted((m) => !m)}
-                onLike={() => handleLike(i)}
+                onLike={() => handleLike(videos.indexOf(v))}
+                onDislike={() => handleDislike(videos.indexOf(v))}
+                onSave={() => handleSave(videos.indexOf(v))}
+                onShare={() => handleShare(videos.indexOf(v))}
+                saved={savedSet.has(v.id)}
                 onAuthorClick={(uid) => navigate(`/user/${uid}`)}
               />
             </div>
