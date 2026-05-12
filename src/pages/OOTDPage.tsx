@@ -1143,19 +1143,28 @@ const OOTDPage = () => {
                     )}
                   </div>
 
-                  {/* ADD TO SHOWROOM — sits between My Showroom and Curated Looks */}
-                  <button
-                    onClick={() => setUploadOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
-                  >
-                    <Camera className="h-4 w-4" />
-                    <span className="text-[10px] font-medium tracking-[0.22em]">ADD TO SHOWROOM</span>
-                  </button>
+                  {/* POST OOTD — photo or video, side by side */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setUploadOpen(true)}
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+                    >
+                      <Camera className="h-4 w-4" />
+                      <span className="text-[10px] font-medium tracking-[0.22em]">POST PHOTO</span>
+                    </button>
+                    <button
+                      onClick={() => setVideoUploadOpen(true)}
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 backdrop-blur-xl py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+                    >
+                      <Film className="h-4 w-4" />
+                      <span className="text-[10px] font-medium tracking-[0.22em]">POST VIDEO</span>
+                    </button>
+                  </div>
 
-                  {/* CURATED LOOKS */}
+                  {/* MY POSTS */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/70">CURATED LOOKS</span>
+                      <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/70">MY POSTS</span>
                       {myPosts.length > 0 && (
                         <span className="text-[9px] tracking-[0.2em] text-foreground/40">{myPosts.length}</span>
                       )}
