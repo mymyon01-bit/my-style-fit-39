@@ -1,0 +1,13 @@
+# mymyon
+
+> mymyon is an AI-powered fashion discovery platform. It helps people find clothes that actually fit, with virtual try-on, size recommendations, and an outfit-of-the-day community.
+
+## Pages
+
+- [Home](/): AI fashion discovery and personalized style feed.
+- [Discover](/discover): Real-time multi-source product search across fashion retailers.
+- [Fit](/fit): Virtual try-on and body-locked size recommendations.
+- [OOTD](/ootd): Outfit-of-the-day social feed — share looks, photos, and videos.
+- [Showroom](/showroom): Curated style showrooms from the community.
+- [About](/about): What mymyon is, vision, and contact.
+- [Install](/install): Install the mymyon app on Android or iOS.
