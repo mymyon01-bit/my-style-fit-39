@@ -4,6 +4,7 @@ import BottomNav from "./BottomNav";
 import DailyPicksNotice from "./DailyPicksNotice";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useOOTDModal } from "@/lib/ootdModal";
+import SocialLinks from "./SocialLinks";
 
 const AppLayout = () => {
   const { transitionClass, transition } = useTransition();
@@ -29,6 +30,9 @@ const AppLayout = () => {
             behind BottomNav. md+ has no bottom nav. */}
         <div className={!hideBottomNav ? "pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0" : undefined}>
           {!ootdModalOpen && <Outlet />}
+          {!hideBottomNav && (
+            <SocialLinks className="md:hidden px-5 pb-3 pt-2" iconClassName="h-[18px] w-[18px]" />
+          )}
         </div>
       </div>
       {!hideBottomNav && <BottomNav />}
