@@ -4,6 +4,7 @@ import BottomNav from "./BottomNav";
 import DailyPicksNotice from "./DailyPicksNotice";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useOOTDModal } from "@/lib/ootdModal";
+import SocialLinks from "./SocialLinks";
 
 const AppLayout = () => {
   const { transitionClass, transition } = useTransition();
