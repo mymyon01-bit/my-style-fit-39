@@ -255,8 +255,6 @@ const HomePage = () => {
           )}
         </div>
 
-        {/* Today's Inspo strip */}
-        <TodayInspoStrip />
 
         {/* Footer actions */}
         <motion.div
