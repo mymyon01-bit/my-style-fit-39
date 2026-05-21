@@ -261,7 +261,7 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 0.6 }}
-          className="relative z-10 mt-5 md:mt-12 flex flex-wrap items-center justify-center gap-3"
+          className="relative z-10 mt-5 md:mt-12 flex flex-wrap items-center justify-center gap-3 rounded-full border border-foreground/10 bg-background/40 px-4 py-2 backdrop-blur-md"
         >
           <button
             onClick={() => setAffOpen(true)}
