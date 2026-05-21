@@ -20,7 +20,7 @@ import Brandmark from "@/components/Brandmark";
 import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
-import TodayInspoStrip from "@/components/today/TodayInspoStrip";
+
 import StyleMeButton from "@/components/StyleMeButton";
 import ContactUsDialog from "@/components/ContactUsDialog";
 import { useAuth } from "@/lib/auth";
@@ -137,7 +137,7 @@ const HomePage = () => {
         </motion.div>
 
         {/* Main column */}
-        <div className="relative z-10 mx-auto w-full max-w-[640px] px-6">
+        <div className="relative z-10 mx-auto w-full max-w-[640px] px-6 [text-shadow:_0_2px_24px_rgba(0,0,0,0.7),_0_1px_3px_rgba(0,0,0,0.5)]">
           {/* Tiny eyebrow */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -255,8 +255,6 @@ const HomePage = () => {
           )}
         </div>
 
-        {/* Today's Inspo strip */}
-        <TodayInspoStrip />
 
         {/* Footer actions */}
         <motion.div
