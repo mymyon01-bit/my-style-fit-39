@@ -20,7 +20,7 @@ import Brandmark from "@/components/Brandmark";
 import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
-import TodayInspoStrip from "@/components/today/TodayInspoStrip";
+
 import StyleMeButton from "@/components/StyleMeButton";
 import ContactUsDialog from "@/components/ContactUsDialog";
 import { useAuth } from "@/lib/auth";
