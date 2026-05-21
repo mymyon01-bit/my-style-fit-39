@@ -137,7 +137,7 @@ const HomePage = () => {
         </motion.div>
 
         {/* Main column */}
-        <div className="relative z-10 mx-auto w-full max-w-[640px] rounded-3xl border border-foreground/10 bg-background/45 px-6 py-8 backdrop-blur-md shadow-[0_8px_40px_-8px_rgba(0,0,0,0.45)] md:px-10 md:py-12">
+        <div className="relative z-10 mx-4 w-[calc(100%-2rem)] max-w-[640px] rounded-3xl border border-foreground/10 bg-background/45 px-4 py-6 backdrop-blur-md shadow-[0_8px_40px_-8px_rgba(0,0,0,0.45)] md:mx-auto md:w-full md:px-10 md:py-12">
           {/* Tiny eyebrow */}
           <motion.div
             initial={{ opacity: 0 }}
