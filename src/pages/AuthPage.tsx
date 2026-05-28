@@ -97,14 +97,10 @@ const AuthPage = () => {
       if (mode === "login" && raw.includes("invalid login credentials")) {
         try {
           const { data: removed } = await supabase
-            .from("removed_accounts")
-            .select("email, reason")
-            .ilike("email", email.trim())
-            .order("removed_at", { ascending: false })
-            .limit(1)
+            .rpc("check_removed_account", { _email: email.trim() })
             .maybeSingle();
           if (removed) {
-            setRemovedInfo({ email: removed.email, reason: removed.reason });
+            setRemovedInfo({ email: (removed as any).email, reason: (removed as any).reason });
             setLoading(false);
             return;
           }
