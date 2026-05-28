@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useCallback, useEffect, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,6 +32,7 @@ import NotFound from "@/pages/NotFound";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import InstallPage from "@/pages/InstallPage";
 import OAuthBridge from "@/pages/OAuthBridge";
+import { SignUpPrompt } from "@/components/AuthGate";
 
 const lazyWithRetry = <T extends ComponentType<any>>(
   importer: () => Promise<{ default: T }>,
@@ -97,6 +98,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
+};
+
+/** Like ProtectedRoute, but instead of bouncing guests to /auth it shows
+ *  a dismissible sign-up prompt over a soft backdrop. Used for tabs the
+ *  user expects to "open" (MY) — never silently redirect. */
+const GuestPromptRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  if (loading) return <PageLoader />;
+  if (user) return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-background">
+      <SignUpPrompt onClose={() => navigate("/", { replace: true })} onSignUp={() => navigate("/auth")} />
+    </div>
+  );
 };
 
 /**
@@ -263,7 +279,7 @@ const AppRoutes = () => {
             <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
             <Route path="/showroom/:id" element={<ShowroomDetailPage />} />
             <Route path="/user/:userId" element={<UserProfilePage />} />
-            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/profile" element={<GuestPromptRoute><ProfilePage /></GuestPromptRoute>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
