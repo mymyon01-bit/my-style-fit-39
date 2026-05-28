@@ -279,7 +279,7 @@ const AppRoutes = () => {
             <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
             <Route path="/showroom/:id" element={<ShowroomDetailPage />} />
             <Route path="/user/:userId" element={<UserProfilePage />} />
-            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/profile" element={<GuestPromptRoute><ProfilePage /></GuestPromptRoute>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
