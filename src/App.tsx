@@ -99,6 +99,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+/** Like ProtectedRoute, but instead of bouncing guests to /auth it shows
+ *  a dismissible sign-up prompt over a soft backdrop. Used for tabs the
+ *  user expects to "open" (MY) — never silently redirect. */
+const GuestPromptRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const navigate = require("react-router-dom").useNavigate();
+  if (loading) return <PageLoader />;
+  if (user) return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-background">
+      <SignUpPromptLazy onClose={() => navigate("/", { replace: true })} onSignUp={() => navigate("/auth")} />
+    </div>
+  );
+};
+
 /**
  * UrlMasker — keeps the visible browser address bar at "/" regardless of the
  * actual route. React Router still tracks the real path internally so all
