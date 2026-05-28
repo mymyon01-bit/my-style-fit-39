@@ -3585,6 +3585,13 @@ export type Database = {
         Args: { _conv_id: string; _user_id: string }
         Returns: undefined
       }
+      check_removed_account: {
+        Args: { _email: string }
+        Returns: {
+          email: string
+          reason: string
+        }[]
+      }
       claim_referral: { Args: { _code: string }; Returns: Json }
       claim_star_action: { Args: { _action: string }; Returns: Json }
       create_group_conversation: {
