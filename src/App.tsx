@@ -105,12 +105,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
  *  user expects to "open" (MY) — never silently redirect. */
 const GuestPromptRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  const navigate = require("react-router-dom").useNavigate();
+  const navigate = useNavigate();
   if (loading) return <PageLoader />;
   if (user) return <>{children}</>;
   return (
     <div className="min-h-screen bg-background">
-      <SignUpPromptLazy onClose={() => navigate("/", { replace: true })} onSignUp={() => navigate("/auth")} />
+      <SignUpPrompt onClose={() => navigate("/", { replace: true })} onSignUp={() => navigate("/auth")} />
     </div>
   );
 };
