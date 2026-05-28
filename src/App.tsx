@@ -32,6 +32,7 @@ import NotFound from "@/pages/NotFound";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import InstallPage from "@/pages/InstallPage";
 import OAuthBridge from "@/pages/OAuthBridge";
+import { SignUpPrompt } from "@/components/AuthGate";
 
 const lazyWithRetry = <T extends ComponentType<any>>(
   importer: () => Promise<{ default: T }>,
