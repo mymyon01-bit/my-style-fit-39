@@ -93,9 +93,9 @@ const HomePage = () => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background md:h-auto md:min-h-[100dvh] md:overflow-visible">
       {/* Hero — minimal hype */}
-      <section className="relative flex flex-1 flex-col items-center overflow-hidden pt-14 pb-6 md:pt-40 md:pb-24 md:flex-none">
+      <section className="relative flex flex-1 flex-col items-center justify-between overflow-hidden pt-12 pb-20 md:pt-40 md:pb-24 md:flex-none md:justify-start">
         <WeatherAmbience condition={weather.condition} isNight={weather.isNight} />
 
         {/* Single soft pink halo — far left, low opacity */}
@@ -137,13 +137,13 @@ const HomePage = () => {
         </motion.div>
 
         {/* Main column */}
-        <div className="relative z-10 mx-4 w-[calc(100%-2rem)] max-w-[640px] rounded-3xl border border-foreground/10 bg-background/45 px-4 py-6 backdrop-blur-md shadow-[0_8px_40px_-8px_rgba(0,0,0,0.45)] md:mx-auto md:w-full md:px-10 md:py-12">
+        <div className="relative z-10 mx-4 w-[calc(100%-2rem)] max-w-[640px] rounded-3xl border border-foreground/10 bg-background/45 px-4 py-4 backdrop-blur-md shadow-[0_8px_40px_-8px_rgba(0,0,0,0.45)] md:mx-auto md:w-full md:px-10 md:py-12">
           {/* Tiny eyebrow */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-5 md:mb-10 flex items-center justify-center gap-2"
+            className="mb-3 md:mb-10 flex items-center justify-center gap-2"
           >
             <span className="h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
@@ -157,7 +157,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center font-display text-[36px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
+            className="text-center font-display text-[30px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
             style={{ letterSpacing: "-0.045em" }}
           >
             <span className="block">Wear your</span>
@@ -175,7 +175,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.25 }}
-            className="mt-6 md:mt-12"
+            className="mt-4 md:mt-12"
           >
             <div
               className={`flex items-center gap-3 rounded-full border bg-card/60 px-5 py-2.5 backdrop-blur-md transition-all ${
@@ -215,7 +215,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="mt-4 flex justify-center md:hidden"
+            className="mt-3 flex justify-center md:hidden"
           >
             <OOTDDiaryButton compact />
           </motion.div>
@@ -225,7 +225,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-5 flex items-center justify-center gap-2 md:mt-12"
+            className="mt-3 flex items-center justify-center gap-2 md:mt-12"
           >
             <StyleMeButton variant="pill" />
             <button
@@ -244,7 +244,7 @@ const HomePage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7, duration: 0.6 }}
-              className="mt-5 md:mt-12 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-foreground/45"
+              className="mt-3 md:mt-12 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-foreground/45"
             >
               <span className="h-1 w-1 rounded-full bg-primary/70" />
               <span>
@@ -261,7 +261,7 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 0.6 }}
-          className="relative z-10 mt-5 md:mt-12 flex flex-wrap items-center justify-center gap-3 rounded-full border border-foreground/10 bg-background/40 px-4 py-2 backdrop-blur-md"
+          className="relative z-10 mt-3 md:mt-12 flex flex-wrap items-center justify-center gap-3 rounded-full border border-foreground/10 bg-background/40 px-4 py-2 backdrop-blur-md"
         >
           <button
             onClick={() => setAffOpen(true)}
