@@ -274,14 +274,12 @@ const AppRoutes = () => {
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
-            <Route path="/ootd" element={<Navigate to="/feed" replace />} />
-            <Route path="/feed" element={<OOTDPage />} />
+            <Route path="/ootd" element={<OOTDPage />} />
             <Route path="/showroom" element={<ShowroomBrowsePage />} />
             <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
             <Route path="/showroom/:id" element={<ShowroomDetailPage />} />
             <Route path="/user/:userId" element={<UserProfilePage />} />
             <Route path="/profile" element={<GuestPromptRoute><ProfilePage /></GuestPromptRoute>} />
-            <Route path="/my" element={<GuestPromptRoute><ProfilePage /></GuestPromptRoute>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
