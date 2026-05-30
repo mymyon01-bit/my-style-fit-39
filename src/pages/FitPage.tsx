@@ -20,8 +20,9 @@ import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
+import { ArrowLeft, Ruler, Shirt, Sparkles, History as HistoryIcon } from "lucide-react";
 
-type Tab = "scan" | "measurements" | "check" | "results";
+type Tab = "dashboard" | "scan" | "measurements" | "check" | "results" | "history";
 export type FitMode = "free" | "premium";
 
 interface SelectedProduct {
