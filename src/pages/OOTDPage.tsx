@@ -93,7 +93,7 @@ const OOTDPage = () => {
   const mobileOOTD = inModal || isMobile;
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
+    return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "feed";
   });
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [myPosts, setMyPosts] = useState<OOTDPost[]>([]);
@@ -203,7 +203,7 @@ const OOTDPage = () => {
   }, []);
 
   // Mobile swipe between tabs (left/right). Only enabled on mobile/modal.
-  const TAB_ORDER: Tab[] = ["ranking", "feed", "community", "showroom", "mypage"];
+  const TAB_ORDER: Tab[] = ["feed", "community", "ranking", "showroom"];
   const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const onTabSwipeStart = (e: React.TouchEvent) => {
     if (!mobileOOTD) return;
@@ -264,7 +264,7 @@ const OOTDPage = () => {
   useEffect(() => {
     const onPop = () => {
       const t = new URLSearchParams(window.location.search).get("tab");
-      const next: Tab = (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
+      const next: Tab = (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "feed";
       setActiveTabState(next);
     };
     window.addEventListener("popstate", onPop);
@@ -874,11 +874,10 @@ const OOTDPage = () => {
           <div className="flex items-center gap-3">
             <div className="flex flex-1 min-w-0 items-stretch justify-around">
               {([
-                { key: "ranking" as const, label: "FEATURED", Icon: Trophy },
-                { key: "feed" as const, label: "STREAM", Icon: Sparkles },
-                { key: "community" as const, label: "#OOTD", Icon: Film },
+                { key: "feed" as const, label: "FOR YOU", Icon: Sparkles },
+                { key: "community" as const, label: "FOLLOWING", Icon: Users },
+                { key: "ranking" as const, label: "TRENDING", Icon: TrendingUp },
                 { key: "showroom" as const, label: "SHOWROOMS", Icon: LayoutGrid },
-                { key: "mypage" as const, label: "MY", Icon: UserIcon },
               ]).map(({ key, label, Icon }) => (
                 <button
                   key={key}
