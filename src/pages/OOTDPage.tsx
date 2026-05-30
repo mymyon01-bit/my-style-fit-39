@@ -317,6 +317,18 @@ const OOTDPage = () => {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  // Center "+" action sheet routes here with ?action=post-photo|post-video
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (action !== "post-photo" && action !== "post-video") return;
+    setActiveTabState("mypage");
+    if (action === "post-photo") setUploadOpen(true);
+    if (action === "post-video") setVideoUploadOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("action");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   useEffect(() => {
     const pendingFromState = (location.state as { openChat?: { conversationId?: string | null; otherUserId?: string | null } } | null)?.openChat;
     let pending = pendingFromState;
