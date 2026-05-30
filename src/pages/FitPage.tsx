@@ -20,8 +20,9 @@ import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
+import { ArrowLeft, Ruler, Shirt, Sparkles, History as HistoryIcon } from "lucide-react";
 
-type Tab = "scan" | "measurements" | "check" | "results";
+type Tab = "dashboard" | "scan" | "measurements" | "check" | "results" | "history";
 export type FitMode = "free" | "premium";
 
 interface SelectedProduct {
@@ -79,7 +80,7 @@ const FitPage = () => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
   const { productId: routeProductId } = useParams<{ productId?: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>("scan");
+  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [fitMode, setFitMode] = useState<FitMode>("free");
   const [scanQuality, setScanQuality] = useState(0);
   const [measurements, setMeasurements] = useState<
@@ -470,48 +471,90 @@ const FitPage = () => {
     category: selectedProduct.category,
   } : null;
 
+  // ── FIT LAB — dashboard cards ──
+  const dashboardCards = [
+    {
+      id: "measurements" as const,
+      label: "Body DNA",
+      sub: bodyGender ? `${bodyGender.toUpperCase()} · ${measurements.heightCm.value || "—"}cm` : t("fitTabBody"),
+      Icon: Ruler,
+    },
+    {
+      id: "check" as const,
+      label: "Try-On",
+      sub: selectedProduct ? selectedProduct.name : t("fitTabCheck"),
+      Icon: Shirt,
+    },
+    {
+      id: "results" as const,
+      label: "Analyze",
+      sub: fitResult ? `${fitResult.recommendedSize} · ${fitMode.toUpperCase()}` : t("fitTabResults"),
+      Icon: Sparkles,
+    },
+    {
+      id: "history" as const,
+      label: "History",
+      sub: t("fitTabScan"),
+      Icon: HistoryIcon,
+    },
+  ];
+
+  const isDashboard = activeTab === "dashboard";
+
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       <div className="mx-auto max-w-lg px-4 pt-10 sm:px-6 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
           <div className="lg:hidden"><Brandmark variant="inline" /></div>
-          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT</span>
+          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT LAB</span>
         </div>
 
-        <div className="flex">
-          {([
-            { id: "scan", label: t("fitTabScan") },
-            { id: "measurements", label: t("fitTabBody") },
-            { id: "check", label: t("fitTabCheck") },
-            { id: "results", label: t("fitTabResults") },
-          ] as { id: Tab; label: string }[]).map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-5 text-center md:pb-6">
-              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 md:text-[11px] ${
-                activeTab === tab.id ? "text-foreground/85" : "text-foreground/75"
-              }`}>
-                {tab.label}
-              </span>
-              {activeTab === tab.id && (
-                <motion.div layoutId="fit-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/50" />
-              )}
-            </button>
-          ))}
-        </div>
-        <div className="h-px bg-accent/[0.14]" />
+        {!isDashboard && (
+          <button
+            onClick={() => setActiveTab("dashboard")}
+            className="mb-6 inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.2em] text-foreground/60 hover:text-foreground/90"
+          >
+            <ArrowLeft className="h-3 w-3" /> LAB
+          </button>
+        )}
       </div>
 
-      {/* Headless legacy canvas trigger removed.
-          The RESULTS tab now drives final AI generation directly via
-          useFitTryOn → fit-tryon-router (studio mode), which returns a
-          persistent public URL that works for every visitor and device. */}
-
-      <div className={`mx-auto px-4 pt-10 sm:px-6 md:px-10 lg:px-12 lg:pt-12 ${
-        activeTab === "results"
-          ? "max-w-lg md:max-w-2xl lg:max-w-5xl"
-          : "max-w-lg md:max-w-2xl lg:max-w-3xl"
+      <div className={`mx-auto px-4 pt-2 sm:px-6 md:px-10 lg:px-12 ${
+        activeTab === "results" ? "max-w-lg md:max-w-2xl lg:max-w-5xl" : "max-w-lg md:max-w-2xl lg:max-w-3xl"
       }`}>
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
+            {isDashboard && (
+              <div className="space-y-8">
+                <div className="grid grid-cols-2 gap-3">
+                  {dashboardCards.map(({ id, label, sub, Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => setActiveTab(id)}
+                      className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-accent/[0.14] bg-card/40 p-5 text-left transition-all hover:border-accent/40 hover:bg-card/60"
+                    >
+                      <div className="flex h-full flex-col justify-between">
+                        <Icon className="h-5 w-5 text-accent/70" strokeWidth={1.5} />
+                        <div>
+                          <p className="font-display text-[20px] leading-tight text-foreground">{label}</p>
+                          <p className="mt-1.5 text-[10px] uppercase tracking-[0.16em] text-foreground/55 line-clamp-2">{sub}</p>
+                        </div>
+                      </div>
+                      <div className="pointer-events-none absolute inset-x-5 bottom-4 h-px bg-gradient-to-r from-accent/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setActiveTab("scan")}
+                  className="block w-full rounded-xl border border-accent/20 bg-accent/[0.05] px-5 py-4 text-left transition-colors hover:bg-accent/[0.1]"
+                >
+                  <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/75">{t("fitTabScan").toUpperCase()}</p>
+                  <p className="mt-1 text-[11px] text-foreground/65">{scanQuality ? `${scanQuality}% confidence` : t("profileBodyNotScanned")}</p>
+                </button>
+              </div>
+            )}
+
             {activeTab === "scan" && (
               <>
                 <FitBodyScan
@@ -544,9 +587,6 @@ const FitPage = () => {
                 />
                 <NextButton
                   onClick={async () => {
-                    // Commit BODY page settings before moving on. Gender + height +
-                    // weight are persisted so every downstream visual (silhouette,
-                    // try-on, sizing engine) sees the user's chosen body.
                     if (user) {
                       const updates: Promise<unknown>[] = [];
                       if (bodyGender) {
@@ -573,7 +613,6 @@ const FitPage = () => {
                       );
                       try { await Promise.all(updates); } catch { /* non-blocking */ }
                     }
-                    // V3.5 — auto-resume a pending product (gated by body setup)
                     let pending: SelectedProduct | null = null;
                     try {
                       const raw = sessionStorage.getItem("fit:pendingProduct");
@@ -624,12 +663,22 @@ const FitPage = () => {
                   onRescan={() => setActiveTab("scan")}
                   onEditMeasurements={() => setActiveTab("measurements")}
                 />
-                <NextButton onClick={() => setActiveTab("scan")} label={t("fitTryAnother")} />
+                <NextButton onClick={() => setActiveTab("check")} label={t("fitTryAnother")} />
               </>
             ) : activeTab === "results" && (
               <div className="py-24 text-center space-y-4 md:py-28 lg:py-32">
                 <p className="text-[14px] text-foreground/80">{t("fitSelectProduct")}</p>
                 <p className="text-[11px] text-foreground/80">{t("fitGoCheckHint")}</p>
+                <NextButton onClick={() => setActiveTab("check")} label={t("fitGoToCheck")} />
+              </div>
+            )}
+            {activeTab === "history" && (
+              <div className="py-20 text-center space-y-5">
+                <HistoryIcon className="mx-auto h-7 w-7 text-foreground/40" strokeWidth={1.4} />
+                <p className="text-[13px] text-foreground/70">{t("fitTabScan")} · {t("fitTabResults")}</p>
+                <p className="text-[11px] text-foreground/45 max-w-xs mx-auto leading-relaxed">
+                  Your past scans and try-on results will appear here.
+                </p>
                 <NextButton onClick={() => setActiveTab("check")} label={t("fitGoToCheck")} />
               </div>
             )}
