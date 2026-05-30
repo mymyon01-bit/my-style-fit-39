@@ -244,7 +244,7 @@ const HomePage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7, duration: 0.6 }}
-              className="mt-5 md:mt-12 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-foreground/45"
+              className="mt-3 md:mt-12 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-foreground/45"
             >
               <span className="h-1 w-1 rounded-full bg-primary/70" />
               <span>
