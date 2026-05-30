@@ -225,7 +225,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-5 flex items-center justify-center gap-2 md:mt-12"
+            className="mt-3 flex items-center justify-center gap-2 md:mt-12"
           >
             <StyleMeButton variant="pill" />
             <button
