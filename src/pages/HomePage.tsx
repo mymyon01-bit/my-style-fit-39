@@ -215,7 +215,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="mt-4 flex justify-center md:hidden"
+            className="mt-3 flex justify-center md:hidden"
           >
             <OOTDDiaryButton compact />
           </motion.div>
