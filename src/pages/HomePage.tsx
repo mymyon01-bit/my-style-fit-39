@@ -93,9 +93,9 @@ const HomePage = () => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background md:h-auto md:min-h-[100dvh] md:overflow-visible">
       {/* Hero — minimal hype */}
-      <section className="relative flex flex-1 flex-col items-center overflow-hidden pt-14 pb-6 md:pt-40 md:pb-24 md:flex-none">
+      <section className="relative flex flex-1 flex-col items-center justify-between overflow-hidden pt-12 pb-20 md:pt-40 md:pb-24 md:flex-none md:justify-start">
         <WeatherAmbience condition={weather.condition} isNight={weather.isNight} />
 
         {/* Single soft pink halo — far left, low opacity */}
