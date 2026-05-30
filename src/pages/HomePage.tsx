@@ -143,7 +143,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-5 md:mb-10 flex items-center justify-center gap-2"
+            className="mb-3 md:mb-10 flex items-center justify-center gap-2"
           >
             <span className="h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
