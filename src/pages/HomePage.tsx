@@ -157,7 +157,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center font-display text-[36px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
+            className="text-center font-display text-[30px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
             style={{ letterSpacing: "-0.045em" }}
           >
             <span className="block">Wear your</span>
