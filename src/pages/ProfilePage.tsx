@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, ChevronRight, Bookmark, Ruler, Palette, Shirt,
   Star, Camera, LogOut, Loader2, User, Crown, Folder, Shield,
-  Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock, Film
+  Edit3, CheckCircle, XCircle, Upload, Save, Image, Lock, Film,
+  ShoppingBag, Sparkles
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import StylePreferenceEditor from "@/components/StylePreferenceEditor";
@@ -43,6 +44,8 @@ const ProfilePage = () => {
   const { isAdmin } = useAdmin();
   const [userCount, setUserCount] = useState<number | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  type Section = "profile" | "saved" | "tryons" | "purchases" | "showrooms" | "settings";
+  const [section, setSection] = useState<Section>("profile");
 
   useEffect(() => {
     if (!isAdmin) return;
