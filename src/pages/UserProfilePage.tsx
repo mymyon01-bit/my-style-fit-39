@@ -271,16 +271,12 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const displayName = profile?.display_name || "Anonymous";
 
   return (
-    <div className={`relative min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-24 ${visitorBgTheme === "none" ? "bg-background" : ""}`}>
-      {/* Owner-set background — fixed viewport layer behind all content.
-          OOTDBackground returns null when theme === "none", so the
-          bg-background fallback above kicks in. */}
-      <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
-      {/* Soft dark wash so foreground UI stays legible regardless of scene. */}
+    <div className={`relative min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-24 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
       {visitorBgTheme !== "none" && (
-        <div className="pointer-events-none fixed inset-0 z-0 bg-background/30" aria-hidden />
+        <div className="pointer-events-none fixed inset-0 z-0">
+          <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
+        </div>
       )}
-
 
       {/* Top bar — mirrors My Page container with Back instead of Settings */}
       <div className="relative z-10 mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">

@@ -65,22 +65,22 @@ function OOTDCardImpl({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.02, 0.3), duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: Math.min(index * 0.02, 0.3) }}
       className="cursor-pointer group relative"
       onClick={() => onOpen(post)}
     >
-      <div className="relative overflow-hidden rounded-xl aspect-square bg-foreground/[0.04] ring-1 ring-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-300 group-hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.35)]">
+      <div className="relative overflow-hidden rounded-lg aspect-square bg-foreground/[0.04]">
         <img
           src={post.image_url}
           alt={post.caption || ""}
-          className="w-full h-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+          className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
           loading="lazy"
         />
 
         {/* Bottom gradient — readable footer */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-2.5 pt-12">
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent p-2 pt-10">
           <div className="flex items-end justify-between gap-2">
             {/* Bottom-left: profile avatar (community feed only) */}
             {showAuthor && !isMyPage ? (
@@ -89,11 +89,11 @@ function OOTDCardImpl({
                   e.stopPropagation();
                   navigate(`/user/${post.user_id}`);
                 }}
-                className="flex items-center gap-2 min-w-0"
+                className="flex items-center gap-1.5 min-w-0"
                 aria-label={`@${handleName}`}
               >
                 <OfficialAvatarRing isOfficial={profile?.is_official}>
-                  <div className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-white/90 shadow-md bg-foreground/20 backdrop-blur-sm shrink-0">
+                  <div className="h-7 w-7 rounded-full overflow-hidden ring-1 ring-white/80 shadow-md bg-foreground/20 backdrop-blur-sm shrink-0">
                     {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
@@ -101,14 +101,14 @@ function OOTDCardImpl({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[10px] font-semibold text-white">
+                      <div className="w-full h-full flex items-center justify-center text-[9px] font-semibold text-white">
                         {initial}
                       </div>
                     )}
                   </div>
                 </OfficialAvatarRing>
                 <span className="flex items-center gap-1 min-w-0">
-                  <span className="text-[10.5px] font-medium text-white/95 truncate max-w-[110px] tracking-tight">
+                  <span className="text-[9px] font-medium text-white/85 truncate max-w-[100px]">
                     @{handleName}
                   </span>
                   {profile?.is_official && <OfficialBadge compact className="text-white" />}
@@ -117,21 +117,21 @@ function OOTDCardImpl({
             ) : (
               <div className="min-w-0">
                 {title && (
-                  <p className="font-display text-[13px] font-medium text-white/95 truncate tracking-tight">{title}</p>
+                  <p className="text-[9px] font-semibold text-white/85 truncate">{title}</p>
                 )}
               </div>
             )}
 
             {/* Bottom-right: comment + counters */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2 py-0.5 ring-1 ring-white/15">
-                <Heart className={`h-3 w-3 ${likes > 0 ? "fill-rose-400 text-rose-400" : "text-white/85"}`} />
-                <span className="text-[10px] font-semibold text-white tabular-nums">{formatCount(likes)}</span>
+              <span className="flex items-center gap-1 rounded-full bg-black/35 backdrop-blur-md px-1.5 py-0.5 ring-1 ring-white/10">
+                <Heart className={`h-3 w-3 ${likes > 0 ? "fill-rose-400 text-rose-400" : "text-white/80"}`} />
+                <span className="text-[9px] font-semibold text-white tabular-nums">{formatCount(likes)}</span>
               </span>
               {stars > 0 && (
-                <span className="flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2 py-0.5 ring-1 ring-white/15">
+                <span className="flex items-center gap-1 rounded-full bg-black/35 backdrop-blur-md px-1.5 py-0.5 ring-1 ring-white/10">
                   <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="text-[10px] font-semibold text-white tabular-nums">{formatCount(stars)}</span>
+                  <span className="text-[9px] font-semibold text-white tabular-nums">{formatCount(stars)}</span>
                 </span>
               )}
               <button
@@ -139,7 +139,7 @@ function OOTDCardImpl({
                   e.stopPropagation();
                   onOpen(post);
                 }}
-                className="rounded-full bg-white/20 p-1.5 text-white backdrop-blur-sm hover:bg-white/30 transition-colors"
+                className="rounded-full bg-white/15 p-1.5 text-white backdrop-blur-sm hover:bg-white/25 transition-colors"
                 aria-label="Add a comment"
               >
                 <MessageCircle className="h-3 w-3" />
@@ -148,7 +148,6 @@ function OOTDCardImpl({
           </div>
         </div>
       </div>
-
 
       {/* My Page actions */}
       {isMyPage && (onEdit || onDelete) && (

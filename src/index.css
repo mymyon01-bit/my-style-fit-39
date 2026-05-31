@@ -6,132 +6,131 @@
 
 @layer base {
   :root {
-    /* ── LIGHT — editorial bone with deep burgundy + soft gold (MYMYON P2-B) ── */
-    --background: 36 21% 96%;            /* #F7F5F2 bone */
-    --foreground: 0 0% 10%;              /* #1A1A1A primary ink */
+    /* ── LIGHT — editorial bone with deep burgundy accent (MYMYON redesign) ── */
+    --background: 36 22% 96%;            /* #F7F5F2 bone */
+    --foreground: 0 0% 6%;               /* near-black ink */
 
-    --card: 0 0% 100%;                   /* #FFFFFF surface */
-    --card-foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 0 0% 6%;
 
-    --primary: 345 44% 30%;              /* #6E2B3D deep burgundy */
-    --primary-foreground: 36 21% 97%;
+    --primary: 346 45% 30%;              /* deep burgundy #6E2B3D */
+    --primary-foreground: 36 22% 97%;
 
-    --secondary: 28 18% 91%;             /* #EEE8E3 secondary surface */
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 32 18% 92%;
+    --secondary-foreground: 0 0% 6%;
 
-    --muted: 28 18% 93%;
-    --muted-foreground: 28 6% 44%;       /* #77706B warm secondary text */
+    --muted: 32 18% 93%;
+    --muted-foreground: 0 0% 36%;
 
-    --accent: 345 44% 30%;               /* burgundy is the accent */
-    --accent-foreground: 36 21% 97%;
-    --accent-muted: 343 28% 88%;
-    --accent-highlight: 343 35% 45%;     /* #9A4C66 soft burgundy */
+    --accent: 346 45% 35%;
+    --accent-foreground: 36 22% 97%;
+    --accent-muted: 346 30% 90%;
+    --accent-highlight: 346 50% 95%;
 
     --edge-lime: 78 60% 48%;
-    --edge-pink: 338 64% 60%;            /* pink reserved as small accent only */
-    --edge-beige: 33 30% 60%;            /* #B79C7A soft gold */
+    --edge-pink: 346 45% 45%;
+    --edge-beige: 28 35% 72%;            /* #BCAB9D */
     --edge-cyan: 188 40% 50%;
     --edge-violet: 282 30% 55%;
 
     --destructive: 4 70% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 10% 88%;                /* ~rgba(0,0,0,0.08) tinted warm */
-    --input: 28 18% 93%;
-    --ring: 345 44% 30%;
+    --border: 32 14% 86%;
+    --input: 32 18% 93%;
+    --ring: 346 45% 30%;
 
-    --radius: 0.625rem;                  /* slightly softer premium radius */
+    --radius: 0.5rem;                    /* softer editorial radius */
 
-    --neutral: 28 6% 44%;
+    --neutral: 0 0% 36%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 28 18% 91%;
-    --star: 38 65% 55%;
+    --surface-sunken: 32 18% 92%;
+    --star: 346 45% 35%;
 
-    --gold: 33 30% 60%;                  /* soft gold */
-    --gold-light: 33 35% 72%;
-    --gold-dark: 30 28% 42%;
+    --gold: 346 45% 35%;
+    --gold-light: 346 45% 60%;
+    --gold-dark: 346 50% 22%;
 
-    --font-display: 'Fraunces', 'Bricolage Grotesque', 'Times New Roman', serif;
+    --font-display: 'Bricolage Grotesque', 'Archivo Black', 'Helvetica Neue', sans-serif;
     --font-body: 'Inter', 'DM Sans', 'Helvetica Neue', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    --shadow-1: 0 1px 2px hsl(0 0% 10% / 0.05);
-    --shadow-2: 0 8px 24px -10px hsl(0 0% 10% / 0.09);
-    --shadow-3: 0 22px 50px -22px hsl(345 44% 30% / 0.18);
+    --shadow-1: 0 1px 2px hsl(0 0% 6% / 0.06);
+    --shadow-2: 0 8px 24px -8px hsl(0 0% 6% / 0.10);
+    --shadow-3: 0 20px 50px -20px hsl(346 45% 30% / 0.18);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(36 21% 97%) 0%, hsl(28 18% 93%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(345 44% 30%) 0%, hsl(343 35% 45%) 100%);
-    --gradient-acid: linear-gradient(120deg, hsl(345 44% 30%), hsl(0 0% 10%));
-    --gradient-fire: linear-gradient(120deg, hsl(345 44% 30%), hsl(33 30% 60%));
-    --glow-accent: 0 0 0 1px hsl(345 44% 30% / 0.18);
-    --glow-magenta: 0 0 0 1px hsl(343 35% 45% / 0.18);
+    --gradient-surface: linear-gradient(180deg, hsl(36 22% 97%) 0%, hsl(32 18% 93%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(346 45% 30%) 0%, hsl(346 45% 38%) 100%);
+    --gradient-acid: linear-gradient(120deg, hsl(346 45% 30%), hsl(0 0% 6%));
+    --gradient-fire: linear-gradient(120deg, hsl(346 45% 30%), hsl(28 35% 72%));
+    --glow-accent: 0 0 0 1px hsl(346 45% 30% / 0.3), 0 0 24px hsl(346 45% 30% / 0.25);
+    --glow-magenta: 0 0 0 1px hsl(346 45% 35% / 0.35), 0 0 28px hsl(346 45% 35% / 0.3);
   }
 
   .dark {
-    /* ── DARK (default) — deep charcoal with burgundy + soft pink accent (MYMYON P2-B) ── */
-    --background: 0 0% 7%;               /* #111111 */
-    --foreground: 36 21% 96%;            /* #F7F5F2 */
+    /* ── DARK (default) — Deep charcoal with warm rose pink (MYMYON redesign) ── */
+    --background: 0 0% 6%;               /* #0F0F10 */
+    --foreground: 36 22% 96%;            /* bone */
 
-    --card: 0 0% 10%;                    /* #1A1A1A surface */
-    --card-foreground: 36 21% 96%;
+    --card: 0 0% 9%;
+    --card-foreground: 36 22% 96%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 36 21% 96%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 36 22% 96%;
 
-    --primary: 343 39% 39%;              /* #8A3B55 dark-mode burgundy */
-    --primary-foreground: 36 21% 96%;
+    --primary: 346 55% 58%;              /* warm rose pink */
+    --primary-foreground: 0 0% 8%;
 
-    --secondary: 0 0% 14%;               /* #242424 */
-    --secondary-foreground: 36 21% 96%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 36 22% 96%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 72%;        /* #B8B8B8 */
+    --muted: 0 0% 13%;
+    --muted-foreground: 36 10% 68%;
 
-    --accent: 343 39% 39%;
-    --accent-foreground: 36 21% 96%;
-    --accent-muted: 343 30% 22%;
-    --accent-highlight: 338 64% 60%;     /* #D9578A pink — small-accent only */
+    --accent: 346 60% 62%;
+    --accent-foreground: 0 0% 8%;
+    --accent-muted: 346 35% 22%;
+    --accent-highlight: 346 65% 72%;
 
     --edge-lime: 78 60% 60%;
-    --edge-pink: 338 64% 60%;            /* small pink accents */
-    --edge-beige: 33 28% 62%;
+    --edge-pink: 346 60% 62%;
+    --edge-beige: 28 30% 70%;
     --edge-cyan: 188 45% 58%;
     --edge-violet: 282 40% 64%;
 
     --destructive: 4 75% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100% / 0.08;          /* unused as hsl; see fallback below */
-    --border: 0 0% 18%;                  /* fallback solid */
-    --input: 0 0% 14%;
-    --ring: 343 39% 39%;
+    --border: 0 0% 18%;
+    --input: 0 0% 12%;
+    --ring: 346 55% 58%;
 
-    --neutral: 0 0% 72%;
-    --surface-elevated: 0 0% 12%;
-    --surface-sunken: 0 0% 5%;
-    --star: 38 65% 60%;
+    --neutral: 36 10% 68%;
+    --surface-elevated: 0 0% 11%;
+    --surface-sunken: 0 0% 4%;
+    --star: 346 60% 62%;
 
-    --gold: 33 28% 62%;
-    --gold-light: 33 35% 75%;
-    --gold-dark: 30 28% 40%;
+    --gold: 346 60% 62%;
+    --gold-light: 346 65% 75%;
+    --gold-dark: 346 55% 40%;
 
     --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.6);
-    --shadow-2: 0 10px 30px -12px hsl(0 0% 0% / 0.7);
-    --shadow-3: 0 24px 60px -22px hsl(343 39% 39% / 0.35);
+    --shadow-2: 0 10px 30px -10px hsl(0 0% 0% / 0.7);
+    --shadow-3: 0 24px 60px -20px hsl(346 55% 58% / 0.35);
     --shadow-soft: var(--shadow-2);
     --shadow-elevated: var(--shadow-3);
 
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 7%) 0%, hsl(0 0% 10%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(343 39% 39%) 0%, hsl(338 64% 60%) 100%);
-    --gradient-acid: linear-gradient(120deg, hsl(343 39% 39%), hsl(36 21% 96%));
-    --gradient-fire: linear-gradient(120deg, hsl(343 39% 39%), hsl(33 28% 62%));
-    --glow-accent: 0 0 0 1px hsl(343 39% 39% / 0.25);
-    --glow-magenta: 0 0 0 1px hsl(338 64% 60% / 0.22);
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 6%) 0%, hsl(0 0% 9%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(346 55% 58%) 0%, hsl(346 60% 50%) 100%);
+    --gradient-acid: linear-gradient(120deg, hsl(346 55% 58%), hsl(36 22% 96%));
+    --gradient-fire: linear-gradient(120deg, hsl(346 55% 58%), hsl(28 30% 70%));
+    --glow-accent: 0 0 0 1px hsl(346 55% 58% / 0.4), 0 0 28px hsl(346 55% 58% / 0.4);
+    --glow-magenta: 0 0 0 1px hsl(346 60% 62% / 0.45), 0 0 36px hsl(346 60% 62% / 0.45);
   }
 }
 
@@ -195,19 +194,17 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.025em;
-    line-height: 1.04;
+    letter-spacing: -0.045em;
+    line-height: 0.88;
     color: hsl(var(--foreground));
-    font-weight: 500;
-    text-transform: none;
-    font-feature-settings: "ss01", "ss02", "liga", "calt";
+    font-weight: 800;
+    text-transform: uppercase;
+    font-feature-settings: "ss01", "cv11", "liga";
   }
-  h1 { font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; }
-  h2 { font-weight: 600; letter-spacing: -0.03em; }
-  h3 { font-weight: 500; letter-spacing: -0.02em; }
-  h4 { font-weight: 500; letter-spacing: -0.015em; }
-  p  { color: hsl(var(--muted-foreground)); font-weight: 400; line-height: 1.55; }
-
+  h1 { font-weight: 900; letter-spacing: -0.06em; font-style: normal; }
+  h2 { font-weight: 800; letter-spacing: -0.05em; }
+  h3, h4 { font-weight: 700; letter-spacing: -0.03em; }
+  p { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
   /* Selection — hot pink slab */
   ::selection { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
@@ -659,17 +656,11 @@
     .glitch-hover:hover { text-shadow: none; animation: none; }
   }
 
-  /* ── Premium hairline — replaces the old animated neon strip.
-        Used above MobileBottomNav / DesktopNav. Calm, editorial,
-        no motion, no glow. ── */
+  /* ── Color cycle — animated background gradient ── */
   .bg-gradient-animated {
-    background: hsl(var(--border));
-    background-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      hsl(var(--foreground) / 0.10) 50%,
-      transparent 100%
-    );
+    background: var(--gradient-accent);
+    background-size: 300% 300%;
+    animation: gradient-shift 12s ease infinite;
   }
 
   /* ── HYPE button — neon pink slab on black, glow + slam ── */

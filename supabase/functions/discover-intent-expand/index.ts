@@ -93,8 +93,8 @@ serve(async (req) => {
   const t0 = Date.now();
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const gatewayFetch = fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -108,13 +108,6 @@ serve(async (req) => {
       }),
       signal: ctrl.signal,
     });
-    // Hard race in case the upstream fetch hangs without honoring AbortSignal.
-    const resp = await Promise.race([
-      gatewayFetch,
-      new Promise<Response>((_, reject) =>
-        setTimeout(() => reject(new Error("hard_timeout_abort")), 10000),
-      ),
-    ]);
     clearTimeout(timer);
 
     // Soft-fail on rate limit / credits / gateway errors — client falls back to deterministic baseline.

@@ -9,7 +9,8 @@ import { ThemeProvider } from "@/lib/theme";
 import { TransitionProvider } from "@/lib/transition";
 import { FontSizeProvider } from "@/lib/fontSize";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import AppShell from "@/components/layout/AppShell";
+import AppLayout from "@/components/AppLayout";
+import DesktopNav from "@/components/DesktopNav";
 // OOTDModalHost removed — OOTD now lives at the standalone /ootd (FEED) route.
 
 import { OOTDModalProvider } from "@/lib/ootdModal";
@@ -25,7 +26,6 @@ import HomePage from "@/pages/HomePage";
 import DiscoverPage from "@/pages/DiscoverPage";
 import FitPage from "@/pages/FitPage";
 import OOTDPage from "@/pages/OOTDPage";
-import FeedPage from "@/pages/FeedPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AboutPage from "@/pages/AboutPage";
 import NotFound from "@/pages/NotFound";
@@ -232,7 +232,7 @@ const AppRoutes = () => {
       {!isAdmin && <WelcomeTour />}
       {!isAdmin && <PermissionsPrompt />}
       {!isAdmin && <AppUpdatePrompt />}
-      {/* Global navigation lives inside AppShell (DesktopSidebar + MobileBottomNav). */}
+      {!isAdmin && <DesktopNav />}
       {/* OOTDModalHost removed — FEED is a normal route now. */}
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -269,14 +269,13 @@ const AppRoutes = () => {
           <Route path="/~oauth-bridge" element={<OAuthBridge />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
-          <Route element={<AppShell />}>
+          <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
             <Route path="/ootd" element={<OOTDPage />} />
             <Route path="/feed" element={<OOTDPage />} />
-            <Route path="/feed-new" element={<FeedPage />} />
             <Route path="/showroom" element={<ShowroomBrowsePage />} />
             <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
             <Route path="/showroom/:id" element={<ShowroomDetailPage />} />

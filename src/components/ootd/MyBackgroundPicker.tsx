@@ -8,8 +8,6 @@ import {
   loadOOTDBgRealistic,
   saveOOTDBgRealistic,
 } from "./OOTDBackground";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
 
 interface Props {
   value: OOTDBgTheme;
@@ -18,15 +16,14 @@ interface Props {
 
 /**
  * Compact button that opens a modal sheet for picking the OOTD background
- * theme. Selection is persisted to BOTH localStorage (instant paint on
- * reopen) AND `profiles.ootd_bg_theme` in the DB so visitors see the same
- * background on the user's public profile page.
+ * theme. Selection is persisted to localStorage via `saveOOTDBgTheme`.
  *
  * The modal is rendered into a portal on `document.body` so it escapes any
- * ancestor that creates a containing block for fixed children.
+ * ancestor that creates a containing block for fixed children (e.g. the
+ * `backdrop-blur-xl` wrapper around the My Page header). Without the portal
+ * the sheet would be clipped or hidden behind the blurred panel.
  */
 export default function MyBackgroundPicker({ value, onChange }: Props) {
-  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [realistic, setRealistic] = useState<boolean>(() => loadOOTDBgRealistic());
 
@@ -40,24 +37,16 @@ export default function MyBackgroundPicker({ value, onChange }: Props) {
 
   const current = OOTD_BG_THEMES.find((t) => t.id === value) ?? OOTD_BG_THEMES[0];
 
-  const persistToProfile = (patch: { ootd_bg_theme?: OOTDBgTheme; ootd_bg_realistic?: boolean }) => {
-    if (!user) return;
-    void supabase.from("profiles").update(patch as any).eq("user_id", user.id);
-  };
-
   const handleSelect = (theme: OOTDBgTheme) => {
     saveOOTDBgTheme(theme);
     onChange(theme);
-    persistToProfile({ ootd_bg_theme: theme });
   };
 
   const toggleRealistic = () => {
     const next = !realistic;
     setRealistic(next);
     saveOOTDBgRealistic(next);
-    persistToProfile({ ootd_bg_realistic: next });
   };
-
 
   const modal = open ? (
     <div
@@ -85,9 +74,8 @@ export default function MyBackgroundPicker({ value, onChange }: Props) {
           </button>
         </div>
         <p className="text-[11px] text-foreground/55 leading-relaxed">
-          Pick a scene that plays behind your profile and OOTD — visible to everyone who visits you.
+          Pick a scene that plays behind the OOTD tab — only you see this.
         </p>
-
 
         {/* Realistic mode toggle — switches between AI cinematic video and SVG art */}
         <button

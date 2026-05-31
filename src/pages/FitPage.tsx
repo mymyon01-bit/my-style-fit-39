@@ -20,9 +20,8 @@ import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
-import FitLabDashboard from "@/components/fit/FitLabDashboard";
 
-type Tab = "lab" | "scan" | "measurements" | "check" | "results";
+type Tab = "scan" | "measurements" | "check" | "results";
 export type FitMode = "free" | "premium";
 
 interface SelectedProduct {
@@ -80,7 +79,7 @@ const FitPage = () => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
   const { productId: routeProductId } = useParams<{ productId?: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>("lab");
+  const [activeTab, setActiveTab] = useState<Tab>("scan");
   const [fitMode, setFitMode] = useState<FitMode>("free");
   const [scanQuality, setScanQuality] = useState(0);
   const [measurements, setMeasurements] = useState<
@@ -476,25 +475,24 @@ const FitPage = () => {
       <div className="mx-auto max-w-lg px-4 pt-10 sm:px-6 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
           <div className="lg:hidden"><Brandmark variant="inline" /></div>
-          <span className="font-body text-[10.5px] font-medium tracking-[0.22em] text-muted-foreground md:text-[11px]">FIT LAB</span>
+          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT</span>
         </div>
 
         <div className="flex">
           {([
-            { id: "lab", label: "LAB" },
             { id: "scan", label: t("fitTabScan") },
             { id: "measurements", label: t("fitTabBody") },
             { id: "check", label: t("fitTabCheck") },
             { id: "results", label: t("fitTabResults") },
           ] as { id: Tab; label: string }[]).map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-5 text-center md:pb-6">
-              <span className={`font-body text-[10.5px] font-medium tracking-[0.18em] transition-colors duration-300 md:text-[11px] ${
-                activeTab === tab.id ? "text-foreground" : "text-muted-foreground"
+              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 md:text-[11px] ${
+                activeTab === tab.id ? "text-foreground/85" : "text-foreground/75"
               }`}>
                 {tab.label}
               </span>
               {activeTab === tab.id && (
-                <motion.div layoutId="fit-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent" />
+                <motion.div layoutId="fit-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/50" />
               )}
             </button>
           ))}
@@ -514,17 +512,6 @@ const FitPage = () => {
       }`}>
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
-            {activeTab === "lab" && (
-              <FitLabDashboard
-                scanQuality={scanQuality}
-                hasBodyProfile={!!user && scanQuality > 0}
-                recentTryOnCount={0}
-                onNewScan={() => setActiveTab("scan")}
-                onTryOn={() => setActiveTab("check")}
-                onAnalyze={() => setActiveTab("check")}
-                onHistory={() => setActiveTab("results")}
-              />
-            )}
             {activeTab === "scan" && (
               <>
                 <FitBodyScan

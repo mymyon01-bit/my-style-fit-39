@@ -20,7 +20,7 @@ const DesktopNav = () => {
   // 4-tab main navigation: PRODUCTS · FIT · FEED · MY
   const links = [
     { path: "/discover", label: "PRODUCTS" },
-    { path: "/fit", label: "FIT" },
+    { path: "/fit", label: t("fit").toUpperCase() },
     { path: "/ootd", label: "FEED" },
     { path: "/profile", label: "MY" },
   ];
@@ -32,19 +32,19 @@ const DesktopNav = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 hidden md:block">
       <div className="h-[2px] bg-gradient-animated" />
 
-      <div className="relative z-10 bg-background/70 backdrop-blur-xl border-b border-foreground/[0.06]">
-        <div className="relative mx-auto flex h-[68px] max-w-7xl items-center justify-center px-10">
+      <div className="relative z-10 bg-background/40 backdrop-blur-md border-b border-foreground/5">
+        <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-center px-10">
           {/* LEFT — Wordmark */}
           <button
             onClick={() => navigate("/")}
             aria-label="my'myon — home"
             className="group absolute left-10 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-80"
           >
-            <Brandmark variant="compact" size={40} />
+            <Brandmark variant="compact" size={42} />
           </button>
 
           {/* CENTER — 4 flat nav links */}
-          <div className="flex items-center gap-10">
+          <div className="flex items-center gap-9">
             {links.map((link) => {
               const active = isActive(link.path);
               return (
@@ -52,21 +52,20 @@ const DesktopNav = () => {
                   key={link.path}
                   onClick={() => navigate(link.path)}
                   onMouseEnter={() => prefetchRoute(link.path)}
-                  className={`group relative font-body text-[11.5px] font-medium tracking-[0.22em] transition-colors ${
-                    active ? "text-foreground" : "text-foreground/55 hover:text-foreground"
+                  className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
+                    active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
                   }`}
                 >
                   {link.label}
                   <span
-                    className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-[2px] rounded-full bg-accent transition-all duration-300 ease-out ${
-                      active ? "w-5" : "w-0 group-hover:w-5"
+                    className={`absolute -bottom-1 left-0 h-[2px] bg-accent transition-all duration-300 ${
+                      active ? "w-full" : "w-0 group-hover:w-full"
                     }`}
                   />
                 </button>
               );
             })}
           </div>
-
 
           {/* RIGHT — utilities */}
           <div className="absolute right-10 top-1/2 flex -translate-y-1/2 items-center gap-4">
@@ -82,7 +81,14 @@ const DesktopNav = () => {
 
             <div className="h-2.5 w-px bg-foreground/15" />
 
-            {!user && (
+            {user ? (
+              <button
+                onClick={() => navigate("/settings")}
+                className="font-sans text-[10px] font-medium tracking-[0.05em] capitalize text-foreground/60 transition-colors hover:text-foreground"
+              >
+                Settings
+              </button>
+            ) : (
               <>
                 <button
                   onClick={() => navigate("/auth")}
