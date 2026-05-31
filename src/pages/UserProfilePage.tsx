@@ -180,7 +180,7 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     const [{ data }, { data: allForStats, count }] = await Promise.all([
       supabase
         .from("ootd_posts")
-        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, dislike_count, created_at")
+        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, dislike_count, created_at, audience")
         .eq("user_id", userId!)
         .order("created_at", { ascending: false })
         .limit(30),
