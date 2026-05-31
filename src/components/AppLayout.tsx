@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useTransition } from "@/lib/transition";
 import BottomNav from "./BottomNav";
+import UploadFAB from "./UploadFAB";
 import DailyPicksNotice from "./DailyPicksNotice";
 import { useIsMobile } from "@/hooks/use-mobile";
 import SocialLinks from "./SocialLinks";
@@ -26,6 +27,7 @@ const AppLayout = () => {
           )}
         </div>
       </div>
+      <UploadFAB />
       <BottomNav />
     </>
   );
