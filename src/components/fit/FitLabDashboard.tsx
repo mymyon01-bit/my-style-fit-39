@@ -1,7 +1,7 @@
 import { Sparkles, Scan, Layers, History, ArrowRight, ShieldCheck } from "lucide-react";
 
 interface FitLabDashboardProps {
-  scanQuality: number;            // 0..1
+  scanQuality: number;            // already 0..100
   hasBodyProfile: boolean;
   recentTryOnCount: number;
   onNewScan: () => void;
@@ -25,7 +25,11 @@ const FitLabDashboard = ({
   onAnalyze,
   onHistory,
 }: FitLabDashboardProps) => {
-  const accuracyPct = Math.round((scanQuality || 0) * 100);
+  // scanQuality arrives in 0..100. Normalize defensively in case a 0..1 value
+  // sneaks in, and cap realistic accuracy at 98% — we never claim "100%".
+  const raw = scanQuality || 0;
+  const normalized = raw <= 1 ? raw * 100 : raw;
+  const accuracyPct = Math.min(98, Math.max(0, Math.round(normalized)));
   const ready = hasBodyProfile && accuracyPct >= 60;
 
   return (
