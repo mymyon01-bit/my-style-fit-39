@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
 import FitLabDashboard from "@/components/fit/FitLabDashboard";
 
-type Tab = "scan" | "measurements" | "check" | "results";
+type Tab = "lab" | "scan" | "measurements" | "check" | "results";
 export type FitMode = "free" | "premium";
 
 interface SelectedProduct {
