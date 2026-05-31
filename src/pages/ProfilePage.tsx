@@ -305,47 +305,65 @@ const ProfilePage = () => {
           </button>
         )}
 
-        {/* Identity + Photo Upload */}
-        <div className="flex items-center gap-6">
-          <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.03] overflow-hidden">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-              ) : (
-                <User className="h-6 w-6 text-foreground/75" />
-              )}
-            </div>
-            <button
-              onClick={() => photoInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent/70 hover:bg-accent/30 transition-colors"
-            >
-              {uploadingPhoto ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
-            </button>
-            <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <p className="font-display text-lg text-foreground/80">{displayName}</p>
-              {profile?.username && (
-                <span className="text-[11px] text-foreground/50">@{profile.username}</span>
-              )}
-              <button onClick={() => setIsEditing(!isEditing)} className="text-foreground/70 hover:text-foreground/70">
-                <Edit3 className="h-3.5 w-3.5" />
+        {/* Identity — premium fashion-hub header */}
+        <div className="space-y-5">
+          <div className="flex items-start gap-5">
+            <div className="relative shrink-0">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-foreground/[0.04] overflow-hidden ring-1 ring-border/20">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                ) : (
+                  <User className="h-7 w-7 text-foreground/60" />
+                )}
+              </div>
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
+                aria-label="Change photo"
+              >
+                {uploadingPhoto ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
+              <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             </div>
-            <p className="text-[11px] text-foreground/70 mt-0.5">{user?.email}</p>
-            {profile?.bio && <p className="text-[11px] text-foreground/75 mt-1 italic">{profile.bio}</p>}
-            <div className="flex items-center gap-1.5 mt-1">
-              {emailVerified ? (
-                <span className="flex items-center gap-1 text-[11px] text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
-              ) : (
-                <span className="flex items-center gap-1 text-[11px] text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
+            <div className="flex-1 min-w-0 pt-1">
+              <p className="font-display text-2xl leading-tight text-foreground truncate">{displayName}</p>
+              {profile?.username && (
+                <p className="mt-0.5 text-[12px] text-foreground/55 truncate">@{profile.username}</p>
               )}
-              {profile?.location && <span className="text-[11px] text-foreground/70 ml-2">📍 {profile.location}</span>}
+              {profile?.bio && <p className="mt-2 text-[12px] leading-snug text-foreground/75 line-clamp-2">{profile.bio}</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-foreground/55">
+                {emailVerified ? (
+                  <span className="flex items-center gap-1 text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
+                ) : (
+                  <span className="flex items-center gap-1 text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
+                )}
+                {profile?.location && <span>📍 {profile.location}</span>}
+              </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="flex-1 rounded-full bg-secondary px-4 py-2.5 text-[11.5px] font-medium tracking-wide text-foreground/85 hover:bg-secondary/80 transition-colors"
+            >
+              {isEditing ? t("profileCancel") : t("profileEditProfile")}
+            </button>
+            <button
+              onClick={() => navigate("/subscription")}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[11.5px] font-medium tracking-wide transition-colors ${
+                subscription.isPremium
+                  ? "bg-primary text-primary-foreground hover:opacity-90"
+                  : "border border-border/40 text-foreground/75 hover:bg-secondary/60"
+              }`}
+            >
+              <Crown className="h-3.5 w-3.5" />
+              {subscription.isPremium ? t("premiumFeature") : "Premium"}
+            </button>
           </div>
         </div>
+
 
         {/* Edit Profile Form */}
         {isEditing && (
