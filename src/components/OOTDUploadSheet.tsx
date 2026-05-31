@@ -68,7 +68,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   }, [open, user, emailVerified]);
 
   useEffect(() => {
-    if (open) { loadTopics(); setStep(1); setAllowShares(true); }
+    if (open) { loadTopics(); setStep(1); setAllowShares(true); setAudience("all"); }
   }, [open]);
 
   const loadTopics = async () => {
