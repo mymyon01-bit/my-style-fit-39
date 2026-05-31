@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2, Film } from "lucide-react";
+import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2, Film, Globe, Users, Waves } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
