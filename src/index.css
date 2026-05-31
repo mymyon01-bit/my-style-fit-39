@@ -68,8 +68,8 @@
     --gradient-accent: linear-gradient(135deg, hsl(345 44% 30%) 0%, hsl(343 35% 45%) 100%);
     --gradient-acid: linear-gradient(120deg, hsl(345 44% 30%), hsl(0 0% 10%));
     --gradient-fire: linear-gradient(120deg, hsl(345 44% 30%), hsl(33 30% 60%));
-    --glow-accent: 0 0 0 1px hsl(345 44% 30% / 0.25), 0 0 22px hsl(345 44% 30% / 0.18);
-    --glow-magenta: 0 0 0 1px hsl(343 35% 45% / 0.3), 0 0 26px hsl(343 35% 45% / 0.22);
+    --glow-accent: 0 0 0 1px hsl(345 44% 30% / 0.18);
+    --glow-magenta: 0 0 0 1px hsl(343 35% 45% / 0.18);
   }
 
   .dark {
@@ -130,8 +130,8 @@
     --gradient-accent: linear-gradient(135deg, hsl(343 39% 39%) 0%, hsl(338 64% 60%) 100%);
     --gradient-acid: linear-gradient(120deg, hsl(343 39% 39%), hsl(36 21% 96%));
     --gradient-fire: linear-gradient(120deg, hsl(343 39% 39%), hsl(33 28% 62%));
-    --glow-accent: 0 0 0 1px hsl(343 39% 39% / 0.35), 0 0 26px hsl(343 39% 39% / 0.32);
-    --glow-magenta: 0 0 0 1px hsl(338 64% 60% / 0.4), 0 0 32px hsl(338 64% 60% / 0.35);
+    --glow-accent: 0 0 0 1px hsl(343 39% 39% / 0.25);
+    --glow-magenta: 0 0 0 1px hsl(338 64% 60% / 0.22);
   }
 }
 
@@ -659,11 +659,17 @@
     .glitch-hover:hover { text-shadow: none; animation: none; }
   }
 
-  /* ── Color cycle — animated background gradient ── */
+  /* ── Premium hairline — replaces the old animated neon strip.
+        Used above MobileBottomNav / DesktopNav. Calm, editorial,
+        no motion, no glow. ── */
   .bg-gradient-animated {
-    background: var(--gradient-accent);
-    background-size: 300% 300%;
-    animation: gradient-shift 12s ease infinite;
+    background: hsl(var(--border));
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--foreground) / 0.10) 50%,
+      transparent 100%
+    );
   }
 
   /* ── HYPE button — neon pink slab on black, glow + slam ── */
