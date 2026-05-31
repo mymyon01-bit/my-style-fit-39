@@ -2,8 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff, Lock, MessageCircle, Music, Globe, Users, Waves } from "lucide-react";
+import {
+  Loader2, ArrowLeft, Crown, UserPlus, UserCheck, ShieldOff,
+  Lock, MessageCircle, Camera, Star, Users, Waves, Globe,
+} from "lucide-react";
 import { motion } from "framer-motion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AuthGate } from "@/components/AuthGate";
 import { openConversationWith } from "@/hooks/useMessages";
 import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
@@ -23,8 +27,10 @@ import { useI18n } from "@/lib/i18n";
 interface UserProfileData {
   user_id: string;
   display_name: string | null;
+  username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  location: string | null;
   hashtags: string[] | null;
   is_private: boolean | null;
   is_official: boolean | null;
@@ -48,14 +54,9 @@ interface OOTDPost {
   audience?: "all" | "circle" | "ripple" | null;
 }
 
-interface DailyWin {
-  award_date: string;
-  title: string;
-}
+interface DailyWin { award_date: string; title: string; }
 
-interface UserProfilePageProps {
-  userIdOverride?: string;
-}
+interface UserProfilePageProps { userIdOverride?: string; }
 
 const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const { userId: routeUserId } = useParams<{ userId: string }>();
@@ -63,7 +64,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
-  const [starsLabelOpen, setStarsLabelOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const [starsLeft, setStarsLeft] = useState(3);
-  // Inline messages sheet — opens directly into the chat with this user.
   const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null }>({
     open: false,
     conversationId: null,
@@ -94,7 +93,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     loadBlockStatus();
   }, [userId]);
 
-  // Viewer's own reactions/stars/saves so the detail sheet shows correct state
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -116,16 +114,16 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const handleReaction = async (postId: string, type: "like" | "dislike") => {
     if (!user) return;
     const current = reactions[postId];
-    const updateLocal = (deltaLike: number, deltaDislike: number) => {
+    const updateLocal = (dl: number, dd: number) => {
       setPosts(prev => prev.map(p => p.id === postId ? {
         ...p,
-        like_count: Math.max(0, (p.like_count || 0) + deltaLike),
-        dislike_count: Math.max(0, (p.dislike_count || 0) + deltaDislike),
+        like_count: Math.max(0, (p.like_count || 0) + dl),
+        dislike_count: Math.max(0, (p.dislike_count || 0) + dd),
       } : p));
       setSelectedPost(prev => prev && prev.id === postId ? {
         ...prev,
-        like_count: Math.max(0, (prev.like_count || 0) + deltaLike),
-        dislike_count: Math.max(0, (prev.dislike_count || 0) + deltaDislike),
+        like_count: Math.max(0, (prev.like_count || 0) + dl),
+        dislike_count: Math.max(0, (prev.dislike_count || 0) + dd),
       } : prev);
     };
     if (current === type) {
@@ -165,11 +163,10 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     }
   };
 
-
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, bio, hashtags, is_private, is_official, ootd_bg_theme, ootd_bg_realistic, ootd_card_color, song_of_the_day")
+      .select("user_id, display_name, username, avatar_url, bio, location, hashtags, is_private, is_official, ootd_bg_theme, ootd_bg_realistic, ootd_card_color, song_of_the_day")
       .eq("user_id", userId!)
       .maybeSingle();
     setProfile(data as unknown as UserProfileData | null);
@@ -200,10 +197,8 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const loadViewerCircleStatus = async () => {
     if (user && user.id !== userId) {
       const { data } = await supabase
-        .from("circles")
-        .select("id")
-        .eq("follower_id", user.id)
-        .eq("following_id", userId!)
+        .from("circles").select("id")
+        .eq("follower_id", user.id).eq("following_id", userId!)
         .maybeSingle();
       setInCircle(!!data);
     }
@@ -211,22 +206,16 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
 
   const loadDailyWins = async () => {
     const { data } = await supabase
-      .from("daily_winners")
-      .select("award_date, title")
-      .eq("user_id", userId!)
-      .order("award_date", { ascending: false })
-      .limit(5);
+      .from("daily_winners").select("award_date, title")
+      .eq("user_id", userId!).order("award_date", { ascending: false }).limit(5);
     setDailyWins((data as DailyWin[]) || []);
   };
 
   const loadBlockStatus = async () => {
     if (!user || user.id === userId) return;
     const { data } = await supabase
-      .from("blocked_users")
-      .select("id")
-      .eq("blocker_id", user.id)
-      .eq("blocked_id", userId!)
-      .maybeSingle();
+      .from("blocked_users").select("id")
+      .eq("blocker_id", user.id).eq("blocked_id", userId!).maybeSingle();
     setIsBlocked(!!data);
   };
 
@@ -253,7 +242,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
     } else {
       await supabase.from("blocked_users").insert({ blocker_id: user.id, blocked_id: userId! });
       setIsBlocked(true);
-      // Also remove from circle
       if (inCircle) {
         await supabase.from("circles").delete().eq("follower_id", user.id).eq("following_id", userId!);
         setInCircle(false);
@@ -270,7 +258,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const styleTags = [...new Set(posts.flatMap(p => p.style_tags || []))].slice(0, 6);
   const hashtags = profile?.hashtags || [];
 
-  // Their chosen vibe — visitors see exactly what the user picked on My Page.
   const visitorBgTheme = (profile?.ootd_bg_theme as OOTDBgTheme | undefined) ?? "none";
   const visitorBgRealistic = profile?.ootd_bg_realistic ?? true;
   const visitorCard = profile?.ootd_card_color ?? null;
@@ -281,85 +268,77 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   }, [visitorCard]);
 
   const isOwner = user?.id === userId;
+  const displayName = profile?.display_name || "Anonymous";
 
   return (
-    <div className={`relative min-h-screen pb-28 lg:pb-16 lg:pt-16 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
+    <div className={`relative min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-24 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
       {visitorBgTheme !== "none" && (
         <div className="pointer-events-none fixed inset-0 z-0">
           <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
         </div>
       )}
-      <div className="relative z-10 mx-auto max-w-lg px-5 pt-8 md:max-w-2xl md:px-8 lg:max-w-4xl">
-        {/* Back */}
-        <button onClick={() => navigate(-1)} className="mb-5 inline-flex items-center gap-1.5 text-foreground/45 hover:text-foreground/75 transition-colors">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span className="text-[10px] font-medium tracking-[0.18em]">BACK</span>
-        </button>
 
-        {/* Header — minimal, no card wrap */}
+      {/* Top bar — mirrors My Page container with Back instead of Settings */}
+      <div className="relative z-10 mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
+        <div className="flex items-center justify-between mb-12">
+          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-foreground/45 hover:text-foreground/75 transition-colors">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="text-[10px] font-medium tracking-[0.18em]">BACK</span>
+          </button>
+          <span className="flex items-baseline font-display text-[15px] font-light leading-none text-foreground lg:hidden">
+            <span className="tracking-[0.05em]">my</span>
+            <span aria-hidden className="mx-[0.18em] inline-block h-[2.5px] w-[2.5px] translate-y-[-0.55em] rounded-full bg-accent/70" />
+            <span className="tracking-[0.05em]">myon</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-lg px-8 space-y-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
+        {/* Identity */}
         {profile ? (
-          <header className="flex items-start gap-4 mb-5">
+          <div className="flex items-center gap-6">
             <OfficialAvatarRing isOfficial={profile.is_official}>
-              <div className="h-[68px] w-[68px] rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.03] overflow-hidden">
                 {profile.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                  <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-foreground/25 text-xl font-semibold">
-                    {(profile.display_name || "?")[0].toUpperCase()}
-                  </div>
+                  <span className="text-xl font-semibold text-foreground/40">
+                    {displayName[0]?.toUpperCase()}
+                  </span>
                 )}
               </div>
             </OfficialAvatarRing>
-
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="font-display text-[17px] font-semibold text-foreground/95 truncate">
-                  {profile.display_name || "Anonymous"}
-                </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-display text-lg text-foreground/90 truncate">{displayName}</p>
                 {profile.is_official && <OfficialBadge />}
                 {dailyWins.length > 0 && <Crown className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400 shrink-0" />}
                 {profile.is_private && <Lock className="h-3 w-3 text-foreground/30 shrink-0" />}
               </div>
-              {profile.bio && (
-                <p className="text-[11px] text-foreground/55 mt-1 line-clamp-2 break-words">{profile.bio}</p>
+              {profile.username && (
+                <p className="text-[11px] text-foreground/55 mt-0.5">@{profile.username}</p>
               )}
-
-              {/* Compact stats row */}
-              <div className="flex items-center gap-x-4 gap-y-0.5 mt-2 flex-wrap">
-                <span className="text-[10.5px] text-foreground/50">
-                  <CountUp value={postCount} className="font-semibold text-foreground/80" /> posts
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setStarsLabelOpen(true); window.setTimeout(() => setStarsLabelOpen(false), 1800); }}
-                  className="inline-flex items-center gap-1 text-[10.5px] text-foreground/50 hover:text-foreground/80 transition-colors"
-                  aria-label={t("starsReceived")}
-                >
-                  <CountUp value={totalStars} className="font-semibold text-foreground/80" />
-                  {starsLabelOpen ? <span className="text-accent/80">{t("starsReceived")}</span> : <ShootingStarIcon size={11} className="text-amber-400" />}
-                </button>
-                <button onClick={() => setCirclesSheet({ open: true, tab: "circle" })} className="text-[10.5px] text-foreground/50 hover:text-foreground/80 transition-colors">
-                  <CountUp value={circleCount} className="font-semibold text-foreground/80" /> circle
-                </button>
-                <button onClick={() => setCirclesSheet({ open: true, tab: "ripple" })} className="text-[10.5px] text-foreground/50 hover:text-foreground/80 transition-colors">
-                  <CountUp value={rippleCount} className="font-semibold text-foreground/80" /> ripple
-                </button>
-              </div>
+              {profile.bio && (
+                <p className="text-[11px] text-foreground/70 mt-1 italic line-clamp-2">{profile.bio}</p>
+              )}
+              {profile.location && (
+                <p className="text-[11px] text-foreground/55 mt-1">📍 {profile.location}</p>
+              )}
             </div>
-          </header>
+          </div>
         ) : (
-          <div className="mb-6 animate-pulse flex items-center gap-4">
-            <div className="h-[68px] w-[68px] rounded-full bg-foreground/[0.05]" />
-            <div className="space-y-2">
+          <div className="animate-pulse flex items-center gap-6">
+            <div className="h-16 w-16 rounded-full bg-foreground/[0.05]" />
+            <div className="space-y-2 flex-1">
               <div className="h-4 w-28 rounded bg-foreground/[0.05]" />
               <div className="h-3 w-16 rounded bg-foreground/[0.05]" />
             </div>
           </div>
         )}
 
-        {/* Action row */}
+        {/* Action row (visitors only) */}
         {profile && user && user.id !== userId && (
-          <div className="flex items-center gap-1.5 mb-5">
+          <div className="flex items-center gap-1.5">
             <AuthGate action="join circle">
               <button
                 onClick={toggleCircle}
@@ -396,26 +375,18 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
           </div>
         )}
 
-        {/* Song of the day — inline player */}
-        {visitorSong && (
-          <VisitorSongPlayer song={visitorSong} cardStyle={cardStyle ?? undefined} />
-        )}
-
-        {/* Hashtags + style tags inline strip */}
-        {(hashtags.length > 0 || styleTags.length > 0) && !isPrivate && (
-          <div className="mb-5 flex flex-wrap gap-1.5">
-            {styleTags.map(tag => (
-              <span key={`s-${tag}`} className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent/75">{tag}</span>
-            ))}
+        {/* Hashtags */}
+        {hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
             {hashtags.map(tag => (
-              <span key={`h-${tag}`} className="text-[10px] text-foreground/45 self-center">#{tag}</span>
+              <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
             ))}
           </div>
         )}
 
-        {/* Daily wins — tiny chip row */}
+        {/* Daily wins */}
         {dailyWins.length > 0 && (
-          <div className="mb-5 flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {dailyWins.map(win => (
               <span key={win.award_date} className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 text-[9px] font-semibold text-yellow-400/85">
                 <Crown className="h-2.5 w-2.5" />
@@ -425,6 +396,43 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
           </div>
         )}
 
+        {/* Song of the day */}
+        {visitorSong && (
+          <VisitorSongPlayer song={visitorSong} cardStyle={cardStyle ?? undefined} />
+        )}
+
+        {/* Stats grid — same look as My Page (3-col) */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="flex flex-col items-center justify-center text-center min-w-0">
+            <CountUp value={postCount} className="text-xl font-light text-foreground/80 tabular-nums" />
+            <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{t("posts")}</p>
+          </div>
+          <div className="flex flex-col items-center justify-center text-center min-w-0">
+            <CountUp value={totalStars} className="text-xl font-light text-foreground/80 tabular-nums" />
+            <div className="mt-1.5 flex items-center justify-center text-amber-400">
+              <ShootingStarIcon size={14} />
+            </div>
+          </div>
+          <button onClick={() => setCirclesSheet({ open: true, tab: "circle" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
+            <CountUp value={circleCount} className="text-xl font-light text-foreground/80 tabular-nums" />
+            <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{t("profileLabelCircle")}</p>
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 -mt-6">
+          <button onClick={() => setCirclesSheet({ open: true, tab: "ripple" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
+            <CountUp value={rippleCount} className="text-xl font-light text-foreground/80 tabular-nums" />
+            <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{t("profileLabelRipple")}</p>
+          </button>
+          {styleTags.length > 0 && (
+            <div className="flex flex-col items-center justify-center text-center min-w-0">
+              <span className="text-xl font-light text-foreground/80 tabular-nums">{styleTags.length}</span>
+              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">styles</p>
+            </div>
+          )}
+        </div>
+
+        <div className="h-px bg-accent/[0.12]" />
+
         {/* Private gate */}
         {isPrivate ? (
           <div className="py-20 text-center space-y-3">
@@ -433,52 +441,92 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
             <p className="text-[10.5px] text-foreground/35">Join their circle to see posts</p>
           </div>
         ) : (
-          <>
-            {/* Posts grid */}
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
-              </div>
-            ) : posts.length === 0 ? (
-              <p className="text-center text-[12px] text-foreground/40 py-16">No outfits posted yet</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 md:gap-2">
-                {posts.map((post, i) => {
-                  const aud = post.audience ?? "all";
-                  const AudIcon = aud === "circle" ? Users : aud === "ripple" ? Waves : null;
-                  return (
-                    <motion.button
-                      key={post.id}
-                      type="button"
-                      onClick={() => setSelectedPost(post)}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: Math.min(i * 0.025, 0.4) }}
-                      className="group relative overflow-hidden rounded-lg aspect-[3/4] focus:outline-none focus:ring-2 focus:ring-accent/60"
-                    >
-                      <img
-                        src={post.image_url}
-                        alt={post.caption || ""}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                        loading="lazy"
-                      />
-                      {/* Owner-only audience badge */}
-                      {isOwner && AudIcon && (
-                        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-black/60 backdrop-blur-sm px-1.5 py-0.5 text-[8px] font-semibold text-white/90">
-                          <AudIcon className="h-2.5 w-2.5" />
-                          {aud}
-                        </span>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
+          <Accordion type="multiple" defaultValue={["ootds"]} className="space-y-2">
+            {/* Style tags from their OOTDs */}
+            {styleTags.length > 0 && (
+              <AccordionItem value="styles" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+                <AccordionTrigger className="py-3 hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <Star className="h-4 w-4 text-foreground/60" />
+                    <div className="text-left">
+                      <p className="font-display text-[15px] tracking-tight text-foreground">Style</p>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{styleTags.length} tags</p>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <div className="flex gap-1.5 flex-wrap">
+                    {styleTags.map(tag => (
+                      <span key={tag} className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] text-accent/80">{tag}</span>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             )}
-          </>
+
+            {/* OOTDs */}
+            <AccordionItem value="ootds" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
+              <AccordionTrigger className="py-3 hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <Camera className="h-4 w-4 text-foreground/60" />
+                  <div className="text-left">
+                    <p className="font-display text-[15px] tracking-tight text-foreground">OOTDs</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{postCount} posts · {totalStars} ★</p>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                {loading ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
+                  </div>
+                ) : posts.length === 0 ? (
+                  <p className="text-center text-[12px] text-foreground/40 py-10">No outfits posted yet</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 md:gap-2">
+                    {posts.map((post, i) => {
+                      const aud = post.audience ?? "all";
+                      const AudIcon = aud === "circle" ? Users : aud === "ripple" ? Waves : Globe;
+                      return (
+                        <motion.button
+                          key={post.id}
+                          type="button"
+                          onClick={() => setSelectedPost(post)}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: Math.min(i * 0.025, 0.4) }}
+                          className="group relative overflow-hidden rounded-lg aspect-square bg-foreground/[0.04] focus:outline-none focus:ring-2 focus:ring-accent/60"
+                        >
+                          <img
+                            src={post.image_url}
+                            alt={post.caption || ""}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                            loading="lazy"
+                          />
+                          {isOwner && aud !== "all" && (
+                            <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-black/60 backdrop-blur-sm px-1.5 py-0.5 text-[8px] font-semibold text-white/90">
+                              <AudIcon className="h-2.5 w-2.5" />
+                              {aud}
+                            </span>
+                          )}
+                          {(post.star_count || 0) > 0 && (
+                            <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
+                              <Star className="h-2.5 w-2.5 text-accent/70" />
+                              <span className="text-[10px] text-foreground/70">{post.star_count}</span>
+                            </div>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
       </div>
 
-      {/* Full OOTD detail sheet — likes, stars, comments, save, share */}
+      {/* Full OOTD detail sheet */}
       {selectedPost && profile && (
         <OOTDPostDetail
           post={selectedPost}
@@ -495,7 +543,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
         />
       )}
 
-      {/* Direct-to-thread messages sheet — opens when MESSAGE is tapped */}
       <MessagesFullSheet
         open={messageSheet.open}
         onClose={() => setMessageSheet({ open: false, conversationId: null })}
@@ -503,7 +550,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
         initialOtherUserId={userId || null}
       />
 
-      {/* Public Circle / Ripple viewer */}
       {userId && (
         <PublicCirclesSheet
           open={circlesSheet.open}
