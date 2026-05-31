@@ -105,7 +105,9 @@ const OOTDPage = () => {
   const [starsLeft, setStarsLeft] = useState(3);
   const [bonusStars, setBonusStars] = useState(0);
   const [starredPosts, setStarredPosts] = useState<Set<string>>(new Set());
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(() => {
+    return new URLSearchParams(window.location.search).get("upload") === "1";
+  });
   const [videoUploadOpen, setVideoUploadOpen] = useState(false);
   const [showroomOpen, setShowroomOpen] = useState(false);
   const [selectedWaveId, setSelectedWaveId] = useState<string | null>(null);
