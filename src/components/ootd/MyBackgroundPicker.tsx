@@ -85,8 +85,9 @@ export default function MyBackgroundPicker({ value, onChange }: Props) {
           </button>
         </div>
         <p className="text-[11px] text-foreground/55 leading-relaxed">
-          Pick a scene that plays behind the OOTD tab — only you see this.
+          Pick a scene that plays behind your profile and OOTD — visible to everyone who visits you.
         </p>
+
 
         {/* Realistic mode toggle — switches between AI cinematic video and SVG art */}
         <button
