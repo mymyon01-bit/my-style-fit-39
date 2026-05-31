@@ -856,49 +856,42 @@ const OOTDPage = () => {
       <div
         className={
           mobileOOTD
-            ? "order-last fixed bottom-0 left-0 right-0 shrink-0 z-[120] bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14]"
-            : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
+            ? "order-last fixed bottom-0 left-0 right-0 shrink-0 z-[120] bg-background/90 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl border-t border-foreground/[0.06]"
+            : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/85 backdrop-blur-xl border-b border-foreground/[0.06]"
         }
       >
         <div className="mx-auto max-w-lg px-3 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-          {/* (Top brand+actions row removed on mobile OOTD — we use the
-              translucent header above instead.) */}
-
+          {/* Lightweight content tabs — these are NOT global navigation,
+              they're filters inside FEED. Compact pill style so they read as
+              "views within Feed" rather than a second app menu. */}
           <div className="flex items-center gap-3">
-            <div className="flex flex-1 min-w-0 items-stretch justify-around">
+            <div className="flex flex-1 min-w-0 items-center gap-1.5 overflow-x-auto py-2.5 scrollbar-hide">
               {([
-                { key: "ranking" as const, label: "RANKING", Icon: Trophy },
-                { key: "feed" as const, label: "FOR YOU", Icon: Sparkles },
-                { key: "community" as const, label: "TRENDING", Icon: Film },
-                { key: "showroom" as const, label: "SHOWROOMS", Icon: LayoutGrid },
-                { key: "mypage" as const, label: "MY", Icon: UserIcon },
-              ]).map(({ key, label, Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  aria-label={label}
-                  title={label}
-                  className="relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-3.5"
-                >
-                  <Icon
-                    className={`h-[24px] w-[24px] transition-colors ${
-                      activeTab === key ? "text-foreground" : "text-foreground/45"
-                    }`}
-                    strokeWidth={activeTab === key ? 2.2 : 1.6}
-                  />
-                  <span
-                    className={`hidden sm:block text-[9.5px] font-semibold tracking-[0.16em] transition-colors ${
-                      activeTab === key ? "text-foreground/90" : "text-foreground/40"
+                { key: "feed" as const, label: "For You" },
+                { key: "ranking" as const, label: "Ranking" },
+                { key: "community" as const, label: "Trending" },
+                { key: "showroom" as const, label: "Showrooms" },
+                { key: "mypage" as const, label: "Mine" },
+              ]).map(({ key, label }) => {
+                const active = activeTab === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    aria-label={label}
+                    title={label}
+                    className={`relative shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium tracking-tight transition-all ${
+                      active
+                        ? "bg-foreground text-background"
+                        : "text-foreground/55 hover:text-foreground/85"
                     }`}
                   >
                     {label}
-                  </span>
-                  {activeTab === key && (
-                    <motion.div layoutId="ootd-tab" className="absolute bottom-0 left-1/2 h-[2px] w-7 -translate-x-1/2 rounded-full bg-accent" />
-                  )}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
+
             <div className={`items-center gap-3 shrink-0 ${mobileOOTD ? "hidden md:flex" : "hidden lg:flex"}`}>
               <button
                 onClick={openOOTDWelcome}
