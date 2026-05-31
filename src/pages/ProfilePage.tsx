@@ -743,7 +743,7 @@ const ProfilePage = () => {
               { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
               { icon: Camera, label: t("profileLinkPostOotd"), action: () => navigate("/ootd?tab=mypage") },
               { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
-              { icon: Settings, label: t("settingsTitle") || "Settings", action: () => navigate("/settings") },
+              { icon: Settings, label: t("settings"), action: () => navigate("/settings") },
             ].map((section, i, arr) => (
               <button
                 key={section.label}
