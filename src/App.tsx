@@ -24,6 +24,7 @@ import AuthPage from "@/pages/AuthPage";
 import HomePage from "@/pages/HomePage";
 import DiscoverPage from "@/pages/DiscoverPage";
 import FitPage from "@/pages/FitPage";
+import OOTDPage from "@/pages/OOTDPage";
 import FeedPage from "@/pages/FeedPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AboutPage from "@/pages/AboutPage";
@@ -273,8 +274,9 @@ const AppRoutes = () => {
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
-            <Route path="/ootd" element={<FeedPage />} />
-            <Route path="/feed" element={<FeedPage />} />
+            <Route path="/ootd" element={<OOTDPage />} />
+            <Route path="/feed" element={<OOTDPage />} />
+            <Route path="/feed-new" element={<FeedPage />} />
             <Route path="/showroom" element={<ShowroomBrowsePage />} />
             <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
             <Route path="/showroom/:id" element={<ShowroomDetailPage />} />
