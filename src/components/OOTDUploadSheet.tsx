@@ -56,6 +56,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [allowShares, setAllowShares] = useState(true);
+  const [audience, setAudience] = useState<"all" | "circle" | "ripple">("all");
   // Raw file the user just picked — held while the crop dialog is open.
   const [pendingCrop, setPendingCrop] = useState<File | null>(null);
 
