@@ -867,9 +867,9 @@ const OOTDPage = () => {
           <div className="flex items-center gap-3">
             <div className="flex flex-1 min-w-0 items-stretch justify-around">
               {([
-                { key: "ranking" as const, label: "FEATURED", Icon: Trophy },
-                { key: "feed" as const, label: "STREAM", Icon: Sparkles },
-                { key: "community" as const, label: "#OOTD", Icon: Film },
+                { key: "ranking" as const, label: "RANKING", Icon: Trophy },
+                { key: "feed" as const, label: "FOR YOU", Icon: Sparkles },
+                { key: "community" as const, label: "TRENDING", Icon: Film },
                 { key: "showroom" as const, label: "SHOWROOMS", Icon: LayoutGrid },
                 { key: "mypage" as const, label: "MY", Icon: UserIcon },
               ]).map(({ key, label, Icon }) => (
