@@ -17,11 +17,11 @@ const DesktopNav = () => {
     prefetchAllTabs();
   }, []);
 
-  // 4-tab main navigation: PRODUCTS · FIT · FEED · MY
+  // 4-tab main navigation: DISCOVER · FEED · FIT LAB · MY
   const links = [
-    { path: "/discover", label: "PRODUCTS" },
-    { path: "/fit", label: t("fit").toUpperCase() },
+    { path: "/discover", label: "DISCOVER" },
     { path: "/ootd", label: "FEED" },
+    { path: "/fit", label: "FIT LAB" },
     { path: "/profile", label: "MY" },
   ];
 
