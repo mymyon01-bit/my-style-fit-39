@@ -734,21 +734,30 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
-        {/* Links */}
-        <div className="space-y-1">
-          {[
-            { icon: Crown, label: t("profileLinkSubscription"), action: () => navigate("/subscription") },
-            { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
-            { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
-            { icon: Camera, label: t("profileLinkPostOotd"), action: () => navigate("/ootd") },
-          ].map(section => (
-            <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
-              <section.icon className="h-[18px] w-[18px] text-foreground/75" strokeWidth={1.5} />
-              <span className="flex-1 text-left text-[13px] text-foreground/70">{section.label}</span>
-              <ChevronRight className="h-4 w-4 text-foreground/70" />
-            </button>
-          ))}
+        {/* Account menu — premium hub */}
+        <div>
+          <p className="mb-3 text-[10px] font-medium tracking-[0.22em] text-foreground/45">ACCOUNT</p>
+          <div className="overflow-hidden rounded-2xl border border-border/20 bg-card/40">
+            {[
+              { icon: Crown, label: t("profileLinkSubscription"), action: () => navigate("/subscription") },
+              { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
+              { icon: Camera, label: t("profileLinkPostOotd"), action: () => navigate("/ootd?tab=mypage") },
+              { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
+              { icon: Settings, label: t("settingsTitle") || "Settings", action: () => navigate("/settings") },
+            ].map((section, i, arr) => (
+              <button
+                key={section.label}
+                onClick={section.action}
+                className={`flex w-full items-center gap-4 px-5 py-4 transition-colors hover:bg-secondary/40 ${i < arr.length - 1 ? "border-b border-border/15" : ""}`}
+              >
+                <section.icon className="h-[17px] w-[17px] text-foreground/65" strokeWidth={1.5} />
+                <span className="flex-1 text-left text-[13px] text-foreground/80">{section.label}</span>
+                <ChevronRight className="h-4 w-4 text-foreground/40" />
+              </button>
+            ))}
+          </div>
         </div>
+
 
         {/* Sign out */}
         <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
