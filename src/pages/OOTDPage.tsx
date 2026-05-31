@@ -90,10 +90,7 @@ const OOTDPage = () => {
   const location = useLocation();
   const { isOpen: inModal, close: closeOOTD } = useOOTDModal();
   const isMobile = useIsMobile();
-  // FEED is a normal route now — the old "mobile = modal layout" branch is
-  // disabled so the main BottomNav stays visible and FEED uses the standalone
-  // top-tab layout on every viewport.
-  const mobileOOTD = inModal;
+  const mobileOOTD = inModal || isMobile;
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";

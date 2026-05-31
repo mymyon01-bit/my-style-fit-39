@@ -1,31 +1,35 @@
-import { Compass, Scan, Bookmark, Sparkles } from "lucide-react";
-import { useEffect } from "react";
+import { Compass, Camera, Scan, Bookmark } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import { useNotifications } from "@/hooks/useNotifications";
+import OOTDNavLabel from "@/components/OOTDNavLabel";
+import OOTDDiaryIcon from "@/components/OOTDDiaryIcon";
+import { useOOTDModal } from "@/lib/ootdModal";
 import { useI18n } from "@/lib/i18n";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { ootdUnread } = useNotifications();
+  const { open: openOotdModal } = useOOTDModal();
   const { t } = useI18n();
+  const [ootdTapped, setOotdTapped] = useState(false);
 
   useEffect(() => {
     prefetchAllTabs();
   }, []);
 
-  // 4-tab main navigation: PRODUCTS · FIT · FEED · MY
-  // OOTD lives inside FEED (the /ootd route) — no separate diary entry.
   const tabs = [
-    { path: "/discover", icon: Compass, label: t("tabProducts") },
-    { path: "/fit", icon: Scan, label: t("tabFit") },
-    { path: "/ootd", icon: Sparkles, label: "FEED", showUnread: true },
-    { path: "/profile", icon: Bookmark, label: t("tabMy") },
+    { path: "/discover", icon: Compass, label: t("tabProducts"), isOotd: false },
+    { path: "/fit", icon: Scan, label: t("tabFit"), isOotd: false },
+    { path: "/profile", icon: Bookmark, label: t("tabMy"), isOotd: false },
+    { path: "/ootd", icon: Camera, label: t("tabOotd"), isOotd: true },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[110] md:hidden">
+      {/* Vibrant gradient hairline */}
       <div className="h-[2px] bg-gradient-animated" />
       <div className="bg-background/95 backdrop-blur-xl border-t border-foreground/10">
         <div className="flex w-full items-center justify-between px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:px-6">
@@ -33,11 +37,22 @@ const BottomNav = () => {
             const isActive =
               location.pathname === tab.path ||
               (tab.path !== "/" && location.pathname.startsWith(tab.path));
-            const showUnread = tab.showUnread && !isActive && ootdUnread > 0;
+            // Only show OOTD badge when not already on the OOTD tab.
+            const showOotdBadge = tab.path === "/ootd" && !isActive && ootdUnread > 0;
             return (
               <button
                 key={tab.path}
-                onClick={() => navigate(tab.path)}
+                onClick={() => {
+                  if (tab.isOotd) {
+                    setOotdTapped(true);
+                    setTimeout(() => {
+                      openOotdModal();
+                      setOotdTapped(false);
+                    }, 700);
+                  } else {
+                    navigate(tab.path);
+                  }
+                }}
                 onMouseEnter={() => prefetchRoute(tab.path)}
                 onTouchStart={() => prefetchRoute(tab.path)}
                 className={`group relative flex flex-1 flex-col items-center gap-1 px-1 py-1 transition-all duration-200 md:gap-1.5 md:px-6 md:py-1 ${
@@ -51,15 +66,19 @@ const BottomNav = () => {
                   />
                 )}
                 <span className="relative">
-                  <tab.icon
-                    className={`h-[22px] w-[22px] transition-transform duration-200 md:h-[17px] md:w-[17px] ${
-                      isActive ? "scale-110" : "group-hover:scale-110"
-                    }`}
-                    strokeWidth={isActive ? 2.4 : 1.6}
-                  />
-                  {showUnread && (
+                  {tab.isOotd ? (
+                    <OOTDDiaryIcon size={26} active={isActive} tapped={ootdTapped} />
+                  ) : (
+                    <tab.icon
+                      className={`h-[22px] w-[22px] transition-transform duration-200 md:h-[17px] md:w-[17px] ${
+                        isActive ? "scale-110" : "group-hover:scale-110"
+                      }`}
+                      strokeWidth={isActive ? 2.4 : 1.6}
+                    />
+                  )}
+                  {showOotdBadge && (
                     <span
-                      aria-label={`${ootdUnread} new activity`}
+                      aria-label={`${ootdUnread} new OOTD activity`}
                       className="absolute -right-1.5 -top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-destructive px-1 text-[7px] font-bold text-destructive-foreground"
                     >
                       {ootdUnread > 9 ? "9+" : ootdUnread}
@@ -67,7 +86,11 @@ const BottomNav = () => {
                   )}
                 </span>
                 <span className="font-mono text-[8.5px] font-semibold tracking-[0.16em] md:text-[8.5px]">
-                  {tab.label}
+                  {tab.isOotd ? (
+                    <OOTDNavLabel className="text-[8.5px] md:text-[8.5px] font-semibold tracking-[0.16em]" crownSize={14} />
+                  ) : (
+                    tab.label
+                  )}
                 </span>
               </button>
             );

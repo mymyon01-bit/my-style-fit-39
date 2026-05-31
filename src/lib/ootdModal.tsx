@@ -1,38 +1,63 @@
-import { createContext, useContext, useCallback, useMemo, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { createContext, useContext, useReducer, useCallback, useMemo, type ReactNode } from "react";
 
 // ============================================================================
-// OOTD navigation — legacy "modal" shim.
+// OOTD Modal — single source of truth
 // ----------------------------------------------------------------------------
-// The OOTD modal/diary was removed during the IA restructure (PRODUCTS/FIT/
-// FEED/MY). All consumers that used to "open the OOTD modal" now navigate to
-// the standalone `/ootd` (FEED) route instead. The hook signature is kept so
-// the ~30 call sites continue to work without touching every file.
+// All consumers (BottomNav, DesktopNav, OOTDDiaryButton, OOTDModalHost, etc.)
+// share this one Context. Internally backed by useReducer so future actions
+// (e.g. "navigatedAway", "forceClose") can be added without breaking callers.
 // ============================================================================
+
+type OOTDModalState = {
+  isOpen: boolean;
+};
+
+type OOTDModalAction =
+  | { type: "open" }
+  | { type: "close" }
+  | { type: "toggle" }
+  | { type: "navigatedAway" };
+
+const initialState: OOTDModalState = { isOpen: false };
+
+function reducer(state: OOTDModalState, action: OOTDModalAction): OOTDModalState {
+  switch (action.type) {
+    case "open":
+      return state.isOpen ? state : { isOpen: true };
+    case "close":
+      return state.isOpen ? { isOpen: false } : state;
+    case "toggle":
+      return { isOpen: !state.isOpen };
+    case "navigatedAway":
+      // Only close if currently open — avoids needless re-renders
+      return state.isOpen ? { isOpen: false } : state;
+    default:
+      return state;
+  }
+}
 
 interface OOTDModalContextType {
-  /** Always false now — the modal no longer exists. */
   isOpen: boolean;
-  /** Navigates to the FEED (/ootd) route. */
   open: () => void;
   close: () => void;
   toggle: () => void;
+  /** Call when the route changes away from an OOTD-related path. */
   navigatedAway: () => void;
 }
 
 const OOTDModalContext = createContext<OOTDModalContextType | null>(null);
 
 export const OOTDModalProvider = ({ children }: { children: ReactNode }) => {
-  const navigate = useNavigate();
+  const [state, dispatch] = useReducer(reducer, initialState);
 
-  const open = useCallback(() => navigate("/ootd"), [navigate]);
-  const close = useCallback(() => { /* no-op — kept for back-compat */ }, []);
-  const toggle = useCallback(() => navigate("/ootd"), [navigate]);
-  const navigatedAway = useCallback(() => { /* no-op */ }, []);
+  const open = useCallback(() => dispatch({ type: "open" }), []);
+  const close = useCallback(() => dispatch({ type: "close" }), []);
+  const toggle = useCallback(() => dispatch({ type: "toggle" }), []);
+  const navigatedAway = useCallback(() => dispatch({ type: "navigatedAway" }), []);
 
   const value = useMemo<OOTDModalContextType>(
-    () => ({ isOpen: false, open, close, toggle, navigatedAway }),
-    [open, close, toggle, navigatedAway]
+    () => ({ isOpen: state.isOpen, open, close, toggle, navigatedAway }),
+    [state.isOpen, open, close, toggle, navigatedAway]
   );
 
   return <OOTDModalContext.Provider value={value}>{children}</OOTDModalContext.Provider>;
