@@ -6,7 +6,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
 import PillTabs from "@/components/ui/PillTabs";
 import OOTDCard, { type OOTDCardPost, type OOTDCardProfile } from "@/components/OOTDCard";
-import OOTDPostDetail from "@/components/OOTDPostDetail";
+import ImageLightbox from "@/components/ootd/ImageLightbox";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import CrownedBoard from "@/components/CrownedBoard";
 import HotShowroomSection from "@/components/showroom/HotShowroomSection";
@@ -65,11 +65,11 @@ const FeedPage = () => {
 
   const loadFollowingIds = useCallback(async (): Promise<string[] | null> => {
     if (!user) return null;
-    const { data } = await supabase
-      .from("ootd_circles")
+    const { data } = await (supabase as any)
+      .from("circles")
       .select("following_id")
-      .eq("user_id", user.id);
-    return (data || []).map((r: any) => r.following_id);
+      .eq("follower_id", user.id);
+    return ((data || []) as any[]).map((r) => r.following_id);
   }, [user]);
 
   useEffect(() => {
@@ -197,13 +197,12 @@ const FeedPage = () => {
         )}
       </div>
 
-      {selected && (
-        <OOTDPostDetail
-          post={selected}
-          profile={profiles[selected.user_id] || null}
-          onClose={() => setSelected(null)}
-        />
-      )}
+      <ImageLightbox
+        images={selected ? [selected.image_url] : []}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+      />
+
 
       <OOTDUploadSheet
         open={uploadOpen}
