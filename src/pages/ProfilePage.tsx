@@ -483,15 +483,14 @@ const ProfilePage = () => {
           </button>
         </div>
 
-        {/* Stats — fixed 3-column grid so labels never break the row on mobile */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        {/* Stats — 5-column premium row */}
+        <div className="grid grid-cols-5 gap-2 sm:gap-3">
           {[
             { key: "posts", icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
             { key: "stars", icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
             { key: "saved", icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
             { key: "circle", icon: Crown, label: t("profileLabelCircle"), value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
             { key: "ripple", icon: Crown, label: t("profileLabelRipple"), value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
-            { key: "scrap", icon: Bookmark, label: t("profileLabelScrap"), value: scrapCount, onClick: undefined },
           ].map(stat => {
             if (stat.key === "stars") {
               return (
