@@ -445,22 +445,15 @@ const ProfilePage = () => {
           </div>
         )}
 
-        {/* Subscription */}
-        <div className="flex items-center gap-4">
-          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/70"}`} />
-          <div>
-            <p className="text-[11px] font-medium text-foreground/75">
-              {subscription.isPremium ? t("premiumFeature") : t("free")}
-            </p>
-            {subscription.isPremium && subscription.daysRemaining !== null && (
-              <p className="text-[10px] text-foreground/75">
-                {subscription.plan === "premium_trial"
-                  ? t("trialRemaining").replace("{days}", String(subscription.daysRemaining))
-                  : t("active")}
-              </p>
-            )}
+        {/* Hashtags */}
+        {profile?.hashtags && profile.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {profile.hashtags.map((tag: string) => (
+              <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
+            ))}
           </div>
-        </div>
+        )}
+
 
         {/* Hashtags */}
         {profile?.hashtags && profile.hashtags.length > 0 && (
