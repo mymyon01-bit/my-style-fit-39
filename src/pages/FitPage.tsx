@@ -514,6 +514,17 @@ const FitPage = () => {
       }`}>
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
+            {activeTab === "lab" && (
+              <FitLabDashboard
+                scanQuality={scanQuality}
+                hasBodyProfile={!!user && scanQuality > 0}
+                recentTryOnCount={0}
+                onNewScan={() => setActiveTab("scan")}
+                onTryOn={() => setActiveTab("check")}
+                onAnalyze={() => setActiveTab("check")}
+                onHistory={() => setActiveTab("results")}
+              />
+            )}
             {activeTab === "scan" && (
               <>
                 <FitBodyScan
