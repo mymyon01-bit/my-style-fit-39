@@ -241,6 +241,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setError(null);
     setStep(1);
     setAllowShares(true);
+    setAudience("all");
   };
 
   const canProceed = (s: number) => {
