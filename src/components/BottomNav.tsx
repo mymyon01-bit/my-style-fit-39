@@ -66,7 +66,7 @@ const BottomNav = () => {
                     </span>
                   )}
                 </span>
-                <span className="font-mono text-[8.5px] font-semibold tracking-[0.16em] md:text-[8.5px]">
+                <span className="font-body text-[9.5px] font-medium tracking-[0.14em] md:text-[9.5px]">
                   {tab.label}
                 </span>
               </button>
