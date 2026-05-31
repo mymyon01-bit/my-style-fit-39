@@ -183,7 +183,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
         occasion_tags: occasionTags,
         topics: allTopics,
         weather_tag: weather.condition,
-      });
+        audience,
+      } as any);
       if (insertError) throw insertError;
 
       await supabase.from("interactions").insert({
