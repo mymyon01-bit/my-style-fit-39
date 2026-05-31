@@ -481,19 +481,20 @@ const FitPage = () => {
 
         <div className="flex">
           {([
+            { id: "lab", label: "LAB" },
             { id: "scan", label: t("fitTabScan") },
             { id: "measurements", label: t("fitTabBody") },
             { id: "check", label: t("fitTabCheck") },
             { id: "results", label: t("fitTabResults") },
           ] as { id: Tab; label: string }[]).map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="relative flex-1 pb-5 text-center md:pb-6">
-              <span className={`text-[10px] font-medium tracking-[0.2em] transition-colors duration-300 md:text-[11px] ${
-                activeTab === tab.id ? "text-foreground/85" : "text-foreground/75"
+              <span className={`font-body text-[10.5px] font-medium tracking-[0.18em] transition-colors duration-300 md:text-[11px] ${
+                activeTab === tab.id ? "text-foreground" : "text-muted-foreground"
               }`}>
                 {tab.label}
               </span>
               {activeTab === tab.id && (
-                <motion.div layoutId="fit-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent/50" />
+                <motion.div layoutId="fit-tab" className="absolute bottom-0 left-1/4 right-1/4 h-px bg-accent" />
               )}
             </button>
           ))}
