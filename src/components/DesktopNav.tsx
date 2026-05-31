@@ -52,7 +52,7 @@ const DesktopNav = () => {
                   key={link.path}
                   onClick={() => navigate(link.path)}
                   onMouseEnter={() => prefetchRoute(link.path)}
-                  className={`group relative font-mono text-[11px] font-semibold tracking-[0.22em] transition-colors ${
+                  className={`group relative font-body text-[11.5px] font-medium tracking-[0.18em] transition-colors ${
                     active ? "text-foreground" : "text-foreground/60 hover:text-foreground"
                   }`}
                 >
