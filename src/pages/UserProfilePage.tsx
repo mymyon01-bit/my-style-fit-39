@@ -277,220 +277,183 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const visitorSong = profile?.song_of_the_day ?? null;
   const cardStyle = useMemo(() => {
     if (!visitorCard?.hex) return undefined;
-    return { background: `${visitorCard.hex}D6` } as React.CSSProperties;
+    return { background: `${visitorCard.hex}1A` } as React.CSSProperties;
   }, [visitorCard]);
 
+  const isOwner = user?.id === userId;
+
   return (
-    <div className={`relative min-h-screen pb-28 lg:pb-16 lg:pt-24 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
+    <div className={`relative min-h-screen pb-28 lg:pb-16 lg:pt-16 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
       {visitorBgTheme !== "none" && (
         <div className="pointer-events-none fixed inset-0 z-0">
           <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
         </div>
       )}
-      <div className="relative z-10 mx-auto max-w-lg px-6 pt-10 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12">
-        {/* Back button */}
-        <button onClick={() => navigate(-1)} className="mb-6 flex items-center gap-2 text-foreground/50 hover:text-foreground/70 transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-          <span className="text-[10px] font-medium tracking-[0.15em]">BACK</span>
+      <div className="relative z-10 mx-auto max-w-lg px-5 pt-8 md:max-w-2xl md:px-8 lg:max-w-4xl">
+        {/* Back */}
+        <button onClick={() => navigate(-1)} className="mb-5 inline-flex items-center gap-1.5 text-foreground/45 hover:text-foreground/75 transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span className="text-[10px] font-medium tracking-[0.18em]">BACK</span>
         </button>
 
-        {/* Profile header — wrapped in a card tinted with the owner's chosen card color */}
+        {/* Header — minimal, no card wrap */}
         {profile ? (
-          <div
-            className="flex items-start gap-4 mb-6 rounded-2xl border border-border/30 p-4 backdrop-blur-md"
-            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
-          >
+          <header className="flex items-start gap-4 mb-5">
             <OfficialAvatarRing isOfficial={profile.is_official}>
-              <div className="h-16 w-16 rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
+              <div className="h-[68px] w-[68px] rounded-full bg-foreground/[0.06] overflow-hidden flex-shrink-0">
                 {profile.avatar_url ? (
                   <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-foreground/20 text-lg font-bold">
+                  <div className="h-full w-full flex items-center justify-center text-foreground/25 text-xl font-semibold">
                     {(profile.display_name || "?")[0].toUpperCase()}
                   </div>
                 )}
               </div>
             </OfficialAvatarRing>
+
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-display text-base font-semibold text-foreground/90 truncate max-w-full">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="font-display text-[17px] font-semibold text-foreground/95 truncate">
                   {profile.display_name || "Anonymous"}
                 </h2>
                 {profile.is_official && <OfficialBadge />}
-                {dailyWins.length > 0 && <Crown className="h-4 w-4 text-yellow-400 fill-yellow-400 shrink-0" />}
+                {dailyWins.length > 0 && <Crown className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400 shrink-0" />}
                 {profile.is_private && <Lock className="h-3 w-3 text-foreground/30 shrink-0" />}
               </div>
               {profile.bio && (
-                <p className="text-[11px] text-foreground/50 mt-0.5 line-clamp-2 break-words">{profile.bio}</p>
+                <p className="text-[11px] text-foreground/55 mt-1 line-clamp-2 break-words">{profile.bio}</p>
               )}
 
-              {/* Stats: Posts, Stars, Circle, Ripple */}
-              <div className="flex items-center gap-x-4 gap-y-1 mt-2 flex-wrap">
-                <span className="text-[10px] text-foreground/50 whitespace-nowrap">
-                  <CountUp value={postCount} className="font-semibold text-foreground/70" /> posts
+              {/* Compact stats row */}
+              <div className="flex items-center gap-x-4 gap-y-0.5 mt-2 flex-wrap">
+                <span className="text-[10.5px] text-foreground/50">
+                  <CountUp value={postCount} className="font-semibold text-foreground/80" /> posts
                 </span>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setStarsLabelOpen(true);
-                    window.setTimeout(() => setStarsLabelOpen(false), 1800);
-                  }}
-                  className="inline-flex items-center gap-1 text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
+                  onClick={() => { setStarsLabelOpen(true); window.setTimeout(() => setStarsLabelOpen(false), 1800); }}
+                  className="inline-flex items-center gap-1 text-[10.5px] text-foreground/50 hover:text-foreground/80 transition-colors"
                   aria-label={t("starsReceived")}
                 >
-                  <CountUp value={totalStars} className="font-semibold text-foreground/70" />
-                  {starsLabelOpen ? (
-                    <span className="text-accent/80">{t("starsReceived")}</span>
-                  ) : (
-                    <ShootingStarIcon size={12} className="text-amber-400" />
-                  )}
+                  <CountUp value={totalStars} className="font-semibold text-foreground/80" />
+                  {starsLabelOpen ? <span className="text-accent/80">{t("starsReceived")}</span> : <ShootingStarIcon size={11} className="text-amber-400" />}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCirclesSheet({ open: true, tab: "circle" })}
-                  className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
-                >
-                  <CountUp value={circleCount} className="font-semibold text-foreground/70" /> circle
+                <button onClick={() => setCirclesSheet({ open: true, tab: "circle" })} className="text-[10.5px] text-foreground/50 hover:text-foreground/80 transition-colors">
+                  <CountUp value={circleCount} className="font-semibold text-foreground/80" /> circle
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCirclesSheet({ open: true, tab: "ripple" })}
-                  className="text-[10px] text-foreground/50 whitespace-nowrap hover:text-foreground/80 transition-colors"
-                >
-                  <CountUp value={rippleCount} className="font-semibold text-foreground/70" /> ripple
+                <button onClick={() => setCirclesSheet({ open: true, tab: "ripple" })} className="text-[10.5px] text-foreground/50 hover:text-foreground/80 transition-colors">
+                  <CountUp value={rippleCount} className="font-semibold text-foreground/80" /> ripple
                 </button>
               </div>
-
-              {/* Actions — wrap so they never stretch the card at large font sizes */}
-              {user && user.id !== userId && (
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  <AuthGate action="join circle">
-                    <button
-                      onClick={toggleCircle}
-                      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap transition-all ${
-                        inCircle
-                          ? "bg-accent/10 text-accent/70 border border-accent/20"
-                          : "bg-foreground/[0.06] text-foreground/60 hover:bg-accent/10 hover:text-accent/70"
-                      }`}
-                    >
-                      {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                      {inCircle ? "IN CIRCLE" : "JOIN"}
-                    </button>
-                  </AuthGate>
-                  <AuthGate action="message">
-                    <button
-                      onClick={async () => {
-                        const cid = await openConversationWith(userId!);
-                        if (cid) {
-                          setMessageSheet({ open: true, conversationId: cid });
-                        } else {
-                          toast.error("Could not open chat");
-                        }
-                      }}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground whitespace-nowrap transition-opacity hover:opacity-90"
-                    >
-                      <MessageCircle className="h-3 w-3" />
-                      MESSAGE
-                    </button>
-                  </AuthGate>
-                  <button
-                    onClick={toggleBlock}
-                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium whitespace-nowrap transition-all ${
-                      isBlocked ? "bg-destructive/10 text-destructive/60 border border-destructive/20" : "text-foreground/30 hover:text-foreground/50"
-                    }`}
-                  >
-                    <ShieldOff className="h-3 w-3" />
-                    {isBlocked ? "BLOCKED" : "BLOCK"}
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
+          </header>
         ) : (
-          <div className="mb-8 animate-pulse flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-foreground/[0.04]" />
+          <div className="mb-6 animate-pulse flex items-center gap-4">
+            <div className="h-[68px] w-[68px] rounded-full bg-foreground/[0.05]" />
             <div className="space-y-2">
-              <div className="h-4 w-24 rounded bg-foreground/[0.04]" />
-              <div className="h-3 w-16 rounded bg-foreground/[0.04]" />
+              <div className="h-4 w-28 rounded bg-foreground/[0.05]" />
+              <div className="h-3 w-16 rounded bg-foreground/[0.05]" />
             </div>
           </div>
         )}
 
-        {/* Song of the day — inline player so visitors can listen without leaving the page */}
+        {/* Action row */}
+        {profile && user && user.id !== userId && (
+          <div className="flex items-center gap-1.5 mb-5">
+            <AuthGate action="join circle">
+              <button
+                onClick={toggleCircle}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10.5px] font-semibold transition-all ${
+                  inCircle ? "bg-accent/10 text-accent/80 border border-accent/25" : "bg-foreground text-background hover:opacity-90"
+                }`}
+              >
+                {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                {inCircle ? "IN CIRCLE" : "JOIN CIRCLE"}
+              </button>
+            </AuthGate>
+            <AuthGate action="message">
+              <button
+                onClick={async () => {
+                  const cid = await openConversationWith(userId!);
+                  if (cid) setMessageSheet({ open: true, conversationId: cid });
+                  else toast.error("Could not open chat");
+                }}
+                className="inline-flex items-center gap-1 rounded-full border border-border/60 px-3 py-1.5 text-[10.5px] font-semibold text-foreground/75 hover:text-foreground transition-colors"
+              >
+                <MessageCircle className="h-3 w-3" />
+                MESSAGE
+              </button>
+            </AuthGate>
+            <button
+              onClick={toggleBlock}
+              className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-medium transition-all ${
+                isBlocked ? "text-destructive/70" : "text-foreground/30 hover:text-foreground/55"
+              }`}
+            >
+              <ShieldOff className="h-3 w-3" />
+              {isBlocked ? "BLOCKED" : "BLOCK"}
+            </button>
+          </div>
+        )}
+
+        {/* Song of the day — inline player */}
         {visitorSong && (
           <VisitorSongPlayer song={visitorSong} cardStyle={cardStyle ?? undefined} />
         )}
 
+        {/* Hashtags + style tags inline strip */}
+        {(hashtags.length > 0 || styleTags.length > 0) && !isPrivate && (
+          <div className="mb-5 flex flex-wrap gap-1.5">
+            {styleTags.map(tag => (
+              <span key={`s-${tag}`} className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent/75">{tag}</span>
+            ))}
+            {hashtags.map(tag => (
+              <span key={`h-${tag}`} className="text-[10px] text-foreground/45 self-center">#{tag}</span>
+            ))}
+          </div>
+        )}
 
-        {/* Hashtags + daily wins + posts grid — wrapped so they read clearly
-            against custom OOTD backgrounds (otherwise they blend into the
-            visitor's themed background). */}
-        <div
-          className="rounded-2xl border border-border/30 p-4 backdrop-blur-md"
-          style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
-        >
-          {/* Hashtags */}
-          {hashtags.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-1.5">
-              {hashtags.map(tag => (
-                <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
-              ))}
-            </div>
-          )}
+        {/* Daily wins — tiny chip row */}
+        {dailyWins.length > 0 && (
+          <div className="mb-5 flex items-center gap-1.5 flex-wrap">
+            {dailyWins.map(win => (
+              <span key={win.award_date} className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 text-[9px] font-semibold text-yellow-400/85">
+                <Crown className="h-2.5 w-2.5" />
+                {win.title}
+              </span>
+            ))}
+          </div>
+        )}
 
-          {/* Daily wins */}
-          {dailyWins.length > 0 && (
-            <div className="mb-6 flex items-center gap-2 flex-wrap">
-              {dailyWins.map(win => (
-                <span key={win.award_date} className="flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 text-[9px] font-semibold text-yellow-400/80">
-                  <Crown className="h-2.5 w-2.5" />
-                  {win.title} · {win.award_date}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Private profile gate */}
-          {isPrivate ? (
-            <div className="py-20 text-center space-y-4">
-              <Lock className="h-8 w-8 text-foreground/20 mx-auto" />
-              <p className="text-[13px] text-foreground/50">This account is private</p>
-              <p className="text-[10px] text-foreground/30">Join their circle to see posts</p>
-            </div>
-          ) : (
-            <>
-              {/* Style identity */}
-              {styleTags.length > 0 && (
-                <div className="mb-6">
-                  <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/40 uppercase mb-2">Style Identity</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {styleTags.map(tag => (
-                      <span key={tag} className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-medium text-accent/70">{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="h-px bg-border/20 mb-6" />
-
-              {/* Posts grid */}
-              {loading ? (
-                <div className="flex justify-center py-16">
-                  <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
-                </div>
-              ) : posts.length === 0 ? (
-                <p className="text-center text-[12px] text-foreground/40 py-16">No outfits posted yet</p>
-              ) : (
-                <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
-                  {posts.map((post, i) => (
+        {/* Private gate */}
+        {isPrivate ? (
+          <div className="py-20 text-center space-y-3">
+            <Lock className="h-7 w-7 text-foreground/20 mx-auto" />
+            <p className="text-[12.5px] text-foreground/55">This account is private</p>
+            <p className="text-[10.5px] text-foreground/35">Join their circle to see posts</p>
+          </div>
+        ) : (
+          <>
+            {/* Posts grid */}
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
+              </div>
+            ) : posts.length === 0 ? (
+              <p className="text-center text-[12px] text-foreground/40 py-16">No outfits posted yet</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 md:gap-2">
+                {posts.map((post, i) => {
+                  const aud = post.audience ?? "all";
+                  const AudIcon = aud === "circle" ? Users : aud === "ripple" ? Waves : null;
+                  return (
                     <motion.button
                       key={post.id}
                       type="button"
                       onClick={() => setSelectedPost(post)}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
+                      transition={{ delay: Math.min(i * 0.025, 0.4) }}
                       className="group relative overflow-hidden rounded-lg aspect-[3/4] focus:outline-none focus:ring-2 focus:ring-accent/60"
                     >
                       <img
@@ -499,13 +462,20 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                         loading="lazy"
                       />
+                      {/* Owner-only audience badge */}
+                      {isOwner && AudIcon && (
+                        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-black/60 backdrop-blur-sm px-1.5 py-0.5 text-[8px] font-semibold text-white/90">
+                          <AudIcon className="h-2.5 w-2.5" />
+                          {aud}
+                        </span>
+                      )}
                     </motion.button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Full OOTD detail sheet — likes, stars, comments, save, share */}
