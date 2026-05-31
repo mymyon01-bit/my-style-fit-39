@@ -80,7 +80,7 @@ const FitPage = () => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
   const { productId: routeProductId } = useParams<{ productId?: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>("scan");
+  const [activeTab, setActiveTab] = useState<Tab>("lab");
   const [fitMode, setFitMode] = useState<FitMode>("free");
   const [scanQuality, setScanQuality] = useState(0);
   const [measurements, setMeasurements] = useState<
