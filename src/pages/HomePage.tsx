@@ -20,6 +20,7 @@ import Brandmark from "@/components/Brandmark";
 import MoodTicker from "@/components/MoodTicker";
 import ShareButton from "@/components/ShareButton";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
+import SocialLinks from "@/components/SocialLinks";
 
 import StyleMeButton from "@/components/StyleMeButton";
 import ContactUsDialog from "@/components/ContactUsDialog";
@@ -261,20 +262,23 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 0.6 }}
-          className="relative z-10 mt-3 md:mt-12 flex flex-wrap items-center justify-center gap-3 rounded-full border border-foreground/10 bg-background/40 px-4 py-2 backdrop-blur-md"
+          className="relative z-10 mt-3 md:mt-12 flex flex-col items-center gap-2"
         >
-          <button
-            onClick={() => setAffOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/60 transition-colors hover:border-primary/50 hover:text-primary"
-          >
-            <Handshake className="h-3 w-3" />
-            <span>Affiliate</span>
-          </button>
-          <ShareButton
-            title="Share, Explore, and Edge your style. Join My'myon."
-            url="https://www.mymyon.com"
-            label="Share"
-          />
+          <div className="flex flex-wrap items-center justify-center gap-3 rounded-full border border-foreground/10 bg-background/40 px-4 py-2 backdrop-blur-md">
+            <button
+              onClick={() => setAffOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/60 transition-colors hover:border-primary/50 hover:text-primary"
+            >
+              <Handshake className="h-3 w-3" />
+              <span>Affiliate</span>
+            </button>
+            <ShareButton
+              title="Share, Explore, and Edge your style. Join My'myon."
+              url="https://www.mymyon.com"
+              label="Share"
+            />
+          </div>
+          <SocialLinks className="md:hidden" iconClassName="h-[16px] w-[16px]" />
         </motion.div>
       </section>
 

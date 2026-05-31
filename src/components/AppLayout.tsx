@@ -21,16 +21,17 @@ const AppLayout = () => {
   const hideBottomNav =
     ootdModalOpen ||
     location.pathname.startsWith("/ootd");
+  // Home is a single-viewport hero on mobile — skip the trailing social bar
+  // so there's no empty gap and no need to scroll to reach Instagram/etc.
+  const hideMobileSocial = location.pathname === "/";
 
   return (
     <>
       {!hideNotice && <DailyPicksNotice />}
       <div className={transition === "none" ? undefined : transitionClass}>
-        {/* Reserve space at the bottom on mobile so cards aren't hidden
-            behind BottomNav. md+ has no bottom nav. */}
         <div className={!hideBottomNav ? "pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0" : undefined}>
           {!ootdModalOpen && <Outlet />}
-          {!hideBottomNav && (
+          {!hideBottomNav && !hideMobileSocial && (
             <SocialLinks className="md:hidden px-5 pb-3 pt-2" iconClassName="h-[18px] w-[18px]" />
           )}
         </div>
