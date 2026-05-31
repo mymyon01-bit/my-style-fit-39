@@ -1420,6 +1420,7 @@ export type Database = {
       }
       ootd_posts: {
         Row: {
+          audience: string
           caption: string | null
           created_at: string
           dislike_count: number | null
@@ -1436,6 +1437,7 @@ export type Database = {
           weather_tag: string | null
         }
         Insert: {
+          audience?: string
           caption?: string | null
           created_at?: string
           dislike_count?: number | null
@@ -1452,6 +1454,7 @@ export type Database = {
           weather_tag?: string | null
         }
         Update: {
+          audience?: string
           caption?: string | null
           created_at?: string
           dislike_count?: number | null
@@ -3584,6 +3587,10 @@ export type Database = {
       add_conversation_member: {
         Args: { _conv_id: string; _user_id: string }
         Returns: undefined
+      }
+      can_view_ootd_post: {
+        Args: { _audience: string; _owner: string; _viewer: string }
+        Returns: boolean
       }
       check_removed_account: {
         Args: { _email: string }

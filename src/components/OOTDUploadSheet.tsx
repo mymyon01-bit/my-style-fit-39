@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2, Film } from "lucide-react";
+import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2, Film, Globe, Users, Waves } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
@@ -56,6 +56,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [allowShares, setAllowShares] = useState(true);
+  const [audience, setAudience] = useState<"all" | "circle" | "ripple">("all");
   // Raw file the user just picked — held while the crop dialog is open.
   const [pendingCrop, setPendingCrop] = useState<File | null>(null);
 
@@ -67,7 +68,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   }, [open, user, emailVerified]);
 
   useEffect(() => {
-    if (open) { loadTopics(); setStep(1); setAllowShares(true); }
+    if (open) { loadTopics(); setStep(1); setAllowShares(true); setAudience("all"); }
   }, [open]);
 
   const loadTopics = async () => {
@@ -182,7 +183,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
         occasion_tags: occasionTags,
         topics: allTopics,
         weather_tag: weather.condition,
-      });
+        audience,
+      } as any);
       if (insertError) throw insertError;
 
       await supabase.from("interactions").insert({
@@ -239,6 +241,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setError(null);
     setStep(1);
     setAllowShares(true);
+    setAudience("all");
   };
 
   const canProceed = (s: number) => {
@@ -507,6 +510,38 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                           {tag}
                         </button>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Audience — who can see this post */}
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Globe className="h-3 w-3 text-foreground/70" />
+                      <span className="text-[10px] font-semibold tracking-[0.15em] text-foreground/70">WHO CAN SEE</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([
+                        { key: "all", label: "All", desc: "Everyone", Icon: Globe },
+                        { key: "circle", label: "Circle", desc: "Mutual only", Icon: Users },
+                        { key: "ripple", label: "Ripple", desc: "Followers", Icon: Waves },
+                      ] as const).map(opt => {
+                        const active = audience === opt.key;
+                        const Icon = opt.Icon;
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => setAudience(opt.key)}
+                            className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-center transition-all ${
+                              active ? "border-accent bg-accent/10 text-accent" : "border-border text-foreground/70 hover:border-accent/30"
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-semibold">{opt.label}</span>
+                            <span className="text-[9px] opacity-70">{opt.desc}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
