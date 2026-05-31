@@ -27,6 +27,7 @@ const AppLayout = () => {
           )}
         </div>
       </div>
+      <UploadFAB />
       <BottomNav />
     </>
   );
