@@ -11,7 +11,7 @@ import { FontSizeProvider } from "@/lib/fontSize";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
 import DesktopNav from "@/components/DesktopNav";
-import OOTDModalHost from "@/components/OOTDModalHost";
+// OOTDModalHost removed — OOTD now lives at the standalone /ootd (FEED) route.
 
 import { OOTDModalProvider } from "@/lib/ootdModal";
 import SplashScreen from "@/components/SplashScreen";
@@ -233,7 +233,7 @@ const AppRoutes = () => {
       {!isAdmin && <PermissionsPrompt />}
       {!isAdmin && <AppUpdatePrompt />}
       {!isAdmin && <DesktopNav />}
-      {!isAdmin && <OOTDModalHost />}
+      {/* OOTDModalHost removed — FEED is a normal route now. */}
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Auth */}
@@ -275,6 +275,7 @@ const AppRoutes = () => {
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
             <Route path="/ootd" element={<OOTDPage />} />
+            <Route path="/feed" element={<OOTDPage />} />
             <Route path="/showroom" element={<ShowroomBrowsePage />} />
             <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
             <Route path="/showroom/:id" element={<ShowroomDetailPage />} />
