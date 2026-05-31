@@ -513,6 +513,38 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                     </div>
                   </div>
 
+                  {/* Audience — who can see this post */}
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Globe className="h-3 w-3 text-foreground/70" />
+                      <span className="text-[10px] font-semibold tracking-[0.15em] text-foreground/70">WHO CAN SEE</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([
+                        { key: "all", label: "All", desc: "Everyone", Icon: Globe },
+                        { key: "circle", label: "Circle", desc: "Mutual only", Icon: Users },
+                        { key: "ripple", label: "Ripple", desc: "Followers", Icon: Waves },
+                      ] as const).map(opt => {
+                        const active = audience === opt.key;
+                        const Icon = opt.Icon;
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => setAudience(opt.key)}
+                            className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-center transition-all ${
+                              active ? "border-accent bg-accent/10 text-accent" : "border-border text-foreground/70 hover:border-accent/30"
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-semibold">{opt.label}</span>
+                            <span className="text-[9px] opacity-70">{opt.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Sharing toggle — author can disable shares for this post */}
                   <button
                     type="button"
