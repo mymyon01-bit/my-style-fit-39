@@ -82,14 +82,7 @@ const DesktopNav = () => {
 
             <div className="h-2.5 w-px bg-foreground/15" />
 
-            {user ? (
-              <button
-                onClick={() => navigate("/settings")}
-                className="font-sans text-[10px] font-medium tracking-[0.05em] capitalize text-foreground/60 transition-colors hover:text-foreground"
-              >
-                Settings
-              </button>
-            ) : (
+            {!user && (
               <>
                 <button
                   onClick={() => navigate("/auth")}
