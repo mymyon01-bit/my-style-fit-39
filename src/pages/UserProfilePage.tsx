@@ -45,6 +45,7 @@ interface OOTDPost {
   like_count: number | null;
   dislike_count: number | null;
   created_at: string;
+  audience?: "all" | "circle" | "ripple" | null;
 }
 
 interface DailyWin {
