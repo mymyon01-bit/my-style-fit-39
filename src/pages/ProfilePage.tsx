@@ -305,47 +305,65 @@ const ProfilePage = () => {
           </button>
         )}
 
-        {/* Identity + Photo Upload */}
-        <div className="flex items-center gap-6">
-          <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.03] overflow-hidden">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-              ) : (
-                <User className="h-6 w-6 text-foreground/75" />
-              )}
-            </div>
-            <button
-              onClick={() => photoInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent/70 hover:bg-accent/30 transition-colors"
-            >
-              {uploadingPhoto ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
-            </button>
-            <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <p className="font-display text-lg text-foreground/80">{displayName}</p>
-              {profile?.username && (
-                <span className="text-[11px] text-foreground/50">@{profile.username}</span>
-              )}
-              <button onClick={() => setIsEditing(!isEditing)} className="text-foreground/70 hover:text-foreground/70">
-                <Edit3 className="h-3.5 w-3.5" />
+        {/* Identity — premium fashion-hub header */}
+        <div className="space-y-5">
+          <div className="flex items-start gap-5">
+            <div className="relative shrink-0">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-foreground/[0.04] overflow-hidden ring-1 ring-border/20">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                ) : (
+                  <User className="h-7 w-7 text-foreground/60" />
+                )}
+              </div>
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
+                aria-label="Change photo"
+              >
+                {uploadingPhoto ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
+              <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             </div>
-            <p className="text-[11px] text-foreground/70 mt-0.5">{user?.email}</p>
-            {profile?.bio && <p className="text-[11px] text-foreground/75 mt-1 italic">{profile.bio}</p>}
-            <div className="flex items-center gap-1.5 mt-1">
-              {emailVerified ? (
-                <span className="flex items-center gap-1 text-[11px] text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
-              ) : (
-                <span className="flex items-center gap-1 text-[11px] text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
+            <div className="flex-1 min-w-0 pt-1">
+              <p className="font-display text-2xl leading-tight text-foreground truncate">{displayName}</p>
+              {profile?.username && (
+                <p className="mt-0.5 text-[12px] text-foreground/55 truncate">@{profile.username}</p>
               )}
-              {profile?.location && <span className="text-[11px] text-foreground/70 ml-2">📍 {profile.location}</span>}
+              {profile?.bio && <p className="mt-2 text-[12px] leading-snug text-foreground/75 line-clamp-2">{profile.bio}</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-foreground/55">
+                {emailVerified ? (
+                  <span className="flex items-center gap-1 text-green-500/70"><CheckCircle className="h-3 w-3" /> Verified</span>
+                ) : (
+                  <span className="flex items-center gap-1 text-orange-400/70"><XCircle className="h-3 w-3" /> Unverified</span>
+                )}
+                {profile?.location && <span>📍 {profile.location}</span>}
+              </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="flex-1 rounded-full bg-secondary px-4 py-2.5 text-[11.5px] font-medium tracking-wide text-foreground/85 hover:bg-secondary/80 transition-colors"
+            >
+              {isEditing ? t("profileCancel") : t("profileEditProfile")}
+            </button>
+            <button
+              onClick={() => navigate("/subscription")}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[11.5px] font-medium tracking-wide transition-colors ${
+                subscription.isPremium
+                  ? "bg-primary text-primary-foreground hover:opacity-90"
+                  : "border border-border/40 text-foreground/75 hover:bg-secondary/60"
+              }`}
+            >
+              <Crown className="h-3.5 w-3.5" />
+              {subscription.isPremium ? t("premiumFeature") : "Premium"}
+            </button>
           </div>
         </div>
+
 
         {/* Edit Profile Form */}
         {isEditing && (
@@ -427,22 +445,15 @@ const ProfilePage = () => {
           </div>
         )}
 
-        {/* Subscription */}
-        <div className="flex items-center gap-4">
-          <Crown className={`h-4 w-4 ${subscription.isPremium ? "text-accent/70" : "text-foreground/70"}`} />
-          <div>
-            <p className="text-[11px] font-medium text-foreground/75">
-              {subscription.isPremium ? t("premiumFeature") : t("free")}
-            </p>
-            {subscription.isPremium && subscription.daysRemaining !== null && (
-              <p className="text-[10px] text-foreground/75">
-                {subscription.plan === "premium_trial"
-                  ? t("trialRemaining").replace("{days}", String(subscription.daysRemaining))
-                  : t("active")}
-              </p>
-            )}
+        {/* Hashtags */}
+        {profile?.hashtags && profile.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {profile.hashtags.map((tag: string) => (
+              <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
+            ))}
           </div>
-        </div>
+        )}
+
 
         {/* Hashtags */}
         {profile?.hashtags && profile.hashtags.length > 0 && (
@@ -472,15 +483,14 @@ const ProfilePage = () => {
           </button>
         </div>
 
-        {/* Stats — fixed 3-column grid so labels never break the row on mobile */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        {/* Stats — 5-column premium row */}
+        <div className="grid grid-cols-5 gap-2 sm:gap-3">
           {[
             { key: "posts", icon: Camera, label: t("posts"), value: postCount, onClick: undefined as undefined | (() => void) },
             { key: "stars", icon: Star, label: t("starsReceived"), value: totalStars, onClick: undefined },
             { key: "saved", icon: Bookmark, label: t("saved"), value: savedCount, onClick: undefined },
             { key: "circle", icon: Crown, label: t("profileLabelCircle"), value: circleCount, onClick: () => setCirclesSheet({ open: true, tab: "circle" }) },
             { key: "ripple", icon: Crown, label: t("profileLabelRipple"), value: rippleCount, onClick: () => setCirclesSheet({ open: true, tab: "ripple" }) },
-            { key: "scrap", icon: Bookmark, label: t("profileLabelScrap"), value: scrapCount, onClick: undefined },
           ].map(stat => {
             if (stat.key === "stars") {
               return (
@@ -724,21 +734,30 @@ const ProfilePage = () => {
 
         <div className="h-px bg-accent/[0.12]" />
 
-        {/* Links */}
-        <div className="space-y-1">
-          {[
-            { icon: Crown, label: t("profileLinkSubscription"), action: () => navigate("/subscription") },
-            { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
-            { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
-            { icon: Camera, label: t("profileLinkPostOotd"), action: () => navigate("/ootd") },
-          ].map(section => (
-            <button key={section.label} onClick={section.action} className="flex w-full items-center gap-5 py-4.5 transition-colors hover:text-foreground">
-              <section.icon className="h-[18px] w-[18px] text-foreground/75" strokeWidth={1.5} />
-              <span className="flex-1 text-left text-[13px] text-foreground/70">{section.label}</span>
-              <ChevronRight className="h-4 w-4 text-foreground/70" />
-            </button>
-          ))}
+        {/* Account menu — premium hub */}
+        <div>
+          <p className="mb-3 text-[10px] font-medium tracking-[0.22em] text-foreground/45">ACCOUNT</p>
+          <div className="overflow-hidden rounded-2xl border border-border/20 bg-card/40">
+            {[
+              { icon: Crown, label: t("profileLinkSubscription"), action: () => navigate("/subscription") },
+              { icon: Ruler, label: t("fitPreferences"), action: () => navigate("/fit") },
+              { icon: Camera, label: t("profileLinkPostOotd"), action: () => navigate("/ootd?tab=mypage") },
+              { icon: Shirt, label: t("discover"), action: () => navigate("/discover") },
+              { icon: Settings, label: t("settings"), action: () => navigate("/settings") },
+            ].map((section, i, arr) => (
+              <button
+                key={section.label}
+                onClick={section.action}
+                className={`flex w-full items-center gap-4 px-5 py-4 transition-colors hover:bg-secondary/40 ${i < arr.length - 1 ? "border-b border-border/15" : ""}`}
+              >
+                <section.icon className="h-[17px] w-[17px] text-foreground/65" strokeWidth={1.5} />
+                <span className="flex-1 text-left text-[13px] text-foreground/80">{section.label}</span>
+                <ChevronRight className="h-4 w-4 text-foreground/40" />
+              </button>
+            ))}
+          </div>
         </div>
+
 
         {/* Sign out */}
         <button onClick={handleSignOut} className="flex items-center gap-2 py-3 text-[11px] font-medium tracking-[0.1em] text-destructive/40 transition-colors hover:text-destructive/60">
