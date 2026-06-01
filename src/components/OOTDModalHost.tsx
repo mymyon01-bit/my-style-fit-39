@@ -135,6 +135,9 @@ const OOTDModalHost = () => {
                   transition={{ type: "spring", stiffness: 320, damping: 32 }}
                   style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
                 >
+                  {/* UserProfilePage renders its own visitor background when
+                      the user has one set; the wrapper's bg-background acts
+                      as a fallback for visitors with no theme. */}
                   <UserProfilePage userIdOverride={subUserId} />
                 </motion.div>
               )}
