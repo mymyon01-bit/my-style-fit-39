@@ -834,8 +834,17 @@ const OOTDPage = () => {
             )}
             <button
               onClick={() => {
-                if (inModal) closeOOTD();
-                else navigate("/");
+                if (inModal) {
+                  // If a sub-route (user profile overlay) is showing, step
+                  // back out of it first; otherwise close the whole modal.
+                  if (location.pathname.startsWith("/user/")) {
+                    window.history.back();
+                  } else {
+                    closeOOTD();
+                  }
+                } else {
+                  navigate("/");
+                }
               }}
               className="ootd-neon-icon ootd-neon-icon--ink"
               aria-label="OOTD 닫기"
