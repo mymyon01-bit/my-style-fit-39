@@ -1,3 +1,12 @@
+/**
+ * UserProfilePage — visitor view of another user's OOTD MY page.
+ *
+ * Goal: visually MIRROR the owner's OOTD MY tab as closely as possible —
+ * same animated background, same song-of-the-day player, same card tint,
+ * same MY POSTS grid styling. The only difference is that owner-only
+ * affordances (post, edit, delete, customize, settings) are stripped; the
+ * visitor can still interact (star, like, save, message, join circle).
+ */
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +16,6 @@ import {
   Lock, MessageCircle, Camera, Star, Users, Waves, Globe,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AuthGate } from "@/components/AuthGate";
 import { openConversationWith } from "@/hooks/useMessages";
 import MessagesFullSheet from "@/components/messages/MessagesFullSheet";
@@ -22,7 +30,6 @@ import PublicCirclesSheet from "@/components/PublicCirclesSheet";
 import CountUp from "@/components/CountUp";
 import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
-import { useI18n } from "@/lib/i18n";
 
 interface UserProfileData {
   user_id: string;
@@ -63,7 +70,6 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const userId = userIdOverride ?? routeUserId;
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [posts, setPosts] = useState<OOTDPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,19 +84,14 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const [starsLeft, setStarsLeft] = useState(3);
   const [messageSheet, setMessageSheet] = useState<{ open: boolean; conversationId: string | null }>({
-    open: false,
-    conversationId: null,
+    open: false, conversationId: null,
   });
   const [circlesSheet, setCirclesSheet] = useState<{ open: boolean; tab: "circle" | "ripple" }>({ open: false, tab: "circle" });
   const { counts: circleCounts, refresh: refreshCircleCounts } = useCircleCounts(userId);
 
   useEffect(() => {
     if (!userId) return;
-    loadProfile();
-    loadPosts();
-    loadViewerCircleStatus();
-    loadDailyWins();
-    loadBlockStatus();
+    loadProfile(); loadPosts(); loadViewerCircleStatus(); loadDailyWins(); loadBlockStatus();
   }, [userId]);
 
   useEffect(() => {
@@ -258,34 +259,50 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
   const styleTags = [...new Set(posts.flatMap(p => p.style_tags || []))].slice(0, 6);
   const hashtags = profile?.hashtags || [];
 
+  // Visitor's saved customization — mirror what the owner sees on their OOTD MY tab.
   const visitorBgTheme = (profile?.ootd_bg_theme as OOTDBgTheme | undefined) ?? "none";
   const visitorBgRealistic = profile?.ootd_bg_realistic ?? true;
   const visitorCard = profile?.ootd_card_color ?? null;
   const visitorSong = profile?.song_of_the_day ?? null;
-  const cardStyle = useMemo(() => {
-    if (!visitorCard?.hex) return undefined;
-    return { background: `${visitorCard.hex}1A` } as React.CSSProperties;
+
+  // Translucent card tint — same formula as OOTDPage so panels match.
+  const cardStyle = useMemo<React.CSSProperties | undefined>(() => {
+    if (visitorCard?.imageUrl) {
+      return {
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url("${visitorCard.imageUrl}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        color: "#ffffff",
+      };
+    }
+    if (visitorCard?.hex) {
+      return { background: `${visitorCard.hex}D6` };
+    }
+    return undefined;
   }, [visitorCard]);
 
   const isOwner = user?.id === userId;
   const displayName = profile?.display_name || "Anonymous";
+  const hasBg = visitorBgTheme !== "none";
 
   return (
-    <div className={`relative min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-24 ${visitorBgTheme !== "none" ? "" : "bg-background"}`}>
-      {visitorBgTheme !== "none" && (
-        <div className="pointer-events-none fixed inset-0 z-0">
-          <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} />
+    <div className={`relative min-h-screen pb-28 md:pb-28 lg:pb-16 lg:pt-24 ${hasBg ? "" : "bg-background"}`}>
+      {/* Visitor's chosen animated background — full-bleed, like OOTD MY tab. */}
+      {hasBg && (
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <OOTDBackground theme={visitorBgTheme} realistic={visitorBgRealistic} contained />
         </div>
       )}
 
-      {/* Top bar — mirrors My Page container with Back instead of Settings */}
-      <div className="relative z-10 mx-auto max-w-lg px-8 pt-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
-        <div className="flex items-center justify-between mb-12">
-          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-foreground/45 hover:text-foreground/75 transition-colors">
+      {/* Top bar */}
+      <div className="relative z-10 mx-auto max-w-lg px-6 pt-6 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 rounded-full bg-background/70 backdrop-blur-md px-3 py-1.5 text-foreground/70 hover:text-foreground transition-colors">
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-medium tracking-[0.18em]">BACK</span>
+            <span className="text-[10px] font-semibold tracking-[0.18em]">BACK</span>
           </button>
-          <span className="flex items-baseline font-display text-[15px] font-light leading-none text-foreground lg:hidden">
+          <span className="flex items-baseline font-display text-[15px] font-light leading-none text-foreground/85 lg:hidden">
             <span className="tracking-[0.05em]">my</span>
             <span aria-hidden className="mx-[0.18em] inline-block h-[2.5px] w-[2.5px] translate-y-[-0.55em] rounded-full bg-accent/70" />
             <span className="tracking-[0.05em]">myon</span>
@@ -293,44 +310,106 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
         </div>
       </div>
 
-      <div
-        className="relative z-10 mx-auto max-w-lg px-8 space-y-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12"
-        style={cardStyle ? { ...cardStyle, borderRadius: "var(--ootd-card-radius, 1.5rem)" } : undefined}
-      >
-        {/* Identity */}
+      <div className="relative z-10 mx-auto max-w-lg px-6 space-y-6 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
+        {/* Identity card — tinted with visitor's card color */}
         {profile ? (
-          <div className="flex items-center gap-6">
-            <OfficialAvatarRing isOfficial={profile.is_official}>
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.03] overflow-hidden">
-                {profile.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-                ) : (
-                  <span className="text-xl font-semibold text-foreground/40">
-                    {displayName[0]?.toUpperCase()}
-                  </span>
+          <div
+            className="rounded-2xl border border-border/30 backdrop-blur-md p-5"
+            style={cardStyle ?? { background: "hsl(var(--card) / 0.55)" }}
+          >
+            <div className="flex items-center gap-4">
+              <OfficialAvatarRing isOfficial={profile.is_official}>
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/[0.05] overflow-hidden">
+                  {profile.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-semibold text-foreground/40">
+                      {displayName[0]?.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              </OfficialAvatarRing>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-display text-lg text-foreground/95 truncate">{displayName}</p>
+                  {profile.is_official && <OfficialBadge />}
+                  {dailyWins.length > 0 && <Crown className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400 shrink-0" />}
+                  {profile.is_private && <Lock className="h-3 w-3 text-foreground/40 shrink-0" />}
+                </div>
+                {profile.username && (
+                  <p className="text-[11px] text-foreground/65 mt-0.5">@{profile.username}</p>
+                )}
+                {profile.bio && (
+                  <p className="text-[11.5px] text-foreground/80 mt-1.5 italic line-clamp-2">{profile.bio}</p>
+                )}
+                {profile.location && (
+                  <p className="text-[11px] text-foreground/65 mt-1">📍 {profile.location}</p>
                 )}
               </div>
-            </OfficialAvatarRing>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-display text-lg text-foreground/90 truncate">{displayName}</p>
-                {profile.is_official && <OfficialBadge />}
-                {dailyWins.length > 0 && <Crown className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400 shrink-0" />}
-                {profile.is_private && <Lock className="h-3 w-3 text-foreground/30 shrink-0" />}
-              </div>
-              {profile.username && (
-                <p className="text-[11px] text-foreground/55 mt-0.5">@{profile.username}</p>
-              )}
-              {profile.bio && (
-                <p className="text-[11px] text-foreground/70 mt-1 italic line-clamp-2">{profile.bio}</p>
-              )}
-              {profile.location && (
-                <p className="text-[11px] text-foreground/55 mt-1">📍 {profile.location}</p>
-              )}
             </div>
+
+            {/* Visitor action row — interactions only (no edit/settings) */}
+            {user && user.id !== userId && (
+              <div className="flex items-center gap-1.5 mt-4">
+                <AuthGate action="join circle">
+                  <button
+                    onClick={toggleCircle}
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10.5px] font-semibold transition-all ${
+                      inCircle ? "bg-accent/15 text-accent border border-accent/30" : "bg-foreground text-background hover:opacity-90"
+                    }`}
+                  >
+                    {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                    {inCircle ? "IN CIRCLE" : "JOIN CIRCLE"}
+                  </button>
+                </AuthGate>
+                <AuthGate action="message">
+                  <button
+                    onClick={async () => {
+                      const cid = await openConversationWith(userId!);
+                      if (cid) setMessageSheet({ open: true, conversationId: cid });
+                      else toast.error("Could not open chat");
+                    }}
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-3 py-1.5 text-[10.5px] font-semibold text-foreground/80 hover:text-foreground transition-colors"
+                  >
+                    <MessageCircle className="h-3 w-3" />
+                    MESSAGE
+                  </button>
+                </AuthGate>
+                <button
+                  onClick={toggleBlock}
+                  className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-medium transition-all ${
+                    isBlocked ? "text-destructive/70" : "text-foreground/40 hover:text-foreground/65"
+                  }`}
+                >
+                  <ShieldOff className="h-3 w-3" />
+                  {isBlocked ? "BLOCKED" : "BLOCK"}
+                </button>
+              </div>
+            )}
+
+            {/* Hashtags */}
+            {hashtags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {hashtags.map(tag => (
+                  <span key={tag} className="text-[10px] text-accent/80">#{tag}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Daily wins */}
+            {dailyWins.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap mt-3">
+                {dailyWins.map(win => (
+                  <span key={win.award_date} className="inline-flex items-center gap-1 rounded-full bg-yellow-400/15 border border-yellow-400/30 px-2 py-0.5 text-[9px] font-semibold text-yellow-400/95">
+                    <Crown className="h-2.5 w-2.5" />
+                    {win.title}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
-          <div className="animate-pulse flex items-center gap-6">
+          <div className="animate-pulse flex items-center gap-6 p-5">
             <div className="h-16 w-16 rounded-full bg-foreground/[0.05]" />
             <div className="space-y-2 flex-1">
               <div className="h-4 w-28 rounded bg-foreground/[0.05]" />
@@ -339,193 +418,132 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
           </div>
         )}
 
-        {/* Action row (visitors only) */}
-        {profile && user && user.id !== userId && (
-          <div className="flex items-center gap-1.5">
-            <AuthGate action="join circle">
-              <button
-                onClick={toggleCircle}
-                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10.5px] font-semibold transition-all ${
-                  inCircle ? "bg-accent/10 text-accent/80 border border-accent/25" : "bg-foreground text-background hover:opacity-90"
-                }`}
-              >
-                {inCircle ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                {inCircle ? "IN CIRCLE" : "JOIN CIRCLE"}
-              </button>
-            </AuthGate>
-            <AuthGate action="message">
-              <button
-                onClick={async () => {
-                  const cid = await openConversationWith(userId!);
-                  if (cid) setMessageSheet({ open: true, conversationId: cid });
-                  else toast.error("Could not open chat");
-                }}
-                className="inline-flex items-center gap-1 rounded-full border border-border/60 px-3 py-1.5 text-[10.5px] font-semibold text-foreground/75 hover:text-foreground transition-colors"
-              >
-                <MessageCircle className="h-3 w-3" />
-                MESSAGE
-              </button>
-            </AuthGate>
-            <button
-              onClick={toggleBlock}
-              className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-medium transition-all ${
-                isBlocked ? "text-destructive/70" : "text-foreground/30 hover:text-foreground/55"
-              }`}
-            >
-              <ShieldOff className="h-3 w-3" />
-              {isBlocked ? "BLOCKED" : "BLOCK"}
-            </button>
-          </div>
-        )}
-
-        {/* Hashtags */}
-        {hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {hashtags.map(tag => (
-              <span key={tag} className="text-[10px] text-accent/60">#{tag}</span>
-            ))}
-          </div>
-        )}
-
-        {/* Daily wins */}
-        {dailyWins.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {dailyWins.map(win => (
-              <span key={win.award_date} className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 text-[9px] font-semibold text-yellow-400/85">
-                <Crown className="h-2.5 w-2.5" />
-                {win.title}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Song of the day */}
+        {/* Song of the day — prominent, like owner's view */}
         {visitorSong && (
-          <VisitorSongPlayer song={visitorSong} cardStyle={cardStyle ?? undefined} />
+          <VisitorSongPlayer song={visitorSong} cardStyle={cardStyle} />
         )}
 
-        {/* Stats grid — same look as My Page (3-col) */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          <div className="flex flex-col items-center justify-center text-center min-w-0">
-            <CountUp value={postCount} className="text-xl font-light text-foreground/80 tabular-nums" />
-            <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{t("posts")}</p>
-          </div>
-          <div className="flex flex-col items-center justify-center text-center min-w-0">
-            <CountUp value={totalStars} className="text-xl font-light text-foreground/80 tabular-nums" />
-            <div className="mt-1.5 flex items-center justify-center text-amber-400">
-              <ShootingStarIcon size={14} />
-            </div>
-          </div>
-          <button onClick={() => setCirclesSheet({ open: true, tab: "circle" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
-            <CountUp value={circleCount} className="text-xl font-light text-foreground/80 tabular-nums" />
-            <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{t("profileLabelCircle")}</p>
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 -mt-6">
-          <button onClick={() => setCirclesSheet({ open: true, tab: "ripple" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
-            <CountUp value={rippleCount} className="text-xl font-light text-foreground/80 tabular-nums" />
-            <p className="text-[10px] text-foreground/70 mt-1.5 truncate">{t("profileLabelRipple")}</p>
-          </button>
-          {styleTags.length > 0 && (
+        {/* Stats — tinted card */}
+        <div
+          className="rounded-2xl border border-border/30 backdrop-blur-md p-4"
+          style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+        >
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <div className="flex flex-col items-center justify-center text-center min-w-0">
-              <span className="text-xl font-light text-foreground/80 tabular-nums">{styleTags.length}</span>
-              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">styles</p>
+              <CountUp value={postCount} className="text-xl font-light text-foreground/90 tabular-nums" />
+              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Posts</p>
             </div>
-          )}
+            <div className="flex flex-col items-center justify-center text-center min-w-0">
+              <CountUp value={totalStars} className="text-xl font-light text-foreground/90 tabular-nums" />
+              <div className="mt-1.5 flex items-center justify-center text-amber-400">
+                <ShootingStarIcon size={14} />
+              </div>
+            </div>
+            <button onClick={() => setCirclesSheet({ open: true, tab: "circle" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
+              <CountUp value={circleCount} className="text-xl font-light text-foreground/90 tabular-nums" />
+              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Circle</p>
+            </button>
+            <button onClick={() => setCirclesSheet({ open: true, tab: "ripple" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
+              <CountUp value={rippleCount} className="text-xl font-light text-foreground/90 tabular-nums" />
+              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Ripple</p>
+            </button>
+            {styleTags.length > 0 && (
+              <div className="flex flex-col items-center justify-center text-center min-w-0">
+                <span className="text-xl font-light text-foreground/90 tabular-nums">{styleTags.length}</span>
+                <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Styles</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="h-px bg-accent/[0.12]" />
+        {/* Style tags */}
+        {styleTags.length > 0 && !isPrivate && (
+          <div
+            className="rounded-2xl border border-border/30 backdrop-blur-md p-4"
+            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="h-3.5 w-3.5 text-foreground/65" />
+              <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/75">STYLE</span>
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {styleTags.map(tag => (
+                <span key={tag} className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[10px] text-accent/90">{tag}</span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Private gate */}
         {isPrivate ? (
-          <div className="py-20 text-center space-y-3">
-            <Lock className="h-7 w-7 text-foreground/20 mx-auto" />
-            <p className="text-[12.5px] text-foreground/55">This account is private</p>
-            <p className="text-[10.5px] text-foreground/35">Join their circle to see posts</p>
+          <div
+            className="rounded-2xl border border-border/30 backdrop-blur-md py-20 text-center space-y-3"
+            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+          >
+            <Lock className="h-7 w-7 text-foreground/30 mx-auto" />
+            <p className="text-[12.5px] text-foreground/65">This account is private</p>
+            <p className="text-[10.5px] text-foreground/45">Join their circle to see posts</p>
           </div>
         ) : (
-          <Accordion type="multiple" defaultValue={["ootds"]} className="space-y-2">
-            {/* Style tags from their OOTDs */}
-            {styleTags.length > 0 && (
-              <AccordionItem value="styles" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
-                <AccordionTrigger className="py-3 hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <Star className="h-4 w-4 text-foreground/60" />
-                    <div className="text-left">
-                      <p className="font-display text-[15px] tracking-tight text-foreground">Style</p>
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{styleTags.length} tags</p>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <div className="flex gap-1.5 flex-wrap">
-                    {styleTags.map(tag => (
-                      <span key={tag} className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] text-accent/80">{tag}</span>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+          /* OOTDs grid — same look as owner's MY POSTS in OOTDPage */
+          <div
+            className="rounded-2xl border border-border/30 backdrop-blur-md p-4"
+            style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="h-3.5 w-3.5 text-foreground/65" />
+                <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/75">OOTDs</span>
+              </div>
+              <span className="text-[9px] tracking-[0.2em] text-foreground/45">
+                {postCount} · {totalStars} ★
+              </span>
+            </div>
+            {loading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
+              </div>
+            ) : posts.length === 0 ? (
+              <p className="text-center text-[12px] text-foreground/50 py-10">No outfits posted yet</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 md:gap-2">
+                {posts.map((post, i) => {
+                  const aud = post.audience ?? "all";
+                  const AudIcon = aud === "circle" ? Users : aud === "ripple" ? Waves : Globe;
+                  return (
+                    <motion.button
+                      key={post.id}
+                      type="button"
+                      onClick={() => setSelectedPost(post)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.025, 0.4) }}
+                      className="group relative overflow-hidden rounded-lg aspect-square bg-foreground/[0.04] focus:outline-none focus:ring-2 focus:ring-accent/60"
+                    >
+                      <img
+                        src={post.image_url}
+                        alt={post.caption || ""}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        loading="lazy"
+                      />
+                      {isOwner && aud !== "all" && (
+                        <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-black/60 backdrop-blur-sm px-1.5 py-0.5 text-[8px] font-semibold text-white/90">
+                          <AudIcon className="h-2.5 w-2.5" />
+                          {aud}
+                        </span>
+                      )}
+                      {(post.star_count || 0) > 0 && (
+                        <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/70 px-1.5 py-0.5 backdrop-blur-sm">
+                          <Star className="h-2.5 w-2.5 text-accent/80" />
+                          <span className="text-[10px] text-foreground/80">{post.star_count}</span>
+                        </div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
             )}
-
-            {/* OOTDs */}
-            <AccordionItem value="ootds" className="border border-foreground/10 rounded-xl bg-card/30 px-4">
-              <AccordionTrigger className="py-3 hover:no-underline">
-                <div className="flex items-center gap-3">
-                  <Camera className="h-4 w-4 text-foreground/60" />
-                  <div className="text-left">
-                    <p className="font-display text-[15px] tracking-tight text-foreground">OOTDs</p>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">{postCount} posts · {totalStars} ★</p>
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pb-4">
-                {loading ? (
-                  <div className="flex justify-center py-10">
-                    <Loader2 className="h-4 w-4 animate-spin text-foreground/30" />
-                  </div>
-                ) : posts.length === 0 ? (
-                  <p className="text-center text-[12px] text-foreground/40 py-10">No outfits posted yet</p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 md:gap-2">
-                    {posts.map((post, i) => {
-                      const aud = post.audience ?? "all";
-                      const AudIcon = aud === "circle" ? Users : aud === "ripple" ? Waves : Globe;
-                      return (
-                        <motion.button
-                          key={post.id}
-                          type="button"
-                          onClick={() => setSelectedPost(post)}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: Math.min(i * 0.025, 0.4) }}
-                          className="group relative overflow-hidden rounded-lg aspect-square bg-foreground/[0.04] focus:outline-none focus:ring-2 focus:ring-accent/60"
-                        >
-                          <img
-                            src={post.image_url}
-                            alt={post.caption || ""}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                            loading="lazy"
-                          />
-                          {isOwner && aud !== "all" && (
-                            <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-black/60 backdrop-blur-sm px-1.5 py-0.5 text-[8px] font-semibold text-white/90">
-                              <AudIcon className="h-2.5 w-2.5" />
-                              {aud}
-                            </span>
-                          )}
-                          {(post.star_count || 0) > 0 && (
-                            <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full bg-background/60 px-1.5 py-0.5 backdrop-blur-sm">
-                              <Star className="h-2.5 w-2.5 text-accent/70" />
-                              <span className="text-[10px] text-foreground/70">{post.star_count}</span>
-                            </div>
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+          </div>
         )}
       </div>
 
