@@ -1,44 +1,32 @@
 /**
- * OOTDModalHost — desktop-only "card pop-out" modal that mounts OOTDPage
- * inline instead of navigating to /ootd. Keeps the user's previous page
- * underneath so back-button / close returns them where they were.
+ * OOTDModalHost — OOTD universe shell.
  *
- * The modal stays open while the user navigates to OOTD-related routes
- * (other users' profiles, OOTD detail, etc.) so the entire OOTD experience
- * lives inside the modal on desktop.
+ * Design goal: the modal acts as a *persistent base layer*. OOTDPage is
+ * mounted ONCE while the modal is open; when the user navigates into a
+ * sub-screen inside the OOTD universe (e.g. `/user/:id`), that sub-screen
+ * is rendered as an overlay on top, so OOTDPage keeps its scroll, tab,
+ * and data state. Going back simply unmounts the overlay — instant.
+ *
+ * The modal never auto-closes on internal navigation. It only closes via:
+ *   - explicit close() (X button, ESC, backdrop click)
+ *   - Android hardware back at the root level
  */
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDPage from "@/pages/OOTDPage";
 import UserProfilePage from "@/pages/UserProfilePage";
 
-// Routes that should auto-close the OOTD modal when the user navigates to them
-// (e.g. tapping another bottom-nav tab like Discover, Fit, Profile, Settings).
-// The modal stays open for OOTD-related routes so tapping into a user profile
-// from inside OOTD keeps the experience contained.
-const shouldKeepModalOpen = (pathname: string) =>
-  pathname === "/" ||
-  pathname.startsWith("/ootd") ||
+// Routes considered "inside the OOTD universe" — they render as overlays
+// on top of the persistent OOTDPage instead of closing the modal.
+const isOOTDSubRoute = (pathname: string) =>
   pathname.startsWith("/user/");
 
 const OOTDModalHost = () => {
-  const { isOpen, close, navigatedAway } = useOOTDModal();
+  const { isOpen, close } = useOOTDModal();
   const location = useLocation();
-
-  // Dispatch a "navigatedAway" intent when the user actually moves to a
-  // non-OOTD route. The reducer decides whether to actually close.
-  const lastPathRef = useRef(location.pathname);
-  useEffect(() => {
-    const prevPath = lastPathRef.current;
-    const pathChanged = prevPath !== location.pathname;
-    lastPathRef.current = location.pathname;
-    if (isOpen && pathChanged && !shouldKeepModalOpen(location.pathname)) {
-      navigatedAway();
-    }
-  }, [isOpen, location.pathname, navigatedAway]);
 
   // Lock body scroll while open
   useEffect(() => {
@@ -50,26 +38,28 @@ const OOTDModalHost = () => {
     };
   }, [isOpen]);
 
-  // ESC to close
+  // ESC closes the whole modal
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape") {
+        // If a sub-route is showing, step back through it first
+        if (isOOTDSubRoute(location.pathname)) window.history.back();
+        else close();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, close]);
+  }, [isOpen, location.pathname, close]);
 
-  // Android hardware back button — close the modal (or step back through
-  // nested user-profile routes inside it) instead of leaving the app or
-  // dropping the user back on Home.
+  // Android hardware back — step back through sub-routes, then close.
   useEffect(() => {
     if (!isOpen) return;
     const onBack = (e: Event) => {
       const detail = (e as CustomEvent<{ handled: boolean }>).detail;
       if (!detail) return;
       detail.handled = true;
-      if (location.pathname.startsWith("/user/")) {
+      if (isOOTDSubRoute(location.pathname)) {
         window.history.back();
       } else {
         close();
@@ -79,14 +69,10 @@ const OOTDModalHost = () => {
     return () => window.removeEventListener("app:backbutton", onBack as EventListener);
   }, [isOpen, location.pathname, close]);
 
-  // Decide what to render inside the modal based on current route.
-  const renderInner = () => {
-    if (location.pathname.startsWith("/user/")) {
-      const userId = decodeURIComponent(location.pathname.split("/")[2] || "");
-      return <UserProfilePage key={userId} userIdOverride={userId} />;
-    }
-    return <OOTDPage />;
-  };
+  // Resolve the current OOTD sub-route (if any).
+  const subUserId = location.pathname.startsWith("/user/")
+    ? decodeURIComponent(location.pathname.split("/")[2] || "")
+    : null;
 
   return (
     <AnimatePresence>
@@ -98,8 +84,7 @@ const OOTDModalHost = () => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Backdrop — opaque on desktop so the page underneath is fully
-              hidden (prevents the previous "two menus stacked" look). */}
+          {/* Desktop backdrop */}
           <motion.div
             aria-hidden
             className="absolute inset-0 hidden bg-background md:block"
@@ -109,8 +94,7 @@ const OOTDModalHost = () => {
             exit={{ opacity: 0 }}
           />
 
-          {/* Mobile: full-screen OOTD interface that covers the main BottomNav.
-              Desktop: card pop-out. */}
+          {/* The persistent OOTD shell */}
           <motion.div
             className="absolute inset-0 z-10 overflow-hidden bg-background
                        md:static md:inset-auto md:mt-[5vh] md:mb-[5vh] md:h-[88vh]
@@ -125,8 +109,7 @@ const OOTDModalHost = () => {
             aria-modal="true"
             aria-label="OOTD"
           >
-            {/* Small corner X — top-right inside the card (desktop only).
-                Mobile uses OOTDPage's own header X. */}
+            {/* Desktop close X */}
             <button
               onClick={close}
               aria-label="Close OOTD"
@@ -135,10 +118,27 @@ const OOTDModalHost = () => {
               <X className="h-3.5 w-3.5" strokeWidth={2.4} />
             </button>
 
-            {/* OOTD owns its own scroll area so its bottom menu stays fixed. */}
-            <div className="h-full w-full overflow-y-auto" key={location.pathname + location.search}>
-              {renderInner()}
+            {/* BASE LAYER — OOTDPage stays mounted for the lifetime of the modal */}
+            <div className="absolute inset-0 overflow-y-auto">
+              <OOTDPage />
             </div>
+
+            {/* OVERLAY — sub-route content slides over the base layer */}
+            <AnimatePresence>
+              {subUserId && (
+                <motion.div
+                  key={subUserId}
+                  className="absolute inset-0 z-20 overflow-y-auto bg-background"
+                  initial={{ x: "8%", opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: "8%", opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                  style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                >
+                  <UserProfilePage userIdOverride={subUserId} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       )}
@@ -147,4 +147,3 @@ const OOTDModalHost = () => {
 };
 
 export default OOTDModalHost;
-
