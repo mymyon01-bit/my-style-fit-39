@@ -293,7 +293,10 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto max-w-lg px-8 space-y-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12">
+      <div
+        className="relative z-10 mx-auto max-w-lg px-8 space-y-10 md:max-w-2xl md:px-10 lg:max-w-3xl lg:px-12"
+        style={cardStyle ? { ...cardStyle, borderRadius: "var(--ootd-card-radius, 1.5rem)" } : undefined}
+      >
         {/* Identity */}
         {profile ? (
           <div className="flex items-center gap-6">
