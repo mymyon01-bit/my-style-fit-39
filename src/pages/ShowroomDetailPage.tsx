@@ -343,7 +343,7 @@ const ShowroomDetailPage = () => {
           >
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <p className="text-[11.5px] text-foreground/70 leading-snug">
-                ✨ <span className="font-medium text-foreground/85">당신의 쇼룸을 꾸며주세요</span>
+                ✨ <span className="font-medium text-foreground/85">{t("showroomPersonalizeHint")}</span>
               </p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />
