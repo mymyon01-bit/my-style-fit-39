@@ -152,20 +152,8 @@ const HomePage = () => {
           }))
           .filter((p) => !!p.image);
         setDnaPicks(picks.slice(0, 6));
-        // Pick the first product with a usable image as the editorial hero so
-        // the home page always reflects real inventory we actually ship.
-        // Build a small rotating set of heroes from real inventory so the
-        // "Today's Pick" card cycles through items that match our catalog.
-        const heroSet = picks
-          .filter((p) => !!p.image)
-          .slice(0, 5)
-          .map((p) => ({
-            id: p.id,
-            title: p.title,
-            brand: p.brand,
-            image: p.image as string,
-          }));
-        if (heroSet.length) setHeroes(heroSet);
+        // Today's Pick uses the curated EDITORIAL_HEROES set (above) — we
+        // intentionally do NOT replace it with raw inventory imagery here.
       }
     })();
     return () => { cancelled = true; };
