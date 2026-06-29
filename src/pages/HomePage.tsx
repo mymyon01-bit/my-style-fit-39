@@ -419,7 +419,9 @@ const HomePage = () => {
           {t("howAreYouFeeling")}
         </p>
       </main>
+      </div>
     </div>
+
   );
 };
 
