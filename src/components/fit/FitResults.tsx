@@ -1036,7 +1036,7 @@ export default function FitResults({
         </section>
 
         {/* ─── RIGHT: PRODUCT + FIT SUMMARY RAIL ──────────────────────── */}
-        <aside className="space-y-3 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5">
+        <aside className="order-3 space-y-3 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5 lg:order-3">
           {/* Product header */}
           <div>
             <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Product</p>
