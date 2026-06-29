@@ -867,8 +867,8 @@ const OOTDPage = () => {
               <button
                 onClick={openOOTDWelcome}
                 className="text-foreground/55 hover:text-foreground transition-colors"
-                aria-label="OOTD 안내 보기"
-                title="OOTD 안내"
+                aria-label={t("ootdGuideAria")}
+                title={t("ootdGuideTitle")}
               >
                 <Info className="h-4 w-4" />
               </button>
