@@ -217,10 +217,10 @@ const HomePage = () => {
       </header>
 
       {/* ── Desktop: sidebar + wide main. Mobile stays single-column. ── */}
-      <div className="lg:flex lg:items-start lg:gap-10 lg:px-8 xl:px-12">
+      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-14 lg:px-10 lg:pt-4 xl:px-16">
         {/* Sidebar (lg+ only) */}
         <aside className="hidden w-[200px] shrink-0 lg:block">
-          <nav className="sticky top-[88px] flex flex-col gap-1 py-2">
+          <nav className="sticky top-[96px] flex flex-col gap-1 py-2">
             {SIDEBAR_LINKS.map((l) => {
               const Icon = l.icon;
               return (
@@ -243,6 +243,7 @@ const HomePage = () => {
         </aside>
 
       <main className="mx-auto w-full max-w-md px-5 lg:mx-0 lg:max-w-none lg:flex-1 lg:px-0">
+
         {/* AI Search — mobile only; desktop uses the top-bar search */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
