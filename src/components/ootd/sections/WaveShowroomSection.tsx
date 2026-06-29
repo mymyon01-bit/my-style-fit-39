@@ -183,7 +183,61 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
         </>
       ) : (
         <>
-          {/* Trending Showrooms */}
+          {/* ─── My Showroom ─────────────────────────────── */}
+          <SectionHeader
+            title="My Showroom"
+            onSeeAll={() => navigate("/showroom/new")}
+            seeAllLabel="New"
+          />
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {/* Make Your Showroom tile (always first) */}
+            <button
+              type="button"
+              onClick={() => navigate("/showroom/new")}
+              className="group flex aspect-[4/5] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/25 bg-card/40 p-3 text-center transition hover:border-accent/60 hover:bg-accent/[0.04]"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent">
+                <Plus className="h-4 w-4" strokeWidth={2} />
+              </span>
+              <span className="font-display text-[13px] font-medium text-foreground">Make Your Showroom</span>
+              <span className="text-[10.5px] leading-snug text-foreground/55">
+                Curate products, set a vibe.
+              </span>
+            </button>
+
+            {myRoomsLoading && Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="aspect-[4/5] animate-pulse rounded-2xl bg-foreground/[0.05]" />
+            ))}
+
+            {!myRoomsLoading && user && myRooms.slice(0, 7).map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => navigate(`/showroom/${r.id}`)}
+                className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-border bg-card text-left"
+              >
+                {r.banner_url ? (
+                  <img src={r.banner_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-[1.03]" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-accent/15 via-secondary/40 to-background">
+                    <LayoutGrid className="h-5 w-5 text-foreground/40" />
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 via-background/50 to-transparent p-2.5">
+                  <p className="line-clamp-1 font-display text-[12.5px] font-medium text-foreground">{r.title}</p>
+                  <p className="mt-0.5 text-[10px] text-foreground/55">{r.visibility}</p>
+                </div>
+              </button>
+            ))}
+
+            {!myRoomsLoading && !user && (
+              <div className="col-span-full rounded-xl border border-border bg-card p-4 text-center text-[12px] text-foreground/55">
+                Sign in to create and manage your Showrooms.
+              </div>
+            )}
+          </div>
+
+          {/* ─── Trending Showrooms ──────────────────────── */}
           <SectionHeader title="Trending Showrooms" onSeeAll={() => navigate("/showroom")} />
           <div className="mt-3 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {loadingShowrooms && (
@@ -193,7 +247,7 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
             )}
             {!loadingShowrooms && showrooms.length === 0 && (
               <div className="rounded-xl border border-border bg-card p-5 text-center text-sm text-foreground/55 lg:col-span-2 xl:col-span-3">
-                No showrooms yet — be the first to curate one.
+                No public showrooms yet — be the first to curate one.
               </div>
             )}
             {showrooms.map((s) => (
@@ -221,6 +275,24 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
               </button>
             ))}
           </div>
+
+          {/* ─── Make Your Showroom CTA ──────────────────── */}
+          <button
+            type="button"
+            onClick={() => navigate("/showroom/new")}
+            className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-card to-card p-4 text-left transition hover:border-accent/60"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+              <Sparkles className="h-4 w-4" strokeWidth={1.8} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-[15px] font-medium text-foreground">Make Your Showroom</span>
+              <span className="mt-0.5 block text-[11.5px] leading-snug text-foreground/60">
+                Pull in products from Discover & Search, set a custom background, music, and color.
+              </span>
+            </span>
+            <ArrowRight className="h-4 w-4 text-foreground/55" strokeWidth={1.6} />
+          </button>
         </>
       )}
 
