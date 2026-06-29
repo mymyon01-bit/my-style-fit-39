@@ -194,16 +194,15 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.045em;
-    line-height: 0.88;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
     color: hsl(var(--foreground));
-    font-weight: 800;
-    text-transform: uppercase;
-    font-feature-settings: "ss01", "cv11", "liga";
+    font-weight: 600;
+    font-feature-settings: "ss01", "liga", "kern";
   }
-  h1 { font-weight: 900; letter-spacing: -0.06em; font-style: normal; }
-  h2 { font-weight: 800; letter-spacing: -0.05em; }
-  h3, h4 { font-weight: 700; letter-spacing: -0.03em; }
+  h1 { font-weight: 700; letter-spacing: -0.03em; }
+  h2 { font-weight: 600; letter-spacing: -0.02em; }
+  h3, h4 { font-weight: 600; letter-spacing: -0.015em; }
   p { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
   /* Selection — hot pink slab */
