@@ -1146,7 +1146,21 @@ const translations = {
     profileUsernameMeta: "올해 변경 {n}/3회{rest}",
     profileUsernameRemaining: " · 다음 변경까지 {d}일",
     profileUsernameUnlocked: " · 지금 변경 가능",
-    // ── auto-added translations ──
+    // ── shared UI strings (hardcoded → i18n) ──
+    showroomPersonalizeHint: "내 쇼룸을 꾸며보세요",
+    accountRemovedBody: "이 계정은 커뮤니티 가이드라인 위반으로 my'myon에서 영구적으로 삭제되었습니다.",
+    profileUsernameMentionTitle: "OOTD에서 사용할 아이디를 설정해 주세요",
+    profileUsernameMentionBody: "표시 이름 “{name}”에 공백이 있어 다른 사용자가 @로 멘션할 수 없어요. 아래 EDIT PROFILE에서 공백 없는 @아이디를 정해 주세요.",
+    profileUsernameRules: "1–30자 · 영문 소문자/숫자/점/밑줄만 · 공백 불가 · 1년 3회, 변경 후 30일 잠금",
+    sotdPrompt: "오늘 내 기분을 가장 잘 표현한 노래를 골라보세요.",
+    msgNewMessage: "새 메시지",
+    msgAttachment: "사진 또는 첨부파일을 보냈어요",
+    msgSentBy: "{name}님이 메시지를 보냈어요",
+    msgOpen: "열기",
+    ootdCloseAria: "OOTD 닫기",
+    ootdCloseTitle: "닫기",
+    ootdGuideAria: "OOTD 안내 보기",
+    ootdGuideTitle: "OOTD 안내",
     },
   it: {
     appName: "WARDROBE",
