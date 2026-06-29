@@ -24,7 +24,7 @@ const Wordmark = ({ size, className }: { size: number; className?: string }) => 
       aria-label="mymyon"
     >
       <img
-        src={signature}
+        src={signature.url}
         alt="mymyon"
         className="block h-full w-auto select-none"
         draggable={false}
