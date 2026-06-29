@@ -260,7 +260,7 @@ const HomePage = () => {
                 key={hero?.id}
                 src={hero?.image}
                 alt={hero?.title}
-                className="absolute inset-0 h-full w-full object-cover object-right sm:object-center"
+                className="absolute inset-0 h-full w-full object-cover object-center"
                 loading="eager"
                 initial={{ opacity: 0, scale: 1.04 }}
                 animate={{ opacity: 1, scale: 1 }}
