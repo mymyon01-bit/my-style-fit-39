@@ -124,17 +124,29 @@ const HomePage = () => {
       const { data } = await supabase
         .from("products")
         .select("id, name, brand, image_url, hero_image_url")
-        .limit(6);
+        .limit(12);
       if (!cancelled && data) {
-        setDnaPicks(
-          (data as any[]).map((p, i) => ({
+        const picks = (data as any[])
+          .map((p, i) => ({
             id: p.id,
             title: p.name || "Featured piece",
             brand: p.brand ?? null,
             image: p.hero_image_url || p.image_url || null,
             match: 88 + ((i * 3) % 11),
-          })),
-        );
+          }))
+          .filter((p) => !!p.image);
+        setDnaPicks(picks.slice(0, 6));
+        // Pick the first product with a usable image as the editorial hero so
+        // the home page always reflects real inventory we actually ship.
+        const heroPick = picks[0];
+        if (heroPick) {
+          setHero({
+            id: heroPick.id,
+            title: heroPick.title,
+            brand: heroPick.brand,
+            image: heroPick.image as string,
+          });
+        }
       }
     })();
     return () => { cancelled = true; };
