@@ -22,6 +22,13 @@ import {
   Minus,
   Heart,
   ArrowRight,
+  Home as HomeIcon,
+  Ruler,
+  Compass,
+  Shirt,
+  Info,
+  Heart as HeartIcon,
+  ShoppingBag,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
