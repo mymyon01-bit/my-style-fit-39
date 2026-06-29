@@ -775,7 +775,7 @@ export default function FitResults({
       {/* ─── DASHBOARD GRID ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
         {/* ─── LEFT: MY BODY ─────────────────────────────────────────── */}
-        <aside className="rounded-3xl border border-foreground/[0.06] bg-card/40 p-5">
+        <aside className="order-2 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5 lg:order-1">
           <div className="flex items-center justify-between">
             <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/50 uppercase">My Body</p>
             {onEditMeasurements && (
@@ -881,7 +881,7 @@ export default function FitResults({
 
 
         {/* ─── CENTER: SIZE PREVIEW ─────────────────────────────── */}
-        <section className="rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6">
+        <section className="order-1 rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6 lg:order-2">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[10px] font-bold tracking-[0.3em] text-foreground/55 uppercase">Size Preview</p>
             <span className="rounded-full bg-foreground/[0.06] px-3 py-1 text-[10px] font-medium tracking-wider text-foreground/60">
@@ -1036,7 +1036,7 @@ export default function FitResults({
         </section>
 
         {/* ─── RIGHT: PRODUCT + FIT SUMMARY RAIL ──────────────────────── */}
-        <aside className="space-y-3 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5">
+        <aside className="order-3 space-y-3 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5 lg:order-3">
           {/* Product header */}
           <div>
             <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Product</p>
