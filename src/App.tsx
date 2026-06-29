@@ -85,6 +85,8 @@ const AdminAppReleases = lazyWithRetry(() => import("@/pages/admin/AdminAppRelea
 const ShowroomBrowsePage = lazyWithRetry(() => import("@/pages/ShowroomBrowsePage"), "ShowroomBrowsePage");
 const ShowroomNewPage = lazyWithRetry(() => import("@/pages/ShowroomNewPage"), "ShowroomNewPage");
 const ShowroomDetailPage = lazyWithRetry(() => import("@/pages/ShowroomDetailPage"), "ShowroomDetailPage");
+const SearchPage = lazyWithRetry(() => import("@/pages/SearchPage"), "SearchPage");
+const OOTDCommunityPage = lazyWithRetry(() => import("@/pages/OOTDCommunityPage"), "OOTDCommunityPage");
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
