@@ -51,19 +51,24 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
           type="button"
           onClick={() => navigate("/")}
           aria-label="MYMYON home"
-          className="group absolute left-0 top-0 z-10 h-[110px] w-[260px] overflow-hidden"
+          className="group absolute left-0 top-0 z-20 h-[130px] w-[290px] overflow-hidden"
         >
-          <img
-            src={inkCorner}
-            alt=""
-            aria-hidden="true"
-            className="pointer-events-none absolute -left-10 -top-12 h-[200px] w-[300px] select-none object-cover object-left-top opacity-95 transition-transform duration-500 group-hover:scale-105"
-            draggable={false}
-          />
-          <span className="pointer-events-none absolute left-7 top-7 drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
-            <Brandmark variant="inline" size={40} className="brightness-110 invert-0" />
+          {/* Ink layer — breathes like sumi ink bleeding into hanji paper. */}
+          <span className="pointer-events-none absolute inset-0 block">
+            <img
+              src={inkCorner}
+              alt=""
+              aria-hidden="true"
+              className="ink-breathe pointer-events-none absolute -left-12 -top-14 h-[230px] w-[340px] select-none object-cover object-left-top"
+              draggable={false}
+            />
+          </span>
+          {/* Gold "my" wordmark — sits crisply on top of the ink. */}
+          <span className="pointer-events-none absolute left-8 top-9 z-10 drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)] transition-transform duration-500 group-hover:scale-[1.04]">
+            <Brandmark variant="inline" size={46} />
           </span>
         </button>
+
         <div className="mx-auto flex max-w-[1440px] items-center gap-10 px-10 py-5 xl:px-16">
           <div className="w-[200px] shrink-0" aria-hidden="true" />
 
