@@ -775,7 +775,7 @@ export default function FitResults({
       {/* ─── DASHBOARD GRID ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
         {/* ─── LEFT: MY BODY ─────────────────────────────────────────── */}
-        <aside className="rounded-3xl border border-foreground/[0.06] bg-card/40 p-5">
+        <aside className="order-2 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5 lg:order-1">
           <div className="flex items-center justify-between">
             <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/50 uppercase">My Body</p>
             {onEditMeasurements && (
