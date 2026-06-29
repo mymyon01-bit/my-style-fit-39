@@ -387,55 +387,58 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* ── Based on Your Body DNA — small product cards grid ───── */}
-        <section className="mt-8">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px]">
-              Based on Your Body DNA
-            </h2>
-            <button
-              type="button"
-              onClick={() => navigate("/fit")}
-              className="text-[11px] font-medium tracking-tight text-foreground/55 hover:text-accent"
-            >
-              See All
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {(dnaPicks.length ? dnaPicks : Array.from({ length: 6 }).map((_, i) => ({
-              id: `dp${i}`, title: "—", brand: null, image: null, match: 0,
-            }))).map((p) => (
+        {/* ── Based on Your Body DNA — single horizontal row ───────── */}
+        {dnaPicks.length > 0 && (
+          <section className="mt-9">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px]">
+                Based on Your Body DNA
+              </h2>
               <button
-                key={p.id}
                 type="button"
-                onClick={() => navigate(p.id.startsWith("dp") ? "/fit" : `/p/${p.id}`)}
-                className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition-shadow hover:shadow-[var(--shadow-2)]"
+                onClick={() => navigate("/fit")}
+                className="text-[11px] font-medium tracking-tight text-foreground/55 hover:text-accent"
               >
-                <div className="relative w-full overflow-hidden bg-foreground/[0.04]" style={{ aspectRatio: "3 / 4" }}>
-                  {p.image ? (
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <div className="h-full w-full animate-pulse bg-foreground/[0.06]" />
-                  )}
-                  {p.match > 0 && (
-                    <span className="absolute left-2 top-2 rounded-full bg-background/85 px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.18em] uppercase text-accent backdrop-blur-md">
-                      {p.match}% match
-                    </span>
-                  )}
-                </div>
-                <div className="px-3 py-2.5">
-                  <div className="truncate font-display text-[13px] font-medium text-foreground">{p.title}</div>
-                  <div className="truncate text-[10.5px] text-muted-foreground">{p.brand ?? "—"}</div>
-                </div>
+                See All
               </button>
-            ))}
-          </div>
-        </section>
+            </div>
+            <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-3 pb-1 md:gap-5">
+                {dnaPicks.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => navigate(`/p/${p.id}`)}
+                    className="group relative shrink-0 overflow-hidden rounded-2xl bg-foreground/[0.04] text-left md:w-[200px]"
+                    style={{ width: 140, aspectRatio: "3 / 4" }}
+                  >
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="h-full w-full animate-pulse bg-foreground/[0.06]" />
+                    )}
+                    {p.match > 0 && (
+                      <span className="absolute left-2 top-2 rounded-full bg-background/85 px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.18em] uppercase text-accent backdrop-blur-md">
+                        {p.match}% match
+                      </span>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent px-2.5 py-2">
+                      <div className="truncate font-display text-[12px] font-medium text-foreground">{p.title}</div>
+                      {p.brand && (
+                        <div className="truncate text-[10px] text-muted-foreground">{p.brand}</div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* tagline / footer text */}
         <p className="mt-10 text-center font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40">
