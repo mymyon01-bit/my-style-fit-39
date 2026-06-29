@@ -4,10 +4,12 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Plus, Sparkles, LayoutGrid } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCount } from "@/lib/formatCount";
 import { useMyWaves, type Wave } from "@/hooks/useWaves";
+import { useUserShowrooms } from "@/hooks/useShowrooms";
+import { useAuth } from "@/lib/auth";
 import CreateWaveDialog from "@/components/ootd/CreateWaveDialog";
 import WaveModal from "@/components/ootd/WaveModal";
 import { Button } from "@/components/ui/button";
