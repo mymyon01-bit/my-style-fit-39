@@ -51,6 +51,23 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
   const { user } = useAuth();
   const [postOpen, setPostOpen] = useState(false);
   const [shareInOOTDOpen, setShareInOOTDOpen] = useState(false);
+  const [bodyHeightCm, setBodyHeightCm] = useState<number | null>(null);
+  const [bodyGender, setBodyGender] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) { setBodyHeightCm(null); setBodyGender(null); return; }
+    let cancelled = false;
+    (async () => {
+      const [{ data: bp }, { data: pr }] = await Promise.all([
+        supabase.from("body_profiles").select("height_cm").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle(),
+      ]);
+      if (cancelled) return;
+      if (bp?.height_cm) setBodyHeightCm(Number(bp.height_cm));
+      if (pr?.gender_preference) setBodyGender(pr.gender_preference);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   // V4.0 — predictive preparation. Prewarm garment DNA + image preload under
   // an anonymous body signature; the body-aware prewarm reruns inside FitResults.
