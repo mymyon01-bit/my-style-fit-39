@@ -14,9 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Bricolage Grotesque", "Archivo Black", "Helvetica Neue", "Arial", "sans-serif"],
-        body: ["Inter", "DM Sans", "Helvetica Neue", "Arial", "sans-serif"],
-        sans: ["Inter", "DM Sans", "Helvetica Neue", "Arial", "sans-serif"],
+        display: ["Playfair Display", "Cormorant Garamond", "Times New Roman", "serif"],
+        serif: ["Playfair Display", "Cormorant Garamond", "Times New Roman", "serif"],
+        body: ["Inter", "-apple-system", "SF Pro Display", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: ["Inter", "-apple-system", "SF Pro Display", "Helvetica Neue", "Arial", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       colors: {

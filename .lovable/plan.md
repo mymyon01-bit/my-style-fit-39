@@ -1,94 +1,60 @@
-# MYMYON FIT — Global Body-Locked Engine Rebuild
+# MYMYON Rebrand & UI Transformation — Build Plan
 
-## Goal
-Replace the current label-influenced / "safe-larger" sizing with a strict measurement-driven engine where: **locked body − garment dims → delta → ease target → score → classification → render directive**. Size labels (S/M/L/XL) are names only.
+This guideline covers 10 large areas. To ship it cleanly without breaking the live app, I'll do it in phases. Each phase is shippable on its own — you can review after each one before I move on.
 
-## Architecture (new files under `src/lib/sizing/v3/`)
+## Phase 1 — Brand Identity Foundation (1 turn)
+- **Color tokens** in `src/index.css`:
+  - Midnight Navy `#0F1A2D`, Warm Ivory `#F4EFE8`, Champagne Beige `#DCC7B6`, Soft Gold `#E6808B` (accent), Graphite Black `#1A1A1A`.
+  - Apply to light + dark theme semantic tokens (background, foreground, primary, accent, card, border).
+- **Typography**: Playfair Display (headings), SF Pro Display / Inter fallback (UI body). Wired into Tailwind + global CSS.
+- **Signature logo**: keep existing gold cursive "my" mark; verify usage in `Brandmark.tsx` and splash.
+- Tags row (Luxury · Timeless · Editorial · Intelligent · Personal) added as a subtle brand microcopy strip on Home.
 
-```text
-src/lib/sizing/v3/
-  bodyProfile.ts        # LockedBodyProfile builder (immutable)
-  garmentProfile.ts     # GarmentProfile per size, fallback tables
-  easeTargets.ts        # category × cut × stretch → target ease ranges
-  deltas.ts             # per-region delta calculators (top/dress/pant)
-  fitScore.ts           # penalty model + classification
-  recommend.ts          # picks best-balance size, never "biggest safe"
-  renderDirective.ts    # FitRenderDirective from score
-  index.ts              # public API: computeFit(body, product) → V3FitResult
-```
+## Phase 2 — Navigation Restructure (1 turn)
+- Bottom nav becomes: **Home · Fit DNA · Discover · OOTD · Profile** (already partly done — finalize icons + labels + routes).
+- `Discover` = product exploration / shopping (new route, reuses existing product browse).
+- `Fit DNA` = body analysis + fit prediction hub.
+- `Profile` = personal closet + analytics.
 
-Existing `src/lib/sizing/*` (bodyResolver, garmentChart, fitCalculator, recommend, brandCalibration, feedback) becomes the **data layer** — v3 consumes its outputs but applies new ease/score/classification logic. We do **not** touch the visual try-on pipeline contracts; we change what they receive.
+## Phase 3 — Home Page Transformation (1 turn)
+- New components:
+  - **Hero Fashion Banner** ("Your Style. Perfected.") — editorial full-bleed.
+  - **Curated For You** rail.
+  - **Based On Your Body DNA** rail (uses existing recommendation engine).
+  - **Trending Brands** logo row.
+  - **AI Picks** card.
+  - **Seasonal Editorial Collections** large card.
+- Removes the generic "new arrivals / best sellers" feel.
 
-## Step-by-step
+## Phase 4 — Fit DNA Page (1 turn)
+- Body DNA panel: Shoulder / Bust / Waist / Hip / Height / Weight + body-shape classifier.
+- AI score ring trio: **Fit Accuracy 92% · Comfort 88% · Silhouette 90%**.
+- New capability chips: Virtual fitting, Cross-brand normalization, Outfit compatibility scoring, Fabric tension prediction, Size confidence.
 
-### 1. LockedBodyProfile (`bodyProfile.ts`)
-- Input: existing `ResolvedBody` from `bodyResolver.ts`.
-- Adds: `armLengthCm`, `torsoLengthCm`, `bodyShape`, `genderProfile` (estimated from H/W/gender if missing — reuse `anthropometry.ts`).
-- Output frozen object (`Object.freeze`). Same instance reused across all sizes for a product.
-- No mutation, no per-size variant.
+## Phase 5 — Product Detail Page Upgrade (1 turn)
+- Adds **Product Intelligence Layer**: Fit Match %, Recommended Size, Fabric Behavior, AI Styling Suggestions, Similar Alternatives.
+- Action row: Try On · Add to Closet · Outfit Builder · Save to Wave.
 
-### 2. GarmentProfile (`garmentProfile.ts`)
-- Pulls per-size measurements from `garmentChart.ts` (already loads from `garment_measurements` + brand calibration).
-- Adds normalized fields per category:
-  - tops: chest/shoulder/sleeve/length/hem
-  - dresses: bust/waist/hip/length/strap
-  - pants: waist/hip/thigh/rise/inseam/legOpening
-- Fallback: gender-aware MEN/WOMEN tables in `categoryRules.ts` keyed by `(gender, category, cut)` — never one universal table.
-- Carries `cutType`, `stretchLevel`, `fabricWeight` (default per category if not set).
+## Phase 6 — OOTD Community Evolution (1–2 turns)
+- A. **Feed** — keep vertical infinite feed.
+- B. **My Page** — outfit archive, saved looks, closet management, personal statistics, style evolution timeline.
+- C. **Wave** — TikTok-style trend discovery tab (viral looks, challenges, creator growth).
+- D. **Showroom** — themed/seasonal/creator lookbooks ("Paris Minimalism", "Office Essentials", etc.).
 
-### 3. Ease targets (`easeTargets.ts`)
-Pure data module. `getEaseTarget(category, cut, stretch, region) → {min, max}` with the spec's ranges (slim top +2/+6, regular +6/+12, relaxed +12/+20, oversized hoodie +18/+30, bodycon −2/+3, slip dress bust +3/+8 etc., pants waist 0/+4, hip +4/+10, thigh +3/+8). Stretch + fabric weight modifiers shift the window.
+## Phase 7 — Personal Closet System (1 turn)
+- MY CLOSET: save owned items, build outfits, track wears, AI styling suggestions, "what should I wear today", weather styling, travel packing, missing item recommendations.
 
-### 4. Deltas (`deltas.ts`)
-`computeDeltas(body, garmentSize, category) → Record<Region, number>`. Pure subtraction, no clamping.
+## Phase 8 — Visual Design Polish (continuous)
+- Larger imagery, more whitespace, stronger type hierarchy, cleaner nav. Editorial dark surfaces with ivory cards. Inspirations: NET-A-PORTER, COS, THE ROW, TOTEME, SSENSE, ZARA STUDIO.
 
-### 5. FitScore + classification (`fitScore.ts`)
-For each region: `regionPenalty = distanceOutsideTarget² × regionWeight`. Asymmetric — too-tight on chest weighted heavier than too-loose; too-loose on shoulder weighted heavily; length given moderate weight.
-`fitScore = Σ regionPenalty`. Lower = better.
-Classification from worst region delta vs target:
-- delta < target.min − 4 → **Too Small**
-- delta < target.min       → **Tight**
-- delta in [min, min+(max−min)/3] → **Close Fit**
-- delta in middle third → **Best Balance**
-- delta in upper third → **Relaxed**
-- delta > max          → **Oversized**
-- delta > max + 8      → **Too Large** / **Not Recommended**
+## Phase 9 — Final Positioning Copy
+- Replace marketing copy app-wide: "MYMYON — AI-powered personal fashion ecosystem. Personal Styling · Body Intelligence · Smart Shopping · Digital Closet · Fashion Community · Creator Economy."
 
-### 6. Recommend (`recommend.ts`)
-- Score every size.
-- `primary = argmin(fitScore)` — strictly closest to ease target. Never "largest safe size".
-- `alternate = next-best of opposite direction` for user choice.
-- If even best is `Too Small` / `Too Large` → set `rangeStatus` and surface honest "no good size" warning.
-- Apply user `fitPreference` only as a **tiebreaker** (shifts target window ±2cm), never overrides classification truth.
+---
 
-### 7. RenderDirective (`renderDirective.ts`)
-Builds `FitRenderDirective` from `{lockedBody, selectedSize, classification, regionDeltas}` with discrete levels: `tightnessLevel`, `loosenessLevel`, `shoulderDropLevel`, `fabricTensionLevel`, `drapeLevel`, `sleeveStackLevel`, `hemLiftLevel`, `lengthExcessLevel`, `compressionZones[]`, `looseZones[]`. This object is what `fit-tryon-router` already consumes (Phase 1 V3 preamble) — we now feed it from real numbers instead of hand-tuned strings.
+## Suggested Order
+I propose shipping in this order: **1 → 2 → 3 → 4 → 5 → 6 → 7**, with Phase 8 polish folded into each. Each phase is ~1 turn and independently reviewable.
 
-### 8. Wire-up
-- `src/hooks/useSizeRecommendation.ts` → call `computeFit` from `v3/index.ts` instead of legacy `recommend`.
-- `src/components/fit/FitResults.tsx` → already simplified (Phase 2). Map v3 classification → existing `heroFitType` label + 1-sentence guidance. Detail panel reads v3 region deltas.
-- `supabase/functions/fit-tryon-router/index.ts` → accept `renderDirective` payload from client; prompt builder uses directive levels (tightness/looseness/shoulder-drop) verbatim instead of recomputing from BMI strings.
-
-### 9. Quality gate (server)
-In `fit-tryon-router`, after Gemini returns: if classification=`Too Small` but image looks balanced (no fabric tension keywords echoed back) → retry once with stricter directive. Reject if size mismatch can't be reconciled, fall back to schematic fit visualization.
-
-### 10. Tests (`src/lib/sizing/v3/__tests__/scenarios.test.ts`)
-The 6 acceptance scenarios from the spec (A–F): female 167/47, female 167/95, male 178/72, male 170/100, slim-female-mens-oversized-hoodie, large-female-womens-S-dress. Each asserts the classification per size matches the spec.
-
-## What is NOT changed
-- DB schema (garment_measurements, fit_feedback, brand_fit_profiles untouched).
-- Auth, IDM-VTON path, image upload.
-- `FitResults.tsx` layout (Phase 2 already done) — only the data source changes.
-- V3 BODY-LOCK preamble in edge function (Phase 1) stays; directive now feeds real numbers into it.
-
-## Order of execution
-1. Build v3 modules + scenario tests (TDD on the 6 cases).
-2. Swap `useSizeRecommendation` to v3 behind a feature check (instant rollout, legacy kept for one revision).
-3. Update `FitResults` mapping + detail panel to v3 fields.
-4. Update `fit-tryon-router` to consume `renderDirective` levels.
-5. Add server-side classification/image consistency gate.
-
-## Risks
-- Ease target tuning will need 1–2 iterations against real products; ranges in spec are starting values.
-- Brand calibration (`brandCalibration.ts`) currently shifts garment cm — keep it; v3 reads post-calibration numbers.
-- Falling back to category defaults when product has no measurements still happens — v3 marks confidence `low` exactly as today.
+## Confirmation
+- Start with **Phase 1 (Brand tokens + typography)** now?
+- Or jump to a specific phase you care about most (e.g., Phase 3 Home, or Phase 6 OOTD Wave + Showroom)?
