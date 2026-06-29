@@ -109,9 +109,9 @@ const FeedSection = () => {
   const empty = !loading && posts.length === 0;
 
   return (
-    <div className="mx-auto max-w-md px-0 pb-10">
+    <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
       {/* For You / Following */}
-      <div className="px-5 pt-3">
+      <div className="px-5 pt-3 lg:px-0">
         <div className="flex items-center gap-6">
           {(["foryou", "following"] as Tab[]).map((t) => {
             const active = tab === t;
@@ -135,7 +135,7 @@ const FeedSection = () => {
       </div>
 
       {/* Category chips */}
-      <div className="mt-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-3 overflow-x-auto px-5 lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex gap-2 pb-1">
           {CATEGORIES.map((c) => {
             const active = category === c.key;
@@ -157,15 +157,16 @@ const FeedSection = () => {
         </div>
       </div>
 
-      {/* Feed */}
-      <div className="mt-4 space-y-4 px-3">
+      {/* Feed — single column mobile, 2-col tablet, 3-col desktop */}
+      <div className="mt-4 grid gap-4 px-3 lg:grid-cols-2 lg:gap-6 lg:px-0 xl:grid-cols-3">
+
         {loading && (
-          <div className="flex min-h-[30vh] items-center justify-center">
+          <div className="col-span-full flex min-h-[30vh] items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-accent/65" />
           </div>
         )}
         {empty && (
-          <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-foreground/55">
+          <div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-foreground/55">
             {tab === "following"
               ? "Follow creators to see their looks here."
               : "No posts yet — check back soon."}
@@ -231,22 +232,42 @@ const FeedSection = () => {
               )}
             </div>
 
-            {/* Actions */}
+            {/* Actions — open detail to like/comment/save/share. */}
             <footer className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-5 text-foreground/75">
-                <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-foreground">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
+                  aria-label="View likes"
+                >
                   <Heart className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                  {formatCount(p.star_count ?? 0)}
-                </button>
-                <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-foreground">
-                  <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
                   {formatCount(p.like_count ?? 0)}
                 </button>
-                <button type="button" aria-label="Save" className="hover:text-foreground">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
+                  aria-label="View comments"
+                >
+                  <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                  {formatCount(p.star_count ?? 0)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  aria-label="Save"
+                  className="transition hover:text-foreground"
+                >
                   <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
                 </button>
               </div>
-              <button type="button" aria-label="Share" className="text-foreground/75 hover:text-foreground">
+              <button
+                type="button"
+                onClick={() => navigate(`/ootd?post=${p.id}`)}
+                aria-label="Share"
+                className="text-foreground/75 transition hover:text-foreground"
+              >
                 <Share2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
               </button>
             </footer>

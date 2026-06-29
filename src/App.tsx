@@ -87,7 +87,7 @@ const ShowroomNewPage = lazyWithRetry(() => import("@/pages/ShowroomNewPage"), "
 const ShowroomDetailPage = lazyWithRetry(() => import("@/pages/ShowroomDetailPage"), "ShowroomDetailPage");
 const SearchPage = lazyWithRetry(() => import("@/pages/SearchPage"), "SearchPage");
 const OOTDCommunityPage = lazyWithRetry(() => import("@/pages/OOTDCommunityPage"), "OOTDCommunityPage");
-const QuicksPage = lazyWithRetry(() => import("@/pages/QuicksPage"), "QuicksPage");
+// Quicks moved into OOTDCommunityPage; legacy /quicks route now redirects.
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
@@ -278,7 +278,7 @@ const AppRoutes = () => {
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
             <Route path="/ootd" element={<OOTDCommunityPage />} />
-            <Route path="/quicks" element={<QuicksPage />} />
+            <Route path="/quicks" element={<Navigate to="/ootd?section=quicks" replace />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/showroom" element={<ShowroomBrowsePage />} />
             <Route path="/closet" element={<Navigate to="/profile" replace />} />

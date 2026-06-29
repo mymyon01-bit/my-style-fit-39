@@ -12,7 +12,6 @@ import {
   Ruler,
   Compass,
   Shirt,
-  Zap,
   User as UserIcon,
   Info,
   Heart as HeartIcon,
@@ -27,7 +26,6 @@ const SIDEBAR_LINKS = [
   { key: "fit", label: "Fit DNA", icon: Ruler, to: "/fit" },
   { key: "discover", label: "Discover", icon: Compass, to: "/discover" },
   { key: "ootd", label: "#OOTD", icon: Shirt, to: "/ootd" },
-  { key: "quicks", label: "Quicks", icon: Zap, to: "/quicks" },
   { key: "profile", label: "Profile", icon: UserIcon, to: "/profile" },
   { key: "about", label: "About", icon: Info, to: "/about" },
 ];
