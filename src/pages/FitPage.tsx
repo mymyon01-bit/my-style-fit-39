@@ -20,6 +20,7 @@ import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
 import Brandmark from "@/components/Brandmark";
+import BodyDnaPanel from "@/components/fit/BodyDnaPanel";
 
 type Tab = "scan" | "measurements" | "check" | "results";
 export type FitMode = "free" | "premium";
