@@ -3,7 +3,7 @@
  * Uses the soft-gold script lockup across all in-app surfaces.
  */
 import { cn } from "@/lib/utils";
-import signature from "@/assets/mymyon-signature.png";
+import signature from "@/assets/mymyon-signature-v2.png.asset.json";
 
 type Variant = "compact" | "stacked" | "inline";
 
@@ -24,7 +24,7 @@ const Wordmark = ({ size, className }: { size: number; className?: string }) => 
       aria-label="mymyon"
     >
       <img
-        src={signature}
+        src={signature.url}
         alt="mymyon"
         className="block h-full w-auto select-none"
         draggable={false}
