@@ -1,4 +1,4 @@
-import { Home, Compass, Camera, Sparkles, User } from "lucide-react";
+import { Home, Compass, Camera, Sparkles, User, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
@@ -25,6 +25,7 @@ const BottomNav = () => {
     { path: "/fit", icon: Sparkles, label: t("tabFitDna"), isOotd: false },
     { path: "/discover", icon: Compass, label: t("tabDiscover"), isOotd: false },
     { path: "/ootd", icon: Camera, label: t("tabOotd"), isOotd: true },
+    { path: "/quicks", icon: Zap, label: "Quicks", isOotd: false },
     { path: "/profile", icon: User, label: t("tabMy"), isOotd: false },
   ];
 
