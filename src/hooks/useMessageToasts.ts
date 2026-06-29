@@ -61,15 +61,15 @@ export function useMessageToasts() {
             .eq("user_id", row.sender_id)
             .maybeSingle();
           const name =
-            profile?.display_name || profile?.username || "새 메시지";
+            profile?.display_name || profile?.username || t("msgNewMessage");
           const preview =
             (typeof row.content === "string" && row.content.trim().slice(0, 80)) ||
-            "사진 또는 첨부파일을 보냈어요";
+            t("msgAttachment");
 
-          toast(`${name}님이 메시지를 보냈어요`, {
+          toast(t("msgSentBy").replace("{name}", name), {
             description: preview,
             action: {
-              label: "열기",
+              label: t("msgOpen"),
               onClick: () => navigate("/ootd?tab=mypage"),
             },
           });
