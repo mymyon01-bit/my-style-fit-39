@@ -235,7 +235,12 @@ const HomePage = () => {
         {/* ── Hero card ───────────────────────────────────────────── */}
         <motion.button
           type="button"
-          onClick={() => (hero ? navigate(`/fit/${hero.id}`) : goDiscover("new in"))}
+          onClick={() => {
+            if (!hero) return goDiscover("new in");
+            // Editorial frames have no product id — route to Discover instead.
+            if (hero.id.startsWith("editorial-")) return goDiscover("new in");
+            navigate(`/fit/${hero.id}`);
+          }}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
