@@ -84,7 +84,7 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
   }, []);
 
   return (
-    <div className="mx-auto max-w-md px-5 pb-10">
+    <div className="mx-auto max-w-md px-5 pb-10 lg:max-w-none lg:px-0">
       {/* Hero banner */}
       <button
         type="button"
@@ -181,14 +181,14 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
         <>
           {/* Trending Showrooms */}
           <SectionHeader title="Trending Showrooms" onSeeAll={() => navigate("/showroom")} />
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {loadingShowrooms && (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-4 w-4 animate-spin text-accent/65" />
               </div>
             )}
             {!loadingShowrooms && showrooms.length === 0 && (
-              <div className="rounded-xl border border-border bg-card p-5 text-center text-sm text-foreground/55">
+              <div className="rounded-xl border border-border bg-card p-5 text-center text-sm text-foreground/55 lg:col-span-2 xl:col-span-3">
                 No showrooms yet — be the first to curate one.
               </div>
             )}

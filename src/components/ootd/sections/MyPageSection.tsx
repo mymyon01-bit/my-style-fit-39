@@ -124,7 +124,7 @@ const MyPageSection = () => {
   const handle = profile?.username ? `@${profile.username}` : "";
 
   return (
-    <div className="mx-auto max-w-md px-5 pb-10">
+    <div className="mx-auto max-w-md px-5 pb-10 lg:max-w-4xl lg:px-0">
       {/* Profile header */}
       <header className="flex items-start gap-4 pt-5">
         <span className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-muted">
