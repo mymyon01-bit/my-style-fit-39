@@ -174,8 +174,13 @@ const HomePage = () => {
     <div className="pb-28 md:pb-16">
       {/* ── Mobile top bar (hidden lg+) — desktop chrome lives in DesktopShell ─ */}
       <header className="sticky top-0 z-30 flex items-center justify-between bg-background/85 px-5 pt-5 pb-3 backdrop-blur-xl lg:hidden">
-        <button type="button" onClick={() => navigate("/")} aria-label="MYMYON home">
-          <Brandmark variant="inline" size={28} />
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          aria-label="MYMYON home"
+          className="font-display text-[22px] font-semibold italic tracking-tight text-foreground"
+        >
+          my'myon
         </button>
         <div className="flex items-center gap-3">
           <button
