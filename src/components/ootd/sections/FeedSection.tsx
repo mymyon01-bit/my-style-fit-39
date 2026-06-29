@@ -6,7 +6,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Heart,
   MessageCircle,
   Bookmark,
   Share2,
@@ -14,6 +13,7 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
+import WaveButton from "@/components/ootd/WaveButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
@@ -87,7 +87,7 @@ const FeedSection = () => {
 
       let q = supabase
         .from("ootd_posts")
-        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, created_at")
+        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, wave_count, created_at")
         .not("image_url", "is", null);
 
       if (tab === "foryou") {
@@ -253,15 +253,8 @@ const FeedSection = () => {
             {/* Actions — open detail to like/comment/save/share. */}
             <footer className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-5 text-foreground/75">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/ootd?post=${p.id}`)}
-                  className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
-                  aria-label="View likes"
-                >
-                  <Heart className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                  {formatCount(p.like_count ?? 0)}
-                </button>
+                <WaveButton postId={p.id} initialCount={(p as any).wave_count ?? 0} />
+
                 <button
                   type="button"
                   onClick={() => navigate(`/ootd?post=${p.id}`)}
