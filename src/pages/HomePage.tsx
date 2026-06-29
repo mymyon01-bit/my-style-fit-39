@@ -188,15 +188,15 @@ const HomePage = () => {
       </header>
 
       {/* ── Desktop top bar — brand · search · actions (matches ref) ── */}
-      <header className="sticky top-0 z-30 hidden bg-background/85 backdrop-blur-xl lg:block">
-        <div className="flex items-center gap-8 px-8 py-5 xl:px-12">
+      <header className="sticky top-0 z-30 hidden border-b border-border/40 bg-background/85 backdrop-blur-xl lg:block">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-10 px-10 py-5 xl:px-16">
           <div className="w-[200px] shrink-0">
             <Brandmark variant="inline" size={32} />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 max-w-2xl">
             <AISearchBar placeholder="Search for styles, products, looks…" />
           </div>
-          <div className="flex shrink-0 items-center gap-4">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <button type="button" aria-label="Saved"
               onClick={() => navigate(user ? "/profile?tab=saved" : "/auth")}
               className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
@@ -215,6 +215,7 @@ const HomePage = () => {
           </div>
         </div>
       </header>
+
 
       {/* ── Desktop: sidebar + wide main. Mobile stays single-column. ── */}
       <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-14 lg:px-10 lg:pt-4 xl:px-16">
