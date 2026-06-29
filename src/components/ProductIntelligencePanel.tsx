@@ -78,7 +78,7 @@ function stylingSuggestions(tags: string[], category?: string | null): string[] 
   return tags.length ? [...tags.slice(0, 3).map(t => `Pair with ${t}`), "Tonal layering"] : base;
 }
 
-const Row = ({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) => (
+const Row = ({ icon: Icon, label, children }: { icon: React.ElementType; label: string; children: React.ReactNode }) => (
   <div className="flex items-start gap-3 border-t border-foreground/10 px-4 py-3 first:border-t-0">
     <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full border border-foreground/15 bg-background/50">
       <Icon className="h-3.5 w-3.5 text-accent" strokeWidth={1.8} />
