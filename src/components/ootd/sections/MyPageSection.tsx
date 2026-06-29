@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
+import { useCircleCounts } from "@/hooks/useCircleCounts";
 
 type SubTab = "outfits" | "looks" | "saved" | "reviews";
 
@@ -47,7 +48,8 @@ const MyPageSection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [stats, setStats] = useState({ outfits: 0, followers: 0, following: 0 });
+  const [outfitsCount, setOutfitsCount] = useState(0);
+  const { counts: circleCounts } = useCircleCounts(user?.id);
   const [tab, setTab] = useState<SubTab>("outfits");
   const [posts, setPosts] = useState<PostThumb[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,7 @@ const MyPageSection = () => {
       ]);
       if (cancelled) return;
       setProfile((prof as Profile) ?? { user_id: user.id, display_name: null, username: null, avatar_url: null, bio: null });
-      setStats((s) => ({ ...s, outfits: outfits ?? 0 }));
+      setOutfitsCount(outfits ?? 0);
     })();
     return () => { cancelled = true; };
   }, [user]);
@@ -150,9 +152,9 @@ const MyPageSection = () => {
       {/* Stats */}
       <div className="mt-5 grid grid-cols-3 gap-3 text-center">
         {[
-          { label: "Outfits", value: stats.outfits },
-          { label: "Followers", value: stats.followers },
-          { label: "Following", value: stats.following },
+          { label: "Outfits", value: outfitsCount },
+          { label: "Circle", value: circleCounts?.circle ?? 0 },
+          { label: "Ripple", value: circleCounts?.ripple ?? 0 },
         ].map((s) => (
           <div key={s.label}>
             <div className="font-display text-[20px] font-medium text-foreground">{formatCount(s.value)}</div>
