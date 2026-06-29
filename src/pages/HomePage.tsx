@@ -132,10 +132,19 @@ const HomePage = () => {
     return () => { cancelled = true; };
   }, []);
 
+  const SIDEBAR_LINKS = [
+    { key: "home", label: "Home", icon: HomeIcon, to: "/", active: true },
+    { key: "fit", label: "Fit DNA", icon: Ruler, to: "/fit" },
+    { key: "discover", label: "Discover", icon: Compass, to: "/discover" },
+    { key: "ootd", label: "#OOTD", icon: Shirt, to: "/ootd" },
+    { key: "profile", label: "Profile", icon: UserIcon, to: "/profile" },
+    { key: "about", label: "About", icon: Info, to: "/about" },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-16">
-      {/* ── Top bar ───────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-background/85 px-5 pt-5 pb-3 backdrop-blur-xl md:px-10 md:pt-8">
+      {/* ── Mobile top bar (hidden lg+) ───────────────────────────── */}
+      <header className="sticky top-0 z-30 flex items-center justify-between bg-background/85 px-5 pt-5 pb-3 backdrop-blur-xl lg:hidden">
         <Brandmark variant="inline" size={28} />
         <div className="flex items-center gap-3">
           <button
@@ -158,14 +167,68 @@ const HomePage = () => {
         </div>
       </header>
 
-      {/* Desktop uses the full window — no center-clamped narrow column. */}
-      <main className="mx-auto w-full max-w-md px-5 md:max-w-none md:px-12 lg:px-16 xl:px-24">
-        {/* AI Search — replaces old BROWSE header */}
+      {/* ── Desktop top bar — brand · search · actions (matches ref) ── */}
+      <header className="sticky top-0 z-30 hidden bg-background/85 backdrop-blur-xl lg:block">
+        <div className="flex items-center gap-8 px-8 py-5 xl:px-12">
+          <div className="w-[200px] shrink-0">
+            <Brandmark variant="inline" size={32} />
+          </div>
+          <div className="flex-1">
+            <AISearchBar placeholder="Search for styles, products, looks…" />
+          </div>
+          <div className="flex shrink-0 items-center gap-4">
+            <button type="button" aria-label="Saved"
+              onClick={() => navigate(user ? "/profile?tab=saved" : "/auth")}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
+              <HeartIcon className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+            <button type="button" aria-label="Account"
+              onClick={() => navigate(user ? "/profile" : "/auth")}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
+              <UserIcon className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+            <button type="button" aria-label="Bag"
+              onClick={() => navigate(user ? "/profile?tab=bag" : "/auth")}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
+              <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Desktop: sidebar + wide main. Mobile stays single-column. ── */}
+      <div className="lg:flex lg:items-start lg:gap-10 lg:px-8 xl:px-12">
+        {/* Sidebar (lg+ only) */}
+        <aside className="hidden w-[200px] shrink-0 lg:block">
+          <nav className="sticky top-[88px] flex flex-col gap-1 py-2">
+            {SIDEBAR_LINKS.map((l) => {
+              const Icon = l.icon;
+              return (
+                <button
+                  key={l.key}
+                  type="button"
+                  onClick={() => navigate(l.to)}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px] tracking-tight transition-colors ${
+                    l.active
+                      ? "bg-secondary/70 font-medium text-foreground"
+                      : "text-foreground/70 hover:bg-secondary/50 hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                  <span>{l.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+      <main className="mx-auto w-full max-w-md px-5 lg:mx-0 lg:max-w-none lg:flex-1 lg:px-0">
+        {/* AI Search — mobile only; desktop uses the top-bar search */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-2"
+          className="mt-2 lg:hidden"
         >
           <AISearchBar />
         </motion.div>
