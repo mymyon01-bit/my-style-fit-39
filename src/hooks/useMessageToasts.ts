@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Subscribe to all incoming messages for the signed-in user and pop a sonner
@@ -17,6 +18,7 @@ import { useAuth } from "@/lib/auth";
 export function useMessageToasts() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
   // Track which message ids we've already toasted so we don't double-fire if
   // realtime delivers the same row twice (which can happen on reconnect).
   const seen = useRef<Set<string>>(new Set());
