@@ -168,21 +168,7 @@ const HomePage = () => {
     return () => window.clearInterval(id);
   }, [heroes.length]);
 
-  // If product inventory has no hero-eligible items, fall back to the most-
-  // starred OOTD images so the Today's Pick card never renders blank.
-  useEffect(() => {
-    if (heroes.length > 0 || trending.length === 0) return;
-    const fallback = trending
-      .filter((p) => !!p.image_url)
-      .slice(0, 5)
-      .map((p) => ({
-        id: p.id,
-        title: "Today's Pick",
-        brand: "Community Favorite",
-        image: p.image_url as string,
-      }));
-    if (fallback.length) setHeroes(fallback);
-  }, [trending, heroes.length]);
+  // Today's Pick always renders from EDITORIAL_HEROES — no trending fallback.
 
   return (
     <div className="pb-28 md:pb-16">
