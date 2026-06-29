@@ -140,19 +140,31 @@ const HomePage = () => {
         setDnaPicks(picks.slice(0, 6));
         // Pick the first product with a usable image as the editorial hero so
         // the home page always reflects real inventory we actually ship.
-        const heroPick = picks[0];
-        if (heroPick) {
-          setHero({
-            id: heroPick.id,
-            title: heroPick.title,
-            brand: heroPick.brand,
-            image: heroPick.image as string,
-          });
-        }
+        // Build a small rotating set of heroes from real inventory so the
+        // "Today's Pick" card cycles through items that match our catalog.
+        const heroSet = picks
+          .filter((p) => !!p.image)
+          .slice(0, 5)
+          .map((p) => ({
+            id: p.id,
+            title: p.title,
+            brand: p.brand,
+            image: p.image as string,
+          }));
+        if (heroSet.length) setHeroes(heroSet);
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Auto-rotate the Today's Pick hero every ~5s with a soft crossfade.
+  useEffect(() => {
+    if (heroes.length < 2) return;
+    const id = window.setInterval(() => {
+      setHeroIdx((i) => (i + 1) % heroes.length);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [heroes.length]);
 
   const SIDEBAR_LINKS = [
     { key: "home", label: "Home", icon: HomeIcon, to: "/", active: true },
