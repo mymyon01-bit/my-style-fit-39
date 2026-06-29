@@ -41,6 +41,7 @@ import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit }
 import FitTrustStrip from "@/components/fit/FitTrustStrip";
 import { computeSizeCorrelation, sizesFromGarmentChart } from "@/lib/fit/sizeCorrelationEngine";
 import FitAnalysisPanel from "@/components/fit/FitAnalysisPanel";
+import RecommendedForShape from "@/components/fit/RecommendedForShape";
 import { applyBrandFitBias } from "@/lib/fit/brandFitBias";
 import {
   buildGenderedSizeContext,
