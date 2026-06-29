@@ -52,7 +52,7 @@ export default function OOTDCommunityPage() {
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 pt-4 pb-2 md:px-8">
           <span className="w-8" aria-hidden />
-          <Brandmark variant="compact" size="sm" />
+          <Brandmark variant="compact" size={32} />
           <button
             type="button"
             aria-label={tab === "wave" ? "Search" : "Notifications"}
