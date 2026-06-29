@@ -374,7 +374,7 @@ const ProfilePage = () => {
                 />
               </div>
               <p className="mt-1 text-[10px] text-foreground/50">
-                1–30자 · 영문 소문자/숫자/점/밑줄만 · 공백 불가 · 1년 3회, 변경 후 30일간 잠금
+                {t("profileUsernameRules")}
               </p>
               {usernameError && (
                 <p className="mt-1 text-[10px] text-destructive">{usernameError}</p>
