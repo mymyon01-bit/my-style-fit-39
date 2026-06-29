@@ -35,7 +35,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import Brandmark from "@/components/Brandmark";
 import AISearchBar from "@/components/home/AISearchBar";
-import heroSpring from "@/assets/home-hero-spring.jpg";
+// Hero image now comes from real product inventory — no static asset import.
 
 const CATEGORIES = [
   { key: "all", label: "All", q: "" },
@@ -76,12 +76,20 @@ function formatLikes(n: number | null | undefined) {
   return String(v);
 }
 
+type HeroProduct = {
+  id: string;
+  title: string;
+  brand: string | null;
+  image: string;
+};
+
 const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
   const [trending, setTrending] = useState<TrendingPost[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
+  const [hero, setHero] = useState<HeroProduct | null>(null);
 
   const goDiscover = useCallback(
     (q: string) => {
@@ -116,17 +124,29 @@ const HomePage = () => {
       const { data } = await supabase
         .from("products")
         .select("id, name, brand, image_url, hero_image_url")
-        .limit(6);
+        .limit(12);
       if (!cancelled && data) {
-        setDnaPicks(
-          (data as any[]).map((p, i) => ({
+        const picks = (data as any[])
+          .map((p, i) => ({
             id: p.id,
             title: p.name || "Featured piece",
             brand: p.brand ?? null,
             image: p.hero_image_url || p.image_url || null,
             match: 88 + ((i * 3) % 11),
-          })),
-        );
+          }))
+          .filter((p) => !!p.image);
+        setDnaPicks(picks.slice(0, 6));
+        // Pick the first product with a usable image as the editorial hero so
+        // the home page always reflects real inventory we actually ship.
+        const heroPick = picks[0];
+        if (heroPick) {
+          setHero({
+            id: heroPick.id,
+            title: heroPick.title,
+            brand: heroPick.brand,
+            image: heroPick.image as string,
+          });
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -257,20 +277,23 @@ const HomePage = () => {
         {/* ── Hero card ───────────────────────────────────────────── */}
         <motion.button
           type="button"
-          onClick={() => goDiscover("spring essentials")}
+          onClick={() => (hero ? navigate(`/fit/${hero.id}`) : goDiscover("new in"))}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
           className="relative mt-5 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)]"
           style={{ aspectRatio: "16 / 11" }}
         >
-          <img
-            src={heroSpring}
-            alt="Spring Essentials"
-            className="absolute inset-0 h-full w-full object-cover"
-            width={1024}
-            height={768}
-          />
+          {hero?.image ? (
+            <img
+              src={hero.image}
+              alt={hero.title}
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="eager"
+            />
+          ) : (
+            <div className="absolute inset-0 animate-pulse bg-foreground/[0.06]" />
+          )}
           {/* Soft warm wash so text reads on the right of the model */}
           <div
             aria-hidden
@@ -282,12 +305,10 @@ const HomePage = () => {
           />
           <div className="relative flex h-full w-1/2 flex-col justify-center p-6 md:p-10">
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-accent">
-              New In
+              {hero?.brand?.toUpperCase() ?? "New In"}
             </span>
             <span className="mt-3 font-display text-[34px] font-medium leading-[0.95] tracking-tight text-foreground md:text-[44px]">
-              Spring
-              <br />
-              Essentials
+              {hero?.title ?? "Today's\nPick"}
             </span>
             <span className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground/80">
               Explore Now <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.6} />

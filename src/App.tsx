@@ -234,7 +234,7 @@ const AppRoutes = () => {
       {!isAdmin && <WelcomeTour />}
       {!isAdmin && <PermissionsPrompt />}
       {!isAdmin && <AppUpdatePrompt />}
-      {!isAdmin && <DesktopNav />}
+      {/* Desktop top nav removed per design — HomePage owns its own header. */}
       {!isAdmin && <OOTDModalHost />}
       <Suspense fallback={<PageLoader />}>
         <Routes>
