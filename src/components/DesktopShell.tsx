@@ -17,6 +17,7 @@ import {
   Heart as HeartIcon,
   ShoppingBag,
 } from "lucide-react";
+import inkCorner from "@/assets/ink-corner.png";
 import Brandmark from "@/components/Brandmark";
 import AISearchBar from "@/components/home/AISearchBar";
 import { useAuth } from "@/lib/auth";
