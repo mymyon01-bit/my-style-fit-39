@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Bell,
@@ -89,7 +89,9 @@ const HomePage = () => {
   const { t } = useI18n();
   const [trending, setTrending] = useState<TrendingPost[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
-  const [hero, setHero] = useState<HeroProduct | null>(null);
+  const [heroes, setHeroes] = useState<HeroProduct[]>([]);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const hero = heroes[heroIdx] ?? null;
 
   const goDiscover = useCallback(
     (q: string) => {
@@ -138,19 +140,31 @@ const HomePage = () => {
         setDnaPicks(picks.slice(0, 6));
         // Pick the first product with a usable image as the editorial hero so
         // the home page always reflects real inventory we actually ship.
-        const heroPick = picks[0];
-        if (heroPick) {
-          setHero({
-            id: heroPick.id,
-            title: heroPick.title,
-            brand: heroPick.brand,
-            image: heroPick.image as string,
-          });
-        }
+        // Build a small rotating set of heroes from real inventory so the
+        // "Today's Pick" card cycles through items that match our catalog.
+        const heroSet = picks
+          .filter((p) => !!p.image)
+          .slice(0, 5)
+          .map((p) => ({
+            id: p.id,
+            title: p.title,
+            brand: p.brand,
+            image: p.image as string,
+          }));
+        if (heroSet.length) setHeroes(heroSet);
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Auto-rotate the Today's Pick hero every ~5s with a soft crossfade.
+  useEffect(() => {
+    if (heroes.length < 2) return;
+    const id = window.setInterval(() => {
+      setHeroIdx((i) => (i + 1) % heroes.length);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [heroes.length]);
 
   const SIDEBAR_LINKS = [
     { key: "home", label: "Home", icon: HomeIcon, to: "/", active: true },
@@ -286,15 +300,22 @@ const HomePage = () => {
           className="relative mt-6 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)] aspect-[16/11] lg:aspect-[21/9]"
 
         >
-          {hero?.image ? (
-            <img
-              src={hero.image}
-              alt={hero.title}
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="eager"
-            />
-          ) : (
+          {heroes.length === 0 ? (
             <div className="absolute inset-0 animate-pulse bg-foreground/[0.06]" />
+          ) : (
+            <AnimatePresence mode="sync">
+              <motion.img
+                key={hero?.id}
+                src={hero?.image}
+                alt={hero?.title}
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="eager"
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </AnimatePresence>
           )}
           {/* Soft warm wash so text reads on the right of the model */}
           <div
@@ -309,13 +330,36 @@ const HomePage = () => {
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-accent">
               {hero?.brand?.toUpperCase() ?? "New In"}
             </span>
-            <span className="mt-3 font-display text-[34px] font-medium leading-[0.95] tracking-tight text-foreground md:text-[44px]">
-              {hero?.title ?? "Today's\nPick"}
-            </span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={hero?.id ?? "placeholder"}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-3 font-display text-[34px] font-medium leading-[0.95] tracking-tight text-foreground md:text-[44px]"
+              >
+                {hero?.title ?? "Today's\nPick"}
+              </motion.span>
+            </AnimatePresence>
             <span className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground/80">
               Explore Now <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.6} />
             </span>
           </div>
+          {/* Rotation dots */}
+          {heroes.length > 1 && (
+            <div className="absolute bottom-4 right-5 flex items-center gap-1.5 md:bottom-6 md:right-8">
+              {heroes.map((h, i) => (
+                <span
+                  key={h.id}
+                  onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }}
+                  className={`h-1.5 rounded-full transition-all duration-500 ${
+                    i === heroIdx ? "w-6 bg-foreground/80" : "w-1.5 bg-foreground/30"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </motion.button>
 
         {/* ── Quick tile row ──────────────────────────────────────── */}
