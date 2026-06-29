@@ -76,12 +76,20 @@ function formatLikes(n: number | null | undefined) {
   return String(v);
 }
 
+type HeroProduct = {
+  id: string;
+  title: string;
+  brand: string | null;
+  image: string;
+};
+
 const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
   const [trending, setTrending] = useState<TrendingPost[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
+  const [hero, setHero] = useState<HeroProduct | null>(null);
 
   const goDiscover = useCallback(
     (q: string) => {
