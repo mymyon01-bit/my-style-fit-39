@@ -204,7 +204,13 @@ const FeedSection = () => {
               >
                 <span className="h-8 w-8 overflow-hidden rounded-full bg-muted">
                   {p.profile?.avatar_url ? (
-                    <img src={p.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={p.profile.avatar_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center text-[11px] text-foreground/50">
                       {(p.profile?.display_name ?? "?").slice(0, 1).toUpperCase()}
@@ -223,11 +229,11 @@ const FeedSection = () => {
               </button>
             </header>
 
-            {/* Image */}
+            {/* Image — graceful fallback so cards never collapse on a broken/hotlink-blocked URL. */}
             <button
               type="button"
               onClick={() => navigate(`/ootd?post=${p.id}`)}
-              className="relative block w-full overflow-hidden bg-foreground/[0.04]"
+              className="relative block w-full overflow-hidden bg-gradient-to-br from-muted to-foreground/[0.06]"
               style={{ aspectRatio: "4 / 5" }}
             >
               <img
@@ -235,8 +241,22 @@ const FeedSection = () => {
                 alt={p.caption ?? "OOTD"}
                 className="absolute inset-0 h-full w-full object-cover"
                 loading="lazy"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const img = e.currentTarget as HTMLImageElement;
+                  img.style.display = "none";
+                  const parent = img.parentElement;
+                  if (parent && !parent.querySelector("[data-img-fallback]")) {
+                    const span = document.createElement("span");
+                    span.dataset.imgFallback = "1";
+                    span.className = "absolute inset-0 flex items-center justify-center text-[11px] text-foreground/40";
+                    span.textContent = "Image unavailable";
+                    parent.appendChild(span);
+                  }
+                }}
               />
             </button>
+
 
             {/* Caption + tags */}
             <div className="px-4 pt-3">
