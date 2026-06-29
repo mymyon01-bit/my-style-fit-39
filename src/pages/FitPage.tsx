@@ -487,8 +487,11 @@ const FitPage = () => {
           </p>
         </div>
 
-        {/* PHASE 4 — Body DNA editorial dashboard */}
-        {(() => {
+        {/* PHASE 4 — Body DNA editorial dashboard.
+            On the RESULTS tab we hide this dashboard and surface a compact
+            version (score rings + shape badge) inside FitResults' left aside
+            so the try-on image stays the visual hero. */}
+        {activeTab !== "results" && (() => {
           const bust = measurements.chestCm?.value || null;
           const waist = measurements.waistCm?.value || null;
           const hip = measurements.hipCm?.value || null;
