@@ -1,60 +1,46 @@
-# MYMYON Rebrand & UI Transformation — Build Plan
+# MYMYON Rebuild — OOTD Community + Unified Nav + AI Search
 
-This guideline covers 10 large areas. To ship it cleanly without breaking the live app, I'll do it in phases. Each phase is shippable on its own — you can review after each one before I move on.
+레퍼런스 인포그래픽(6, 9, 새 BOTTOM NAV) 기준으로 옛 잔재를 모두 걷어내고 새 구조로 통합.
 
-## Phase 1 — Brand Identity Foundation (1 turn)
-- **Color tokens** in `src/index.css`:
-  - Midnight Navy `#0F1A2D`, Warm Ivory `#F4EFE8`, Champagne Beige `#DCC7B6`, Soft Gold `#E6808B` (accent), Graphite Black `#1A1A1A`.
-  - Apply to light + dark theme semantic tokens (background, foreground, primary, accent, card, border).
-- **Typography**: Playfair Display (headings), SF Pro Display / Inter fallback (UI body). Wired into Tailwind + global CSS.
-- **Signature logo**: keep existing gold cursive "my" mark; verify usage in `Brandmark.tsx` and splash.
-- Tags row (Luxury · Timeless · Editorial · Intelligent · Personal) added as a subtle brand microcopy strip on Home.
+## 1. Bottom Navigation (전체 통일)
+최종 5탭으로 확정 — Home / Fit DNA / Discover / OOTD / Profile
+- `Closet` 메뉴 제거 (쇼룸이 클로젯 역할). 라우터에서 `/closet` → `/profile` 리다이렉트.
+- `ShowroomBrowsePage`는 Discover의 서브뷰로 흡수, 개별 쇼룸 디테일은 그대로 `/showroom/:id` 유지.
+- 모바일/웹 모두 동일.
 
-## Phase 2 — Navigation Restructure (1 turn)
-- Bottom nav becomes: **Home · Fit DNA · Discover · OOTD · Profile** (already partly done — finalize icons + labels + routes).
-- `Discover` = product exploration / shopping (new route, reuses existing product browse).
-- `Fit DNA` = body analysis + fit prediction hub.
-- `Profile` = personal closet + analytics.
+## 2. OOTD 페이지 (커뮤니티 에코시스템)
+`OOTDPage`를 4 섹션 탭으로 완전 재구성:
 
-## Phase 3 — Home Page Transformation (1 turn)
-- New components:
-  - **Hero Fashion Banner** ("Your Style. Perfected.") — editorial full-bleed.
-  - **Curated For You** rail.
-  - **Based On Your Body DNA** rail (uses existing recommendation engine).
-  - **Trending Brands** logo row.
-  - **AI Picks** card.
-  - **Seasonal Editorial Collections** large card.
-- Removes the generic "new arrivals / best sellers" feel.
+| 섹션 | 내용 |
+|---|---|
+| **A. Feed** | 무한 수직 피드. Outfit reviews / Style discussions / Community recs |
+| **B. My Page** | 본인 아바타·통계(Followers/Following/Stars) + Outfit archive 그리드 + Saved looks + 내 쇼룸 링크 + Style evolution timeline |
+| **C. Wave** | 기존 Wave 시스템 재배치 — Viral looks / Challenges / Trend discovery / Creator growth |
+| **D. Showroom** | Creator collections / Theme rooms / Seasonal lookbooks / Shopable wardrobes. "내 쇼룸"이 곧 내 클로젯 |
 
-## Phase 4 — Fit DNA Page (1 turn)
-- Body DNA panel: Shoulder / Bust / Waist / Hip / Height / Weight + body-shape classifier.
-- AI score ring trio: **Fit Accuracy 92% · Comfort 88% · Silhouette 90%**.
-- New capability chips: Virtual fitting, Cross-brand normalization, Outfit compatibility scoring, Fabric tension prediction, Size confidence.
+- 옛 OOTD 잔재(MY 탭 별도 버튼, 카드 UI 난잡함, 플로팅 포스트 버튼) 모두 제거.
+- 디자인: 9번 가이드 그대로 — Larger imagery / Reduced noise / More whitespace / Stronger typography hierarchy.
 
-## Phase 5 — Product Detail Page Upgrade (1 turn)
-- Adds **Product Intelligence Layer**: Fit Match %, Recommended Size, Fabric Behavior, AI Styling Suggestions, Similar Alternatives.
-- Action row: Try On · Add to Closet · Outfit Builder · Save to Wave.
+## 3. Home 페이지 — LLM Search Bar
+- 기존 "BROWSE" 헤더 텍스트 자리에 **AI Search Bar** 1개로 교체.
+- Placeholder: "Search styles, products, looks…"
+- 자연어 쿼리 → Lovable AI(gemini-3-flash) 호출 → 의도 파싱(상품/스타일/유저/쇼룸) → 기존 products/showrooms/ootd_posts 파이프라인으로 결과 라우팅.
+- 결과 페이지: `/search?q=…` — 카테고리별 그룹(Products · Showrooms · Looks · Creators).
 
-## Phase 6 — OOTD Community Evolution (1–2 turns)
-- A. **Feed** — keep vertical infinite feed.
-- B. **My Page** — outfit archive, saved looks, closet management, personal statistics, style evolution timeline.
-- C. **Wave** — TikTok-style trend discovery tab (viral looks, challenges, creator growth).
-- D. **Showroom** — themed/seasonal/creator lookbooks ("Paris Minimalism", "Office Essentials", etc.).
+## 4. 옛 잔재 제거
+- 옛 hero 카피, 옛 카테고리 pill, 옛 Closet 진입점, 옛 OOTD 플로팅 버튼.
+- 폰트·컬러는 현재 Playfair/Ivory/Navy/Gold 유지.
 
-## Phase 7 — Personal Closet System (1 turn)
-- MY CLOSET: save owned items, build outfits, track wears, AI styling suggestions, "what should I wear today", weather styling, travel packing, missing item recommendations.
+## 기술 메모
+- 신규: `src/pages/SearchPage.tsx`, `src/components/home/AISearchBar.tsx`, `supabase/functions/ai-search/index.ts` (LOVABLE_API_KEY).
+- 수정: `BottomNav.tsx`, `OOTDPage.tsx`(전면 재작성), `HomePage.tsx`(헤더 영역만), `App.tsx`(라우트).
+- 신규 컴포넌트: `ootd/sections/FeedSection.tsx`, `MyPageSection.tsx`, `WaveSection.tsx`, `ShowroomSection.tsx`.
+- DB는 변경 없음 — 기존 `ootd_posts`, `showrooms`, `products` 그대로 사용.
 
-## Phase 8 — Visual Design Polish (continuous)
-- Larger imagery, more whitespace, stronger type hierarchy, cleaner nav. Editorial dark surfaces with ivory cards. Inspirations: NET-A-PORTER, COS, THE ROW, TOTEME, SSENSE, ZARA STUDIO.
+## 작업 순서
+1. Bottom nav 정리 + `/closet` 리다이렉트
+2. OOTD 4섹션 컨테이너 + 각 섹션 컴포넌트
+3. Home AI Search Bar + edge function + `/search` 페이지
+4. 옛 잔재 클린업 & QA(모바일/웹)
 
-## Phase 9 — Final Positioning Copy
-- Replace marketing copy app-wide: "MYMYON — AI-powered personal fashion ecosystem. Personal Styling · Body Intelligence · Smart Shopping · Digital Closet · Fashion Community · Creator Economy."
-
----
-
-## Suggested Order
-I propose shipping in this order: **1 → 2 → 3 → 4 → 5 → 6 → 7**, with Phase 8 polish folded into each. Each phase is ~1 turn and independently reviewable.
-
-## Confirmation
-- Start with **Phase 1 (Brand tokens + typography)** now?
-- Or jump to a specific phase you care about most (e.g., Phase 3 Home, or Phase 6 OOTD Wave + Showroom)?
+승인하면 1→4 순서로 한 번에 진행할게요.
