@@ -106,6 +106,7 @@ interface Props {
 }
 
 export default function SongOfTheDayPicker({ value, onChange }: Props) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"search" | "playlist">("search");
   const [query, setQuery] = useState("");
