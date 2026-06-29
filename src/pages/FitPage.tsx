@@ -487,6 +487,41 @@ const FitPage = () => {
           </p>
         </div>
 
+        {/* PHASE 4 — Body DNA editorial dashboard */}
+        {(() => {
+          const bust = measurements.chestCm?.value || null;
+          const waist = measurements.waistCm?.value || null;
+          const hip = measurements.hipCm?.value || null;
+          let shape: "hourglass" | "pear" | "rectangle" | "triangle" | "round" | "—" = "—";
+          if (bust && waist && hip) {
+            const bw = bust - waist; const hw = hip - waist; const bh = bust - hip;
+            if (bw > 8 && hw > 8 && Math.abs(bh) < 5) shape = "hourglass";
+            else if (hw > bw + 4) shape = "pear";
+            else if (bw > hw + 4) shape = "triangle";
+            else if (Math.abs(bw) < 5 && Math.abs(hw) < 5) shape = "rectangle";
+            else shape = "round";
+          }
+          const hasBody = !!weightKg && measurements.heightCm.value > 0;
+          const fitAccuracy = Math.round(60 + (scanQuality || 0) * 0.32 + (hasBody ? 8 : 0));
+          const comfort = Math.round(58 + (scanQuality || 0) * 0.30 + (hasBody ? 10 : 0));
+          const silhouette = Math.round(62 + (scanQuality || 0) * 0.30 + (shape !== "—" ? 6 : 0));
+          return (
+            <BodyDnaPanel
+              shoulderCm={measurements.shoulderWidthCm?.value || null}
+              bustCm={bust}
+              waistCm={waist}
+              hipCm={hip}
+              heightCm={measurements.heightCm?.value || null}
+              weightKg={weightKg}
+              shape={shape}
+              fitAccuracy={Math.min(99, fitAccuracy)}
+              comfort={Math.min(99, comfort)}
+              silhouette={Math.min(99, silhouette)}
+              onEdit={() => setActiveTab("measurements")}
+            />
+          );
+        })()}
+
         <div className="flex">
           {([
             { id: "scan", label: t("fitTabScan") },
