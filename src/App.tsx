@@ -278,7 +278,7 @@ const AppRoutes = () => {
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
             <Route path="/ootd" element={<OOTDCommunityPage />} />
-            <Route path="/quicks" element={<QuicksPage />} />
+            <Route path="/quicks" element={<Navigate to="/ootd?section=quicks" replace />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/showroom" element={<ShowroomBrowsePage />} />
             <Route path="/closet" element={<Navigate to="/profile" replace />} />
