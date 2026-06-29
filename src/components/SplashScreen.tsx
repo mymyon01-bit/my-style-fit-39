@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import splashImg from "/icons/splash.png?url";
+import splashImg from "/icons/splash-mymyon.jpg?url";
 import { isNativeApp } from "@/lib/native/platform";
 
 /**
