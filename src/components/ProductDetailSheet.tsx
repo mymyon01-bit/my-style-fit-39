@@ -216,6 +216,17 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                   </p>
                 )}
 
+                {/* PHASE 5 — Product Intelligence Layer */}
+                <ProductIntelligencePanel
+                  productName={product.name}
+                  category={product.category}
+                  fit={product.fit}
+                  brand={product.brand}
+                  bodyHeightCm={bodyHeightCm}
+                  bodyGender={bodyGender}
+                  styleTags={product.style_tags || []}
+                />
+
                 {/* Actions */}
                 <div className="space-y-2.5 pt-1">
                   {/* Try this on */}
