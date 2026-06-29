@@ -17,7 +17,7 @@ import {
   Heart as HeartIcon,
   ShoppingBag,
 } from "lucide-react";
-import inkBlot from "@/assets/ink-blot.png";
+
 import Brandmark from "@/components/Brandmark";
 import AISearchBar from "@/components/home/AISearchBar";
 import { useAuth } from "@/lib/auth";
@@ -53,17 +53,9 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
           aria-label="MYMYON home"
           className="group absolute left-4 top-2 z-20 flex h-[110px] w-[220px] items-center justify-center"
         >
-          {/* Ink backdrop — organic black sumi splash that frames the gold logo. */}
-          <img
-            src={inkBlot}
-            alt=""
-            aria-hidden="true"
-            className="ink-breathe pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
-            draggable={false}
-          />
-          {/* Gold "my" wordmark — crisp, centered on the ink, clearly readable. */}
-          <span className="pointer-events-none relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] transition-transform duration-500 group-hover:scale-[1.05]">
-            <Brandmark variant="inline" size={60} />
+          {/* MYMYON ink-blot logo — gold signature on organic black sumi splash. */}
+          <span className="pointer-events-none relative z-10 transition-transform duration-500 group-hover:scale-[1.05]">
+            <Brandmark variant="inline" size={72} />
           </span>
         </button>
 
