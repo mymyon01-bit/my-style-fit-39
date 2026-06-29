@@ -244,7 +244,7 @@ const HomePage = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-6 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)] aspect-[16/11] lg:aspect-[21/9]"
+          className="relative mt-5 block w-full overflow-hidden rounded-[24px] text-left shadow-[var(--shadow-2)] aspect-[4/5] sm:aspect-[16/11] lg:aspect-[21/9]"
 
         >
           {heroes.length === 0 ? (
@@ -255,7 +255,7 @@ const HomePage = () => {
                 key={hero?.id}
                 src={hero?.image}
                 alt={hero?.title}
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover object-right sm:object-center"
                 loading="eager"
                 initial={{ opacity: 0, scale: 1.04 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -264,16 +264,24 @@ const HomePage = () => {
               />
             </AnimatePresence>
           )}
-          {/* Soft warm wash so text reads on the right of the model */}
+          {/* Soft warm wash — bottom-up on mobile, left-side on tablet+ */}
           <div
             aria-hidden
             className="absolute inset-0"
             style={{
               background:
+                "linear-gradient(0deg, hsl(32 28% 92% / 0.95) 0%, hsl(32 28% 92% / 0.55) 28%, transparent 55%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 hidden sm:block"
+            style={{
+              background:
                 "linear-gradient(90deg, hsl(32 28% 92% / 0.92) 0%, hsl(32 28% 92% / 0.55) 38%, transparent 62%)",
             }}
           />
-          <div className="relative flex h-full w-1/2 flex-col justify-center p-6 md:p-10">
+          <div className="relative flex h-full w-full flex-col justify-end p-5 sm:w-1/2 sm:justify-center sm:p-8 md:p-10">
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-accent">
               {hero?.brand?.toUpperCase() ?? "New In"}
             </span>
@@ -284,12 +292,12 @@ const HomePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-3 font-display text-[34px] font-medium leading-[0.95] tracking-tight text-foreground md:text-[44px]"
+                className="mt-2 whitespace-pre-line font-display text-[30px] font-medium leading-[0.95] tracking-tight text-foreground sm:mt-3 sm:text-[34px] md:text-[44px]"
               >
                 {hero?.title ?? "Today's\nPick"}
               </motion.span>
             </AnimatePresence>
-            <span className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground/80">
+            <span className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 sm:mt-4">
               Explore Now <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.6} />
             </span>
           </div>
@@ -310,7 +318,7 @@ const HomePage = () => {
         </motion.button>
 
         {/* ── Quick tile row ──────────────────────────────────────── */}
-        <div className="mt-7 grid grid-cols-6 gap-2 md:gap-6">
+        <div className="mt-6 grid grid-cols-6 gap-1.5 sm:gap-3 md:gap-4">
           {QUICK_TILES.map((tile) => {
             const Icon = tile.icon;
             return (
@@ -318,12 +326,12 @@ const HomePage = () => {
                 key={tile.key}
                 type="button"
                 onClick={() => goDiscover(tile.label.toLowerCase())}
-                className="group flex flex-col items-center gap-2"
+                className="group flex flex-col items-center gap-1.5"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card transition-all group-hover:border-accent/60 group-hover:bg-accent/10 md:h-16 md:w-16">
-                  <Icon className="h-[18px] w-[18px] text-foreground/75 md:h-5 md:w-5" strokeWidth={1.5} />
+                <span className="flex aspect-square w-full max-w-[64px] items-center justify-center rounded-2xl border border-border/70 bg-gradient-to-br from-secondary/60 via-card to-background shadow-[var(--shadow-1)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-accent/60 group-hover:from-accent/10 group-hover:via-accent/5 group-hover:shadow-[var(--shadow-2)]">
+                  <Icon className="h-[18px] w-[18px] text-accent/85 transition-colors group-hover:text-accent md:h-[20px] md:w-[20px]" strokeWidth={1.6} />
                 </span>
-                <span className="text-[10px] font-medium tracking-tight text-foreground/70 md:text-[12px]">
+                <span className="text-[10px] font-medium tracking-tight text-foreground/75 md:text-[11px]">
                   {tile.label}
                 </span>
               </button>
