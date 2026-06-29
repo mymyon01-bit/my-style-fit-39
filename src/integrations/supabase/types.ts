@@ -1434,6 +1434,7 @@ export type Database = {
           topics: string[] | null
           updated_at: string
           user_id: string
+          wave_count: number
           weather_tag: string | null
         }
         Insert: {
@@ -1451,6 +1452,7 @@ export type Database = {
           topics?: string[] | null
           updated_at?: string
           user_id: string
+          wave_count?: number
           weather_tag?: string | null
         }
         Update: {
@@ -1468,6 +1470,7 @@ export type Database = {
           topics?: string[] | null
           updated_at?: string
           user_id?: string
+          wave_count?: number
           weather_tag?: string | null
         }
         Relationships: []
@@ -1630,6 +1633,35 @@ export type Database = {
           view_count?: number
         }
         Relationships: []
+      }
+      ootd_waves: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ootd_waves_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ootd_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       phone_verifications: {
         Row: {
