@@ -35,7 +35,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import Brandmark from "@/components/Brandmark";
 import AISearchBar from "@/components/home/AISearchBar";
-import heroSpring from "@/assets/home-hero-spring.jpg";
+// Hero image now comes from real product inventory — no static asset import.
 
 const CATEGORIES = [
   { key: "all", label: "All", q: "" },
