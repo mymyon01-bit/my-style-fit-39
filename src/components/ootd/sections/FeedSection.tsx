@@ -253,15 +253,8 @@ const FeedSection = () => {
             {/* Actions — open detail to like/comment/save/share. */}
             <footer className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-5 text-foreground/75">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/ootd?post=${p.id}`)}
-                  className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
-                  aria-label="View likes"
-                >
-                  <Heart className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                  {formatCount(p.like_count ?? 0)}
-                </button>
+                <WaveButton postId={p.id} initialCount={(p as any).wave_count ?? 0} />
+
                 <button
                   type="button"
                   onClick={() => navigate(`/ootd?post=${p.id}`)}
