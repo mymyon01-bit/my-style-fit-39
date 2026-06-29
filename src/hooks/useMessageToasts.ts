@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Subscribe to all incoming messages for the signed-in user and pop a sonner
@@ -17,6 +18,7 @@ import { useAuth } from "@/lib/auth";
 export function useMessageToasts() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
   // Track which message ids we've already toasted so we don't double-fire if
   // realtime delivers the same row twice (which can happen on reconnect).
   const seen = useRef<Set<string>>(new Set());
@@ -59,15 +61,15 @@ export function useMessageToasts() {
             .eq("user_id", row.sender_id)
             .maybeSingle();
           const name =
-            profile?.display_name || profile?.username || "새 메시지";
+            profile?.display_name || profile?.username || t("msgNewMessage");
           const preview =
             (typeof row.content === "string" && row.content.trim().slice(0, 80)) ||
-            "사진 또는 첨부파일을 보냈어요";
+            t("msgAttachment");
 
-          toast(`${name}님이 메시지를 보냈어요`, {
+          toast(t("msgSentBy").replace("{name}", name), {
             description: preview,
             action: {
-              label: "열기",
+              label: t("msgOpen"),
               onClick: () => navigate("/ootd?tab=mypage"),
             },
           });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Star, Heart, Bookmark, Share2, Pin, Edit3, Trash2,
@@ -24,6 +25,7 @@ const ShowroomDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
   const { room, items, loading, reload } = useShowroom(id);
   const [editing, setEditing] = useState(false);
   const [reactions, setReactions] = useState<Record<string, boolean>>({});
@@ -343,7 +345,7 @@ const ShowroomDetailPage = () => {
           >
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <p className="text-[11.5px] text-foreground/70 leading-snug">
-                ✨ <span className="font-medium text-foreground/85">당신의 쇼룸을 꾸며주세요</span>
+                ✨ <span className="font-medium text-foreground/85">{t("showroomPersonalizeHint")}</span>
               </p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <MyBackgroundPicker value={bgTheme} onChange={setBgTheme} />

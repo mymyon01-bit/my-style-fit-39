@@ -807,8 +807,8 @@ const OOTDPage = () => {
                 }
               }}
               className="ootd-neon-icon ootd-neon-icon--ink"
-              aria-label="OOTD 닫기"
-              title="닫기"
+              aria-label={t("ootdCloseAria")}
+              title={t("ootdCloseTitle")}
             >
               <X className="h-[15px] w-[15px]" strokeWidth={2.4} />
             </button>
@@ -867,8 +867,8 @@ const OOTDPage = () => {
               <button
                 onClick={openOOTDWelcome}
                 className="text-foreground/55 hover:text-foreground transition-colors"
-                aria-label="OOTD 안내 보기"
-                title="OOTD 안내"
+                aria-label={t("ootdGuideAria")}
+                title={t("ootdGuideTitle")}
               >
                 <Info className="h-4 w-4" />
               </button>

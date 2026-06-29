@@ -84,13 +84,7 @@ export default function AccountRemovedScreen({
       {/* Body copy */}
       <div className="space-y-3 text-foreground/80">
         <p className="text-[15px] leading-relaxed">
-          이 계정은 커뮤니티 가이드라인 위반으로 인해
-          <br />
-          <span className="font-semibold text-foreground">my'myon</span> 에서 영구적으로 삭제되었습니다.
-        </p>
-        <p className="text-[13px] leading-relaxed text-foreground/60">
-          This account was permanently removed for violating our community
-          guidelines or posting content that does not fit our community.
+          {t("accountRemovedBody")}
         </p>
 
         {reason && (
