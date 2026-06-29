@@ -161,12 +161,12 @@ const FeedSection = () => {
       <div className="mt-4 grid gap-4 px-3 lg:grid-cols-2 lg:gap-6 lg:px-0 xl:grid-cols-3">
 
         {loading && (
-          <div className="flex min-h-[30vh] items-center justify-center">
+          <div className="col-span-full flex min-h-[30vh] items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-accent/65" />
           </div>
         )}
         {empty && (
-          <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-foreground/55">
+          <div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-foreground/55">
             {tab === "following"
               ? "Follow creators to see their looks here."
               : "No posts yet — check back soon."}
