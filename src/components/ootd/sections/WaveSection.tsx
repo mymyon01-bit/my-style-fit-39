@@ -115,7 +115,7 @@ export default function WaveSection() {
           onClose={() => setCreating(false)}
           onCreated={() => {
             setCreating(false);
-            refetch();
+            refresh();
           }}
         />
       )}
