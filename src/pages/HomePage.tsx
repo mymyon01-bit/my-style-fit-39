@@ -103,7 +103,7 @@ const HomePage = () => {
   const { t } = useI18n();
   const [trending, setTrending] = useState<TrendingPost[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
-  const [heroes, setHeroes] = useState<HeroProduct[]>([]);
+  const [heroes, setHeroes] = useState<HeroProduct[]>(EDITORIAL_HEROES);
   const [heroIdx, setHeroIdx] = useState(0);
   const hero = heroes[heroIdx] ?? null;
 
