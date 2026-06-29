@@ -810,32 +810,72 @@ export default function FitResults({
               </div>
             ))}
           </div>
-          {/* Mannequin silhouette */}
-          <div className="mt-4 flex items-center justify-center rounded-2xl bg-background/40 py-4 text-foreground/70">
-            {silhouetteGender === "female" ? (
-              <svg viewBox="0 0 200 280" className="h-32 w-auto opacity-50" fill="currentColor" aria-hidden>
-                <ellipse cx="100" cy="40" rx="20" ry="24" />
-                <path d="M68 108 Q100 86 132 108 L138 150 Q100 158 62 150 Z" />
-                <path d="M70 150 Q100 162 130 150 L150 230 Q100 248 50 230 Z" />
-                <rect x="68" y="226" width="28" height="54" rx="8" />
-                <rect x="104" y="226" width="28" height="54" rx="8" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 200 280" className="h-32 w-auto opacity-50" fill="currentColor" aria-hidden>
-                <ellipse cx="100" cy="40" rx="20" ry="24" />
-                <path d="M58 108 Q100 80 142 108 L146 200 Q100 210 54 200 Z" />
-                <rect x="68" y="200" width="28" height="78" rx="8" />
-                <rect x="104" y="200" width="28" height="78" rx="8" />
-              </svg>
-            )}
-          </div>
-          <div className="mt-3 flex items-start gap-1.5 rounded-xl bg-accent/[0.06] px-3 py-2">
-            <Lock className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
-            <p className="text-[10px] leading-snug text-foreground/65">
-              <span className="font-semibold text-foreground/80">Your body is locked.</span> We only change the garment to show the fit.
-            </p>
-          </div>
-        </aside>
+          {/* Body shape + compact AI score rings (replaces the BodyDnaPanel
+              that used to sit above the wizard — now lives beside the try-on
+              image so the main fitting view stays the visual hero). */}
+          {(() => {
+            // Lightweight shape classification — same heuristic as BodyDnaPanel.
+            let shape: "hourglass" | "pear" | "rectangle" | "triangle" | "round" | "—" = "—";
+            if (bodyChestCm && bodyWaistCm && bodyHipCm) {
+              const bw = bodyChestCm - bodyWaistCm;
+              const hw = bodyHipCm - bodyWaistCm;
+              const bh = bodyChestCm - bodyHipCm;
+              if (bw > 8 && hw > 8 && Math.abs(bh) < 5) shape = "hourglass";
+              else if (hw > bw + 4) shape = "pear";
+              else if (bw > hw + 4) shape = "triangle";
+              else if (Math.abs(bw) < 5 && Math.abs(hw) < 5) shape = "rectangle";
+              else shape = "round";
+            }
+            // Encode shape on the wrapper so the bottom-of-page recommendation
+            // strip can read it without prop drilling through the grid.
+            (window as any).__mymyon_body_shape__ = shape;
+            const hasBody = !!bodyWeightKg && !!bodyHeightCm;
+            const fitAccuracy = Math.min(99, Math.round(72 + (hasBody ? 14 : 0) + (shape !== "—" ? 6 : 0)));
+            const comfort = Math.min(99, Math.round(70 + (hasBody ? 16 : 0)));
+            const silhouette = Math.min(99, Math.round(74 + (shape !== "—" ? 12 : 0)));
+            const Ring = ({ v, label }: { v: number; label: string }) => {
+              const R = 22, C = 2 * Math.PI * R;
+              const off = C - (v / 100) * C;
+              return (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="relative h-[58px] w-[58px]">
+                    <svg viewBox="0 0 60 60" className="h-full w-full -rotate-90">
+                      <circle cx="30" cy="30" r={R} fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+                      <circle cx="30" cy="30" r={R} fill="none" stroke="hsl(var(--accent))" strokeWidth="3"
+                        strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="font-display text-[13px] font-semibold text-foreground">{v}</span>
+                    </div>
+                  </div>
+                  <span className="text-[8px] font-medium tracking-[0.18em] text-foreground/60 uppercase">{label}</span>
+                </div>
+              );
+            };
+            return (
+              <>
+                <div className="mt-4 rounded-2xl border border-foreground/[0.06] bg-background/40 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8.5px] font-bold tracking-[0.25em] text-foreground/55 uppercase">Body shape</span>
+                    <span className="rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 font-display text-[10px] font-medium text-foreground">
+                      {shape === "—" ? "Calibrating…" : shape.charAt(0).toUpperCase() + shape.slice(1)}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-1">
+                    <Ring v={fitAccuracy} label="Fit" />
+                    <Ring v={comfort} label="Comfort" />
+                    <Ring v={silhouette} label="Shape" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-start gap-1.5 rounded-xl bg-accent/[0.06] px-3 py-2">
+                  <Lock className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
+                  <p className="text-[10px] leading-snug text-foreground/65">
+                    <span className="font-semibold text-foreground/80">Body locked.</span> Only the garment changes between sizes.
+                  </p>
+                </div>
+              </>
+            );
+          })()}
 
         {/* ─── CENTER: SIZE PREVIEW ─────────────────────────────── */}
         <section className="rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6">
