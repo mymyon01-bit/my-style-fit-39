@@ -17,7 +17,7 @@ import {
   Heart as HeartIcon,
   ShoppingBag,
 } from "lucide-react";
-import inkCorner from "@/assets/ink-corner.png";
+import inkBlot from "@/assets/ink-blot.png";
 import Brandmark from "@/components/Brandmark";
 import AISearchBar from "@/components/home/AISearchBar";
 import { useAuth } from "@/lib/auth";
@@ -51,21 +51,19 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
           type="button"
           onClick={() => navigate("/")}
           aria-label="MYMYON home"
-          className="group absolute left-0 top-0 z-20 h-[130px] w-[290px] overflow-hidden"
+          className="group absolute left-4 top-2 z-20 flex h-[110px] w-[220px] items-center justify-center"
         >
-          {/* Ink layer — breathes like sumi ink bleeding into hanji paper. */}
-          <span className="pointer-events-none absolute inset-0 block">
-            <img
-              src={inkCorner}
-              alt=""
-              aria-hidden="true"
-              className="ink-breathe pointer-events-none absolute -left-12 -top-14 h-[230px] w-[340px] select-none object-cover object-left-top"
-              draggable={false}
-            />
-          </span>
-          {/* Gold "my" wordmark — sits crisply on top of the ink. */}
-          <span className="pointer-events-none absolute left-8 top-9 z-10 drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)] transition-transform duration-500 group-hover:scale-[1.04]">
-            <Brandmark variant="inline" size={46} />
+          {/* Ink backdrop — organic black sumi splash that frames the gold logo. */}
+          <img
+            src={inkBlot}
+            alt=""
+            aria-hidden="true"
+            className="ink-breathe pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
+            draggable={false}
+          />
+          {/* Gold "my" wordmark — crisp, centered on the ink, clearly readable. */}
+          <span className="pointer-events-none relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] transition-transform duration-500 group-hover:scale-[1.05]">
+            <Brandmark variant="inline" size={60} />
           </span>
         </button>
 
