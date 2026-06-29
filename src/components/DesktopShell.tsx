@@ -45,15 +45,28 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
     <div className="min-h-screen bg-background">
       {/* Desktop top bar (lg+ only) */}
       <header className="sticky top-0 z-30 hidden border-b border-border/40 bg-background/85 backdrop-blur-xl lg:block">
+        {/* Ink-blot corner brandmark — bleeds outward from the top-left corner
+            on every desktop page. Clicking returns Home. Hidden on mobile. */}
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          aria-label="MYMYON home"
+          className="group absolute left-0 top-0 z-10 h-[110px] w-[260px] overflow-hidden"
+        >
+          <img
+            src={inkCorner}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-10 -top-12 h-[200px] w-[300px] select-none object-cover object-left-top opacity-95 transition-transform duration-500 group-hover:scale-105"
+            draggable={false}
+          />
+          <span className="pointer-events-none absolute left-7 top-7 drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
+            <Brandmark variant="inline" size={40} className="brightness-110 invert-0" />
+          </span>
+        </button>
         <div className="mx-auto flex max-w-[1440px] items-center gap-10 px-10 py-5 xl:px-16">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            aria-label="MYMYON home"
-            className="w-[200px] shrink-0 text-left transition-opacity hover:opacity-80"
-          >
-            <Brandmark variant="inline" size={32} />
-          </button>
+          <div className="w-[200px] shrink-0" aria-hidden="true" />
+
           <div className="max-w-2xl flex-1">
             <AISearchBar placeholder="Search for styles, products, looks…" />
           </div>
