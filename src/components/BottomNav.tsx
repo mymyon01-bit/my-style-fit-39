@@ -1,4 +1,4 @@
-import { Home, Compass, Camera, Sparkles, User, Zap } from "lucide-react";
+import { Home, Compass, Camera, Sparkles, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
