@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.register-app-release]
 verify_jwt = false
+
+[functions.ai-search]
+verify_jwt = false
