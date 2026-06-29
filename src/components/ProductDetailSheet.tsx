@@ -9,6 +9,9 @@ import ShareProductToFriendDialog from "@/components/ShareProductToFriendDialog"
 import { useAuth } from "@/lib/auth";
 import { useFitPrewarm } from "@/hooks/useFitPrewarm";
 import type { PrewarmInput } from "@/lib/fit/fitPrewarm";
+import ProductIntelligencePanel from "@/components/ProductIntelligencePanel";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 interface ProductDetailItem {
   id: string;
