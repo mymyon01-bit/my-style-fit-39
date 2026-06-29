@@ -188,15 +188,15 @@ const HomePage = () => {
       </header>
 
       {/* ── Desktop top bar — brand · search · actions (matches ref) ── */}
-      <header className="sticky top-0 z-30 hidden bg-background/85 backdrop-blur-xl lg:block">
-        <div className="flex items-center gap-8 px-8 py-5 xl:px-12">
+      <header className="sticky top-0 z-30 hidden border-b border-border/40 bg-background/85 backdrop-blur-xl lg:block">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-10 px-10 py-5 xl:px-16">
           <div className="w-[200px] shrink-0">
             <Brandmark variant="inline" size={32} />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 max-w-2xl">
             <AISearchBar placeholder="Search for styles, products, looks…" />
           </div>
-          <div className="flex shrink-0 items-center gap-4">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <button type="button" aria-label="Saved"
               onClick={() => navigate(user ? "/profile?tab=saved" : "/auth")}
               className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
@@ -216,11 +216,12 @@ const HomePage = () => {
         </div>
       </header>
 
+
       {/* ── Desktop: sidebar + wide main. Mobile stays single-column. ── */}
-      <div className="lg:flex lg:items-start lg:gap-10 lg:px-8 xl:px-12">
+      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-14 lg:px-10 lg:pt-4 xl:px-16">
         {/* Sidebar (lg+ only) */}
         <aside className="hidden w-[200px] shrink-0 lg:block">
-          <nav className="sticky top-[88px] flex flex-col gap-1 py-2">
+          <nav className="sticky top-[96px] flex flex-col gap-1 py-2">
             {SIDEBAR_LINKS.map((l) => {
               const Icon = l.icon;
               return (
@@ -243,6 +244,7 @@ const HomePage = () => {
         </aside>
 
       <main className="mx-auto w-full max-w-md px-5 lg:mx-0 lg:max-w-none lg:flex-1 lg:px-0">
+
         {/* AI Search — mobile only; desktop uses the top-bar search */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -281,8 +283,8 @@ const HomePage = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-5 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)]"
-          style={{ aspectRatio: "16 / 11" }}
+          className="relative mt-6 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)] aspect-[16/11] lg:aspect-[21/9]"
+
         >
           {hero?.image ? (
             <img
