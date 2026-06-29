@@ -26,6 +26,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import Brandmark from "@/components/Brandmark";
+import AISearchBar from "@/components/home/AISearchBar";
 import heroSpring from "@/assets/home-hero-spring.jpg";
 
 const CATEGORIES = [
