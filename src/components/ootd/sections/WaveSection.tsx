@@ -18,7 +18,7 @@ const PILLARS = [
 
 export default function WaveSection() {
   const { user } = useAuth();
-  const { waves, loading, refetch } = useMyWaves();
+  const { waves, loading, refresh } = useMyWaves();
   const [active, setActive] = useState<Wave | null>(null);
   const [creating, setCreating] = useState(false);
 
