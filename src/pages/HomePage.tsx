@@ -166,20 +166,29 @@ const HomePage = () => {
     return () => window.clearInterval(id);
   }, [heroes.length]);
 
-  const SIDEBAR_LINKS = [
-    { key: "home", label: "Home", icon: HomeIcon, to: "/", active: true },
-    { key: "fit", label: "Fit DNA", icon: Ruler, to: "/fit" },
-    { key: "discover", label: "Discover", icon: Compass, to: "/discover" },
-    { key: "ootd", label: "#OOTD", icon: Shirt, to: "/ootd" },
-    { key: "profile", label: "Profile", icon: UserIcon, to: "/profile" },
-    { key: "about", label: "About", icon: Info, to: "/about" },
-  ];
+  // If product inventory has no hero-eligible items, fall back to the most-
+  // starred OOTD images so the Today's Pick card never renders blank.
+  useEffect(() => {
+    if (heroes.length > 0 || trending.length === 0) return;
+    const fallback = trending
+      .filter((p) => !!p.image_url)
+      .slice(0, 5)
+      .map((p) => ({
+        id: p.id,
+        title: "Today's Pick",
+        brand: "Community Favorite",
+        image: p.image_url as string,
+      }));
+    if (fallback.length) setHeroes(fallback);
+  }, [trending, heroes.length]);
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-16">
-      {/* ── Mobile top bar (hidden lg+) ───────────────────────────── */}
+    <div className="pb-28 md:pb-16">
+      {/* ── Mobile top bar (hidden lg+) — desktop chrome lives in DesktopShell ─ */}
       <header className="sticky top-0 z-30 flex items-center justify-between bg-background/85 px-5 pt-5 pb-3 backdrop-blur-xl lg:hidden">
-        <Brandmark variant="inline" size={28} />
+        <button type="button" onClick={() => navigate("/")} aria-label="MYMYON home">
+          <Brandmark variant="inline" size={28} />
+        </button>
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -201,63 +210,7 @@ const HomePage = () => {
         </div>
       </header>
 
-      {/* ── Desktop top bar — brand · search · actions (matches ref) ── */}
-      <header className="sticky top-0 z-30 hidden border-b border-border/40 bg-background/85 backdrop-blur-xl lg:block">
-        <div className="mx-auto flex max-w-[1440px] items-center gap-10 px-10 py-5 xl:px-16">
-          <div className="w-[200px] shrink-0">
-            <Brandmark variant="inline" size={32} />
-          </div>
-          <div className="flex-1 max-w-2xl">
-            <AISearchBar placeholder="Search for styles, products, looks…" />
-          </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <button type="button" aria-label="Saved"
-              onClick={() => navigate(user ? "/profile?tab=saved" : "/auth")}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
-              <HeartIcon className="h-5 w-5" strokeWidth={1.5} />
-            </button>
-            <button type="button" aria-label="Account"
-              onClick={() => navigate(user ? "/profile" : "/auth")}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
-              <UserIcon className="h-5 w-5" strokeWidth={1.5} />
-            </button>
-            <button type="button" aria-label="Bag"
-              onClick={() => navigate(user ? "/profile?tab=bag" : "/auth")}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-secondary/60 hover:text-foreground">
-              <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-
-      {/* ── Desktop: sidebar + wide main. Mobile stays single-column. ── */}
-      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-14 lg:px-10 lg:pt-4 xl:px-16">
-        {/* Sidebar (lg+ only) */}
-        <aside className="hidden w-[200px] shrink-0 lg:block">
-          <nav className="sticky top-[96px] flex flex-col gap-1 py-2">
-            {SIDEBAR_LINKS.map((l) => {
-              const Icon = l.icon;
-              return (
-                <button
-                  key={l.key}
-                  type="button"
-                  onClick={() => navigate(l.to)}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px] tracking-tight transition-colors ${
-                    l.active
-                      ? "bg-secondary/70 font-medium text-foreground"
-                      : "text-foreground/70 hover:bg-secondary/50 hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                  <span>{l.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
-
-      <main className="mx-auto w-full max-w-md px-5 lg:mx-0 lg:max-w-none lg:flex-1 lg:px-0">
+      <main className="mx-auto w-full max-w-md px-5 lg:mx-0 lg:max-w-none lg:px-0">
 
         {/* AI Search — mobile only; desktop uses the top-bar search */}
         <motion.div
@@ -268,6 +221,7 @@ const HomePage = () => {
         >
           <AISearchBar />
         </motion.div>
+
 
 
         {/* Category pills */}
