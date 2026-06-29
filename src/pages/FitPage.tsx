@@ -487,44 +487,6 @@ const FitPage = () => {
           </p>
         </div>
 
-        {/* PHASE 4 — Body DNA editorial dashboard.
-            On the RESULTS tab we hide this dashboard and surface a compact
-            version (score rings + shape badge) inside FitResults' left aside
-            so the try-on image stays the visual hero. */}
-        {activeTab !== "results" && (() => {
-          const bust = measurements.chestCm?.value || null;
-          const waist = measurements.waistCm?.value || null;
-          const hip = measurements.hipCm?.value || null;
-          let shape: "hourglass" | "pear" | "rectangle" | "triangle" | "round" | "—" = "—";
-          if (bust && waist && hip) {
-            const bw = bust - waist; const hw = hip - waist; const bh = bust - hip;
-            if (bw > 8 && hw > 8 && Math.abs(bh) < 5) shape = "hourglass";
-            else if (hw > bw + 4) shape = "pear";
-            else if (bw > hw + 4) shape = "triangle";
-            else if (Math.abs(bw) < 5 && Math.abs(hw) < 5) shape = "rectangle";
-            else shape = "round";
-          }
-          const hasBody = !!weightKg && measurements.heightCm.value > 0;
-          const fitAccuracy = Math.round(60 + (scanQuality || 0) * 0.32 + (hasBody ? 8 : 0));
-          const comfort = Math.round(58 + (scanQuality || 0) * 0.30 + (hasBody ? 10 : 0));
-          const silhouette = Math.round(62 + (scanQuality || 0) * 0.30 + (shape !== "—" ? 6 : 0));
-          return (
-            <BodyDnaPanel
-              shoulderCm={measurements.shoulderWidthCm?.value || null}
-              bustCm={bust}
-              waistCm={waist}
-              hipCm={hip}
-              heightCm={measurements.heightCm?.value || null}
-              weightKg={weightKg}
-              shape={shape}
-              fitAccuracy={Math.min(99, fitAccuracy)}
-              comfort={Math.min(99, comfort)}
-              silhouette={Math.min(99, silhouette)}
-              onEdit={() => setActiveTab("measurements")}
-            />
-          );
-        })()}
-
         <div className="flex">
           {([
             { id: "scan", label: t("fitTabScan") },
@@ -546,6 +508,7 @@ const FitPage = () => {
         </div>
         <div className="h-px bg-accent/[0.14]" />
       </div>
+
 
       {/* Headless legacy canvas trigger removed.
           The RESULTS tab now drives final AI generation directly via
@@ -682,7 +645,48 @@ const FitPage = () => {
             )}
           </motion.div>
         </AnimatePresence>
+
+        {/* PHASE 4 — Body DNA editorial dashboard.
+            Rendered BELOW the fit generator so the try-on image stays the
+            primary visual; the analytical breakdown sits beneath as supporting
+            detail. Hidden on the RESULTS tab (compact version lives there). */}
+        {activeTab !== "results" && (() => {
+          const bust = measurements.chestCm?.value || null;
+          const waist = measurements.waistCm?.value || null;
+          const hip = measurements.hipCm?.value || null;
+          let shape: "hourglass" | "pear" | "rectangle" | "triangle" | "round" | "—" = "—";
+          if (bust && waist && hip) {
+            const bw = bust - waist; const hw = hip - waist; const bh = bust - hip;
+            if (bw > 8 && hw > 8 && Math.abs(bh) < 5) shape = "hourglass";
+            else if (hw > bw + 4) shape = "pear";
+            else if (bw > hw + 4) shape = "triangle";
+            else if (Math.abs(bw) < 5 && Math.abs(hw) < 5) shape = "rectangle";
+            else shape = "round";
+          }
+          const hasBody = !!weightKg && measurements.heightCm.value > 0;
+          const fitAccuracy = Math.round(60 + (scanQuality || 0) * 0.32 + (hasBody ? 8 : 0));
+          const comfort = Math.round(58 + (scanQuality || 0) * 0.30 + (hasBody ? 10 : 0));
+          const silhouette = Math.round(62 + (scanQuality || 0) * 0.30 + (shape !== "—" ? 6 : 0));
+          return (
+            <div className="mt-12 md:mt-16">
+              <BodyDnaPanel
+                shoulderCm={measurements.shoulderWidthCm?.value || null}
+                bustCm={bust}
+                waistCm={waist}
+                hipCm={hip}
+                heightCm={measurements.heightCm?.value || null}
+                weightKg={weightKg}
+                shape={shape}
+                fitAccuracy={Math.min(99, fitAccuracy)}
+                comfort={Math.min(99, comfort)}
+                silhouette={Math.min(99, silhouette)}
+                onEdit={() => setActiveTab("measurements")}
+              />
+            </div>
+          );
+        })()}
       </div>
+
     </div>
   );
 };
