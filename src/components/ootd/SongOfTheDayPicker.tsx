@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Check,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * "Song of the Day" + mini playlist — a personal mood soundtrack.
