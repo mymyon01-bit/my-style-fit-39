@@ -223,7 +223,7 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
       {creatingWave && (
         <CreateWaveDialog
           open={creatingWave}
-          onOpenChange={setCreatingWave}
+          onClose={() => setCreatingWave(false)}
           onCreated={() => { refresh(); setCreatingWave(false); }}
         />
       )}
