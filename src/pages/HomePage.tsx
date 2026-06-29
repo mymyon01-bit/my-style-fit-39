@@ -255,7 +255,7 @@ const HomePage = () => {
                 key={hero?.id}
                 src={hero?.image}
                 alt={hero?.title}
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover object-right sm:object-center"
                 loading="eager"
                 initial={{ opacity: 0, scale: 1.04 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -264,16 +264,24 @@ const HomePage = () => {
               />
             </AnimatePresence>
           )}
-          {/* Soft warm wash so text reads on the right of the model */}
+          {/* Soft warm wash — bottom-up on mobile, left-side on tablet+ */}
           <div
             aria-hidden
             className="absolute inset-0"
             style={{
               background:
+                "linear-gradient(0deg, hsl(32 28% 92% / 0.95) 0%, hsl(32 28% 92% / 0.55) 28%, transparent 55%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 hidden sm:block"
+            style={{
+              background:
                 "linear-gradient(90deg, hsl(32 28% 92% / 0.92) 0%, hsl(32 28% 92% / 0.55) 38%, transparent 62%)",
             }}
           />
-          <div className="relative flex h-full w-1/2 flex-col justify-center p-6 md:p-10">
+          <div className="relative flex h-full w-full flex-col justify-end p-5 sm:w-1/2 sm:justify-center sm:p-8 md:p-10">
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-accent">
               {hero?.brand?.toUpperCase() ?? "New In"}
             </span>
@@ -284,12 +292,12 @@ const HomePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-3 font-display text-[34px] font-medium leading-[0.95] tracking-tight text-foreground md:text-[44px]"
+                className="mt-2 whitespace-pre-line font-display text-[30px] font-medium leading-[0.95] tracking-tight text-foreground sm:mt-3 sm:text-[34px] md:text-[44px]"
               >
                 {hero?.title ?? "Today's\nPick"}
               </motion.span>
             </AnimatePresence>
-            <span className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground/80">
+            <span className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 sm:mt-4">
               Explore Now <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.6} />
             </span>
           </div>
