@@ -276,8 +276,10 @@ const AppRoutes = () => {
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/fit" element={<FitPage />} />
             <Route path="/fit/:productId" element={<FitPage />} />
-            <Route path="/ootd" element={<OOTDPage />} />
+            <Route path="/ootd" element={<OOTDCommunityPage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/showroom" element={<ShowroomBrowsePage />} />
+            <Route path="/closet" element={<Navigate to="/profile" replace />} />
             <Route path="/showroom/new" element={<ProtectedRoute><ShowroomNewPage /></ProtectedRoute>} />
             <Route path="/showroom/:id" element={<ShowroomDetailPage />} />
             <Route path="/user/:userId" element={<UserProfilePage />} />
