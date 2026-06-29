@@ -54,7 +54,7 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
           className="group absolute left-4 top-2 z-20 flex h-[110px] w-[220px] items-center justify-center"
         >
           {/* MYMYON ink-blot logo — gold signature on organic black sumi splash. */}
-          <span className="pointer-events-none relative z-10 drop-shadow-[0_4px_14px_rgba(0,0,0,0.35)] transition-transform duration-500 group-hover:scale-[1.05]">
+          <span className="pointer-events-none relative z-10 transition-transform duration-500 group-hover:scale-[1.05]">
             <Brandmark variant="inline" size={72} />
           </span>
         </button>
