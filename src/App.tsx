@@ -215,6 +215,9 @@ const AppRoutes = () => {
   // to see incoming messages.
   useMessageToasts();
 
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -226,8 +229,6 @@ const AppRoutes = () => {
     );
   }
 
-  const location = useLocation();
-  const isAdmin = location.pathname.startsWith("/admin");
 
   return (
     <>
