@@ -306,7 +306,7 @@ export default function SongOfTheDayPicker({ value, onChange }: Props) {
           </button>
         </div>
         <p className="text-[11px] text-foreground/55 leading-relaxed mb-3 shrink-0">
-          오늘 내 기분을 표현한 노래로 바꿔줘.
+          {t("sotdPrompt")}
         </p>
 
         {/* Currently selected SOTD */}
