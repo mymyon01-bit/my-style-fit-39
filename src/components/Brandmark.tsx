@@ -1,6 +1,6 @@
 /**
  * Brandmark — MYMYON luxury cursive "my" signature mark.
- * Uses the soft-gold script lockup across all in-app surfaces.
+ * Gold script floating on an organic black ink-blot splash, used across all in-app surfaces.
  */
 import { cn } from "@/lib/utils";
 import signature from "@/assets/mymyon-logo-ink-exact.png.asset.json";
