@@ -1,292 +1,282 @@
 /**
- * HomePage — minimal hype edition.
+ * HomePage — MYMYON luxury BROWSE editorial home.
  *
- * Design: stripped-down black canvas with a single neon-pink accent.
- * Generous whitespace, restrained typography, no blobs/scanlines/marquee.
- * Keeps all original functions: mood query → /discover, language picker,
- * weather ambience, share-app, install, auth.
+ * Matches the reference: gold "my" wordmark + search/bell, large editorial
+ * "Spring Essentials" hero card, category pill row, icon-row (For You,
+ * Brands, New In, Luxury, Street, Minimal), Trending Now horizontal cards,
+ * Based on Your Body DNA recommendation row.
+ *
+ * All navigation funnels into /discover with category/mood filters.
  */
-import { useState, useRef, useCallback, useEffect } from "react";
-import { useI18n } from "@/lib/i18n";
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, Download, LogIn, User as UserIcon, Handshake } from "lucide-react";
-import { toast } from "sonner";
-import WeatherAmbience from "@/components/WeatherAmbience";
-import { useWeather } from "@/hooks/useWeather";
-import LanguageSelector from "@/components/LanguageSelector";
-import Footer from "@/components/Footer";
-import Brandmark from "@/components/Brandmark";
-import MoodTicker from "@/components/MoodTicker";
-import ShareButton from "@/components/ShareButton";
-import OOTDDiaryButton from "@/components/OOTDDiaryButton";
-import SocialLinks from "@/components/SocialLinks";
-
-import StyleMeButton from "@/components/StyleMeButton";
-import ContactUsDialog from "@/components/ContactUsDialog";
+import {
+  Search,
+  Bell,
+  User as UserIcon,
+  Tag,
+  Sparkles as SparklesIcon,
+  Gem,
+  Building2,
+  Minus,
+  Heart,
+  ArrowRight,
+} from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import Brandmark from "@/components/Brandmark";
+import heroSpring from "@/assets/home-hero-spring.jpg";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+const CATEGORIES = [
+  { key: "all", label: "All", q: "" },
+  { key: "clothing", label: "Clothing", q: "clothing" },
+  { key: "dresses", label: "Dresses", q: "dresses" },
+  { key: "tops", label: "Tops", q: "tops" },
+  { key: "bottoms", label: "Bottoms", q: "bottoms" },
+  { key: "shoes", label: "Shoes", q: "shoes" },
+  { key: "acc", label: "Acc", q: "accessories" },
+];
+
+const QUICK_TILES = [
+  { key: "foryou",  label: "For You", icon: UserIcon },
+  { key: "brands",  label: "Brands",  icon: Tag },
+  { key: "newin",   label: "New In",  icon: SparklesIcon },
+  { key: "luxury",  label: "Luxury",  icon: Gem },
+  { key: "street",  label: "Street",  icon: Building2 },
+  { key: "minimal", label: "Minimal", icon: Minus },
+];
+
+// Trending placeholders — wire to real data later
+const TRENDING = [
+  { id: 1, img: heroSpring, likes: "23.4K", tone: "linen" },
+  { id: 2, img: heroSpring, likes: "18.7K", tone: "noir" },
+  { id: 3, img: heroSpring, likes: "15.2K", tone: "blazer" },
+];
 
 const HomePage = () => {
-  const { t } = useI18n();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [affOpen, setAffOpen] = useState(false);
-  const weather = useWeather();
+  const { user } = useAuth();
+  const { t } = useI18n();
 
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  const handleInstall = useCallback(async () => {
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as any).standalone === true;
-    if (isStandalone) {
-      toast.success(t("appInstalled") || "Already installed");
-      return;
-    }
-    if (installPrompt) {
-      await installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
-      if (choice.outcome === "accepted") {
-        toast.success("Added to Home Screen");
-        setInstallPrompt(null);
-      }
-      return;
-    }
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (isIOS) {
-      toast("Tap Share → Add to Home Screen", { duration: 5000 });
-    } else {
-      navigate("/install");
-    }
-  }, [installPrompt, navigate, t]);
-
-  const handleSubmit = useCallback(async () => {
-    if (!query.trim()) return;
-    setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    setIsLoading(false);
-    navigate(`/discover?mood=${encodeURIComponent(query.trim())}&source=homepage`);
-  }, [query, navigate]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSubmit();
-  };
-
-  const weatherLabel = weather.condition
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const goDiscover = useCallback(
+    (q: string) => {
+      const search = q ? `?mood=${encodeURIComponent(q)}&source=home` : "?source=home";
+      navigate(`/discover${search}`);
+    },
+    [navigate],
+  );
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background md:h-auto md:min-h-[100dvh] md:overflow-visible">
-      {/* Hero — minimal hype */}
-      <section className="relative flex flex-1 flex-col items-center justify-between overflow-hidden pt-12 pb-20 md:pt-40 md:pb-24 md:flex-none md:justify-start">
-        <WeatherAmbience condition={weather.condition} isNight={weather.isNight} />
+    <div className="min-h-screen bg-background pb-28 md:pb-16">
+      {/* ── Top bar ───────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 flex items-center justify-between bg-background/85 px-5 pt-5 pb-3 backdrop-blur-xl md:px-10 md:pt-8">
+        <Brandmark variant="inline" size={28} />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            aria-label="Search"
+            onClick={() => navigate("/discover?source=home-search")}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-secondary/60"
+          >
+            <Search className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          </button>
+          <button
+            type="button"
+            aria-label="Notifications"
+            onClick={() => navigate(user ? "/profile?tab=notifications" : "/auth")}
+            className="relative flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-secondary/60"
+          >
+            <Bell className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            <span className="absolute right-[9px] top-[8px] h-1.5 w-1.5 rounded-full bg-accent" />
+          </button>
+        </div>
+      </header>
 
-        {/* Single soft pink halo — far left, low opacity */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full"
-          style={{
-            background: "radial-gradient(circle, hsl(var(--primary) / 0.18) 0%, transparent 60%)",
-            filter: "blur(40px)",
-          }}
-        />
-
-        {/* Top bar */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
+      <main className="mx-auto max-w-md px-5 md:max-w-3xl md:px-10">
+        {/* Section title */}
+        <motion.h1
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="absolute top-4 z-20 flex w-full items-center justify-between px-5 md:px-8"
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-2 font-display text-[40px] font-medium leading-none tracking-tight text-foreground md:text-[56px]"
         >
-          <Brandmark variant="inline" size={20} />
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleInstall}
-              aria-label="Install app"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/60 transition-colors hover:text-foreground"
-            >
-              <Download className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => navigate(user ? "/profile" : "/auth")}
-              aria-label={user ? "Profile" : "Sign in"}
-              className="flex h-8 items-center gap-1.5 rounded-full border border-foreground/15 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/80 transition-colors hover:border-primary/60 hover:text-primary"
-            >
-              {user ? <UserIcon className="h-3 w-3" /> : <LogIn className="h-3 w-3" />}
-              <span>{user ? "Me" : "Sign in"}</span>
-            </button>
-            <LanguageSelector />
-          </div>
-        </motion.div>
+          BROWSE
+        </motion.h1>
 
-        {/* Main column */}
-        <div className="relative z-10 mx-4 w-[calc(100%-2rem)] max-w-[640px] rounded-3xl border border-foreground/10 bg-background/45 px-4 py-4 backdrop-blur-md shadow-[0_8px_40px_-8px_rgba(0,0,0,0.45)] md:mx-auto md:w-full md:px-10 md:py-12">
-          {/* Tiny eyebrow */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-3 md:mb-10 flex items-center justify-center gap-2"
-          >
-            <span className="h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-foreground/50">
-              Vol.04 — Drop
-            </span>
-            <span className="h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
-          </motion.div>
-
-          {/* Minimal headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center font-display text-[30px] font-black leading-[0.92] tracking-tight text-foreground sm:text-[60px] md:text-[80px]"
-            style={{ letterSpacing: "-0.045em" }}
-          >
-            <span className="block">Wear your</span>
-            <span className="block text-primary">
-              <MoodTicker
-                onPick={(word) =>
-                  navigate(`/discover?mood=${encodeURIComponent(word)}&source=homepage`)
-                }
-              />
-            </span>
-          </motion.h1>
-
-          {/* Minimal command bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.25 }}
-            className="mt-4 md:mt-12"
-          >
-            <div
-              className={`flex items-center gap-3 rounded-full border bg-card/60 px-5 py-2.5 backdrop-blur-md transition-all ${
-                isFocused
-                  ? "border-primary/60 shadow-[0_0_0_4px_hsl(var(--primary)/0.12)]"
-                  : "border-foreground/15"
-              }`}
-            >
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onKeyDown={handleKeyDown}
-                placeholder={t("howAreYouFeeling")}
-                className="flex-1 bg-transparent py-1.5 text-[15px] font-medium text-foreground outline-none placeholder:text-foreground/35"
-              />
+        {/* Category pills */}
+        <div className="mt-5 -mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-2 pb-1">
+            {CATEGORIES.map((c, i) => (
               <button
-                onClick={handleSubmit}
-                disabled={!query.trim() || isLoading}
-                aria-label={t("enter")}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:scale-105 disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-foreground/40"
+                key={c.key}
+                type="button"
+                onClick={() => goDiscover(c.q)}
+                className={`shrink-0 rounded-full px-4 py-2 text-[12px] font-medium tracking-tight transition-all ${
+                  i === 0
+                    ? "bg-foreground text-background"
+                    : "bg-secondary/60 text-foreground/75 hover:bg-secondary"
+                }`}
               >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowRight className="h-4 w-4" />
-                )}
+                {c.label}
               </button>
-            </div>
-          </motion.div>
-
-          {/* OOTD Diary — mobile only */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="mt-3 flex justify-center md:hidden"
-          >
-            <OOTDDiaryButton compact />
-          </motion.div>
-
-          {/* Primary CTA */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-3 flex items-center justify-center gap-2 md:mt-12"
-          >
-            <StyleMeButton variant="pill" />
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event("mymyon:open-tour"))}
-              aria-label="Show intro"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-foreground/15 text-foreground/60 transition-colors hover:border-accent hover:text-accent"
-            >
-              <span className="font-mono text-[12px] font-bold italic">i</span>
-            </button>
-          </motion.div>
-
-          {/* Weather meta */}
-          {!weather.loading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7, duration: 0.6 }}
-              className="mt-3 md:mt-12 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-foreground/45"
-            >
-              <span className="h-1 w-1 rounded-full bg-primary/70" />
-              <span>
-                {weather.temp}° · {weatherLabel}
-                {weather.location && !weather.error ? ` · ${weather.location}` : ""}
-              </span>
-            </motion.div>
-          )}
+            ))}
+          </div>
         </div>
 
-
-        {/* Footer actions */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9, duration: 0.6 }}
-          className="relative z-10 mt-3 md:mt-12 flex flex-col items-center gap-2"
+        {/* ── Hero card ───────────────────────────────────────────── */}
+        <motion.button
+          type="button"
+          onClick={() => goDiscover("spring essentials")}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mt-5 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)]"
+          style={{ aspectRatio: "16 / 11" }}
         >
-          <div className="flex flex-wrap items-center justify-center gap-3 rounded-full border border-foreground/10 bg-background/40 px-4 py-2 backdrop-blur-md">
-            <button
-              onClick={() => setAffOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/60 transition-colors hover:border-primary/50 hover:text-primary"
-            >
-              <Handshake className="h-3 w-3" />
-              <span>Affiliate</span>
-            </button>
-            <ShareButton
-              title="Share, Explore, and Edge your style. Join My'myon."
-              url="https://www.mymyon.com"
-              label="Share"
-            />
+          <img
+            src={heroSpring}
+            alt="Spring Essentials"
+            className="absolute inset-0 h-full w-full object-cover"
+            width={1024}
+            height={768}
+          />
+          {/* Soft warm wash so text reads on the right of the model */}
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, hsl(32 28% 92% / 0.92) 0%, hsl(32 28% 92% / 0.55) 38%, transparent 62%)",
+            }}
+          />
+          <div className="relative flex h-full w-1/2 flex-col justify-center p-6 md:p-10">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-accent">
+              New In
+            </span>
+            <span className="mt-3 font-display text-[34px] font-medium leading-[0.95] tracking-tight text-foreground md:text-[44px]">
+              Spring
+              <br />
+              Essentials
+            </span>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground/80">
+              Explore Now <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.6} />
+            </span>
           </div>
-          <SocialLinks className="md:hidden" iconClassName="h-[16px] w-[16px]" />
-        </motion.div>
-      </section>
+        </motion.button>
 
-      <ContactUsDialog open={affOpen} onOpenChange={setAffOpen} topic="Affiliate / Ad" />
+        {/* ── Quick tile row ──────────────────────────────────────── */}
+        <div className="mt-7 grid grid-cols-6 gap-2">
+          {QUICK_TILES.map((tile) => {
+            const Icon = tile.icon;
+            return (
+              <button
+                key={tile.key}
+                type="button"
+                onClick={() => goDiscover(tile.label.toLowerCase())}
+                className="group flex flex-col items-center gap-2"
+              >
+                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card transition-all group-hover:border-accent/60 group-hover:bg-accent/10">
+                  <Icon className="h-[18px] w-[18px] text-foreground/75" strokeWidth={1.5} />
+                </span>
+                <span className="text-[10px] font-medium tracking-tight text-foreground/70">
+                  {tile.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-      <div className="hidden md:block">
-        <Footer />
-      </div>
+        {/* ── Trending Now ────────────────────────────────────────── */}
+        <section className="mt-9">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground">
+              Trending Now
+            </h2>
+            <button
+              type="button"
+              onClick={() => goDiscover("trending")}
+              className="text-[11px] font-medium tracking-tight text-foreground/55 hover:text-accent"
+            >
+              See All
+            </button>
+          </div>
+          <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-3 pb-1">
+              {TRENDING.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => goDiscover("trending")}
+                  className="relative shrink-0 overflow-hidden rounded-2xl"
+                  style={{ width: 140, aspectRatio: "3 / 4" }}
+                >
+                  <img
+                    src={item.img}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                    width={420}
+                    height={560}
+                  />
+                  <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-md">
+                    <Heart className="h-3.5 w-3.5 text-foreground/85" strokeWidth={1.6} />
+                  </span>
+                  <span className="absolute left-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-1 text-[10px] font-semibold tracking-tight text-foreground/85 backdrop-blur-md">
+                    <Heart className="h-3 w-3 fill-accent text-accent" strokeWidth={0} />
+                    {item.likes}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Based on Your Body DNA ──────────────────────────────── */}
+        <section className="mt-8">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground">
+              Based on Your Body DNA
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate("/fit")}
+              className="text-[11px] font-medium tracking-tight text-foreground/55 hover:text-accent"
+            >
+              See All
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/fit")}
+            className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-3 text-left transition-shadow hover:shadow-[var(--shadow-2)]"
+          >
+            <img
+              src={heroSpring}
+              alt="Relaxed Blazer"
+              loading="lazy"
+              className="h-16 w-16 shrink-0 rounded-xl object-cover"
+              width={64}
+              height={64}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">
+                92% Match
+              </div>
+              <div className="mt-0.5 truncate font-display text-[16px] font-medium text-foreground">
+                Relaxed Blazer
+              </div>
+              <div className="truncate text-[11px] text-muted-foreground">Acne Studios</div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-foreground/40" strokeWidth={1.5} />
+          </button>
+        </section>
+
+        {/* tagline / footer text */}
+        <p className="mt-10 text-center font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40">
+          {t("howAreYouFeeling")}
+        </p>
+      </main>
     </div>
   );
 };
