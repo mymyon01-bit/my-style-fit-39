@@ -33,6 +33,8 @@ interface Props {
 
 const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { rooms: myRooms, loading: myRoomsLoading } = useUserShowrooms(user?.id);
   const { waves, loading: wavesLoading, refresh } = useMyWaves();
   const [activeWave, setActiveWave] = useState<Wave | null>(null);
   const [creatingWave, setCreatingWave] = useState(false);
