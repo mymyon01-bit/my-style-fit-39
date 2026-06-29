@@ -318,7 +318,7 @@ const HomePage = () => {
         </motion.button>
 
         {/* ── Quick tile row ──────────────────────────────────────── */}
-        <div className="mt-7 grid grid-cols-6 gap-2 md:gap-6">
+        <div className="mt-6 grid grid-cols-6 gap-1.5 sm:gap-3 md:gap-4">
           {QUICK_TILES.map((tile) => {
             const Icon = tile.icon;
             return (
@@ -326,12 +326,12 @@ const HomePage = () => {
                 key={tile.key}
                 type="button"
                 onClick={() => goDiscover(tile.label.toLowerCase())}
-                className="group flex flex-col items-center gap-2"
+                className="group flex flex-col items-center gap-1.5"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card transition-all group-hover:border-accent/60 group-hover:bg-accent/10 md:h-16 md:w-16">
-                  <Icon className="h-[18px] w-[18px] text-foreground/75 md:h-5 md:w-5" strokeWidth={1.5} />
+                <span className="flex aspect-square w-full max-w-[64px] items-center justify-center rounded-2xl border border-border/70 bg-gradient-to-br from-secondary/60 via-card to-background shadow-[var(--shadow-1)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-accent/60 group-hover:from-accent/10 group-hover:via-accent/5 group-hover:shadow-[var(--shadow-2)]">
+                  <Icon className="h-[18px] w-[18px] text-accent/85 transition-colors group-hover:text-accent md:h-[20px] md:w-[20px]" strokeWidth={1.6} />
                 </span>
-                <span className="text-[10px] font-medium tracking-tight text-foreground/70 md:text-[12px]">
+                <span className="text-[10px] font-medium tracking-tight text-foreground/75 md:text-[11px]">
                   {tile.label}
                 </span>
               </button>
