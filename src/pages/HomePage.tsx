@@ -95,15 +95,16 @@ const HomePage = () => {
       </header>
 
       <main className="mx-auto max-w-md px-5 md:max-w-3xl md:px-10">
-        {/* Section title */}
-        <motion.h1
+        {/* AI Search — replaces old BROWSE header */}
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-2 font-display text-[40px] font-medium leading-none tracking-tight text-foreground md:text-[56px]"
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-2"
         >
-          BROWSE
-        </motion.h1>
+          <AISearchBar />
+        </motion.div>
+
 
         {/* Category pills */}
         <div className="mt-5 -mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
