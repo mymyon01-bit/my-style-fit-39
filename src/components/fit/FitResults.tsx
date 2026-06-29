@@ -876,6 +876,9 @@ export default function FitResults({
               </>
             );
           })()}
+        </aside>
+
+
 
         {/* ─── CENTER: SIZE PREVIEW ─────────────────────────────── */}
         <section className="rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6">
