@@ -942,18 +942,34 @@ export default function FitResults({
             </div>
           </div>
 
-          {/* Size selector */}
+          {/* Size selector — caption is driven by the v3 measurement classifier
+              first (single source of truth that the hero label uses), then
+              falls back to the legacy region string. Fixes the bug where a
+              tight-on-body Medium would show "LOOSE FIT". */}
           <div className="grid grid-cols-4 gap-2">
             {result.sizeResults.slice(0, 4).map((sr) => {
               const isActive = sr.size === activeSize;
               const isRecommended = sr.size === recommendedSize;
+              const v3 = sizing.recommendation?.sizeAnalyses?.[sr.size] ?? null;
               const sizeRegions = sr.regions || [];
               const sChest = sizeRegions.find((r) => /chest|bust/i.test(r.region))?.fit || "regular";
+              const captionFromV3 = v3 ? (
+                v3.classification === "TooSmall" ? "Too small"
+                : v3.classification === "Tight" ? "Tight"
+                : v3.classification === "CloseFit" ? "Close fit"
+                : v3.classification === "BestBalance" ? "Best fit"
+                : v3.classification === "Relaxed" ? "Relaxed"
+                : v3.classification === "Oversized" ? "Loose fit"
+                : "Too large"
+              ) : null;
               const captionTop =
-                isRecommended ? "Best fit"
-                : /tight|small|short/i.test(sChest) ? "Too tight"
-                : /loose|oversized|relaxed|long/i.test(sChest) ? "Loose fit"
-                : "Close fit";
+                captionFromV3
+                ?? (isRecommended ? "Best fit"
+                  : /tight|small|short/i.test(sChest) ? "Tight"
+                  : /loose|oversized|relaxed|long/i.test(sChest) ? "Loose fit"
+                  : "Close fit");
+              const isTightCap = /tight|small/i.test(captionTop);
+              const isLooseCap = /loose|oversized|relaxed|large/i.test(captionTop);
               return (
                 <button
                   key={sr.size}
@@ -975,8 +991,8 @@ export default function FitResults({
                   <span className={`mt-0.5 text-[9px] font-semibold tracking-wider uppercase ${
                     isActive ? "text-accent-foreground/80"
                     : isRecommended ? "text-accent"
-                    : /tight|small/i.test(sChest) ? "text-orange-500"
-                    : /loose|oversized/i.test(sChest) ? "text-blue-400"
+                    : isTightCap ? "text-orange-500"
+                    : isLooseCap ? "text-blue-400"
                     : "text-foreground/50"
                   }`}>
                     {captionTop}
