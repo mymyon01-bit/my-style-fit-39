@@ -283,8 +283,8 @@ const HomePage = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-5 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)]"
-          style={{ aspectRatio: "16 / 11" }}
+          className="relative mt-6 block w-full overflow-hidden rounded-[28px] text-left shadow-[var(--shadow-2)] aspect-[16/11] lg:aspect-[21/9]"
+
         >
           {hero?.image ? (
             <img
