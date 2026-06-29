@@ -35,7 +35,21 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import Brandmark from "@/components/Brandmark";
 import AISearchBar from "@/components/home/AISearchBar";
-// Hero image now comes from real product inventory — no static asset import.
+// Curated editorial frames for the Today's Pick carousel. These are the
+// brand's hero shots and always take priority over inventory imagery.
+import heroFrame1 from "@/assets/hero/hero-frame-1.jpg.asset.json";
+import heroFrame2 from "@/assets/hero/hero-frame-2.jpg.asset.json";
+import heroFrame3 from "@/assets/hero/hero-frame-3.jpg.asset.json";
+import heroFrame4 from "@/assets/hero/hero-frame-4.jpg.asset.json";
+import heroFrame5 from "@/assets/hero/hero-frame-5.jpg.asset.json";
+
+const EDITORIAL_HEROES: { id: string; title: string; brand: string | null; image: string }[] = [
+  { id: "editorial-1", title: "Off-Duty\nEssential", brand: "MYMYON Edit", image: heroFrame1.url },
+  { id: "editorial-2", title: "Soft\nTailoring",     brand: "MYMYON Edit", image: heroFrame2.url },
+  { id: "editorial-3", title: "Camel\nSeason",       brand: "MYMYON Edit", image: heroFrame3.url },
+  { id: "editorial-4", title: "Cream\nSilhouette",   brand: "MYMYON Edit", image: heroFrame4.url },
+  { id: "editorial-5", title: "Translucent\nLayers", brand: "MYMYON Edit", image: heroFrame5.url },
+];
 
 const CATEGORIES = [
   { key: "all", label: "All", q: "" },
@@ -89,7 +103,7 @@ const HomePage = () => {
   const { t } = useI18n();
   const [trending, setTrending] = useState<TrendingPost[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
-  const [heroes, setHeroes] = useState<HeroProduct[]>([]);
+  const [heroes, setHeroes] = useState<HeroProduct[]>(EDITORIAL_HEROES);
   const [heroIdx, setHeroIdx] = useState(0);
   const hero = heroes[heroIdx] ?? null;
 
@@ -138,20 +152,8 @@ const HomePage = () => {
           }))
           .filter((p) => !!p.image);
         setDnaPicks(picks.slice(0, 6));
-        // Pick the first product with a usable image as the editorial hero so
-        // the home page always reflects real inventory we actually ship.
-        // Build a small rotating set of heroes from real inventory so the
-        // "Today's Pick" card cycles through items that match our catalog.
-        const heroSet = picks
-          .filter((p) => !!p.image)
-          .slice(0, 5)
-          .map((p) => ({
-            id: p.id,
-            title: p.title,
-            brand: p.brand,
-            image: p.image as string,
-          }));
-        if (heroSet.length) setHeroes(heroSet);
+        // Today's Pick uses the curated EDITORIAL_HEROES set (above) — we
+        // intentionally do NOT replace it with raw inventory imagery here.
       }
     })();
     return () => { cancelled = true; };
@@ -166,21 +168,7 @@ const HomePage = () => {
     return () => window.clearInterval(id);
   }, [heroes.length]);
 
-  // If product inventory has no hero-eligible items, fall back to the most-
-  // starred OOTD images so the Today's Pick card never renders blank.
-  useEffect(() => {
-    if (heroes.length > 0 || trending.length === 0) return;
-    const fallback = trending
-      .filter((p) => !!p.image_url)
-      .slice(0, 5)
-      .map((p) => ({
-        id: p.id,
-        title: "Today's Pick",
-        brand: "Community Favorite",
-        image: p.image_url as string,
-      }));
-    if (fallback.length) setHeroes(fallback);
-  }, [trending, heroes.length]);
+  // Today's Pick always renders from EDITORIAL_HEROES — no trending fallback.
 
   return (
     <div className="pb-28 md:pb-16">
@@ -247,7 +235,12 @@ const HomePage = () => {
         {/* ── Hero card ───────────────────────────────────────────── */}
         <motion.button
           type="button"
-          onClick={() => (hero ? navigate(`/fit/${hero.id}`) : goDiscover("new in"))}
+          onClick={() => {
+            if (!hero) return goDiscover("new in");
+            // Editorial frames have no product id — route to Discover instead.
+            if (hero.id.startsWith("editorial-")) return goDiscover("new in");
+            navigate(`/fit/${hero.id}`);
+          }}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
