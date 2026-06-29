@@ -109,9 +109,9 @@ const FeedSection = () => {
   const empty = !loading && posts.length === 0;
 
   return (
-    <div className="mx-auto max-w-md px-0 pb-10">
+    <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
       {/* For You / Following */}
-      <div className="px-5 pt-3">
+      <div className="px-5 pt-3 lg:px-0">
         <div className="flex items-center gap-6">
           {(["foryou", "following"] as Tab[]).map((t) => {
             const active = tab === t;
@@ -135,7 +135,7 @@ const FeedSection = () => {
       </div>
 
       {/* Category chips */}
-      <div className="mt-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-3 overflow-x-auto px-5 lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex gap-2 pb-1">
           {CATEGORIES.map((c) => {
             const active = category === c.key;
@@ -157,8 +157,9 @@ const FeedSection = () => {
         </div>
       </div>
 
-      {/* Feed */}
-      <div className="mt-4 space-y-4 px-3">
+      {/* Feed — single column mobile, 2-col tablet, 3-col desktop */}
+      <div className="mt-4 grid gap-4 px-3 lg:grid-cols-2 lg:gap-6 lg:px-0 xl:grid-cols-3">
+
         {loading && (
           <div className="flex min-h-[30vh] items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-accent/65" />
