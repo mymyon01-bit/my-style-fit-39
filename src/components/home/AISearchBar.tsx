@@ -17,7 +17,9 @@ export default function AISearchBar({
     e.preventDefault();
     const trimmed = q.trim();
     if (!trimmed) return;
-    navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+    // Route into the Products/Discover search so the home search shares the
+    // exact same results surface as the Products tab (single source of truth).
+    navigate(`/discover?q=${encodeURIComponent(trimmed)}&source=home`);
   };
 
   return (
