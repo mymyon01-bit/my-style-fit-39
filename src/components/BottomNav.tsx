@@ -25,6 +25,7 @@ const BottomNav = () => {
     { path: "/fit", icon: Sparkles, label: t("tabFitDna"), isOotd: false },
     { path: "/discover", icon: Compass, label: t("tabDiscover"), isOotd: false },
     { path: "/ootd", icon: Camera, label: t("tabOotd"), isOotd: true },
+    { path: "/quicks", icon: Zap, label: "Quicks", isOotd: false },
     { path: "/profile", icon: User, label: t("tabMy"), isOotd: false },
   ];
 
