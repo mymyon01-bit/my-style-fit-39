@@ -84,7 +84,7 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
   }, []);
 
   return (
-    <div className="mx-auto max-w-md px-5 pb-10">
+    <div className="mx-auto max-w-md px-5 pb-10 lg:max-w-none lg:px-0">
       {/* Hero banner */}
       <button
         type="button"
