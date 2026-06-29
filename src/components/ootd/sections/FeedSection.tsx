@@ -232,22 +232,42 @@ const FeedSection = () => {
               )}
             </div>
 
-            {/* Actions */}
+            {/* Actions — open detail to like/comment/save/share. */}
             <footer className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-5 text-foreground/75">
-                <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-foreground">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
+                  aria-label="View likes"
+                >
                   <Heart className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                  {formatCount(p.star_count ?? 0)}
-                </button>
-                <button type="button" className="flex items-center gap-1.5 text-[12px] hover:text-foreground">
-                  <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
                   {formatCount(p.like_count ?? 0)}
                 </button>
-                <button type="button" aria-label="Save" className="hover:text-foreground">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
+                  aria-label="View comments"
+                >
+                  <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                  {formatCount(p.star_count ?? 0)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  aria-label="Save"
+                  className="transition hover:text-foreground"
+                >
                   <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
                 </button>
               </div>
-              <button type="button" aria-label="Share" className="text-foreground/75 hover:text-foreground">
+              <button
+                type="button"
+                onClick={() => navigate(`/ootd?post=${p.id}`)}
+                aria-label="Share"
+                className="text-foreground/75 transition hover:text-foreground"
+              >
                 <Share2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
               </button>
             </footer>
