@@ -25,6 +25,7 @@ const ShowroomDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
   const { room, items, loading, reload } = useShowroom(id);
   const [editing, setEditing] = useState(false);
   const [reactions, setReactions] = useState<Record<string, boolean>>({});
