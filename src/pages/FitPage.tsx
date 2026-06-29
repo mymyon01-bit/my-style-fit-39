@@ -473,9 +473,17 @@ const FitPage = () => {
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-28 lg:pb-16 lg:pt-24">
       <div className="mx-auto max-w-lg px-4 pt-10 sm:px-6 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
-        <div className="flex items-baseline justify-between mb-10 md:mb-12 lg:mb-14">
-          <div className="lg:hidden"><Brandmark variant="inline" /></div>
-          <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT</span>
+        <div className="mb-10 md:mb-12 lg:mb-14">
+          <div className="flex items-baseline justify-between">
+            <div className="lg:hidden"><Brandmark variant="inline" /></div>
+            <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT DNA</span>
+          </div>
+          <h1 className="mt-4 font-display text-[32px] font-semibold leading-tight tracking-tight text-foreground md:text-[40px]">
+            Your Body DNA
+          </h1>
+          <p className="mt-1 text-[12px] text-muted-foreground md:text-[13px]">
+            AI-powered fit, personalized for you.
+          </p>
         </div>
 
         <div className="flex">
