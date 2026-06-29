@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
 
-type Tab = "foryou" | "following";
+type Tab = "foryou" | "circle";
 type Category = "all" | "outfit" | "tip" | "review" | "qa";
 
 const CATEGORIES: { key: Category; label: string }[] = [
@@ -67,6 +67,24 @@ const FeedSection = () => {
     let cancelled = false;
     setLoading(true);
     (async () => {
+      // For the Circle tab, restrict posts to people this user follows.
+      let circleIds: string[] | null = null;
+      if (tab === "circle") {
+        if (!user) {
+          if (!cancelled) { setPosts([]); setLoading(false); }
+          return;
+        }
+        const { data: c } = await supabase
+          .from("circles")
+          .select("following_id")
+          .eq("follower_id", user.id);
+        circleIds = Array.from(new Set((c ?? []).map((r: any) => r.following_id).filter(Boolean)));
+        if (circleIds.length === 0) {
+          if (!cancelled) { setPosts([]); setLoading(false); }
+          return;
+        }
+      }
+
       let q = supabase
         .from("ootd_posts")
         .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, created_at")
@@ -75,7 +93,7 @@ const FeedSection = () => {
       if (tab === "foryou") {
         q = q.order("star_count", { ascending: false }).order("created_at", { ascending: false });
       } else {
-        q = q.order("created_at", { ascending: false });
+        q = q.in("user_id", circleIds!).order("created_at", { ascending: false });
       }
       q = q.limit(20);
 
@@ -104,16 +122,16 @@ const FeedSection = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [tab, category]);
+  }, [tab, category, user]);
 
   const empty = !loading && posts.length === 0;
 
   return (
     <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
-      {/* For You / Following */}
+      {/* For You / Circle */}
       <div className="px-5 pt-3 lg:px-0">
         <div className="flex items-center gap-6">
-          {(["foryou", "following"] as Tab[]).map((t) => {
+          {(["foryou", "circle"] as Tab[]).map((t) => {
             const active = tab === t;
             return (
               <button
@@ -124,7 +142,7 @@ const FeedSection = () => {
                   active ? "text-foreground" : "text-foreground/40 hover:text-foreground/70"
                 }`}
               >
-                {t === "foryou" ? "For You" : "Following"}
+                {t === "foryou" ? "For You" : "Circle"}
                 {active && (
                   <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-foreground" />
                 )}
@@ -167,8 +185,8 @@ const FeedSection = () => {
         )}
         {empty && (
           <div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-foreground/55">
-            {tab === "following"
-              ? "Follow creators to see their looks here."
+            {tab === "circle"
+              ? "Add people to your Circle to see their looks here."
               : "No posts yet — check back soon."}
           </div>
         )}
