@@ -1,57 +1,127 @@
-# Fit DNA — Results 화면 정확도 & 레이아웃 리빌드
+# MYMYON OOTD Community Rebuild — Implementation Plan
 
-## 문제 요약
-- 167cm/45kg 여성에 Medium이 시각적으로는 타이트한데 라벨이 "LOOSE FIT"으로 표시 → 라벨과 이미지가 불일치.
-- 상단 Body DNA 패널이 과하게 차지해서 핵심 try-on 이미지가 작게 보임.
-- 너무 많은 설명 라벨이 한꺼번에 노출됨.
-- 체형 맞춤 상품 추천이 없음.
+> Inspired by Instagram × Pinterest × TikTok × SSENSE, but executed as a
+> **Fashion Operating System**, not a social network. Keeps MYMYON's existing
+> Circle/Ripple terminology in the backend and adds **Wave 🌊** as the new
+> reaction primitive on top.
 
-## 1. 사이즈 ↔ 이미지 일관성 파이프라인
-- `src/lib/sizing/v3Classify.ts`의 가슴/허리/엉덩이 ease 가중치를 stretch 원단(Cotton+Spandex 같은) 기준으로 보정. 마른 체형(BMI<18)에서 음수 ease(브랜드 차트 > 신체)일 때만 LOOSE로 분류되도록 임계값 강화.
-- `fit-tryon-router` edge function에 **render-label 동기화 가드** 추가: Gemini가 만든 try-on 이미지의 시각적 텐션과 v3Classify 라벨이 어긋날 가능성이 큰 케이스(BMI <18 + LOOSE)에서 라벨을 한 단계 다운(LOOSE → BEST 또는 SLIGHTLY LOOSE) 시키는 후처리.
-- 동일 입력에 대해 라벨 결과를 캐시(`STUDIO_RENDER_VERSION` bump)하여 다음 호출부터 동기화된 결과 반환.
+---
 
-## 2. Results 레이아웃 재설계 (`FitResults.tsx`)
-```text
-┌──────────────────────────────────────────────────────────┐
-│  [SIZE PREVIEW — try-on 이미지 크게]   │  PRODUCT CARD   │
-│                                        │  Best Size: M   │
-│   (전체 폭의 60-65%)                    │  Add to Bag     │
-│                                        │  Why this size? │
-│   [S] [M-Best] [L] [XL] 사이즈 셀렉터    │  ───────────    │
-│                                        │  ANALYZE ▾      │
-└──────────────────────────────────────────┴────────────────┘
-┌──────────────────────────────────────────────────────────┐
-│  YOUR BODY DNA (compact strip, 우측 또는 하단)            │
-│  Bust 94 · Waist 59 · Hip 96 · 점수 ring 3개 (작게)       │
-└──────────────────────────────────────────────────────────┘
-┌──────────────────────────────────────────────────────────┐
-│  RECOMMENDED FOR YOUR SHAPE (가로 스크롤 상품 카드)        │
-└──────────────────────────────────────────────────────────┘
+## Naming Decision (locked)
+
+| Concept                  | MYMYON term                  | DB / code           |
+| ------------------------ | ---------------------------- | ------------------- |
+| People you follow        | **Circle** (private)         | `circles` table     |
+| One-way followers        | **Ripple** (public count)    | derived from circles|
+| "I love this style" tap  | **Wave 🌊** (replaces Like)  | new `ootd_waves`    |
+| Save to a board          | **Save**                     | `saved_posts` + folder |
+| Outfit collections / hubs| **Currents** (existing Waves feature stays as `waves` table — group hubs) | `waves`/`wave_*` |
+
+Note: the existing `waves` table is the *group hub* feature (Old Money Wave,
+etc.). The new tap-reaction is `ootd_waves` so the two never collide. The
+story bar at the top of the feed surfaces `waves` rows (the hubs).
+
+---
+
+## Phase 1 — Feed shell (Following / Explore / Trending + Wave bar + ranked feed)
+
+**Files**
+- `src/components/ootd/sections/FeedSection.tsx` — rewrite
+- `src/components/ootd/feed/WaveBar.tsx` *(new)* — horizontal rail of Currents (hub waves)
+- `src/components/ootd/feed/FeedCard.tsx` *(new)* — single post card
+- `src/components/ootd/feed/ShopTheLookSheet.tsx` *(new)* — tagged products drawer
+- `src/lib/ootd/feedRanking.ts` *(new)* — score function
+
+**Tabs**
+`Following` (= Circle) · `Explore` (default) · `Trending` (24 h hot)
+
+**Card anatomy**
+Avatar · username · location · image carousel · brand chips · product tags
+overlay · `Fit Match XX%` badge · 🌊 Waves · 💬 Comments · 💾 Save · 🛍 Shop the Look
+
+**Ranking signal weights** (client-side reorder of fetched window):
 ```
-- `BodyDnaPanel` 을 상단에서 빼고 **컴팩트 사이드/하단 스트립**으로 축소. 점수/측정값만 노출, 상세 설명은 ANALYZE 시트로 이동.
-- 메인 try-on 이미지 영역을 키워서 시각적 핵심으로 만들기.
-- 상품 카드는 오른쪽 컬럼: Best Size + Add to Bag + Why/Analyze 토글.
+purchase 50 · fit tryon 20 · save 10 · showroom visit 8 ·
+comment 5 · wave 2 · like 1
++ recency decay (e^(-hours/72))
++ affinity boost if author ∈ Circle
+```
 
-## 3. ANALYZE 시트 통합
-- 기존 `FitAnalysisPanel`, region fit table, body DNA 상세 텍스트, NEW CAPABILITIES 칩들을 **하나의 바텀시트** "Analyze details"로 합쳐 기본 숨김.
-- 메인 화면에는 한 줄 요약(예: "Tight in shoulder, balanced in bust")만 노출.
+## Phase 2 — Wave reaction primitive
 
-## 4. 체형 맞춤 상품 추천 (신규 섹션)
-- 새 컴포넌트 `RecommendedForShape.tsx`:
-  - 사용자 BMI/신체 측정값 + 선호 fit 키워드로 `products` 테이블에서 적합 상품 필터(이미 있는 추천 함수 `src/lib/recommendation.ts` 활용).
-  - 가로 스크롤 카드 6-8개, 탭하면 ProductDetailSheet 오픈.
-- Results 화면 맨 아래 + Fit DNA 메인에도 동일 컴포넌트 노출.
+**Migration**
+- `ootd_waves(id, post_id, user_id, created_at, unique(post_id,user_id))`
+- `ootd_posts.wave_count int default 0`
+- trigger bumps `wave_count`
+- GRANTs: insert/delete for `authenticated`, select for `anon`
+- RLS: anyone can read, only owner can insert/delete own wave
 
-## 5. 작업 파일
-- `src/components/fit/FitResults.tsx` — 전체 레이아웃 재구성, BodyDnaPanel 축소판으로 교체.
-- `src/components/fit/BodyDnaPanel.tsx` — `variant="compact"` prop 추가, 스트립 모드 지원.
-- `src/components/fit/FitAnalysisPanel.tsx` — Analyze 바텀시트로 흡수.
-- `src/components/fit/RecommendedForShape.tsx` — 신규.
-- `src/lib/sizing/v3Classify.ts` — LOOSE 판정 임계값 강화 + stretch 보정.
-- `supabase/functions/fit-tryon-router/index.ts` — 라벨 후처리 가드 + `STUDIO_RENDER_VERSION` bump → `lovable-ai-v17-sync`.
-- `src/pages/FitPage.tsx` — BodyDnaPanel 상단 노출 제거(또는 compact 형태로 이동).
+**Client**
+- `useWave(postId)` hook (optimistic toggle)
+- Replace heart icon in FeedCard / PostDetail with 🌊 swell animation
+- Keep legacy `ootd_reactions` rows readable so old `like_count` doesn't break
+  (display Waves = `wave_count`, fallback to `like_count` for legacy posts).
 
-## 비범위
-- OOTD, Showroom, Discover는 이번 작업에 포함하지 않음.
-- Gemini 모델 자체는 변경하지 않음 (이미지 품질 OK 상태 유지).
+## Phase 3 — Save → Collections
+
+- Tap Save → popover with folders from `saved_folders` (already exists) +
+  inline "New folder" input.
+- Default folders if user has none (seeded via existing `useSavedFolders`).
+- Profile → **Saved** tab shows folders as Pinterest-style tiles.
+
+## Phase 4 — Profile visibility rules
+
+- `UserProfilePage` shows: avatar · username · **Ripples (followers count)** ·
+  Waves received total · Showroom score · Fit accuracy · Creator rank.
+- **Circle list is private** — only the owner can open it. Visitors see only
+  the *count* and never the list.
+- Tabs: Posts · OOTD · Showroom · Saved · Tagged. `Saved` and `Tagged` only
+  visible to owner.
+
+**Backend**
+- RLS on `circles`: viewing one's own `follower_id` rows allowed; viewing
+  someone else's `follower_id` rows blocked. (Aggregate counts stay reachable
+  via a `SECURITY DEFINER` function `get_circle_counts(uid)`.)
+- `useCircleCounts` already returns counts via the function — keep it.
+
+## Phase 5 — Showroom score + Fit integration on cards
+
+- New view `showroom_scores` (SECURITY DEFINER fn): waves received ÷ visits.
+- `FeedCard` calls `useResolvedGarmentSize` only when a product is tagged;
+  shows `Fit Match %` badge using existing fit memory if available, else
+  hides the badge (no fake numbers).
+
+## Phase 6 — Discovery weighting
+
+Extend `src/lib/recommendation.ts`:
+- pull from `saved_posts`, `ootd_waves`, `interactions` (view duration),
+  `fit_memory`, `showroom_reactions`.
+- Used by Explore tab + `Based on Your Body DNA` row on Home.
+
+## Phase 7 — Polish
+
+- Wave swell micro-animation (framer-motion scale + ripple ring).
+- Empty states for each tab.
+- Skeleton loaders sized to final card height to prevent CLS.
+- Remove residual references to "Like" in OOTD surface copy.
+
+---
+
+## Out of scope (explicit)
+- Push notifications (project rule: in-app only).
+- Stories — replaced by Wave/Currents rail; keep the existing `stories` table
+  untouched but stop surfacing it on the OOTD feed.
+- Renaming `circles`/`waves` tables — too risky, naming stays at UI layer.
+
+---
+
+## Rollout order
+1. Phase 2 migration (Wave primitive) — unblocks everything else.
+2. Phase 1 feed shell consuming Wave count.
+3. Phase 3 Save folders popover.
+4. Phase 4 profile privacy + tabs.
+5. Phase 5 Fit + Showroom score badges.
+6. Phase 6 ranking extension.
+7. Phase 7 polish.
+
+Each phase ships independently; no big-bang switch.
