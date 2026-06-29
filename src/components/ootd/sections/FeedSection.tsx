@@ -87,7 +87,7 @@ const FeedSection = () => {
 
       let q = supabase
         .from("ootd_posts")
-        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, created_at")
+        .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, wave_count, created_at")
         .not("image_url", "is", null);
 
       if (tab === "foryou") {
