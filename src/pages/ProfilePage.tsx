@@ -387,7 +387,11 @@ const ProfilePage = () => {
                 const remaining = Math.max(0, 30 - daysSince);
                 return (
                   <p className="mt-1 text-[10px] text-foreground/45">
-                    올해 변경 {recent}/3회{remaining > 0 ? ` · 다음 변경까지 ${remaining}일` : " · 지금 변경 가능"}
+                    {t("profileUsernameMeta")
+                      .replace("{n}", String(recent))
+                      .replace("{rest}", remaining > 0
+                        ? t("profileUsernameRemaining").replace("{d}", String(remaining))
+                        : t("profileUsernameUnlocked"))}
                   </p>
                 );
               })()}
