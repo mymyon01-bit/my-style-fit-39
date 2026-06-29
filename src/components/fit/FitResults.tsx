@@ -1089,6 +1089,27 @@ export default function FitResults({
         </aside>
       </div>
 
+      {/* ── RECOMMENDED FOR YOUR SHAPE ── */}
+      <RecommendedForShape
+        shape={
+          (bodyChestCm && bodyWaistCm && bodyHipCm)
+            ? (() => {
+                const bw = bodyChestCm - bodyWaistCm;
+                const hw = bodyHipCm - bodyWaistCm;
+                const bh = bodyChestCm - bodyHipCm;
+                if (bw > 8 && hw > 8 && Math.abs(bh) < 5) return "hourglass";
+                if (hw > bw + 4) return "pear";
+                if (bw > hw + 4) return "triangle";
+                if (Math.abs(bw) < 5 && Math.abs(hw) < 5) return "rectangle";
+                return "round";
+              })() as any
+            : "—"
+        }
+        gender={bodyGender ?? null}
+      />
+
+
+
       {/* ── CHANGE BODY SHEET ── */}
       <ChangeBodySheet
         open={changeBodyOpen}
