@@ -1,32 +1,28 @@
 /**
- * OOTDCommunityPage — MYMYON #OOTD editorial shell.
+ * OOTDCommunityPage — MYMYON #OOTD social shell.
  *
- * Desktop reclaims full screen real estate (no max-w-3xl cap) and uses a
- * striking editorial masthead with section numerals. Tabs: Feed, My Page,
- * Wave + Showroom, and Quicks (stories + shorts moved in here per request).
- *
- * Opens OOTDPostDetail via PostDetailHost when ?post=<id> is in the URL,
- * so likes / comments / stars / save work everywhere in the new shell.
+ * Social-media vibe: cute icon-based tab bar, no editorial numerals.
+ * Tab order: Feed · My Page · Quicks (center, highlighted) · Wave · Showroom.
+ * Opens OOTDPostDetail via PostDetailHost when ?post=<id> is in the URL.
  */
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Search, Settings, Sparkles } from "lucide-react";
-import Brandmark from "@/components/Brandmark";
+import { Bell, Search, Settings, Home, User, Zap, Waves, Store } from "lucide-react";
 import FeedSection from "@/components/ootd/sections/FeedSection";
 import MyPageSection from "@/components/ootd/sections/MyPageSection";
 import WaveShowroomSection from "@/components/ootd/sections/WaveShowroomSection";
 import QuicksSection from "@/components/ootd/sections/QuicksSection";
 import PostDetailHost from "@/components/ootd/PostDetailHost";
 
-type TabKey = "feed" | "my" | "wave" | "quicks";
-type WaveSub = "wave" | "showroom";
+type TabKey = "feed" | "my" | "quicks" | "wave" | "showroom";
 
-const TABS: { key: TabKey; label: string; num: string }[] = [
-  { key: "feed", label: "Feed", num: "01" },
-  { key: "my", label: "My Page", num: "02" },
-  { key: "wave", label: "Wave + Showroom", num: "03" },
-  { key: "quicks", label: "Quicks", num: "04" },
+const TABS: { key: TabKey; label: string; Icon: typeof Home; emoji: string }[] = [
+  { key: "feed",     label: "Feed",     Icon: Home,  emoji: "🏠" },
+  { key: "my",       label: "My",       Icon: User,  emoji: "👤" },
+  { key: "quicks",   label: "Quicks",   Icon: Zap,   emoji: "⚡" },
+  { key: "wave",     label: "Wave",     Icon: Waves, emoji: "🌊" },
+  { key: "showroom", label: "Showroom", Icon: Store, emoji: "🛍️" },
 ];
 
 export default function OOTDCommunityPage() {
@@ -34,10 +30,8 @@ export default function OOTDCommunityPage() {
   const navigate = useNavigate();
   const initial = (params.get("section") as TabKey) || "feed";
   const [tab, setTab] = useState<TabKey>(initial);
-  const [waveSub, setWaveSub] = useState<WaveSub>("wave");
   const openPostId = params.get("post");
 
-  // Sync external section param changes (e.g. notifications deep links).
   useEffect(() => {
     const next = params.get("section") as TabKey | null;
     if (next && next !== tab) setTab(next);
@@ -58,118 +52,78 @@ export default function OOTDCommunityPage() {
     setParams(next, { replace: true });
   };
 
-  const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
-
   return (
     <div className="min-h-screen w-full bg-background pb-28 md:pb-16">
-      {/* ── Editorial masthead ─────────────────────────────── */}
+      {/* ── Social-style header ─────────────────────────────── */}
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto w-full max-w-[1600px] px-5 md:px-10 xl:px-16">
           {/* Title row */}
-          <div className="flex items-center justify-between pt-5 pb-3 md:pt-7 md:pb-4">
-            <div className="flex items-baseline gap-4">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-accent">
-                {activeTab.num} / 04
-              </span>
-              <h1 className="font-display text-[26px] font-medium leading-none tracking-tight text-foreground md:text-[40px]">
-                #OOTD
-              </h1>
-              <span className="hidden font-mono text-[10px] uppercase tracking-[0.32em] text-foreground/45 md:inline">
-                {activeTab.label}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Brandmark variant="inline" size={26} className="hidden md:block" />
-              <button
-                type="button"
-                aria-label="Search"
-                onClick={() => navigate("/search")}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
-              >
-                <Search className="h-4 w-4" strokeWidth={1.6} />
-              </button>
-              <button
-                type="button"
-                aria-label="Notifications"
-                onClick={() => navigate("/notifications")}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
-              >
-                <Bell className="h-4 w-4" strokeWidth={1.6} />
-              </button>
+          <div className="flex items-center justify-between pt-4 pb-2 md:pt-5">
+            <h1 className="font-display text-[24px] font-medium leading-none tracking-tight text-foreground md:text-[30px]">
+              <span className="text-accent">#</span>OOTD
+            </h1>
+            <div className="flex items-center gap-1">
+              <IconBtn label="Search" onClick={() => navigate("/search")}>
+                <Search className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              </IconBtn>
+              <IconBtn label="Notifications" onClick={() => navigate("/notifications")}>
+                <Bell className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              </IconBtn>
               {tab === "my" && (
-                <button
-                  type="button"
-                  aria-label="Settings"
-                  onClick={() => navigate("/settings")}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
-                >
-                  <Settings className="h-4 w-4" strokeWidth={1.6} />
-                </button>
+                <IconBtn label="Settings" onClick={() => navigate("/settings")}>
+                  <Settings className="h-[18px] w-[18px]" strokeWidth={1.7} />
+                </IconBtn>
               )}
             </div>
           </div>
 
-          {/* Primary tabs */}
-          <div className="flex items-center gap-7 overflow-x-auto pb-3 [scrollbar-width:none] md:gap-10 md:pb-4 [&::-webkit-scrollbar]:hidden">
+          {/* Cute icon tabs */}
+          <nav className="flex items-end justify-around gap-1 pb-2 pt-1 md:justify-center md:gap-10">
             {TABS.map((t) => {
               const active = tab === t.key;
+              const isCenter = t.key === "quicks";
               return (
                 <button
                   key={t.key}
                   type="button"
                   onClick={() => switchTo(t.key)}
-                  className={`group relative shrink-0 pb-1.5 text-left transition ${
-                    active ? "text-foreground" : "text-foreground/45 hover:text-foreground/75"
+                  className={`group relative flex flex-col items-center gap-1 px-2 pt-1 pb-1.5 transition ${
+                    active ? "text-foreground" : "text-foreground/45 hover:text-foreground/80"
                   }`}
                 >
-                  <span className="flex items-baseline gap-2">
-                    <span className="font-mono text-[10px] tracking-[0.22em] text-foreground/40">
-                      {t.num}
-                    </span>
-                    <span className="font-display text-[15px] tracking-tight md:text-[17px]">
-                      {t.label}
-                      {t.key === "quicks" && (
-                        <Sparkles className="ml-1 inline h-[12px] w-[12px] text-accent" strokeWidth={1.6} />
-                      )}
-                    </span>
+                  <span
+                    className={`flex items-center justify-center rounded-full transition-all ${
+                      isCenter
+                        ? active
+                          ? "h-11 w-11 bg-gradient-to-br from-accent to-primary text-background shadow-[0_6px_20px_-6px_hsl(var(--accent)/0.6)]"
+                          : "h-11 w-11 bg-gradient-to-br from-accent/30 to-primary/30 text-foreground/75"
+                        : active
+                          ? "h-9 w-9 bg-secondary"
+                          : "h-9 w-9"
+                    }`}
+                  >
+                    <t.Icon
+                      className={isCenter ? "h-[20px] w-[20px]" : "h-[18px] w-[18px]"}
+                      strokeWidth={active ? 2 : 1.6}
+                    />
                   </span>
-                  {active && (
+                  <span
+                    className={`text-[10.5px] font-medium tracking-tight ${
+                      active ? "text-foreground" : "text-foreground/55"
+                    }`}
+                  >
+                    {t.label}
+                  </span>
+                  {active && !isCenter && (
                     <motion.span
-                      layoutId="ootd-tab-underline"
-                      className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-foreground"
+                      layoutId="ootd-tab-dot"
+                      className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-accent"
                     />
                   )}
                 </button>
               );
             })}
-          </div>
-
-          {/* Wave sub-tabs */}
-          {tab === "wave" && (
-            <div className="flex items-center gap-10 border-t border-border/40 py-2.5">
-              {(["wave", "showroom"] as WaveSub[]).map((s) => {
-                const active = waveSub === s;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setWaveSub(s)}
-                    className={`relative pb-1 text-[11px] font-semibold uppercase tracking-[0.24em] transition ${
-                      active ? "text-foreground" : "text-foreground/40"
-                    }`}
-                  >
-                    {s === "wave" ? "WAVE" : "SHOWROOM"}
-                    {active && (
-                      <motion.span
-                        layoutId="ootd-wave-sub-underline"
-                        className="absolute inset-x-0 -bottom-px h-[1.5px] rounded-full bg-foreground"
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          </nav>
         </div>
       </header>
 
@@ -177,7 +131,7 @@ export default function OOTDCommunityPage() {
       <div className="mx-auto w-full max-w-[1600px] px-0 md:px-10 xl:px-16">
         <AnimatePresence mode="wait">
           <motion.div
-            key={tab + (tab === "wave" ? waveSub : "")}
+            key={tab}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -186,14 +140,35 @@ export default function OOTDCommunityPage() {
           >
             {tab === "feed" && <FeedSection />}
             {tab === "my" && <MyPageSection />}
-            {tab === "wave" && <WaveShowroomSection sub={waveSub} onSubChange={setWaveSub} />}
             {tab === "quicks" && <QuicksSection />}
+            {tab === "wave" && <WaveShowroomSection sub="wave" onSubChange={() => switchTo("showroom")} />}
+            {tab === "showroom" && <WaveShowroomSection sub="showroom" onSubChange={() => switchTo("wave")} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Post detail overlay */}
       {openPostId && <PostDetailHost postId={openPostId} onClose={closePost} />}
     </div>
+  );
+}
+
+function IconBtn({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
+    >
+      {children}
+    </button>
   );
 }
