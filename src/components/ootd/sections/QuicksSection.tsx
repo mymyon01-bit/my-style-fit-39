@@ -49,7 +49,7 @@ const QuicksSection = () => {
   }, []);
 
   return (
-    <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-3xl">
+    <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
       <div className="border-b border-border/40 pb-4">
         <div className="flex gap-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
