@@ -881,7 +881,7 @@ export default function FitResults({
 
 
         {/* ─── CENTER: SIZE PREVIEW ─────────────────────────────── */}
-        <section className="rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6">
+        <section className="order-1 rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6 lg:order-2">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[10px] font-bold tracking-[0.3em] text-foreground/55 uppercase">Size Preview</p>
             <span className="rounded-full bg-foreground/[0.06] px-3 py-1 text-[10px] font-medium tracking-wider text-foreground/60">
