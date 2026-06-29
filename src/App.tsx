@@ -87,6 +87,7 @@ const ShowroomNewPage = lazyWithRetry(() => import("@/pages/ShowroomNewPage"), "
 const ShowroomDetailPage = lazyWithRetry(() => import("@/pages/ShowroomDetailPage"), "ShowroomDetailPage");
 const SearchPage = lazyWithRetry(() => import("@/pages/SearchPage"), "SearchPage");
 const OOTDCommunityPage = lazyWithRetry(() => import("@/pages/OOTDCommunityPage"), "OOTDCommunityPage");
+const QuicksPage = lazyWithRetry(() => import("@/pages/QuicksPage"), "QuicksPage");
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
