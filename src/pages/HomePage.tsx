@@ -89,7 +89,9 @@ const HomePage = () => {
   const { t } = useI18n();
   const [trending, setTrending] = useState<TrendingPost[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
-  const [hero, setHero] = useState<HeroProduct | null>(null);
+  const [heroes, setHeroes] = useState<HeroProduct[]>([]);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const hero = heroes[heroIdx] ?? null;
 
   const goDiscover = useCallback(
     (q: string) => {
