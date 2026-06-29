@@ -89,39 +89,39 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
 
   return (
     <div className="mx-auto max-w-md px-5 pb-10 lg:max-w-none lg:px-0">
-      {/* Hero banner */}
-      <button
-        type="button"
-        onClick={() => (sub === "wave" ? setCreatingWave(true) : navigate("/showroom/new"))}
-        className="mt-4 flex w-full items-stretch overflow-hidden rounded-2xl border border-border bg-card text-left shadow-[var(--shadow-1)]"
-      >
-        <div className="flex flex-1 flex-col justify-between p-4">
-          <div>
-            <h2 className="font-display text-[18px] font-medium leading-tight tracking-tight text-foreground">
-              {sub === "wave" ? "Share Your Look,\nInspire the World." : "Curate Your Own\nShowroom."}
-            </h2>
-            <p className="mt-1.5 text-[11.5px] leading-snug text-foreground/55">
-              {sub === "wave"
-                ? "Join the WAVE. Express your style and get discovered."
-                : "Build a themed shop window of your favorite pieces."}
-            </p>
+      {/* Hero banner (Wave only — Showroom has its own My/Trending/CTA layout) */}
+      {sub === "wave" && (
+        <button
+          type="button"
+          onClick={() => setCreatingWave(true)}
+          className="mt-4 flex w-full items-stretch overflow-hidden rounded-2xl border border-border bg-card text-left shadow-[var(--shadow-1)]"
+        >
+          <div className="flex flex-1 flex-col justify-between p-4">
+            <div>
+              <h2 className="font-display text-[18px] font-medium leading-tight tracking-tight text-foreground">
+                {"Share Your Look,\nInspire the World."}
+              </h2>
+              <p className="mt-1.5 text-[11.5px] leading-snug text-foreground/55">
+                Join the WAVE. Express your style and get discovered.
+              </p>
+            </div>
+            <span className="mt-3 inline-flex w-fit items-center gap-1 rounded-full border border-foreground/20 bg-background/80 px-3 py-1.5 text-[11px] font-medium text-foreground">
+              Join the WAVE
+              <ArrowRight className="h-3 w-3" strokeWidth={1.6} />
+            </span>
           </div>
-          <span className="mt-3 inline-flex w-fit items-center gap-1 rounded-full border border-foreground/20 bg-background/80 px-3 py-1.5 text-[11px] font-medium text-foreground">
-            {sub === "wave" ? "Join the WAVE" : "New Showroom"}
-            <ArrowRight className="h-3 w-3" strokeWidth={1.6} />
-          </span>
-        </div>
-        <div className="relative w-[42%] shrink-0 bg-foreground/[0.05]">
-          {highlights[0]?.image_url ? (
-            <img
-              src={highlights[0].image_url}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="lazy"
-            />
-          ) : null}
-        </div>
-      </button>
+          <div className="relative w-[42%] shrink-0 bg-foreground/[0.05]">
+            {highlights[0]?.image_url ? (
+              <img
+                src={highlights[0].image_url}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+              />
+            ) : null}
+          </div>
+        </button>
+      )}
 
       {sub === "wave" ? (
         <>
