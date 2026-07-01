@@ -11,7 +11,7 @@ import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
-import OOTDShortUploadSheet from "@/components/OOTDShortUploadSheet";
+import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 
 type SubTab = "outfits" | "looks" | "saved" | "reviews";
 
