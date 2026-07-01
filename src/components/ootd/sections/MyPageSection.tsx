@@ -4,12 +4,14 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Bookmark, Loader2, Camera } from "lucide-react";
+import { Heart, Bookmark, Loader2, Camera, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import OOTDShortUploadSheet from "@/components/OOTDShortUploadSheet";
 
 type SubTab = "outfits" | "looks" | "saved" | "reviews";
 
