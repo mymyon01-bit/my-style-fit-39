@@ -103,20 +103,21 @@ Deno.serve(async (req) => {
   try {
     resp = await fetch(url, {
       signal: ctl.signal,
-      redirect: "follow",
+      redirect: "manual", // reject redirects — they can bypass SSRF checks
       headers: {
         // Some CDNs require a real-looking UA / referer to serve the image.
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
         "Accept": "image/avif,image/webp,image/png,image/*,*/*;q=0.8",
       },
     });
-  } catch (e) {
+  } catch {
     clearTimeout(timer);
-    return jsonErr(`fetch_failed:${e instanceof Error ? e.message : "unknown"}`, 502);
+    return jsonErr("fetch_failed", 502);
   }
   clearTimeout(timer);
 
-  if (!resp.ok) return jsonErr(`fetch_status_${resp.status}`, 502);
+  if (resp.status >= 300 && resp.status < 400) return jsonErr("fetch_failed", 502);
+  if (!resp.ok) return jsonErr("fetch_failed", 502);
 
   const ct = resp.headers.get("content-type") || "";
   if (!/^image\//i.test(ct)) return jsonErr(`bad_content_type:${ct.slice(0, 40)}`, 415);
