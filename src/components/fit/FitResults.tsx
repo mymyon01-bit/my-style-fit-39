@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ShieldCheck, AlertTriangle, ExternalLink, RotateCcw, Pencil, Sparkles, Loader2, Lock, Wand2, Globe2, X, BarChart3, Info } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { FitResult, SizeFitResult } from "@/lib/fitEngine";
 import SafeImage from "@/components/SafeImage";
 import TryOnPreviewModal, { TryOnContext } from "@/components/fit/TryOnPreviewModal";
@@ -940,62 +942,90 @@ export default function FitResults({
             </div>
           </div>
 
-          {/* Size selector — larger, easier to read */}
-          <div className="grid grid-cols-4 gap-3">
-            {result.sizeResults.slice(0, 4).map((sr) => {
-              const isActive = sr.size === activeSize;
-              const isRecommended = sr.size === recommendedSize;
-              const v3 = sizing.recommendation?.sizeAnalyses?.[sr.size] ?? null;
-              const sizeRegions = sr.regions || [];
-              const sChest = sizeRegions.find((r) => /chest|bust/i.test(r.region))?.fit || "regular";
-              const captionFromV3 = v3 ? (
-                v3.classification === "TooSmall" ? "Too small"
-                : v3.classification === "Tight" ? "Tight"
-                : v3.classification === "CloseFit" ? "Close fit"
-                : v3.classification === "BestBalance" ? "Best fit"
-                : v3.classification === "Relaxed" ? "Relaxed"
-                : v3.classification === "Oversized" ? "Loose fit"
-                : "Too large"
-              ) : null;
-              const captionTop =
-                captionFromV3
-                ?? (isRecommended ? "Best fit"
-                  : /tight|small|short/i.test(sChest) ? "Tight"
-                  : /loose|oversized|relaxed|long/i.test(sChest) ? "Loose fit"
-                  : "Close fit");
-              const isTightCap = /tight|small/i.test(captionTop);
-              const isLooseCap = /loose|oversized|relaxed|large/i.test(captionTop);
-              return (
-                <button
-                  key={sr.size}
-                  onClick={() => { userPickedRef.current = true; setActiveSize(sr.size); }}
-                  className={`group relative flex flex-col items-center overflow-hidden rounded-xl border py-3.5 text-left transition-all ${
-                    isActive
-                      ? "border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/10"
-                      : "border-foreground/[0.08] bg-background/60 hover:border-foreground/20"
-                  }`}
-                >
-                  {isRecommended && (
-                    <span className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-accent px-2.5 py-0.5 text-[9px] font-bold tracking-[0.15em] text-accent-foreground uppercase">
-                      Best
-                    </span>
-                  )}
-                  <span className={`font-display text-base font-bold ${isActive ? "text-accent-foreground" : "text-foreground/70"}`}>
-                    {sr.size}
-                  </span>
-                  <span className={`mt-1 text-[10px] font-semibold tracking-wider uppercase ${
-                    isActive ? "text-accent-foreground/80"
-                    : isRecommended ? "text-accent"
-                    : isTightCap ? "text-orange-500"
-                    : isLooseCap ? "text-blue-400"
-                    : "text-foreground/50"
-                  }`}>
-                    {captionTop}
-                  </span>
-                </button>
-              );
-            })}
+          {/* Size selector — dropdown so every available size (e.g. XL) is reachable */}
+          <div className="space-y-2">
+            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Select size</p>
+            <Select
+              value={activeSize}
+              onValueChange={(size) => { userPickedRef.current = true; setActiveSize(size); }}
+            >
+              <SelectTrigger className="h-auto min-h-[3.5rem] w-full rounded-xl border border-foreground/[0.08] bg-background/60 px-4 py-3 text-left shadow-sm focus:ring-1 focus:ring-accent focus:ring-offset-0 hover:border-foreground/20">
+                <SelectValue>
+                  {(() => {
+                    const sr = result.sizeResults.find((s) => s.size === activeSize);
+                    if (!sr) return activeSize;
+                    const v3 = sizing.recommendation?.sizeAnalyses?.[sr.size] ?? null;
+                    const caption = v3 ? (
+                      v3.classification === "TooSmall" ? "Too small"
+                      : v3.classification === "Tight" ? "Tight"
+                      : v3.classification === "CloseFit" ? "Close fit"
+                      : v3.classification === "BestBalance" ? "Best fit"
+                      : v3.classification === "Relaxed" ? "Relaxed"
+                      : v3.classification === "Oversized" ? "Loose fit"
+                      : "Too large"
+                    ) : (sr.size === recommendedSize ? "Best fit" : "Close fit");
+                    return (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-display text-base font-bold text-foreground">{sr.size}</span>
+                        <span className="text-[11px] font-semibold tracking-wider uppercase text-foreground/60">{caption}</span>
+                      </div>
+                    );
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-72 rounded-xl border-foreground/[0.08] bg-background/95 p-1 backdrop-blur-md">
+                {result.sizeResults.map((sr) => {
+                  const v3 = sizing.recommendation?.sizeAnalyses?.[sr.size] ?? null;
+                  const sizeRegions = sr.regions || [];
+                  const sChest = sizeRegions.find((r) => /chest|bust/i.test(r.region))?.fit || "regular";
+                  const captionFromV3 = v3 ? (
+                    v3.classification === "TooSmall" ? "Too small"
+                    : v3.classification === "Tight" ? "Tight"
+                    : v3.classification === "CloseFit" ? "Close fit"
+                    : v3.classification === "BestBalance" ? "Best fit"
+                    : v3.classification === "Relaxed" ? "Relaxed"
+                    : v3.classification === "Oversized" ? "Loose fit"
+                    : "Too large"
+                  ) : null;
+                  const caption = captionFromV3
+                    ?? (sr.size === recommendedSize ? "Best fit"
+                      : /tight|small|short/i.test(sChest) ? "Tight"
+                      : /loose|oversized|relaxed|long/i.test(sChest) ? "Loose fit"
+                      : "Close fit");
+                  const isRecommended = sr.size === recommendedSize;
+                  const isTight = /tight|small/i.test(caption);
+                  const isLoose = /loose|oversized|relaxed|large/i.test(caption);
+                  return (
+                    <SelectItem
+                      key={sr.size}
+                      value={sr.size}
+                      className="rounded-lg px-3 py-2.5 focus:bg-accent/10 focus:text-accent-foreground"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-display text-base font-bold text-foreground">{sr.size}</span>
+                          {isRecommended && (
+                            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[9px] font-bold tracking-[0.12em] text-accent uppercase">
+                              Best
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-[11px] font-semibold tracking-wider uppercase ${
+                          isRecommended ? "text-accent"
+                          : isTight ? "text-orange-500"
+                          : isLoose ? "text-blue-400"
+                          : "text-foreground/50"
+                        }`}>
+                          {caption}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
+
 
           {/* Single Fit Label + Sentence (V3 simplified) */}
           <div className="mt-5 rounded-2xl border border-foreground/[0.06] bg-background/40 px-5 py-4">
