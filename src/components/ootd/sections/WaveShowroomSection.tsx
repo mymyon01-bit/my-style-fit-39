@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import CreateWaveDialog from "@/components/ootd/CreateWaveDialog";
 import WaveModal from "@/components/ootd/WaveModal";
 import { Button } from "@/components/ui/button";
+import DiscoverAdRow from "@/components/discover/DiscoverAdRow";
 
 type Sub = "wave" | "showroom";
 
