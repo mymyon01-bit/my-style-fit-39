@@ -88,7 +88,7 @@ const AdminUserDetail = () => {
       followingCount,
       postsList,
     ] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", userId!).maybeSingle(),
+      supabase.rpc("admin_get_profile", { _user_id: userId! }).maybeSingle(),
       supabase.from("body_profiles").select("*").eq("user_id", userId!).maybeSingle(),
       supabase.from("style_profiles").select("*").eq("user_id", userId!).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", userId!),

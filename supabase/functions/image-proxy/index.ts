@@ -22,6 +22,7 @@
 // Designed to be cheap and safe to call from ingestion AND from UI.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { assertSafeUrl, getCallerUserId } from "../_shared/ssrfGuard.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,7 @@ const cors = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const BUCKET = "product-images";
 
 const HARD_REJECT_RE =
@@ -65,6 +67,10 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Require auth — prevents anonymous open-proxy / free hosting abuse.
+  const uid = await getCallerUserId(req, SUPABASE_URL, ANON_KEY);
+  if (!uid) return jsonErr("unauthorized", 401);
+
   let body: { url?: string; productKey?: string };
   try { body = await req.json(); }
   catch { return jsonErr("invalid_json", 400); }
@@ -72,6 +78,8 @@ Deno.serve(async (req) => {
   const url = String(body?.url || "").trim();
   if (!url) return jsonErr("missing_url", 400);
   if (!isProbablyPhoto(url)) return jsonErr("rejected_url", 400);
+  const safe = await assertSafeUrl(url);
+  if (!safe.ok) return jsonErr("rejected_url", 400);
   if (!SUPABASE_URL || !SERVICE_ROLE) return jsonErr("supabase_env_missing", 500);
 
   const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
@@ -95,20 +103,21 @@ Deno.serve(async (req) => {
   try {
     resp = await fetch(url, {
       signal: ctl.signal,
-      redirect: "follow",
+      redirect: "manual", // reject redirects — they can bypass SSRF checks
       headers: {
         // Some CDNs require a real-looking UA / referer to serve the image.
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
         "Accept": "image/avif,image/webp,image/png,image/*,*/*;q=0.8",
       },
     });
-  } catch (e) {
+  } catch {
     clearTimeout(timer);
-    return jsonErr(`fetch_failed:${e instanceof Error ? e.message : "unknown"}`, 502);
+    return jsonErr("fetch_failed", 502);
   }
   clearTimeout(timer);
 
-  if (!resp.ok) return jsonErr(`fetch_status_${resp.status}`, 502);
+  if (resp.status >= 300 && resp.status < 400) return jsonErr("fetch_failed", 502);
+  if (!resp.ok) return jsonErr("fetch_failed", 502);
 
   const ct = resp.headers.get("content-type") || "";
   if (!/^image\//i.test(ct)) return jsonErr(`bad_content_type:${ct.slice(0, 40)}`, 415);

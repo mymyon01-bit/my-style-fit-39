@@ -8,6 +8,7 @@
 // whether to re-run resolveGarmentSize() or fall back to the estimator.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { assertSafeUrl } from "../_shared/ssrfGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,12 +52,14 @@ function json(body: unknown, status = 200) {
 }
 
 async function fetchProductHtml(url: string): Promise<string | null> {
+  const safe = await assertSafeUrl(url);
+  if (!safe.ok) return null;
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    const res = await fetch(url, {
+    const res = await fetch(safe.url.toString(), {
       signal: ctrl.signal,
-      redirect: "follow",
+      redirect: "manual", // block cross-origin redirects that bypass SSRF checks
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
@@ -64,6 +67,7 @@ async function fetchProductHtml(url: string): Promise<string | null> {
       },
     });
     clearTimeout(t);
+    if (res.status >= 300 && res.status < 400) return null;
     if (!res.ok) return null;
     const html = await res.text();
     return html.slice(0, 200_000); // cap to keep AI prompt manageable

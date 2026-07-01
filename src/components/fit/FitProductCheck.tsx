@@ -80,11 +80,7 @@ export default function FitProductCheck({ onSelectProduct, selectedProduct, onCl
     if (!user) { setGenderInitialized(true); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("gender_preference")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const data = await (await import("@/lib/profile")).getMyProfile();
       if (cancelled) return;
       setGender(genderPreferenceToFilter(data?.gender_preference));
       setGenderInitialized(true);

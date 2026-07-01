@@ -36,9 +36,9 @@ export default function TodayPicks() {
   useEffect(() => {
     if (!user) { setLoaded(true); return; }
     (async () => {
-      const [{ data: ans }, { data: prof }] = await Promise.all([
+      const [{ data: ans }, prof] = await Promise.all([
         supabase.from("today_quiz_answers").select("occasion, style, craving").eq("user_id", user.id).eq("quiz_date", today).maybeSingle(),
-        supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle(),
+        (await import("@/lib/profile")).getMyProfile(),
       ]);
       if (ans) setAnswers({ occasion: ans.occasion, style: ans.style, craving: ans.craving });
       const g = (prof?.gender_preference || "").toLowerCase();

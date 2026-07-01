@@ -41,14 +41,14 @@ export default function StyleMeButton({
     if (user) {
       const [styleRes, profRes, bodyRes, savedRes, interactionRes] = await Promise.all([
         supabase.from("style_profiles").select("preferred_styles,preferred_fit").eq("user_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle(),
+        (await import("@/lib/profile")).getMyProfile(),
         supabase.from("body_profiles").select("silhouette_type,height_cm,waist_cm,shoulder_width_cm").eq("user_id", user.id).maybeSingle(),
         supabase.from("saved_items").select("product_id,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(80),
         supabase.from("interactions").select("target_id,event_type,created_at").eq("user_id", user.id).eq("target_type", "product").order("created_at", { ascending: false }).limit(160),
       ]);
       prefStyles = (styleRes.data as any)?.preferred_styles || [];
       prefFit = (styleRes.data as any)?.preferred_fit || null;
-      prefGender = (profRes.data as any)?.gender_preference || null;
+      prefGender = (profRes as any)?.gender_preference || null;
       silhouette = (bodyRes.data as any)?.silhouette_type || null;
       savedIds = ((savedRes.data as any[]) || []).map((x) => String(x.product_id));
       likedIds = ((interactionRes.data as any[]) || []).filter((x) => x.event_type === "like").map((x) => String(x.target_id));

@@ -430,9 +430,9 @@ const OOTDPage = () => {
   const loadTodayStars = async () => {
     if (!user) return;
     const today = new Date().toISOString().split("T")[0];
-    const [{ data: starsData }, { data: profileData }] = await Promise.all([
+    const [{ data: starsData }, profileData] = await Promise.all([
       supabase.from("ootd_stars").select("id, post_id").eq("user_id", user.id).gte("created_at", today),
-      supabase.from("profiles").select("is_official, bonus_stars").eq("user_id", user.id).maybeSingle(),
+      (await import("@/lib/profile")).getMyProfile(),
     ]);
     const cap = profileData?.is_official ? 1000 : 3;
     const given = starsData || [];

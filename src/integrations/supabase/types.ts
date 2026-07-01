@@ -3620,6 +3620,49 @@ export type Database = {
         Args: { _conv_id: string; _user_id: string }
         Returns: undefined
       }
+      admin_get_profile: {
+        Args: { _user_id: string }
+        Returns: {
+          avatar_url: string | null
+          bio: string | null
+          bonus_stars: number
+          created_at: string
+          date_of_birth: string | null
+          dismissed_info_cards: string[]
+          display_name: string | null
+          email_verified: boolean | null
+          gender_preference: string | null
+          hashtags: string[] | null
+          id: string
+          is_official: boolean
+          is_private: boolean | null
+          language: string | null
+          location: string | null
+          onboarded: boolean | null
+          ootd_bg_realistic: boolean | null
+          ootd_bg_theme: string | null
+          ootd_card_color: Json | null
+          phone: string | null
+          phone_number: string | null
+          phone_verified: boolean
+          phone_verified_at: string | null
+          song_of_the_day: Json | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+          username: string
+          username_changes: string[]
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       can_view_ootd_post: {
         Args: { _audience: string; _owner: string; _viewer: string }
         Returns: boolean
@@ -3674,6 +3717,49 @@ export type Database = {
       }
       decline_wave_invite: { Args: { _invite_id: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: undefined }
+      get_my_profile: {
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          bio: string | null
+          bonus_stars: number
+          created_at: string
+          date_of_birth: string | null
+          dismissed_info_cards: string[]
+          display_name: string | null
+          email_verified: boolean | null
+          gender_preference: string | null
+          hashtags: string[] | null
+          id: string
+          is_official: boolean
+          is_private: boolean | null
+          language: string | null
+          location: string | null
+          onboarded: boolean | null
+          ootd_bg_realistic: boolean | null
+          ootd_bg_theme: string | null
+          ootd_card_color: Json | null
+          phone: string | null
+          phone_number: string | null
+          phone_verified: boolean
+          phone_verified_at: string | null
+          song_of_the_day: Json | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+          username: string
+          username_changes: string[]
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_or_create_conversation: {
         Args: { _other_user: string }
         Returns: string
@@ -3734,6 +3820,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      validate_showroom_invite: { Args: { _token: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "super_admin"

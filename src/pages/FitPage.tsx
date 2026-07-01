@@ -111,12 +111,8 @@ const FitPage = () => {
     if (!user) { setBodyGender(null); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("gender_preference")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!cancelled && data?.gender_preference) setBodyGender(data.gender_preference);
+      const prof = await (await import("@/lib/profile")).getMyProfile();
+      if (!cancelled && prof?.gender_preference) setBodyGender(prof.gender_preference);
     })();
     return () => { cancelled = true; };
   }, [user]);

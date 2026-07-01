@@ -86,8 +86,8 @@ export default function FitMeasurements({ measurements, onUpdate, onBulkUpdate, 
         setBodyType(typeMap[data.silhouette_type] || "regular");
       }
     }
-    // Load gender from profile
-    const { data: profile } = await supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle();
+    // Load gender from profile (via secure RPC — sensitive col)
+    const profile = await (await import("@/lib/profile")).getMyProfile();
     if (profile?.gender_preference) {
       setGender(profile.gender_preference);
       const g = profile.gender_preference.toLowerCase().startsWith("f") ? "female" : "male";

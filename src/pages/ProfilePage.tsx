@@ -81,8 +81,8 @@ const ProfilePage = () => {
   const loadProfileData = async () => {
     if (!user) return;
     setIsLoading(true);
-    const [profileRes, styleRes, bodyRes, savedRes, postsRes, ootdsRes, videosRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
+    const [profileRow, styleRes, bodyRes, savedRes, postsRes, ootdsRes, videosRes] = await Promise.all([
+      (await import("@/lib/profile")).getMyProfile({ refresh: true }),
       supabase.from("style_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("body_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("saved_items").select("id", { count: "exact" }).eq("user_id", user.id),
@@ -90,6 +90,7 @@ const ProfilePage = () => {
       supabase.from("ootd_posts").select("id, image_url, caption, star_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
       supabase.from("ootd_videos").select("id, video_url, thumb_url, caption, like_count, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6),
     ]);
+    const profileRes = { data: profileRow } as { data: typeof profileRow };
 
     // Load scrap count. Circle/Ripple counters come from useCircleCounts.
     const [scrapRes] = await Promise.all([
