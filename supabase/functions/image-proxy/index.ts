@@ -67,6 +67,10 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Require auth — prevents anonymous open-proxy / free hosting abuse.
+  const uid = await getCallerUserId(req, SUPABASE_URL, ANON_KEY);
+  if (!uid) return jsonErr("unauthorized", 401);
+
   let body: { url?: string; productKey?: string };
   try { body = await req.json(); }
   catch { return jsonErr("invalid_json", 400); }
@@ -74,6 +78,8 @@ Deno.serve(async (req) => {
   const url = String(body?.url || "").trim();
   if (!url) return jsonErr("missing_url", 400);
   if (!isProbablyPhoto(url)) return jsonErr("rejected_url", 400);
+  const safe = await assertSafeUrl(url);
+  if (!safe.ok) return jsonErr("rejected_url", 400);
   if (!SUPABASE_URL || !SERVICE_ROLE) return jsonErr("supabase_env_missing", 500);
 
   const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
