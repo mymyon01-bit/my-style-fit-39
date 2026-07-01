@@ -1,33 +1,18 @@
 /**
- * FeedSection — OOTD card-style editorial feed.
- * Reference: image 1 (For You / Following + category chips + posts).
- * Stories rail intentionally removed — moved to /quicks.
+ * FeedSection — OOTD auto-personalized social feed.
+ *
+ * No visible tabs / category chips. When the user opens #OOTD, we silently
+ * blend posts that match their style_profile (preferred_styles + occasions)
+ * with globally trending looks, mixing in a light dose of Circle posts so
+ * the feed feels like a social timeline. Infinite scroll keeps things flowing.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  MessageCircle,
-  Bookmark,
-  Share2,
-  MoreHorizontal,
-  Plus,
-  Loader2,
-} from "lucide-react";
+import { MessageCircle, Bookmark, Share2, MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import WaveButton from "@/components/ootd/WaveButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
-
-type Tab = "foryou" | "circle";
-type Category = "all" | "outfit" | "tip" | "review" | "qa";
-
-const CATEGORIES: { key: Category; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "outfit", label: "Outfit" },
-  { key: "tip", label: "Style Tip" },
-  { key: "review", label: "Review" },
-  { key: "qa", label: "Q&A" },
-];
 
 interface PostRow {
   id: string;
@@ -38,13 +23,17 @@ interface PostRow {
   topics: string[] | null;
   star_count: number;
   like_count: number | null;
+  wave_count?: number | null;
   created_at: string;
+  _score?: number;
   profile?: {
     display_name: string | null;
     username: string | null;
     avatar_url: string | null;
   } | null;
 }
+
+const PAGE_SIZE = 18;
 
 function timeAgo(iso: string) {
   const d = new Date(iso).getTime();
@@ -58,126 +47,125 @@ function timeAgo(iso: string) {
 const FeedSection = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tab, setTab] = useState<Tab>("foryou");
-  const [category, setCategory] = useState<Category>("all");
+
+  const [interests, setInterests] = useState<Set<string>>(new Set());
+  const [circleIds, setCircleIds] = useState<Set<string>>(new Set());
+  const [profileReady, setProfileReady] = useState(false);
+
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [done, setDone] = useState(false);
+  const pageRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // Load interest signals once per user.
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     (async () => {
-      // For the Circle tab, restrict posts to people this user follows.
-      let circleIds: string[] | null = null;
-      if (tab === "circle") {
-        if (!user) {
-          if (!cancelled) { setPosts([]); setLoading(false); }
-          return;
-        }
-        const { data: c } = await supabase
-          .from("circles")
+      if (!user) { setProfileReady(true); return; }
+      const [sp, ci] = await Promise.all([
+        supabase.from("style_profiles")
+          .select("preferred_styles, occasions")
+          .eq("user_id", user.id).maybeSingle(),
+        supabase.from("circles")
           .select("following_id")
-          .eq("follower_id", user.id);
-        circleIds = Array.from(new Set((c ?? []).map((r: any) => r.following_id).filter(Boolean)));
-        if (circleIds.length === 0) {
-          if (!cancelled) { setPosts([]); setLoading(false); }
-          return;
-        }
-      }
+          .eq("follower_id", user.id),
+      ]);
+      if (cancelled) return;
+      const bag = new Set<string>();
+      ((sp.data as any)?.preferred_styles ?? []).forEach((s: string) => bag.add(s.toLowerCase()));
+      ((sp.data as any)?.occasions ?? []).forEach((s: string) => bag.add(s.toLowerCase()));
+      setInterests(bag);
+      setCircleIds(new Set((ci.data ?? []).map((r: any) => r.following_id).filter(Boolean)));
+      setProfileReady(true);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
-      let q = supabase
+  const scorePost = useCallback(
+    (p: PostRow) => {
+      const tags = [
+        ...((p.style_tags ?? []) as string[]),
+        ...((p.topics ?? []) as string[]),
+      ].map((t) => (t || "").toLowerCase());
+      let s = 0;
+      for (const t of tags) if (interests.has(t)) s += 3;
+      if (circleIds.has(p.user_id)) s += 2;
+      s += Math.min(4, Math.log2(1 + (p.star_count ?? 0) + (p.like_count ?? 0)));
+      // Recency boost — halve every 3 days.
+      const days = Math.max(0, (Date.now() - new Date(p.created_at).getTime()) / 86_400_000);
+      s += Math.max(0, 3 - days / 3);
+      return s;
+    },
+    [interests, circleIds],
+  );
+
+  const loadPage = useCallback(
+    async (reset = false) => {
+      if (loadingMore) return;
+      if (reset) { pageRef.current = 0; setDone(false); }
+      const page = pageRef.current;
+      if (page === 0) setLoading(true); else setLoadingMore(true);
+
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      const { data } = await supabase
         .from("ootd_posts")
         .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, wave_count, created_at")
-        .not("image_url", "is", null);
-
-      if (tab === "foryou") {
-        q = q.order("star_count", { ascending: false }).order("created_at", { ascending: false });
-      } else {
-        q = q.in("user_id", circleIds!).order("created_at", { ascending: false });
-      }
-      q = q.limit(20);
-
-      const { data } = await q;
-      if (cancelled) return;
+        .not("image_url", "is", null)
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       const rows = (data ?? []) as PostRow[];
-      const filtered = category === "all"
-        ? rows
-        : rows.filter((r) => (r.topics ?? []).includes(category));
-
-      // hydrate profiles
-      const ids = Array.from(new Set(filtered.map((r) => r.user_id).filter(Boolean)));
+      // hydrate profiles for this page
+      const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
       if (ids.length) {
         const { data: profs } = await supabase
           .from("profiles")
           .select("user_id, display_name, username, avatar_url")
           .in("user_id", ids);
         const map = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
-        filtered.forEach((r) => { r.profile = map.get(r.user_id) ?? null; });
+        rows.forEach((r) => { r.profile = map.get(r.user_id) ?? null; });
       }
+      rows.forEach((r) => { r._score = scorePost(r); });
+      // Re-rank the newly fetched page by personal score so interests bubble up.
+      rows.sort((a, b) => (b._score! - a._score!));
 
-      if (!cancelled) {
-        setPosts(filtered);
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [tab, category, user]);
+      setPosts((prev) => (reset ? rows : [...prev, ...rows]));
+      pageRef.current = page + 1;
+      if (rows.length < PAGE_SIZE) setDone(true);
+      setLoading(false);
+      setLoadingMore(false);
+    },
+    [scorePost, loadingMore],
+  );
+
+  // Initial + when interests resolve, rebuild feed.
+  useEffect(() => {
+    if (!profileReady) return;
+    loadPage(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileReady, interests.size, circleIds.size]);
+
+  // Infinite scroll.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || done) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadPage(false);
+    }, { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadPage, done, posts.length]);
 
   const empty = !loading && posts.length === 0;
 
   return (
     <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
-      {/* For You / Circle */}
-      <div className="px-5 pt-3 lg:px-0">
-        <div className="flex items-center gap-6">
-          {(["foryou", "circle"] as Tab[]).map((t) => {
-            const active = tab === t;
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={`relative pb-2 font-display text-[18px] tracking-tight transition ${
-                  active ? "text-foreground" : "text-foreground/40 hover:text-foreground/70"
-                }`}
-              >
-                {t === "foryou" ? "For You" : "Circle"}
-                {active && (
-                  <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-foreground" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Category chips */}
-      <div className="mt-3 overflow-x-auto px-5 lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex gap-2 pb-1">
-          {CATEGORIES.map((c) => {
-            const active = category === c.key;
-            return (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => setCategory(c.key)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium tracking-tight transition ${
-                  active
-                    ? "bg-foreground text-background"
-                    : "bg-foreground/[0.06] text-foreground/65 hover:bg-foreground/[0.1]"
-                }`}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Feed — single column mobile, 2-col tablet, 3-col desktop */}
-      <div className="mt-4 grid gap-4 px-3 lg:grid-cols-2 lg:gap-6 lg:px-0 xl:grid-cols-3">
-
+      <div className="mt-2 grid gap-4 px-3 lg:grid-cols-2 lg:gap-6 lg:px-0 xl:grid-cols-3">
         {loading && (
           <div className="col-span-full flex min-h-[30vh] items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-accent/65" />
@@ -185,9 +173,7 @@ const FeedSection = () => {
         )}
         {empty && (
           <div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-foreground/55">
-            {tab === "circle"
-              ? "Add people to your Circle to see their looks here."
-              : "No posts yet — check back soon."}
+            No posts yet — check back soon.
           </div>
         )}
         {posts.map((p) => (
@@ -229,7 +215,6 @@ const FeedSection = () => {
               </button>
             </header>
 
-            {/* Image — graceful fallback so cards never collapse on a broken/hotlink-blocked URL. */}
             <button
               type="button"
               onClick={() => navigate(`/ootd?post=${p.id}`)}
@@ -257,8 +242,6 @@ const FeedSection = () => {
               />
             </button>
 
-
-            {/* Caption + tags */}
             <div className="px-4 pt-3">
               {p.caption && (
                 <p className="text-[14px] leading-snug text-foreground">{p.caption}</p>
@@ -270,11 +253,9 @@ const FeedSection = () => {
               )}
             </div>
 
-            {/* Actions — open detail to like/comment/save/share. */}
             <footer className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-5 text-foreground/75">
                 <WaveButton postId={p.id} initialCount={(p as any).wave_count ?? 0} />
-
                 <button
                   type="button"
                   onClick={() => navigate(`/ootd?post=${p.id}`)}
@@ -304,9 +285,19 @@ const FeedSection = () => {
             </footer>
           </article>
         ))}
+
+        {/* Infinite scroll sentinel */}
+        {!loading && !empty && (
+          <div ref={sentinelRef} className="col-span-full flex items-center justify-center py-8">
+            {loadingMore
+              ? <Loader2 className="h-4 w-4 animate-spin text-accent/65" />
+              : done
+                ? <span className="text-[11px] text-foreground/40">You're all caught up</span>
+                : <span className="h-4" />}
+          </div>
+        )}
       </div>
 
-      {/* Floating post button */}
       {user && (
         <button
           type="button"
