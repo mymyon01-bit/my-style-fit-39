@@ -279,6 +279,12 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
             ))}
           </div>
 
+          {/* ─── Sponsored row (from Discover) ────────────── */}
+          <div className="mt-6">
+            <DiscoverAdRow pool={[]} />
+          </div>
+
+
           {/* ─── Make Your Showroom CTA ──────────────────── */}
           <button
             type="button"
