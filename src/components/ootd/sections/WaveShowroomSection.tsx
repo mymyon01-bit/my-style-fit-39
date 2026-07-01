@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import CreateWaveDialog from "@/components/ootd/CreateWaveDialog";
 import WaveModal from "@/components/ootd/WaveModal";
 import { Button } from "@/components/ui/button";
+import DiscoverAdRow from "@/components/discover/DiscoverAdRow";
 
 type Sub = "wave" | "showroom";
 
@@ -63,13 +64,15 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("showrooms" as any)
         .select("id, name, owner_id, cover_image_url, item_count")
         .order("item_count", { ascending: false })
-        .limit(8);
+        .limit(12);
+      if (user?.id) query = query.neq("owner_id", user.id);
+      const { data } = await query;
       if (cancelled) return;
-      const rows = (data ?? []) as any as ShowroomRow[];
+      const rows = ((data ?? []) as any as ShowroomRow[]).slice(0, 8);
       if (rows.length) {
         const ids = rows.map((r) => r.owner_id);
         const { data: profs } = await supabase
@@ -85,7 +88,7 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user?.id]);
 
   return (
     <div className="mx-auto max-w-md px-5 pb-10 lg:max-w-none lg:px-0">
@@ -275,6 +278,12 @@ const WaveShowroomSection = ({ sub, onSubChange }: Props) => {
               </button>
             ))}
           </div>
+
+          {/* ─── Sponsored row (from Discover) ────────────── */}
+          <div className="mt-6">
+            <DiscoverAdRow pool={[]} />
+          </div>
+
 
           {/* ─── Make Your Showroom CTA ──────────────────── */}
           <button
