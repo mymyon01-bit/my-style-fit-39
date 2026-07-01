@@ -269,6 +269,18 @@ const MyPageSection = () => {
           </div>
         )}
       </div>
+
+      <OOTDUploadSheet
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onPosted={() => { setUploadOpen(false); setReloadKey((k) => k + 1); }}
+        onSwitchToVideo={() => { setUploadOpen(false); setVideoUploadOpen(true); }}
+      />
+      <OOTDShortUploadSheet
+        open={videoUploadOpen}
+        onClose={() => setVideoUploadOpen(false)}
+        onPosted={() => { setVideoUploadOpen(false); setReloadKey((k) => k + 1); }}
+      />
     </div>
   );
 };
