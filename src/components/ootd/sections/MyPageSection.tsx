@@ -116,7 +116,7 @@ const MyPageSection = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [user, tab]);
+  }, [user, tab, reloadKey]);
 
   if (!user) {
     return (
