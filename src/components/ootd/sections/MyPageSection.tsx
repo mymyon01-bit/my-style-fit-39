@@ -4,12 +4,14 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Bookmark, Loader2, Camera } from "lucide-react";
+import { Heart, Bookmark, Loader2, Camera, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 
 type SubTab = "outfits" | "looks" | "saved" | "reviews";
 
@@ -53,6 +55,9 @@ const MyPageSection = () => {
   const [tab, setTab] = useState<SubTab>("outfits");
   const [posts, setPosts] = useState<PostThumb[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [videoUploadOpen, setVideoUploadOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -111,7 +116,7 @@ const MyPageSection = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [user, tab]);
+  }, [user, tab, reloadKey]);
 
   if (!user) {
     return (
@@ -183,6 +188,27 @@ const MyPageSection = () => {
         </Button>
       </div>
 
+      {/* POST OOTD — photo or video */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setUploadOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+        >
+          <Camera className="h-4 w-4" />
+          <span className="text-[10px] font-medium tracking-[0.22em]">POST PHOTO</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setVideoUploadOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+        >
+          <Film className="h-4 w-4" />
+          <span className="text-[10px] font-medium tracking-[0.22em]">POST VIDEO</span>
+        </button>
+      </div>
+
+
       {/* Sub-tabs */}
       <div className="mt-6 flex items-center justify-around border-b border-border/60">
         {SUB_TABS.map((s) => {
@@ -243,6 +269,18 @@ const MyPageSection = () => {
           </div>
         )}
       </div>
+
+      <OOTDUploadSheet
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onPosted={() => { setUploadOpen(false); setReloadKey((k) => k + 1); }}
+        onSwitchToVideo={() => { setUploadOpen(false); setVideoUploadOpen(true); }}
+      />
+      <OOTDShortUploadSheet
+        open={videoUploadOpen}
+        onClose={() => setVideoUploadOpen(false)}
+        onPosted={() => { setVideoUploadOpen(false); setReloadKey((k) => k + 1); }}
+      />
     </div>
   );
 };
