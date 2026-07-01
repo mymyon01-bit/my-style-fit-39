@@ -178,9 +178,9 @@ const HomePage = () => {
           type="button"
           onClick={() => navigate("/")}
           aria-label="MYMYON home"
-          className="font-display text-[22px] font-semibold italic tracking-tight text-foreground"
+          className="flex items-center"
         >
-          my'myon
+          <Brandmark variant="inline" size={30} />
         </button>
         <div className="flex items-center gap-3">
           <button
