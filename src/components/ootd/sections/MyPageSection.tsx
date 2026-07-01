@@ -55,6 +55,9 @@ const MyPageSection = () => {
   const [tab, setTab] = useState<SubTab>("outfits");
   const [posts, setPosts] = useState<PostThumb[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [videoUploadOpen, setVideoUploadOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
