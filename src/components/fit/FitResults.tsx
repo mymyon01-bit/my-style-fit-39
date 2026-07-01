@@ -773,7 +773,7 @@ export default function FitResults({
   return (
     <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 overflow-x-hidden">
       {/* ─── DASHBOARD GRID ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         {/* ─── LEFT: MY BODY ─────────────────────────────────────────── */}
         <aside className="order-2 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5 lg:order-1">
           <div className="flex items-center justify-between">
@@ -878,9 +878,7 @@ export default function FitResults({
           })()}
         </aside>
 
-
-
-        {/* ─── CENTER: SIZE PREVIEW ─────────────────────────────── */}
+        {/* ─── CENTER: SIZE PREVIEW + PRODUCT ─────────────────────────────── */}
         <section className="order-1 rounded-3xl border border-foreground/[0.06] bg-card/30 p-4 md:p-6 lg:order-2">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[10px] font-bold tracking-[0.3em] text-foreground/55 uppercase">Size Preview</p>
@@ -889,9 +887,9 @@ export default function FitResults({
             </span>
           </div>
 
-          {/* AI Fitting Image — only the active size */}
-          <div className="mb-4">
-            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-background/40">
+          {/* AI Fitting Image — larger hero */}
+          <div className="mb-5">
+            <div className="relative mx-auto aspect-[3/4] w-full max-w-2xl overflow-hidden rounded-2xl bg-background/40 lg:aspect-[4/5]">
               {(() => {
                 const isLoading =
                   tryOn.stage === "generating" ||
@@ -942,11 +940,8 @@ export default function FitResults({
             </div>
           </div>
 
-          {/* Size selector — caption is driven by the v3 measurement classifier
-              first (single source of truth that the hero label uses), then
-              falls back to the legacy region string. Fixes the bug where a
-              tight-on-body Medium would show "LOOSE FIT". */}
-          <div className="grid grid-cols-4 gap-2">
+          {/* Size selector — larger, easier to read */}
+          <div className="grid grid-cols-4 gap-3">
             {result.sizeResults.slice(0, 4).map((sr) => {
               const isActive = sr.size === activeSize;
               const isRecommended = sr.size === recommendedSize;
@@ -974,21 +969,21 @@ export default function FitResults({
                 <button
                   key={sr.size}
                   onClick={() => { userPickedRef.current = true; setActiveSize(sr.size); }}
-                  className={`group relative flex flex-col items-center overflow-hidden rounded-xl border py-2.5 text-left transition-all ${
+                  className={`group relative flex flex-col items-center overflow-hidden rounded-xl border py-3.5 text-left transition-all ${
                     isActive
                       ? "border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/10"
                       : "border-foreground/[0.08] bg-background/60 hover:border-foreground/20"
                   }`}
                 >
                   {isRecommended && (
-                    <span className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-accent px-2 py-0.5 text-[8px] font-bold tracking-[0.15em] text-accent-foreground uppercase">
+                    <span className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-accent px-2.5 py-0.5 text-[9px] font-bold tracking-[0.15em] text-accent-foreground uppercase">
                       Best
                     </span>
                   )}
-                  <span className={`font-display text-sm font-bold ${isActive ? "text-accent-foreground" : "text-foreground/70"}`}>
+                  <span className={`font-display text-base font-bold ${isActive ? "text-accent-foreground" : "text-foreground/70"}`}>
                     {sr.size}
                   </span>
-                  <span className={`mt-0.5 text-[9px] font-semibold tracking-wider uppercase ${
+                  <span className={`mt-1 text-[10px] font-semibold tracking-wider uppercase ${
                     isActive ? "text-accent-foreground/80"
                     : isRecommended ? "text-accent"
                     : isTightCap ? "text-orange-500"
@@ -1003,26 +998,26 @@ export default function FitResults({
           </div>
 
           {/* Single Fit Label + Sentence (V3 simplified) */}
-          <div className="mt-4 rounded-2xl border border-foreground/[0.06] bg-background/40 px-4 py-3">
+          <div className="mt-5 rounded-2xl border border-foreground/[0.06] bg-background/40 px-5 py-4">
             <div className="flex items-center justify-between">
-              <p className={`font-display text-sm font-bold tracking-wide uppercase ${heroColor}`}>
+              <p className={`font-display text-base font-bold tracking-wide uppercase ${heroColor}`}>
                 {heroFitType}
               </p>
               <button
                 onClick={() => setAnalyzeOpen(true)}
-                className="flex items-center gap-1 text-[10px] font-medium tracking-wider text-accent hover:text-accent/80 uppercase"
+                className="flex items-center gap-1 text-[11px] font-medium tracking-wider text-accent hover:text-accent/80 uppercase"
               >
-                <BarChart3 className="h-3 w-3" /> Analyze
+                <BarChart3 className="h-3.5 w-3.5" /> Analyze
               </button>
             </div>
-            <p className="mt-1.5 text-[12px] leading-snug text-foreground/75">
+            <p className="mt-2 text-[13px] leading-snug text-foreground/75">
               {overallFitSentence ||
                 "If you prefer a more relaxed look, try one size up for a looser silhouette."}
             </p>
           </div>
 
           {tryOn.error && (
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-orange-500/20 bg-orange-500/5 px-3 py-2 text-[11px] text-orange-400/80">
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-orange-500/20 bg-orange-500/5 px-3 py-2 text-[11px] text-orange-400/80">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <div className="flex-1">{friendlyTryOnError(tryOn.error)}</div>
               <button
@@ -1033,60 +1028,60 @@ export default function FitResults({
               </button>
             </div>
           )}
-        </section>
 
-        {/* ─── RIGHT: PRODUCT + FIT SUMMARY RAIL ──────────────────────── */}
-        <aside className="order-3 space-y-3 rounded-3xl border border-foreground/[0.06] bg-card/40 p-5 lg:order-3">
-          {/* Product header */}
-          <div>
-            <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Product</p>
-            <h1 className="mt-1.5 font-display text-base font-medium leading-tight text-foreground">
-              {product.name}
-            </h1>
-            <p className="mt-0.5 text-[10px] tracking-[0.25em] text-foreground/50 uppercase">{product.brand}</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-accent uppercase">
-                AI Fitting
-              </span>
-              <span className="rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-[9px] font-medium tracking-wider text-foreground/60 uppercase">
-                {garmentDNA.fabricType || "Light fabric"}
-              </span>
+          {/* ─── PRODUCT PANEL — moved below the preview ───────────────── */}
+          <div className="mt-6 rounded-2xl border border-foreground/[0.06] bg-card/40 p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex-1">
+                <p className="text-[9px] font-bold tracking-[0.3em] text-foreground/45 uppercase">Product</p>
+                <h1 className="mt-1.5 font-display text-lg font-medium leading-tight text-foreground">
+                  {product.name}
+                </h1>
+                <p className="mt-0.5 text-[10px] tracking-[0.25em] text-foreground/50 uppercase">{product.brand}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-accent uppercase">
+                    AI Fitting
+                  </span>
+                  <span className="rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-[9px] font-medium tracking-wider text-foreground/60 uppercase">
+                    {garmentDNA.fabricType || "Light fabric"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-accent/20 bg-accent/[0.05] p-4 md:min-w-[200px]">
+                <p className="text-[9px] font-bold tracking-[0.25em] text-accent uppercase">Best Size For You</p>
+                <p className="mt-1 font-display text-xl font-bold text-foreground">Size {recommendedSize}</p>
+                <p className="mt-0.5 text-[11px] leading-snug text-foreground/65">{recommendedReason}</p>
+              </div>
+            </div>
+
+            {/* CTAs */}
+            <div className="mt-4 grid grid-cols-1 gap-2 border-t border-foreground/[0.06] pt-4 sm:grid-cols-2">
+              {product.url && product.url !== "#" && (
+                <a
+                  href={product.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-[12px] font-bold tracking-[0.2em] text-background uppercase transition-opacity hover:opacity-90"
+                >
+                  Add to bag <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+              <button
+                onClick={() => setChangeBodyOpen(true)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-foreground/10 bg-foreground/[0.03] py-3 text-[11px] font-medium tracking-[0.2em] text-foreground/70 uppercase transition-colors hover:bg-foreground/[0.06]"
+              >
+                <RotateCcw className="h-3 w-3" /> Change body
+              </button>
+              <button
+                onClick={() => setAnalyzeOpen(true)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-accent/30 bg-accent/[0.06] py-3 text-[11px] font-medium tracking-[0.2em] text-accent uppercase transition-colors hover:bg-accent/[0.12]"
+              >
+                <BarChart3 className="h-3 w-3" /> Why this size?
+              </button>
             </div>
           </div>
-
-          {/* Best size for you */}
-          <div className="rounded-2xl border border-accent/20 bg-accent/[0.05] p-3">
-            <p className="text-[9px] font-bold tracking-[0.25em] text-accent uppercase">Best Size For You</p>
-            <p className="mt-1 font-display text-lg font-bold text-foreground">Size {recommendedSize}</p>
-            <p className="mt-0.5 text-[11px] leading-snug text-foreground/65">{recommendedReason}</p>
-            <button
-              onClick={() => setAnalyzeOpen(true)}
-              className="mt-2 flex items-center gap-1 text-[10px] font-medium text-accent hover:text-accent/80"
-            >
-              Why this size? <ChevronDown className="h-3 w-3" />
-            </button>
-          </div>
-
-          {/* CTA */}
-          <div className="space-y-2 border-t border-foreground/[0.06] pt-3">
-            {product.url && product.url !== "#" && (
-              <a
-                href={product.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-2.5 text-[12px] font-bold tracking-[0.2em] text-background uppercase transition-opacity hover:opacity-90"
-              >
-                Add to bag <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-            <button
-              onClick={() => setChangeBodyOpen(true)}
-              className="flex w-full items-center justify-center gap-1.5 text-[10px] font-medium tracking-[0.25em] text-foreground/55 uppercase hover:text-foreground/80"
-            >
-              <RotateCcw className="h-3 w-3" /> Change body
-            </button>
-          </div>
-        </aside>
+        </section>
       </div>
 
       {/* ── RECOMMENDED FOR YOUR SHAPE ── */}
