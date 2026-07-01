@@ -620,10 +620,6 @@ const FitPage = () => {
                   bodyWeightKg={weightKg}
                   bodyShape={bodyShape}
                   bodyGender={bodyGender ?? (bodyShape as any)?.gender ?? null}
-                  {/* Only pass USER-ENTERED circumferences (confidence === "high").
-                      Otherwise pass null so the sizing engine infers from H/W/gender —
-                      never leak the demo defaults (chest 94, waist 80, hip 96, shoulder 45)
-                      into a slim 45kg user's recommendation. */}
                   bodyShoulderCm={measurements.shoulderWidthCm?.confidence === "high" ? (measurements.shoulderWidthCm?.value ?? null) : null}
                   bodyChestCm={measurements.chestCm?.confidence === "high" ? (measurements.chestCm?.value ?? null) : null}
                   bodyWaistCm={measurements.waistCm?.confidence === "high" ? (measurements.waistCm?.value ?? null) : null}
