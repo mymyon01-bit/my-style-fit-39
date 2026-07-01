@@ -22,6 +22,7 @@
 // Designed to be cheap and safe to call from ingestion AND from UI.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { assertSafeUrl, getCallerUserId } from "../_shared/ssrfGuard.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,7 @@ const cors = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const BUCKET = "product-images";
 
 const HARD_REJECT_RE =
