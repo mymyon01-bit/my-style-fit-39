@@ -8,6 +8,7 @@
 // whether to re-run resolveGarmentSize() or fall back to the estimator.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { assertSafeUrl } from "../_shared/ssrfGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
