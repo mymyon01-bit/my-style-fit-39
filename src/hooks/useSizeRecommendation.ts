@@ -115,13 +115,9 @@ export function useSizeRecommendation(args: Args): State {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("gender_preference")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (!cancelled && data?.gender_preference) {
-          setProfileGender(data.gender_preference);
+        const prof = await (await import("@/lib/profile")).getMyProfile();
+        if (!cancelled && prof?.gender_preference) {
+          setProfileGender(prof.gender_preference);
         }
       } catch { /* ignore */ }
     })();

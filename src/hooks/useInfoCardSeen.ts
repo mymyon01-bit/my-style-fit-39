@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyProfile, invalidateMyProfile } from "@/lib/profile";
 
 const PREFIX = "ootd:info:";
 const VERSION = "v1";
@@ -31,17 +32,14 @@ export async function markInfoCardSeenForever(id: string) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("dismissed_info_cards")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const prof = await getMyProfile();
     const current: string[] = ((prof as any)?.dismissed_info_cards ?? []) as string[];
     if (current.includes(id)) return;
     await supabase
       .from("profiles")
       .update({ dismissed_info_cards: [...current, id] } as any)
       .eq("user_id", user.id);
+    invalidateMyProfile();
   } catch { /* ignore */ }
 }
 
@@ -70,12 +68,8 @@ export async function syncDismissedInfoCardsFromProfile() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("dismissed_info_cards")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    const remote: string[] = ((data as any)?.dismissed_info_cards ?? []) as string[];
+    const prof = await getMyProfile();
+    const remote: string[] = ((prof as any)?.dismissed_info_cards ?? []) as string[];
     remote.forEach((id) => {
       try { localStorage.setItem(key(id), "1"); } catch {}
     });

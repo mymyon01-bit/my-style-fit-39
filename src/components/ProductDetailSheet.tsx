@@ -58,9 +58,9 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
     if (!user) { setBodyHeightCm(null); setBodyGender(null); return; }
     let cancelled = false;
     (async () => {
-      const [{ data: bp }, { data: pr }] = await Promise.all([
+      const [{ data: bp }, pr] = await Promise.all([
         supabase.from("body_profiles").select("height_cm").eq("user_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("gender_preference").eq("user_id", user.id).maybeSingle(),
+        (await import("@/lib/profile")).getMyProfile(),
       ]);
       if (cancelled) return;
       if (bp?.height_cm) setBodyHeightCm(Number(bp.height_cm));
