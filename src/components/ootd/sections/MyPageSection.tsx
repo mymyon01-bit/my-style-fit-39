@@ -188,6 +188,27 @@ const MyPageSection = () => {
         </Button>
       </div>
 
+      {/* POST OOTD — photo or video */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setUploadOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+        >
+          <Camera className="h-4 w-4" />
+          <span className="text-[10px] font-medium tracking-[0.22em]">POST PHOTO</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setVideoUploadOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+        >
+          <Film className="h-4 w-4" />
+          <span className="text-[10px] font-medium tracking-[0.22em]">POST VIDEO</span>
+        </button>
+      </div>
+
+
       {/* Sub-tabs */}
       <div className="mt-6 flex items-center justify-around border-b border-border/60">
         {SUB_TABS.map((s) => {
