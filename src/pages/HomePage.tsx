@@ -70,11 +70,15 @@ const QUICK_TILES = [
   { key: "minimal", label: "Minimal", icon: Minus },
 ];
 
-type TrendingPost = {
+type TrendingProduct = {
   id: string;
   image_url: string | null;
-  star_count: number | null;
+  name: string | null;
+  brand: string | null;
+  source_url: string | null;
+  like_count: number | null;
 };
+
 
 type DnaPick = {
   id: string;
