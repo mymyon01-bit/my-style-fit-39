@@ -65,6 +65,9 @@ export default function OOTDCommunityPage() {
               <span className="text-accent">#</span>OOTD
             </h1>
             <div className="flex items-center gap-1">
+              <IconBtn label="Home" onClick={() => navigate("/")}>
+                <Home className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              </IconBtn>
               <IconBtn label="Search" onClick={() => navigate("/search")}>
                 <Search className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </IconBtn>
