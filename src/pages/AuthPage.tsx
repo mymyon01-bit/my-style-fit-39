@@ -130,8 +130,27 @@ const AuthPage = () => {
     return raw;
   };
 
+  const requireConsentForSocial = (): boolean => {
+    if (mode !== "signup") return true;
+    if (!consents.terms || !consents.privacy) {
+      setError("Please accept the required Terms and Privacy Policy to continue.");
+      return false;
+    }
+    // Stash consents so we can record them once session lands post-OAuth.
+    try {
+      const lang = (localStorage.getItem("wardrobe-lang") || "en") as LegalLang;
+      const docLang: LegalLang = lang === "ko" || lang === "it" ? lang : "en";
+      localStorage.setItem(
+        "pending-signup-consents",
+        JSON.stringify({ consents, language: docLang, ts: Date.now() }),
+      );
+    } catch {}
+    return true;
+  };
+
   const handleGoogle = async () => {
     setError(null);
+    if (!requireConsentForSocial()) return;
     setLoading(true);
     const { error } = await signInWithGoogle();
     if (error) setError(friendlyAuthError(error.message));
@@ -140,6 +159,7 @@ const AuthPage = () => {
 
   const handleApple = async () => {
     setError(null);
+    if (!requireConsentForSocial()) return;
     setLoading(true);
     const { error } = await signInWithApple();
     if (error) setError(friendlyAuthError(error.message));
