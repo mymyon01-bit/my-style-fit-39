@@ -860,8 +860,8 @@ const OOTDPage = () => {
                     strokeWidth={activeTab === key ? 2.2 : 1.6}
                   />
                   <span
-                    className={`hidden sm:block text-[9.5px] font-semibold tracking-[0.16em] transition-colors ${
-                      activeTab === key ? "text-foreground/90" : "text-foreground/40"
+                    className={`text-[9.5px] font-semibold tracking-[0.12em] transition-colors ${
+                      activeTab === key ? "text-foreground/90" : "text-foreground/45"
                     }`}
                   >
                     {label}
