@@ -89,6 +89,10 @@ function OOTDCardImpl({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  // Keep the OOTD shell (tabs + header) mounted while the
+                  // profile overlay slides in. OOTDModalHost renders
+                  // /user/:id as an overlay when the modal is open.
+                  openOOTDModal();
                   navigate(`/user/${post.user_id}`);
                 }}
                 className="flex items-center gap-1.5 min-w-0"
