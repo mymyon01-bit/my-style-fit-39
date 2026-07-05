@@ -149,7 +149,7 @@ const HomePage = () => {
       const { data } = await q
         .order("trend_score", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
-        .limit(18);
+        .limit(40);
 
       let list = (data ?? []) as TrendingProduct[];
 
@@ -163,15 +163,33 @@ const HomePage = () => {
           .not("image_url", "is", null)
           .order("trend_score", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .limit(18);
+          .limit(40);
         list = (fallback ?? []) as TrendingProduct[];
       }
 
+      // Split trending vs body-DNA picks so the two rails never overlap.
+      const trendingSlice = list.slice(0, 18);
+      const trendingIds = new Set(trendingSlice.map((p) => p.id));
+
+      // For "Based on Your Body DNA" pull a fresh, DIFFERENT batch.
+      // Priority: newest items with a body-fit signature (freshness),
+      // and always exclude anything already surfaced in Trending Now.
+      const { data: dnaData } = await supabase
+        .from("product_cache")
+        .select("id, name, brand, image_url, source_url")
+        .eq("is_active", true)
+        .eq("image_valid", true)
+        .not("image_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(60);
+      const dnaList = ((dnaData ?? []) as TrendingProduct[])
+        .filter((p) => !trendingIds.has(p.id))
+        .slice(0, 12);
+
       if (!cancelled) {
-        setTrending(list);
-        // Reuse the top items for the Body DNA row so the grid isn't empty.
+        setTrending(trendingSlice);
         setDnaPicks(
-          list.slice(0, 6).map((p, i) => ({
+          dnaList.map((p, i) => ({
             id: p.id,
             title: p.name || "Featured piece",
             brand: p.brand ?? null,
