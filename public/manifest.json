@@ -4,8 +4,8 @@
   "description": "Discover what fits you. Share your style.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f3d9c8",
-  "theme_color": "#d4c4ea",
+  "background_color": "#0d1a2d",
+  "theme_color": "#0d1a2d",
   "icons": [
     {
       "src": "/icons/icon-192.png",
