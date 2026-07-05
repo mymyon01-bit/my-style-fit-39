@@ -60,6 +60,10 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [audience, setAudience] = useState<"all" | "circle" | "ripple">("all");
   // Raw file the user just picked — held while the crop dialog is open.
   const [pendingCrop, setPendingCrop] = useState<File | null>(null);
+  // Original (post-crop) file kept so filter re-selection re-bakes from source.
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [filterId, setFilterId] = useState<PhotoFilterId>("original");
+  const [filterBusy, setFilterBusy] = useState(false);
 
   // Gate: when an unverified user opens the upload sheet, show email modal first.
   useEffect(() => {
