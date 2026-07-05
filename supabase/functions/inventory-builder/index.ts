@@ -324,7 +324,6 @@ serve(async (req) => {
     });
   }
 
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
   const t0 = Date.now();
