@@ -133,6 +133,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
       setPendingCrop(null);
       const prepared = await prepareImage(cropped, { square: false });
       setOriginalFile(prepared);
+      setOriginalUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(prepared); });
       setFilterId("original");
       setFile(prepared);
       setPreview(URL.createObjectURL(prepared));
