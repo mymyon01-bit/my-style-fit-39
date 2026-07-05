@@ -62,6 +62,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [pendingCrop, setPendingCrop] = useState<File | null>(null);
   // Original (post-crop) file kept so filter re-selection re-bakes from source.
   const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [filterId, setFilterId] = useState<PhotoFilterId>("original");
   const [filterBusy, setFilterBusy] = useState(false);
 
