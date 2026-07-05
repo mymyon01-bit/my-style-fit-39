@@ -32,10 +32,6 @@ const Wordmark = ({ size, className }: { size: number; className?: string }) => 
         alt="mymyon"
         className="block h-full w-auto select-none"
         draggable={false}
-        style={{
-          filter:
-            "drop-shadow(0 0 1px rgba(0,0,0,0.95)) drop-shadow(0 0 1px rgba(0,0,0,0.95)) drop-shadow(0 1px 2px rgba(0,0,0,0.55))",
-        }}
       />
     </span>
   );
