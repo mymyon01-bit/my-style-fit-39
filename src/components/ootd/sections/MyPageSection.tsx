@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 
