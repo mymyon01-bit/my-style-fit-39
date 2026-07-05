@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useEmailVerified } from "@/hooks/useEmailVerified";
 import EmailVerificationModal from "@/components/legal/EmailVerificationModal";
 import SquareCropDialog from "@/components/SquareCropDialog";
+import { PHOTO_FILTERS, cssForFilter, applyFilterToFile, type PhotoFilterId } from "@/lib/photoFilters";
 
 // Sentinel topic — when present in a post's `topics` array it signals that
 // the author has disabled sharing. Stored in `topics` to avoid a schema
