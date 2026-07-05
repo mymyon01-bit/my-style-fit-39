@@ -203,6 +203,18 @@ const HomePage = () => {
         </div>
       </header>
 
+      {/* ABOUT MYMYON — small pill under header, mobile only */}
+      <div className="mx-auto w-full max-w-md px-5 pt-1 lg:hidden">
+        <button
+          type="button"
+          onClick={() => navigate("/about")}
+          className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/5 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-accent transition-colors hover:bg-accent/10"
+        >
+          <Info className="h-3 w-3" strokeWidth={1.8} />
+          About MYMYON
+        </button>
+      </div>
+
       <main className="mx-auto w-full max-w-md px-5 lg:mx-0 lg:max-w-none lg:px-0">
 
         {/* AI Search — mobile only; desktop uses the top-bar search */}

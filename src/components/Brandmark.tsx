@@ -3,7 +3,9 @@
  * Gold script floating on an organic black ink-blot splash, used across all in-app surfaces.
  */
 import { cn } from "@/lib/utils";
-import signature from "@/assets/mymyon-logo-ink-exact.png.asset.json";
+import signatureUrl from "@/assets/mymyon-wordmark-gold.png";
+
+const signature = { url: signatureUrl } as const;
 
 type Variant = "compact" | "stacked" | "inline";
 
@@ -30,10 +32,6 @@ const Wordmark = ({ size, className }: { size: number; className?: string }) => 
         alt="mymyon"
         className="block h-full w-auto select-none"
         draggable={false}
-        style={{
-          filter:
-            "drop-shadow(0 0 1px rgba(0,0,0,0.95)) drop-shadow(0 0 1px rgba(0,0,0,0.95)) drop-shadow(0 1px 2px rgba(0,0,0,0.55))",
-        }}
       />
     </span>
   );
