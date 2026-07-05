@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send, ChevronDown, Film } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send, ChevronDown, Film, Home as HomeIcon } from "lucide-react";
 import OOTDShortsFeed from "@/components/ootd/OOTDShortsFeed";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
