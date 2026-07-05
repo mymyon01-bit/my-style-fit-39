@@ -36,6 +36,17 @@ async function validateImageUrl(url: string): Promise<boolean> {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Cron-only endpoint — reject anything without the shared secret.
+  const expected = Deno.env.get("INVENTORY_CRON_SECRET");
+  const provided = req.headers.get("x-cron-secret");
+  if (!expected || provided !== expected) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+
   const supabase = getServiceClient();
   const now = new Date().toISOString();
   const results = { validated: 0, deactivated: 0, trendUpdated: 0, errors: 0 };
