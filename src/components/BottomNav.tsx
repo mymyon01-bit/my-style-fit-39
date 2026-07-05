@@ -3,7 +3,7 @@
  * (same icons, same order, same labels) so the two surfaces feel like one
  * product. No OOTD modal hijack — it routes to /ootd like every other tab.
  */
-import { Home as HomeIcon, Ruler, Compass, Shirt, User as UserIcon, Info } from "lucide-react";
+import { Home as HomeIcon, Ruler, Compass, Shirt, User as UserIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
@@ -15,7 +15,6 @@ const TABS = [
   { path: "/discover", icon: Compass, label: "Discover" },
   { path: "/ootd", icon: Shirt, label: "#OOTD" },
   { path: "/profile", icon: UserIcon, label: "Profile" },
-  { path: "/about", icon: Info, label: "About" },
 ];
 
 const BottomNav = () => {
