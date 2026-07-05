@@ -57,6 +57,7 @@ function OOTDCardImpl({
   onDelete,
 }: Props) {
   const navigate = useNavigate();
+  const { open: openOOTDModal } = useOOTDModal();
   const likes = post.like_count || 0;
   const stars = post.star_count || 0;
   const title = post.caption ? post.caption.split(/\s+/)[0] : null;
