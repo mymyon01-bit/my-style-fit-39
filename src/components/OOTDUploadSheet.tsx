@@ -131,6 +131,8 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     try {
       setPendingCrop(null);
       const prepared = await prepareImage(cropped, { square: false });
+      setOriginalFile(prepared);
+      setFilterId("original");
       setFile(prepared);
       setPreview(URL.createObjectURL(prepared));
       setStep(2);
@@ -138,6 +140,24 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
       const msg = err?.message || "Couldn't process that photo";
       setError(msg);
       toast.error(msg);
+    }
+  };
+
+  const handlePickFilter = async (id: PhotoFilterId) => {
+    if (!originalFile) return;
+    setFilterId(id);
+    try {
+      setFilterBusy(true);
+      const baked = await applyFilterToFile(originalFile, id);
+      setFile(baked);
+      setPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(baked);
+      });
+    } catch (err: any) {
+      toast.error("Couldn't apply filter");
+    } finally {
+      setFilterBusy(false);
     }
   };
 
