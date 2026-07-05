@@ -245,7 +245,7 @@ const MyPageSection = () => {
             <button
               key={s.user_id}
               type="button"
-              onClick={() => navigate(`/user/${s.user_id}`)}
+              onClick={() => { openOOTDModal(); navigate(`/user/${s.user_id}`); }}
               className="flex shrink-0 flex-col items-center gap-1.5"
             >
               {s.isFriend ? (
