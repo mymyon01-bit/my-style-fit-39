@@ -13,8 +13,23 @@ interface RequestBody {
   productName?: string;
 }
 
+import { getCallerUserId } from "../_shared/ssrfGuard.ts";
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Require auth — prevents anonymous abuse of the paid AI cutout call.
+  const uid = await getCallerUserId(
+    req,
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+  );
+  if (!uid) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const { imageUrl, productName } = (await req.json()) as RequestBody;
