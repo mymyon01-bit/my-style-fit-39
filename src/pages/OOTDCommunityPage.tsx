@@ -79,9 +79,23 @@ export default function OOTDCommunityPage() {
               <IconBtn label="Search" onClick={() => navigate("/search")}>
                 <Search className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </IconBtn>
-              <IconBtn label="Notifications" onClick={() => navigate("/notifications")}>
+              <MailboxIcon
+                unread={msgUnread}
+                onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+              />
+              <button
+                type="button"
+                aria-label="Notifications"
+                onClick={() => setNotifsOpen(true)}
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
+              >
                 <Bell className="h-[18px] w-[18px]" strokeWidth={1.7} />
-              </IconBtn>
+                {notifUnread > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-accent px-1 text-[8px] font-bold text-accent-foreground leading-none">
+                    {notifUnread > 99 ? "99+" : notifUnread}
+                  </span>
+                )}
+              </button>
               {tab === "my" && (
                 <IconBtn label="Settings" onClick={() => navigate("/settings")}>
                   <Settings className="h-[18px] w-[18px]" strokeWidth={1.7} />
