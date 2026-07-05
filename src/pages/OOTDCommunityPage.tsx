@@ -15,20 +15,22 @@ import WaveShowroomSection from "@/components/ootd/sections/WaveShowroomSection"
 import QuicksSection from "@/components/ootd/sections/QuicksSection";
 import PostDetailHost from "@/components/ootd/PostDetailHost";
 
-type TabKey = "feed" | "my" | "quicks" | "wave" | "showroom";
+type TabKey = "my" | "feed" | "quicks" | "wave" | "showroom";
 
-const TABS: { key: TabKey; label: string; Icon: typeof Home; emoji: string }[] = [
-  { key: "feed",     label: "Feed",     Icon: Home,  emoji: "🏠" },
-  { key: "my",       label: "My",       Icon: User,  emoji: "👤" },
-  { key: "quicks",   label: "Quicks",   Icon: Zap,   emoji: "⚡" },
-  { key: "wave",     label: "Wave",     Icon: Waves, emoji: "🌊" },
-  { key: "showroom", label: "Showroom", Icon: Store, emoji: "🛍️" },
+// Tab bar reads left-to-right: MY first (your page), then the social feed,
+// Quicks in the middle as the hero CTA, then Wave and Showroom.
+const TABS: { key: TabKey; label: string; Icon: typeof Home }[] = [
+  { key: "my",       label: "My",       Icon: User  },
+  { key: "feed",     label: "Feed",     Icon: Home  },
+  { key: "quicks",   label: "Quicks",   Icon: Zap   },
+  { key: "wave",     label: "Wave",     Icon: Waves },
+  { key: "showroom", label: "Showroom", Icon: Store },
 ];
 
 export default function OOTDCommunityPage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const initial = (params.get("section") as TabKey) || "feed";
+  const initial = (params.get("section") as TabKey) || "my";
   const [tab, setTab] = useState<TabKey>(initial);
   const openPostId = params.get("post");
 
