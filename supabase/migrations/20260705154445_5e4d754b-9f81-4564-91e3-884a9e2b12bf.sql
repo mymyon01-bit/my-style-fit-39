@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.can_view_ootd_post(uuid, uuid, text) TO authenticated, anon;
