@@ -1,10 +1,14 @@
 /**
  * MyPageSection — User's OOTD profile archive.
  * Reference: image 2 (avatar + bio + stats + sub-tabs + 3-col grid).
+ *
+ * Also hosts the "Stories" rail (moved from the Quicks video section) so
+ * users manage adding a story from their own page, and the rail shows
+ * their friends (people in their Circle) with a gold animated ring.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Bookmark, Loader2, Camera, Film } from "lucide-react";
+import { Heart, Bookmark, Loader2, Camera, Film, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
