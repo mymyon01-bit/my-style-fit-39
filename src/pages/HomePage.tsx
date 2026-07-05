@@ -119,49 +119,71 @@ const HomePage = () => {
     [navigate],
   );
 
-  // Pull Trending Now from OOTD — the most-starred public posts so the home
-  // feed reflects what's actually hot in the community right now.
+  // Trending Now: pull from product_cache. Guests see recent popular items;
+  // signed-in users get a light personalization pass based on their style tags.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("ootd_posts")
-        .select("id, image_url, star_count, created_at")
-        .not("image_url", "is", null)
-        .order("star_count", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(12);
-      if (!cancelled && data) setTrending(data as TrendingPost[]);
-    })();
-    return () => { cancelled = true; };
-  }, []);
+      // 1) Pull the user's style tags if signed in
+      let tags: string[] = [];
+      if (user) {
+        const { data: style } = await supabase
+          .from("style_profiles")
+          .select("style_tags")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        tags = ((style?.style_tags as string[] | null) ?? []).slice(0, 6);
+      }
 
-  // Pull a small set of products for the Body DNA grid. Lightweight stand-in
-  // for a full recommendation call — uses featured products as the seed.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("id, name, brand, image_url, hero_image_url")
-        .limit(12);
-      if (!cancelled && data) {
-        const picks = (data as any[])
-          .map((p, i) => ({
+      let q = supabase
+        .from("product_cache")
+        .select("id, name, brand, image_url, source_url, like_count")
+        .eq("is_active", true)
+        .eq("image_valid", true)
+        .not("image_url", "is", null);
+
+      if (tags.length > 0) {
+        q = q.overlaps("style_tags", tags);
+      }
+
+      const { data } = await q
+        .order("trend_score", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(18);
+
+      let list = (data ?? []) as TrendingProduct[];
+
+      // Personalization fallback: if we filtered by tags and got nothing, retry unfiltered
+      if (list.length === 0 && tags.length > 0) {
+        const { data: fallback } = await supabase
+          .from("product_cache")
+          .select("id, name, brand, image_url, source_url, like_count")
+          .eq("is_active", true)
+          .eq("image_valid", true)
+          .not("image_url", "is", null)
+          .order("trend_score", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(18);
+        list = (fallback ?? []) as TrendingProduct[];
+      }
+
+      if (!cancelled) {
+        setTrending(list);
+        // Reuse the top items for the Body DNA row so the grid isn't empty.
+        setDnaPicks(
+          list.slice(0, 6).map((p, i) => ({
             id: p.id,
             title: p.name || "Featured piece",
             brand: p.brand ?? null,
-            image: p.hero_image_url || p.image_url || null,
+            image: p.image_url,
             match: 88 + ((i * 3) % 11),
-          }))
-          .filter((p) => !!p.image);
-        setDnaPicks(picks.slice(0, 6));
-        // Today's Pick uses the curated EDITORIAL_HEROES set (above) — we
-        // intentionally do NOT replace it with raw inventory imagery here.
+          })),
+        );
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user]);
+
 
   // Auto-rotate the Today's Pick hero every ~5s with a soft crossfade.
   useEffect(() => {
