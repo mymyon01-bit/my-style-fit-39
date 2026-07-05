@@ -23,7 +23,7 @@ const config: CapacitorConfig = {
     contentInset: "always",
   },
   android: {
-    backgroundColor: "#0a0a0a",
+    backgroundColor: "#0d1a2d",
   },
   plugins: {
     StatusBar: {
@@ -37,7 +37,7 @@ const config: CapacitorConfig = {
       // Prevents the white flash between native splash and JS bundle load.
       launchShowDuration: 3000,
       launchAutoHide: false,
-      backgroundColor: "#f5a3c7",
+      backgroundColor: "#0d1a2d",
       androidSplashResourceName: "splash",
       // CENTER_CROP fills the entire screen by cropping overflow. The new
       // splash artwork is portrait (phone-aspect) so cropping is minimal and

@@ -4,8 +4,8 @@ import splashImg from "/icons/splash-mymyon.jpg?url";
 import { isNativeApp } from "@/lib/native/platform";
 
 /**
- * SplashScreen — pastel gradient backdrop with the hand-lettered "My" mark.
- * Matches the new app icon. Auto-dismisses ~1.6s; cached per session.
+ * SplashScreen — dark navy satin backdrop with the gold "my" script mark.
+ * Matches the new luxury app icon. Auto-dismisses ~1.6s; cached per session.
  *
  * On native (Capacitor) we ALSO hide the native Android/iOS splash here so
  * there's no white flash between the native splash and this web splash.
@@ -21,14 +21,14 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         .catch(() => { /* not available — ignore */ });
     }
 
-    // Bumped key (v2) so users see the new "My myon #OOTD" splash once
-    if (sessionStorage.getItem("wardrobe-splash-v2")) {
+    // Bumped key (v3) so users see the new navy/gold splash once
+    if (sessionStorage.getItem("wardrobe-splash-v3")) {
       onComplete();
       return;
     }
     const tExit = setTimeout(() => setExiting(true), 1600);
     const tDone = setTimeout(() => {
-      sessionStorage.setItem("wardrobe-splash-v2", "1");
+      sessionStorage.setItem("wardrobe-splash-v3", "1");
       onComplete();
     }, 2100);
     return () => {
