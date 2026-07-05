@@ -28,16 +28,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const flushPendingConsents = async (uid: string) => {
+      try {
+        const raw = localStorage.getItem("pending-signup-consents");
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as {
+          consents: { terms: boolean; privacy: boolean; marketing: boolean };
+          language: "ko" | "en" | "it";
+        };
+        const { recordSignupConsents } = await import("@/lib/legal/recordConsent");
+        await recordSignupConsents(uid, parsed.consents, parsed.language);
+        localStorage.removeItem("pending-signup-consents");
+      } catch {}
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) void flushPendingConsents(session.user.id);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) void flushPendingConsents(session.user.id);
     });
 
     return () => subscription.unsubscribe();
