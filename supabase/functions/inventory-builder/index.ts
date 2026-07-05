@@ -313,16 +313,21 @@ async function processSeed(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Cron-only endpoint: require the shared secret header. pg_cron passes this
-  // header when it invokes the function; unauthenticated callers are rejected.
+  // Cron-only endpoint. Accept either the shared secret header OR a
+  // service-role Bearer token (pg_cron sends the service key in Authorization).
   const expected = Deno.env.get("INVENTORY_CRON_SECRET");
-  const provided = req.headers.get("x-cron-secret");
-  if (!expected || provided !== expected) {
+  const providedSecret = req.headers.get("x-cron-secret");
+  const auth = req.headers.get("Authorization") ?? "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const isService = bearer && bearer === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const secretOk = !!expected && providedSecret === expected;
+  if (!secretOk && !isService) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 
 
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
