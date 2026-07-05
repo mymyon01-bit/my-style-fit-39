@@ -15,20 +15,22 @@ import WaveShowroomSection from "@/components/ootd/sections/WaveShowroomSection"
 import QuicksSection from "@/components/ootd/sections/QuicksSection";
 import PostDetailHost from "@/components/ootd/PostDetailHost";
 
-type TabKey = "feed" | "my" | "quicks" | "wave" | "showroom";
+type TabKey = "my" | "feed" | "quicks" | "wave" | "showroom";
 
-const TABS: { key: TabKey; label: string; Icon: typeof Home; emoji: string }[] = [
-  { key: "feed",     label: "Feed",     Icon: Home,  emoji: "🏠" },
-  { key: "my",       label: "My",       Icon: User,  emoji: "👤" },
-  { key: "quicks",   label: "Quicks",   Icon: Zap,   emoji: "⚡" },
-  { key: "wave",     label: "Wave",     Icon: Waves, emoji: "🌊" },
-  { key: "showroom", label: "Showroom", Icon: Store, emoji: "🛍️" },
+// Tab bar reads left-to-right: MY first (your page), then the social feed,
+// Quicks in the middle as the hero CTA, then Wave and Showroom.
+const TABS: { key: TabKey; label: string; Icon: typeof Home }[] = [
+  { key: "my",       label: "My",       Icon: User  },
+  { key: "feed",     label: "Feed",     Icon: Home  },
+  { key: "quicks",   label: "Quicks",   Icon: Zap   },
+  { key: "wave",     label: "Wave",     Icon: Waves },
+  { key: "showroom", label: "Showroom", Icon: Store },
 ];
 
 export default function OOTDCommunityPage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const initial = (params.get("section") as TabKey) || "feed";
+  const initial = (params.get("section") as TabKey) || "my";
   const [tab, setTab] = useState<TabKey>(initial);
   const openPostId = params.get("post");
 
@@ -63,6 +65,9 @@ export default function OOTDCommunityPage() {
               <span className="text-accent">#</span>OOTD
             </h1>
             <div className="flex items-center gap-1">
+              <IconBtn label="Home" onClick={() => navigate("/")}>
+                <Home className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              </IconBtn>
               <IconBtn label="Search" onClick={() => navigate("/search")}>
                 <Search className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </IconBtn>
@@ -78,7 +83,7 @@ export default function OOTDCommunityPage() {
           </div>
 
           {/* Cute icon tabs */}
-          <nav className="flex items-end justify-around gap-1 pb-2 pt-1 md:justify-center md:gap-10">
+          <nav className="flex items-end justify-around gap-1 pb-2.5 pt-1 md:justify-center md:gap-12">
             {TABS.map((t) => {
               const active = tab === t.key;
               const isCenter = t.key === "quicks";
@@ -87,28 +92,29 @@ export default function OOTDCommunityPage() {
                   key={t.key}
                   type="button"
                   onClick={() => switchTo(t.key)}
-                  className={`group relative flex flex-col items-center gap-1 px-2 pt-1 pb-1.5 transition ${
-                    active ? "text-foreground" : "text-foreground/45 hover:text-foreground/80"
+                  aria-label={t.label}
+                  className={`group relative flex flex-col items-center gap-1.5 px-2 pt-1 pb-0.5 transition ${
+                    active ? "text-foreground" : "text-foreground/50 hover:text-foreground/85"
                   }`}
                 >
                   <span
-                    className={`flex items-center justify-center rounded-full transition-all ${
+                    className={`flex items-center justify-center rounded-full transition-all duration-300 ${
                       isCenter
                         ? active
-                          ? "h-11 w-11 bg-gradient-to-br from-accent to-primary text-background shadow-[0_6px_20px_-6px_hsl(var(--accent)/0.6)]"
-                          : "h-11 w-11 bg-gradient-to-br from-accent/30 to-primary/30 text-foreground/75"
+                          ? "h-12 w-12 bg-gradient-to-br from-accent to-primary text-background shadow-[0_8px_24px_-8px_hsl(var(--accent)/0.7)] scale-105"
+                          : "h-12 w-12 bg-gradient-to-br from-accent/25 to-primary/25 text-foreground/80"
                         : active
-                          ? "h-9 w-9 bg-secondary"
-                          : "h-9 w-9"
+                          ? "h-10 w-10 bg-secondary ring-2 ring-accent/40"
+                          : "h-10 w-10 bg-secondary/40 group-hover:bg-secondary/70"
                     }`}
                   >
                     <t.Icon
-                      className={isCenter ? "h-[20px] w-[20px]" : "h-[18px] w-[18px]"}
-                      strokeWidth={active ? 2 : 1.6}
+                      className={isCenter ? "h-[22px] w-[22px]" : "h-[19px] w-[19px]"}
+                      strokeWidth={active ? 2.1 : 1.7}
                     />
                   </span>
                   <span
-                    className={`text-[10.5px] font-medium tracking-tight ${
+                    className={`text-[11px] font-semibold tracking-tight transition-colors ${
                       active ? "text-foreground" : "text-foreground/55"
                     }`}
                   >
@@ -117,7 +123,7 @@ export default function OOTDCommunityPage() {
                   {active && !isCenter && (
                     <motion.span
                       layoutId="ootd-tab-dot"
-                      className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-accent"
+                      className="absolute -bottom-1 h-1 w-4 rounded-full bg-accent"
                     />
                   )}
                 </button>

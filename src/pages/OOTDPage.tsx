@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send, ChevronDown, Film } from "lucide-react";
+import { Star, Camera, Loader2, TrendingUp, Heart, Crown, Edit3, Trash2, X, Save, Search, Bell, Info, Trophy, Users, LayoutGrid, User as UserIcon, Sparkles, Settings, Send, ChevronDown, Film, Home as HomeIcon } from "lucide-react";
 import OOTDShortsFeed from "@/components/ootd/OOTDShortsFeed";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
@@ -203,7 +203,7 @@ const OOTDPage = () => {
   }, []);
 
   // Mobile swipe between tabs (left/right). Only enabled on mobile/modal.
-  const TAB_ORDER: Tab[] = ["ranking", "feed", "community", "showroom", "mypage"];
+  const TAB_ORDER: Tab[] = ["mypage", "feed", "community", "showroom", "ranking"];
   const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const onTabSwipeStart = (e: React.TouchEvent) => {
     if (!mobileOOTD) return;
@@ -254,7 +254,7 @@ const OOTDPage = () => {
     // the user wants the address bar to stay at the bare domain.
     if (inModal) return;
     const params = new URLSearchParams(window.location.search);
-    if (next === "ranking") params.delete("tab"); else params.set("tab", next);
+    if (next === "mypage") params.delete("tab"); else params.set("tab", next);
     const qs = params.toString();
     const url = `/ootd${qs ? `?${qs}` : ""}`;
     window.history.pushState({ ootdTab: next }, "", url);
@@ -794,9 +794,18 @@ const OOTDPage = () => {
             )}
             <button
               onClick={() => {
+                if (inModal) closeOOTD();
+                navigate("/");
+              }}
+              className="ootd-neon-icon ootd-neon-icon--ink"
+              aria-label="Go home"
+              title="Home"
+            >
+              <HomeIcon className="h-[15px] w-[15px]" strokeWidth={2} />
+            </button>
+            <button
+              onClick={() => {
                 if (inModal) {
-                  // If a sub-route (user profile overlay) is showing, step
-                  // back out of it first; otherwise close the whole modal.
                   if (location.pathname.startsWith("/user/")) {
                     window.history.back();
                   } else {
@@ -831,11 +840,11 @@ const OOTDPage = () => {
           <div className="flex items-center gap-3">
             <div className="flex flex-1 min-w-0 items-stretch justify-around">
               {([
-                { key: "ranking" as const, label: "FEATURED", Icon: Trophy },
+                { key: "mypage" as const, label: "MY", Icon: UserIcon },
                 { key: "feed" as const, label: "STREAM", Icon: Sparkles },
                 { key: "community" as const, label: "#OOTD", Icon: Film },
                 { key: "showroom" as const, label: "SHOWROOMS", Icon: LayoutGrid },
-                { key: "mypage" as const, label: "MY", Icon: UserIcon },
+                { key: "ranking" as const, label: "FEATURED", Icon: Trophy },
               ]).map(({ key, label, Icon }) => (
                 <button
                   key={key}
@@ -851,8 +860,8 @@ const OOTDPage = () => {
                     strokeWidth={activeTab === key ? 2.2 : 1.6}
                   />
                   <span
-                    className={`hidden sm:block text-[9.5px] font-semibold tracking-[0.16em] transition-colors ${
-                      activeTab === key ? "text-foreground/90" : "text-foreground/40"
+                    className={`text-[9.5px] font-semibold tracking-[0.12em] transition-colors ${
+                      activeTab === key ? "text-foreground/90" : "text-foreground/45"
                     }`}
                   >
                     {label}
