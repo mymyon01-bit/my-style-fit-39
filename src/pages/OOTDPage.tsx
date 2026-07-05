@@ -254,7 +254,7 @@ const OOTDPage = () => {
     // the user wants the address bar to stay at the bare domain.
     if (inModal) return;
     const params = new URLSearchParams(window.location.search);
-    if (next === "ranking") params.delete("tab"); else params.set("tab", next);
+    if (next === "mypage") params.delete("tab"); else params.set("tab", next);
     const qs = params.toString();
     const url = `/ootd${qs ? `?${qs}` : ""}`;
     window.history.pushState({ ootdTab: next }, "", url);
