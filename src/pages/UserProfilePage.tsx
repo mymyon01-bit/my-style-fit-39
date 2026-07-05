@@ -423,36 +423,32 @@ const UserProfilePage = ({ userIdOverride }: UserProfilePageProps = {}) => {
           <VisitorSongPlayer song={visitorSong} cardStyle={cardStyle} />
         )}
 
-        {/* Stats — tinted card */}
+        {/* Stats — single row: Posts · Circle · Ripple */}
         <div
           className="rounded-2xl border border-border/30 backdrop-blur-md p-4"
           style={cardStyle ?? { background: "hsl(var(--card) / 0.5)" }}
         >
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-3 items-center gap-3 sm:gap-4">
             <div className="flex flex-col items-center justify-center text-center min-w-0">
               <CountUp value={postCount} className="text-xl font-light text-foreground/90 tabular-nums" />
-              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Posts</p>
+              <p className="mt-1.5 text-[10px] text-foreground/70 truncate">Posts</p>
             </div>
-            <div className="flex flex-col items-center justify-center text-center min-w-0">
-              <CountUp value={totalStars} className="text-xl font-light text-foreground/90 tabular-nums" />
-              <div className="mt-1.5 flex items-center justify-center text-amber-400">
-                <ShootingStarIcon size={14} />
-              </div>
-            </div>
-            <button onClick={() => setCirclesSheet({ open: true, tab: "circle" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
+            <button
+              type="button"
+              onClick={() => setCirclesSheet({ open: true, tab: "circle" })}
+              className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors"
+            >
               <CountUp value={circleCount} className="text-xl font-light text-foreground/90 tabular-nums" />
-              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Circle</p>
+              <p className="mt-1.5 text-[10px] text-foreground/70 truncate">Circle</p>
             </button>
-            <button onClick={() => setCirclesSheet({ open: true, tab: "ripple" })} className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors">
+            <button
+              type="button"
+              onClick={() => setCirclesSheet({ open: true, tab: "ripple" })}
+              className="flex flex-col items-center justify-center text-center min-w-0 hover:text-accent transition-colors"
+            >
               <CountUp value={rippleCount} className="text-xl font-light text-foreground/90 tabular-nums" />
-              <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Ripple</p>
+              <p className="mt-1.5 text-[10px] text-foreground/70 truncate">Ripple</p>
             </button>
-            {styleTags.length > 0 && (
-              <div className="flex flex-col items-center justify-center text-center min-w-0">
-                <span className="text-xl font-light text-foreground/90 tabular-nums">{styleTags.length}</span>
-                <p className="text-[10px] text-foreground/70 mt-1.5 truncate">Styles</p>
-              </div>
-            )}
           </div>
         </div>
 
