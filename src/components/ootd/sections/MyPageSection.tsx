@@ -42,6 +42,14 @@ interface PostThumb {
   created_at: string;
 }
 
+interface StoryUser {
+  user_id: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  isFriend: boolean;
+}
+
 function timeAgo(iso: string) {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const h = Math.floor(diff / 3_600_000);
