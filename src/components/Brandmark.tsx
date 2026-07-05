@@ -3,7 +3,9 @@
  * Gold script floating on an organic black ink-blot splash, used across all in-app surfaces.
  */
 import { cn } from "@/lib/utils";
-import signature from "@/assets/mymyon-logo-ink-exact.png.asset.json";
+import signatureUrl from "@/assets/mymyon-wordmark-gold.png";
+
+const signature = { url: signatureUrl } as const;
 
 type Variant = "compact" | "stacked" | "inline";
 
