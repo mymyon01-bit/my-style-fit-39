@@ -226,6 +226,66 @@ const MyPageSection = () => {
         </div>
       </header>
 
+      {/* Stories rail — Add-your-own first, then friends (gold ring), then others */}
+      <div className="mt-5 -mx-5 border-b border-border/40 pb-4 lg:mx-0">
+        <div className="flex gap-3 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            className="flex shrink-0 flex-col items-center gap-1.5"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-foreground/30 bg-background text-foreground/70">
+              <Plus className="h-5 w-5" strokeWidth={1.6} />
+            </span>
+            <span className="text-[10px] text-foreground/60">Add</span>
+          </button>
+          {stories.map((s) => (
+            <button
+              key={s.user_id}
+              type="button"
+              onClick={() => navigate(`/user/${s.user_id}`)}
+              className="flex shrink-0 flex-col items-center gap-1.5"
+            >
+              {s.isFriend ? (
+                <span className="relative flex h-14 w-14 items-center justify-center">
+                  {/* Rotating gold conic ring for friends only */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 rounded-full animate-[spin_6s_linear_infinite]"
+                    style={{
+                      background:
+                        "conic-gradient(from 0deg, #f5d67a, #b8860b, #fff2c2, #d4a437, #f5d67a)",
+                    }}
+                  />
+                  <span className="relative block h-[52px] w-[52px] overflow-hidden rounded-full border-2 border-background bg-muted">
+                    {s.avatar_url ? (
+                      <img src={s.avatar_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center font-display text-sm text-foreground/50">
+                        {(s.display_name ?? s.username ?? "?").slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              ) : (
+                <span className="block h-14 w-14 overflow-hidden rounded-full border border-border/60 bg-muted">
+                  {s.avatar_url ? (
+                    <img src={s.avatar_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center font-display text-sm text-foreground/50">
+                      {(s.display_name ?? s.username ?? "?").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+              )}
+              <span className="max-w-[60px] truncate text-[10px] text-foreground/70">
+                {s.display_name ?? s.username ?? "—"}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="mt-5 grid grid-cols-3 gap-3 text-center">
         {[
