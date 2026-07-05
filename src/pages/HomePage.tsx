@@ -37,11 +37,11 @@ import Brandmark from "@/components/Brandmark";
 import AISearchBar from "@/components/home/AISearchBar";
 // Curated editorial frames for the Today's Pick carousel. These are the
 // brand's hero shots and always take priority over inventory imagery.
-import heroFrame1 from "@/assets/hero/hero-frame-1.jpg.asset.json";
-import heroFrame2 from "@/assets/hero/hero-frame-2.jpg.asset.json";
-import heroFrame3 from "@/assets/hero/hero-frame-3.jpg.asset.json";
-import heroFrame4 from "@/assets/hero/hero-frame-4.jpg.asset.json";
-import heroFrame5 from "@/assets/hero/hero-frame-5.jpg.asset.json";
+import heroFrame1 from "@/assets/hero/hero-1.jpg";
+import heroFrame2 from "@/assets/hero/hero-2.jpg";
+import heroFrame3 from "@/assets/hero/hero-3.jpg";
+import heroFrame4 from "@/assets/hero/hero-4.jpg";
+import heroFrame5 from "@/assets/hero/hero-5.jpg";
 
 const EDITORIAL_HEROES: { id: string; title: string; brand: string | null; image: string }[] = [
   { id: "editorial-1", title: "Off-Duty\nEssential", brand: "MYMYON Edit", image: heroFrame1.url },
