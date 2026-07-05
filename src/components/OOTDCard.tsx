@@ -4,6 +4,7 @@ import { Heart, Star, Edit3, Trash2, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { formatCount } from "@/lib/formatCount";
+import { useOOTDModal } from "@/lib/ootdModal";
 
 /**
  * Hardcoded, reusable OOTD card frame.
