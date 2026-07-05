@@ -269,6 +269,9 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setStep(1);
     setAllowShares(true);
     setAudience("all");
+    setOriginalFile(null);
+    setOriginalUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setFilterId("original");
   };
 
   const canProceed = (s: number) => {
