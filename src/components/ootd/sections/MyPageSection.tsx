@@ -62,6 +62,7 @@ function timeAgo(iso: string) {
 const MyPageSection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { open: openOOTDModal } = useOOTDModal();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [outfitsCount, setOutfitsCount] = useState(0);
   const { counts: circleCounts } = useCircleCounts(user?.id);
