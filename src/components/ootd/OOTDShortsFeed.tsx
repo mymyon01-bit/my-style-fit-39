@@ -334,10 +334,12 @@ export default function OOTDShortsFeed() {
   const visibleVideos = videos.filter((v) => !hiddenSet.has(v.id));
 
   return (
-    <div className="relative -mx-4 md:-mx-10 lg:-mx-12">
+    <div className="relative w-screen -translate-x-1/2 left-1/2 md:w-full md:translate-x-0 md:left-0">
       <div
         ref={containerRef}
-        className="relative h-[calc(100dvh-200px-env(safe-area-inset-bottom))] md:h-[calc(100dvh-180px)] overflow-y-scroll snap-y snap-mandatory scrollbar-hide rounded-2xl bg-black"
+        className="relative w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black
+                   h-[calc(100dvh-128px-env(safe-area-inset-bottom)-72px)]
+                   md:h-[calc(100dvh-180px)] md:rounded-2xl"
       >
         {loading ? (
           <div className="h-full flex items-center justify-center">
@@ -368,7 +370,6 @@ export default function OOTDShortsFeed() {
           ))
         )}
       </div>
-
     </div>
   );
 }
