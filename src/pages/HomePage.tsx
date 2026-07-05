@@ -44,11 +44,11 @@ import heroFrame4 from "@/assets/hero/hero-4.jpg";
 import heroFrame5 from "@/assets/hero/hero-5.jpg";
 
 const EDITORIAL_HEROES: { id: string; title: string; brand: string | null; image: string }[] = [
-  { id: "editorial-1", title: "Off-Duty\nEssential", brand: "MYMYON Edit", image: heroFrame1.url },
-  { id: "editorial-2", title: "Soft\nTailoring",     brand: "MYMYON Edit", image: heroFrame2.url },
-  { id: "editorial-3", title: "Camel\nSeason",       brand: "MYMYON Edit", image: heroFrame3.url },
-  { id: "editorial-4", title: "Cream\nSilhouette",   brand: "MYMYON Edit", image: heroFrame4.url },
-  { id: "editorial-5", title: "Translucent\nLayers", brand: "MYMYON Edit", image: heroFrame5.url },
+  { id: "editorial-1", title: "Off-Duty\nEssential", brand: "MYMYON Edit", image: heroFrame1 },
+  { id: "editorial-2", title: "Soft\nTailoring",     brand: "MYMYON Edit", image: heroFrame2 },
+  { id: "editorial-3", title: "Camel\nSeason",       brand: "MYMYON Edit", image: heroFrame3 },
+  { id: "editorial-4", title: "Cream\nSilhouette",   brand: "MYMYON Edit", image: heroFrame4 },
+  { id: "editorial-5", title: "Translucent\nLayers", brand: "MYMYON Edit", image: heroFrame5 },
 ];
 
 const CATEGORIES = [
