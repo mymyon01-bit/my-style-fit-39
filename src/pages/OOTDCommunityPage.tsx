@@ -37,6 +37,10 @@ export default function OOTDCommunityPage() {
   const initial = (params.get("section") as TabKey) || "my";
   const [tab, setTab] = useState<TabKey>(initial);
   const openPostId = params.get("post");
+  const [notifsOpen, setNotifsOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [mailboxAnchor, setMailboxAnchor] = useState<{ x: number; y: number } | null>(null);
+  const { notifUnread, msgUnread } = useNotifications();
 
   useEffect(() => {
     const next = params.get("section") as TabKey | null;
