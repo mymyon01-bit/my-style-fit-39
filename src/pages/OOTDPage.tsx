@@ -203,7 +203,7 @@ const OOTDPage = () => {
   }, []);
 
   // Mobile swipe between tabs (left/right). Only enabled on mobile/modal.
-  const TAB_ORDER: Tab[] = ["ranking", "feed", "community", "showroom", "mypage"];
+  const TAB_ORDER: Tab[] = ["mypage", "feed", "community", "showroom", "ranking"];
   const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const onTabSwipeStart = (e: React.TouchEvent) => {
     if (!mobileOOTD) return;
