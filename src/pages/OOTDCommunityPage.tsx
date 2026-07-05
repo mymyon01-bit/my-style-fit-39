@@ -176,6 +176,13 @@ export default function OOTDCommunityPage() {
       </div>
 
       {openPostId && <PostDetailHost postId={openPostId} onClose={closePost} />}
+
+      <MailboxPopup
+        open={messagesOpen}
+        onClose={() => setMessagesOpen(false)}
+        anchor={mailboxAnchor}
+      />
+      <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
     </div>
   );
 }
