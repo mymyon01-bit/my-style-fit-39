@@ -794,9 +794,18 @@ const OOTDPage = () => {
             )}
             <button
               onClick={() => {
+                if (inModal) closeOOTD();
+                navigate("/");
+              }}
+              className="ootd-neon-icon ootd-neon-icon--ink"
+              aria-label="Go home"
+              title="Home"
+            >
+              <HomeIcon className="h-[15px] w-[15px]" strokeWidth={2} />
+            </button>
+            <button
+              onClick={() => {
                 if (inModal) {
-                  // If a sub-route (user profile overlay) is showing, step
-                  // back out of it first; otherwise close the whole modal.
                   if (location.pathname.startsWith("/user/")) {
                     window.history.back();
                   } else {
