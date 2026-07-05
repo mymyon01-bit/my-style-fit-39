@@ -313,6 +313,19 @@ async function processSeed(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Cron-only endpoint: require the shared secret header. pg_cron passes this
+  // header when it invokes the function; unauthenticated callers are rejected.
+  const expected = Deno.env.get("INVENTORY_CRON_SECRET");
+  const provided = req.headers.get("x-cron-secret");
+  if (!expected || provided !== expected) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
   const t0 = Date.now();
 
