@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useEmailVerified } from "@/hooks/useEmailVerified";
 import EmailVerificationModal from "@/components/legal/EmailVerificationModal";
 import SquareCropDialog from "@/components/SquareCropDialog";
+import { PHOTO_FILTERS, cssForFilter, applyFilterToFile, type PhotoFilterId } from "@/lib/photoFilters";
 
 // Sentinel topic — when present in a post's `topics` array it signals that
 // the author has disabled sharing. Stored in `topics` to avoid a schema
@@ -59,6 +60,11 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [audience, setAudience] = useState<"all" | "circle" | "ripple">("all");
   // Raw file the user just picked — held while the crop dialog is open.
   const [pendingCrop, setPendingCrop] = useState<File | null>(null);
+  // Original (post-crop) file kept so filter re-selection re-bakes from source.
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [originalUrl, setOriginalUrl] = useState<string | null>(null);
+  const [filterId, setFilterId] = useState<PhotoFilterId>("original");
+  const [filterBusy, setFilterBusy] = useState(false);
 
   // Gate: when an unverified user opens the upload sheet, show email modal first.
   useEffect(() => {
@@ -126,6 +132,9 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     try {
       setPendingCrop(null);
       const prepared = await prepareImage(cropped, { square: false });
+      setOriginalFile(prepared);
+      setOriginalUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(prepared); });
+      setFilterId("original");
       setFile(prepared);
       setPreview(URL.createObjectURL(prepared));
       setStep(2);
@@ -133,6 +142,24 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
       const msg = err?.message || "Couldn't process that photo";
       setError(msg);
       toast.error(msg);
+    }
+  };
+
+  const handlePickFilter = async (id: PhotoFilterId) => {
+    if (!originalFile) return;
+    setFilterId(id);
+    try {
+      setFilterBusy(true);
+      const baked = await applyFilterToFile(originalFile, id);
+      setFile(baked);
+      setPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(baked);
+      });
+    } catch (err: any) {
+      toast.error("Couldn't apply filter");
+    } finally {
+      setFilterBusy(false);
     }
   };
 
@@ -242,6 +269,9 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setStep(1);
     setAllowShares(true);
     setAudience("all");
+    setOriginalFile(null);
+    setOriginalUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setFilterId("original");
   };
 
   const canProceed = (s: number) => {
@@ -324,9 +354,53 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                 </>
               )}
 
-              {/* Step 2: Message */}
+              {/* Step 2: Filters + Message */}
               {step === 2 && (
                 <div className="space-y-4">
+                  {preview && (
+                    <div className="rounded-2xl overflow-hidden bg-black/30">
+                      <img src={preview} alt="Preview" className="w-full aspect-square object-cover" />
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/50 uppercase mb-2">
+                      Filter {filterBusy && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                      {PHOTO_FILTERS.map((f) => {
+                        const active = filterId === f.id;
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => handlePickFilter(f.id)}
+                            disabled={filterBusy}
+                            className={`flex flex-col items-center gap-1 shrink-0 disabled:opacity-60`}
+                          >
+                            <div
+                              className={`h-14 w-14 rounded-lg overflow-hidden border-2 transition-colors ${
+                                active ? "border-accent" : "border-transparent"
+                              }`}
+                            >
+                              {originalUrl && (
+                                <img
+                                  src={originalUrl}
+                                  alt={f.label}
+                                  className="h-full w-full object-cover"
+                                  style={{ filter: cssForFilter(f.id) }}
+                                />
+                              )}
+                            </div>
+                            <span className={`text-[9px] font-semibold tracking-tight ${active ? "text-accent" : "text-foreground/60"}`}>
+                              {f.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/50 uppercase">Short Message</p>
                   <div className="relative">
                     <input

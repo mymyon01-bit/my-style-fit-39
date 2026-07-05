@@ -14,6 +14,10 @@ import MyPageSection from "@/components/ootd/sections/MyPageSection";
 import WaveShowroomSection from "@/components/ootd/sections/WaveShowroomSection";
 import QuicksSection from "@/components/ootd/sections/QuicksSection";
 import PostDetailHost from "@/components/ootd/PostDetailHost";
+import NotificationsSheet from "@/components/NotificationsSheet";
+import MailboxIcon from "@/components/messages/MailboxIcon";
+import MailboxPopup from "@/components/messages/MailboxPopup";
+import { useNotifications } from "@/hooks/useNotifications";
 
 type TabKey = "my" | "feed" | "quicks" | "wave" | "showroom";
 
@@ -33,6 +37,10 @@ export default function OOTDCommunityPage() {
   const initial = (params.get("section") as TabKey) || "my";
   const [tab, setTab] = useState<TabKey>(initial);
   const openPostId = params.get("post");
+  const [notifsOpen, setNotifsOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [mailboxAnchor, setMailboxAnchor] = useState<{ x: number; y: number } | null>(null);
+  const { notifUnread, msgUnread } = useNotifications();
 
   useEffect(() => {
     const next = params.get("section") as TabKey | null;
@@ -71,9 +79,23 @@ export default function OOTDCommunityPage() {
               <IconBtn label="Search" onClick={() => navigate("/search")}>
                 <Search className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </IconBtn>
-              <IconBtn label="Notifications" onClick={() => navigate("/notifications")}>
+              <MailboxIcon
+                unread={msgUnread}
+                onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
+              />
+              <button
+                type="button"
+                aria-label="Notifications"
+                onClick={() => setNotifsOpen(true)}
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
+              >
                 <Bell className="h-[18px] w-[18px]" strokeWidth={1.7} />
-              </IconBtn>
+                {notifUnread > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-accent px-1 text-[8px] font-bold text-accent-foreground leading-none">
+                    {notifUnread > 99 ? "99+" : notifUnread}
+                  </span>
+                )}
+              </button>
               {tab === "my" && (
                 <IconBtn label="Settings" onClick={() => navigate("/settings")}>
                   <Settings className="h-[18px] w-[18px]" strokeWidth={1.7} />
@@ -154,6 +176,13 @@ export default function OOTDCommunityPage() {
       </div>
 
       {openPostId && <PostDetailHost postId={openPostId} onClose={closePost} />}
+
+      <MailboxPopup
+        open={messagesOpen}
+        onClose={() => setMessagesOpen(false)}
+        anchor={mailboxAnchor}
+      />
+      <NotificationsSheet open={notifsOpen} onClose={() => setNotifsOpen(false)} />
     </div>
   );
 }
