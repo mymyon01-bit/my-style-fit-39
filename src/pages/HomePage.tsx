@@ -129,10 +129,10 @@ const HomePage = () => {
       if (user) {
         const { data: style } = await supabase
           .from("style_profiles")
-          .select("style_tags")
+          .select("preferred_styles")
           .eq("user_id", user.id)
           .maybeSingle();
-        tags = ((style?.style_tags as string[] | null) ?? []).slice(0, 6);
+        tags = ((style?.preferred_styles as string[] | null) ?? []).slice(0, 6);
       }
 
       let q = supabase
