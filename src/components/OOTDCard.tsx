@@ -4,6 +4,7 @@ import { Heart, Star, Edit3, Trash2, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { OfficialBadge, OfficialAvatarRing } from "@/components/OfficialBadge";
 import { formatCount } from "@/lib/formatCount";
+import { useOOTDModal } from "@/lib/ootdModal";
 
 /**
  * Hardcoded, reusable OOTD card frame.
@@ -56,6 +57,7 @@ function OOTDCardImpl({
   onDelete,
 }: Props) {
   const navigate = useNavigate();
+  const { open: openOOTDModal } = useOOTDModal();
   const likes = post.like_count || 0;
   const stars = post.star_count || 0;
   const title = post.caption ? post.caption.split(/\s+/)[0] : null;
@@ -87,6 +89,10 @@ function OOTDCardImpl({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  // Keep the OOTD shell (tabs + header) mounted while the
+                  // profile overlay slides in. OOTDModalHost renders
+                  // /user/:id as an overlay when the modal is open.
+                  openOOTDModal();
                   navigate(`/user/${post.user_id}`);
                 }}
                 className="flex items-center gap-1.5 min-w-0"

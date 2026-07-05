@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 
@@ -61,6 +62,7 @@ function timeAgo(iso: string) {
 const MyPageSection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { open: openOOTDModal } = useOOTDModal();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [outfitsCount, setOutfitsCount] = useState(0);
   const { counts: circleCounts } = useCircleCounts(user?.id);
@@ -243,7 +245,7 @@ const MyPageSection = () => {
             <button
               key={s.user_id}
               type="button"
-              onClick={() => navigate(`/user/${s.user_id}`)}
+              onClick={() => { openOOTDModal(); navigate(`/user/${s.user_id}`); }}
               className="flex shrink-0 flex-col items-center gap-1.5"
             >
               {s.isFriend ? (

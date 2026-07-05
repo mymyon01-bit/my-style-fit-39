@@ -72,13 +72,17 @@ const PublicCirclesSheet = ({ open, onClose, targetUserId, targetDisplayName, in
 
         const followsSet = new Set((viewerFollowsRes.data || []).map((r: any) => r.following_id));
 
-        const built: Row[] = (profilesRes.data || []).map((p: any) => ({
-          user_id: p.user_id,
-          display_name: p.display_name,
-          avatar_url: p.avatar_url,
-          is_private: !!p.is_private,
-          viewerFollows: followsSet.has(p.user_id),
-        }));
+        const built: Row[] = (profilesRes.data || [])
+          .map((p: any) => ({
+            user_id: p.user_id,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+            is_private: !!p.is_private,
+            viewerFollows: followsSet.has(p.user_id),
+          }))
+          // Privacy rule: hide private accounts unless the viewer is that
+          // account or is already inside their circle. Public accounts only.
+          .filter((r) => !r.is_private || r.user_id === user?.id || r.viewerFollows);
 
         if (!cancelled) setRows(built);
       } finally {
