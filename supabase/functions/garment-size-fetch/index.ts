@@ -8,7 +8,7 @@
 // whether to re-run resolveGarmentSize() or fall back to the estimator.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { assertSafeUrl } from "../_shared/ssrfGuard.ts";
+import { assertSafeUrl, getCallerUserId } from "../_shared/ssrfGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -187,6 +187,15 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+  // Require auth — paid AI + arbitrary web-scraping, must not be open.
+  const uid = await getCallerUserId(
+    req,
+    SUPABASE_URL,
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+  );
+  if (!uid) return json({ ok: false, error: "unauthorized" }, 401);
+
 
   try {
     const body = (await req.json()) as RequestBody;

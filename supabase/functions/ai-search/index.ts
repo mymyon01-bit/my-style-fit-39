@@ -72,6 +72,27 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require an authenticated user so guests can't burn AI credits anonymously.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "auth_required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: claims, error: claimsErr } = await authClient.auth.getClaims(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (claimsErr || !claims?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "auth_required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { query } = await req.json();
     if (!query || typeof query !== "string") {
       return new Response(JSON.stringify({ error: "query required" }), {
@@ -79,6 +100,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const intent = await parseIntent(query.trim());
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {

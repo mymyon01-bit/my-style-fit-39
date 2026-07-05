@@ -70,11 +70,15 @@ const QUICK_TILES = [
   { key: "minimal", label: "Minimal", icon: Minus },
 ];
 
-type TrendingPost = {
+type TrendingProduct = {
   id: string;
   image_url: string | null;
-  star_count: number | null;
+  name: string | null;
+  brand: string | null;
+  source_url: string | null;
+  like_count: number | null;
 };
+
 
 type DnaPick = {
   id: string;
@@ -101,7 +105,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
-  const [trending, setTrending] = useState<TrendingPost[]>([]);
+  const [trending, setTrending] = useState<TrendingProduct[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
   const [heroes, setHeroes] = useState<HeroProduct[]>(EDITORIAL_HEROES);
   const [heroIdx, setHeroIdx] = useState(0);
@@ -115,49 +119,71 @@ const HomePage = () => {
     [navigate],
   );
 
-  // Pull Trending Now from OOTD — the most-starred public posts so the home
-  // feed reflects what's actually hot in the community right now.
+  // Trending Now: pull from product_cache. Guests see recent popular items;
+  // signed-in users get a light personalization pass based on their style tags.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("ootd_posts")
-        .select("id, image_url, star_count, created_at")
-        .not("image_url", "is", null)
-        .order("star_count", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(12);
-      if (!cancelled && data) setTrending(data as TrendingPost[]);
-    })();
-    return () => { cancelled = true; };
-  }, []);
+      // 1) Pull the user's style tags if signed in
+      let tags: string[] = [];
+      if (user) {
+        const { data: style } = await supabase
+          .from("style_profiles")
+          .select("preferred_styles")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        tags = ((style?.preferred_styles as string[] | null) ?? []).slice(0, 6);
+      }
 
-  // Pull a small set of products for the Body DNA grid. Lightweight stand-in
-  // for a full recommendation call — uses featured products as the seed.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("id, name, brand, image_url, hero_image_url")
-        .limit(12);
-      if (!cancelled && data) {
-        const picks = (data as any[])
-          .map((p, i) => ({
+      let q = supabase
+        .from("product_cache")
+        .select("id, name, brand, image_url, source_url, like_count")
+        .eq("is_active", true)
+        .eq("image_valid", true)
+        .not("image_url", "is", null);
+
+      if (tags.length > 0) {
+        q = q.overlaps("style_tags", tags);
+      }
+
+      const { data } = await q
+        .order("trend_score", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(18);
+
+      let list = (data ?? []) as TrendingProduct[];
+
+      // Personalization fallback: if we filtered by tags and got nothing, retry unfiltered
+      if (list.length === 0 && tags.length > 0) {
+        const { data: fallback } = await supabase
+          .from("product_cache")
+          .select("id, name, brand, image_url, source_url, like_count")
+          .eq("is_active", true)
+          .eq("image_valid", true)
+          .not("image_url", "is", null)
+          .order("trend_score", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(18);
+        list = (fallback ?? []) as TrendingProduct[];
+      }
+
+      if (!cancelled) {
+        setTrending(list);
+        // Reuse the top items for the Body DNA row so the grid isn't empty.
+        setDnaPicks(
+          list.slice(0, 6).map((p, i) => ({
             id: p.id,
             title: p.name || "Featured piece",
             brand: p.brand ?? null,
-            image: p.hero_image_url || p.image_url || null,
+            image: p.image_url,
             match: 88 + ((i * 3) % 11),
-          }))
-          .filter((p) => !!p.image);
-        setDnaPicks(picks.slice(0, 6));
-        // Today's Pick uses the curated EDITORIAL_HEROES set (above) — we
-        // intentionally do NOT replace it with raw inventory imagery here.
+          })),
+        );
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user]);
+
 
   // Auto-rotate the Today's Pick hero every ~5s with a soft crossfade.
   useEffect(() => {
@@ -364,7 +390,7 @@ const HomePage = () => {
             </h2>
             <button
               type="button"
-              onClick={() => navigate("/ootd")}
+              onClick={() => navigate("/discover?source=home")}
               className="text-[11px] font-medium tracking-tight text-foreground/55 hover:text-accent"
             >
               See All
@@ -372,20 +398,34 @@ const HomePage = () => {
           </div>
           <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex gap-3 pb-1 md:gap-5">
-              {(trending.length ? trending : Array.from({ length: 6 }).map((_, i) => ({ id: `s${i}`, image_url: null, star_count: 0 }))).map((item) => (
+              {(trending.length
+                ? trending
+                : (Array.from({ length: 6 }).map((_, i) => ({
+                    id: `s${i}`,
+                    image_url: null,
+                    name: null,
+                    brand: null,
+                    source_url: null,
+                    like_count: 0,
+                  })) as TrendingProduct[])
+              ).map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => navigate(`/ootd?post=${item.id}`)}
-                  className="relative shrink-0 overflow-hidden rounded-2xl bg-foreground/[0.04] md:w-[200px]"
+                  onClick={() => {
+                    if (item.source_url) window.open(item.source_url, "_blank", "noopener,noreferrer");
+                    else navigate("/discover?source=home");
+                  }}
+                  className="relative shrink-0 overflow-hidden rounded-2xl bg-foreground/[0.04] text-left md:w-[200px]"
                   style={{ width: 140, aspectRatio: "3 / 4" }}
                 >
                   {item.image_url ? (
                     <img
                       src={item.image_url}
-                      alt=""
+                      alt={item.name ?? ""}
                       loading="lazy"
                       className="h-full w-full object-cover"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }}
                     />
                   ) : (
                     <div className="h-full w-full animate-pulse bg-foreground/[0.06]" />
@@ -393,15 +433,18 @@ const HomePage = () => {
                   <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-md">
                     <Heart className="h-3.5 w-3.5 text-foreground/85" strokeWidth={1.6} />
                   </span>
-                  <span className="absolute left-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-1 text-[10px] font-semibold tracking-tight text-foreground/85 backdrop-blur-md">
-                    <Heart className="h-3 w-3 fill-accent text-accent" strokeWidth={0} />
-                    {formatLikes(item.star_count)}
-                  </span>
+                  {(item.brand || item.name) && (
+                    <span className="absolute inset-x-2 bottom-2 rounded-xl bg-background/85 px-2 py-1.5 text-[10px] leading-tight tracking-tight text-foreground/85 backdrop-blur-md">
+                      {item.brand && <span className="block font-semibold truncate">{item.brand}</span>}
+                      {item.name && <span className="block truncate text-foreground/65">{item.name}</span>}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
         </section>
+
 
         {/* ── Based on Your Body DNA — single horizontal row ───────── */}
         {dnaPicks.length > 0 && (
