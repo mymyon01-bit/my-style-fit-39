@@ -14,6 +14,10 @@ import MyPageSection from "@/components/ootd/sections/MyPageSection";
 import WaveShowroomSection from "@/components/ootd/sections/WaveShowroomSection";
 import QuicksSection from "@/components/ootd/sections/QuicksSection";
 import PostDetailHost from "@/components/ootd/PostDetailHost";
+import NotificationsSheet from "@/components/NotificationsSheet";
+import MailboxIcon from "@/components/messages/MailboxIcon";
+import MailboxPopup from "@/components/messages/MailboxPopup";
+import { useNotifications } from "@/hooks/useNotifications";
 
 type TabKey = "my" | "feed" | "quicks" | "wave" | "showroom";
 
