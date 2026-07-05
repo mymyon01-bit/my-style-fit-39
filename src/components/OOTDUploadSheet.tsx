@@ -349,9 +349,53 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                 </>
               )}
 
-              {/* Step 2: Message */}
+              {/* Step 2: Filters + Message */}
               {step === 2 && (
                 <div className="space-y-4">
+                  {preview && (
+                    <div className="rounded-2xl overflow-hidden bg-black/30">
+                      <img src={preview} alt="Preview" className="w-full aspect-square object-cover" />
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/50 uppercase mb-2">
+                      Filter {filterBusy && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                      {PHOTO_FILTERS.map((f) => {
+                        const active = filterId === f.id;
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => handlePickFilter(f.id)}
+                            disabled={filterBusy}
+                            className={`flex flex-col items-center gap-1 shrink-0 disabled:opacity-60`}
+                          >
+                            <div
+                              className={`h-14 w-14 rounded-lg overflow-hidden border-2 transition-colors ${
+                                active ? "border-accent" : "border-transparent"
+                              }`}
+                            >
+                              {originalFile && (
+                                <img
+                                  src={URL.createObjectURL(originalFile)}
+                                  alt={f.label}
+                                  className="h-full w-full object-cover"
+                                  style={{ filter: cssForFilter(f.id) }}
+                                />
+                              )}
+                            </div>
+                            <span className={`text-[9px] font-semibold tracking-tight ${active ? "text-accent" : "text-foreground/60"}`}>
+                              {f.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <p className="text-[10px] font-semibold tracking-[0.2em] text-foreground/50 uppercase">Short Message</p>
                   <div className="relative">
                     <input
