@@ -105,7 +105,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useI18n();
-  const [trending, setTrending] = useState<TrendingPost[]>([]);
+  const [trending, setTrending] = useState<TrendingProduct[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
   const [heroes, setHeroes] = useState<HeroProduct[]>(EDITORIAL_HEROES);
   const [heroIdx, setHeroIdx] = useState(0);
