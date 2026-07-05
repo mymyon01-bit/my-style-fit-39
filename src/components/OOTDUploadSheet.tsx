@@ -380,9 +380,9 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                                 active ? "border-accent" : "border-transparent"
                               }`}
                             >
-                              {originalFile && (
+                              {originalUrl && (
                                 <img
-                                  src={URL.createObjectURL(originalFile)}
+                                  src={originalUrl}
                                   alt={f.label}
                                   className="h-full w-full object-cover"
                                   style={{ filter: cssForFilter(f.id) }}
