@@ -188,6 +188,15 @@ Deno.serve(async (req) => {
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+  // Require auth — paid AI + arbitrary web-scraping, must not be open.
+  const uid = await getCallerUserId(
+    req,
+    SUPABASE_URL,
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+  );
+  if (!uid) return json({ ok: false, error: "unauthorized" }, 401);
+
+
   try {
     const body = (await req.json()) as RequestBody;
     if (!body?.productKey || !body?.selectedSize) {
