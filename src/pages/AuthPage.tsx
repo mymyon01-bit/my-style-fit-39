@@ -13,6 +13,7 @@ import type { LegalLang } from "@/lib/legal/content";
 import AccountRemovedScreen from "@/components/AccountRemovedScreen";
 import ContactUsDialog from "@/components/ContactUsDialog";
 import LocationSearchInput from "@/components/LocationSearchInput";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 
 const AuthPage = () => {
   const { t } = useI18n();
