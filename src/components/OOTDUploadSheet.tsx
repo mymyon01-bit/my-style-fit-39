@@ -595,9 +595,9 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                     </div>
                     <div className="grid grid-cols-3 gap-1.5">
                       {([
-                        { key: "all", label: "All", desc: "Everyone", Icon: Globe },
-                        { key: "circle", label: "Circle", desc: "Mutual only", Icon: Users },
-                        { key: "ripple", label: "Ripple", desc: "Followers", Icon: Waves },
+                        { key: "circle", label: "Circle", desc: "서클만 공개", Icon: Users },
+                        { key: "ripple", label: "Ripple", desc: "리플까지 공개", Icon: Waves },
+                        { key: "onlyme", label: "Only Me", desc: "나만보기", Icon: EyeOff },
                       ] as const).map(opt => {
                         const active = audience === opt.key;
                         const Icon = opt.Icon;
