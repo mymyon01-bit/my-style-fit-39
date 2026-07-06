@@ -355,7 +355,17 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
         onClose={() => setShareInOOTDOpen(false)}
       />
 
-
+      <PostProductToOOTDSheet
+        open={reviewOpen}
+        product={{
+          id: product.id,
+          productId: product.id,
+          name: product.name,
+          brand: product.brand,
+          imageUrl: product.image_url ?? null,
+        }}
+        onClose={() => setReviewOpen(false)}
+      />
     </>
   );
 };
