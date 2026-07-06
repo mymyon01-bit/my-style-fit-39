@@ -6,6 +6,7 @@ import SafeImage from "@/components/SafeImage";
 import { AuthGate } from "@/components/AuthGate";
 import SendToShowroomSheet from "@/components/showroom/SendToShowroomSheet";
 import ShareProductToFriendDialog from "@/components/ShareProductToFriendDialog";
+import PostProductToOOTDSheet from "@/components/profile/PostProductToOOTDSheet";
 import { useAuth } from "@/lib/auth";
 import { useFitPrewarm } from "@/hooks/useFitPrewarm";
 import type { PrewarmInput } from "@/lib/fit/fitPrewarm";
