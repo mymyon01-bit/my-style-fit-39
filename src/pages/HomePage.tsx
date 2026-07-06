@@ -33,7 +33,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import Brandmark from "@/components/Brandmark";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 import AISearchBar from "@/components/home/AISearchBar";
 // Curated editorial frames for the Today's Pick carousel. These are the
 // brand's hero shots and always take priority over inventory imagery.
@@ -224,7 +224,7 @@ const HomePage = () => {
           aria-label="MYMYON home"
           className="flex items-center"
         >
-          <Brandmark variant="inline" size={30} />
+          <MyMyonWordmark size="sm" />
         </button>
         <div className="flex items-center gap-3">
           <button
