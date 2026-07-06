@@ -1009,6 +1009,11 @@
   }
 }
 
+:root {
+  --app-bottom-nav-height: 88px;
+  --ootd-bottom-tab-height: 96px;
+}
+
 /* Ink-blot brandmark — slow breathing animation for the top-left corner.
    The blot expands and softens like ink bleeding into hanji paper, then
    pulls back, while the gold "my" wordmark stays anchored on top. */
