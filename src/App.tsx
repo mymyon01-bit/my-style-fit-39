@@ -33,6 +33,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import InstallPage from "@/pages/InstallPage";
 import OAuthBridge from "@/pages/OAuthBridge";
 import { SignUpPrompt } from "@/components/AuthGate";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 
 const lazyWithRetry = <T extends ComponentType<any>>(
   importer: () => Promise<{ default: T }>,
