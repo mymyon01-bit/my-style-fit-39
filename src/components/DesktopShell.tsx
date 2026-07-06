@@ -18,7 +18,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
-import Brandmark from "@/components/Brandmark";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 import AISearchBar from "@/components/home/AISearchBar";
 import { useAuth } from "@/lib/auth";
 
@@ -55,7 +55,7 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
         >
           {/* MYMYON ink-blot logo — gold signature on organic black sumi splash. */}
           <span className="pointer-events-none relative z-10 transition-transform duration-500 group-hover:scale-[1.05]">
-            <Brandmark variant="inline" size={72} />
+            <MyMyonWordmark size="md" />
           </span>
         </button>
 

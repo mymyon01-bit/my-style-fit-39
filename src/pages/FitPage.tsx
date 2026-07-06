@@ -19,7 +19,7 @@ import {
 import { resolveBestProductImage } from "@/lib/fit/resolveBestProductImage";
 import { recordEvent } from "@/lib/diagnostics";
 import { toast } from "sonner";
-import Brandmark from "@/components/Brandmark";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 import BodyDnaPanel from "@/components/fit/BodyDnaPanel";
 
 type Tab = "scan" | "measurements" | "check" | "results";
@@ -472,7 +472,7 @@ const FitPage = () => {
       <div className="mx-auto max-w-lg px-4 pt-10 sm:px-6 md:max-w-2xl md:px-10 md:pt-10 lg:max-w-3xl lg:px-12">
         <div className="mb-10 md:mb-12 lg:mb-14">
           <div className="flex items-baseline justify-between">
-            <div className="lg:hidden"><Brandmark variant="inline" /></div>
+            <div className="lg:hidden"><MyMyonWordmark size="sm" /></div>
             <span className="text-[10px] font-medium tracking-[0.25em] text-foreground/75 md:text-[11px]">FIT DNA</span>
           </div>
           <h1 className="mt-4 font-display text-[32px] font-semibold leading-tight tracking-tight text-foreground md:text-[40px]">

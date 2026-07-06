@@ -26,7 +26,7 @@ import MyLocationCard from "@/components/ootd/MyLocationCard";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
-import Brandmark from "@/components/Brandmark";
+// Brandmark removed — canonical MyMyonWordmark used elsewhere
 import OOTDBackground, { loadOOTDBgTheme, loadOOTDBgRealistic, type OOTDBgTheme } from "@/components/ootd/OOTDBackground";
 
 import SongOfTheDayPicker, { loadSongOfDay, saveSongOfDay, type SongOfDay } from "@/components/ootd/SongOfTheDayPicker";

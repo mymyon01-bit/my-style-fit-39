@@ -21,11 +21,11 @@ interface Props {
 }
 
 const SIZE_MAP: Record<Size, { text: string; dot: string }> = {
-  xs: { text: "text-[13px]", dot: "h-[2px] w-[2px]" },
-  sm: { text: "text-[15px]", dot: "h-[2.5px] w-[2.5px]" },
-  md: { text: "text-[20px]", dot: "h-[3px] w-[3px]" },
-  lg: { text: "text-[32px]", dot: "h-[4px] w-[4px]" },
-  xl: { text: "text-5xl",   dot: "h-[5px] w-[5px]" },
+  xs: { text: "text-[14px]", dot: "h-[3px] w-[3px]" },
+  sm: { text: "text-[18px]", dot: "h-[3.5px] w-[3.5px]" },
+  md: { text: "text-[22px]", dot: "h-[4px] w-[4px]" },
+  lg: { text: "text-[34px]", dot: "h-[5px] w-[5px]" },
+  xl: { text: "text-[52px]", dot: "h-[7px] w-[7px]" },
 };
 
 export default function MyMyonWordmark({
@@ -40,21 +40,21 @@ export default function MyMyonWordmark({
     <Tag
       aria-label="my'myon"
       className={cn(
-        "inline-flex items-baseline font-display font-light leading-none text-foreground",
+        "inline-flex items-baseline font-display font-normal italic leading-none text-foreground",
         text,
         className,
       )}
     >
-      <span className="tracking-[0.05em]">my</span>
+      <span className="tracking-[0.01em]">my</span>
       <span
         aria-hidden
         className={cn(
-          "mx-[0.18em] inline-block translate-y-[-0.55em] rounded-full bg-accent/70",
+          "mx-[0.14em] inline-block translate-y-[-0.55em] rounded-full bg-accent",
           dot,
           dotClassName,
         )}
       />
-      <span className="tracking-[0.05em]">myon</span>
+      <span className="tracking-[0.01em]">myon</span>
     </Tag>
   );
 }
