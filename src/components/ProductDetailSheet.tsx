@@ -164,7 +164,7 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
               <X className="h-4 w-4 text-foreground/70" />
             </button>
 
-            <div className="mx-auto w-full max-w-md px-5 pb-12 pt-6 sm:max-w-lg">
+            <div className="mx-auto w-full max-w-md px-5 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:max-w-lg">
               {/* Product Image */}
               <div className="relative w-full overflow-hidden rounded-2xl bg-muted/30 flex items-center justify-center">
                 <SafeImage
