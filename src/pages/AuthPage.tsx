@@ -218,11 +218,7 @@ const AuthPage = () => {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-sm md:max-w-md">
             <div className="text-center mb-14 md:mb-16">
               <h1 className="font-display text-[26px] font-light leading-none text-foreground md:text-3xl lg:text-3xl">
-                <span className="flex items-baseline justify-center lg:hidden">
-                  <span className="tracking-[0.04em]">my</span>
-                  <span aria-hidden className="mx-[0.18em] inline-block h-[3px] w-[3px] translate-y-[-0.55em] rounded-full bg-accent/75" />
-                  <span className="tracking-[0.04em]">myon</span>
-                </span>
+                <MyMyonWordmark size="lg" className="justify-center lg:hidden" />
                 <span className="hidden tracking-[0.02em] lg:inline">
                   {mode === "login" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
                 </span>
