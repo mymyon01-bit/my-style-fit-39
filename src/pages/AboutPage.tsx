@@ -17,6 +17,7 @@ import SectionReveal from "@/components/SectionReveal";
 import Footer from "@/components/Footer";
 import HeroTransformation from "@/components/HeroTransformation";
 import ContactUsDialog from "@/components/ContactUsDialog";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 
 const FEATURES = [
   "AI-powered product discovery",
