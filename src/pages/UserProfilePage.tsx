@@ -30,6 +30,7 @@ import PublicCirclesSheet from "@/components/PublicCirclesSheet";
 import CountUp from "@/components/CountUp";
 import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 
 interface UserProfileData {
   user_id: string;
