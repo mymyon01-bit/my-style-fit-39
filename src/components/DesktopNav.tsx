@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
-import Brandmark from "@/components/Brandmark";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
 
 import { useOOTDModal } from "@/lib/ootdModal";
