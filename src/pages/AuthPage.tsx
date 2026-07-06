@@ -194,11 +194,7 @@ const AuthPage = () => {
       {/* Desktop: left editorial panel */}
       <div className="hidden lg:flex lg:w-1/2 lg:flex-col lg:items-center lg:justify-center lg:bg-foreground/[0.02]">
         <div className="max-w-sm text-center space-y-8">
-          <h1 className="flex items-baseline justify-center font-display text-5xl font-light leading-none text-foreground">
-            <span className="tracking-[0.04em]">my</span>
-            <span aria-hidden className="mx-[0.18em] inline-block h-[5px] w-[5px] translate-y-[-0.55em] rounded-full bg-accent/75" />
-            <span className="tracking-[0.04em]">myon</span>
-          </h1>
+          <MyMyonWordmark size="xl" asHeading />
           <p className="text-[14px] leading-[2] text-foreground/80">
             Your personal AI stylist.<br />
             Weather-aware. Body-conscious. Always relevant.
