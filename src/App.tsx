@@ -33,6 +33,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import InstallPage from "@/pages/InstallPage";
 import OAuthBridge from "@/pages/OAuthBridge";
 import { SignUpPrompt } from "@/components/AuthGate";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 
 const lazyWithRetry = <T extends ComponentType<any>>(
   importer: () => Promise<{ default: T }>,
@@ -222,7 +223,7 @@ const AppRoutes = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <h1 className="font-blink-target font-display text-2xl font-bold tracking-[0.2em] text-foreground">mymyon</h1>
+          <MyMyonWordmark size="lg" asHeading className="font-blink-target" />
           <Loader2 className="mx-auto mt-4 h-5 w-5 animate-spin text-accent" />
         </div>
       </div>

@@ -17,6 +17,7 @@ import SectionReveal from "@/components/SectionReveal";
 import Footer from "@/components/Footer";
 import HeroTransformation from "@/components/HeroTransformation";
 import ContactUsDialog from "@/components/ContactUsDialog";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 
 const FEATURES = [
   "AI-powered product discovery",
@@ -188,11 +189,7 @@ const AboutPage = () => {
         <SectionReveal>
           <div className="relative">
             <div className="flex items-baseline gap-4">
-              <span className="flex items-baseline font-display text-[20px] font-light leading-none text-foreground md:text-[22px]">
-                <span className="tracking-[0.04em]">my</span>
-                <span aria-hidden className="mx-[0.18em] inline-block h-[3px] w-[3px] translate-y-[-0.55em] rounded-full bg-accent/75" />
-                <span className="tracking-[0.04em]">myon</span>
-              </span>
+              <MyMyonWordmark size="md" className="md:text-[22px]" />
               <span className="text-[9px] font-medium uppercase tracking-[0.4em] text-foreground/50">
                 est. 2026
               </span>

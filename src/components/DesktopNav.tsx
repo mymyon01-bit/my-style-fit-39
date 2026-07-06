@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { Download } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
-import Brandmark from "@/components/Brandmark";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 import OOTDDiaryButton from "@/components/OOTDDiaryButton";
 
 import { useOOTDModal } from "@/lib/ootdModal";
@@ -59,7 +59,7 @@ const DesktopNav = () => {
             aria-label="my'myon — home"
             className="group absolute left-10 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-80"
           >
-            <Brandmark variant="compact" size={42} />
+            <MyMyonWordmark size="md" />
           </button>
 
           {/* CENTER — symmetric nav: 2 links | OOTD diary | 2 links */}
