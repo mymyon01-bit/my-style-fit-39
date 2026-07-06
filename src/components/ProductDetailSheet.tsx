@@ -52,6 +52,8 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
   const { user } = useAuth();
   const [postOpen, setPostOpen] = useState(false);
   const [shareInOOTDOpen, setShareInOOTDOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const [bodyHeightCm, setBodyHeightCm] = useState<number | null>(null);
   const [bodyGender, setBodyGender] = useState<string | null>(null);
 
