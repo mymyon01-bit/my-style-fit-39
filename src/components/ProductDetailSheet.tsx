@@ -135,23 +135,24 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
       <Sheet
         open={open}
         onOpenChange={(v) => {
-          if (!v && (shareInOOTDOpen || postOpen)) return;
+          if (!v && (shareInOOTDOpen || postOpen || reviewOpen)) return;
           if (!v) onClose();
         }}
       >
         <SheetContent
           side="bottom"
           onInteractOutside={(event) => {
-            if (shareInOOTDOpen || postOpen) {
+            if (shareInOOTDOpen || postOpen || reviewOpen) {
               event.preventDefault();
             }
           }}
           onEscapeKeyDown={(event) => {
-            if (shareInOOTDOpen || postOpen) {
+            if (shareInOOTDOpen || postOpen || reviewOpen) {
               event.preventDefault();
             }
           }}
-          className="h-[92vh] rounded-t-3xl border-t border-border/20 bg-background p-0 overflow-hidden"
+          className="h-[92vh] rounded-t-3xl border-t border-border/20 bg-background p-0 overflow-hidden z-[140]"
+          overlayClassName="z-[135]"
         >
           <div className="relative flex h-full flex-col overflow-y-auto">
             {/* Close button */}
