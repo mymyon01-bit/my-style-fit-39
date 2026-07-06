@@ -1,5 +1,5 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Heart, ExternalLink, X, Tag, Sparkles, LayoutGrid, Send } from "lucide-react";
+import { Heart, ExternalLink, X, Tag, Sparkles, LayoutGrid, Send, ChevronDown, MessageSquarePlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SafeImage from "@/components/SafeImage";
