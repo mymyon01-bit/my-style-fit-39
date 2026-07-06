@@ -156,7 +156,7 @@ const VideoCard = ({
       </div>
 
       {/* Bottom: author + caption + tags */}
-      <div className="absolute bottom-0 inset-x-0 px-3 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] md:pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent">
+      <div className="absolute bottom-0 inset-x-0 px-3 pb-[calc(1.5rem+var(--ootd-bottom-tab-height)+env(safe-area-inset-bottom))] md:pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent">
         <button
           onClick={() => onAuthorClick(v.user_id)}
           className="flex items-center gap-2 mb-2"

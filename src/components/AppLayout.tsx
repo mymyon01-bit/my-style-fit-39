@@ -23,7 +23,7 @@ const AppLayout = () => {
     <>
       {!hideNotice && <DailyPicksNotice />}
       <div className={transition === "none" ? undefined : transitionClass}>
-        <div className={!hideBottomNav ? "pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0" : undefined}>
+        <div className={!hideBottomNav ? "pb-[calc(var(--app-bottom-nav-height)+env(safe-area-inset-bottom))] md:pb-0" : undefined}>
           {!ootdModalOpen && (
             <DesktopShell>
               <Outlet />
