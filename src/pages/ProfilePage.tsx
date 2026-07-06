@@ -26,6 +26,7 @@ import StyleBoardsPanel from "@/components/profile/StyleBoardsPanel";
 import CountUp from "@/components/CountUp";
 import ShootingStarIcon from "@/components/ShootingStarIcon";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
+import MyMyonWordmark from "@/components/MyMyonWordmark";
 
 const ProfilePage = () => {
   const { t } = useI18n();
