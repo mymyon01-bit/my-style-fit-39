@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2, Film, Globe, Users, Waves } from "lucide-react";
+import { X, Camera, Loader2, MapPin, Tag, Hash, Plus, Share2, Film, Globe, Users, Waves, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useWeather } from "@/hooks/useWeather";
@@ -57,7 +57,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [allowShares, setAllowShares] = useState(true);
-  const [audience, setAudience] = useState<"all" | "circle" | "ripple">("all");
+  const [audience, setAudience] = useState<"circle" | "ripple" | "onlyme">("ripple");
   // Raw file the user just picked — held while the crop dialog is open.
   const [pendingCrop, setPendingCrop] = useState<File | null>(null);
   // Original (post-crop) file kept so filter re-selection re-bakes from source.
@@ -74,7 +74,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
   }, [open, user, emailVerified]);
 
   useEffect(() => {
-    if (open) { loadTopics(); setStep(1); setAllowShares(true); setAudience("all"); }
+    if (open) { loadTopics(); setStep(1); setAllowShares(true); setAudience("ripple"); }
   }, [open]);
 
   const loadTopics = async () => {
@@ -268,7 +268,7 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
     setError(null);
     setStep(1);
     setAllowShares(true);
-    setAudience("all");
+    setAudience("ripple");
     setOriginalFile(null);
     setOriginalUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     setFilterId("original");
@@ -595,9 +595,9 @@ const OOTDUploadSheet = forwardRef<HTMLDivElement, Props>(({ open, onClose, onPo
                     </div>
                     <div className="grid grid-cols-3 gap-1.5">
                       {([
-                        { key: "all", label: "All", desc: "Everyone", Icon: Globe },
-                        { key: "circle", label: "Circle", desc: "Mutual only", Icon: Users },
-                        { key: "ripple", label: "Ripple", desc: "Followers", Icon: Waves },
+                        { key: "circle", label: "Circle", desc: "서클만 공개", Icon: Users },
+                        { key: "ripple", label: "Ripple", desc: "리플까지 공개", Icon: Waves },
+                        { key: "onlyme", label: "Only Me", desc: "나만보기", Icon: EyeOff },
                       ] as const).map(opt => {
                         const active = audience === opt.key;
                         const Icon = opt.Icon;
