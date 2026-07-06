@@ -220,16 +220,38 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                   </p>
                 )}
 
-                {/* PHASE 5 — Product Intelligence Layer */}
-                <ProductIntelligencePanel
-                  productName={product.name}
-                  category={product.category}
-                  fit={product.fit}
-                  brand={product.brand}
-                  bodyHeightCm={bodyHeightCm}
-                  bodyGender={bodyGender}
-                  styleTags={product.style_tags || []}
-                />
+                {/* Smart Analysis — collapsible so the product view stays clean */}
+                <div className="rounded-xl border border-border/30 bg-foreground/[0.02] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setAnalysisOpen((v) => !v)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-foreground/[0.04]"
+                    aria-expanded={analysisOpen}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-accent" />
+                      <span className="text-[11px] font-bold tracking-[0.18em] text-foreground/80">
+                        SMART ANALYSIS
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-foreground/50 transition-transform ${analysisOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {analysisOpen && (
+                    <div className="border-t border-border/20 px-4 py-4">
+                      <ProductIntelligencePanel
+                        productName={product.name}
+                        category={product.category}
+                        fit={product.fit}
+                        brand={product.brand}
+                        bodyHeightCm={bodyHeightCm}
+                        bodyGender={bodyGender}
+                        styleTags={product.style_tags || []}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="space-y-2.5 pt-1">
@@ -242,59 +264,67 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                     TRY THIS ON
                   </button>
 
-                  {/* Showroom + Share — compact labels for mobile */}
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <AuthGate action="send to your Showroom">
-                      <button
-                        onClick={() => setPostOpen(true)}
-                        disabled={!product.image_url}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-border/30 bg-background/40 py-3.5 text-[11px] font-bold tracking-[0.14em] text-foreground/80 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
-                      >
-                        <LayoutGrid className="h-4 w-4" />
-                        TO SHOWROOM
-                      </button>
-                    </AuthGate>
+                  {product.source_url && (
+                    <a
+                      href={product.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      SHOP NOW
+                    </a>
+                  )}
 
+                  {/* Share · Save · Review — single aligned row */}
+                  <div className="grid grid-cols-3 gap-2">
                     <AuthGate action="share to friends">
                       <button
                         onClick={() => setShareInOOTDOpen(true)}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 py-3.5 text-[11px] font-bold tracking-[0.14em] text-accent transition-all hover:bg-accent/15"
+                        className="flex h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-border/30 bg-background/40 text-[10px] font-bold tracking-[0.16em] text-foreground/80 transition-all hover:bg-foreground/[0.04]"
                       >
-                        <Send className="h-4 w-4" />
+                        <Send className="h-3.5 w-3.5" />
                         SHARE
                       </button>
                     </AuthGate>
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    {product.source_url && (
-                      <a
-                        href={product.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        SHOP NOW
-                      </a>
-                    )}
-
-                    {/* Save */}
                     <AuthGate action="save items">
                       <button
                         onClick={() => onSave(product.id)}
-                        className={`flex h-12 items-center justify-center gap-2 rounded-xl border px-4 text-[11px] font-bold tracking-[0.18em] transition-all ${
+                        className={`flex h-12 w-full items-center justify-center gap-1.5 rounded-xl border text-[10px] font-bold tracking-[0.16em] transition-all ${
                           isSaved
                             ? "border-accent/30 bg-accent/10 text-accent"
-                            : "border-border/30 text-foreground/70 hover:border-accent/30 hover:text-foreground"
+                            : "border-border/30 text-foreground/80 hover:border-accent/30 hover:text-foreground"
                         }`}
-                        aria-label="Save"
                       >
-                        <Heart className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
+                        <Heart className="h-3.5 w-3.5" fill={isSaved ? "currentColor" : "none"} />
                         {isSaved ? "SAVED" : "SAVE"}
                       </button>
                     </AuthGate>
+
+                    <AuthGate action="post a review">
+                      <button
+                        onClick={() => setReviewOpen(true)}
+                        disabled={!product.image_url}
+                        className="flex h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 text-[10px] font-bold tracking-[0.16em] text-accent transition-all hover:bg-accent/15 disabled:opacity-40"
+                      >
+                        <MessageSquarePlus className="h-3.5 w-3.5" />
+                        REVIEW
+                      </button>
+                    </AuthGate>
                   </div>
+
+                  {/* Send to Showroom — secondary, moved below primary trio */}
+                  <AuthGate action="send to your Showroom">
+                    <button
+                      onClick={() => setPostOpen(true)}
+                      disabled={!product.image_url}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-border/30 bg-background/40 py-3 text-[10px] font-bold tracking-[0.16em] text-foreground/70 transition-all hover:bg-foreground/[0.04] disabled:opacity-40"
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                      TO SHOWROOM
+                    </button>
+                  </AuthGate>
                 </div>
               </div>
             </div>
