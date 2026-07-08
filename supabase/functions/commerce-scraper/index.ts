@@ -559,7 +559,9 @@ function validateInput(body: any): { valid: boolean; error?: string } {
 
 // ─── Main handler ───
 serve(async (req) => {
-  if (req.method === "OPTIONS")
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   const _authedUid = await getCallerUserId(req, Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "");
   if (!_authedUid) {
@@ -568,7 +570,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-    return new Response("ok", { headers: corsHeaders });
 
   try {
     const body = await req.json();
