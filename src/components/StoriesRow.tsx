@@ -37,6 +37,8 @@ interface Props {
   onLoaded?: (users: UserStories[]) => void;
   /** Render smaller circles — used on My Page where space is tight. */
   compact?: boolean;
+  /** Hide the entire rail (including own upload avatar) when no other users have active stories. */
+  hideWhenEmpty?: boolean;
 }
 
 const SEEN_KEY = "wardrobe.seenStories";
@@ -49,7 +51,7 @@ const getSeen = (): Record<string, string> => {
   }
 };
 
-const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded, compact = false }: Props) => {
+const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = false, onLoaded, compact = false, hideWhenEmpty = false }: Props) => {
   const { user } = useAuth();
   const [grouped, setGrouped] = useState<UserStories[]>([]);
   const [myProfile, setMyProfile] = useState<ProfileLite | null>(null);
