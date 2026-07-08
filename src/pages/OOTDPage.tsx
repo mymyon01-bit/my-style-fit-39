@@ -954,8 +954,8 @@ const OOTDPage = () => {
           </div>
         )}
 
-        {/* Stories row — Feed shows everyone, My Page shows your circle */}
-        {(activeTab === "feed" || activeTab === "mypage") && (
+        {/* Stories row — only rendered when someone in your circle has an active story */}
+        {(activeTab === "feed" || activeTab === "mypage") && allStoryUsers.filter((u) => u.user_id !== user?.id).length > 0 && (
           <div
             className={bgTheme !== "none" ? "rounded-3xl border border-border/40 bg-background/80 backdrop-blur-xl p-3 md:p-4 shadow-xl shadow-black/10" : ""}
             style={bgTheme !== "none" ? cardStyle : undefined}
@@ -963,8 +963,9 @@ const OOTDPage = () => {
             <StoriesRow
               key={activeTab}
               refreshKey={storiesRefreshKey}
-              circlesOnly={activeTab === "mypage"}
+              circlesOnly
               compact={activeTab === "mypage"}
+              hideWhenEmpty
               onUploadClick={() => {
                 if (!user) { navigate("/auth"); return; }
                 setStoryUploadOpen(true);
@@ -974,6 +975,22 @@ const OOTDPage = () => {
             />
           </div>
         )}
+
+        {/* Hidden loader so we still know whether anyone in the circle has stories */}
+        {(activeTab === "feed" || activeTab === "mypage") && allStoryUsers.filter((u) => u.user_id !== user?.id).length === 0 && (
+          <div className="hidden">
+            <StoriesRow
+              key={`${activeTab}-probe`}
+              refreshKey={storiesRefreshKey}
+              circlesOnly
+              compact
+              onUploadClick={() => {}}
+              onOpenStories={() => {}}
+              onLoaded={setAllStoryUsers}
+            />
+          </div>
+        )}
+
 
         {/* (POST YOUR OOTD button moved into the My Page content block below
             so it sits between My Showroom and My Posts.) */}
