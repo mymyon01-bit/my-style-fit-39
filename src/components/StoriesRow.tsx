@@ -146,6 +146,8 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
   const plusIcon = compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5";
   const gapClass = compact ? "gap-3" : "gap-4";
 
+  if (hideWhenEmpty && !loading && others.length === 0) return null;
+
   return (
     <div className={`-mx-6 md:-mx-10 lg:-mx-12 px-6 md:px-10 lg:px-12 ${compact ? "mb-3" : "mb-6"}`}>
       <div className={`flex ${gapClass} overflow-x-auto pb-2 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
