@@ -963,8 +963,9 @@ const OOTDPage = () => {
             <StoriesRow
               key={activeTab}
               refreshKey={storiesRefreshKey}
-              circlesOnly={activeTab === "mypage"}
+              circlesOnly
               compact={activeTab === "mypage"}
+              hideWhenEmpty
               onUploadClick={() => {
                 if (!user) { navigate("/auth"); return; }
                 setStoryUploadOpen(true);
