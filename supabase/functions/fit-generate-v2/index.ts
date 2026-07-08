@@ -1,4 +1,5 @@
 // Edge function: measurement-first fit pipeline.
+import { getCallerUserId } from "../_shared/ssrfGuard.ts";
 // 1) calculateFit  2) interpretFit  3) buildPrompt  4) generate image
 // Always returns a usable JSON payload — never 504s, never blocks the UI.
 
@@ -247,6 +248,14 @@ async function generateImage(opts: {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const _authedUid = await getCallerUserId(req, Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "");
+  if (!_authedUid) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const input = await req.json();

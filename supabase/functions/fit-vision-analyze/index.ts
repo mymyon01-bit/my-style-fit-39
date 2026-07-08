@@ -10,6 +10,7 @@
 // Always returns a stable JSON shape; never throws to the client.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCallerUserId } from "../_shared/ssrfGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +126,14 @@ const PROMPT_BY_MODE: Record<Mode, string> = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const _authedUid = await getCallerUserId(req, Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "");
+  if (!_authedUid) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
