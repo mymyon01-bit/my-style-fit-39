@@ -307,6 +307,18 @@ const MyPageSection = () => {
         onClose={() => setVideoUploadOpen(false)}
         onPosted={() => { setVideoUploadOpen(false); setReloadKey((k) => k + 1); }}
       />
+      <StoryUploadSheet
+        open={storyUploadOpen}
+        onClose={() => setStoryUploadOpen(false)}
+        onPosted={() => { setStoryUploadOpen(false); setStoriesRefreshKey((k) => k + 1); }}
+      />
+      <StoryViewer
+        open={viewerState.open}
+        startUserIndex={viewerState.index}
+        userStories={viewerState.users}
+        onClose={() => setViewerState((s) => ({ ...s, open: false }))}
+        onDeleted={() => setStoriesRefreshKey((k) => k + 1)}
+      />
     </div>
   );
 };
