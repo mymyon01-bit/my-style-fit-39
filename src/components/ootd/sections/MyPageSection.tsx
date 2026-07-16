@@ -77,64 +77,8 @@ const MyPageSection = () => {
   const [storiesRefreshKey, setStoriesRefreshKey] = useState(0);
   const [viewerState, setViewerState] = useState<{ open: boolean; index: number; users: UserStories[] }>({ open: false, index: 0, users: [] });
 
-  // Stories rail — recent posters, with friends (people the user follows)
-  // marked so we can decorate their avatars with the gold animated ring.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("ootd_posts")
-        .select("user_id, created_at")
-        .order("created_at", { ascending: false })
-        .limit(60);
-      if (cancelled || !data) return;
-      const seen = new Set<string>();
-      const ids = (data as { user_id: string }[])
-        .filter((r) => {
-          if (!r.user_id || seen.has(r.user_id)) return false;
-          seen.add(r.user_id);
-          return true;
-        })
-        .slice(0, 16)
-        .map((r) => r.user_id);
-      if (!ids.length) return;
-      const [{ data: profiles }, { data: friends }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id, display_name, username, avatar_url")
-          .in("user_id", ids),
-        user
-          ? supabase
-              .from("circles")
-              .select("following_id")
-              .eq("follower_id", user.id)
-              .in("following_id", ids)
-          : Promise.resolve({ data: [] as { following_id: string }[] }),
-      ]);
-      if (cancelled) return;
-      const friendSet = new Set(
-        ((friends as any[]) || []).map((f) => f.following_id as string),
-      );
-      const map = new Map((profiles || []).map((p: any) => [p.user_id, p]));
-      const rows: StoryUser[] = ids
-        .map((id) => {
-          const p: any = map.get(id);
-          if (!p) return null;
-          return {
-            user_id: p.user_id,
-            display_name: p.display_name,
-            username: p.username,
-            avatar_url: p.avatar_url,
-            isFriend: friendSet.has(p.user_id),
-          } as StoryUser;
-        })
-        .filter(Boolean) as StoryUser[];
-      // Show friends first so the gold rings lead the rail.
-      rows.sort((a, b) => Number(b.isFriend) - Number(a.isFriend));
-      setStories(rows);
-    })();
-    return () => { cancelled = true; };
-  }, [user, reloadKey]);
+  // Stories rail is now handled by <StoriesRow circlesOnly hideWhenEmpty />.
+
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
