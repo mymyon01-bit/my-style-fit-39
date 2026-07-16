@@ -6,17 +6,19 @@
  * users manage adding a story from their own page, and the rail shows
  * their friends (people in their Circle) with a gold animated ring.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Bookmark, Loader2, Camera, Film, Plus } from "lucide-react";
+import { Heart, Bookmark, Loader2, Camera, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
 import { useCircleCounts } from "@/hooks/useCircleCounts";
-import { useOOTDModal } from "@/lib/ootdModal";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
+import StoriesRow, { type UserStories } from "@/components/StoriesRow";
+import StoryUploadSheet from "@/components/StoryUploadSheet";
+import StoryViewer from "@/components/StoryViewer";
 
 type SubTab = "outfits" | "looks" | "saved" | "reviews";
 
