@@ -64,7 +64,6 @@ function timeAgo(iso: string) {
 const MyPageSection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { open: openOOTDModal } = useOOTDModal();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [outfitsCount, setOutfitsCount] = useState(0);
   const { counts: circleCounts } = useCircleCounts(user?.id);
@@ -73,8 +72,10 @@ const MyPageSection = () => {
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [videoUploadOpen, setVideoUploadOpen] = useState(false);
+  const [storyUploadOpen, setStoryUploadOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [stories, setStories] = useState<StoryUser[]>([]);
+  const [storiesRefreshKey, setStoriesRefreshKey] = useState(0);
+  const [viewerState, setViewerState] = useState<{ open: boolean; index: number; users: UserStories[] }>({ open: false, index: 0, users: [] });
 
   // Stories rail — recent posters, with friends (people the user follows)
   // marked so we can decorate their avatars with the gold animated ring.
