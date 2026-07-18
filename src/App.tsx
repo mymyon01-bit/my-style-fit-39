@@ -31,6 +31,7 @@ import AboutPage from "@/pages/AboutPage";
 import NotFound from "@/pages/NotFound";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import InstallPage from "@/pages/InstallPage";
+import AndroidGuidePage from "@/pages/AndroidGuidePage";
 import OAuthBridge from "@/pages/OAuthBridge";
 import { SignUpPrompt } from "@/components/AuthGate";
 import MyMyonWordmark from "@/components/MyMyonWordmark";
@@ -271,6 +272,7 @@ const AppRoutes = () => {
           {/* Public routes */}
           <Route path="/about" element={<AboutPage />} />
           <Route path="/install" element={<InstallPage />} />
+          <Route path="/android-guide" element={<AndroidGuidePage />} />
           <Route path="/~oauth-bridge" element={<OAuthBridge />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
