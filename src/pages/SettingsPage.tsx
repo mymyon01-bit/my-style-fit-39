@@ -17,10 +17,13 @@ import { toast } from "sonner";
 import { useAdmin } from "@/hooks/useAdmin";
 import SettingsAboutSection from "@/components/SettingsAboutSection";
 
-const languages: { code: Language; label: string; native: string }[] = [
-  { code: "en", label: "English", native: "English" },
-  { code: "ko", label: "Korean", native: "한국어" },
-  { code: "it", label: "Italian", native: "Italiano" },
+const languages: { code: Language; label: string; native: string; flag: string }[] = [
+  { code: "ko", label: "Korean",   native: "한국어",   flag: "🇰🇷" },
+  { code: "en", label: "English",  native: "English",  flag: "🇬🇧" },
+  { code: "it", label: "Italian",  native: "Italiano", flag: "🇮🇹" },
+  { code: "zh", label: "Chinese",  native: "中文",     flag: "🇨🇳" },
+  { code: "fr", label: "French",   native: "Français", flag: "🇫🇷" },
+  { code: "ja", label: "Japanese", native: "日本語",   flag: "🇯🇵" },
 ];
 
 const SettingsPage = () => {
