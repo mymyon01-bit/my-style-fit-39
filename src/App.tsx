@@ -35,6 +35,8 @@ import AndroidGuidePage from "@/pages/AndroidGuidePage";
 import OAuthBridge from "@/pages/OAuthBridge";
 import { SignUpPrompt } from "@/components/AuthGate";
 import MyMyonWordmark from "@/components/MyMyonWordmark";
+import ConsentGate from "@/components/legal/ConsentGate";
+
 
 const lazyWithRetry = <T extends ComponentType<any>>(
   importer: () => Promise<{ default: T }>,
@@ -237,6 +239,8 @@ const AppRoutes = () => {
       {!isAdmin && <UrlMasker />}
       {!isAdmin && <WelcomeTour />}
       {!isAdmin && <PermissionsPrompt />}
+      {!isAdmin && <ConsentGate />}
+
       {!isAdmin && <AppUpdatePrompt />}
       {/* Desktop top nav removed per design — HomePage owns its own header. */}
       {!isAdmin && <OOTDModalHost />}
