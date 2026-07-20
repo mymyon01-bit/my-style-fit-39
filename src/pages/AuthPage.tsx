@@ -83,13 +83,14 @@ const AuthPage = () => {
         // Record consents (best effort) once a session exists.
         try {
           const { data: { user: u } } = await supabase.auth.getUser();
-          const lang = (localStorage.getItem("wardrobe-lang") || "en") as LegalLang;
-          const docLang: LegalLang = lang === "ko" || lang === "it" ? lang : "en";
+          const { toLegalLang } = await import("@/lib/legal/content");
+          const docLang = toLegalLang(localStorage.getItem("wardrobe-lang"));
           if (u) await recordSignupConsents(u.id, consents, docLang);
         } catch {}
         setMessage("Account created! Please check your email and click the confirmation link to sign in.");
         setMode("login");
       }
+
       else navigate("/onboarding", { replace: true });
     } catch (err: any) {
       const raw = (err?.message || "").toLowerCase();
@@ -139,8 +140,8 @@ const AuthPage = () => {
     }
     // Stash consents so we can record them once session lands post-OAuth.
     try {
-      const lang = (localStorage.getItem("wardrobe-lang") || "en") as LegalLang;
-      const docLang: LegalLang = lang === "ko" || lang === "it" ? lang : "en";
+      const { toLegalLang } = require("@/lib/legal/content");
+      const docLang = toLegalLang(localStorage.getItem("wardrobe-lang"));
       localStorage.setItem(
         "pending-signup-consents",
         JSON.stringify({ consents, language: docLang, ts: Date.now() }),
@@ -148,6 +149,7 @@ const AuthPage = () => {
     } catch {}
     return true;
   };
+
 
   const handleGoogle = async () => {
     setError(null);
