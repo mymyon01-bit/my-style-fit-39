@@ -35,18 +35,20 @@ const LanguageSelector = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-[60] mt-2 min-w-[80px] overflow-hidden rounded-lg border border-border/30 bg-popover/95 backdrop-blur-xl shadow-lg">
+        <div className="absolute right-0 top-full z-[60] mt-2 min-w-[160px] overflow-hidden rounded-lg border border-border/30 bg-popover/95 backdrop-blur-xl shadow-lg">
           {languages.map((l) => (
             <button
               key={l.code}
               onClick={() => { setLang(l.code); setOpen(false); }}
-              className={`flex w-full items-center px-4 py-2.5 text-[10px] font-semibold tracking-[0.2em] transition-colors ${
+              className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-[11px] font-medium transition-colors ${
                 lang === l.code
-                  ? "text-accent"
-                  : "text-foreground/70 hover:bg-accent/[0.06] hover:text-foreground/70"
+                  ? "bg-accent/[0.08] text-accent"
+                  : "text-foreground/70 hover:bg-accent/[0.06] hover:text-foreground"
               }`}
             >
-              {l.native}
+              <span className="text-[14px] leading-none">{l.flag}</span>
+              <span className="flex-1 text-left">{l.native}</span>
+              <span className="text-[9px] tracking-[0.15em] text-foreground/40">{l.label}</span>
             </button>
           ))}
         </div>
