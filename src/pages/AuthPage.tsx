@@ -9,7 +9,7 @@ import { isNativeApp, nativePlatform } from "@/lib/native/platform";
 import ConsentCheckboxes, { type ConsentState } from "@/components/legal/ConsentCheckboxes";
 import { recordSignupConsents } from "@/lib/legal/recordConsent";
 import { supabase } from "@/integrations/supabase/client";
-import type { LegalLang } from "@/lib/legal/content";
+import { toLegalLang } from "@/lib/legal/content";
 import AccountRemovedScreen from "@/components/AccountRemovedScreen";
 import ContactUsDialog from "@/components/ContactUsDialog";
 import LocationSearchInput from "@/components/LocationSearchInput";
@@ -83,13 +83,13 @@ const AuthPage = () => {
         // Record consents (best effort) once a session exists.
         try {
           const { data: { user: u } } = await supabase.auth.getUser();
-          const { toLegalLang } = await import("@/lib/legal/content");
           const docLang = toLegalLang(localStorage.getItem("wardrobe-lang"));
           if (u) await recordSignupConsents(u.id, consents, docLang);
         } catch {}
         setMessage("Account created! Please check your email and click the confirmation link to sign in.");
         setMode("login");
       }
+
 
       else navigate("/onboarding", { replace: true });
     } catch (err: any) {
@@ -140,7 +140,6 @@ const AuthPage = () => {
     }
     // Stash consents so we can record them once session lands post-OAuth.
     try {
-      const { toLegalLang } = require("@/lib/legal/content");
       const docLang = toLegalLang(localStorage.getItem("wardrobe-lang"));
       localStorage.setItem(
         "pending-signup-consents",
@@ -148,6 +147,7 @@ const AuthPage = () => {
       );
     } catch {}
     return true;
+
   };
 
 
