@@ -34,13 +34,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!raw) return;
         const parsed = JSON.parse(raw) as {
           consents: { terms: boolean; privacy: boolean; marketing: boolean };
-          language: "ko" | "en" | "it";
+          language: string;
         };
         const { recordSignupConsents } = await import("@/lib/legal/recordConsent");
-        await recordSignupConsents(uid, parsed.consents, parsed.language);
+        const { toLegalLang } = await import("@/lib/legal/content");
+        await recordSignupConsents(uid, parsed.consents, toLegalLang(parsed.language));
         localStorage.removeItem("pending-signup-consents");
       } catch {}
     };
+
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);

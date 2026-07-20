@@ -1,14 +1,13 @@
 /**
- * ConsentCheckboxes — shown in the signup form. Users must accept the two
- * required items (terms + privacy) to be allowed to submit. Marketing is
- * optional. Phone verification is NOT shown here — it's gated at OOTD time.
- *
- * Each row has a small "VIEW" link that opens the LegalDocViewer modal.
+ * ConsentCheckboxes — bilingual-aware consent block for the signup form
+ * and the post-OAuth ConsentGate. Labels adapt to the current app language
+ * (all 8 supported languages).
  */
 import { useState } from "react";
 import { Check } from "lucide-react";
 import LegalDocViewer from "./LegalDocViewer";
-import type { LegalKey } from "@/lib/legal/content";
+import { CONSENT_UI, toLegalLang, type LegalKey } from "@/lib/legal/content";
+import { useI18n } from "@/lib/i18n";
 
 export interface ConsentState {
   terms: boolean;
@@ -21,18 +20,20 @@ interface Props {
   onChange: (next: ConsentState) => void;
 }
 
-const labels: Record<keyof ConsentState, { en: string; ko: string; required: boolean; docKey: LegalKey }> = {
-  terms:     { en: "I agree to the Terms of Service",    ko: "서비스 이용약관 동의",        required: true,  docKey: "terms" },
-  privacy:   { en: "I agree to the Privacy Policy",      ko: "개인정보 처리방침 동의",      required: true,  docKey: "privacy" },
-  marketing: { en: "Marketing communications (optional)", ko: "마케팅 정보 수신 (선택)",     required: false, docKey: "marketing" },
-};
+const ROWS: { key: keyof ConsentState; required: boolean; docKey: LegalKey }[] = [
+  { key: "terms",     required: true,  docKey: "terms" },
+  { key: "privacy",   required: true,  docKey: "privacy" },
+  { key: "marketing", required: false, docKey: "marketing" },
+];
 
 const ConsentCheckboxes = ({ value, onChange }: Props) => {
+  const { lang } = useI18n();
+  const ui = CONSENT_UI[toLegalLang(lang)];
   const [viewing, setViewing] = useState<LegalKey | null>(null);
-  const allRequired = value.terms && value.privacy;
+  const allChecked = value.terms && value.privacy && value.marketing;
 
   const toggleAll = () => {
-    const next = !allRequired || !value.marketing;
+    const next = !allChecked;
     onChange({ terms: next, privacy: next, marketing: next });
   };
 
@@ -44,20 +45,16 @@ const ConsentCheckboxes = ({ value, onChange }: Props) => {
         className="flex w-full items-center gap-3 border-b border-foreground/[0.08] pb-3 text-left"
       >
         <span className={`flex h-4 w-4 items-center justify-center rounded border ${
-          value.terms && value.privacy && value.marketing
-            ? "border-accent bg-accent/20"
-            : "border-foreground/30"
+          allChecked ? "border-accent bg-accent/20" : "border-foreground/30"
         }`}>
-          {value.terms && value.privacy && value.marketing && <Check className="h-3 w-3 text-accent" />}
+          {allChecked && <Check className="h-3 w-3 text-accent" />}
         </span>
-        <span className="text-[12px] font-medium text-foreground/80">
-          Agree to all / 모두 동의
-        </span>
+        <span className="text-[12px] font-medium text-foreground/80">{ui.agreeAll}</span>
       </button>
 
-      {(Object.keys(labels) as (keyof ConsentState)[]).map((key) => {
-        const meta = labels[key];
+      {ROWS.map(({ key, required, docKey }) => {
         const checked = value[key];
+        const label = ui[key];
         return (
           <div key={key} className="flex items-start gap-3">
             <button
@@ -66,7 +63,7 @@ const ConsentCheckboxes = ({ value, onChange }: Props) => {
               className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                 checked ? "border-accent bg-accent/20" : "border-foreground/25"
               }`}
-              aria-label={meta.en}
+              aria-label={label}
             >
               {checked && <Check className="h-3 w-3 text-accent" />}
             </button>
@@ -75,18 +72,17 @@ const ConsentCheckboxes = ({ value, onChange }: Props) => {
                 onClick={() => onChange({ ...value, [key]: !checked })}
                 className="text-[12px] text-foreground/75 cursor-pointer leading-tight"
               >
-                <span className={`text-[9px] font-bold tracking-[0.18em] mr-1.5 ${meta.required ? "text-destructive/80" : "text-foreground/40"}`}>
-                  [{meta.required ? "REQUIRED" : "OPTIONAL"}]
+                <span className={`text-[9px] font-bold tracking-[0.18em] mr-1.5 ${required ? "text-destructive/80" : "text-foreground/40"}`}>
+                  [{required ? ui.required : ui.optional}]
                 </span>
-                {meta.en}
-                <span className="text-foreground/45"> · {meta.ko}</span>
+                {label}
               </label>
               <button
                 type="button"
-                onClick={() => setViewing(meta.docKey)}
+                onClick={() => setViewing(docKey)}
                 className="text-[9px] font-semibold tracking-[0.18em] text-accent/65 hover:text-accent transition-colors shrink-0"
               >
-                VIEW
+                {ui.view}
               </button>
             </div>
           </div>
