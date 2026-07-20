@@ -2,15 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useI18n, type Language } from "@/lib/i18n";
 import { Globe } from "lucide-react";
 
-const languages: { code: Language; label: string; native: string }[] = [
-  { code: "de", label: "DE", native: "Deutsch" },
-  { code: "en", label: "EN", native: "English" },
-  { code: "es", label: "ES", native: "Español" },
-  { code: "fr", label: "FR", native: "Français" },
-  { code: "it", label: "IT", native: "Italiano" },
-  { code: "ja", label: "JA", native: "日本語" },
-  { code: "ko", label: "KO", native: "한국어" },
-  { code: "zh", label: "ZH", native: "中文" },
+const languages: { code: Language; label: string; native: string; flag: string }[] = [
+  { code: "ko", label: "KO", native: "한국어",   flag: "🇰🇷" },
+  { code: "en", label: "EN", native: "English",  flag: "🇬🇧" },
+  { code: "it", label: "IT", native: "Italiano", flag: "🇮🇹" },
+  { code: "zh", label: "ZH", native: "中文",     flag: "🇨🇳" },
+  { code: "fr", label: "FR", native: "Français", flag: "🇫🇷" },
+  { code: "ja", label: "JA", native: "日本語",   flag: "🇯🇵" },
 ];
 
 const LanguageSelector = () => {
@@ -37,18 +35,20 @@ const LanguageSelector = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-[60] mt-2 min-w-[80px] overflow-hidden rounded-lg border border-border/30 bg-popover/95 backdrop-blur-xl shadow-lg">
+        <div className="absolute right-0 top-full z-[60] mt-2 min-w-[160px] overflow-hidden rounded-lg border border-border/30 bg-popover/95 backdrop-blur-xl shadow-lg">
           {languages.map((l) => (
             <button
               key={l.code}
               onClick={() => { setLang(l.code); setOpen(false); }}
-              className={`flex w-full items-center px-4 py-2.5 text-[10px] font-semibold tracking-[0.2em] transition-colors ${
+              className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-[11px] font-medium transition-colors ${
                 lang === l.code
-                  ? "text-accent"
-                  : "text-foreground/70 hover:bg-accent/[0.06] hover:text-foreground/70"
+                  ? "bg-accent/[0.08] text-accent"
+                  : "text-foreground/70 hover:bg-accent/[0.06] hover:text-foreground"
               }`}
             >
-              {l.native}
+              <span className="text-[14px] leading-none">{l.flag}</span>
+              <span className="flex-1 text-left">{l.native}</span>
+              <span className="text-[9px] tracking-[0.15em] text-foreground/40">{l.label}</span>
             </button>
           ))}
         </div>
