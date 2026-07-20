@@ -236,16 +236,24 @@ const SettingsPage = () => {
             <Globe className="h-3.5 w-3.5 text-foreground/75" strokeWidth={1.8} />
             <p className="text-[10px] font-semibold tracking-[0.25em] text-foreground/70 md:text-[11px]">{t("language").toUpperCase()}</p>
           </div>
-          <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
             {languages.map((l) => (
               <button
                 key={l.code}
                 onClick={() => setLang(l.code)}
-                className={`hover-burgundy flex w-full items-center justify-between py-4 md:py-5 ${
-                  lang === l.code ? "text-foreground" : "text-foreground/70"
+                className={`flex items-center justify-between rounded-lg border px-4 py-3.5 transition-all ${
+                  lang === l.code
+                    ? "border-accent/50 bg-accent/[0.08] text-foreground"
+                    : "border-border/30 text-foreground/70 hover:text-foreground/90"
                 }`}
               >
-                <p className="text-[13px] font-medium md:text-[14px]">{l.native}</p>
+                <div className="flex items-center gap-2.5 text-left">
+                  <span className="text-[16px] leading-none">{l.flag}</span>
+                  <div>
+                    <p className="text-[13px] font-medium leading-tight">{l.native}</p>
+                    <p className="text-[9px] tracking-[0.18em] uppercase text-foreground/50">{l.label}</p>
+                  </div>
+                </div>
                 {lang === l.code && <Check className="h-4 w-4 text-accent" />}
               </button>
             ))}
