@@ -9,6 +9,16 @@ import {
   Crown, Check, ChevronLeft, CreditCard, Loader2, Shield, Sparkles, Star, Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  PurchaseCancelled,
+  StorePackage,
+  getOfferings,
+  purchasePackage,
+  restorePurchases,
+  syncEntitlement,
+  waitForWrapper,
+} from "@/lib/billing/revenuecat";
+import { useEffect } from "react";
 
 const plans = [
   {
@@ -222,6 +232,83 @@ const SubscriptionPage = () => {
   const { subscription, loading } = useSubscription();
   const [showPayment, setShowPayment] = useState<(typeof plans)[number] | null>(null);
 
+  // --- Native in-app purchases (AppBuild wrapper + RevenueCat) ---------------
+  const [inApp, setInApp] = useState(false);
+  const [packages, setPackages] = useState<StorePackage[]>([]);
+  const [storeLoading, setStoreLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const available = await waitForWrapper();
+      if (cancelled) return;
+      setInApp(available);
+      if (!available) {
+        setStoreLoading(false);
+        return;
+      }
+      try {
+        const pkgs = await getOfferings();
+        if (!cancelled) setPackages(pkgs);
+      } catch (e) {
+        console.warn("[subscription] getOfferings failed", e);
+      } finally {
+        if (!cancelled) setStoreLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleBuy = async (pkg: StorePackage) => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    setBusy(pkg.identifier);
+    try {
+      const info = await purchasePackage(pkg);
+      const premium = await syncEntitlement(user.id, info);
+      if (premium) {
+        toast.success("Welcome to Premium! 🎉");
+        navigate("/profile");
+      } else {
+        toast.error("Purchase completed but no active plan was found. Try Restore.");
+      }
+    } catch (e) {
+      if (e instanceof PurchaseCancelled) {
+        // user closed the store sheet — stay quiet
+      } else {
+        console.error("[subscription] purchase failed", e);
+        toast.error("Purchase failed. Please try again.");
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    setBusy("restore");
+    try {
+      const info = await restorePurchases();
+      const premium = await syncEntitlement(user.id, info);
+      toast[premium ? "success" : "message"](
+        premium ? "Your Premium plan is back." : "No previous purchases found.",
+      );
+    } catch (e) {
+      console.error("[subscription] restore failed", e);
+      toast.error("Could not restore purchases.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const handleSelectPlan = (plan: (typeof plans)[number]) => {
     if (plan.id === "free") return;
     if (!user) {
@@ -283,8 +370,79 @@ const SubscriptionPage = () => {
         )}
       </div>
 
-      {/* Plans */}
-      <div className="px-6 max-w-3xl mx-auto space-y-4">
+      {/* Store plans (native app) */}
+      {inApp && (
+        <div className="px-6 max-w-3xl mx-auto space-y-4">
+          {storeLoading && (
+            <div className="flex items-center justify-center py-10 text-foreground/60">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          )}
+          {!storeLoading && packages.length === 0 && (
+            <p className="rounded-xl border border-border/20 bg-foreground/[0.02] p-5 text-center text-[12px] text-foreground/70">
+              Subscriptions aren't available right now. Please try again later.
+            </p>
+          )}
+          {packages.map((pkg) => (
+            <div
+              key={pkg.identifier}
+              className="rounded-xl border border-accent/25 bg-accent/[0.04] p-5"
+            >
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <h3 className="text-[15px] font-medium text-foreground/85">{pkg.title}</h3>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="text-2xl font-light text-foreground/90">{pkg.priceString}</span>
+                    {pkg.period && (
+                      <span className="text-[11px] text-foreground/75">{pkg.period}</span>
+                    )}
+                  </div>
+                </div>
+                {subscription.isPremium && (
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-accent/70">
+                    Active
+                  </span>
+                )}
+              </div>
+              {pkg.description && (
+                <p className="mt-3 text-[12px] leading-relaxed text-foreground/70">
+                  {pkg.description}
+                </p>
+              )}
+              <button
+                onClick={() => handleBuy(pkg)}
+                disabled={busy !== null || subscription.isPremium}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-accent/80 py-3 text-[11px] font-medium tracking-wider text-white transition-all hover:bg-accent disabled:opacity-50"
+              >
+                {busy === pkg.identifier ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : subscription.isPremium ? (
+                  "Current Plan"
+                ) : (
+                  `Subscribe · ${pkg.priceString}`
+                )}
+              </button>
+            </div>
+          ))}
+
+          <button
+            onClick={handleRestore}
+            disabled={busy !== null}
+            className="w-full py-2 text-[11px] tracking-wider text-foreground/70 underline-offset-4 hover:underline disabled:opacity-50"
+          >
+            {busy === "restore" ? "Restoring…" : "Restore purchases"}
+          </button>
+
+          <p className="text-center text-[10px] leading-relaxed text-foreground/60">
+            Payment is charged to your App Store / Google Play account. Subscriptions renew
+            automatically unless cancelled at least 24 hours before the period ends. Manage or
+            cancel anytime in your store account settings.
+          </p>
+        </div>
+      )}
+
+      {/* Plans (web) */}
+      <div className={`px-6 max-w-3xl mx-auto space-y-4 ${inApp ? "hidden" : ""}`}>
         {plans.map((plan) => {
           const isCurrent =
             (plan.id === "free" && !subscription.isPremium) ||
@@ -362,7 +520,12 @@ const SubscriptionPage = () => {
         {[
           { q: "Can I cancel anytime?", a: "Yes, cancel anytime from your profile settings. No questions asked." },
           { q: "Is there a free trial?", a: "New users get a 3-month free trial of Premium features automatically." },
-          { q: "How does payment work?", a: "This is an MVP demo. No real payments are processed." },
+          {
+            q: "How does payment work?",
+            a: inApp
+              ? "Payments are handled securely by the App Store or Google Play and billed to your store account."
+              : "Subscriptions are purchased in the MYMYON app on iOS or Android.",
+          },
         ].map((faq) => (
           <div key={faq.q} className="py-3 border-b border-border/10">
             <p className="text-[12px] font-medium text-foreground/70">{faq.q}</p>
