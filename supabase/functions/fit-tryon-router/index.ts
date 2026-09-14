@@ -283,20 +283,89 @@ function describeBuild(b?: CreateBody["bodyProfileSummary"]) {
 }
 
 function describeSubject(b?: CreateBody["bodyProfileSummary"], rs?: FitRenderStateLite) {
-  // BODY GENDER LOCK: subject gender comes ONLY from the user's body profile.
-  // It is never inferred from the product. A male user wearing a women's
-  // garment must still be rendered as a male-proportioned MANNEQUIN wearing
-  // that garment, and vice-versa.
-  //
-  // FALLBACK: when the body profile is missing a gender (anonymous visitor,
-  // or the user skipped the BODY tab), default to a MALE mannequin instead
-  // of "neutral". A neutral subject lets the image model silently infer the
-  // mannequin's sex from the garment, which produced unwanted female
-  // mannequins for male users picking women's items. The male base is the
-  // explicit absolute fallback per product spec.
+  // BODY SEX LOCK: the wearer's sex comes from the calculated render state
+  // first (which already resolved / inferred it from Body DNA), then from the
+  // saved body profile. It is NEVER inferred from the garment, and it NEVER
+  // falls back to "neutral", "unisex" or a mannequin.
+  const fromState = (rs?.wearer?.sex || "").toLowerCase();
+  if (fromState === "female") return "real adult woman";
+  if (fromState === "male") return "real adult man";
   const g = (b?.gender || "").toLowerCase();
-  if (g === "female" || g === "feminine" || g === "woman") return "female mannequin";
-  return "male mannequin";
+  if (g === "female" || g === "feminine" || g === "woman") return "real adult woman";
+  return "real adult man";
+}
+
+/** MALE_BODY_MAPPING / FEMALE_BODY_MAPPING — anatomy + pattern block per sex. */
+function sexBodyMappingBlock(subject: string, rs?: FitRenderStateLite, b?: CreateBody["bodyProfileSummary"]): string {
+  const dna = (rs?.wearer?.bodyDNA ?? {}) as Record<string, unknown>;
+  const num = (k: string, fallback?: number | null) => {
+    const v = dna[k];
+    return typeof v === "number" ? v : (typeof fallback === "number" ? fallback : null);
+  };
+  const female = subject === "real adult woman";
+  const lines = female
+    ? [
+        "FEMALE BODY MAPPING (governs geometry, garment pattern block and tension calculation):",
+        `- bust ${num("chestOrBustCm", b?.chestCm ?? null) ?? "n/a"} cm, underbust ${num("underbustCm") ?? "n/a"} cm, waist ${num("waistCm", b?.waistCm ?? null) ?? "n/a"} cm, hip ${num("hipCm", b?.hipCm ?? null) ?? "n/a"} cm, seat ${num("seatCm") ?? "n/a"} cm, shoulder ${num("shoulderCm", b?.shoulderCm ?? null) ?? "n/a"} cm`,
+        "- Geometry: shoulders narrower than the hips, bust projection forward with a real underbust break, defined waist indentation, hip and seat projection to the sides and back, shorter torso relative to leg length.",
+        "- Garment pattern block: womenswear block — bust dart behavior, waist suppression, hip flare. Tension at bust, waist and seat is evaluated separately.",
+      ]
+    : [
+        "MALE BODY MAPPING (governs geometry, garment pattern block and tension calculation):",
+        `- shoulder ${num("shoulderCm", b?.shoulderCm ?? null) ?? "n/a"} cm, chest ${num("chestOrBustCm", b?.chestCm ?? null) ?? "n/a"} cm, waist ${num("waistCm", b?.waistCm ?? null) ?? "n/a"} cm, hip ${num("hipCm", b?.hipCm ?? null) ?? "n/a"} cm`,
+        "- Geometry: shoulders wider than the hips, flat chest plane with pectoral mass, straighter waist with little suppression, narrow hip projection, longer torso relative to leg length.",
+        "- Garment pattern block: menswear block — shoulder-driven fit, straight side seams. Tension is dominated by shoulder, chest and torso.",
+      ];
+  return [
+    ...lines,
+    "A UNISEX GARMENT DOES NOT MEAN A UNISEX BODY: the garment may be unisex, but the wearer keeps this exact sex-specific anatomy. Never swap, neutralize or average the body's sex.",
+  ].join(" ");
+}
+
+/** Structured render-state block — the calculated fit the renderer must paint. */
+function renderStateBlock(rs?: FitRenderStateLite): string {
+  if (!rs?.fit?.regions?.length) return "";
+  const g = rs.garment ?? {};
+  const measurements = Object.entries(g.measurements ?? {})
+    .map(([k, v]) => `${k} ${v}cm`)
+    .join(", ");
+  const fabric = g.fabric ?? {};
+  const fab = ["stretch", "elasticity", "stiffness", "thickness", "weight", "drape", "recovery"]
+    .map((k) => (typeof fabric[k] === "number" ? `${k} ${fabric[k]}` : null))
+    .filter(Boolean)
+    .join(", ");
+  const regionLines = rs.fit.regions
+    .filter((r) => r.behavior)
+    .map((r) => {
+      const t = r.tension != null ? ` [tension ${r.tension.toFixed(2)}, state ${r.state}]` : "";
+      return `• ${r.behavior}${t}`;
+    });
+  return [
+    `CALCULATED FIT STATE (COMPUTED BY MYMYON — this is the ground truth; the renderer visualizes it and must NOT re-decide the fit):`,
+    `Garment ${g.type ?? g.category ?? "garment"} in size ${g.selectedSize ?? "?"} — PHYSICAL GARMENT MEASUREMENTS: ${measurements || "unavailable"} (source: ${g.measurementSource ?? "default"}).`,
+    fab ? `FABRIC BEHAVIOR (0–1 scale): ${fab}, fabric type ${fabric.type ?? "unknown"}. Rigid/stiff fabric does NOT simply stretch — it pulls, strains at the seams and restricts movement. Elastic fabric stretches and prints the body contour.` : "",
+    `PER-REGION TENSION + EASE MAP (0.00 very loose → 1.00 excessive tension) — apply each one physically to the clothing:`,
+    ...regionLines,
+    `OVERALL FIT STATE: ${rs.fit.overall ?? "regular"}. Dominant regions for this body: ${(rs.fit.priorityRegions ?? []).join(", ") || "chest, waist"}.`,
+    `The SAME product in another size has DIFFERENT measurements above, therefore a visibly different silhouette. The wearer's body is identical in every size — only the clothing changes.`,
+  ].filter(Boolean).join(" ");
+}
+
+/**
+ * Final safety net: the fit renderer must never output a mannequin. Any
+ * leftover mannequin wording from legacy prompt fragments is rewritten to
+ * real-human wording before the prompt leaves this function.
+ */
+function humanizePrompt(prompt: string): string {
+  return prompt
+    .replace(/faceless display MANNEQUIN/gi, "REAL HUMAN WEARER")
+    .replace(/\bfaceless mannequin\b/gi, "real human wearer")
+    .replace(/\bmannequin's\b/gi, "person's")
+    .replace(/\bmannequins\b/gi, "people")
+    .replace(/\bmannequin\b/gi, "person")
+    .replace(/\bdisplay dummy\b/gi, "person")
+    .replace(/\bplastic dummy\b/gi, "person")
+    .replace(/\bdummy\b/gi, "person");
 }
 
 // V4.5 — BODY-RELATIVE silhouette. The size label means NOTHING by itself.
