@@ -94,7 +94,7 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-16 lg:px-10 lg:pt-6 xl:px-16">
+      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-8 lg:px-6 lg:pt-6 xl:gap-16 xl:px-16">
         {/* Sidebar (lg+ only) — editorial rail */}
         <aside className="hidden w-[200px] shrink-0 border-r border-border/50 lg:block">
           <nav className="sticky top-[112px] flex flex-col gap-7 py-4 pr-8">
@@ -121,7 +121,7 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
           </nav>
         </aside>
 
-        <main className="w-full lg:flex-1 lg:px-0">{children}</main>
+        <main className="w-full min-w-0 lg:flex-1 lg:px-0">{children}</main>
       </div>
 
     </div>
