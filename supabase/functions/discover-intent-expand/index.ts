@@ -65,13 +65,14 @@ interface ReqBody { query?: string }
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const _authedUid = await getCallerUserId(req, Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "");
-  if (!_authedUid) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // Guest-first: query interpretation is public (no PII, no writes).
+  // We still resolve the caller when a token is present, for logging only.
+  const _authedUid = await getCallerUserId(
+    req,
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+  ).catch(() => null);
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "POST only" }), {
       status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
