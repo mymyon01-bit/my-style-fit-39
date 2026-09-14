@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import PostProductToOOTDSheet from "./PostProductToOOTDSheet";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 
 interface SavedProduct {
   id: string;            // saved_items.id
@@ -168,16 +169,15 @@ export default function SavedProductsTab() {
                 >
                   <Camera className="h-3 w-3" /> Post OOTD
                 </button>
-                {item.sourceUrl && (
-                  <a
-                    href={item.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {resolveShopUrl(item.sourceUrl, { productName: item.name, merchant: item.brand }) && (
+                  <button
+                    type="button"
+                    onClick={() => { void openShopUrl(item.sourceUrl, { productName: item.name, merchant: item.brand }); }}
                     className="flex h-7 w-7 items-center justify-center rounded-lg border border-foreground/10 text-foreground/60 hover:bg-foreground/5"
                     aria-label="Open source"
                   >
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </button>
                 )}
               </div>
             </div>

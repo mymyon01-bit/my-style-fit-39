@@ -212,7 +212,7 @@ function LiveCard({ item, index, isSaved, feedback, onFeedback, onSave, onSelect
           <div
             onClick={(event) => {
               event.stopPropagation();
-              void openShopUrl(item.externalUrl);
+               void openShopUrl(item.externalUrl, { productName: item.title, merchant: item.brand });
             }}
             className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100"
           >

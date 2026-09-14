@@ -121,10 +121,10 @@ export default function SearchPage() {
                   {data.products.map((p) => (
                     <a
                       key={p.id}
-                      href={resolveShopUrl(p.product_url) ?? "#"}
+                      href={resolveShopUrl(p.product_url, { productName: p.title, merchant: p.brand }) ?? "#"}
                       target="_blank"
                       rel="noreferrer"
-                      onClick={(e) => { e.preventDefault(); void openShopUrl(p.product_url); }}
+                      onClick={(e) => { e.preventDefault(); void openShopUrl(p.product_url, { productName: p.title, merchant: p.brand }); }}
                       className="group block overflow-hidden rounded-xl border border-border bg-card"
                     >
                       {p.image_url && (

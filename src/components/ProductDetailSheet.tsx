@@ -131,6 +131,10 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
     product.color || null,
     product.category || null,
   ].filter(Boolean) as string[];
+  const shopContext = {
+    productName: product.name,
+    merchant: product.store_name || product.brand,
+  };
 
   return (
     <>
@@ -266,10 +270,10 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                     TRY THIS ON
                   </button>
 
-                  {resolveShopUrl(product.source_url) && (
+                  {resolveShopUrl(product.source_url, shopContext) && (
                     <button
                       type="button"
-                      onClick={() => { void openShopUrl(product.source_url); }}
+                      onClick={() => { void openShopUrl(product.source_url, shopContext); }}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
                     >
                       <ExternalLink className="h-4 w-4" />

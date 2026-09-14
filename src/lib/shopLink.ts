@@ -8,8 +8,34 @@
 const GOOGLE_HOST = /(^|\.)google\.[a-z.]+$/i;
 const REDIRECT_PARAMS = ["adurl", "url", "q", "imgrefurl", "u", "dest"];
 
+export interface ShopLinkContext {
+  productName?: string | null;
+  merchant?: string | null;
+}
+
+const MERCHANT_DOMAINS: Record<string, string> = {
+  "net-a-porter": "net-a-porter.com",
+  nordstrom: "nordstrom.com",
+  farfetch: "farfetch.com",
+  ssense: "ssense.com",
+  asos: "asos.com",
+  ssg: "ssg.com",
+};
+
+function merchantSearchUrl(context?: ShopLinkContext): string | null {
+  const merchant = context?.merchant?.trim().toLowerCase();
+  const productName = context?.productName?.trim();
+  if (!merchant || !productName) return null;
+
+  const dotted = merchant.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+  const mapped = MERCHANT_DOMAINS[merchant] ?? MERCHANT_DOMAINS[merchant.replace(/\.com$/, "")];
+  const domain = mapped ?? (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(dotted) ? dotted : null);
+  if (!domain) return null;
+  return `https://${domain}/search?q=${encodeURIComponent(productName)}`;
+}
+
 /** Unwrap Google/Bing style redirect wrappers down to the merchant URL. */
-export function resolveShopUrl(raw?: string | null): string | null {
+export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): string | null {
   let current = raw?.trim();
   if (!current || current === "#") return null;
   if (!/^https?:\/\//i.test(current)) {
@@ -38,9 +64,10 @@ export function resolveShopUrl(raw?: string | null): string | null {
       }
     }
     if (!next) {
-      // A plain Google page (shopping product, search). It cannot be embedded,
-      // but opening it as a real top-level tab works fine.
-      return url.toString();
+      // A Google Shopping result without an embedded merchant destination can
+      // never be shown in an iframe. Route to the merchant's own search page
+      // when possible; otherwise suppress the unusable link entirely.
+      return merchantSearchUrl(context);
     }
     current = next;
   }
@@ -51,8 +78,8 @@ export function resolveShopUrl(raw?: string | null): string | null {
  * Open a shop link safely from anywhere in the app (preview frame, PWA, or
  * native wrapper). Never navigates the current view.
  */
-export async function openShopUrl(raw?: string | null): Promise<boolean> {
-  const url = resolveShopUrl(raw);
+export async function openShopUrl(raw?: string | null, context?: ShopLinkContext): Promise<boolean> {
+  const url = resolveShopUrl(raw, context);
   if (!url) return false;
 
   // Native wrapper → system browser.
@@ -67,11 +94,21 @@ export async function openShopUrl(raw?: string | null): Promise<boolean> {
     /* fall through to web */
   }
 
+  // Use a real user-initiated anchor on web. Embedded previews and app
+  // wrappers handle this more reliably than window.open, which can be routed
+  // back into the current iframe and trigger Google's X-Frame-Options page.
   try {
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (win) return true;
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer external";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return true;
   } catch {
-    /* popup blocked */
+    /* fall through */
   }
 
   // Never load a Google page inside an embedded frame — Google sends
