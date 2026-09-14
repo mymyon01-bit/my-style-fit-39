@@ -4,6 +4,8 @@ import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles, Upload, E
 import SafeImage from "@/components/SafeImage";
 import { RegionFit } from "@/lib/fitEngine";
 import { useReplicateTryOn } from "@/hooks/useReplicateTryOn";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
+
 // Inlined from former BodySilhouette helpers — 4-bucket color rule for fit annotation overlay.
 const fitBucket = (fit: string): "tight" | "slightly" | "balanced" | "loose" => {
   if (fit === "too-tight" || fit === "too-short") return "tight";
