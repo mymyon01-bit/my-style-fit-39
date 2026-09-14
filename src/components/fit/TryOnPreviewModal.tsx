@@ -4,6 +4,8 @@ import { X, Loader2, RefreshCw, ExternalLink, AlertTriangle, Sparkles, Upload, E
 import SafeImage from "@/components/SafeImage";
 import { RegionFit } from "@/lib/fitEngine";
 import { useReplicateTryOn } from "@/hooks/useReplicateTryOn";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
+
 // Inlined from former BodySilhouette helpers — 4-bucket color rule for fit annotation overlay.
 const fitBucket = (fit: string): "tight" | "slightly" | "balanced" | "loose" => {
   if (fit === "too-tight" || fit === "too-short") return "tight";
@@ -460,17 +462,17 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                       ? `WAIT ${retrySecondsLeft}s`
                       : status === "failed" ? "RETRY" : "REGENERATE"}
                   </button>
-                  {context.productUrl && context.productUrl !== "#" && (
-                    <a
-                      href={context.productUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {resolveShopUrl(context.productUrl) && (
+                    <button
+                      type="button"
+                      onClick={() => { void openShopUrl(context.productUrl); }}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-2.5 text-[11px] font-semibold text-background hover:opacity-90 transition-opacity"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       SHOP NOW
-                    </a>
+                    </button>
                   )}
+
                 </div>
                 {overrideUserImage && (
                   <p className="mt-2 text-[9px] tracking-[0.15em] text-accent/70 text-center">

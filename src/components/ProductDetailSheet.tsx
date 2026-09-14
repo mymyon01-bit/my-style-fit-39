@@ -13,6 +13,8 @@ import type { PrewarmInput } from "@/lib/fit/fitPrewarm";
 import ProductIntelligencePanel from "@/components/ProductIntelligencePanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
+
 
 interface ProductDetailItem {
   id: string;
@@ -264,17 +266,17 @@ const ProductDetailSheet = ({ product, open, onClose, isSaved, onSave }: Product
                     TRY THIS ON
                   </button>
 
-                  {product.source_url && (
-                    <a
-                      href={product.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {resolveShopUrl(product.source_url) && (
+                    <button
+                      type="button"
+                      onClick={() => { void openShopUrl(product.source_url); }}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-[12px] font-bold tracking-[0.15em] text-accent-foreground transition-all hover:opacity-90"
                     >
                       <ExternalLink className="h-4 w-4" />
                       SHOP NOW
-                    </a>
+                    </button>
                   )}
+
 
                   {/* Share · Save · Review — single aligned row */}
                   <div className="grid grid-cols-3 gap-2">
