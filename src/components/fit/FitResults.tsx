@@ -421,16 +421,24 @@ export default function FitResults({
     [bodyGender, product, sizing.chart, garmentDNA.category, garmentDNA.garmentType, activeSize],
   );
 
-  // ── SIZE CORRELATION (V3.8 + V3.9) — per-size numeric fit + directives ────
-  const sizeCorrelation = useMemo(() => {
-    // Prefer exact chart; fall back to gender-aware default measurements.
-    let sizes = sizing.chart && sizing.chart.sizeOrder?.length
+  // ── PHYSICAL GARMENT SIZE TABLE ──────────────────────────────────────────
+  // Size label → actual garment measurements. This is the resolution step the
+  // whole pipeline depends on: the selected size must become a DIFFERENT
+  // physical garment, not just a different letter in the prompt.
+  const garmentSizeTable = useMemo(() => {
+    const sizes = sizing.chart && sizing.chart.sizeOrder?.length
       ? sizesFromGarmentChart(sizing.chart as any)
       : defaultMeasurementsForAllSizes({
           targetGender: genderedContext.garmentTargetGender,
           macro: garmentDNA.category,
           type: garmentDNA.garmentType,
         });
+    return sizes;
+  }, [sizing.chart, genderedContext.garmentTargetGender, garmentDNA.category, garmentDNA.garmentType]);
+
+  // ── SIZE CORRELATION (V3.8 + V3.9) — per-size numeric fit + directives ────
+  const sizeCorrelation = useMemo(() => {
+    const sizes = garmentSizeTable;
     if (!sizes.length) return null;
     const adjustedBody = applyBrandFitBias(
       {

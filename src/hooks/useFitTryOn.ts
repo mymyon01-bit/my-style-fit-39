@@ -67,6 +67,13 @@ export interface UseFitTryOnArgs {
     fallbackMode?: boolean;
   };
   reloadToken?: number;
+  /**
+   * V5 — structured fit render state (size → measurements → delta → ease →
+   * tension → fabric). MANDATORY driver of the render: its `hash` is part of
+   * the request identity, so every size/measurement/fabric change forces a
+   * fresh generation and a fresh server cache entry.
+   */
+  renderState?: import("@/lib/fit/fitRenderState").FitRenderState | null;
   /** V3.9 — gendered sizing directive (cross-gender warnings, target gender). */
   genderDirective?: string;
   genderedSizing?: {
@@ -124,16 +131,20 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
   // NOTE: `userImageUrl` is OPTIONAL in studio mode — the AI fit only needs
   // body proportions (height/weight) + the product image. Public visitors and
   // logged-in users without a body scan can still get a final AI fitting.
+  // The fit hash covers size + resolved garment measurements + fabric + body +
+  // sex, so a changed calculation (e.g. the real size chart arriving after the
+  // first render) invalidates the previous image instead of reusing it.
+  const fitHash = args.renderState?.hash ?? "nofit";
   const requestKey =
     args.enabled &&
     args.productImageUrl &&
     args.selectedSize
-      ? `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`
+      ? `${args.productKey}::${args.selectedSize}::${fitHash}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}::${manualReload}`
       : null;
 
   // Reset QC retry counter when the underlying product/size/body changes
   // (a true new request — not an internal auto-rerender via manualReload).
-  const baseKey = `${args.productKey}::${args.selectedSize}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}`;
+  const baseKey = `${args.productKey}::${args.selectedSize}::${fitHash}::${args.userImageUrl ?? "no-photo"}::${args.reloadToken ?? 0}`;
   const lastBaseKeyRef = useRef<string | null>(null);
   if (lastBaseKeyRef.current !== baseKey) {
     lastBaseKeyRef.current = baseKey;
@@ -191,8 +202,15 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
       persistentUrl: string,
       provider: string | null,
       requestId: string | null,
+      responseSize?: string | null,
     ) => {
       if (isStale()) return;
+      // Section O — never let a late response for another size overwrite the
+      // currently selected size.
+      if (responseSize && responseSize.trim().toUpperCase() !== args.selectedSize.trim().toUpperCase()) {
+        log("discard_size_mismatch", { responseSize, current: args.selectedSize });
+        return;
+      }
       // V3.7 — quality control gate: validate body consistency + visual integrity.
       setState((prev) => ({
         ...prev,
@@ -288,7 +306,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
             stopTimers();
             const persistentUrl = data.imageUrl;
             log("ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80) });
-            await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null);
+            await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null, data.selectedSize ?? null);
             return;
           }
 
@@ -378,6 +396,8 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           // V3.9 — gendered sizing context.
           genderDirective: args.genderDirective,
           genderedSizing: args.genderedSizing,
+          // V5 — structured render state drives the renderer + server cache key.
+          renderState: args.renderState ?? undefined,
         });
         if (isStale()) return;
         if (error) throw error;
@@ -386,7 +406,7 @@ export function useFitTryOn(args: UseFitTryOnArgs): FitTryOnState & {
           stopTimers();
           const persistentUrl = data.imageUrl;
           log("create_ready", { provider: data.provider, urlPrefix: persistentUrl.slice(0, 80) });
-          await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null);
+          await acceptOrRetry(persistentUrl, data.provider ?? null, data.requestId ?? null, data.selectedSize ?? null);
           return;
         }
 

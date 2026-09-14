@@ -107,6 +107,12 @@ export interface CreateTryOnBody {
     sizeSystem?: string;
     confidence?: string;
   };
+  /**
+   * V5 — structured fit render state: sex/body DNA, resolved per-size garment
+   * measurements, deltas, ease, tension and fabric behavior. The renderer
+   * visualizes THIS; it never decides the fit itself.
+   */
+  renderState?: import("@/lib/fit/fitRenderState").FitRenderState;
 }
 
 export interface TryOnInvokeResult {
