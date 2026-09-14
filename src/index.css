@@ -1004,14 +1004,15 @@
      overlap content. main.tsx adds the `native-app` class on boot. */
   html.native-app body {
     padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     box-sizing: border-box;
   }
 }
 
 :root {
-  --app-bottom-nav-height: 88px;
-  --ootd-bottom-tab-height: 96px;
+  /* Fallbacks only — BottomNav / the OOTD tab bar overwrite these at runtime
+     with their measured height (safe-area padding included). */
+  --app-bottom-nav-height: calc(72px + env(safe-area-inset-bottom, 0px));
+  --ootd-bottom-tab-height: calc(76px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Ink-blot brandmark — slow breathing animation for the top-left corner.

@@ -827,9 +827,10 @@ const OOTDPage = () => {
       )}
 
       <div
+        ref={ootdTabBarRef}
         className={
           mobileOOTD
-            ? "order-last fixed bottom-0 left-0 right-0 shrink-0 z-40 bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md border-t border-accent/[0.14]"
+            ? "order-last fixed bottom-0 left-0 right-0 shrink-0 z-40 bg-background/95 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md border-t border-accent/[0.14]"
             : "sticky-header fixed left-0 right-0 top-0 lg:top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-accent/[0.14]"
         }
       >
@@ -913,7 +914,7 @@ const OOTDPage = () => {
         </div>
       </div>
 
-      <div className={mobileOOTD ? "min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-hide pb-[calc(var(--ootd-bottom-tab-height)+env(safe-area-inset-bottom))]" : "contents"}>
+      <div className={mobileOOTD ? "min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-hide pb-[var(--ootd-bottom-tab-height)]" : "contents"}>
       <div className={`relative mx-auto w-full max-w-lg px-4 md:max-w-2xl md:px-10 lg:max-w-4xl lg:px-12 ${mobileOOTD ? "pt-2 pb-3" : "px-6 pt-8 md:pt-10"}`}>
         {activeTab === "mypage" && user && (
           <div

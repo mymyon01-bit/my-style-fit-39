@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { prefetchAllTabs, prefetchRoute } from "@/lib/prefetch";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useBarHeightVar } from "@/hooks/useBarHeightVar";
 
 const TABS = [
   { path: "/", icon: House, label: "Home" },
@@ -21,16 +22,19 @@ const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { ootdUnread } = useNotifications();
+  // Publishes the bar's real height (safe-area included) so every page pads
+  // exactly the right amount on any device.
+  const navRef = useBarHeightVar<HTMLElement>("--app-bottom-nav-height");
 
   useEffect(() => {
     prefetchAllTabs();
   }, []);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
+    <nav ref={navRef} className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
       <div className="h-[2px] bg-gradient-animated" />
       <div className="bg-background/95 backdrop-blur-xl border-t border-foreground/10">
-        <div className="flex w-full items-stretch justify-between px-1 pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom))]">
+        <div className="flex w-full items-stretch justify-between px-1 pt-2 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))]">
           {TABS.map((tab) => {
             const isActive =
               location.pathname === tab.path ||
