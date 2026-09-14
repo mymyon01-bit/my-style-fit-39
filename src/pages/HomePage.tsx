@@ -485,11 +485,12 @@ const HomePage = () => {
         </div>
 
         {/* ── Trending Now (hot OOTD posts) ───────────────────────── */}
-        <section className="mt-9">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px]">
+        <section className="mt-9 lg:mt-24">
+          <div className="mb-3 flex items-baseline justify-between lg:mb-10">
+            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px] lg:text-[34px] lg:font-normal">
               Trending Now
             </h2>
+
             <button
               type="button"
               onClick={() => navigate("/discover?source=home")}
@@ -498,7 +499,7 @@ const HomePage = () => {
               See All
             </button>
           </div>
-          <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex gap-3 pb-1 md:gap-5">
               {(trending.length
                 ? trending
@@ -545,6 +546,51 @@ const HomePage = () => {
               ))}
             </div>
           </div>
+
+          {/* Desktop: 4-column editorial grid, caption below the frame */}
+          <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
+            {(trending.length
+              ? trending.slice(0, 8)
+              : (Array.from({ length: 4 }).map((_, i) => ({
+                  id: `sd${i}`,
+                  image_url: null,
+                  name: null,
+                  brand: null,
+                  source_url: null,
+                  like_count: 0,
+                })) as TrendingProduct[])
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  if (item.source_url) window.open(item.source_url, "_blank", "noopener,noreferrer");
+                  else navigate("/discover?source=home");
+                }}
+                className="group text-left"
+              >
+                <div className="mb-5 aspect-[3/4] overflow-hidden bg-secondary/50">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.name ?? ""}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="h-full w-full animate-pulse bg-foreground/[0.06]" />
+                  )}
+                </div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {item.brand ?? "MYMYON Selection"}
+                </p>
+                <h4 className="truncate text-[14px] font-medium tracking-tight text-foreground">
+                  {item.name ?? "Featured piece"}
+                </h4>
+              </button>
+            ))}
+          </div>
+
         </section>
 
 
