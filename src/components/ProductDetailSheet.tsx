@@ -13,6 +13,8 @@ import type { PrewarmInput } from "@/lib/fit/fitPrewarm";
 import ProductIntelligencePanel from "@/components/ProductIntelligencePanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
+
 
 interface ProductDetailItem {
   id: string;
