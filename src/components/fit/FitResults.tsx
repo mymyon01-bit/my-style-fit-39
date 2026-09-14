@@ -42,6 +42,7 @@ import { extractGarmentDNA } from "@/lib/fit/garmentDNA";
 import { computeRegionPhysics, buildVisualInstructionLines, describeOverallFit } from "@/lib/fit/fitPhysics";
 import FitTrustStrip from "@/components/fit/FitTrustStrip";
 import { computeSizeCorrelation, sizesFromGarmentChart } from "@/lib/fit/sizeCorrelationEngine";
+import { buildFitRenderState, buildWearerBodyDNA, describeRenderStateForDebug } from "@/lib/fit/fitRenderState";
 import FitAnalysisPanel from "@/components/fit/FitAnalysisPanel";
 import RecommendedForShape from "@/components/fit/RecommendedForShape";
 import { applyBrandFitBias } from "@/lib/fit/brandFitBias";
