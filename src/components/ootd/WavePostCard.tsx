@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import WaveCommentThread from "./WaveCommentThread";
 import WavePollView from "./WavePollView";
 import ImageLightbox from "./ImageLightbox";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 
 interface Props {
   post: WavePost;
@@ -106,7 +107,9 @@ export default function WavePostCard({ post, isAdmin, onChanged }: Props) {
       {post.kind === "poll" && <WavePollView post={post} onChanged={onChanged} />}
 
       {post.kind === "wardrobe_item" && post.metadata?.product_name && (
-        <a href={post.metadata.product_url || "#"} target="_blank" rel="noreferrer"
+        <button type="button"
+           disabled={!resolveShopUrl(post.metadata.product_url)}
+           onClick={() => { void openShopUrl(post.metadata.product_url); }}
            className="mt-2 flex items-center gap-2 rounded-xl bg-foreground/[0.05] p-2 hover:bg-foreground/[0.08] transition">
           {post.metadata.product_image && (
             <img src={post.metadata.product_image} alt="" className="h-12 w-12 rounded-lg object-cover" />
@@ -117,7 +120,7 @@ export default function WavePostCard({ post, isAdmin, onChanged }: Props) {
               <p className="text-[10px] text-foreground/55">{post.metadata.product_brand}</p>
             )}
           </div>
-        </a>
+        </button>
       )}
 
       {/* Reactions */}

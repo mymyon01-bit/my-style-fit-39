@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { openShopUrl } from "@/lib/shopLink";
 
 type ShapeKey = "hourglass" | "pear" | "rectangle" | "triangle" | "round" | "—";
 
@@ -103,12 +104,11 @@ export default function RecommendedForShape({ shape, gender }: Props) {
       ) : (
         <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 px-1 snap-x">
           {items!.map((p) => (
-            <a
+            <button
+              type="button"
               key={p.id}
-              href={p.source_url ?? "#"}
-              target={p.source_url ? "_blank" : undefined}
-              rel="noopener noreferrer"
-              className="group flex w-[140px] shrink-0 snap-start flex-col"
+              onClick={() => { void openShopUrl(p.source_url); }}
+              className="group flex w-[140px] shrink-0 snap-start flex-col text-left"
             >
               <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-background/40">
                 <img
@@ -128,7 +128,7 @@ export default function RecommendedForShape({ shape, gender }: Props) {
                   {Math.round(p.price).toLocaleString()}
                 </p>
               )}
-            </a>
+            </button>
           ))}
         </div>
       )}

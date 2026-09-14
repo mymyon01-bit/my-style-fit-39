@@ -67,11 +67,21 @@ export async function openShopUrl(raw?: string | null): Promise<boolean> {
     /* fall through to web */
   }
 
+  // Use a real user-initiated anchor on web. Embedded previews and app
+  // wrappers handle this more reliably than window.open, which can be routed
+  // back into the current iframe and trigger Google's X-Frame-Options page.
   try {
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (win) return true;
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer external";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return true;
   } catch {
-    /* popup blocked */
+    /* fall through */
   }
 
   // Never load a Google page inside an embedded frame — Google sends

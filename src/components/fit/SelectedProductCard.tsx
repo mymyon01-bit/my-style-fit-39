@@ -11,6 +11,7 @@
 
 import { ArrowLeftRight, ExternalLink, ShieldCheck } from "lucide-react";
 import SafeImage from "@/components/SafeImage";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 
 interface SelectedProductCardProps {
   brand: string;
@@ -37,7 +38,8 @@ export default function SelectedProductCard({
   brand, name, price, image, url, category, subcategory,
   source, dataQuality, onChange, changeLabel = "Change", className, compact,
 }: SelectedProductCardProps) {
-  const host = source ?? hostFromUrl(url);
+  const resolvedUrl = resolveShopUrl(url);
+  const host = source ?? hostFromUrl(resolvedUrl);
   const thumbH = compact ? "h-24" : "h-28";
   const thumbW = compact ? "w-[76px]" : "w-[88px]";
 
@@ -94,7 +96,7 @@ export default function SelectedProductCard({
           </div>
 
           {/* Action row */}
-          {(onChange || (url && url !== "#")) && (
+          {(onChange || resolvedUrl) && (
             <div className="mt-3 flex items-center gap-3">
               {onChange && (
                 <button
@@ -105,15 +107,14 @@ export default function SelectedProductCard({
                   <ArrowLeftRight className="h-3 w-3" /> {changeLabel.toUpperCase()}
                 </button>
               )}
-              {url && url !== "#" && (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
+              {resolvedUrl && (
+                <button
+                  type="button"
+                  onClick={() => { void openShopUrl(url); }}
                   className="inline-flex items-center gap-1 text-[10px] font-medium tracking-wide text-foreground/55 hover:text-foreground/85"
                 >
                   View <ExternalLink className="h-2.5 w-2.5" />
-                </a>
+                </button>
               )}
             </div>
           )}
