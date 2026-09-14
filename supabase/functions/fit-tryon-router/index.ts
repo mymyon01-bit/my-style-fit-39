@@ -1082,7 +1082,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
 
   const userBodyRef = body.bodyProfileSummary?.userBodyImageUrl || body.userImageUrl || null;
   const bodyRefLine = userBodyRef
-    ? "SECOND REFERENCE IMAGE = the user's actual body photo. Use it to LOCK the mannequin's body proportions (height, weight, shoulder width, torso, waist, hips, arms, legs) so the mannequin matches the real user. Convert the person to a faceless smooth mannequin (NO face, NO skin texture, NO identity), but PRESERVE the exact body silhouette, mass and proportions. The body MUST stay identical across every size — only the garment changes."
+    ? "SECOND REFERENCE IMAGE = the user's actual body photo. Use it to LOCK the REAL HUMAN wearer's body proportions (height, weight, shoulder width, torso, waist, hips, arms, legs) so the rendered person matches the real user. Keep the wearer a real human with real skin and natural anatomy; you may soften or omit facial identity for privacy, but NEVER convert the person into a mannequin, dummy or display form. PRESERVE the exact body silhouette, mass and proportions. The body MUST stay identical across every size — only the garment changes."
     : "";
 
   const genderDirectiveLine = body.genderDirective
@@ -1095,7 +1095,7 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
     buildCleanStudioPrompt(body),
     bodyRefLine,
     genderDirectiveLine,
-    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
+    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the real human wearer and the studio setting are newly generated. The real-human wearer lock above always overrides any mannequin or display-form cues.",
     GARMENT_ALIGNMENT_BLOCK,
   ].filter(Boolean).join(" ");
 
@@ -1194,7 +1194,7 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
 
   const userBodyRef = body.bodyProfileSummary?.userBodyImageUrl || body.userImageUrl || null;
   const bodyRefLine = userBodyRef
-    ? "SECOND REFERENCE IMAGE = the user's actual body photo. Use it to LOCK the mannequin's body proportions (height, weight, shoulder width, torso, waist, hips, arms, legs) so the mannequin matches the real user. Convert the person to a faceless smooth mannequin (NO face, NO skin texture, NO identity), but PRESERVE the exact body silhouette, mass and proportions. The body MUST stay identical across every size — only the garment changes."
+    ? "SECOND REFERENCE IMAGE = the user's actual body photo. Use it to LOCK the REAL HUMAN wearer's body proportions (height, weight, shoulder width, torso, waist, hips, arms, legs) so the rendered person matches the real user. Keep the wearer a real human with real skin and natural anatomy; you may soften or omit facial identity for privacy, but NEVER convert the person into a mannequin, dummy or display form. PRESERVE the exact body silhouette, mass and proportions. The body MUST stay identical across every size — only the garment changes."
     : "";
   const genderDirectiveLine = body.genderDirective
     ? `GENDERED SIZING CONTEXT — ${body.genderDirective} The body silhouette MUST stay locked to the user's body DNA; only garment behavior changes.`
@@ -1225,7 +1225,7 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
     `RENDER THIS EXACT FIT (highest priority, overrides any default catalog look): ${silhouetteShort}`,
     measurementDirective(body.regions),
     consequence ? `PHYSICAL CONSEQUENCE: ${consequence}` : "",
-    `Size label "${body.selectedSize}" alone means nothing — the silhouette and per-region measurement deltas above are what MUST be visible on the mannequin.`,
+    `Size label "${body.selectedSize}" alone means nothing — the silhouette and per-region measurement deltas above are what MUST be visible on the real human wearer.`,
   ].filter(Boolean).join(" ");
 
   const prompt = [
@@ -1236,8 +1236,8 @@ async function runReplicateStudioFallback(apiKey: string, body: CreateBody): Pro
     buildCleanStudioPrompt(body),
     bodyRefLine,
     genderDirectiveLine,
-    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the faceless mannequin wearing it and the studio setting are newly generated. The mannequin/model-type lock above always overrides any human-photo cues that might come from the reference image.",
-    "MANDATORY: the mannequin MUST be wearing the garment fully and correctly — NEVER render a naked, partially-clothed, or unclothed mannequin.",
+    "CRITICAL GARMENT FIDELITY: The garment in the generated image MUST match the FIRST reference image (the product) EXACTLY — same color, same print/graphic, same pattern, same fabric texture, same neckline, same sleeve style, same construction details, same trims. Do not restyle, recolor, redesign, or substitute the garment. Treat the first reference image as the ground truth for the garment's appearance; only the real human wearer and the studio setting are newly generated. The real-human wearer lock above always overrides any mannequin or display-form cues.",
+    "MANDATORY: the wearer MUST be wearing the garment fully and correctly — NEVER render a naked, partially-clothed, or unclothed body.",
     GARMENT_ALIGNMENT_BLOCK,
     `FINAL REMINDER (do not ignore): the fit MUST be ${silhouetteShort}`,
   ].filter(Boolean).join(" ");
@@ -1561,9 +1561,28 @@ async function handleCreate(admin: ReturnType<typeof createClient>, apiKey: stri
   const modelIdForRecord = mode === "vton" ? VTON_MODEL_ID : "google/gemini-2.5-flash-image";
 
   // Cache key includes mode so studio + vton results don't clobber each other.
+  // V17 — the render-state hash covers body DNA + sex + selected size +
+  // resolved garment measurements + fabric + tension map, so S / M / L / XL
+  // (and any measurement or body change) can never share a cache entry.
+  const fitHash = body.renderState?.hash ?? "nofit";
   const cacheKey = mode === "studio"
-    ? `${body.productKey}::${mode}::${STUDIO_RENDER_VERSION}`
-    : `${body.productKey}::${mode}`;
+    ? `${body.productKey}::${mode}::${STUDIO_RENDER_VERSION}::${fitHash}`
+    : `${body.productKey}::${mode}::${fitHash}`;
+  logRouter("FIT_PIPELINE", {
+    selectedSize: body.selectedSize,
+    renderStateSize: body.renderState?.garment?.selectedSize ?? null,
+    measurements: body.renderState?.garment?.measurements ?? null,
+    fabric: body.renderState?.garment?.fabric ?? null,
+    sex: body.renderState?.wearer?.sex ?? null,
+    sexSource: body.renderState?.wearer?.sexSource ?? null,
+    bodyHash: body.renderState?.wearer?.bodyHash ?? null,
+    delta: body.renderState?.fit?.delta ?? null,
+    ease: body.renderState?.fit?.ease ?? null,
+    tension: body.renderState?.fit?.tension ?? null,
+    overall: body.renderState?.fit?.overall ?? null,
+    fitHash,
+    cacheKey,
+  });
   const existing = userId ? await getTryOnByIdentity(admin, userId, { ...body, productKey: cacheKey }) : null;
   const existingMeta = (existing?.metadata || {}) as Record<string, unknown>;
   const studioCacheApproved = mode !== "studio"
