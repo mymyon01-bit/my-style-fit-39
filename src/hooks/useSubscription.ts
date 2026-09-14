@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { identifyUser, isWrapperApp, refreshEntitlement } from "@/lib/billing/revenuecat";
 
 export interface Subscription {
   plan: "free" | "premium_trial" | "premium";
@@ -31,6 +32,13 @@ export function useSubscription() {
     }
 
     const load = async () => {
+      // Inside the native wrapper the store is the source of truth: link the
+      // purchase to this account and mirror the entitlement before reading.
+      if (isWrapperApp()) {
+        await identifyUser(user.id, user.email);
+        await refreshEntitlement(user.id);
+      }
+
       const { data } = await supabase
         .from("subscriptions")
         .select("*")
