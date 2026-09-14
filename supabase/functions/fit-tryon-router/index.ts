@@ -831,15 +831,13 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     ? "Brand size chart unavailable — using gender+weight baseline. Fit must reflect the calculated baseline verdict, not a generic regular fit."
     : "";
 
-  // Mannequin proportions still mirror the user's height + weight so a 100kg
-  // body reads as a 100kg mannequin, not a slim default dummy.
+  // Human proportions mirror the user's height + weight so a 100kg body reads
+  // as a 100kg person, not a slim default figure.
   const physicalSpec = h && w
-    ? `MANNEQUIN PROPORTIONS (NON-NEGOTIABLE): the mannequin is sculpted to approximately ${h} cm tall with body volume equivalent to a ${w} kg human (BMI ${bmi}). Torso width, waist circumference, arm and leg thickness, and overall mannequin volume MUST match this mass. Heavier weight → wider torso, fuller waist, thicker limbs on the mannequin. Lower weight → slimmer mannequin. Proportions extend monotonically beyond typical ranges — DO NOT clamp or normalize extreme weights to a default mannequin.`
-    : `Use average mannequin proportions.`;
+    ? `HUMAN BODY PROPORTIONS (NON-NEGOTIABLE): the wearer is approximately ${h} cm tall with the body volume of a ${w} kg person (BMI ${bmi}). Torso width, waist circumference, arm and leg thickness, and overall body volume MUST match this mass with believable human soft tissue. Heavier weight → wider torso, fuller waist, thicker limbs. Lower weight → slimmer body. Proportions extend monotonically beyond typical ranges — DO NOT clamp or normalize extreme weights toward an average figure.`
+    : `Use natural average human proportions.`;
 
-  const genderLockLine = subject === "neutral mannequin"
-    ? `Render a gender-neutral mannequin shape — do NOT infer gender from the garment.`
-    : `MANNEQUIN GENDER LOCK (HIGHEST PRIORITY): the mannequin is a ${subject}. Based ONLY on the user's saved BODY tab profile, NEVER on the garment. ${subject === "female mannequin" ? "Narrower shoulders, defined waist, female hip curve, female chest contour — sculpted into the mannequin form." : "Broader shoulders, flatter chest, straighter waist, male shoulder line — sculpted into the mannequin form."}. If the garment is typically worn by another gender, the mannequin STILL stays a ${subject} wearing that garment. Cross-gender wear is allowed; gender swap of the mannequin body is FORBIDDEN.`;
+  const genderLockLine = `WEARER SEX LOCK (HIGHEST PRIORITY): the wearer is a ${subject}. Based ONLY on the user's saved BODY profile / Body DNA, NEVER on the garment. ${subject === "real adult woman" ? "Narrower shoulders than hips, defined waist, female hip and seat projection, real bust and underbust anatomy." : "Broader shoulders than hips, flatter chest plane with pectoral mass, straighter waist, male shoulder line."} If the garment is typically worn by another gender, the wearer STILL stays a ${subject} wearing that garment. Cross-gender wear is allowed; changing the wearer's sex is FORBIDDEN. Never fall back to a neutral, unisex or non-human body.`;
 
   const safeModeSuffixEarly = body.safeMode
     ? " SAFE RENDER MODE (RETRY): previous render failed quality control because the BODY changed or the image was malformed. Preserve EXACT body silhouette, pose, crop, scale, and proportions from the reference body — do NOT alter waist, hips, legs, shoulders, torso, or posture. Render with EXTRA stability — clean faceless mannequin, full body cleanly framed neck-down, garment fully visible with no clipping at sleeves, hem, shoulders, or sides; sharp clean edges, no torn or melted regions, no floating fabric, no duplicated limbs, no blurred or low-resolution areas. High-resolution sharp final image. Prefer simplicity and structural integrity over stylistic flourishes."
