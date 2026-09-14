@@ -94,25 +94,26 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-14 lg:px-10 lg:pt-4 xl:px-16">
-        {/* Sidebar (lg+ only) */}
-        <aside className="hidden w-[200px] shrink-0 lg:block">
-          <nav className="sticky top-[96px] flex flex-col gap-1 py-2">
+      <div className="mx-auto w-full max-w-[1440px] lg:flex lg:items-start lg:gap-16 lg:px-10 lg:pt-6 xl:px-16">
+        {/* Sidebar (lg+ only) — editorial rail */}
+        <aside className="hidden w-[200px] shrink-0 border-r border-border/50 lg:block">
+          <nav className="sticky top-[112px] flex flex-col gap-7 py-4 pr-8">
             {SIDEBAR_LINKS.map((l) => {
-              const Icon = l.icon;
               const active = isActive(location.pathname, l.to);
               return (
                 <button
                   key={l.key}
                   type="button"
                   onClick={() => navigate(l.to)}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px] tracking-tight transition-colors ${
-                    active
-                      ? "bg-secondary/70 font-medium text-foreground"
-                      : "text-foreground/70 hover:bg-secondary/50 hover:text-foreground"
+                  className={`group flex items-center font-mono text-[10px] uppercase tracking-[0.2em] transition-colors ${
+                    active ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                  <span
+                    className={`mr-4 h-px transition-all duration-500 ${
+                      active ? "w-8 bg-foreground" : "w-4 bg-border group-hover:w-8 group-hover:bg-accent"
+                    }`}
+                  />
                   <span>{l.label}</span>
                 </button>
               );
@@ -122,6 +123,7 @@ const DesktopShell = ({ children }: { children: ReactNode }) => {
 
         <main className="w-full lg:flex-1 lg:px-0">{children}</main>
       </div>
+
     </div>
   );
 };
