@@ -460,17 +460,17 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                       ? `WAIT ${retrySecondsLeft}s`
                       : status === "failed" ? "RETRY" : "REGENERATE"}
                   </button>
-                  {context.productUrl && context.productUrl !== "#" && (
-                    <a
-                      href={context.productUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {resolveShopUrl(context.productUrl) && (
+                    <button
+                      type="button"
+                      onClick={() => { void openShopUrl(context.productUrl); }}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-2.5 text-[11px] font-semibold text-background hover:opacity-90 transition-opacity"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       SHOP NOW
-                    </a>
+                    </button>
                   )}
+
                 </div>
                 {overrideUserImage && (
                   <p className="mt-2 text-[9px] tracking-[0.15em] text-accent/70 text-center">
