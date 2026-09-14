@@ -692,6 +692,9 @@ export default function FitResults({
       };
     })(),
     reloadToken,
+    // V5 — the calculated fit (measurements → delta → ease → tension → fabric)
+    // that the image generator must visualize.
+    renderState: fitRenderState,
     genderDirective: buildGenderDirective(genderedContext, { gender: (bodyGender as any) ?? null }),
     genderedSizing: {
       targetGender: genderedContext.garmentTargetGender,
