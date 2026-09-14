@@ -77,6 +77,50 @@ type PendingCode = "pending" | "rate_limited";
 
 interface RegionFitLite { region: string; fit: string; deltaCm?: number | null; bodyCm?: number | null; garmentCm?: number | null; }
 
+/**
+ * V5/V17 — structured fit render state computed on the client BEFORE any image
+ * generation. The renderer visualizes this; it never decides the fit.
+ */
+interface FitRenderStateLite {
+  version?: string;
+  wearer?: {
+    type?: string;
+    sex?: "male" | "female" | string;
+    sexSource?: string;
+    bodyHash?: string;
+    bodyDNA?: Record<string, unknown>;
+  };
+  garment?: {
+    id?: string;
+    category?: string;
+    type?: string;
+    selectedSize?: string;
+    measurements?: Record<string, number>;
+    fabric?: Record<string, number | string>;
+    intendedFit?: string;
+    measurementSource?: string;
+  };
+  fit?: {
+    regions?: Array<{
+      region: string;
+      bodyCm: number | null;
+      garmentCm: number | null;
+      deltaCm: number | null;
+      easeCm: number | null;
+      tension: number | null;
+      state: string;
+      behavior: string;
+    }>;
+    delta?: Record<string, number>;
+    ease?: Record<string, number>;
+    tension?: Record<string, number>;
+    fitState?: Record<string, string>;
+    overall?: string;
+    priorityRegions?: string[];
+  };
+  hash?: string;
+}
+
 interface CreateBody {
   action?: "create" | "status";
   requestId?: string;
