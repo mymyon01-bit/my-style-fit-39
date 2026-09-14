@@ -38,7 +38,8 @@ export default function SelectedProductCard({
   brand, name, price, image, url, category, subcategory,
   source, dataQuality, onChange, changeLabel = "Change", className, compact,
 }: SelectedProductCardProps) {
-  const resolvedUrl = resolveShopUrl(url);
+  const shopContext = { productName: name, merchant: source || brand };
+  const resolvedUrl = resolveShopUrl(url, shopContext);
   const host = source ?? hostFromUrl(resolvedUrl);
   const thumbH = compact ? "h-24" : "h-28";
   const thumbW = compact ? "w-[76px]" : "w-[88px]";
@@ -110,7 +111,7 @@ export default function SelectedProductCard({
               {resolvedUrl && (
                 <button
                   type="button"
-                  onClick={() => { void openShopUrl(url); }}
+                  onClick={() => { void openShopUrl(url, shopContext); }}
                   className="inline-flex items-center gap-1 text-[10px] font-medium tracking-wide text-foreground/55 hover:text-foreground/85"
                 >
                   View <ExternalLink className="h-2.5 w-2.5" />

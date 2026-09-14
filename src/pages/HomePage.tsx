@@ -517,7 +517,7 @@ const HomePage = () => {
                   key={item.id}
                   type="button"
                   onClick={() => {
-                    if (item.source_url) void openShopUrl(item.source_url);
+                    if (item.source_url) void openShopUrl(item.source_url, { productName: item.name, merchant: item.brand });
                     else navigate("/discover?source=home");
                   }}
                   className="relative shrink-0 overflow-hidden rounded-2xl bg-foreground/[0.04] text-left md:w-[200px]"
@@ -565,7 +565,7 @@ const HomePage = () => {
                 key={item.id}
                 type="button"
                 onClick={() => {
-                  if (item.source_url) void openShopUrl(item.source_url);
+                  if (item.source_url) void openShopUrl(item.source_url, { productName: item.name, merchant: item.brand });
                   else navigate("/discover?source=home");
                 }}
                 className="group text-left"

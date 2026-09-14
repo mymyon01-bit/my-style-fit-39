@@ -169,10 +169,10 @@ export default function SavedProductsTab() {
                 >
                   <Camera className="h-3 w-3" /> Post OOTD
                 </button>
-                {resolveShopUrl(item.sourceUrl) && (
+                {resolveShopUrl(item.sourceUrl, { productName: item.name, merchant: item.brand }) && (
                   <button
                     type="button"
-                    onClick={() => { void openShopUrl(item.sourceUrl); }}
+                    onClick={() => { void openShopUrl(item.sourceUrl, { productName: item.name, merchant: item.brand }); }}
                     className="flex h-7 w-7 items-center justify-center rounded-lg border border-foreground/10 text-foreground/60 hover:bg-foreground/5"
                     aria-label="Open source"
                   >

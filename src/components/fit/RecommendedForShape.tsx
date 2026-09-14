@@ -107,7 +107,7 @@ export default function RecommendedForShape({ shape, gender }: Props) {
             <button
               type="button"
               key={p.id}
-              onClick={() => { void openShopUrl(p.source_url); }}
+              onClick={() => { void openShopUrl(p.source_url, { productName: p.name, merchant: p.brand }); }}
               className="group flex w-[140px] shrink-0 snap-start flex-col text-left"
             >
               <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-background/40">
