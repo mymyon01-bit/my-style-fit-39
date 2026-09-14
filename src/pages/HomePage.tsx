@@ -596,8 +596,8 @@ const HomePage = () => {
 
         {/* ── Based on Your Body DNA — single horizontal row ───────── */}
         {dnaPicks.length > 0 && (
-          <section className="mt-9">
-            <div className="mb-3 flex items-baseline justify-between">
+          <section className="mt-9 lg:mt-24">
+            <div className="mb-3 flex items-baseline justify-between lg:hidden">
               <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px]">
                 Based on Your Body DNA
               </h2>
@@ -609,7 +609,7 @@ const HomePage = () => {
                 See All
               </button>
             </div>
-            <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-3 pb-1 md:gap-5">
                 {dnaPicks.map((p) => (
                   <button
@@ -644,7 +644,88 @@ const HomePage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Desktop: editorial panel — copy left, fit matches right */}
+            <div className="hidden bg-secondary/40 p-16 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12">
+              <div className="col-span-5">
+                <h2 className="font-display text-[34px] font-normal italic tracking-tight text-foreground">
+                  Your Body DNA
+                </h2>
+                <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground">
+                  Our fit analysis suggests these silhouettes will complement your frame,
+                  based on your verified measurements.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <span className="border border-border bg-background px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80">
+                    Verified Fit
+                  </span>
+                  <span className="border border-border bg-background px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80">
+                    {dnaPicks[0]?.match ?? 92}% Precision
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/fit")}
+                  className="mt-10 border-b border-accent pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent transition-colors hover:border-foreground hover:text-foreground"
+                >
+                  View Full Analysis
+                </button>
+              </div>
+              <div className="col-span-7 grid grid-cols-3 gap-6">
+                {dnaPicks.slice(0, 3).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => navigate(`/p/${p.id}`)}
+                    className="group bg-background p-4 text-left shadow-[var(--shadow-1)]"
+                  >
+                    <div className="mb-4 aspect-[4/5] overflow-hidden bg-secondary/50">
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.title}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="h-full w-full animate-pulse bg-foreground/[0.06]" />
+                      )}
+                    </div>
+                    <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
+                      {p.match}% Match
+                    </p>
+                    <p className="truncate text-[13px] font-medium tracking-tight text-foreground">{p.title}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
           </section>
+        )}
+
+        {/* ── Desktop circular category row ───────────────────────── */}
+        <section className="mt-24 hidden items-center justify-between border-t border-border/60 py-16 lg:flex">
+          {QUICK_TILES.map((tile) => {
+            const Icon = tile.icon;
+            return (
+              <button
+                key={tile.key}
+                type="button"
+                onClick={() => goDiscover(tile.label.toLowerCase())}
+                className="group flex flex-col items-center"
+              >
+                <span className="mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-border p-1 transition-colors duration-500 group-hover:border-accent">
+                  <span className="flex h-full w-full items-center justify-center rounded-full bg-secondary/50">
+                    <Icon className="h-6 w-6 text-accent/85 transition-colors group-hover:text-accent" strokeWidth={1.4} />
+                  </span>
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80">
+                  {tile.label}
+                </span>
+              </button>
+            );
+          })}
+        </section>
+
         )}
 
         {/* tagline / footer text */}
