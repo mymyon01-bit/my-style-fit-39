@@ -51,7 +51,7 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
       return;
     }
     if (product.source_url && product.source_url.startsWith("http")) {
-      window.open(product.source_url, "_blank", "noopener,noreferrer");
+      void openShopUrl(product.source_url);
     } else {
       navigate(`/fit/${product.id}`);
     }

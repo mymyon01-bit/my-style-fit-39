@@ -120,9 +120,10 @@ export default function SearchPage() {
                   {data.products.map((p) => (
                     <a
                       key={p.id}
-                      href={p.product_url || "#"}
+                      href={resolveShopUrl(p.product_url) ?? "#"}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(e) => { e.preventDefault(); void openShopUrl(p.product_url); }}
                       className="group block overflow-hidden rounded-xl border border-border bg-card"
                     >
                       {p.image_url && (

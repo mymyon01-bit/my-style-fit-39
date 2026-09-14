@@ -1142,9 +1142,10 @@ export default function FitResults({
             <div className="mt-4 grid grid-cols-1 gap-2 border-t border-foreground/[0.06] pt-4 sm:grid-cols-2">
               {product.url && product.url !== "#" && (
                 <a
-                  href={product.url}
+                  href={resolveShopUrl(product.url) ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => { e.preventDefault(); void openShopUrl(product.url); }}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-[12px] font-bold tracking-[0.2em] text-background uppercase transition-opacity hover:opacity-90"
                 >
                   Add to bag <ExternalLink className="h-3 w-3" />
