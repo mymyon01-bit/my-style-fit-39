@@ -814,6 +814,58 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   ].filter(Boolean).join(" ");
 }
 
+// Fetch a remote image and return it as a base64 data URL so the AI provider
+// never has to fetch the origin itself (merchant CDNs block Vertex AI).
+const MAX_INLINE_IMAGE_BYTES = 8_000_000;
+async function inlineImageForAi(url: string | null | undefined): Promise<string | null> {
+  const src = url?.trim();
+  if (!src) return null;
+  if (src.startsWith("data:image/")) return src.replace(/\s/g, "");
+  if (!/^https?:\/\//i.test(src)) return null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20_000);
+    let res: Response;
+    try {
+      res = await fetch(src, {
+        signal: ctrl.signal,
+        headers: {
+          // Some merchant CDNs 403 requests without a browser-like UA/referer.
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          Accept: "image/avif,image/webp,image/*,*/*;q=0.8",
+        },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) {
+      console.warn("[INLINE_IMAGE] fetch failed", res.status, src.slice(0, 120));
+      return null;
+    }
+    const type = (res.headers.get("content-type") || "").split(";")[0].trim();
+    if (type && !type.startsWith("image/")) {
+      console.warn("[INLINE_IMAGE] not an image", type, src.slice(0, 120));
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.byteLength === 0 || buf.byteLength > MAX_INLINE_IMAGE_BYTES) {
+      console.warn("[INLINE_IMAGE] bad size", buf.byteLength);
+      return null;
+    }
+    let binary = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < buf.length; i += CHUNK) {
+      binary += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+    }
+    return `data:${type || "image/jpeg"};base64,${btoa(binary)}`;
+  } catch (e) {
+    console.warn("[INLINE_IMAGE] error", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+
 // ─── REPLICATE IDM-VTON CALL ────────────────────────────────────────────────
 type GenResult =
   | { kind: "success"; imageUrl: string }
