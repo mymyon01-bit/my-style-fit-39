@@ -183,6 +183,8 @@ interface CreateBody {
     sizeSystem?: string;
     confidence?: string;
   };
+  /** V5/V17 — calculated fit state. Drives the prompt AND the cache key. */
+  renderState?: FitRenderStateLite;
 }
 
 interface SuccessResponse {
@@ -280,7 +282,7 @@ function describeBuild(b?: CreateBody["bodyProfileSummary"]) {
   return "extra-large body mass build, extremely broad torso and shoulders, very wide waist and hips, very large midsection, very thick limbs, fully rounded silhouette — DO NOT clamp or shrink the body";
 }
 
-function describeSubject(b?: CreateBody["bodyProfileSummary"]) {
+function describeSubject(b?: CreateBody["bodyProfileSummary"], rs?: FitRenderStateLite) {
   // BODY GENDER LOCK: subject gender comes ONLY from the user's body profile.
   // It is never inferred from the product. A male user wearing a women's
   // garment must still be rendered as a male-proportioned MANNEQUIN wearing
