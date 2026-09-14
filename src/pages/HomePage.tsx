@@ -273,8 +273,8 @@ const HomePage = () => {
 
 
 
-        {/* Category pills */}
-        <div className="mt-5 -mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Category pills — mobile */}
+        <div className="mt-5 -mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex gap-2 pb-1">
             {CATEGORIES.map((c, i) => (
               <button
@@ -293,6 +293,7 @@ const HomePage = () => {
           </div>
         </div>
 
+
         {/* ── Hero card ───────────────────────────────────────────── */}
         <motion.button
           type="button"
@@ -305,7 +306,7 @@ const HomePage = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-5 block w-full overflow-hidden rounded-[24px] text-left shadow-[var(--shadow-2)] aspect-[4/5] sm:aspect-[16/11] lg:aspect-[21/9]"
+          className="relative mt-5 block w-full overflow-hidden rounded-[24px] text-left shadow-[var(--shadow-2)] aspect-[4/5] sm:aspect-[16/11] lg:hidden"
 
         >
           {heroes.length === 0 ? (
@@ -378,8 +379,91 @@ const HomePage = () => {
           )}
         </motion.button>
 
+        {/* ── Desktop editorial hero (lg+) — magazine split, type beside image ─ */}
+        <section className="mt-2 hidden lg:grid lg:grid-cols-12 lg:items-center lg:gap-12">
+          <button
+            type="button"
+            onClick={() => goDiscover("new in")}
+            className="group relative col-span-7 aspect-[4/3] overflow-hidden bg-secondary/50 text-left"
+          >
+            <AnimatePresence mode="sync">
+              <motion.img
+                key={hero?.id}
+                src={hero?.image}
+                alt={hero?.title?.replace("\n", " ") ?? "Editorial"}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </AnimatePresence>
+            <span className="absolute bottom-8 left-8 font-mono text-[10px] uppercase tracking-[0.3em] text-background/90 mix-blend-difference">
+              {hero?.brand ?? "MYMYON Edit"}
+            </span>
+            {heroes.length > 1 && (
+              <span className="absolute bottom-8 right-8 flex items-center gap-1.5">
+                {heroes.map((h, i) => (
+                  <span
+                    key={h.id}
+                    onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }}
+                    className={`h-1 rounded-full transition-all duration-500 ${
+                      i === heroIdx ? "w-6 bg-background/90" : "w-1 bg-background/50"
+                    }`}
+                  />
+                ))}
+              </span>
+            )}
+          </button>
+
+          <div className="col-span-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-accent">Season Edit</p>
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={hero?.id ?? "hero-title"}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-6 whitespace-pre-line font-display text-[64px] font-normal italic leading-[1.03] tracking-tight text-foreground"
+              >
+                {hero?.title ?? "Today's\nPick"}
+              </motion.h1>
+            </AnimatePresence>
+            <p className="mt-8 max-w-sm text-[17px] leading-relaxed text-muted-foreground">
+              Curated pieces that adapt to your unique DNA. Timeless silhouettes meet modern AI precision.
+            </p>
+            <button
+              type="button"
+              onClick={() => goDiscover("new in")}
+              className="mt-10 bg-foreground px-10 py-5 font-mono text-[10px] uppercase tracking-[0.2em] text-background transition-colors duration-500 hover:bg-accent"
+            >
+              Discover the Edit
+            </button>
+          </div>
+        </section>
+
+        {/* Desktop category tab bar */}
+        <div className="mt-20 hidden items-center gap-8 border-b border-border/60 lg:flex">
+          {CATEGORIES.map((c, i) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => goDiscover(c.q)}
+              className={`-mb-px border-b-2 pb-4 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors ${
+                i === 0
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+
         {/* ── Quick tile row ──────────────────────────────────────── */}
-        <div className="mt-6 grid grid-cols-6 gap-1.5 sm:gap-3 md:gap-4">
+        <div className="mt-6 grid grid-cols-6 gap-1.5 sm:gap-3 md:gap-4 lg:hidden">
           {QUICK_TILES.map((tile) => {
             const Icon = tile.icon;
             return (
@@ -401,11 +485,12 @@ const HomePage = () => {
         </div>
 
         {/* ── Trending Now (hot OOTD posts) ───────────────────────── */}
-        <section className="mt-9">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px]">
+        <section className="mt-9 lg:mt-24">
+          <div className="mb-3 flex items-baseline justify-between lg:mb-10">
+            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px] lg:text-[34px] lg:font-normal">
               Trending Now
             </h2>
+
             <button
               type="button"
               onClick={() => navigate("/discover?source=home")}
@@ -414,7 +499,7 @@ const HomePage = () => {
               See All
             </button>
           </div>
-          <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex gap-3 pb-1 md:gap-5">
               {(trending.length
                 ? trending
@@ -461,13 +546,58 @@ const HomePage = () => {
               ))}
             </div>
           </div>
+
+          {/* Desktop: 4-column editorial grid, caption below the frame */}
+          <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
+            {(trending.length
+              ? trending.slice(0, 8)
+              : (Array.from({ length: 4 }).map((_, i) => ({
+                  id: `sd${i}`,
+                  image_url: null,
+                  name: null,
+                  brand: null,
+                  source_url: null,
+                  like_count: 0,
+                })) as TrendingProduct[])
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  if (item.source_url) window.open(item.source_url, "_blank", "noopener,noreferrer");
+                  else navigate("/discover?source=home");
+                }}
+                className="group text-left"
+              >
+                <div className="mb-5 aspect-[3/4] overflow-hidden bg-secondary/50">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.name ?? ""}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="h-full w-full animate-pulse bg-foreground/[0.06]" />
+                  )}
+                </div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {item.brand ?? "MYMYON Selection"}
+                </p>
+                <h4 className="truncate text-[14px] font-medium tracking-tight text-foreground">
+                  {item.name ?? "Featured piece"}
+                </h4>
+              </button>
+            ))}
+          </div>
+
         </section>
 
 
         {/* ── Based on Your Body DNA — single horizontal row ───────── */}
         {dnaPicks.length > 0 && (
-          <section className="mt-9">
-            <div className="mb-3 flex items-baseline justify-between">
+          <section className="mt-9 lg:mt-24">
+            <div className="mb-3 flex items-baseline justify-between lg:hidden">
               <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground md:text-[22px]">
                 Based on Your Body DNA
               </h2>
@@ -479,7 +609,7 @@ const HomePage = () => {
                 See All
               </button>
             </div>
-            <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-3 pb-1 md:gap-5">
                 {dnaPicks.map((p) => (
                   <button
@@ -514,8 +644,89 @@ const HomePage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Desktop: editorial panel — copy left, fit matches right */}
+            <div className="hidden bg-secondary/40 p-16 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12">
+              <div className="col-span-5">
+                <h2 className="font-display text-[34px] font-normal italic tracking-tight text-foreground">
+                  Your Body DNA
+                </h2>
+                <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground">
+                  Our fit analysis suggests these silhouettes will complement your frame,
+                  based on your verified measurements.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <span className="border border-border bg-background px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80">
+                    Verified Fit
+                  </span>
+                  <span className="border border-border bg-background px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80">
+                    {dnaPicks[0]?.match ?? 92}% Precision
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/fit")}
+                  className="mt-10 border-b border-accent pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent transition-colors hover:border-foreground hover:text-foreground"
+                >
+                  View Full Analysis
+                </button>
+              </div>
+              <div className="col-span-7 grid grid-cols-3 gap-6">
+                {dnaPicks.slice(0, 3).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => navigate(`/p/${p.id}`)}
+                    className="group bg-background p-4 text-left shadow-[var(--shadow-1)]"
+                  >
+                    <div className="mb-4 aspect-[4/5] overflow-hidden bg-secondary/50">
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.title}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="h-full w-full animate-pulse bg-foreground/[0.06]" />
+                      )}
+                    </div>
+                    <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
+                      {p.match}% Match
+                    </p>
+                    <p className="truncate text-[13px] font-medium tracking-tight text-foreground">{p.title}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
           </section>
         )}
+
+        {/* ── Desktop circular category row ───────────────────────── */}
+        <section className="mt-24 hidden items-center justify-between border-t border-border/60 py-16 lg:flex">
+          {QUICK_TILES.map((tile) => {
+            const Icon = tile.icon;
+            return (
+              <button
+                key={tile.key}
+                type="button"
+                onClick={() => goDiscover(tile.label.toLowerCase())}
+                className="group flex flex-col items-center"
+              >
+                <span className="mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-border p-1 transition-colors duration-500 group-hover:border-accent">
+                  <span className="flex h-full w-full items-center justify-center rounded-full bg-secondary/50">
+                    <Icon className="h-6 w-6 text-accent/85 transition-colors group-hover:text-accent" strokeWidth={1.4} />
+                  </span>
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80">
+                  {tile.label}
+                </span>
+              </button>
+            );
+          })}
+        </section>
+
+
 
         {/* tagline / footer text */}
         <p className="mt-10 text-center font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40">
