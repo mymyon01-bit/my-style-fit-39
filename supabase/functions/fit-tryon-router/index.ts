@@ -945,6 +945,58 @@ function buildCleanStudioPrompt(body: CreateBody): string {
   ], body, subject);
 }
 
+// Fetch a remote image and return it as a base64 data URL so the AI provider
+// never has to fetch the origin itself (merchant CDNs block Vertex AI).
+const MAX_INLINE_IMAGE_BYTES = 8_000_000;
+async function inlineImageForAi(url: string | null | undefined): Promise<string | null> {
+  const src = url?.trim();
+  if (!src) return null;
+  if (src.startsWith("data:image/")) return src.replace(/\s/g, "");
+  if (!/^https?:\/\//i.test(src)) return null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20_000);
+    let res: Response;
+    try {
+      res = await fetch(src, {
+        signal: ctrl.signal,
+        headers: {
+          // Some merchant CDNs 403 requests without a browser-like UA/referer.
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          Accept: "image/avif,image/webp,image/*,*/*;q=0.8",
+        },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) {
+      console.warn("[INLINE_IMAGE] fetch failed", res.status, src.slice(0, 120));
+      return null;
+    }
+    const type = (res.headers.get("content-type") || "").split(";")[0].trim();
+    if (type && !type.startsWith("image/")) {
+      console.warn("[INLINE_IMAGE] not an image", type, src.slice(0, 120));
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.byteLength === 0 || buf.byteLength > MAX_INLINE_IMAGE_BYTES) {
+      console.warn("[INLINE_IMAGE] bad size", buf.byteLength);
+      return null;
+    }
+    let binary = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < buf.length; i += CHUNK) {
+      binary += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+    }
+    return `data:${type || "image/jpeg"};base64,${btoa(binary)}`;
+  } catch (e) {
+    console.warn("[INLINE_IMAGE] error", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+
 // ─── REPLICATE IDM-VTON CALL ────────────────────────────────────────────────
 type GenResult =
   | { kind: "success"; imageUrl: string }
@@ -1124,13 +1176,22 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
 
+  // Vertex AI refuses to fetch many merchant image URLs (robots.txt / hotlink
+  // blocks). Download the bytes here and pass them inline as data URLs.
+  const productRef = await inlineImageForAi(body.productImageUrl);
+  if (!productRef) {
+    return { kind: "error", code: "provider_error", error: "product_image_unreachable" };
+  }
+  const inlinedBodyRef = userBodyRef ? await inlineImageForAi(userBodyRef) : null;
+
   const messageContent: Array<Record<string, unknown>> = [
     { type: "text", text: prompt },
-    { type: "image_url", image_url: { url: body.productImageUrl } },
+    { type: "image_url", image_url: { url: productRef } },
   ];
-  if (userBodyRef) {
-    messageContent.push({ type: "image_url", image_url: { url: userBodyRef } });
+  if (inlinedBodyRef) {
+    messageContent.push({ type: "image_url", image_url: { url: inlinedBodyRef } });
   }
+
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
