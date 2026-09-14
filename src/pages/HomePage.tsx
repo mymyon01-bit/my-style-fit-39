@@ -726,7 +726,7 @@ const HomePage = () => {
           })}
         </section>
 
-        )}
+
 
         {/* tagline / footer text */}
         <p className="mt-10 text-center font-mono text-[10px] uppercase tracking-[0.28em] text-foreground/40">
