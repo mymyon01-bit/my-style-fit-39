@@ -24,6 +24,7 @@ import NotificationsSheet from "@/components/NotificationsSheet";
 import FeedTopRow from "@/components/ootd/FeedTopRow";
 import MyLocationCard from "@/components/ootd/MyLocationCard";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useBarHeightVar } from "@/hooks/useBarHeightVar";
 import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 // Brandmark removed — canonical MyMyonWordmark used elsewhere
@@ -91,6 +92,11 @@ const OOTDPage = () => {
   const { isOpen: inModal, close: closeOOTD } = useOOTDModal();
   const isMobile = useIsMobile();
   const mobileOOTD = inModal || isMobile;
+  // Real measured height of the mobile OOTD tab bar → --ootd-bottom-tab-height
+  const ootdTabBarRef = useBarHeightVar<HTMLDivElement>(
+    "--ootd-bottom-tab-height",
+    mobileOOTD,
+  );
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return (t === "feed" || t === "community" || t === "showroom" || t === "mypage" || t === "ranking") ? t : "mypage";
