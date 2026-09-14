@@ -787,8 +787,25 @@ const V3_BODY_LOCK_PREAMBLE = [
   "PRIORITY ORDER (non-negotiable): (1) accurate body-relative fit visualization, (2) garment fidelity to the reference image, (3) studio cleanliness. Aesthetic beauty, editorial polish, and fashion-model proportions are EXPLICITLY DEPRIORITIZED. Fit truth wins over beauty.",
 ].join(" ");
 
+/**
+ * V17 — final prompt assembly. Legacy fragments are humanized (any residual
+ * mannequin wording becomes real-human wording), then the real-human lock,
+ * sex body mapping and the calculated fit state are layered on top.
+ */
+function finalizeStudioPrompt(parts: (string | false | null | undefined)[], body: CreateBody, subject: string): string {
+  const legacy = humanizePrompt(parts.filter(Boolean).join(" "));
+  return [
+    "REAL HUMAN WEARER — NOT A MANNEQUIN (ABSOLUTE HIGHEST PRIORITY): render an anatomically real human being wearing the garment. Preserve the supplied body DNA exactly. Never output a mannequin, plastic dummy, wax figure, retail display form or generic neutral avatar.",
+    sexBodyMappingBlock(subject, body.renderState, body.bodyProfileSummary),
+    renderStateBlock(body.renderState),
+    legacy,
+    MANNEQUIN_NEGATIVES,
+    "FINAL HARD RULE: the wearer is a REAL HUMAN with real skin, real anatomy and natural posture; the wearer's body is IDENTICAL for every size of this product — only the clothing changes. Apply the supplied tension and ease values physically to the clothing, with realistic garment-body contact, fabric folds, gravity and drape. The garment keeps its exact design, color, texture and details.",
+  ].filter(Boolean).join(" ");
+}
+
 function buildCleanStudioPrompt(body: CreateBody): string {
-  const subject = describeSubject(body.bodyProfileSummary);
+  const subject = describeSubject(body.bodyProfileSummary, body.renderState);
   const build = describeBuild(body.bodyProfileSummary);
   const h = body.bodyProfileSummary?.heightCm;
   const w = body.bodyProfileSummary?.weightKg;
