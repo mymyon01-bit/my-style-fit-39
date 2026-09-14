@@ -49,7 +49,11 @@ const REPLICATE_POLL_INTERVAL_MS = 1500;
 // V16 speed: switched primary to gemini-3.1-flash-image-preview (~3-5x faster
 // than 3-pro) while keeping 3-pro as a fallback for body-fidelity recovery.
 const STUDIO_IMAGE_MODEL = Deno.env.get("FIT_STUDIO_IMAGE_MODEL") || "google/gemini-3.1-flash-image-preview";
-const STUDIO_RENDER_VERSION = "lovable-ai-v16-flash-fast";
+// V17 — REAL HUMAN WEARER + structured render state. The mannequin visual
+// system is retired: the renderer now receives a calculated fit state
+// (measurements → delta → ease → tension → fabric) and paints it on an
+// anatomically real human body locked to the user's body DNA.
+const STUDIO_RENDER_VERSION = "lovable-ai-v17-real-human-structured";
 
 // ─── GARMENT–BODY ALIGNMENT BLOCK (V13) ─────────────────────────────────────
 // Stops the "PNG-pasted-on-mannequin" look. Forces the renderer to wrap the
