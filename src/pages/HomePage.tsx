@@ -273,8 +273,8 @@ const HomePage = () => {
 
 
 
-        {/* Category pills */}
-        <div className="mt-5 -mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Category pills — mobile */}
+        <div className="mt-5 -mx-5 overflow-x-auto px-5 md:mx-0 md:px-0 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex gap-2 pb-1">
             {CATEGORIES.map((c, i) => (
               <button
@@ -293,6 +293,7 @@ const HomePage = () => {
           </div>
         </div>
 
+
         {/* ── Hero card ───────────────────────────────────────────── */}
         <motion.button
           type="button"
@@ -305,7 +306,7 @@ const HomePage = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-5 block w-full overflow-hidden rounded-[24px] text-left shadow-[var(--shadow-2)] aspect-[4/5] sm:aspect-[16/11] lg:aspect-[21/9]"
+          className="relative mt-5 block w-full overflow-hidden rounded-[24px] text-left shadow-[var(--shadow-2)] aspect-[4/5] sm:aspect-[16/11] lg:hidden"
 
         >
           {heroes.length === 0 ? (
@@ -378,8 +379,91 @@ const HomePage = () => {
           )}
         </motion.button>
 
+        {/* ── Desktop editorial hero (lg+) — magazine split, type beside image ─ */}
+        <section className="mt-2 hidden lg:grid lg:grid-cols-12 lg:items-center lg:gap-12">
+          <button
+            type="button"
+            onClick={() => goDiscover("new in")}
+            className="group relative col-span-7 aspect-[4/3] overflow-hidden bg-secondary/50 text-left"
+          >
+            <AnimatePresence mode="sync">
+              <motion.img
+                key={hero?.id}
+                src={hero?.image}
+                alt={hero?.title?.replace("\n", " ") ?? "Editorial"}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </AnimatePresence>
+            <span className="absolute bottom-8 left-8 font-mono text-[10px] uppercase tracking-[0.3em] text-background/90 mix-blend-difference">
+              {hero?.brand ?? "MYMYON Edit"}
+            </span>
+            {heroes.length > 1 && (
+              <span className="absolute bottom-8 right-8 flex items-center gap-1.5">
+                {heroes.map((h, i) => (
+                  <span
+                    key={h.id}
+                    onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }}
+                    className={`h-1 rounded-full transition-all duration-500 ${
+                      i === heroIdx ? "w-6 bg-background/90" : "w-1 bg-background/50"
+                    }`}
+                  />
+                ))}
+              </span>
+            )}
+          </button>
+
+          <div className="col-span-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-accent">Season Edit</p>
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={hero?.id ?? "hero-title"}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-6 whitespace-pre-line font-display text-[64px] font-normal italic leading-[1.03] tracking-tight text-foreground"
+              >
+                {hero?.title ?? "Today's\nPick"}
+              </motion.h1>
+            </AnimatePresence>
+            <p className="mt-8 max-w-sm text-[17px] leading-relaxed text-muted-foreground">
+              Curated pieces that adapt to your unique DNA. Timeless silhouettes meet modern AI precision.
+            </p>
+            <button
+              type="button"
+              onClick={() => goDiscover("new in")}
+              className="mt-10 bg-foreground px-10 py-5 font-mono text-[10px] uppercase tracking-[0.2em] text-background transition-colors duration-500 hover:bg-accent"
+            >
+              Discover the Edit
+            </button>
+          </div>
+        </section>
+
+        {/* Desktop category tab bar */}
+        <div className="mt-20 hidden items-center gap-8 border-b border-border/60 lg:flex">
+          {CATEGORIES.map((c, i) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => goDiscover(c.q)}
+              className={`-mb-px border-b-2 pb-4 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors ${
+                i === 0
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+
         {/* ── Quick tile row ──────────────────────────────────────── */}
-        <div className="mt-6 grid grid-cols-6 gap-1.5 sm:gap-3 md:gap-4">
+        <div className="mt-6 grid grid-cols-6 gap-1.5 sm:gap-3 md:gap-4 lg:hidden">
           {QUICK_TILES.map((tile) => {
             const Icon = tile.icon;
             return (
