@@ -237,7 +237,7 @@ const AppRoutes = () => {
   return (
     <>
       {!isAdmin && <UrlMasker />}
-      {!isAdmin && <WelcomeTour />}
+      
       {!isAdmin && <PermissionsPrompt />}
       {!isAdmin && <ConsentGate />}
 
