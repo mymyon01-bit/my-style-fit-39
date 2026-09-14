@@ -520,7 +520,12 @@ const SubscriptionPage = () => {
         {[
           { q: "Can I cancel anytime?", a: "Yes, cancel anytime from your profile settings. No questions asked." },
           { q: "Is there a free trial?", a: "New users get a 3-month free trial of Premium features automatically." },
-          { q: "How does payment work?", a: "This is an MVP demo. No real payments are processed." },
+          {
+            q: "How does payment work?",
+            a: inApp
+              ? "Payments are handled securely by the App Store or Google Play and billed to your store account."
+              : "Subscriptions are purchased in the MYMYON app on iOS or Android.",
+          },
         ].map((faq) => (
           <div key={faq.q} className="py-3 border-b border-border/10">
             <p className="text-[12px] font-medium text-foreground/70">{faq.q}</p>
