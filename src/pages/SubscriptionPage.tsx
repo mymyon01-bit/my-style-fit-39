@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Crown, Check, ChevronLeft, CreditCard, Loader2, Shield, Sparkles, Star, Zap,
+  Apple, Crown, Check, ChevronLeft, Loader2, Smartphone, Sparkles,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   PurchaseCancelled,
   StorePackage,
@@ -67,170 +66,12 @@ const plans = [
   },
 ];
 
-const FakePaymentModal = ({
-  plan,
-  onClose,
-  onSuccess,
-}: {
-  plan: (typeof plans)[number];
-  onClose: () => void;
-  onSuccess: () => void;
-}) => {
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvc, setCvc] = useState("");
-  const [name, setName] = useState("");
-  const [processing, setProcessing] = useState(false);
-
-  const formatCard = (v: string) => {
-    const digits = v.replace(/\D/g, "").slice(0, 16);
-    return digits.replace(/(.{4})/g, "$1 ").trim();
-  };
-
-  const formatExpiry = (v: string) => {
-    const digits = v.replace(/\D/g, "").slice(0, 4);
-    if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2);
-    return digits;
-  };
-
-  const handleSubmit = async () => {
-    if (cardNumber.replace(/\s/g, "").length < 16) {
-      toast.error("Please enter a valid card number");
-      return;
-    }
-    if (expiry.length < 5) {
-      toast.error("Please enter a valid expiry date");
-      return;
-    }
-    if (cvc.length < 3) {
-      toast.error("Please enter a valid CVC");
-      return;
-    }
-    setProcessing(true);
-    // Simulate payment processing
-    await new Promise((r) => setTimeout(r, 2000));
-    setProcessing(false);
-    onSuccess();
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-card border border-border/30 p-6 pb-10 sm:pb-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-display text-lg font-light text-foreground/90">
-            Payment Details
-          </h3>
-          <div className="flex items-center gap-1.5 text-[10px] text-foreground/75">
-            <Shield className="h-3 w-3" />
-            Secure (MVP Demo)
-          </div>
-        </div>
-
-        <div className="mb-5 rounded-lg bg-foreground/[0.03] border border-border/20 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] text-foreground/75">{plan.name}</span>
-            <span className="text-[14px] font-medium text-foreground/90">
-              {plan.price} {plan.period}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
-              Cardholder Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="John Doe"
-              className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
-              Card Number
-            </label>
-            <div className="relative mt-1.5">
-              <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/70" />
-              <input
-                type="text"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(formatCard(e.target.value))}
-                placeholder="4242 4242 4242 4242"
-                className="w-full rounded-lg bg-foreground/[0.04] border border-border/20 pl-10 pr-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
-                Expiry
-              </label>
-              <input
-                type="text"
-                value={expiry}
-                onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                placeholder="MM/YY"
-                className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-[10px] font-medium text-foreground/70 uppercase tracking-wider">
-                CVC
-              </label>
-              <input
-                type="text"
-                value={cvc}
-                onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="123"
-                className="mt-1.5 w-full rounded-lg bg-foreground/[0.04] border border-border/20 px-4 py-3 text-[13px] text-foreground outline-none placeholder:text-foreground/50 focus:border-accent/30 transition-colors"
-              />
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={processing}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-accent/80 py-3.5 text-[12px] font-medium tracking-wider text-white transition-all hover:bg-accent disabled:opacity-50"
-        >
-          {processing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing…
-            </>
-          ) : (
-            <>Pay {plan.price}</>
-          )}
-        </button>
-
-        <p className="mt-3 text-center text-[11px] text-foreground/70">
-          This is a demo payment. No real charges will be made.
-        </p>
-      </motion.div>
-    </motion.div>
-  );
-};
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { subscription, loading } = useSubscription();
-  const [showPayment, setShowPayment] = useState<(typeof plans)[number] | null>(null);
+  
 
   // --- Native in-app purchases (AppBuild wrapper + RevenueCat) ---------------
   const [inApp, setInApp] = useState(false);
@@ -309,34 +150,6 @@ const SubscriptionPage = () => {
     }
   };
 
-  const handleSelectPlan = (plan: (typeof plans)[number]) => {
-    if (plan.id === "free") return;
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    setShowPayment(plan);
-  };
-
-  const handlePaymentSuccess = async () => {
-    if (!user) return;
-    // Update subscription in DB
-    await supabase.from("subscriptions").upsert(
-      {
-        user_id: user.id,
-        plan: "premium" as any,
-        status: "active" as any,
-        trial_start_date: new Date().toISOString(),
-        trial_end_date: new Date(
-          Date.now() + 365 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
-    setShowPayment(null);
-    toast.success("Welcome to Premium! 🎉");
-    navigate("/profile");
-  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -494,19 +307,19 @@ const SubscriptionPage = () => {
                 ))}
               </ul>
 
-              <button
-                onClick={() => handleSelectPlan(plan)}
-                disabled={isCurrent || plan.id === "free"}
-                className={`w-full rounded-lg py-3 text-[11px] font-medium tracking-wider transition-all ${
-                  plan.popular && !isCurrent
-                    ? "bg-accent/80 text-white hover:bg-accent"
-                    : isCurrent
-                    ? "bg-foreground/[0.05] text-foreground/70 cursor-default"
-                    : "bg-foreground/[0.06] text-foreground/75 hover:bg-foreground/10"
+              <div
+                className={`w-full rounded-lg py-3 text-center text-[11px] font-medium tracking-wider ${
+                  isCurrent
+                    ? "bg-foreground/[0.05] text-foreground/70"
+                    : "bg-foreground/[0.04] text-foreground/65"
                 }`}
               >
-                {isCurrent ? "Current Plan" : plan.cta}
-              </button>
+                {isCurrent
+                  ? "Current Plan"
+                  : plan.id === "free"
+                  ? "Included for everyone"
+                  : "Subscribe in the MYMYON app"}
+              </div>
             </motion.div>
           );
         })}
@@ -534,16 +347,6 @@ const SubscriptionPage = () => {
         ))}
       </div>
 
-      {/* Payment Modal */}
-      <AnimatePresence>
-        {showPayment && (
-          <FakePaymentModal
-            plan={showPayment}
-            onClose={() => setShowPayment(null)}
-            onSuccess={handlePaymentSuccess}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };
