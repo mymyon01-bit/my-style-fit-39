@@ -4,6 +4,7 @@
  * (Products · Showrooms · Looks · Creators).
  */
 import { useEffect, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,9 +121,10 @@ export default function SearchPage() {
                   {data.products.map((p) => (
                     <a
                       key={p.id}
-                      href={p.product_url || "#"}
+                      href={resolveShopUrl(p.product_url) ?? "#"}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(e) => { e.preventDefault(); void openShopUrl(p.product_url); }}
                       className="group block overflow-hidden rounded-xl border border-border bg-card"
                     >
                       {p.image_url && (

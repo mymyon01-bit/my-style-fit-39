@@ -1,4 +1,5 @@
 import { type Product } from "@/lib/recommendation";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Heart, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -51,7 +52,7 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
       return;
     }
     if (product.source_url && product.source_url.startsWith("http")) {
-      window.open(product.source_url, "_blank", "noopener,noreferrer");
+      void openShopUrl(product.source_url);
     } else {
       navigate(`/fit/${product.id}`);
     }

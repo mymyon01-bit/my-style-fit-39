@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useStyleBoards } from "@/hooks/useStyleBoards";
 import { Bookmark, ExternalLink, Loader2, Sparkles, Plus } from "lucide-react";
@@ -76,9 +77,10 @@ export default function QuickPreviewSheet({ open, onClose, product }: QuickPrevi
               )}
               {product.source_url && (
                 <a
-                  href={product.source_url}
+                  href={resolveShopUrl(product.source_url) ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => { e.preventDefault(); void openShopUrl(product.source_url); }}
                   className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-primary"
                 >
                   Open <ExternalLink className="h-2.5 w-2.5" />

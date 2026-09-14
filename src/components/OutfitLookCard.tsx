@@ -1,4 +1,5 @@
 import SafeImage, { resolveImageUrl } from "@/components/SafeImage";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import type { GeneratedOutfit } from "@/lib/outfitGenerator";
 import { useState, memo, useMemo } from "react";
 import { ChevronRight, ImageOff } from "lucide-react";
@@ -47,7 +48,7 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
   }, [outfit]);
 
   const handleItemClick = (url?: string | null) => {
-    if (url) window.open(url, "_blank", "noopener");
+    if (url) void openShopUrl(url);
   };
 
   // Fallbacks: try sibling images if hero/side image fails

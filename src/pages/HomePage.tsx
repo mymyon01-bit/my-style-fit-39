@@ -9,6 +9,7 @@
  * All navigation funnels into /discover with category/mood filters.
  */
 import { useCallback, useEffect, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -516,7 +517,7 @@ const HomePage = () => {
                   key={item.id}
                   type="button"
                   onClick={() => {
-                    if (item.source_url) window.open(item.source_url, "_blank", "noopener,noreferrer");
+                    if (item.source_url) void openShopUrl(item.source_url);
                     else navigate("/discover?source=home");
                   }}
                   className="relative shrink-0 overflow-hidden rounded-2xl bg-foreground/[0.04] text-left md:w-[200px]"
@@ -564,7 +565,7 @@ const HomePage = () => {
                 key={item.id}
                 type="button"
                 onClick={() => {
-                  if (item.source_url) window.open(item.source_url, "_blank", "noopener,noreferrer");
+                  if (item.source_url) void openShopUrl(item.source_url);
                   else navigate("/discover?source=home");
                 }}
                 className="group text-left"

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import type { TodayLook } from "@/lib/today/generateLooks";
 import { Share2, Sparkles } from "lucide-react";
 
@@ -40,9 +41,10 @@ export default function TodayLooksGrid({ looks, onShareToOOTD, onTry }: Props) {
             {look.pieces.map((p, idx) => (
               <a
                 key={idx}
-                href={p.source_url ?? undefined}
+                href={resolveShopUrl(p.source_url) ?? undefined}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(e) => { if (!p.source_url) return; e.preventDefault(); void openShopUrl(p.source_url); }}
                 className="group block rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/[0.03]"
               >
                 <div className="aspect-square w-full overflow-hidden bg-foreground/5">

@@ -74,6 +74,11 @@ export async function openShopUrl(raw?: string | null): Promise<boolean> {
     /* popup blocked */
   }
 
+  // Never load a Google page inside an embedded frame — Google sends
+  // X-Frame-Options, which surfaces as "ERR_BLOCKED_BY_RESPONSE".
+  const inFrame = (() => { try { return window.self !== window.top; } catch { return true; } })();
+  if (inFrame && GOOGLE_HOST.test(new URL(url).hostname)) return false;
+
   // Last resort: break out of any embedding frame instead of loading the
   // merchant page inside it (that is what triggers "refused to connect").
   try {

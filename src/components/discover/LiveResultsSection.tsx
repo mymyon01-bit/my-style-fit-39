@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Loader2, Sparkles, Heart, HeartOff, Bookmark } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import FreshnessPill from "@/components/FreshnessPill";
@@ -211,7 +212,7 @@ function LiveCard({ item, index, isSaved, feedback, onFeedback, onSave, onSelect
           <div
             onClick={(event) => {
               event.stopPropagation();
-              window.open(item.externalUrl!, "_blank", "noopener,noreferrer");
+              void openShopUrl(item.externalUrl);
             }}
             className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100"
           >

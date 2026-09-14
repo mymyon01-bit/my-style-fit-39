@@ -3,6 +3,7 @@
  * The ranking happens before opening, so this modal never calls try-on generation.
  */
 import { useEffect, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sparkles, X, ExternalLink, Square, Circle, Heart, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -160,9 +161,10 @@ export default function StyleLookModal({
                 )}
                 {current.source_url && (
                   <a
-                    href={current.source_url}
+                    href={resolveShopUrl(current.source_url) ?? "#"}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => { e.preventDefault(); void openShopUrl(current.source_url); }}
                     className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-foreground/80 hover:text-foreground"
                   >
                     View product <ExternalLink className="h-3 w-3" />
