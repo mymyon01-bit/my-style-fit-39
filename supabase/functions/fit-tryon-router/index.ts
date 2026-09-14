@@ -612,18 +612,15 @@ function buildUniversalBaseLayerLine(
 
   // Full-body garments cover the whole body — no base layer fights with them.
   if (isFullBody) {
-    return "LAYERING LOCK (HARD): the focus garment is full-body and is the OUTERMOST visible clothing. Underwear/base layers stay underneath and must NOT be visible. If any limb is exposed by the garment cut, it stays smooth matte mannequin material, NOT skin. NEVER bare skin, NEVER lingerie.";
+    return "LAYERING LOCK (HARD): the focus garment is full-body and is the OUTERMOST visible clothing. Underwear/base layers stay underneath and must NOT be visible. Skin exposed by the garment cut stays natural human skin — but NEVER bare torso, NEVER lingerie, NEVER nudity.";
   }
 
-  const isFemale = subject === "female mannequin";
-  const isMale = subject === "male mannequin";
+  const isFemale = subject === "real adult woman";
 
-  // Per-gender SOLID BLACK athletic base layer description.
+  // Per-sex SOLID BLACK athletic base layer description (worn by a real person).
   const baseSpec = isFemale
-    ? "BASE LAYER (hidden modesty layer, female mannequin): the mannequin may have a SOLID MATTE BLACK athletic underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. Plain solid pure black, matte, generic, no logos, no patterns."
-    : isMale
-    ? "BASE LAYER (hidden modesty layer, male mannequin): the mannequin may have SOLID MATTE BLACK fitted boxer-brief underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. The torso remains smooth matte mannequin material where not covered by a product top. Plain solid pure black, matte, generic, no logos, no patterns."
-    : "BASE LAYER (hidden modesty layer, neutral mannequin): the mannequin may have a SOLID MATTE BLACK fitted underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. Plain solid pure black, matte, generic, no logos, no patterns.";
+    ? "BASE LAYER (hidden modesty layer, female wearer): the wearer may have a SOLID MATTE BLACK athletic underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. Plain solid pure black, matte, generic, no logos, no patterns."
+    : "BASE LAYER (hidden modesty layer, male wearer): the wearer may have a SOLID MATTE BLACK fitted boxer-brief underlayer UNDER the product for modesty, but it must behave like underwear: it stays INSIDE / BEHIND the focus garment and does NOT cover, replace, or visually compete with the product. Plain solid pure black, matte, generic, no logos, no patterns.";
 
   const colorLock = "STRICT COLOR LOCK on base layer: solid pure black only — NEVER white, NEVER gray, NEVER skin tone, NEVER any other color. Base layer is visually subdued so it NEVER competes with the focus garment.";
 
