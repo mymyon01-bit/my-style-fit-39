@@ -465,7 +465,48 @@ export default function FitResults({
       selectedSize: activeSize,
       preference: sizing.preference as any,
     });
-  }, [sizing.chart, sizing.preference, garmentDNA, activeSize, bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, product.brand, product.category, genderedContext]);
+  }, [garmentSizeTable, sizing.preference, garmentDNA, activeSize, bodyHeightCm, bodyWeightKg, bodyGender, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, product.brand, product.category, genderedContext]);
+
+  // ── V5 WEARER BODY DNA (LOCKED) ──────────────────────────────────────────
+  // Computed from the body profile ONLY. Never touched by the garment size,
+  // so S → M → L → XL can never reshape the wearer.
+  const wearerBodyDNA = useMemo(
+    () => buildWearerBodyDNA({
+      gender: bodyGender ?? null,
+      heightCm: bodyHeightCm ?? null,
+      weightKg: bodyWeightKg ?? null,
+      shoulderCm: bodyShoulderCm ?? null,
+      chestCm: bodyChestCm ?? null,
+      waistCm: bodyWaistCm ?? null,
+      hipCm: bodyHipCm ?? null,
+      inseamCm: bodyInseamCm ?? null,
+      bodyShape: bodyShape ? String((bodyShape as any).build ?? "") : null,
+    }),
+    [bodyGender, bodyHeightCm, bodyWeightKg, bodyShoulderCm, bodyChestCm, bodyWaistCm, bodyHipCm, bodyInseamCm, bodyShape],
+  );
+
+  // ── V5 FIT RENDER STATE ──────────────────────────────────────────────────
+  // size → physical measurements → delta → ease → tension → fabric behavior.
+  // This object (not the size letter) is what the renderer visualizes.
+  const fitRenderState = useMemo(
+    () => buildFitRenderState({
+      garmentId: `${product.url || product.name}::${product.brand || ""}`.toLowerCase().slice(0, 160),
+      bodyDNA: wearerBodyDNA,
+      garmentDNA,
+      sizes: garmentSizeTable,
+      selectedSize: activeSize,
+    }),
+    [product.url, product.name, product.brand, wearerBodyDNA, garmentDNA, garmentSizeTable, activeSize],
+  );
+
+  // Section T — dev diagnostics: shows immediately where size info stops changing.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.log("[FIT_PIPELINE_DEBUG]", describeRenderStateForDebug(fitRenderState, {
+      activeSize,
+      availableSizes: garmentSizeTable.map((s) => s.size),
+    }));
+  }, [fitRenderState, activeSize, garmentSizeTable]);
 
 
 
