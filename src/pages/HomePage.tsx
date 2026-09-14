@@ -425,7 +425,7 @@ const HomePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-6 whitespace-pre-line font-display text-[64px] font-normal italic leading-[1.03] tracking-tight text-foreground"
+                className="mt-6 whitespace-pre-line font-display text-[40px] font-normal italic leading-[1.05] tracking-tight text-foreground xl:text-[64px] xl:leading-[1.03]"
               >
                 {hero?.title ?? "Today's\nPick"}
               </motion.h1>
