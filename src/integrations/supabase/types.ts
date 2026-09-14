@@ -2922,9 +2922,13 @@ export type Database = {
       subscriptions: {
         Row: {
           created_at: string
+          current_period_end: string | null
           id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
+          provider: string | null
+          rc_app_user_id: string | null
           status: Database["public"]["Enums"]["subscription_status"]
+          store_product_id: string | null
           trial_end_date: string | null
           trial_start_date: string | null
           updated_at: string
@@ -2932,9 +2936,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_period_end?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          provider?: string | null
+          rc_app_user_id?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
+          store_product_id?: string | null
           trial_end_date?: string | null
           trial_start_date?: string | null
           updated_at?: string
@@ -2942,9 +2950,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_period_end?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          provider?: string | null
+          rc_app_user_id?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
+          store_product_id?: string | null
           trial_end_date?: string | null
           trial_start_date?: string | null
           updated_at?: string
