@@ -325,6 +325,56 @@ const SubscriptionPage = () => {
         })}
       </div>
 
+      {/* How to subscribe (web only) */}
+      {!inApp && (
+        <div className="px-6 pt-10 max-w-3xl mx-auto">
+          <div className="rounded-xl border border-accent/25 bg-accent/[0.04] p-6">
+            <h3 className="font-display text-lg font-light text-foreground/90">
+              How to get Premium
+            </h3>
+            <p className="mt-2 text-[12px] leading-relaxed text-foreground/70">
+              Premium is purchased inside the MYMYON app, through the App Store or Google Play.
+              Your plan is tied to your MYMYON account, so it unlocks everywhere you sign in —
+              including this website.
+            </p>
+
+            <ol className="mt-5 space-y-3">
+              {[
+                "Install MYMYON from the App Store or Google Play.",
+                "Sign in with the same account you use here.",
+                "Open Profile → Subscription and choose a plan.",
+                "Confirm with Face ID / your store password — that's it.",
+              ].map((step, i) => (
+                <li key={step} className="flex gap-3 text-[12px] text-foreground/75">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] font-medium text-accent/80">
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-2.5 rounded-lg border border-border/20 bg-foreground/[0.02] px-4 py-3 text-[11px] text-foreground/75">
+                <Apple className="h-4 w-4 text-foreground/60" />
+                App Store · billed to your Apple ID
+              </div>
+              <div className="flex items-center gap-2.5 rounded-lg border border-border/20 bg-foreground/[0.02] px-4 py-3 text-[11px] text-foreground/75">
+                <Smartphone className="h-4 w-4 text-foreground/60" />
+                Google Play · billed to your Play account
+              </div>
+            </div>
+
+            <p className="mt-5 text-[10px] leading-relaxed text-foreground/60">
+              Subscriptions renew automatically unless cancelled at least 24 hours before the
+              current period ends. Manage or cancel anytime in your App Store or Google Play
+              account settings. Already subscribed on another device? Open the app and tap
+              “Restore purchases”.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* FAQ */}
       <div className="px-6 pt-10 max-w-3xl mx-auto">
         <h3 className="text-[10px] font-medium tracking-[0.2em] text-foreground/75 uppercase mb-4">
