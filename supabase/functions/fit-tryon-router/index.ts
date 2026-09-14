@@ -572,15 +572,15 @@ function isBagCategory(cat?: string | null) {
   return /bag|backpack|tote|purse|clutch|handbag|messenger|crossbody/i.test(cat || "");
 }
 
-// ── GLOBAL MANNEQUIN VISUAL LOCK ────────────────────────────────────────────
-// HARD RULE: every FIT image is a faceless mannequin. No real humans. No
-// editorial / lifestyle / influencer photography. Same visual system across
-// all sizes — only the garment changes.
+// ── GLOBAL REAL-HUMAN VISUAL LOCK (V17) ─────────────────────────────────────
+// HARD RULE: every FIT image shows a REAL HUMAN WEARER. The mannequin visual
+// system is retired — it produced plastic dummies instead of believable fit.
+// Same visual system across all sizes — only the garment changes.
 const MANNEQUIN_STYLE_LOCK =
-  "VISUAL MODEL TYPE LOCK (HARD RULE — HIGHEST PRIORITY): The subject MUST be a faceless display MANNEQUIN — a smooth matte fiberglass / plastic store-display dummy, NOT a real human. NO real person, NO human face, NO human identity, NO realistic facial features (no eyes, nose, mouth, eyebrows, ears), NO hair, NO skin pores or skin micro-detail, NO makeup, NO expression, NO lifestyle photography, NO streetwear photo, NO influencer pose, NO editorial fashion shot, NO posed model. The mannequin has a smooth featureless head OR the frame is cropped from the neck down. Body surface is uniform matte mannequin material — clearly artificial, clearly a display dummy. Studio fit-visualization aesthetic only.";
+  "VISUAL MODEL TYPE LOCK (HARD RULE — HIGHEST PRIORITY): The subject MUST be a REAL HUMAN WEARER with real anatomy — real human skin with natural tone and soft-tissue behavior, real neck and clavicle, natural shoulders, natural arms and legs, realistic torso proportions, natural joints, natural relaxed standing posture, normal human body asymmetry. The person does NOT need to look glamorous — they must look anatomically HUMAN. The face may be softly out of focus or the frame cropped from the neck down for privacy, but the BODY is unmistakably a living human body, never a display form. Studio fit-visualization aesthetic, real human wearer.";
 
 const MANNEQUIN_NEGATIVES =
-  "STRICT NEGATIVES — NEVER GENERATE: real person, human model, model face, realistic skin, hair, lifestyle photo, streetwear photography, influencer style, posed fashion shot, magazine editorial, candid snapshot, mixed half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams, NUDE mannequin, BARE torso, BARE legs, visible underwear, exposed bra, exposed panties, exposed briefs, lingerie, bikini, swimsuit, lacy underwear, exposed skin areas, underwear worn outside the outfit, underwear covering the product garment, MALE mannequin wearing a SKIRT or DRESS as base, base layer in any color other than solid matte black.";
+  "STRICT NEGATIVES — NEVER GENERATE: retail mannequin, plastic mannequin, fiberglass display form, store display dummy, wax body, glossy synthetic body, rigid dummy pose, mannequin hands, mannequin neck, faceless display torso, generic neutral avatar, 3D mannequin, doll, robot, half-human half-mannequin hybrid, broken or duplicated body parts, floating garment pieces, torn seams, NUDE body, BARE torso, BARE legs, visible underwear, exposed bra, exposed panties, exposed briefs, lingerie, bikini, swimsuit, exposed skin areas beyond the garment cut, underwear worn outside the outfit, underwear covering the product garment, base layer in any color other than solid matte black.";
 
 // ── UNIVERSAL BASE LAYER LOCK ───────────────────────────────────────────────
 // HARD RULE: every mannequin wears solid MATTE BLACK athletic underlayer
