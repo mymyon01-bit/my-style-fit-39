@@ -68,8 +68,8 @@ const GARMENT_ALIGNMENT_BLOCK =
   "SLEEVES: tube around the arm cylinder with proper armhole rotation and elbow break — never a flat panel pasted on the bicep. " +
   "DEPTH + PERSPECTIVE: the garment must show torso depth — left side, front, and right side of the body should each show different shading because the body is volumetric. " +
   "FOLDS + DRAPE: gravity-correct folds; fabric distance from skin reflects fit class; sharp folds at compression points; soft folds at relaxed points. " +
-  "ABSOLUTELY FORBIDDEN: PNG paste, flat 2D overlay, sticker effect, paper-texture-on-body, body clipping through fabric, garment floating off the body, misaligned shoulder seam, broken strap, garment painted on a flat plane, naked mannequin, partially-clothed mannequin, fabric ignoring perspective, fabric ignoring body curves. " +
-  "FALLBACK: if the renderer cannot achieve realistic garment-to-body wrap, prefer a cleaner simplified mannequin pose with correct shoulders/bust/waist/hip alignment over a broken complex render.";
+  "ABSOLUTELY FORBIDDEN: PNG paste, flat 2D overlay, sticker effect, paper-texture-on-body, body clipping through fabric, garment floating off the body, misaligned shoulder seam, broken strap, garment painted on a flat plane, naked body, partially-clothed body, fabric ignoring perspective, fabric ignoring body curves. " +
+  "FALLBACK: if the renderer cannot achieve realistic garment-to-body wrap, prefer a cleaner simplified human standing pose with correct shoulders/bust/waist/hip alignment over a broken complex render.";
 
 type ProviderName = "lovable-ai" | "replicate";
 type FailureCode = "timeout" | "generation_failed" | "provider_error" | "missing_output" | "credits_exhausted";
