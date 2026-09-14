@@ -13,6 +13,12 @@ export default {
       },
     },
     extend: {
+      // Single, explicit phone/desktop divider: below 768px = mobile app layout,
+      // 768px and up = desktop layout (both `md:` and `lg:` switch together).
+      screens: {
+        md: "768px",
+        lg: "768px",
+      },
       fontFamily: {
         display: ["Playfair Display", "Cormorant Garamond", "Times New Roman", "serif"],
         serif: ["Playfair Display", "Cormorant Garamond", "Times New Roman", "serif"],
