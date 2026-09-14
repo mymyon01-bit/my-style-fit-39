@@ -847,7 +847,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     const bagScale = consequenceLine
       ? `Scale the bag relative to the mannequin so the consequence above is visible: ${verdict?.consequence ?? ""}.`
       : `Scale the bag naturally to the mannequin — small mannequin makes a large bag look oversized; large mannequin makes a small bag look dwarfed.`;
-    return [
+    return finalizeStudioPrompt([
       V3_BODY_LOCK_PREAMBLE,
       `A clean studio fit-visualization render of a ${build} ${subject}${heightLine}${weightLine}, holding or wearing ${garmentLabel}.`,
       bodyTabBlock,
@@ -869,7 +869,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
       SPEC_NEGATIVE_BODY_RULES,
       `Strictly NO bathroom, NO mirror, NO room interior, NO household objects, NO selfie framing, NO duplicate limbs, NO text, NO watermark, NO logos other than those on the product.`,
       safeModeSuffixEarly,
-    ].filter(Boolean).join(" ");
+    ], body, subject);
   }
 
   // ── LEAD SENTENCE (per FIT spec §7) — front-loads the most important
@@ -909,7 +909,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     `Different sizes of this same product MUST produce visibly different silhouettes on the same locked mannequin. Size ${body.selectedSize} = ${silhouetteShort.split(" — ")[0]}.`,
   ].filter(Boolean).join(" ");
 
-  return [
+  return finalizeStudioPrompt([
     V3_BODY_LOCK_PREAMBLE,
     leadFitDirective,
     leadSentence,
@@ -942,7 +942,7 @@ function buildCleanStudioPrompt(body: CreateBody): string {
     `Output must look like a CONSISTENT MANNEQUIN SYSTEM render — same mannequin base, same camera, same pose, same lighting across all sizes; only the garment fit and fabric behavior change. Visual clarity of the size difference is more important than photographic realism. Model-type consistency (faceless mannequin) is mandatory.`,
     `FINAL REMINDER (do NOT ignore): the fit on size ${body.selectedSize} MUST be visibly ${silhouetteShort} — different from other sizes of the same product.`,
     safeModeSuffixEarly,
-  ].filter(Boolean).join(" ");
+  ], body, subject);
 }
 
 // ─── REPLICATE IDM-VTON CALL ────────────────────────────────────────────────
