@@ -993,13 +993,22 @@ async function runStudioRenderAttempt(apiKey: string, body: CreateBody, modelOve
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERVER_TIMEOUT_MS);
 
+  // Vertex AI refuses to fetch many merchant image URLs (robots.txt / hotlink
+  // blocks). Download the bytes here and pass them inline as data URLs.
+  const productRef = await inlineImageForAi(body.productImageUrl);
+  if (!productRef) {
+    return { kind: "error", code: "provider_error", error: "product_image_unreachable" };
+  }
+  const inlinedBodyRef = userBodyRef ? await inlineImageForAi(userBodyRef) : null;
+
   const messageContent: Array<Record<string, unknown>> = [
     { type: "text", text: prompt },
-    { type: "image_url", image_url: { url: body.productImageUrl } },
+    { type: "image_url", image_url: { url: productRef } },
   ];
-  if (userBodyRef) {
-    messageContent.push({ type: "image_url", image_url: { url: userBodyRef } });
+  if (inlinedBodyRef) {
+    messageContent.push({ type: "image_url", image_url: { url: inlinedBodyRef } });
   }
+
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
