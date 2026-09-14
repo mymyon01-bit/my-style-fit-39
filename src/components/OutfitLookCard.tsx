@@ -47,7 +47,7 @@ const OutfitLookCardImpl = ({ outfit, index }: OutfitLookCardProps) => {
   }, [outfit]);
 
   const handleItemClick = (url?: string | null) => {
-    if (url) window.open(url, "_blank", "noopener");
+    if (url) void openShopUrl(url);
   };
 
   // Fallbacks: try sibling images if hero/side image fails
