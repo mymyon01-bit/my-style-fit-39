@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.ai-search]
 verify_jwt = false
+
+[functions.discover-intent-expand]
+verify_jwt = false
