@@ -1,4 +1,5 @@
 import { type Product } from "@/lib/recommendation";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Heart, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";

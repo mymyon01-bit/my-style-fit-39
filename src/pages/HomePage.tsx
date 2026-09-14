@@ -9,6 +9,7 @@
  * All navigation funnels into /discover with category/mood filters.
  */
 import { useCallback, useEffect, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {

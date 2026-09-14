@@ -3,6 +3,7 @@
  * The ranking happens before opening, so this modal never calls try-on generation.
  */
 import { useEffect, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sparkles, X, ExternalLink, Square, Circle, Heart, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

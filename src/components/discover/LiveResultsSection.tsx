@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Loader2, Sparkles, Heart, HeartOff, Bookmark } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import FreshnessPill from "@/components/FreshnessPill";

@@ -1,4 +1,5 @@
 import SafeImage, { resolveImageUrl } from "@/components/SafeImage";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import type { GeneratedOutfit } from "@/lib/outfitGenerator";
 import { useState, memo, useMemo } from "react";
 import { ChevronRight, ImageOff } from "lucide-react";

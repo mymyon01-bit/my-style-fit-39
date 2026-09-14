@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import type { TodayLook } from "@/lib/today/generateLooks";
 import { Share2, Sparkles } from "lucide-react";
 

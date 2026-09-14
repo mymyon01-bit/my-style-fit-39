@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useStyleBoards } from "@/hooks/useStyleBoards";
 import { Bookmark, ExternalLink, Loader2, Sparkles, Plus } from "lucide-react";
