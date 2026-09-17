@@ -58,10 +58,12 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    void load(() => cancelled);
+    return () => { cancelled = true; };
   }, [user, refreshKey, circlesOnly]);
 
-  const load = async () => {
+  const load = async (isCancelled: () => boolean) => {
     setLoading(true);
     const nowIso = new Date().toISOString();
 
@@ -84,6 +86,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
       .limit(100);
     if (allowedUserIds) q = q.in("user_id", allowedUserIds);
     const { data: stories } = await q;
+    if (isCancelled()) return;
 
     const list = (stories || []) as Story[];
     const userIds = [...new Set(list.map((s) => s.user_id))];
@@ -95,6 +98,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
         .from("profiles")
         .select("user_id, display_name, avatar_url")
         .in("user_id", userIds);
+      if (isCancelled()) return;
       for (const p of profiles || []) profileMap[p.user_id] = p as ProfileLite;
     }
     if (user) setMyProfile(profileMap[user.id] || null);
@@ -168,7 +172,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
               <RippleRing active={myHasStory} unseen={myHasStory && grouped.find((g) => g.user_id === user.id)?.hasUnseen} />
               <div className={`relative ${ringSize} rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background`}>
                 {myProfile?.avatar_url ? (
-                  <img src={myProfile.avatar_url} alt="You" className="w-full h-full object-cover" />
+                    <img src={myProfile.avatar_url} alt="You" className="w-full h-full object-cover" decoding="async" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[10px] font-medium text-foreground/50">
                     {(myProfile?.display_name?.[0] || "Y").toUpperCase()}
@@ -212,7 +216,7 @@ const StoriesRow = ({ onUploadClick, onOpenStories, refreshKey, circlesOnly = fa
                     <RippleRing active unseen={u.hasUnseen} />
                     <div className={`relative ${ringSize} rounded-full overflow-hidden bg-foreground/[0.06] border-2 border-background`}>
                       {u.profile?.avatar_url ? (
-                        <img src={u.profile.avatar_url} alt={u.profile.display_name || ""} className="w-full h-full object-cover" />
+                        <img src={u.profile.avatar_url} alt={u.profile.display_name || ""} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[10px] font-medium text-foreground/50">
                           {(u.profile?.display_name?.[0] || "?").toUpperCase()}

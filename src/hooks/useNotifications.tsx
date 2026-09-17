@@ -52,10 +52,10 @@ function useNotificationsSource(): NotificationsState {
       setOotdUnread(0);
       return;
     }
-    const [n, m, o] = await Promise.all([
+    const [n, m] = await Promise.all([
       supabase
         .from("notifications" as any)
-        .select("id", { count: "exact", head: true })
+        .select("type")
         .eq("recipient_id", user.id)
         .is("read_at", null),
       supabase
@@ -63,16 +63,11 @@ function useNotificationsSource(): NotificationsState {
         .select("id", { count: "exact", head: true })
         .eq("recipient_id", user.id)
         .is("read_at", null),
-      supabase
-        .from("notifications" as any)
-        .select("id", { count: "exact", head: true })
-        .eq("recipient_id", user.id)
-        .is("read_at", null)
-        .in("type", OOTD_NOTIF_TYPES),
     ]);
-    setNotifUnread(n.count || 0);
+    const unreadNotifications = (n.data ?? []) as Array<{ type?: string | null }>;
+    setNotifUnread(unreadNotifications.length);
     setMsgUnread(m.count || 0);
-    setOotdUnread(o.count || 0);
+    setOotdUnread(unreadNotifications.filter((item) => item.type && OOTD_NOTIF_TYPES.includes(item.type)).length);
     })();
     refreshPromise.current = run;
     try {

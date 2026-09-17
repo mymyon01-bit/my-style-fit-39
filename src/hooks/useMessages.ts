@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
@@ -56,6 +56,8 @@ export function useConversations() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalUnread, setTotalUnread] = useState(0);
+  const loadingRef = useRef(false);
+  const reloadQueuedRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!user) {
@@ -64,6 +66,11 @@ export function useConversations() {
       setLoading(false);
       return;
     }
+    if (loadingRef.current) {
+      reloadQueuedRef.current = true;
+      return;
+    }
+    loadingRef.current = true;
     setLoading(true);
 
     // Find every conversation the user participates in (group or 1:1)
@@ -91,6 +98,7 @@ export function useConversations() {
       setConversations([]);
       setTotalUnread(0);
       setLoading(false);
+      loadingRef.current = false;
       return;
     }
 
@@ -104,6 +112,7 @@ export function useConversations() {
       setConversations([]);
       setTotalUnread(0);
       setLoading(false);
+      loadingRef.current = false;
       return;
     }
 
@@ -203,6 +212,11 @@ export function useConversations() {
     setConversations(summaries);
     setTotalUnread(Array.from(unreadByConvo.values()).reduce((a, b) => a + b, 0));
     setLoading(false);
+    loadingRef.current = false;
+    if (reloadQueuedRef.current) {
+      reloadQueuedRef.current = false;
+      queueMicrotask(() => { void load(); });
+    }
   }, [user]);
 
   useEffect(() => {
@@ -211,13 +225,19 @@ export function useConversations() {
 
   useEffect(() => {
     if (!user) return;
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleLoad = () => {
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => { void load(); }, 150);
+    };
     const channel = supabase
-      .channel(`inbox-${user.id}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversation_participants" }, () => load())
+      .channel(`inbox-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, scheduleLoad)
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, scheduleLoad)
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversation_participants", filter: `user_id=eq.${user.id}` }, scheduleLoad)
       .subscribe();
     return () => {
+      if (reloadTimer) clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
     };
   }, [user, load]);
