@@ -43,6 +43,13 @@ function merchantSearchUrl(context?: ShopLinkContext): string | null {
   return `https://${domain}/search?q=${encodeURIComponent(productName)}`;
 }
 
+/** Neutral, frame-safe shopping search so the action never becomes a dead end. */
+function fallbackSearchUrl(context?: ShopLinkContext): string | null {
+  const q = [context?.merchant?.trim(), context?.productName?.trim()].filter(Boolean).join(" ");
+  if (!q) return null;
+  return `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
+}
+
 /** Unwrap Google/Bing style redirect wrappers down to the merchant URL. */
 export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): string | null {
   let current = raw?.trim();
@@ -75,8 +82,8 @@ export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): 
     if (!next) {
       // A Google Shopping page is not a merchant destination. Never send a
       // shopper back to Google: use the merchant's own site when known, and
-      // otherwise fail closed so callers can hide/disable the action.
-      return merchantSearchUrl(context);
+      // otherwise fall back to a neutral product search that always opens.
+      return merchantSearchUrl(context) ?? fallbackSearchUrl(context);
     }
     current = next;
   }
