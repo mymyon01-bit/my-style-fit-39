@@ -1,5 +1,6 @@
 import type { Product } from "./types";
 import { sourceFromUrl } from "./sources";
+import { resolveShopUrl } from "@/lib/shopLink";
 
 export function inferCategory(title: string): string {
   const t = (title || "").toLowerCase();
