@@ -43,6 +43,13 @@ function merchantSearchUrl(context?: ShopLinkContext): string | null {
   return `https://${domain}/search?q=${encodeURIComponent(productName)}`;
 }
 
+/** Neutral, frame-safe shopping search so the action never becomes a dead end. */
+function fallbackSearchUrl(context?: ShopLinkContext): string | null {
+  const q = [context?.merchant?.trim(), context?.productName?.trim()].filter(Boolean).join(" ");
+  if (!q) return null;
+  return `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
+}
+
 /** Unwrap Google/Bing style redirect wrappers down to the merchant URL. */
 export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): string | null {
   let current = raw?.trim();
