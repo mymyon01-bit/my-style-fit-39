@@ -26,11 +26,20 @@ export function normalizeFromCache(raw: unknown): Product | null {
     (r.thumbnail as string) ||
     firstFromArray ||
     null;
-  const externalUrl = (r.source_url || r.externalUrl || null) as string | null;
+  const rawUrl = (r.source_url || r.externalUrl || null) as string | null;
   if (typeof window !== "undefined" && !imageUrl) {
     console.log("PRODUCT IMAGE:", r.id, imageUrl);
   }
   if (!title) return null;
+  // Only keep products that lead to a real retailer page — Google Shopping
+  // wrappers are unwrapped, and anything without a shoppable destination is
+  // dropped instead of surfacing a dead "SHOP NOW".
+  const storeName = (r.store_name as string) || (r.storeName as string) || null;
+  const externalUrl = resolveShopUrl(rawUrl, {
+    productName: title,
+    merchant: storeName || ((r.brand as string) ?? null),
+  });
+  if (!externalUrl) return null;
   const category = (r.category as string) || inferCategory(title);
   return {
     id: String(r.id || externalUrl || `${title}-${Date.now()}`),
