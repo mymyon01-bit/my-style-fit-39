@@ -224,6 +224,12 @@ const FeedSection = () => {
 
   return (
     <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
+      {feedMs !== null && !loading && (
+        <p className="px-3 pt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-foreground/35 lg:px-0">
+          Feed loaded in {(feedMs / 1000).toFixed(2)}s
+        </p>
+      )}
+
       {/* Feed — single column mobile, 2-col tablet, 3-col desktop */}
       <div className="mt-2 grid gap-4 px-3 lg:grid-cols-2 lg:gap-6 lg:px-0 xl:grid-cols-3">
         {loading && (
