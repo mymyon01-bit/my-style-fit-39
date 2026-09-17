@@ -13,41 +13,8 @@ export interface ShopLinkContext {
   merchant?: string | null;
 }
 
-const MERCHANT_DOMAINS: Record<string, string> = {
-  "net-a-porter": "net-a-porter.com",
-  "net-a-porter.com": "net-a-porter.com",
-  nordstrom: "nordstrom.com",
-  farfetch: "farfetch.com",
-  ssense: "ssense.com",
-  asos: "asos.com",
-  ssg: "ssg.com",
-  coach: "coach.com",
-  fwrd: "fwrd.com",
-  "keds.com": "keds.com",
-  skechers: "skechers.com",
-  "skechers.com": "skechers.com",
-  "nunn bush shoes": "nunnbush.com",
-  "pants store": "pantsstore.com",
-  "penner's": "pennersinc.com",
-};
-
 function merchantSearchUrl(context?: ShopLinkContext): string | null {
-  const merchant = context?.merchant?.trim().toLowerCase();
-  const productName = context?.productName?.trim();
-  if (!merchant || !productName) return null;
-
-  const dotted = merchant.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-  const mapped = MERCHANT_DOMAINS[merchant] ?? MERCHANT_DOMAINS[merchant.replace(/\.com$/, "")];
-  const domain = mapped ?? (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(dotted) ? dotted : null);
-  if (!domain) return null;
-  return `https://${domain}/search?q=${encodeURIComponent(productName)}`;
-}
-
-/** Neutral, frame-safe shopping search so the action never becomes a dead end. */
-function fallbackSearchUrl(context?: ShopLinkContext): string | null {
-  const q = [context?.merchant?.trim(), context?.productName?.trim()].filter(Boolean).join(" ");
-  if (!q) return null;
-  return `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
+  return merchantProductSearchUrl(context?.merchant, context?.productName);
 }
 
 /** Unwrap Google/Bing style redirect wrappers down to the merchant URL. */
