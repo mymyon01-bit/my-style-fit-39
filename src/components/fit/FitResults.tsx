@@ -1143,7 +1143,7 @@ export default function FitResults({
             <div className="mt-4 grid grid-cols-1 gap-2 border-t border-foreground/[0.06] pt-4 sm:grid-cols-2">
               {product.url && product.url !== "#" && (
                 <a
-                  href={resolveShopUrl(product.url) ?? "#"}
+                  href={resolveShopUrl(product.url, { productName: product.name, merchant: product.brand }) ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => { e.preventDefault(); void openShopUrl(product.url, { productName: product.name, merchant: product.brand }); }}

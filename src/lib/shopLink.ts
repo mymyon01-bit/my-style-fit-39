@@ -22,6 +22,7 @@ const MERCHANT_DOMAINS: Record<string, string> = {
   asos: "asos.com",
   ssg: "ssg.com",
   coach: "coach.com",
+  fwrd: "fwrd.com",
   "keds.com": "keds.com",
   skechers: "skechers.com",
   "skechers.com": "skechers.com",
