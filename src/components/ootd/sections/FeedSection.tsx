@@ -8,10 +8,12 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Bookmark, MoreHorizontal, Plus, Loader2 } from "lucide-react";
+import { MessageCircle, Bookmark, MoreHorizontal, Plus, Loader2, BadgeCheck } from "lucide-react";
 import WaveButton from "@/components/ootd/WaveButton";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
-import ShareButton from "@/components/ShareButton";
+import FeedActivityBanner from "@/components/ootd/FeedActivityBanner";
+import PostShareRow from "@/components/ootd/PostShareRow";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
@@ -33,7 +35,9 @@ interface PostRow {
     display_name: string | null;
     username: string | null;
     avatar_url: string | null;
+    is_creator?: boolean | null;
   } | null;
+
 }
 
 const PAGE_SIZE = 18;
