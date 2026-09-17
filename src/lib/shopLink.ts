@@ -5,6 +5,8 @@
 // the click entirely. We unwrap them to the real merchant URL and always open
 // the result as a genuine top-level tab (or the system browser on native).
 
+import { merchantProductSearchUrl } from "./merchantDomains";
+
 const GOOGLE_HOST = /(^|\.)google\.[a-z.]+$/i;
 const REDIRECT_PARAMS = ["adurl", "url", "q", "imgrefurl", "u", "dest"];
 
