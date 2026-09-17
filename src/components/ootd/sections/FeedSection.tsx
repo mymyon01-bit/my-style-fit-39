@@ -156,7 +156,7 @@ const FeedSection = () => {
     }
     const { data: profs } = await supabase
       .from("profiles")
-      .select("user_id, display_name, username, avatar_url")
+      .select("user_id, display_name, username, avatar_url, is_creator")
       .in("user_id", ids);
     (profs ?? []).forEach((p: any) => profileCache.current.set(p.user_id, p));
     setPosts((prev) => prev.map((r) =>
@@ -293,6 +293,8 @@ const FeedSection = () => {
 
   return (
     <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
+      <FeedActivityBanner />
+
       {feedMs !== null && !loading && (
         <p className="px-3 pt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-foreground/35 lg:px-0">
           Feed loaded in {(feedMs / 1000).toFixed(2)}s
@@ -339,11 +341,15 @@ const FeedSection = () => {
                   )}
                 </span>
                 <span className="text-left">
-                  <span className="block text-[13px] font-medium leading-tight text-foreground">
+                  <span className="flex items-center gap-1 text-[13px] font-medium leading-tight text-foreground">
                     {p.profile?.display_name ?? p.profile?.username ?? "Anonymous"}
+                    {p.profile?.is_creator && (
+                      <BadgeCheck className="h-3.5 w-3.5 text-accent" strokeWidth={2} aria-label="Creator" />
+                    )}
                   </span>
                   <span className="block text-[10px] text-foreground/45">{timeAgo(p.created_at)}</span>
                 </span>
+
               </button>
               <button type="button" aria-label="More" className="text-foreground/55 hover:text-foreground">
                 <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} />
@@ -411,11 +417,11 @@ const FeedSection = () => {
                   <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
                 </button>
               </div>
-              <ShareButton
-                title={p.caption || "OOTD"}
-                url={`${window.location.origin}/ootd?section=feed&post=${p.id}`}
-                className="text-foreground/75"
+              <PostShareRow
+                post={{ id: p.id, user_id: p.user_id, image_url: p.image_url, caption: p.caption }}
+                author={p.profile ?? null}
               />
+
             </footer>
           </article>
         ))}
