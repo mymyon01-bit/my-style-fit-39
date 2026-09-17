@@ -172,14 +172,14 @@ const FeedSection = () => {
           </div>
         )}
         {empty && (
-          <div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-foreground/55">
+          <div className="col-span-full border-2 border-foreground/10 bg-card p-8 text-center text-sm font-medium text-foreground/55">
             No posts yet — check back soon.
           </div>
         )}
         {posts.map((p) => (
           <article
             key={p.id}
-            className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-1)]"
+            className="overflow-hidden rounded-md border-2 border-foreground/10 bg-card shadow-[4px_5px_0_hsl(var(--foreground)/0.08)] transition-transform duration-300 hover:-translate-y-1"
           >
             {/* Author row */}
             <header className="flex items-center justify-between px-4 pt-3 pb-2.5">

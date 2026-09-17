@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Search, Settings, Home, User, Zap, Waves, Store } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import FeedSection from "@/components/ootd/sections/FeedSection";
 import MyPageSection from "@/components/ootd/sections/MyPageSection";
 import WaveShowroomSection from "@/components/ootd/sections/WaveShowroomSection";
@@ -23,12 +24,12 @@ type TabKey = "my" | "feed" | "quicks" | "wave" | "showroom";
 
 // Tab bar reads left-to-right: MY first (your page), then the social feed,
 // Quicks in the middle as the hero CTA, then Wave and Showroom.
-const TABS: { key: TabKey; label: string; Icon: typeof Home }[] = [
-  { key: "my",       label: "My",       Icon: User  },
-  { key: "feed",     label: "Feed",     Icon: Home  },
-  { key: "quicks",   label: "Quicks",   Icon: Zap   },
-  { key: "wave",     label: "Wave",     Icon: Waves },
-  { key: "showroom", label: "Showroom", Icon: Store },
+const TABS: { key: TabKey; label: string; caption: string; Icon: typeof Home }[] = [
+  { key: "my",       label: "My",       caption: "ME",      Icon: User  },
+  { key: "feed",     label: "Feed",     caption: "STREAM",  Icon: Home  },
+  { key: "quicks",   label: "Quicks",   caption: "SHORTS",  Icon: Zap   },
+  { key: "wave",     label: "Wave",     caption: "CULTURE", Icon: Waves },
+  { key: "showroom", label: "Showroom", caption: "EXHIBIT", Icon: Store },
 ];
 
 export default function OOTDCommunityPage() {
@@ -63,16 +64,21 @@ export default function OOTDCommunityPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background pb-28 md:pb-16">
-      {/* ── Social-style header ─────────────────────────────── */}
-      <header className="sticky top-0 z-30 border-b border-border/40 bg-background/90 backdrop-blur-xl">
+    <div className="ootd-modern-shell min-h-screen w-full bg-background pb-28 font-sans md:pb-16">
+      {/* ── OOTD fashion-station header ────────────────────── */}
+      <header className="sticky top-0 z-30 border-b-2 border-foreground/10 bg-background/95 backdrop-blur-xl">
         <div className="mx-auto w-full max-w-[1600px] px-5 md:px-10 xl:px-16">
           {/* Title row */}
-          <div className="flex items-center justify-between pt-4 pb-2 md:pt-5">
-            <h1 className="font-display text-[24px] font-medium leading-none tracking-tight text-foreground md:text-[30px]">
-              <span className="text-accent">#</span>OOTD
-            </h1>
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between pb-5 pt-5 md:pb-7 md:pt-7">
+            <div>
+              <p className="mb-1 font-mono text-[9px] font-bold uppercase tracking-[0.26em] text-foreground/42">
+                MYMYON / STYLE STATION
+              </p>
+              <h1 className="text-[30px] font-black uppercase leading-none tracking-normal text-foreground md:text-[42px]">
+                OOTD<span className="text-accent">.</span>
+              </h1>
+            </div>
+            <div className="flex items-center gap-1.5 md:gap-2">
               <IconBtn label="Home" onClick={() => navigate("/")}>
                 <Home className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </IconBtn>
@@ -83,11 +89,13 @@ export default function OOTDCommunityPage() {
                 unread={msgUnread}
                 onClick={(anchor) => { setMailboxAnchor(anchor); setMessagesOpen(true); }}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 aria-label="Notifications"
                 onClick={() => setNotifsOpen(true)}
-                className="relative flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
+                className="relative h-10 w-10 rounded-full border border-foreground/10 bg-card text-foreground/65 hover:bg-foreground hover:text-background"
               >
                 <Bell className="h-[18px] w-[18px]" strokeWidth={1.7} />
                 {notifUnread > 0 && (
@@ -95,7 +103,7 @@ export default function OOTDCommunityPage() {
                     {notifUnread > 99 ? "99+" : notifUnread}
                   </span>
                 )}
-              </button>
+              </Button>
               {tab === "my" && (
                 <IconBtn label="Settings" onClick={() => navigate("/settings")}>
                   <Settings className="h-[18px] w-[18px]" strokeWidth={1.7} />
@@ -104,51 +112,45 @@ export default function OOTDCommunityPage() {
             </div>
           </div>
 
-          {/* Cute icon tabs */}
-          <nav className="flex items-end justify-around gap-1 pb-2.5 pt-1 md:justify-center md:gap-12">
+          {/* Circular fashion-station navigation */}
+          <nav className="flex items-start justify-between gap-1 overflow-x-auto pb-5 md:justify-center md:gap-12 md:pb-7">
             {TABS.map((t) => {
               const active = tab === t.key;
-              const isCenter = t.key === "quicks";
               return (
-                <button
+                <Button
                   key={t.key}
                   type="button"
+                  variant="ghost"
                   onClick={() => switchTo(t.key)}
                   aria-label={t.label}
-                  className={`group relative flex flex-col items-center gap-1.5 px-2 pt-1 pb-0.5 transition ${
-                    active ? "text-foreground" : "text-foreground/50 hover:text-foreground/85"
+                  className={`group relative h-auto min-w-0 flex-1 flex-col gap-2 rounded-none p-0 md:w-[78px] md:flex-none ${
+                    active ? "text-foreground" : "text-foreground/38 hover:bg-transparent hover:text-foreground"
                   }`}
                 >
                   <span
-                    className={`flex items-center justify-center rounded-full transition-all duration-300 ${
-                      isCenter
-                        ? active
-                          ? "h-12 w-12 bg-gradient-to-br from-accent to-primary text-background shadow-[0_8px_24px_-8px_hsl(var(--accent)/0.7)] scale-105"
-                          : "h-12 w-12 bg-gradient-to-br from-accent/25 to-primary/25 text-foreground/80"
-                        : active
-                          ? "h-10 w-10 bg-secondary ring-2 ring-accent/40"
-                          : "h-10 w-10 bg-secondary/40 group-hover:bg-secondary/70"
+                    className={`relative flex h-[52px] w-[52px] items-center justify-center rounded-full border-2 transition-all duration-300 md:h-16 md:w-16 ${
+                      active
+                        ? "border-foreground bg-foreground text-background shadow-[4px_5px_0_hsl(var(--accent))] -translate-y-0.5"
+                        : "border-foreground/12 bg-card text-foreground/35 group-hover:border-foreground group-hover:text-foreground"
                     }`}
                   >
                     <t.Icon
-                      className={isCenter ? "h-[22px] w-[22px]" : "h-[19px] w-[19px]"}
-                      strokeWidth={active ? 2.1 : 1.7}
+                      className="h-[19px] w-[19px] md:h-[22px] md:w-[22px]"
+                      strokeWidth={active ? 2.5 : 1.8}
                     />
+                    {t.key === "wave" && (
+                      <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-accent" />
+                    )}
                   </span>
-                  <span
-                    className={`text-[11px] font-semibold tracking-tight transition-colors ${
-                      active ? "text-foreground" : "text-foreground/55"
-                    }`}
-                  >
-                    {t.label}
+                  <span className="flex flex-col items-center leading-none">
+                    <span className={`text-[10px] font-extrabold uppercase tracking-normal md:text-[11px] ${active ? "text-foreground" : "text-foreground/55"}`}>
+                      {t.label}
+                    </span>
+                    <span className={`mt-1 hidden font-mono text-[8px] font-bold tracking-[0.14em] sm:block ${active ? "text-accent" : "text-foreground/28"}`}>
+                      {t.caption}
+                    </span>
                   </span>
-                  {active && !isCenter && (
-                    <motion.span
-                      layoutId="ootd-tab-dot"
-                      className="absolute -bottom-1 h-1 w-4 rounded-full bg-accent"
-                    />
-                  )}
-                </button>
+                </Button>
               );
             })}
           </nav>
@@ -164,7 +166,7 @@ export default function OOTDCommunityPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="pt-4 md:pt-6"
+            className="pt-3 md:pt-7"
           >
             {tab === "feed" && <FeedSection />}
             {tab === "my" && <MyPageSection />}
@@ -197,13 +199,15 @@ function IconBtn({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       aria-label={label}
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
+      className="h-10 w-10 rounded-full border border-foreground/10 bg-card text-foreground/65 hover:bg-foreground hover:text-background"
     >
       {children}
-    </button>
+    </Button>
   );
 }

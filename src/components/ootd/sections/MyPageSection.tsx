@@ -158,7 +158,8 @@ const MyPageSection = () => {
           )}
         </span>
         <div className="min-w-0 flex-1 pt-1">
-          <h1 className="font-display text-[22px] leading-tight tracking-tight text-foreground">{name}</h1>
+          <p className="mb-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-accent">PROFILE / ARCHIVE</p>
+          <h1 className="text-[24px] font-black uppercase leading-tight tracking-normal text-foreground">{name}</h1>
           {handle && <p className="text-[12px] text-foreground/50">{handle}</p>}
           {profile?.bio && (
             <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-foreground/70">
@@ -188,7 +189,7 @@ const MyPageSection = () => {
           { label: "Ripple", value: circleCounts?.ripple ?? 0 },
         ].map((s) => (
           <div key={s.label}>
-            <div className="font-display text-[20px] font-medium text-foreground">{formatCount(s.value)}</div>
+            <div className="text-[22px] font-black text-foreground">{formatCount(s.value)}</div>
             <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/55">{s.label}</div>
           </div>
         ))}
@@ -198,7 +199,7 @@ const MyPageSection = () => {
       <div className="mt-4 flex items-center gap-2">
         <Button
           variant="outline"
-          className="h-10 flex-1 rounded-xl border-border bg-card text-[13px] font-medium"
+          className="h-10 flex-1 rounded-md border-2 border-foreground/15 bg-card text-[12px] font-bold uppercase tracking-normal"
           onClick={() => navigate("/profile")}
         >
           Edit Profile
@@ -207,7 +208,7 @@ const MyPageSection = () => {
           variant="outline"
           size="icon"
           aria-label="Saved"
-          className="h-10 w-10 rounded-xl border-border bg-card"
+          className="h-10 w-10 rounded-md border-2 border-foreground/15 bg-card"
           onClick={() => setTab("saved")}
         >
           <Bookmark className="h-[16px] w-[16px]" strokeWidth={1.6} />
@@ -219,7 +220,7 @@ const MyPageSection = () => {
         <button
           type="button"
           onClick={() => setUploadOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+          className="flex items-center justify-center gap-2 rounded-md border-2 border-foreground/15 bg-card py-3 text-foreground/65 transition-all hover:border-foreground hover:bg-foreground hover:text-background"
         >
           <Camera className="h-4 w-4" />
           <span className="text-[10px] font-medium tracking-[0.22em]">POST PHOTO</span>
@@ -227,7 +228,7 @@ const MyPageSection = () => {
         <button
           type="button"
           onClick={() => setVideoUploadOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-foreground/15 bg-background/60 py-3 text-foreground/65 transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent"
+          className="flex items-center justify-center gap-2 rounded-md border-2 border-foreground/15 bg-card py-3 text-foreground/65 transition-all hover:border-foreground hover:bg-foreground hover:text-background"
         >
           <Film className="h-4 w-4" />
           <span className="text-[10px] font-medium tracking-[0.22em]">POST VIDEO</span>
@@ -273,7 +274,7 @@ const MyPageSection = () => {
                 key={p.id}
                 type="button"
                 onClick={() => navigate(`/ootd?post=${p.id}`)}
-                className="group relative overflow-hidden rounded-xl bg-foreground/[0.04] text-left"
+                className="group relative overflow-hidden rounded-sm border border-foreground/10 bg-foreground/[0.04] text-left"
                 style={{ aspectRatio: "3 / 4" }}
               >
                 <img
