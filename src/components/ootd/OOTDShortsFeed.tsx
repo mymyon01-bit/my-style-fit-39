@@ -215,23 +215,20 @@ export default function OOTDShortsFeed() {
     }
     const rows = (data || []) as VideoRow[];
     const ids = [...new Set(rows.map((r) => r.user_id))];
-    let profiles: Record<string, any> = {};
-    if (ids.length) {
-      const { data: ps } = await supabase
+    const [profilesResult, likesResult] = await Promise.all([
+      ids.length ? supabase
         .from("profiles")
         .select("user_id, display_name, username, avatar_url")
-        .in("user_id", ids);
-      for (const p of ps || []) profiles[(p as any).user_id] = p;
-    }
-    let liked: Set<string> = new Set();
-    if (user && rows.length) {
-      const { data: ls } = await supabase
+        .in("user_id", ids) : Promise.resolve({ data: [] }),
+      user && rows.length ? supabase
         .from("ootd_video_likes")
         .select("video_id")
         .eq("user_id", user.id)
-        .in("video_id", rows.map((r) => r.id));
-      liked = new Set((ls || []).map((l: any) => l.video_id));
-    }
+        .in("video_id", rows.map((r) => r.id)) : Promise.resolve({ data: [] }),
+    ]);
+    const profiles: Record<string, any> = {};
+    for (const p of profilesResult.data || []) profiles[(p as any).user_id] = p;
+    const liked = new Set((likesResult.data || []).map((l: any) => l.video_id));
     setVideos(
       rows.map((r) => ({
         ...r,
@@ -354,7 +351,7 @@ export default function OOTDShortsFeed() {
         ) : (
           visibleVideos.map((v, i) => (
             <div key={v.id} data-idx={i} className="relative h-full w-full">
-              <VideoCard
+              {Math.abs(i - activeIdx) <= 1 ? <VideoCard
                 v={v}
                 active={i === activeIdx}
                 muted={muted}
@@ -365,7 +362,7 @@ export default function OOTDShortsFeed() {
                 onShare={() => handleShare(videos.indexOf(v))}
                 saved={savedSet.has(v.id)}
                 onAuthorClick={(uid) => navigate(`/user/${uid}`)}
-              />
+              /> : v.thumb_url ? <img src={v.thumb_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /> : null}
             </div>
           ))
         )}

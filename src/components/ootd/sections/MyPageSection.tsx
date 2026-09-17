@@ -150,7 +150,7 @@ const MyPageSection = () => {
       <header className="flex items-start gap-4 pt-5">
         <span className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-muted">
           {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+              <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" fetchPriority="high" decoding="async" />
           ) : (
             <span className="flex h-full w-full items-center justify-center font-display text-2xl text-foreground/40">
               {name.slice(0, 1).toUpperCase()}
@@ -282,6 +282,7 @@ const MyPageSection = () => {
                   alt={p.caption ?? ""}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   loading="lazy"
+                  decoding="async"
                 />
                 <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-background/85 px-1.5 py-0.5 text-[9px] font-semibold text-foreground/85 backdrop-blur-md">
                   <Heart className="h-2.5 w-2.5 fill-accent text-accent" strokeWidth={0} />

@@ -58,6 +58,12 @@ const FeedSection = () => {
   const [done, setDone] = useState(false);
   const pageRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef(false);
+  const interestsRef = useRef(interests);
+  const circleIdsRef = useRef(circleIds);
+
+  useEffect(() => { interestsRef.current = interests; }, [interests]);
+  useEffect(() => { circleIdsRef.current = circleIds; }, [circleIds]);
 
   // Load interest signals once per user.
   useEffect(() => {
@@ -90,20 +96,21 @@ const FeedSection = () => {
         ...((p.topics ?? []) as string[]),
       ].map((t) => (t || "").toLowerCase());
       let s = 0;
-      for (const t of tags) if (interests.has(t)) s += 3;
-      if (circleIds.has(p.user_id)) s += 2;
+      for (const t of tags) if (interestsRef.current.has(t)) s += 3;
+      if (circleIdsRef.current.has(p.user_id)) s += 2;
       s += Math.min(4, Math.log2(1 + (p.star_count ?? 0) + (p.like_count ?? 0)));
       // Recency boost — halve every 3 days.
       const days = Math.max(0, (Date.now() - new Date(p.created_at).getTime()) / 86_400_000);
       s += Math.max(0, 3 - days / 3);
       return s;
     },
-    [interests, circleIds],
+    [],
   );
 
   const loadPage = useCallback(
     async (reset = false) => {
-      if (loadingMore) return;
+      if (loadingRef.current || (!reset && done)) return;
+      loadingRef.current = true;
       if (reset) { pageRef.current = 0; setDone(false); }
       const page = pageRef.current;
       if (page === 0) setLoading(true); else setLoadingMore(true);
@@ -111,7 +118,7 @@ const FeedSection = () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("ootd_posts")
         .select("id, user_id, image_url, caption, style_tags, topics, star_count, like_count, wave_count, created_at")
         .not("image_url", "is", null)
@@ -119,6 +126,16 @@ const FeedSection = () => {
         .range(from, to);
 
       const rows = (data ?? []) as PostRow[];
+      rows.forEach((r) => { r._score = scorePost(r); });
+      rows.sort((a, b) => ((b._score ?? 0) - (a._score ?? 0)));
+      setPosts((prev) => (reset ? rows : [...prev, ...rows]));
+      pageRef.current = page + 1;
+      if (rows.length < PAGE_SIZE) setDone(true);
+      setLoading(false);
+      setLoadingMore(false);
+      loadingRef.current = false;
+      if (error) return;
+
       // hydrate profiles for this page
       const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
       if (ids.length) {
@@ -127,27 +144,22 @@ const FeedSection = () => {
           .select("user_id, display_name, username, avatar_url")
           .in("user_id", ids);
         const map = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
-        rows.forEach((r) => { r.profile = map.get(r.user_id) ?? null; });
+        setPosts((prev) => prev.map((r) => map.has(r.user_id) ? { ...r, profile: map.get(r.user_id) ?? null } : r));
       }
-      rows.forEach((r) => { r._score = scorePost(r); });
-      // Re-rank the newly fetched page by personal score so interests bubble up.
-      rows.sort((a, b) => (b._score! - a._score!));
-
-      setPosts((prev) => (reset ? rows : [...prev, ...rows]));
-      pageRef.current = page + 1;
-      if (rows.length < PAGE_SIZE) setDone(true);
-      setLoading(false);
-      setLoadingMore(false);
     },
-    [scorePost, loadingMore],
+    [done, scorePost],
   );
 
-  // Initial + when interests resolve, rebuild feed.
+  // Start the public feed immediately; personalization arriving later only re-ranks it.
+  useEffect(() => {
+    void loadPage(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   useEffect(() => {
     if (!profileReady) return;
-    loadPage(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileReady, interests.size, circleIds.size]);
+    setPosts((current) => [...current].map((p) => ({ ...p, _score: scorePost(p) })).sort((a, b) => ((b._score ?? 0) - (a._score ?? 0))));
+  }, [profileReady, interests, circleIds, scorePost]);
 
   // Infinite scroll.
   useEffect(() => {
@@ -225,7 +237,9 @@ const FeedSection = () => {
                 src={p.image_url}
                 alt={p.caption ?? "OOTD"}
                 className="absolute inset-0 h-full w-full object-cover"
-                loading="lazy"
+                loading={posts.indexOf(p) < 2 ? "eager" : "lazy"}
+                fetchPriority={posts.indexOf(p) < 2 ? "high" : "auto"}
+                decoding="async"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   const img = e.currentTarget as HTMLImageElement;
@@ -303,7 +317,7 @@ const FeedSection = () => {
           type="button"
           onClick={() => navigate("/ootd?section=my&action=post")}
           aria-label="Post OOTD"
-          className="fixed bottom-24 right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-[var(--shadow-3)] transition hover:scale-105 md:bottom-12"
+          className="fixed bottom-[calc(var(--app-bottom-nav-height)+1rem)] right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-[var(--shadow-3)] transition hover:scale-105 md:bottom-12"
         >
           <Plus className="h-5 w-5" strokeWidth={2} />
         </button>
