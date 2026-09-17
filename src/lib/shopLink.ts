@@ -40,7 +40,7 @@ export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): 
   if (!current || current === "#") return null;
   if (!/^https?:\/\//i.test(current)) {
     if (/^\/\//.test(current)) current = `https:${current}`;
-    else if (/^[\w-]+\.[\w.-]+\//.test(current)) current = `https://${current}`;
+    else if (/^[\w-]+\.[\w.-]+(?:\/|$)/.test(current)) current = `https://${current}`;
     else return null;
   }
 
