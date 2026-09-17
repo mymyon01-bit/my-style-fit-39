@@ -344,14 +344,11 @@ const FeedSection = () => {
                   <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
-                aria-label="Share"
-                className="text-foreground/75 transition hover:text-foreground"
-              >
-                <Share2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
-              </button>
+              <ShareButton
+                title={p.caption || "OOTD"}
+                url={`${window.location.origin}/ootd?section=feed&post=${p.id}`}
+                className="text-foreground/75"
+              />
             </footer>
           </article>
         ))}
