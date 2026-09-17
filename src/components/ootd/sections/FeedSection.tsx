@@ -38,6 +38,32 @@ interface PostRow {
 
 const PAGE_SIZE = 18;
 
+/* ---- Local keep-safe copy of the viewer's own posts ------------------- */
+const MY_POSTS_KEY = (uid: string) => `ootd-my-posts-v1:${uid}`;
+
+function readMyPosts(uid?: string | null): PostRow[] {
+  if (!uid || typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(MY_POSTS_KEY(uid));
+    return raw ? (JSON.parse(raw) as PostRow[]) : [];
+  } catch { return []; }
+}
+
+function writeMyPosts(uid: string, rows: PostRow[]) {
+  try { localStorage.setItem(MY_POSTS_KEY(uid), JSON.stringify(rows.slice(0, 60))); } catch { /* quota */ }
+}
+
+function rememberMyPost(uid: string | undefined, row: PostRow) {
+  if (!uid || row.user_id !== uid || !row.image_url) return;
+  const { _score, profile, ...clean } = row;
+  const rest = readMyPosts(uid).filter((r) => r.id !== row.id);
+  writeMyPosts(uid, [clean as PostRow, ...rest]);
+}
+
+function forgetMyPost(uid: string, id: string) {
+  writeMyPosts(uid, readMyPosts(uid).filter((r) => r.id !== id));
+}
+
 function timeAgo(iso: string) {
   const d = new Date(iso).getTime();
   const diff = Math.max(0, Date.now() - d);
