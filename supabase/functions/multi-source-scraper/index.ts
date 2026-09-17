@@ -974,7 +974,20 @@ function balancedInterleave(items: RawProduct[], maxShareOfTotal = 0.3): RawProd
 
 // ── Persist into product_cache (with normalized_title in search_query) ──────
 
-async function upsertCache(items: RawProduct[], query: string): Promise<number> {
+// Only shoppable products are stored: a row must point at a real retailer page.
+// Google Shopping / search wrappers are rewritten to the retailer's own site
+// when the seller is known, and dropped entirely when it is not.
+function shoppable(items: RawProduct[]): RawProduct[] {
+  return items.flatMap((p) => {
+    const direct = directMerchantUrl(p.source_url);
+    if (direct) return [{ ...p, source_url: direct }];
+    const viaMerchant = merchantSearchUrl(p.store_name ?? p.brand ?? "", p.name);
+    return viaMerchant ? [{ ...p, source_url: viaMerchant }] : [];
+  });
+}
+
+async function upsertCache(rawItems: RawProduct[], query: string): Promise<number> {
+  const items = shoppable(rawItems);
   if (!items.length) return 0;
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
   const rows = items.map((p) => ({
