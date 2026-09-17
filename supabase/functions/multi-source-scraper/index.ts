@@ -103,22 +103,6 @@ function safeImage(u: unknown): string | null {
 }
 
 const GOOGLE_HOST = /(^|\.)google\.[a-z.]+$/i;
-const MERCHANT_DOMAINS: Record<string, string> = {
-  "net-a-porter": "net-a-porter.com",
-  "net-a-porter.com": "net-a-porter.com",
-  nordstrom: "nordstrom.com",
-  farfetch: "farfetch.com",
-  ssense: "ssense.com",
-  asos: "asos.com",
-  coach: "coach.com",
-  fwrd: "fwrd.com",
-  "keds.com": "keds.com",
-  skechers: "skechers.com",
-  "skechers.com": "skechers.com",
-  "nunn bush shoes": "nunnbush.com",
-  "pants store": "pantsstore.com",
-  "penner's": "pennersinc.com",
-};
 
 function directMerchantUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -137,12 +121,7 @@ function directMerchantUrl(value: unknown): string | null {
 }
 
 function merchantSearchUrl(merchant: string, productName: string): string | null {
-  const key = merchant.trim().toLowerCase();
-  const dotted = key.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-  const domain = MERCHANT_DOMAINS[key] ??
-    MERCHANT_DOMAINS[key.replace(/\.com$/, "")] ??
-    (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(dotted) ? dotted : null);
-  return domain ? `https://${domain}/search?q=${encodeURIComponent(productName)}` : null;
+  return merchantProductSearchUrl(merchant, productName);
 }
 
 function googleShoppingDestination(o: Record<string, unknown>, name: string): { url: string; merchant: string } | null {
