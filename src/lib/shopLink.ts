@@ -65,9 +65,10 @@ export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): 
     }
     if (!next) {
       // A Google Shopping result without an embedded merchant destination can
-      // never be shown in an iframe. Route to the merchant's own search page
-      // when possible; otherwise suppress the unusable link entirely.
-      return merchantSearchUrl(context);
+      // never be shown in an iframe. Prefer the merchant's own search page;
+      // otherwise keep the Google page — opening it in a real top-level tab
+      // works fine, and a dead click is worse than a Google results page.
+      return merchantSearchUrl(context) ?? url.toString();
     }
     current = next;
   }

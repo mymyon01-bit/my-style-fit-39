@@ -465,7 +465,7 @@ function TryOnPreviewModalImpl({ open, onClose, context }: Props) {
                   {resolveShopUrl(context.productUrl) && (
                     <button
                       type="button"
-                      onClick={() => { void openShopUrl(context.productUrl); }}
+                      onClick={() => { void openShopUrl(context.productUrl, { productName: context.productName, merchant: context.productBrand }); }}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-2.5 text-[11px] font-semibold text-background hover:opacity-90 transition-opacity"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
