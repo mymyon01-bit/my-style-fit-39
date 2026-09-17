@@ -500,6 +500,51 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_applications: {
+        Row: {
+          created_at: string
+          follower_count: number
+          handle: string
+          id: string
+          note: string | null
+          platform: string
+          profile_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_count?: number
+          handle: string
+          id?: string
+          note?: string | null
+          platform: string
+          profile_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_count?: number
+          handle?: string
+          id?: string
+          note?: string | null
+          platform?: string
+          profile_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_recommendations: {
         Row: {
           context: Json | null
@@ -1920,6 +1965,7 @@ export type Database = {
           gender_preference: string | null
           hashtags: string[] | null
           id: string
+          is_creator: boolean
           is_official: boolean
           is_private: boolean | null
           language: string | null
@@ -1954,6 +2000,7 @@ export type Database = {
           gender_preference?: string | null
           hashtags?: string[] | null
           id?: string
+          is_creator?: boolean
           is_official?: boolean
           is_private?: boolean | null
           language?: string | null
@@ -1988,6 +2035,7 @@ export type Database = {
           gender_preference?: string | null
           hashtags?: string[] | null
           id?: string
+          is_creator?: boolean
           is_official?: boolean
           is_private?: boolean | null
           language?: string | null
@@ -3646,6 +3694,7 @@ export type Database = {
           gender_preference: string | null
           hashtags: string[] | null
           id: string
+          is_creator: boolean
           is_official: boolean
           is_private: boolean | null
           language: string | null
@@ -3743,6 +3792,7 @@ export type Database = {
           gender_preference: string | null
           hashtags: string[] | null
           id: string
+          is_creator: boolean
           is_official: boolean
           is_private: boolean | null
           language: string | null

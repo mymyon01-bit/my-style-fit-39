@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Bookmark, Loader2, Camera, Film } from "lucide-react";
+import { Heart, Bookmark, Loader2, Camera, Film, BadgeCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
@@ -19,12 +19,14 @@ import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 import StoriesRow, { type UserStories } from "@/components/StoriesRow";
 import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
+import MyActivityList from "@/components/ootd/MyActivityList";
+import CreatorApplyCard from "@/components/ootd/CreatorApplyCard";
 
-type SubTab = "outfits" | "looks" | "saved" | "reviews";
+type SubTab = "outfits" | "activity" | "saved" | "reviews";
 
 const SUB_TABS: { key: SubTab; label: string }[] = [
   { key: "outfits", label: "Outfits" },
-  { key: "looks", label: "Looks" },
+  { key: "activity", label: "Activity" },
   { key: "saved", label: "Saved" },
   { key: "reviews", label: "Reviews" },
 ];
@@ -35,7 +37,9 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  is_creator?: boolean | null;
 }
+
 
 interface PostThumb {
   id: string;
@@ -80,7 +84,7 @@ const MyPageSection = () => {
       const [{ data: prof }, { count: outfits }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("user_id, display_name, username, avatar_url, bio")
+          .select("user_id, display_name, username, avatar_url, bio, is_creator")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase
@@ -101,7 +105,7 @@ const MyPageSection = () => {
     setLoading(true);
     (async () => {
       let rows: PostThumb[] = [];
-      if (tab === "outfits" || tab === "looks") {
+      if (tab === "outfits") {
         const { data } = await supabase
           .from("ootd_posts")
           .select("id, image_url, caption, star_count, created_at")
@@ -159,7 +163,11 @@ const MyPageSection = () => {
         </span>
         <div className="min-w-0 flex-1 pt-1">
           <p className="mb-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-accent">PROFILE / ARCHIVE</p>
-          <h1 className="text-[24px] font-black uppercase leading-tight tracking-normal text-foreground">{name}</h1>
+          <h1 className="flex items-center gap-1.5 text-[24px] font-black uppercase leading-tight tracking-normal text-foreground">
+            {name}
+            {profile?.is_creator && <BadgeCheck className="h-4 w-4 text-accent" strokeWidth={2} aria-label="Creator" />}
+          </h1>
+
           {handle && <p className="text-[12px] text-foreground/50">{handle}</p>}
           {profile?.bio && (
             <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-foreground/70">
@@ -194,6 +202,9 @@ const MyPageSection = () => {
           </div>
         ))}
       </div>
+
+      <CreatorApplyCard isCreator={!!profile?.is_creator} />
+
 
       {/* Edit + Save */}
       <div className="mt-4 flex items-center gap-2">
@@ -258,10 +269,13 @@ const MyPageSection = () => {
 
       {/* Grid */}
       <div className="mt-4">
-        {loading ? (
+        {tab === "activity" ? (
+          <MyActivityList />
+        ) : loading ? (
           <div className="flex min-h-[30vh] items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-accent/65" />
           </div>
+
         ) : posts.length === 0 ? (
           <div className="flex min-h-[30vh] flex-col items-center justify-center gap-3 text-foreground/55">
             <Camera className="h-6 w-6" strokeWidth={1.4} />

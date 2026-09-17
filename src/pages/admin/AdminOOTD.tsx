@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Camera, Trash2 } from "lucide-react";
 import SafeImage from "@/components/SafeImage";
 import { toast } from "sonner";
+import CreatorApplicationsPanel from "@/components/admin/CreatorApplicationsPanel";
+
 
 const AdminOOTD = () => {
   const [posts, setPosts] = useState<any[]>([]);
@@ -38,7 +40,9 @@ const AdminOOTD = () => {
 
   return (
     <div className="space-y-6">
+      <CreatorApplicationsPanel />
       <div className="flex items-center justify-between">
+
         <h1 className="text-lg font-display text-foreground/80">OOTD Posts</h1>
         <span className="text-[11px] text-foreground/75">{posts.length} posts</span>
       </div>
