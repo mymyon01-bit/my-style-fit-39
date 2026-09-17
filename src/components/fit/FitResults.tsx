@@ -1146,7 +1146,7 @@ export default function FitResults({
                   href={resolveShopUrl(product.url) ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => { e.preventDefault(); void openShopUrl(product.url); }}
+                  onClick={(e) => { e.preventDefault(); void openShopUrl(product.url, { productName: product.name, merchant: product.brand }); }}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-[12px] font-bold tracking-[0.2em] text-background uppercase transition-opacity hover:opacity-90"
                 >
                   Add to bag <ExternalLink className="h-3 w-3" />

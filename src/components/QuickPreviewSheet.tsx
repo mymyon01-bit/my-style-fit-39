@@ -80,7 +80,7 @@ export default function QuickPreviewSheet({ open, onClose, product }: QuickPrevi
                   href={resolveShopUrl(product.source_url) ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => { e.preventDefault(); void openShopUrl(product.source_url); }}
+                  onClick={(e) => { e.preventDefault(); void openShopUrl(product.source_url, { productName: product.name, merchant: product.brand }); }}
                   className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-primary"
                 >
                   Open <ExternalLink className="h-2.5 w-2.5" />
