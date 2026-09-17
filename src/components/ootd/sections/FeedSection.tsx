@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Bookmark, Share2, MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import WaveButton from "@/components/ootd/WaveButton";
+import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
@@ -59,6 +60,9 @@ const FeedSection = () => {
   const pageRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const loadingRef = useRef(false);
+  const profileCache = useRef<Map<string, PostRow["profile"]>>(new Map());
+  const [feedMs, setFeedMs] = useState<number | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
   const interestsRef = useRef(interests);
   const circleIdsRef = useRef(circleIds);
 
@@ -107,6 +111,27 @@ const FeedSection = () => {
     [],
   );
 
+  /** Fetch + merge author profiles for any rows still missing one. */
+  const hydrateProfiles = useCallback(async (rows: PostRow[]) => {
+    const ids = Array.from(
+      new Set(rows.map((r) => r.user_id).filter((id) => id && !profileCache.current.has(id))),
+    );
+    if (!ids.length) {
+      setPosts((prev) => prev.map((r) =>
+        r.profile || !profileCache.current.has(r.user_id) ? r : { ...r, profile: profileCache.current.get(r.user_id) ?? null }
+      ));
+      return;
+    }
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, username, avatar_url")
+      .in("user_id", ids);
+    (profs ?? []).forEach((p: any) => profileCache.current.set(p.user_id, p));
+    setPosts((prev) => prev.map((r) =>
+      profileCache.current.has(r.user_id) ? { ...r, profile: profileCache.current.get(r.user_id) ?? null } : r
+    ));
+  }, []);
+
   const loadPage = useCallback(
     async (reset = false) => {
       if (loadingRef.current || (!reset && done)) return;
@@ -115,6 +140,7 @@ const FeedSection = () => {
       const page = pageRef.current;
       if (page === 0) setLoading(true); else setLoadingMore(true);
 
+      const startedAt = performance.now();
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
@@ -126,28 +152,26 @@ const FeedSection = () => {
         .range(from, to);
 
       const rows = (data ?? []) as PostRow[];
-      rows.forEach((r) => { r._score = scorePost(r); });
+      // Author info that is already cached is attached before the first paint,
+      // and any missing author is fetched in parallel with rendering below.
+      rows.forEach((r) => {
+        r._score = scorePost(r);
+        r.profile = profileCache.current.get(r.user_id) ?? null;
+      });
       rows.sort((a, b) => ((b._score ?? 0) - (a._score ?? 0)));
+      const hydration = error ? null : hydrateProfiles(rows);
       setPosts((prev) => (reset ? rows : [...prev, ...rows]));
       pageRef.current = page + 1;
       if (rows.length < PAGE_SIZE) setDone(true);
       setLoading(false);
       setLoadingMore(false);
       loadingRef.current = false;
-      if (error) return;
-
-      // hydrate profiles for this page
-      const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
-      if (ids.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name, username, avatar_url")
-          .in("user_id", ids);
-        const map = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
-        setPosts((prev) => prev.map((r) => map.has(r.user_id) ? { ...r, profile: map.get(r.user_id) ?? null } : r));
+      if (page === 0) {
+        setFeedMs(Math.round(performance.now() - startedAt));
       }
+      await hydration;
     },
-    [done, scorePost],
+    [done, scorePost, hydrateProfiles],
   );
 
   // Start the public feed immediately; personalization arriving later only re-ranks it.
@@ -155,6 +179,30 @@ const FeedSection = () => {
     void loadPage(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Realtime: a new post (mine or anyone's) appears without a refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel("ootd-feed-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ootd_posts" }, (payload) => {
+        const row = payload.new as PostRow;
+        if (!row?.image_url) return;
+        setPosts((prev) => {
+          if (prev.some((p) => p.id === row.id)) return prev;
+          const next = { ...row, _score: scorePost(row), profile: profileCache.current.get(row.user_id) ?? null };
+          return [next, ...prev];
+        });
+        void hydrateProfiles([row]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [scorePost, hydrateProfiles]);
+
+  /** Called right after a successful upload — show it instantly, then confirm from the server. */
+  const handlePosted = useCallback(() => {
+    setComposeOpen(false);
+    void loadPage(true);
+  }, [loadPage]);
 
   useEffect(() => {
     if (!profileReady) return;
@@ -176,6 +224,12 @@ const FeedSection = () => {
 
   return (
     <div className="mx-auto w-full max-w-md px-0 pb-10 lg:max-w-none">
+      {feedMs !== null && !loading && (
+        <p className="px-3 pt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-foreground/35 lg:px-0">
+          Feed loaded in {(feedMs / 1000).toFixed(2)}s
+        </p>
+      )}
+
       {/* Feed — single column mobile, 2-col tablet, 3-col desktop */}
       <div className="mt-2 grid gap-4 px-3 lg:grid-cols-2 lg:gap-6 lg:px-0 xl:grid-cols-3">
         {loading && (
@@ -229,7 +283,7 @@ const FeedSection = () => {
 
             <button
               type="button"
-              onClick={() => navigate(`/ootd?post=${p.id}`)}
+              onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
               className="relative block w-full overflow-hidden bg-gradient-to-br from-muted to-foreground/[0.06]"
               style={{ aspectRatio: "4 / 5" }}
             >
@@ -272,7 +326,7 @@ const FeedSection = () => {
                 <WaveButton postId={p.id} initialCount={(p as any).wave_count ?? 0} />
                 <button
                   type="button"
-                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
                   className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
                   aria-label="View comments"
                 >
@@ -281,7 +335,7 @@ const FeedSection = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
                   aria-label="Save"
                   className="transition hover:text-foreground"
                 >
@@ -290,7 +344,7 @@ const FeedSection = () => {
               </div>
               <button
                 type="button"
-                onClick={() => navigate(`/ootd?post=${p.id}`)}
+                onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
                 aria-label="Share"
                 className="text-foreground/75 transition hover:text-foreground"
               >
@@ -315,13 +369,19 @@ const FeedSection = () => {
       {user && (
         <button
           type="button"
-          onClick={() => navigate("/ootd?section=my&action=post")}
+          onClick={() => setComposeOpen(true)}
           aria-label="Post OOTD"
           className="fixed bottom-[calc(var(--app-bottom-nav-height)+1rem)] right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-[var(--shadow-3)] transition hover:scale-105 md:bottom-12"
         >
           <Plus className="h-5 w-5" strokeWidth={2} />
         </button>
       )}
+
+      <OOTDUploadSheet
+        open={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        onPosted={handlePosted}
+      />
     </div>
   );
 };
