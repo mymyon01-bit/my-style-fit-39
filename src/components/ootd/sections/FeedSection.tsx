@@ -11,9 +11,11 @@ import { useNavigate } from "react-router-dom";
 import { MessageCircle, Bookmark, Share2, MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import WaveButton from "@/components/ootd/WaveButton";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
+import { toast } from "sonner";
 
 interface PostRow {
   id: string;
