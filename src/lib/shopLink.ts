@@ -52,7 +52,7 @@ export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): 
       // A Google Shopping page is not a merchant destination. Never send a
       // shopper back to Google: use the merchant's own site when known, and
       // otherwise fall back to a neutral product search that always opens.
-      return merchantSearchUrl(context) ?? fallbackSearchUrl(context);
+      return merchantSearchUrl(context);
     }
     current = next;
   }
