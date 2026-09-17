@@ -153,7 +153,14 @@ const FeedSection = () => {
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      const rows = (data ?? []) as PostRow[];
+      let rows = (data ?? []) as PostRow[];
+      // My own posts are cached locally, so they stay in the feed even if a
+      // query or realtime hiccup would otherwise drop them.
+      if (reset && user) {
+        rows.forEach((r) => rememberMyPost(user.id, r));
+        const mine = readMyPosts(user.id).filter((m) => !rows.some((r) => r.id === m.id));
+        rows = [...mine, ...rows];
+      }
       // Author info that is already cached is attached before the first paint,
       // and any missing author is fetched in parallel with rendering below.
       rows.forEach((r) => {
