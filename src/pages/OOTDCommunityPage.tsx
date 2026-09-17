@@ -67,18 +67,18 @@ export default function OOTDCommunityPage() {
     <div className="ootd-modern-shell min-h-screen w-full bg-background pb-28 font-sans md:pb-16">
       {/* ── OOTD fashion-station header ────────────────────── */}
       <header className="sticky top-0 z-30 border-b-2 border-foreground/10 bg-background/95 backdrop-blur-xl">
-        <div className="mx-auto w-full max-w-[1600px] px-5 md:px-10 xl:px-16">
+        <div className="mx-auto w-full max-w-[1600px] px-3 min-[360px]:px-5 md:px-10 xl:px-16">
           {/* Title row */}
-          <div className="flex items-center justify-between pb-5 pt-5 md:pb-7 md:pt-7">
-            <div>
+          <div className="flex min-w-0 items-center justify-between gap-2 pb-5 pt-5 md:gap-4 md:pb-7 md:pt-7">
+            <div className="min-w-0 shrink">
               <p className="mb-1 font-mono text-[9px] font-bold uppercase tracking-[0.26em] text-foreground/42">
                 MYMYON / STYLE STATION
               </p>
-              <h1 className="text-[30px] font-black uppercase leading-none tracking-normal text-foreground md:text-[42px]">
+              <h1 className="text-[26px] font-black uppercase leading-none tracking-normal text-foreground min-[360px]:text-[30px] md:text-[42px]">
                 OOTD<span className="text-accent">.</span>
               </h1>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2">
+            <div className="flex shrink-0 items-center gap-0.5 min-[360px]:gap-1.5 md:gap-2">
               <IconBtn label="Home" onClick={() => navigate("/")}>
                 <Home className="h-[18px] w-[18px]" strokeWidth={1.7} />
               </IconBtn>
@@ -95,7 +95,7 @@ export default function OOTDCommunityPage() {
                 size="icon"
                 aria-label="Notifications"
                 onClick={() => setNotifsOpen(true)}
-                className="relative h-10 w-10 rounded-full border border-foreground/10 bg-card text-foreground/65 hover:bg-foreground hover:text-background"
+                className="relative h-9 w-9 rounded-full border border-foreground/10 bg-card text-foreground/65 hover:bg-foreground hover:text-background min-[360px]:h-10 min-[360px]:w-10"
               >
                 <Bell className="h-[18px] w-[18px]" strokeWidth={1.7} />
                 {notifUnread > 0 && (
@@ -113,7 +113,7 @@ export default function OOTDCommunityPage() {
           </div>
 
           {/* Circular fashion-station navigation */}
-          <nav className="flex items-start justify-between gap-1 overflow-x-auto pb-5 md:justify-center md:gap-12 md:pb-7">
+          <nav className="grid grid-cols-5 items-start gap-0.5 overflow-visible pb-5 min-[360px]:gap-1 md:flex md:justify-center md:gap-12 md:pb-7">
             {TABS.map((t) => {
               const active = tab === t.key;
               return (
@@ -123,12 +123,12 @@ export default function OOTDCommunityPage() {
                   variant="ghost"
                   onClick={() => switchTo(t.key)}
                   aria-label={t.label}
-                  className={`group relative h-auto min-w-0 flex-1 flex-col gap-2 rounded-none p-0 md:w-[78px] md:flex-none ${
+                  className={`group relative h-auto min-w-0 flex-col gap-2 rounded-none p-0 md:w-[78px] md:flex-none ${
                     active ? "text-foreground" : "text-foreground/38 hover:bg-transparent hover:text-foreground"
                   }`}
                 >
                   <span
-                    className={`relative flex h-[52px] w-[52px] items-center justify-center rounded-full border-2 transition-all duration-300 md:h-16 md:w-16 ${
+                    className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 transition-all duration-300 min-[360px]:h-[52px] min-[360px]:w-[52px] md:h-16 md:w-16 ${
                       active
                         ? "border-foreground bg-foreground text-background shadow-[4px_5px_0_hsl(var(--accent))] -translate-y-0.5"
                         : "border-foreground/12 bg-card text-foreground/35 group-hover:border-foreground group-hover:text-foreground"
@@ -205,7 +205,7 @@ function IconBtn({
       size="icon"
       aria-label={label}
       onClick={onClick}
-      className="h-10 w-10 rounded-full border border-foreground/10 bg-card text-foreground/65 hover:bg-foreground hover:text-background"
+      className="h-9 w-9 rounded-full border border-foreground/10 bg-card text-foreground/65 hover:bg-foreground hover:text-background min-[360px]:h-10 min-[360px]:w-10"
     >
       {children}
     </Button>

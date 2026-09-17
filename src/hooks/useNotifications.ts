@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
@@ -26,13 +26,26 @@ const OOTD_NOTIF_TYPES = [
   "reaction",
 ];
 
-export function useNotifications() {
+interface NotificationsState {
+  notifUnread: number;
+  msgUnread: number;
+  ootdUnread: number;
+  totalUnread: number;
+  refresh: () => Promise<void>;
+}
+
+const NotificationsContext = createContext<NotificationsState | null>(null);
+
+function useNotificationsSource(): NotificationsState {
   const { user } = useAuth();
   const [notifUnread, setNotifUnread] = useState(0);
   const [msgUnread, setMsgUnread] = useState(0);
   const [ootdUnread, setOotdUnread] = useState(0);
+  const refreshPromise = useRef<Promise<void> | null>(null);
 
   const refresh = useCallback(async () => {
+    if (refreshPromise.current) return refreshPromise.current;
+    const run = (async () => {
     if (!user) {
       setNotifUnread(0);
       setMsgUnread(0);
@@ -60,6 +73,13 @@ export function useNotifications() {
     setNotifUnread(n.count || 0);
     setMsgUnread(m.count || 0);
     setOotdUnread(o.count || 0);
+    })();
+    refreshPromise.current = run;
+    try {
+      await run;
+    } finally {
+      refreshPromise.current = null;
+    }
   }, [user]);
 
   useEffect(() => {
@@ -68,31 +88,48 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!user) return;
-    const channel = supabase.channel(`notif-${user.id}-${Math.random().toString(36).slice(2)}`);
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { void refresh(); }, 120);
+    };
+    const channel = supabase.channel(`notification-counts-${user.id}`);
     channel
       .on(
         "postgres_changes" as any,
         { event: "*", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
-        () => refresh(),
+        scheduleRefresh,
       )
       .on(
         "postgres_changes" as any,
         { event: "*", schema: "public", table: "messages", filter: `recipient_id=eq.${user.id}` },
-        () => refresh(),
+        scheduleRefresh,
       )
       .subscribe();
     return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
   }, [user, refresh]);
 
-  return {
+  return useMemo(() => ({
     notifUnread,
     msgUnread,
     ootdUnread,
     totalUnread: notifUnread + msgUnread,
     refresh,
-  };
+  }), [notifUnread, msgUnread, ootdUnread, refresh]);
+}
+
+export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const value = useNotificationsSource();
+  return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
+}
+
+export function useNotifications() {
+  const value = useContext(NotificationsContext);
+  if (!value) throw new Error("useNotifications must be used within NotificationsProvider");
+  return value;
 }
 
 export interface NotificationRow {

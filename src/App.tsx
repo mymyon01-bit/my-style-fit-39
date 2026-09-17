@@ -19,6 +19,7 @@ import PermissionsPrompt from "@/components/PermissionsPrompt";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 
 import { useMessageToasts } from "@/hooks/useMessageToasts";
+import { NotificationsProvider } from "@/hooks/useNotifications";
 import { isNativeApp } from "@/lib/native/platform";
 import { Loader2 } from "lucide-react";
 import AuthPage from "@/pages/AuthPage";
@@ -314,6 +315,7 @@ const App = () => {
           <TransitionProvider>
             <I18nProvider>
               <AuthProvider>
+              <NotificationsProvider>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
@@ -324,6 +326,7 @@ const App = () => {
                   </OOTDModalProvider>
                 </BrowserRouter>
               </TooltipProvider>
+              </NotificationsProvider>
               </AuthProvider>
             </I18nProvider>
           </TransitionProvider>
