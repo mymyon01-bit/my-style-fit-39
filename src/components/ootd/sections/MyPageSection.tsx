@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Bookmark, Loader2, Camera, Film } from "lucide-react";
+import { Heart, Bookmark, Loader2, Camera, Film, BadgeCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
@@ -19,12 +19,14 @@ import OOTDShortUploadSheet from "@/components/ootd/OOTDShortUploadSheet";
 import StoriesRow, { type UserStories } from "@/components/StoriesRow";
 import StoryUploadSheet from "@/components/StoryUploadSheet";
 import StoryViewer from "@/components/StoryViewer";
+import MyActivityList from "@/components/ootd/MyActivityList";
+import CreatorApplyCard from "@/components/ootd/CreatorApplyCard";
 
-type SubTab = "outfits" | "looks" | "saved" | "reviews";
+type SubTab = "outfits" | "activity" | "saved" | "reviews";
 
 const SUB_TABS: { key: SubTab; label: string }[] = [
   { key: "outfits", label: "Outfits" },
-  { key: "looks", label: "Looks" },
+  { key: "activity", label: "Activity" },
   { key: "saved", label: "Saved" },
   { key: "reviews", label: "Reviews" },
 ];
@@ -35,7 +37,9 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  is_creator?: boolean | null;
 }
+
 
 interface PostThumb {
   id: string;
