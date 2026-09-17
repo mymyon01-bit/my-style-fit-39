@@ -85,6 +85,41 @@ export default function OOTDPostDetail({
 
   useEffect(() => { loadComments(); }, [post.id]);
 
+  // Realtime comments — new comments / deletions land without a refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`ootd-comments-${post.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "ootd_comments", filter: `post_id=eq.${post.id}` },
+        (payload) => {
+          const row = payload.new as Comment;
+          setComments((prev) => (prev.some((c) => c.id === row.id) ? prev : [...prev, row]));
+          if (row.user_id && !profileMap[row.user_id]) {
+            void supabase
+              .from("profiles")
+              .select("user_id, display_name, username, avatar_url, is_official")
+              .eq("user_id", row.user_id)
+              .maybeSingle()
+              .then(({ data }) => {
+                if (data) setProfileMap((m) => ({ ...m, [(data as any).user_id]: data as ProfileInfo }));
+              });
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "ootd_comments" },
+        (payload) => {
+          const id = (payload.old as any)?.id;
+          if (id) setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id));
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id]);
+
   const loadComments = async () => {
     setLoadingComments(true);
     const { data } = await supabase

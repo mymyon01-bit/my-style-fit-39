@@ -8,12 +8,14 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Bookmark, Share2, MoreHorizontal, Plus, Loader2 } from "lucide-react";
+import { MessageCircle, Bookmark, MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import WaveButton from "@/components/ootd/WaveButton";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
+import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
+import { toast } from "sonner";
 
 interface PostRow {
   id: string;
@@ -35,6 +37,32 @@ interface PostRow {
 }
 
 const PAGE_SIZE = 18;
+
+/* ---- Local keep-safe copy of the viewer's own posts ------------------- */
+const MY_POSTS_KEY = (uid: string) => `ootd-my-posts-v1:${uid}`;
+
+function readMyPosts(uid?: string | null): PostRow[] {
+  if (!uid || typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(MY_POSTS_KEY(uid));
+    return raw ? (JSON.parse(raw) as PostRow[]) : [];
+  } catch { return []; }
+}
+
+function writeMyPosts(uid: string, rows: PostRow[]) {
+  try { localStorage.setItem(MY_POSTS_KEY(uid), JSON.stringify(rows.slice(0, 60))); } catch { /* quota */ }
+}
+
+function rememberMyPost(uid: string | undefined, row: PostRow) {
+  if (!uid || row.user_id !== uid || !row.image_url) return;
+  const { _score, profile, ...clean } = row;
+  const rest = readMyPosts(uid).filter((r) => r.id !== row.id);
+  writeMyPosts(uid, [clean as PostRow, ...rest]);
+}
+
+function forgetMyPost(uid: string, id: string) {
+  writeMyPosts(uid, readMyPosts(uid).filter((r) => r.id !== id));
+}
 
 function timeAgo(iso: string) {
   const d = new Date(iso).getTime();
@@ -151,7 +179,14 @@ const FeedSection = () => {
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      const rows = (data ?? []) as PostRow[];
+      let rows = (data ?? []) as PostRow[];
+      // My own posts are cached locally, so they stay in the feed even if a
+      // query or realtime hiccup would otherwise drop them.
+      if (reset && user) {
+        rows.forEach((r) => rememberMyPost(user.id, r));
+        const mine = readMyPosts(user.id).filter((m) => !rows.some((r) => r.id === m.id));
+        rows = [...mine, ...rows];
+      }
       // Author info that is already cached is attached before the first paint,
       // and any missing author is fetched in parallel with rendering below.
       rows.forEach((r) => {
@@ -180,13 +215,24 @@ const FeedSection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Realtime: a new post (mine or anyone's) appears without a refresh.
+  /** Put a deleted post back exactly as it was (undo). */
+  const restorePost = useCallback(async (row: PostRow) => {
+    const { _score, profile, ...clean } = row;
+    const { error } = await supabase.from("ootd_posts").insert(clean as any);
+    if (error) { toast.error("복구하지 못했어요"); return; }
+    setPosts((prev) => (prev.some((p) => p.id === row.id) ? prev : [{ ...row, _score: scorePost(row) }, ...prev]));
+    toast.success("게시물을 복구했어요");
+  }, [scorePost]);
+
+  // Realtime: new posts, live counts, and delete-with-undo so your own
+  // post is never lost by accident.
   useEffect(() => {
     const channel = supabase
       .channel("ootd-feed-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "ootd_posts" }, (payload) => {
         const row = payload.new as PostRow;
         if (!row?.image_url) return;
+        rememberMyPost(user?.id, row);
         setPosts((prev) => {
           if (prev.some((p) => p.id === row.id)) return prev;
           const next = { ...row, _score: scorePost(row), profile: profileCache.current.get(row.user_id) ?? null };
@@ -194,9 +240,28 @@ const FeedSection = () => {
         });
         void hydrateProfiles([row]);
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ootd_posts" }, (payload) => {
+        const row = payload.new as PostRow;
+        setPosts((prev) => prev.map((p) => (p.id === row.id ? { ...p, ...row, profile: p.profile } : p)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "ootd_posts" }, (payload) => {
+        const id = (payload.old as any)?.id;
+        if (!id) return;
+        setPosts((prev) => {
+          const gone = prev.find((p) => p.id === id);
+          if (gone && user && gone.user_id === user.id) {
+            forgetMyPost(user.id, id);
+            toast("게시물이 삭제됐어요", {
+              action: { label: "복구", onClick: () => void restorePost(gone) },
+              duration: 15000,
+            });
+          }
+          return prev.filter((p) => p.id !== id);
+        });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [scorePost, hydrateProfiles]);
+  }, [scorePost, hydrateProfiles, user, restorePost]);
 
   /** Called right after a successful upload — show it instantly, then confirm from the server. */
   const handlePosted = useCallback(() => {
@@ -342,14 +407,11 @@ const FeedSection = () => {
                   <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
-                aria-label="Share"
-                className="text-foreground/75 transition hover:text-foreground"
-              >
-                <Share2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
-              </button>
+              <ShareButton
+                title={p.caption || "OOTD"}
+                url={`${window.location.origin}/ootd?section=feed&post=${p.id}`}
+                className="text-foreground/75"
+              />
             </footer>
           </article>
         ))}
