@@ -4,7 +4,6 @@
  * (Products · Showrooms · Looks · Creators).
  */
 import { useEffect, useState } from "react";
-import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +65,26 @@ export default function SearchPage() {
       (data.creators?.length ?? 0) >
       0);
 
+  const openProduct = (product: Product) => {
+    const numericPrice = product.price == null ? null : Number(product.price);
+    const payload = {
+      id: product.id,
+      name: product.title,
+      brand: product.brand || "Unknown",
+      price: Number.isFinite(numericPrice) ? numericPrice : null,
+      image: product.image_url || "",
+      url: product.product_url || "#",
+      category: (product.category || "tops").toLowerCase().includes("bottom") ? "bottoms" : "tops",
+      fitType: "regular",
+      dataQuality: 60,
+      source: "db" as const,
+    };
+    try {
+      sessionStorage.setItem(`fit:product:${product.id}`, JSON.stringify(payload));
+    } catch { /* storage can be unavailable in private browsing */ }
+    navigate(`/fit/${encodeURIComponent(product.id)}`);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-16">
       <header className="sticky top-0 z-30 bg-background/90 px-5 pt-5 pb-3 backdrop-blur-xl md:px-10">
@@ -119,13 +138,11 @@ export default function SearchPage() {
               <Section title="Products">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   {data.products.map((p) => (
-                    <a
+                    <button
                       key={p.id}
-                      href={resolveShopUrl(p.product_url, { productName: p.title, merchant: p.brand }) ?? "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => { e.preventDefault(); void openShopUrl(p.product_url, { productName: p.title, merchant: p.brand }); }}
-                      className="group block overflow-hidden rounded-xl border border-border bg-card"
+                       type="button"
+                       onClick={() => openProduct(p)}
+                       className="group block w-full overflow-hidden rounded-xl border border-border bg-card text-left"
                     >
                       {p.image_url && (
                         <img
@@ -148,7 +165,7 @@ export default function SearchPage() {
                           </p>
                         )}
                       </div>
-                    </a>
+                    </button>
                   ))}
                 </div>
               </Section>

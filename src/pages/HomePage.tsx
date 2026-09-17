@@ -9,7 +9,6 @@
  * All navigation funnels into /discover with category/mood filters.
  */
 import { useCallback, useEffect, useState } from "react";
-import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -108,6 +107,25 @@ const HomePage = () => {
   const { t } = useI18n();
   const [trending, setTrending] = useState<TrendingProduct[]>([]);
   const [dnaPicks, setDnaPicks] = useState<DnaPick[]>([]);
+
+  const openProduct = useCallback((item: TrendingProduct) => {
+    const payload = {
+      id: item.id,
+      name: item.name || "Featured piece",
+      brand: item.brand || "MYMYON Selection",
+      price: null,
+      image: item.image_url || "",
+      url: item.source_url || "#",
+      category: "tops",
+      fitType: "regular",
+      dataQuality: 60,
+      source: "db" as const,
+    };
+    try {
+      sessionStorage.setItem(`fit:product:${item.id}`, JSON.stringify(payload));
+    } catch { /* storage can be unavailable in private browsing */ }
+    navigate(`/fit/${encodeURIComponent(item.id)}`);
+  }, [navigate]);
   const [heroes, setHeroes] = useState<HeroProduct[]>(EDITORIAL_HEROES);
   const [heroIdx, setHeroIdx] = useState(0);
   const hero = heroes[heroIdx] ?? null;
@@ -516,10 +534,7 @@ const HomePage = () => {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => {
-                    if (item.source_url) void openShopUrl(item.source_url, { productName: item.name, merchant: item.brand });
-                    else navigate("/discover?source=home");
-                  }}
+                  onClick={() => openProduct(item)}
                   className="relative shrink-0 overflow-hidden rounded-2xl bg-foreground/[0.04] text-left md:w-[200px]"
                   style={{ width: 140, aspectRatio: "3 / 4" }}
                 >
@@ -564,10 +579,7 @@ const HomePage = () => {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => {
-                  if (item.source_url) void openShopUrl(item.source_url, { productName: item.name, merchant: item.brand });
-                  else navigate("/discover?source=home");
-                }}
+                onClick={() => openProduct(item)}
                 className="group text-left"
               >
                 <div className="mb-5 aspect-[3/4] overflow-hidden bg-secondary/50">
