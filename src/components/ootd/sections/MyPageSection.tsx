@@ -203,6 +203,9 @@ const MyPageSection = () => {
         ))}
       </div>
 
+      <CreatorApplyCard isCreator={!!profile?.is_creator} />
+
+
       {/* Edit + Save */}
       <div className="mt-4 flex items-center gap-2">
         <Button
@@ -266,10 +269,13 @@ const MyPageSection = () => {
 
       {/* Grid */}
       <div className="mt-4">
-        {loading ? (
+        {tab === "activity" ? (
+          <MyActivityList />
+        ) : loading ? (
           <div className="flex min-h-[30vh] items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-accent/65" />
           </div>
+
         ) : posts.length === 0 ? (
           <div className="flex min-h-[30vh] flex-col items-center justify-center gap-3 text-foreground/55">
             <Camera className="h-6 w-6" strokeWidth={1.4} />
