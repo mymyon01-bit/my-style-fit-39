@@ -1,8 +1,6 @@
 import { type Product } from "@/lib/recommendation";
-import { openShopUrl, resolveShopUrl } from "@/lib/shopLink";
 import { Heart, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { AuthGate } from "@/components/AuthGate";
 import SafeImage from "@/components/SafeImage";
 import ShareButton from "@/components/ShareButton";
@@ -20,7 +18,6 @@ const LONG_PRESS_MS = 380;
 const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => {
   const [liked, setLiked] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const navigate = useNavigate();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressed = useRef(false);
 
@@ -51,11 +48,7 @@ const ProductCard = ({ product, compact, scoreBreakdown }: ProductCardProps) => 
       longPressed.current = false;
       return;
     }
-    if (product.source_url && product.source_url.startsWith("http")) {
-      void openShopUrl(product.source_url);
-    } else {
-      navigate(`/fit/${product.id}`);
-    }
+    setPreviewOpen(true);
   };
 
   return (
