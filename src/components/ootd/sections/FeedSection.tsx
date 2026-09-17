@@ -60,6 +60,9 @@ const FeedSection = () => {
   const pageRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const loadingRef = useRef(false);
+  const profileCache = useRef<Map<string, PostRow["profile"]>>(new Map());
+  const [feedMs, setFeedMs] = useState<number | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
   const interestsRef = useRef(interests);
   const circleIdsRef = useRef(circleIds);
 
