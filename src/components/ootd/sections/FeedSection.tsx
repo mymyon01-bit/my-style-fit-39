@@ -108,6 +108,27 @@ const FeedSection = () => {
     [],
   );
 
+  /** Fetch + merge author profiles for any rows still missing one. */
+  const hydrateProfiles = useCallback(async (rows: PostRow[]) => {
+    const ids = Array.from(
+      new Set(rows.map((r) => r.user_id).filter((id) => id && !profileCache.current.has(id))),
+    );
+    if (!ids.length) {
+      setPosts((prev) => prev.map((r) =>
+        r.profile || !profileCache.current.has(r.user_id) ? r : { ...r, profile: profileCache.current.get(r.user_id) ?? null }
+      ));
+      return;
+    }
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, username, avatar_url")
+      .in("user_id", ids);
+    (profs ?? []).forEach((p: any) => profileCache.current.set(p.user_id, p));
+    setPosts((prev) => prev.map((r) =>
+      profileCache.current.has(r.user_id) ? { ...r, profile: profileCache.current.get(r.user_id) ?? null } : r
+    ));
+  }, []);
+
   const loadPage = useCallback(
     async (reset = false) => {
       if (loadingRef.current || (!reset && done)) return;
@@ -116,6 +137,7 @@ const FeedSection = () => {
       const page = pageRef.current;
       if (page === 0) setLoading(true); else setLoadingMore(true);
 
+      const startedAt = performance.now();
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
@@ -127,28 +149,26 @@ const FeedSection = () => {
         .range(from, to);
 
       const rows = (data ?? []) as PostRow[];
-      rows.forEach((r) => { r._score = scorePost(r); });
+      // Author info that is already cached is attached before the first paint,
+      // and any missing author is fetched in parallel with rendering below.
+      rows.forEach((r) => {
+        r._score = scorePost(r);
+        r.profile = profileCache.current.get(r.user_id) ?? null;
+      });
       rows.sort((a, b) => ((b._score ?? 0) - (a._score ?? 0)));
+      const hydration = error ? null : hydrateProfiles(rows);
       setPosts((prev) => (reset ? rows : [...prev, ...rows]));
       pageRef.current = page + 1;
       if (rows.length < PAGE_SIZE) setDone(true);
       setLoading(false);
       setLoadingMore(false);
       loadingRef.current = false;
-      if (error) return;
-
-      // hydrate profiles for this page
-      const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
-      if (ids.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name, username, avatar_url")
-          .in("user_id", ids);
-        const map = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
-        setPosts((prev) => prev.map((r) => map.has(r.user_id) ? { ...r, profile: map.get(r.user_id) ?? null } : r));
+      if (page === 0) {
+        setFeedMs(Math.round(performance.now() - startedAt));
       }
+      await hydration;
     },
-    [done, scorePost],
+    [done, scorePost, hydrateProfiles],
   );
 
   // Start the public feed immediately; personalization arriving later only re-ranks it.
@@ -156,6 +176,30 @@ const FeedSection = () => {
     void loadPage(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Realtime: a new post (mine or anyone's) appears without a refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel("ootd-feed-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ootd_posts" }, (payload) => {
+        const row = payload.new as PostRow;
+        if (!row?.image_url) return;
+        setPosts((prev) => {
+          if (prev.some((p) => p.id === row.id)) return prev;
+          const next = { ...row, _score: scorePost(row), profile: profileCache.current.get(row.user_id) ?? null };
+          return [next, ...prev];
+        });
+        void hydrateProfiles([row]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [scorePost, hydrateProfiles]);
+
+  /** Called right after a successful upload — show it instantly, then confirm from the server. */
+  const handlePosted = useCallback(() => {
+    setComposeOpen(false);
+    void loadPage(true);
+  }, [loadPage]);
 
   useEffect(() => {
     if (!profileReady) return;
