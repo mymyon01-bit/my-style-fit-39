@@ -84,7 +84,7 @@ const MyPageSection = () => {
       const [{ data: prof }, { count: outfits }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("user_id, display_name, username, avatar_url, bio")
+          .select("user_id, display_name, username, avatar_url, bio, is_creator")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase
@@ -105,7 +105,7 @@ const MyPageSection = () => {
     setLoading(true);
     (async () => {
       let rows: PostThumb[] = [];
-      if (tab === "outfits" || tab === "looks") {
+      if (tab === "outfits") {
         const { data } = await supabase
           .from("ootd_posts")
           .select("id, image_url, caption, star_count, created_at")
@@ -163,7 +163,11 @@ const MyPageSection = () => {
         </span>
         <div className="min-w-0 flex-1 pt-1">
           <p className="mb-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-accent">PROFILE / ARCHIVE</p>
-          <h1 className="text-[24px] font-black uppercase leading-tight tracking-normal text-foreground">{name}</h1>
+          <h1 className="flex items-center gap-1.5 text-[24px] font-black uppercase leading-tight tracking-normal text-foreground">
+            {name}
+            {profile?.is_creator && <BadgeCheck className="h-4 w-4 text-accent" strokeWidth={2} aria-label="Creator" />}
+          </h1>
+
           {handle && <p className="text-[12px] text-foreground/50">{handle}</p>}
           {profile?.bio && (
             <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-snug text-foreground/70">
