@@ -317,8 +317,7 @@ const FeedSection = () => {
           type="button"
           onClick={() => navigate("/ootd?section=my&action=post")}
           aria-label="Post OOTD"
-          className="fixed right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-[var(--shadow-3)] transition hover:scale-105 md:bottom-12"
-          style={{ bottom: "calc(var(--app-bottom-nav-height) + 1rem)" }}
+          className="fixed bottom-[calc(var(--app-bottom-nav-height)+1rem)] right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-[var(--shadow-3)] transition hover:scale-105 md:bottom-12"
         >
           <Plus className="h-5 w-5" strokeWidth={2} />
         </button>
