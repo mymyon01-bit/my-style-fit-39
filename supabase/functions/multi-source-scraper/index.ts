@@ -17,6 +17,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCallerUserId } from "../_shared/ssrfGuard.ts";
+import { merchantProductSearchUrl } from "../_shared/merchantDomains.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -103,22 +104,6 @@ function safeImage(u: unknown): string | null {
 }
 
 const GOOGLE_HOST = /(^|\.)google\.[a-z.]+$/i;
-const MERCHANT_DOMAINS: Record<string, string> = {
-  "net-a-porter": "net-a-porter.com",
-  "net-a-porter.com": "net-a-porter.com",
-  nordstrom: "nordstrom.com",
-  farfetch: "farfetch.com",
-  ssense: "ssense.com",
-  asos: "asos.com",
-  coach: "coach.com",
-  fwrd: "fwrd.com",
-  "keds.com": "keds.com",
-  skechers: "skechers.com",
-  "skechers.com": "skechers.com",
-  "nunn bush shoes": "nunnbush.com",
-  "pants store": "pantsstore.com",
-  "penner's": "pennersinc.com",
-};
 
 function directMerchantUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -137,12 +122,7 @@ function directMerchantUrl(value: unknown): string | null {
 }
 
 function merchantSearchUrl(merchant: string, productName: string): string | null {
-  const key = merchant.trim().toLowerCase();
-  const dotted = key.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-  const domain = MERCHANT_DOMAINS[key] ??
-    MERCHANT_DOMAINS[key.replace(/\.com$/, "")] ??
-    (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(dotted) ? dotted : null);
-  return domain ? `https://${domain}/search?q=${encodeURIComponent(productName)}` : null;
+  return merchantProductSearchUrl(merchant, productName);
 }
 
 function googleShoppingDestination(o: Record<string, unknown>, name: string): { url: string; merchant: string } | null {
@@ -994,7 +974,20 @@ function balancedInterleave(items: RawProduct[], maxShareOfTotal = 0.3): RawProd
 
 // ── Persist into product_cache (with normalized_title in search_query) ──────
 
-async function upsertCache(items: RawProduct[], query: string): Promise<number> {
+// Only shoppable products are stored: a row must point at a real retailer page.
+// Google Shopping / search wrappers are rewritten to the retailer's own site
+// when the seller is known, and dropped entirely when it is not.
+function shoppable(items: RawProduct[]): RawProduct[] {
+  return items.flatMap((p) => {
+    const direct = directMerchantUrl(p.source_url);
+    if (direct) return [{ ...p, source_url: direct }];
+    const viaMerchant = merchantSearchUrl(p.store_name ?? p.brand ?? "", p.name);
+    return viaMerchant ? [{ ...p, source_url: viaMerchant }] : [];
+  });
+}
+
+async function upsertCache(rawItems: RawProduct[], query: string): Promise<number> {
+  const items = shoppable(rawItems);
   if (!items.length) return 0;
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
   const rows = items.map((p) => ({
