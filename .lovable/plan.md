@@ -1,127 +1,37 @@
-# MYMYON OOTD Community Rebuild — Implementation Plan
+# OOTD 모바일 레이아웃·소셜 속도 개선
 
-> Inspired by Instagram × Pinterest × TikTok × SSENSE, but executed as a
-> **Fashion Operating System**, not a social network. Keeps MYMYON's existing
-> Circle/Ripple terminology in the backend and adds **Wave 🌊** as the new
-> reaction primitive on top.
+## 목표
+- 작은 휴대폰에서도 OOTD 상단 버튼과 메뉴가 잘리지 않게 정리합니다.
+- 피드가 사용자 설정 조회를 기다리지 않고 먼저 표시되게 합니다.
+- 게시물, 프로필, 스토리, 알림, 메시지의 중복·순차 요청을 줄이고 연결 상태를 안정화합니다.
 
----
+## 변경 사항
+1. **상단 버튼과 메뉴 규격 수정**
+   - 320px 폭에서 실제로 잘리는 설정 버튼을 포함해 상단 도구를 한 화면에 맞춥니다.
+   - 작은 화면에서는 제목과 도구 크기·간격을 단계적으로 줄이고, 5개 OOTD 메뉴는 같은 폭과 안정적인 터치 영역을 유지합니다.
+   - iPhone 안전영역과 하단 메뉴 높이를 함께 반영해 고정 버튼과 콘텐츠가 겹치지 않게 합니다.
 
-## Naming Decision (locked)
+2. **피드 첫 로딩 단축**
+   - 공개 게시물 요청과 개인화 정보 요청을 동시에 시작합니다.
+   - 게시물 이미지를 먼저 보여주고 작성자 정보는 합쳐서 한 번에 보강합니다.
+   - 중복 초기 요청, 연속 스크롤 중복 호출, 탭 재방문 때의 불필요한 재요청을 차단합니다.
+   - 첫 화면 이미지는 우선 로딩하고 뒤쪽 이미지는 지연 로딩합니다.
 
-| Concept                  | MYMYON term                  | DB / code           |
-| ------------------------ | ---------------------------- | ------------------- |
-| People you follow        | **Circle** (private)         | `circles` table     |
-| One-way followers        | **Ripple** (public count)    | derived from circles|
-| "I love this style" tap  | **Wave 🌊** (replaces Like)  | new `ootd_waves`    |
-| Save to a board          | **Save**                     | `saved_posts` + folder |
-| Outfit collections / hubs| **Currents** (existing Waves feature stays as `waves` table — group hubs) | `waves`/`wave_*` |
+3. **소셜 연결 파이프라인 정리**
+   - 피드·내 페이지·스토리·서클·알림·메시지가 각각 같은 사용자/게시물 정보를 반복 조회하는 지점을 정리합니다.
+   - 기존 실시간 연결은 화면이 열려 있을 때만 유지하고, 이벤트가 연속으로 와도 필요한 데이터만 갱신합니다.
+   - 실패 시 화면 전체를 비우지 않고 기존 데이터와 재시도 가능한 상태를 유지합니다.
 
-Note: the existing `waves` table is the *group hub* feature (Old Money Wave,
-etc.). The new tap-reaction is `ootd_waves` so the two never collide. The
-story bar at the top of the feed surfaces `waves` rows (the hubs).
+4. **데이터 조회 최적화**
+   - OOTD 최신순, 사용자별 게시물, 활성 스토리, 서클 및 메시지 조회에 필요한 인덱스를 확인해 누락분만 추가합니다.
+   - 공개 범위와 기존 보안 규칙은 유지하고, 필요한 열만 조회합니다.
 
----
+5. **검증**
+   - 320×568, 360×800, 390×844 휴대폰과 데스크톱에서 잘림·겹침을 확인합니다.
+   - 첫 피드 표시, 탭 전환, 게시물 상세, 스토리, 메시지·알림 열기를 확인합니다.
+   - 요청 수와 로딩 시간을 변경 전후로 비교하고 관련 테스트를 실행합니다.
 
-## Phase 1 — Feed shell (Following / Explore / Trending + Wave bar + ranked feed)
-
-**Files**
-- `src/components/ootd/sections/FeedSection.tsx` — rewrite
-- `src/components/ootd/feed/WaveBar.tsx` *(new)* — horizontal rail of Currents (hub waves)
-- `src/components/ootd/feed/FeedCard.tsx` *(new)* — single post card
-- `src/components/ootd/feed/ShopTheLookSheet.tsx` *(new)* — tagged products drawer
-- `src/lib/ootd/feedRanking.ts` *(new)* — score function
-
-**Tabs**
-`Following` (= Circle) · `Explore` (default) · `Trending` (24 h hot)
-
-**Card anatomy**
-Avatar · username · location · image carousel · brand chips · product tags
-overlay · `Fit Match XX%` badge · 🌊 Waves · 💬 Comments · 💾 Save · 🛍 Shop the Look
-
-**Ranking signal weights** (client-side reorder of fetched window):
-```
-purchase 50 · fit tryon 20 · save 10 · showroom visit 8 ·
-comment 5 · wave 2 · like 1
-+ recency decay (e^(-hours/72))
-+ affinity boost if author ∈ Circle
-```
-
-## Phase 2 — Wave reaction primitive
-
-**Migration**
-- `ootd_waves(id, post_id, user_id, created_at, unique(post_id,user_id))`
-- `ootd_posts.wave_count int default 0`
-- trigger bumps `wave_count`
-- GRANTs: insert/delete for `authenticated`, select for `anon`
-- RLS: anyone can read, only owner can insert/delete own wave
-
-**Client**
-- `useWave(postId)` hook (optimistic toggle)
-- Replace heart icon in FeedCard / PostDetail with 🌊 swell animation
-- Keep legacy `ootd_reactions` rows readable so old `like_count` doesn't break
-  (display Waves = `wave_count`, fallback to `like_count` for legacy posts).
-
-## Phase 3 — Save → Collections
-
-- Tap Save → popover with folders from `saved_folders` (already exists) +
-  inline "New folder" input.
-- Default folders if user has none (seeded via existing `useSavedFolders`).
-- Profile → **Saved** tab shows folders as Pinterest-style tiles.
-
-## Phase 4 — Profile visibility rules
-
-- `UserProfilePage` shows: avatar · username · **Ripples (followers count)** ·
-  Waves received total · Showroom score · Fit accuracy · Creator rank.
-- **Circle list is private** — only the owner can open it. Visitors see only
-  the *count* and never the list.
-- Tabs: Posts · OOTD · Showroom · Saved · Tagged. `Saved` and `Tagged` only
-  visible to owner.
-
-**Backend**
-- RLS on `circles`: viewing one's own `follower_id` rows allowed; viewing
-  someone else's `follower_id` rows blocked. (Aggregate counts stay reachable
-  via a `SECURITY DEFINER` function `get_circle_counts(uid)`.)
-- `useCircleCounts` already returns counts via the function — keep it.
-
-## Phase 5 — Showroom score + Fit integration on cards
-
-- New view `showroom_scores` (SECURITY DEFINER fn): waves received ÷ visits.
-- `FeedCard` calls `useResolvedGarmentSize` only when a product is tagged;
-  shows `Fit Match %` badge using existing fit memory if available, else
-  hides the badge (no fake numbers).
-
-## Phase 6 — Discovery weighting
-
-Extend `src/lib/recommendation.ts`:
-- pull from `saved_posts`, `ootd_waves`, `interactions` (view duration),
-  `fit_memory`, `showroom_reactions`.
-- Used by Explore tab + `Based on Your Body DNA` row on Home.
-
-## Phase 7 — Polish
-
-- Wave swell micro-animation (framer-motion scale + ripple ring).
-- Empty states for each tab.
-- Skeleton loaders sized to final card height to prevent CLS.
-- Remove residual references to "Like" in OOTD surface copy.
-
----
-
-## Out of scope (explicit)
-- Push notifications (project rule: in-app only).
-- Stories — replaced by Wave/Currents rail; keep the existing `stories` table
-  untouched but stop surfacing it on the OOTD feed.
-- Renaming `circles`/`waves` tables — too risky, naming stays at UI layer.
-
----
-
-## Rollout order
-1. Phase 2 migration (Wave primitive) — unblocks everything else.
-2. Phase 1 feed shell consuming Wave count.
-3. Phase 3 Save folders popover.
-4. Phase 4 profile privacy + tabs.
-5. Phase 5 Fit + Showroom score badges.
-6. Phase 6 ranking extension.
-7. Phase 7 polish.
-
-Each phase ships independently; no big-bang switch.
+## 기술 세부사항
+- 현재 확인된 직접 원인: 320px에서 제목 옆 5개 도구의 총 너비가 컨테이너를 넘어 설정 버튼이 잘립니다.
+- 현재 확인된 속도 원인: `FeedSection`이 스타일·서클 조회 완료 후에만 게시물 조회를 시작하며, 그 후 작성자 정보를 다시 순차 조회합니다.
+- 네트워크 요청에는 실행 중 잠금과 취소 처리를 적용해 중복 응답이 최신 화면을 덮지 않게 합니다.
