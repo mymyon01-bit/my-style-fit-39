@@ -283,7 +283,7 @@ const FeedSection = () => {
 
             <button
               type="button"
-              onClick={() => navigate(`/ootd?post=${p.id}`)}
+              onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
               className="relative block w-full overflow-hidden bg-gradient-to-br from-muted to-foreground/[0.06]"
               style={{ aspectRatio: "4 / 5" }}
             >
@@ -326,7 +326,7 @@ const FeedSection = () => {
                 <WaveButton postId={p.id} initialCount={(p as any).wave_count ?? 0} />
                 <button
                   type="button"
-                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
                   className="flex items-center gap-1.5 text-[12px] transition hover:text-foreground"
                   aria-label="View comments"
                 >
@@ -335,7 +335,7 @@ const FeedSection = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate(`/ootd?post=${p.id}`)}
+                  onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
                   aria-label="Save"
                   className="transition hover:text-foreground"
                 >
@@ -344,7 +344,7 @@ const FeedSection = () => {
               </div>
               <button
                 type="button"
-                onClick={() => navigate(`/ootd?post=${p.id}`)}
+                onClick={() => navigate(`/ootd?section=feed&post=${p.id}`)}
                 aria-label="Share"
                 className="text-foreground/75 transition hover:text-foreground"
               >
