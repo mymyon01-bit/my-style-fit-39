@@ -15,11 +15,19 @@ export interface ShopLinkContext {
 
 const MERCHANT_DOMAINS: Record<string, string> = {
   "net-a-porter": "net-a-porter.com",
+  "net-a-porter.com": "net-a-porter.com",
   nordstrom: "nordstrom.com",
   farfetch: "farfetch.com",
   ssense: "ssense.com",
   asos: "asos.com",
   ssg: "ssg.com",
+  coach: "coach.com",
+  "keds.com": "keds.com",
+  skechers: "skechers.com",
+  "skechers.com": "skechers.com",
+  "nunn bush shoes": "nunnbush.com",
+  "pants store": "pantsstore.com",
+  "penner's": "pennersinc.com",
 };
 
 function merchantSearchUrl(context?: ShopLinkContext): string | null {
@@ -64,11 +72,10 @@ export function resolveShopUrl(raw?: string | null, context?: ShopLinkContext): 
       }
     }
     if (!next) {
-      // A Google Shopping result without an embedded merchant destination can
-      // never be shown in an iframe. Prefer the merchant's own search page;
-      // otherwise keep the Google page — opening it in a real top-level tab
-      // works fine, and a dead click is worse than a Google results page.
-      return merchantSearchUrl(context) ?? url.toString();
+      // A Google Shopping page is not a merchant destination. Never send a
+      // shopper back to Google: use the merchant's own site when known, and
+      // otherwise fail closed so callers can hide/disable the action.
+      return merchantSearchUrl(context);
     }
     current = next;
   }
