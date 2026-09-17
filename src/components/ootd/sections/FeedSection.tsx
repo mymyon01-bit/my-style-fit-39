@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Bookmark, Share2, MoreHorizontal, Plus, Loader2 } from "lucide-react";
+import { MessageCircle, Bookmark, MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import WaveButton from "@/components/ootd/WaveButton";
 import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import ShareButton from "@/components/ShareButton";
