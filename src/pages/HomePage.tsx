@@ -14,12 +14,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Bell,
-  User as UserIcon,
-  Tag,
-  Sparkles as SparklesIcon,
-  Gem,
-  Building2,
-  Minus,
   Heart,
   ArrowRight,
   Home as HomeIcon,
@@ -42,6 +36,7 @@ import heroFrame2 from "@/assets/hero/hero-2.jpg";
 import heroFrame3 from "@/assets/hero/hero-3.jpg";
 import heroFrame4 from "@/assets/hero/hero-4.jpg";
 import heroFrame5 from "@/assets/hero/hero-5.jpg";
+import discoverEditorial from "@/assets/tour-discover.jpg";
 
 const EDITORIAL_HEROES: { id: string; title: string; brand: string | null; image: string }[] = [
   { id: "editorial-1", title: "Off-Duty\nEssential", brand: "MYMYON Edit", image: heroFrame1 },
@@ -62,12 +57,12 @@ const CATEGORIES = [
 ];
 
 const QUICK_TILES = [
-  { key: "foryou",  label: "For You", icon: UserIcon },
-  { key: "brands",  label: "Brands",  icon: Tag },
-  { key: "newin",   label: "New In",  icon: SparklesIcon },
-  { key: "luxury",  label: "Luxury",  icon: Gem },
-  { key: "street",  label: "Street",  icon: Building2 },
-  { key: "minimal", label: "Minimal", icon: Minus },
+  { key: "foryou",  label: "For You", image: heroFrame1, position: "object-center" },
+  { key: "brands",  label: "Brands",  image: heroFrame3, position: "object-center" },
+  { key: "newin",   label: "New In",  image: heroFrame5, position: "object-center" },
+  { key: "luxury",  label: "Luxury",  image: heroFrame2, position: "object-center" },
+  { key: "street",  label: "Street",  image: discoverEditorial, position: "object-center" },
+  { key: "minimal", label: "Minimal", image: heroFrame4, position: "object-center" },
 ];
 
 type TrendingProduct = {
@@ -481,26 +476,36 @@ const HomePage = () => {
         </div>
 
 
-        {/* ── Quick tile row ──────────────────────────────────────── */}
-        <div className="mt-6 grid grid-cols-6 gap-1.5 sm:gap-3 md:gap-4 lg:hidden">
+        {/* ── Editorial category portraits ────────────────────────── */}
+        <div className="-mx-5 mt-7 overflow-x-auto px-5 pb-2 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="grid min-w-[420px] grid-cols-6 gap-3 sm:min-w-0 sm:gap-5">
           {QUICK_TILES.map((tile) => {
-            const Icon = tile.icon;
             return (
               <button
                 key={tile.key}
                 type="button"
                 onClick={() => goDiscover(tile.label.toLowerCase())}
-                className="group flex flex-col items-center gap-1.5"
+                className="group flex min-w-0 flex-col items-center gap-3"
               >
-                <span className="flex aspect-square w-full max-w-[64px] items-center justify-center rounded-2xl border border-border/70 bg-gradient-to-br from-secondary/60 via-card to-background shadow-[var(--shadow-1)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-accent/60 group-hover:from-accent/10 group-hover:via-accent/5 group-hover:shadow-[var(--shadow-2)]">
-                  <Icon className="h-[18px] w-[18px] text-accent/85 transition-colors group-hover:text-accent md:h-[20px] md:w-[20px]" strokeWidth={1.6} />
+                <span className="relative aspect-square w-full max-w-[68px] overflow-hidden rounded-full border border-accent/45 bg-card p-[3px] shadow-[0_5px_18px_-10px_hsl(var(--foreground)/0.45)] transition-all duration-500 group-hover:-translate-y-1 group-hover:border-accent group-hover:shadow-[var(--shadow-2)]">
+                  <span className="block h-full w-full overflow-hidden rounded-full bg-secondary/40">
+                    <img
+                      src={tile.image}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className={`h-full w-full ${tile.position} object-cover saturate-[0.72] contrast-[1.04] transition-transform duration-700 group-hover:scale-110 group-hover:saturate-100`}
+                    />
+                  </span>
+                  <span aria-hidden className="absolute inset-[3px] rounded-full ring-1 ring-background/70" />
                 </span>
-                <span className="text-[10px] font-medium tracking-tight text-foreground/75 md:text-[11px]">
+                <span className="whitespace-nowrap font-body text-[9px] font-medium uppercase tracking-[0.12em] text-foreground/65 transition-colors group-hover:text-foreground sm:text-[10px]">
                   {tile.label}
                 </span>
               </button>
             );
           })}
+          </div>
         </div>
 
         {/* ── Trending Now (hot OOTD posts) ───────────────────────── */}
@@ -715,23 +720,29 @@ const HomePage = () => {
           </section>
         )}
 
-        {/* ── Desktop circular category row ───────────────────────── */}
+        {/* ── Desktop editorial category portraits ────────────────── */}
         <section className="mt-24 hidden items-center justify-between border-t border-border/60 py-16 lg:flex">
           {QUICK_TILES.map((tile) => {
-            const Icon = tile.icon;
             return (
               <button
                 key={tile.key}
                 type="button"
                 onClick={() => goDiscover(tile.label.toLowerCase())}
-                className="group flex flex-col items-center"
+                className="group flex flex-col items-center gap-5"
               >
-                <span className="mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-border p-1 transition-colors duration-500 group-hover:border-accent">
-                  <span className="flex h-full w-full items-center justify-center rounded-full bg-secondary/50">
-                    <Icon className="h-6 w-6 text-accent/85 transition-colors group-hover:text-accent" strokeWidth={1.4} />
+                <span className="relative h-24 w-24 overflow-hidden rounded-full border border-accent/40 bg-card p-1 shadow-[0_8px_24px_-14px_hsl(var(--foreground)/0.5)] transition-all duration-500 group-hover:-translate-y-1 group-hover:border-accent group-hover:shadow-[var(--shadow-2)] xl:h-28 xl:w-28">
+                  <span className="block h-full w-full overflow-hidden rounded-full bg-secondary/40">
+                    <img
+                      src={tile.image}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className={`h-full w-full ${tile.position} object-cover saturate-[0.68] contrast-[1.05] transition-all duration-700 group-hover:scale-110 group-hover:saturate-100`}
+                    />
                   </span>
+                  <span aria-hidden className="absolute inset-1 rounded-full ring-1 ring-background/70" />
                 </span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/80">
+                <span className="font-body text-[10px] font-medium uppercase tracking-[0.2em] text-foreground/65 transition-colors group-hover:text-foreground">
                   {tile.label}
                 </span>
               </button>
