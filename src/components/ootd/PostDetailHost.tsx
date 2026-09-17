@@ -85,6 +85,22 @@ export default function PostDetailHost({ postId, onClose }: Props) {
     return () => { cancelled = true; };
   }, [postId, user]);
 
+  // Realtime: like / dislike / star counts update live while the detail is open.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`ootd-post-live-${postId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "ootd_posts", filter: `id=eq.${postId}` },
+        (payload) => {
+          const row = payload.new as Partial<OOTDPost>;
+          setPost((p) => (p ? { ...p, ...row } as OOTDPost : p));
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [postId]);
+
   const handleReaction = useCallback(async (id: string, type: "like" | "dislike") => {
     if (!user || !post) return;
     const current = reaction;
