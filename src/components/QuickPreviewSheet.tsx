@@ -77,7 +77,7 @@ export default function QuickPreviewSheet({ open, onClose, product }: QuickPrevi
               )}
               {product.source_url && (
                 <a
-                  href={resolveShopUrl(product.source_url) ?? "#"}
+                  href={resolveShopUrl(product.source_url, { productName: product.name, merchant: product.brand }) ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => { e.preventDefault(); void openShopUrl(product.source_url, { productName: product.name, merchant: product.brand }); }}

@@ -102,6 +102,67 @@ function safeImage(u: unknown): string | null {
   }
 }
 
+const GOOGLE_HOST = /(^|\.)google\.[a-z.]+$/i;
+const MERCHANT_DOMAINS: Record<string, string> = {
+  "net-a-porter": "net-a-porter.com",
+  "net-a-porter.com": "net-a-porter.com",
+  nordstrom: "nordstrom.com",
+  farfetch: "farfetch.com",
+  ssense: "ssense.com",
+  asos: "asos.com",
+  coach: "coach.com",
+  fwrd: "fwrd.com",
+  "keds.com": "keds.com",
+  skechers: "skechers.com",
+  "skechers.com": "skechers.com",
+  "nunn bush shoes": "nunnbush.com",
+  "pants store": "pantsstore.com",
+  "penner's": "pennersinc.com",
+};
+
+function directMerchantUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (!/^https?:$/.test(url.protocol)) return null;
+    if (!GOOGLE_HOST.test(url.hostname)) return url.toString();
+    for (const key of ["adurl", "url", "q", "u", "dest"]) {
+      const embedded = url.searchParams.get(key);
+      if (!embedded) continue;
+      const resolved = directMerchantUrl(embedded);
+      if (resolved) return resolved;
+    }
+  } catch { /* malformed candidate */ }
+  return null;
+}
+
+function merchantSearchUrl(merchant: string, productName: string): string | null {
+  const key = merchant.trim().toLowerCase();
+  const dotted = key.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+  const domain = MERCHANT_DOMAINS[key] ??
+    MERCHANT_DOMAINS[key.replace(/\.com$/, "")] ??
+    (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(dotted) ? dotted : null);
+  return domain ? `https://${domain}/search?q=${encodeURIComponent(productName)}` : null;
+}
+
+function googleShoppingDestination(o: Record<string, unknown>, name: string): { url: string; merchant: string } | null {
+  const sellers = Array.isArray(o.seller) ? o.seller : Array.isArray(o.sellers) ? o.sellers : [];
+  const firstSeller = sellers.find((entry) => entry && typeof entry === "object") as Record<string, unknown> | undefined;
+  const merchant = String(
+    o.merchantName ?? o.merchant ?? o.source ?? firstSeller?.merchant ?? firstSeller?.name ?? "",
+  ).trim();
+  const candidates = [
+    o.merchantUrl, o.merchantLink, o.offerUrl, o.productLink, o.productUrl, o.link, o.url,
+    firstSeller?.merchantUrl, firstSeller?.productLink, firstSeller?.url, firstSeller?.link,
+  ];
+  for (const candidate of candidates) {
+    const url = directMerchantUrl(candidate);
+    if (url) return { url, merchant };
+  }
+  const fallback = merchantSearchUrl(merchant, name);
+  return fallback ? { url: fallback, merchant } : null;
+}
+
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
     p,
@@ -261,7 +322,9 @@ async function fetchApifyGoogleShopping(query: string, max: number): Promise<Raw
         queries: [query],
         searchQueries: [query],
         maxItems: max,
-        countryCode: "us",
+        maxPostCount: max,
+        countryCode: "US",
+        isAdvancedResults: true,
       }),
       SOURCE_BUDGET_MS,
       "apify_gshopping",
@@ -273,13 +336,9 @@ async function fetchApifyGoogleShopping(query: string, max: number): Promise<Raw
         (Array.isArray(o.images) ? (o.images as unknown[])[0] : null),
       );
       const name = String(o.title ?? o.name ?? "").trim();
-      const link =
-        typeof o.link === "string" ? o.link :
-        typeof o.productUrl === "string" ? o.productUrl :
-        typeof o.url === "string" ? o.url : null;
-      if (!img || !link || !name || !isFashion(name)) return [];
-      const merchant = typeof o.merchant === "string" ? o.merchant.toLowerCase() :
-        (typeof o.source === "string" ? o.source.toLowerCase() : "google_shopping");
+      const destination = googleShoppingDestination(o, name);
+      if (!img || !destination || !name || !isFashion(name)) return [];
+      const { url: link, merchant } = destination;
       return [{
         external_id: `gshop-${String(o.productId ?? o.id ?? link)}`,
         name,
@@ -288,8 +347,8 @@ async function fetchApifyGoogleShopping(query: string, max: number): Promise<Raw
         currency: typeof o.currency === "string" ? o.currency : "USD",
         image_url: img,
         source_url: link,
-        store_name: typeof o.merchant === "string" ? o.merchant : "Google Shopping",
-        platform: merchant.replace(/\s+/g, "_").slice(0, 32),
+        store_name: merchant,
+        platform: merchant.toLowerCase().replace(/\s+/g, "_").slice(0, 32),
         source_type: "scraper",
         source_trust_level: "medium" as const,
         category: typeof o.category === "string" ? o.category : null,
