@@ -182,13 +182,24 @@ const FeedSection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Realtime: a new post (mine or anyone's) appears without a refresh.
+  /** Put a deleted post back exactly as it was (undo). */
+  const restorePost = useCallback(async (row: PostRow) => {
+    const { _score, profile, ...clean } = row;
+    const { error } = await supabase.from("ootd_posts").insert(clean as any);
+    if (error) { toast.error("복구하지 못했어요"); return; }
+    setPosts((prev) => (prev.some((p) => p.id === row.id) ? prev : [{ ...row, _score: scorePost(row) }, ...prev]));
+    toast.success("게시물을 복구했어요");
+  }, [scorePost]);
+
+  // Realtime: new posts, live counts, and delete-with-undo so your own
+  // post is never lost by accident.
   useEffect(() => {
     const channel = supabase
       .channel("ootd-feed-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "ootd_posts" }, (payload) => {
         const row = payload.new as PostRow;
         if (!row?.image_url) return;
+        rememberMyPost(user?.id, row);
         setPosts((prev) => {
           if (prev.some((p) => p.id === row.id)) return prev;
           const next = { ...row, _score: scorePost(row), profile: profileCache.current.get(row.user_id) ?? null };
@@ -196,9 +207,28 @@ const FeedSection = () => {
         });
         void hydrateProfiles([row]);
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "ootd_posts" }, (payload) => {
+        const row = payload.new as PostRow;
+        setPosts((prev) => prev.map((p) => (p.id === row.id ? { ...p, ...row, profile: p.profile } : p)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "ootd_posts" }, (payload) => {
+        const id = (payload.old as any)?.id;
+        if (!id) return;
+        setPosts((prev) => {
+          const gone = prev.find((p) => p.id === id);
+          if (gone && user && gone.user_id === user.id) {
+            forgetMyPost(user.id, id);
+            toast("게시물이 삭제됐어요", {
+              action: { label: "복구", onClick: () => void restorePost(gone) },
+              duration: 15000,
+            });
+          }
+          return prev.filter((p) => p.id !== id);
+        });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [scorePost, hydrateProfiles]);
+  }, [scorePost, hydrateProfiles, user, restorePost]);
 
   /** Called right after a successful upload — show it instantly, then confirm from the server. */
   const handlePosted = useCallback(() => {
