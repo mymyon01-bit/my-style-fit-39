@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Bookmark, Share2, MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import WaveButton from "@/components/ootd/WaveButton";
+import OOTDUploadSheet from "@/components/OOTDUploadSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCount } from "@/lib/formatCount";
