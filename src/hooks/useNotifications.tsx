@@ -88,7 +88,7 @@ function useNotificationsSource(): NotificationsState {
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => { void refresh(); }, 120);
     };
-    const channel = supabase.channel(`notification-counts-${user.id}`);
+    const channel = supabase.channel(`notification-counts-${user.id}-${Math.random().toString(36).slice(2)}`);
     channel
       .on(
         "postgres_changes" as any,

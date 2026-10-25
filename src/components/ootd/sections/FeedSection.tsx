@@ -232,7 +232,7 @@ const FeedSection = () => {
   // post is never lost by accident.
   useEffect(() => {
     const channel = supabase
-      .channel("ootd-feed-live")
+      .channel(`ootd-feed-live-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "ootd_posts" }, (payload) => {
         const row = payload.new as PostRow;
         if (!row?.image_url) return;
