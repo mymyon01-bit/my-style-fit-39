@@ -74,7 +74,7 @@ export default function FeedActivityBanner() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`feed-activity-${user.id}`)
+      .channel(`feed-activity-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },

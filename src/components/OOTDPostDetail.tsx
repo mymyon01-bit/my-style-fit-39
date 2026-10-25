@@ -88,7 +88,7 @@ export default function OOTDPostDetail({
   // Realtime comments — new comments / deletions land without a refresh.
   useEffect(() => {
     const channel = supabase
-      .channel(`ootd-comments-${post.id}`)
+      .channel(`ootd-comments-${post.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "ootd_comments", filter: `post_id=eq.${post.id}` },

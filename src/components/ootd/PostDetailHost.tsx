@@ -88,7 +88,7 @@ export default function PostDetailHost({ postId, onClose }: Props) {
   // Realtime: like / dislike / star counts update live while the detail is open.
   useEffect(() => {
     const channel = supabase
-      .channel(`ootd-post-live-${postId}`)
+      .channel(`ootd-post-live-${postId}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "ootd_posts", filter: `id=eq.${postId}` },
